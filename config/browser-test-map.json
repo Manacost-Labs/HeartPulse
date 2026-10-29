@@ -1,0 +1,1148 @@
+{
+  "version": 1,
+  "tests": {
+    "tests/admin-console-layout-browser.test.mjs": {
+      "routes": [
+        "/admin"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/admin/page.tsx",
+        "apps/public-web/app/layout.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/archetype-radar-picker-browser.test.mjs": {
+      "routes": [],
+      "stories": [
+        "archetype-detail-comparisons-on-real-data--radar"
+      ],
+      "entries": [
+        "src/features/ArchetypeComparisonsRealData.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/archetype-vicious-skeleton-geometry-browser.test.mjs": {
+      "routes": [],
+      "stories": [
+        "archetype-detail-measured-loading-geometry--ready",
+        "archetype-detail-measured-loading-geometry--builds-loading",
+        "archetype-detail-measured-loading-geometry--history-loading",
+        "archetype-detail-measured-loading-geometry--analysis-loading",
+        "vicious-gold-measured-loading-geometry--ready",
+        "vicious-gold-measured-loading-geometry--loading"
+      ],
+      "entries": [
+        "src/features/ConstructedArchetypeDetailGeometry.stories.tsx",
+        "src/features/viciousGold/ViciousGoldGeometry.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/archetypes-detail-browser.test.mjs": {
+      "routes": [],
+      "stories": [
+        "browser-test-fixtures-administrator-archetypes--archetype-page",
+        "browser-test-fixtures-administrator-archetypes--deck-builder"
+      ],
+      "entries": [
+        "src/features/ArchetypesFixture.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/arena-card-motion.browser.test.mjs": {
+      "routes": [],
+      "stories": [
+        "arena-hscard-geometry--cards-and-class-chart"
+      ],
+      "entries": [
+        "src/features/DeferredRoutes.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/arena-tier-card-geometry.browser.test.mjs": {
+      "routes": [],
+      "stories": [
+        "arena-tier-list-page--rarity-frames"
+      ],
+      "entries": [
+        "src/features/ArenaTierList.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/battleground-accessories-browser.test.mjs": {
+      "routes": [],
+      "stories": [],
+      "entries": [
+        "public/bg-legacy/shared.js",
+        "public/bg-legacy/strategy-builder.gridfix2.js",
+        "shared/publicResourceUrl.ts",
+        "src/features/BattlegroundTierBuilder.tsx",
+        "src/features/Battlegrounds.tsx",
+        "src/features/battlegroundTierBuilderDraft.ts",
+        "src/modules/battlegrounds/model/tierBuilder.ts",
+        "src/modules/battlegrounds/public.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/battleground-builders-browser.test.mjs": {
+      "routes": [
+        "/battlegrounds/tier-builder",
+        "/battlegrounds/strategies"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/battlegrounds/strategies/page.tsx",
+        "apps/public-web/app/battlegrounds/tier-builder/page.tsx",
+        "apps/public-web/app/layout.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/battleground-hero-motion-browser.test.mjs": {
+      "routes": [],
+      "stories": [
+        "battlegrounds-hero-detail--navigable-detail",
+        "battlegrounds-hero-detail--navigable-list",
+        "battlegrounds-hero-detail--navigable-empty-hero",
+        "battlegrounds-hero-ledger--tier-groups",
+        "battlegrounds-hero-tier-list--live-rankings"
+      ],
+      "entries": [
+        "src/features/BattlegroundHeroDetail.stories.tsx",
+        "src/features/BattlegroundHeroLedger.stories.tsx",
+        "src/features/BattlegroundHeroTierList.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/bg-hero-card-preview-browser.test.mjs": {
+      "routes": [],
+      "stories": [
+        "battlegrounds-analytics--compositions"
+      ],
+      "entries": [
+        "src/modules/battlegrounds/ui/HeroAnalytics.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/bg-library-controls-browser.test.mjs": {
+      "routes": [],
+      "stories": [
+        "battlegrounds-library--compact-controls",
+        "battlegrounds-librarycontrols--compact",
+        "battlegrounds-library--large-catalog"
+      ],
+      "entries": [
+        "src/features/BgLibrary.stories.tsx",
+        "src/modules/battlegrounds/ui/LibraryControls.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/constructed-archetypes-browser.test.mjs": {
+      "routes": [],
+      "stories": [
+        "browser-test-fixtures-constructed-archetypes--fixture",
+        "browser-test-fixtures-constructed-archetypes--archetype-detail"
+      ],
+      "entries": [
+        "src/features/ConstructedArchetypesFixture.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/controlled-input-browser.test.mjs": {
+      "routes": [],
+      "stories": [],
+      "entries": [
+        "scripts/controlled-input.mjs"
+      ],
+      "scope": "mapped"
+    },
+    "tests/deck-render-preview-browser.test.mjs": {
+      "routes": [],
+      "stories": [
+        "deckview-deck-render-preview--rendered-deck-with-hidden-fallback-list"
+      ],
+      "entries": [
+        "src/features/deckrender/DeckRenderPreview.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/field-focus-browser.test.mjs": {
+      "routes": [
+        "/standard/meta",
+        "/standard/archetypes",
+        "/standard/fun-decks"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/standard/archetypes/page.tsx",
+        "apps/public-web/app/standard/fun-decks/page.tsx",
+        "apps/public-web/app/standard/meta/page.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/hsguru-archetype-stats-browser.test.mjs": {
+      "routes": [],
+      "stories": [
+        "archetype-detail-hsguru-slice-stats--collected",
+        "archetype-detail-hsguru-slice-stats--nothing-collected"
+      ],
+      "entries": [
+        "src/features/HsguruArchetypeStats.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/hsreplay-deck-mobile-browser.test.mjs": {
+      "routes": [],
+      "stories": [
+        "browser-test-fixtures-deck-list--deck-list",
+        "browser-test-fixtures-deck-list--nested-deck-modal"
+      ],
+      "entries": [
+        "src/features/HsReplayDeckFixture.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/lightbox-close-stability-browser.test.mjs": {
+      "routes": [],
+      "stories": [
+        "components-lightbox-zoom--on-a-scrolled-page",
+        "battlegrounds-hero-detail--navigable-detail"
+      ],
+      "entries": [
+        "src/components/ModalSurface/LightboxZoom.stories.tsx",
+        "src/features/BattlegroundHeroDetail.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/mobile-layout-diagnostics.test.mjs": {
+      "routes": [],
+      "stories": [],
+      "entries": [
+        "scripts/mobile-layout-diagnostics.mjs"
+      ],
+      "scope": "mapped"
+    },
+    "tests/modal-surface-browser.test.mjs": {
+      "routes": [],
+      "stories": [
+        "components-modal-surface--lightbox-and-stacked-dialogs"
+      ],
+      "entries": [
+        "src/features/ConstructedCardLightbox.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-account-sessions-browser.test.mjs": {
+      "routes": [
+        "/",
+        "/standard/cards/:format/:cardId"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/page.tsx",
+        "apps/public-web/app/standard/cards/[format]/[cardId]/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-account-surface-browser.test.mjs": {
+      "routes": [
+        "/"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-admin-archetypes-browser.test.mjs": {
+      "routes": [
+        "/archetypes",
+        "/archetypes/wild",
+        "/archetypes/:archetypeId"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/archetypes/[archetypeId]/page.tsx",
+        "apps/public-web/app/archetypes/page.tsx",
+        "apps/public-web/app/archetypes/wild/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-admin-browser.test.mjs": {
+      "routes": [
+        "/admin"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/admin/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-admin-entitlements-browser.test.mjs": {
+      "routes": [
+        "/standard/fun-decks",
+        "/classes",
+        "/tierlist",
+        "/legendaries",
+        "/standard/matchups",
+        "/standard/meta",
+        "/standard/archetypes",
+        "/guides-archive",
+        "/heroes",
+        "/library",
+        "/library/:kind",
+        "/library/archive/:kind"
+      ],
+      "stories": [],
+      "entries": [],
+      "scope": "global",
+      "reason": "проверяет доступ по подписке на всех платных страницах сайта"
+    },
+    "tests/next-archetype-details-browser.test.mjs": {
+      "routes": [
+        "/standard/archetypes/:format/:archetypeSlug",
+        "/standard/meta/:format/:archetypeSlug"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/standard/archetypes/[format]/[archetypeSlug]/page.tsx",
+        "apps/public-web/app/standard/meta/[format]/[archetypeSlug]/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-archetypes-catalog-rendering-browser.test.mjs": {
+      "routes": [
+        "/standard/archetypes"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/standard/archetypes/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-arena-guest-paywall-browser.test.mjs": {
+      "routes": [
+        "/classes",
+        "/tierlist",
+        "/legendaries"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/classes/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/legendaries/page.tsx",
+        "apps/public-web/app/tierlist/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-article-covers-browser.test.mjs": {
+      "routes": [
+        "/",
+        "/articles"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/articles/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-bfcache-browser.test.mjs": {
+      "routes": [
+        "/",
+        "/classes",
+        "/tierlist",
+        "/standard/matchups",
+        "/heroes",
+        "/library",
+        "/guides-archive",
+        "/cosmetics",
+        "/admin",
+        "/battlegrounds/tier-list",
+        "/id/:publicProfileId",
+        "/faq",
+        "/deck-builder",
+        "/archetypes",
+        "/:path*"
+      ],
+      "stories": [],
+      "entries": [],
+      "scope": "global",
+      "reason": "проверяет возврат из кэша переходов (bfcache) на страницах всех типов: публичных, платных, админских и профилях"
+    },
+    "tests/next-bg-builders-browser.test.mjs": {
+      "routes": [
+        "/battlegrounds/strategies",
+        "/battlegrounds/tier-builder"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/battlegrounds/strategies/page.tsx",
+        "apps/public-web/app/battlegrounds/tier-builder/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-bg-hero-detail-browser.test.mjs": {
+      "routes": [
+        "/heroes/:dbfId"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/heroes/[dbfId]/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-bg-library-details-browser.test.mjs": {
+      "routes": [
+        "/library",
+        "/library/archive",
+        "/library/:kind/:slugAndDbfId",
+        "/library/archive/:kind/:slugAndDbfId"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/library/[kind]/[slugAndDbfId]/page.tsx",
+        "apps/public-web/app/library/archive/[kind]/[slugAndDbfId]/page.tsx",
+        "apps/public-web/app/library/archive/page.tsx",
+        "apps/public-web/app/library/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-bg-library-listings-browser.test.mjs": {
+      "routes": [
+        "/library",
+        "/library/:kind",
+        "/library/archive",
+        "/library/archive/:kind"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/library/[kind]/page.tsx",
+        "apps/public-web/app/library/archive/[kind]/page.tsx",
+        "apps/public-web/app/library/archive/page.tsx",
+        "apps/public-web/app/library/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-bg-tier-list-browser.test.mjs": {
+      "routes": [
+        "/battlegrounds/tier-list"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/battlegrounds/tier-list/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-canonical-links-browser.test.mjs": {
+      "routes": [
+        "/",
+        "/library",
+        "/standard/cards",
+        "/standard/archetypes",
+        "/standard/meta",
+        "/cosmetics",
+        "/battlegrounds/tier-list",
+        "/articles",
+        "/heroes",
+        "/guides-archive",
+        "/tierlist",
+        "/classes",
+        "/legendaries",
+        "/:path*"
+      ],
+      "stories": [],
+      "entries": [],
+      "scope": "global",
+      "reason": "проверяет canonical-ссылки и заголовки почти всех типов страниц, включая 404"
+    },
+    "tests/next-card-scroll-position-browser.test.mjs": {
+      "routes": [
+        "/standard/cards/:format/:cardId"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/standard/cards/[format]/[cardId]/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-cards-browser.test.mjs": {
+      "routes": [
+        "/standard/cards",
+        "/standard/cards/:format/:cardId"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/standard/cards/[format]/[cardId]/page.tsx",
+        "apps/public-web/app/standard/cards/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-connect-browser.test.mjs": {
+      "routes": [
+        "/connect"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/connect/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-cosmetics-browser.test.mjs": {
+      "routes": [
+        "/cosmetics",
+        "/cosmetics/:kind",
+        "/cosmetics/:kind/:cardId"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/cosmetics/[kind]/[cardId]/page.tsx",
+        "apps/public-web/app/cosmetics/[kind]/page.tsx",
+        "apps/public-web/app/cosmetics/page.tsx",
+        "apps/public-web/app/layout.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-deck-builder-browser.test.mjs": {
+      "routes": [
+        "/deck-builder"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/deck-builder/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-document-head-browser.test.mjs": {
+      "routes": [
+        "/faq"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/faq/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-error-boundary-browser.test.mjs": {
+      "routes": [
+        "/",
+        "/standard/meta/:format/:archetypeSlug",
+        "/standard/cards/:format",
+        "/contests",
+        "/articles",
+        "/classes",
+        "/deck-builder"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/articles/page.tsx",
+        "apps/public-web/app/classes/page.tsx",
+        "apps/public-web/app/contests/page.tsx",
+        "apps/public-web/app/deck-builder/page.tsx",
+        "apps/public-web/app/error.tsx",
+        "apps/public-web/app/global-error.tsx",
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/not-found.tsx",
+        "apps/public-web/app/page.tsx",
+        "apps/public-web/app/standard/cards/[format]/page.tsx",
+        "apps/public-web/app/standard/meta/[format]/[archetypeSlug]/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-first-paint-data-browser.test.mjs": {
+      "routes": [
+        "/standard/meta",
+        "/standard/archetypes",
+        "/standard/fun-decks"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/standard/archetypes/page.tsx",
+        "apps/public-web/app/standard/fun-decks/page.tsx",
+        "apps/public-web/app/standard/meta/page.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-font-swap-browser.test.mjs": {
+      "routes": [
+        "/terms",
+        "/privacy",
+        "/battlegrounds/tier-list",
+        "/leaderboards"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/battlegrounds/tier-list/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/leaderboards/page.tsx",
+        "apps/public-web/app/privacy/page.tsx",
+        "apps/public-web/app/terms/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-guide-detail-browser.test.mjs": {
+      "routes": [
+        "/guides-archive/:guideSlug"
+      ],
+      "stories": [
+        "guides-measured-loading-geometry--reading-layout"
+      ],
+      "entries": [
+        "apps/public-web/app/guides-archive/[guideSlug]/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "server/index.ts",
+        "src/features/GuidesArchive.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-home-hydration-browser.test.mjs": {
+      "routes": [
+        "/",
+        "/faq"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/faq/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-instant-access-browser.test.mjs": {
+      "routes": [
+        "/",
+        "/battlegrounds/tier-list",
+        "/standard/matchups",
+        "/standard/vicious-gold"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/battlegrounds/tier-list/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/page.tsx",
+        "apps/public-web/app/standard/matchups/page.tsx",
+        "apps/public-web/app/standard/vicious-gold/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-leaderboards-browser.test.mjs": {
+      "routes": [
+        "/leaderboards",
+        "/streamers/:streamerSlug"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/leaderboards/page.tsx",
+        "apps/public-web/app/streamers/[streamerSlug]/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-leaderboards-states-browser.test.mjs": {
+      "routes": [
+        "/leaderboards"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/leaderboards/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-mobile-menu-browser.test.mjs": {
+      "routes": [
+        "/privacy",
+        "/faq",
+        "/classes",
+        "/tierlist"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/classes/page.tsx",
+        "apps/public-web/app/faq/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/privacy/page.tsx",
+        "apps/public-web/app/tierlist/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-modal-isolation-browser.test.mjs": {
+      "routes": [
+        "/classes"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/classes/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-not-found-browser.test.mjs": {
+      "routes": [
+        "/:path*",
+        "/standard/cards/:format/:cardId"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/not-found.tsx",
+        "apps/public-web/app/standard/cards/[format]/[cardId]/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-page-transitions-browser.test.mjs": {
+      "routes": [
+        "/faq",
+        "/tierlist",
+        "/guides-archive",
+        "/gallery",
+        "/contests",
+        "/standard/fun-decks"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/contests/page.tsx",
+        "apps/public-web/app/faq/page.tsx",
+        "apps/public-web/app/gallery/page.tsx",
+        "apps/public-web/app/guides-archive/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/standard/fun-decks/page.tsx",
+        "apps/public-web/app/tierlist/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-paid-panels-pending-browser.test.mjs": {
+      "routes": [
+        "/faq",
+        "/standard/cards",
+        "/standard/cards/:format/:cardId",
+        "/standard/archetypes/:format/:archetypeSlug"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/faq/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/standard/archetypes/[format]/[archetypeSlug]/page.tsx",
+        "apps/public-web/app/standard/cards/[format]/[cardId]/page.tsx",
+        "apps/public-web/app/standard/cards/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-patch-notes-browser.test.mjs": {
+      "routes": [
+        "/standard/patches",
+        "/",
+        "/standard/archetypes/:format/:archetypeSlug"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/page.tsx",
+        "apps/public-web/app/standard/archetypes/[format]/[archetypeSlug]/page.tsx",
+        "apps/public-web/app/standard/patches/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-paywall-access-check-browser.test.mjs": {
+      "routes": [
+        "/heroes",
+        "/library",
+        "/battlegrounds/tier-list",
+        "/battlegrounds/strategies",
+        "/guides-archive",
+        "/standard/matchups",
+        "/standard/vicious-gold"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/battlegrounds/strategies/page.tsx",
+        "apps/public-web/app/battlegrounds/tier-list/page.tsx",
+        "apps/public-web/app/guides-archive/page.tsx",
+        "apps/public-web/app/heroes/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/library/page.tsx",
+        "apps/public-web/app/standard/matchups/page.tsx",
+        "apps/public-web/app/standard/vicious-gold/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-public-deck-builder-browser.test.mjs": {
+      "routes": [
+        "/standard/deck-builder"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/standard/deck-builder/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-public-profiles-browser.test.mjs": {
+      "routes": [
+        "/",
+        "/id/:publicProfileId",
+        "/u/:nickname"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/id/[publicProfileId]/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/page.tsx",
+        "apps/public-web/app/u/[nickname]/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-radar-browser.test.mjs": {
+      "routes": [
+        "/standard/radar",
+        "/standard/archetypes/:format/:archetypeSlug"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/standard/archetypes/[format]/[archetypeSlug]/page.tsx",
+        "apps/public-web/app/standard/radar/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-runtime-config-browser.test.mjs": {
+      "routes": [
+        "/standard/cards",
+        "/standard/cards/:format/:cardId"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/standard/cards/[format]/[cardId]/page.tsx",
+        "apps/public-web/app/standard/cards/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-soft-paywall-requests-browser.test.mjs": {
+      "routes": [
+        "/standard/meta",
+        "/standard/archetypes"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/standard/archetypes/page.tsx",
+        "apps/public-web/app/standard/meta/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-standard-guest-paywall-browser.test.mjs": {
+      "routes": [
+        "/standard/matchups",
+        "/standard/vicious-gold"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/standard/matchups/page.tsx",
+        "apps/public-web/app/standard/vicious-gold/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-streamers-browser.test.mjs": {
+      "routes": [
+        "/streamers",
+        "/streamers/:streamerSlug"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/streamers/[streamerSlug]/page.tsx",
+        "apps/public-web/app/streamers/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/next-support-prompt-browser.test.mjs": {
+      "routes": [
+        "/faq"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/faq/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/page-headers-browser.test.mjs": {
+      "routes": [],
+      "stories": [
+        "page-headers-consistency--meta-overview"
+      ],
+      "entries": [
+        "src/features/TraditionalModeBanner.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/production-observer-browser.test.mjs": {
+      "routes": [],
+      "stories": [],
+      "entries": [
+        "scripts/production-observer/browser-probe.mjs"
+      ],
+      "scope": "mapped"
+    },
+    "tests/public-loader-deadline-browser.test.mjs": {
+      "routes": [],
+      "stories": [
+        "guides-loading-states--network",
+        "guides-loading-states--detail-network",
+        "constructed-fun-decks-states--network",
+        "cosmetics-loading-states--network",
+        "cosmetics-loading-states--detail-network",
+        "contests-loading-states--network"
+      ],
+      "entries": [
+        "src/features/CosmeticsStates.stories.tsx",
+        "src/features/FunDecksStates.stories.tsx",
+        "src/features/GuidesArchiveStates.stories.tsx",
+        "src/modules/contests/ui/ContestsStates.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/skeleton-geometry-browser.test.mjs": {
+      "routes": [],
+      "stories": [
+        "meta-chart-loading-geometry--expanded",
+        "meta-chart-loading-geometry--loading",
+        "cards-statistics-history--long-history",
+        "cards-statistics-history--loading",
+        "articles-measured-loading-geometry--ready",
+        "articles-measured-loading-geometry--loading",
+        "constructed-deckbuilder--empty",
+        "constructed-deckbuilder--loading",
+        "arena-classes-data--ready",
+        "arena-classes-data--loading",
+        "contests-measured-loading-geometry--ready",
+        "contests-measured-loading-geometry--loading",
+        "constructed-archetype-catalog-loading--ready",
+        "constructed-archetype-catalog-loading--loading"
+      ],
+      "entries": [
+        "src/features/ArchetypesCatalogSkeleton.stories.tsx",
+        "src/features/ConstructedCardHistoryChart.stories.tsx",
+        "src/features/StandardMetaChart.stories.tsx",
+        "src/modules/arenaClasses/ui/ArenaClassesBoard.stories.tsx",
+        "src/modules/articles/ui/ArticlesTab.stories.tsx",
+        "src/modules/contests/ui/ContestsPage.stories.tsx",
+        "src/modules/deckBuilder/ui/DeckBuilderWorkbench.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/skeleton-route-geometry-browser.test.mjs": {
+      "routes": [
+        "/standard/fun-decks",
+        "/cosmetics/:kind",
+        "/cosmetics/:kind/:cardId",
+        "/guides-archive",
+        "/guides-archive/:guideSlug",
+        "/classes",
+        "/tierlist",
+        "/legendaries"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/classes/page.tsx",
+        "apps/public-web/app/cosmetics/[kind]/[cardId]/page.tsx",
+        "apps/public-web/app/cosmetics/[kind]/page.tsx",
+        "apps/public-web/app/guides-archive/[guideSlug]/page.tsx",
+        "apps/public-web/app/guides-archive/page.tsx",
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/legendaries/page.tsx",
+        "apps/public-web/app/standard/fun-decks/page.tsx",
+        "apps/public-web/app/tierlist/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/soft-paywall-browser.test.mjs": {
+      "routes": [],
+      "stories": [
+        "browser-test-fixtures-soft-paywall--fixture"
+      ],
+      "entries": [
+        "src/features/SoftPaywallFixture.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/storybook-story-loading-browser.test.mjs": {
+      "routes": [],
+      "stories": [
+        "tier-list-measured-loading-geometry--ready"
+      ],
+      "entries": [
+        "src/features/TierListSkeleton.stories.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/user-flow-card-search-browser.test.mjs": {
+      "routes": [
+        "/standard/cards",
+        "/standard/cards/:format/:cardId"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/standard/cards/[format]/[cardId]/page.tsx",
+        "apps/public-web/app/standard/cards/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/user-flow-deck-builder-browser.test.mjs": {
+      "routes": [
+        "/standard/deck-builder"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/standard/deck-builder/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/user-flow-leaderboards-browser.test.mjs": {
+      "routes": [
+        "/leaderboards"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/leaderboards/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/user-flow-meta-deck-browser.test.mjs": {
+      "routes": [
+        "/",
+        "/standard/meta",
+        "/standard/archetypes",
+        "/standard/archetypes/:format/:archetypeSlug"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/page.tsx",
+        "apps/public-web/app/standard/archetypes/[format]/[archetypeSlug]/page.tsx",
+        "apps/public-web/app/standard/archetypes/page.tsx",
+        "apps/public-web/app/standard/meta/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/user-flow-mobile-navigation-browser.test.mjs": {
+      "routes": [
+        "/",
+        "/standard/cards",
+        "/standard/meta"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/page.tsx",
+        "apps/public-web/app/standard/cards/page.tsx",
+        "apps/public-web/app/standard/meta/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/user-flow-paywall-sign-in-browser.test.mjs": {
+      "routes": [
+        "/",
+        "/standard/matchups"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/page.tsx",
+        "apps/public-web/app/standard/matchups/page.tsx",
+        "server/index.ts"
+      ],
+      "scope": "mapped"
+    },
+    "tests/vicious-gold-layout-browser.test.mjs": {
+      "routes": [
+        "/standard/vicious-gold"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/standard/vicious-gold/page.tsx"
+      ],
+      "scope": "mapped"
+    },
+    "tests/vicious-gold-progressive-browser.test.mjs": {
+      "routes": [
+        "/standard/vicious-gold"
+      ],
+      "stories": [],
+      "entries": [
+        "apps/public-web/app/layout.tsx",
+        "apps/public-web/app/standard/vicious-gold/page.tsx"
+      ],
+      "scope": "mapped"
+    }
+  }
+}

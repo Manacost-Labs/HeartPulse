@@ -13,6 +13,11 @@ import path from 'node:path';
 import test from 'node:test';
 
 import {
+  collectKnownRoutes,
+  validateBrowserTestMap,
+  validateRepositoryBrowserTestMap,
+} from '../scripts/lib/browser-test-map.mjs';
+import {
   discoverTestFiles,
   parseOnlyFiles,
   parseRunnerArguments,
@@ -999,5 +1004,132 @@ test('the runner CLI exits successfully when --only-files selects nothing', () =
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /ONLY-FILES selected 0 files; nothing to run/);
     assert.match(result.stdout, /SUMMARY executed=0 /);
+  });
+});
+
+// The browser test map (config/browser-test-map.json): see scripts/lib/browser-test-map.mjs.
+
+const REPOSITORY_ROOT = new URL('..', import.meta.url).pathname;
+
+function browserMapProblems(mapTests, { browserFiles = ['tests/a-browser.test.mjs'], existing = ['apps/public-web/app/faq/page.tsx'] } = {}) {
+  return validateBrowserTestMap({
+    map: { version: 1, tests: mapTests },
+    registry: { suites: [{ id: 'unit', files: ['tests/u.test.ts'] }, { id: 'browser', files: browserFiles }] },
+    knownRoutes: new Set(['/faq', '/classes']),
+    fileExists: repositoryPath => existing.includes(repositoryPath),
+  });
+}
+
+const FAQ_RECORD = { routes: ['/faq'], stories: [], entries: ['apps/public-web/app/faq/page.tsx'], scope: 'mapped' };
+
+test('the browser test map describes every browser test of the registry once', () => {
+  assert.deepEqual(validateRepositoryBrowserTestMap(REPOSITORY_ROOT), []);
+});
+
+test('the browser test map ties the FAQ prompt test to the FAQ page, the layout and the real server, and the bfcache test to every page', () => {
+  const map = JSON.parse(readFileSync(new URL('../config/browser-test-map.json', import.meta.url), 'utf8'));
+  assert.deepEqual(map.tests['tests/next-support-prompt-browser.test.mjs'], {
+    routes: ['/faq'],
+    stories: [],
+    entries: ['apps/public-web/app/faq/page.tsx', 'apps/public-web/app/layout.tsx', 'server/index.ts'],
+    scope: 'mapped',
+  });
+  assert.equal(map.tests['tests/next-bfcache-browser.test.mjs'].scope, 'global');
+  assert.deepEqual(map.tests['tests/next-bfcache-browser.test.mjs'].entries, []);
+});
+
+test('a valid browser test map record yields no problems', () => {
+  assert.deepEqual(browserMapProblems({ 'tests/a-browser.test.mjs': FAQ_RECORD }), []);
+  assert.deepEqual(browserMapProblems({
+    'tests/a-browser.test.mjs': { routes: [], stories: [], entries: [], scope: 'global', reason: 'walks every page' },
+  }), []);
+});
+
+test('a browser test without a map record fails with the file name and what to add', () => {
+  assert.deepEqual(browserMapProblems({}), [
+    'tests/a-browser.test.mjs: browser test has no record in config/browser-test-map.json; add one (mapped with entries, or global with a reason)',
+  ]);
+});
+
+test('a map record for a file outside the browser suite fails', () => {
+  assert.deepEqual(browserMapProblems({
+    'tests/a-browser.test.mjs': FAQ_RECORD,
+    'tests/u.test.ts': FAQ_RECORD,
+    'tests/gone-browser.test.mjs': FAQ_RECORD,
+  }), [
+    'tests/u.test.ts: record in config/browser-test-map.json is not a file of the "browser" suite in tests/test-suites.json',
+    'tests/gone-browser.test.mjs: record in config/browser-test-map.json is not a file of the "browser" suite in tests/test-suites.json',
+  ]);
+});
+
+test('an entry that does not exist, or is not a repository path, fails', () => {
+  assert.deepEqual(browserMapProblems({
+    'tests/a-browser.test.mjs': { ...FAQ_RECORD, entries: ['apps/public-web/app/faq/page.tsx', 'apps/public-web/app/old/page.tsx', '../outside.ts', '/etc/passwd'] },
+  }), [
+    'tests/a-browser.test.mjs: entry apps/public-web/app/old/page.tsx does not exist',
+    'tests/a-browser.test.mjs: entry ../outside.ts is not a normalized repository-relative path',
+    'tests/a-browser.test.mjs: entry /etc/passwd is not a normalized repository-relative path',
+  ]);
+});
+
+test('a route that no route source knows fails, a template of the inventory passes', () => {
+  assert.deepEqual(browserMapProblems({ 'tests/a-browser.test.mjs': { ...FAQ_RECORD, routes: ['/faq', '/faq/missing', '/classes/'] } }), [
+    'tests/a-browser.test.mjs: route /faq/missing is neither in src/shared/seo/publicRouteInventory.json nor a page of apps/public-web/app',
+    'tests/a-browser.test.mjs: route /classes/ is neither in src/shared/seo/publicRouteInventory.json nor a page of apps/public-web/app',
+  ]);
+});
+
+test('a global test needs a reason and a mapped test needs an entry', () => {
+  assert.deepEqual(browserMapProblems({ 'tests/a-browser.test.mjs': { routes: [], stories: [], entries: [], scope: 'global' } }), [
+    'tests/a-browser.test.mjs: a global test needs a non-empty reason',
+  ]);
+  assert.deepEqual(browserMapProblems({ 'tests/a-browser.test.mjs': { routes: [], stories: [], entries: [], scope: 'global', reason: '  ' } }), [
+    'tests/a-browser.test.mjs: a global test needs a non-empty reason',
+  ]);
+  assert.deepEqual(browserMapProblems({ 'tests/a-browser.test.mjs': { ...FAQ_RECORD, entries: [] } }), [
+    'tests/a-browser.test.mjs: a mapped test needs at least one entry (otherwise make it global with a reason)',
+  ]);
+});
+
+test('a malformed record fails: unknown field, bad scope, duplicate or non-string list items, bad story id', () => {
+  assert.deepEqual(browserMapProblems({
+    'tests/a-browser.test.mjs': { routes: ['/faq', '/faq'], stories: ['Not A Story'], entries: [7], scope: 'sometimes', extra: 1 },
+  }), [
+    'tests/a-browser.test.mjs: unknown field "extra"',
+    'tests/a-browser.test.mjs: "routes" lists /faq twice',
+    'tests/a-browser.test.mjs: "entries" must be a list of non-empty strings',
+    'tests/a-browser.test.mjs: story id Not A Story must look like "component-title--story-name"',
+    'tests/a-browser.test.mjs: scope must be "mapped" or "global", got "sometimes"',
+  ]);
+  assert.deepEqual(validateBrowserTestMap({ map: { version: 2 }, registry: { suites: [] }, knownRoutes: new Set(), fileExists: () => true }), [
+    'config/browser-test-map.json: expected {"version": 1, "tests": {...}}',
+  ]);
+});
+
+test('a browser test added to the registry without a map record is reported by the repository check', () => {
+  withRepository(repositoryRoot => {
+    writeFixture(repositoryRoot, 'src/shared/seo/publicRouteInventory.json', JSON.stringify({ routes: [{ pattern: '/faq' }] }));
+    writeFixture(repositoryRoot, 'apps/public-web/app/faq/page.tsx');
+    writeFixture(repositoryRoot, 'tests/test-suites.json', JSON.stringify(registry(['tests/new-browser.test.mjs'], {
+      suites: [{ id: 'browser', files: ['tests/new-browser.test.mjs'] }],
+    })));
+    writeFixture(repositoryRoot, 'config/browser-test-map.json', JSON.stringify({ version: 1, tests: {} }));
+    assert.deepEqual(validateRepositoryBrowserTestMap(repositoryRoot), [
+      'tests/new-browser.test.mjs: browser test has no record in config/browser-test-map.json; add one (mapped with entries, or global with a reason)',
+    ]);
+  });
+});
+
+test('route templates come from the route inventory and from the folders of the Next app', () => {
+  withRepository(repositoryRoot => {
+    writeFixture(repositoryRoot, 'src/shared/seo/publicRouteInventory.json', JSON.stringify({ routes: [{ pattern: '/' }, { pattern: '/:path*' }] }));
+    writeFixture(repositoryRoot, 'apps/public-web/app/page.tsx');
+    writeFixture(repositoryRoot, 'apps/public-web/app/layout.tsx');
+    writeFixture(repositoryRoot, 'apps/public-web/app/faq/page.tsx');
+    writeFixture(repositoryRoot, 'apps/public-web/app/standard/cards/[format]/[cardId]/page.tsx');
+    writeFixture(repositoryRoot, 'apps/public-web/app/health/next/route.ts');
+    assert.deepEqual([...collectKnownRoutes(repositoryRoot)].sort(), [
+      '/', '/:path*', '/faq', '/standard/cards/:format/:cardId',
+    ]);
   });
 });

@@ -255,6 +255,34 @@ module appears in both inventories. `lint:architecture` checks both the graph
 and the independently ratcheted `config/architecture-debt.json`; moving an owner
 must remove obsolete exceptions rather than increase the allowance.
 
+### Browser test map
+
+`config/browser-test-map.json` records what each file of the `browser` suite in
+`tests/test-suites.json` opens, because a browser test imports almost no source:
+it requests a URL or a Storybook story, so the import graph cannot say which
+change can break it. Each record has `routes` (route templates such as
+`/standard/archetypes/:format/:archetypeSlug`, taken from
+`src/shared/seo/publicRouteInventory.json` or the `page.tsx` folders of
+`apps/public-web/app`), `stories` (Storybook story ids), `entries` (the
+`page.tsx` of each route plus `apps/public-web/app/layout.tsx`, the
+`*.stories.tsx` of each story, `server/index.ts` for a test that starts the real
+server through `tests/helpers/credentialBackend.mjs`, or the source a test reads
+directly) and
+`scope`. `mapped` means the entries are the whole dependency; the importers of
+the entries come from the import graph. `global` is for a test that walks all or
+most pages (canonical links, bfcache, entitlements of every paid page): any
+change selects it, so it needs a non-empty `reason`. Prefer `mapped`, and list
+the pages the test opens; use `global` only when the list would be most of the
+site.
+
+To add a browser test, register it in `tests/test-suites.json` and add its record
+to the map in the same change. `scripts/lib/browser-test-map.mjs` checks the map
+in `tests/test-suite-runner.test.mjs` (the `contract` suite, run by `npm test`):
+a browser test without a record, a record for a file outside the suite, a missing
+entry file, a route that no route source knows, or a `global` test without a
+reason fails the run with the file name. The map is data only so far: the
+affected-test selection (`scripts/ci-affected-tests.mjs`) does not read it yet.
+
 Application route manifests, lazy loaders and history synchronization live in
 `src/app/routing`. Identity owns login, profile and Telegram-link presentation;
 subscriptions owns entitlement contracts. Reader continuation wraps the lazy
