@@ -764,7 +764,7 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
     assert.ok(words >= 150 && words <= 250, `the summary has ${words} words`);
     const lead = strong.text.split('Как читать')[0];
     for (const expected of ['Зоолок — архетип класса Чернокнижник в Стандарте Hearthstone', 'По данным HSGuru на ',
-      ' МСК за период «Баны»', 'винрейт — 61,2%', 'популярность — 20,4%', 'в выборке 14 800 игр', 'известно 3 сборки']) {
+      ' МСК за период «После банов»', 'винрейт — 61,2%', 'популярность — 20,4%', 'в выборке 14 800 игр', 'известно 3 сборки']) {
       assert.ok(lead.includes(expected), `the answer says «${expected}»`);
     }
     assert.ok(countWords(lead.split('Медианный')[0]) <= 60, 'the answer comes in the first 60 words');

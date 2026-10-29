@@ -1,8 +1,9 @@
-import { ExternalLink, Sparkles, Swords } from 'lucide-react';
+import { ExternalLink, SlidersHorizontal, Sparkles, Swords } from 'lucide-react';
 import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
 import { DataTable, type DataTableColumn } from '../vendor/varylo-ui/data-display/DataTable';
 import { Title, Value, Words } from './archetypeSkeletonText';
 import { CARD_STATS_FIRST_PAGE } from './ConstructedArchetypeCardStatsCells';
+import { HSGURU_SECTION } from './hsguruStatsModel';
 import '../vendor/varylo-ui/styles/index.css';
 import './ConstructedArchetypeAnalysis.css';
 import './ConstructedArchetypeCardStats.css';
@@ -40,18 +41,28 @@ function AnalysisSource() {
 export function ArchetypeAnalysisSkeleton() {
   return <LoadingSurface label="Загружаем матчапы и муллиган" quiet layout="rows" className="archetype-detail-skeleton">
     <div className="constructed-analysis-stack" inert>
-      <div className="hsguru-slice">
-        <div className="hsguru-slice__filters">
-          {SLICE_FIELDS.map(label => <span key={label} className="hsguru-slice__field">
-            <span><Words>{label}</Words></span>
-            <LoadingBlock className="hsguru-slice__placeholder" />
-          </span>)}
+      <div className="constructed-analysis-panel hsguru-section">
+        <div className="constructed-analysis-heading">
+          <div>
+            <span className="archetypes-eyebrow"><SlidersHorizontal size={15} aria-hidden="true" /><Words>{HSGURU_SECTION.eyebrow}</Words></span>
+            <Title analysis>{HSGURU_SECTION.title}</Title>
+            <p><Words>{HSGURU_SECTION.text}</Words></p>
+          </div>
+        </div>
+        <div className="hsguru-slice">
+          <div className="hsguru-slice__filters">
+            {SLICE_FIELDS.map(label => <span key={label} className="hsguru-slice__field">
+              <span><Words>{label}</Words></span>
+              <LoadingBlock className="hsguru-slice__placeholder" />
+            </span>)}
+          </div>
+          <p className="hsguru-slice__summary"><Words>HSGuru · 49 117 игр · обновлено 25 окт., 12:43</Words></p>
         </div>
       </div>
       <div className="constructed-analysis-panel">
         <div className="constructed-analysis-heading">
           <div>
-            <span className="archetypes-eyebrow"><Swords aria-hidden="true" /><Words>HSGuru · Легенда · Баны</Words></span>
+            <span className="archetypes-eyebrow"><Swords aria-hidden="true" /><Words>HSGuru · Легенда · После банов</Words></span>
             <Title analysis>Матчапы против классов</Title>
             <p><Words>Винрейт архетипа против каждого класса. Сначала показаны самые сложные соперники.</Words></p>
           </div>

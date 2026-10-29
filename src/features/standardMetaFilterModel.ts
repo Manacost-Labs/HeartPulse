@@ -33,7 +33,7 @@ export function resolveStandardMetaDefaultPeriod(
 
 const PERIOD_LABELS: Partial<Record<StandardMetaPeriod, string>> = {
   black_empire: 'Тёмная империя',
-  black_empire_ban: 'Баны',
+  black_empire_ban: 'После банов',
   past_3_hours: '3 часа',
   past_6_hours: '6 часов',
   past_day: 'Сутки',
@@ -48,6 +48,15 @@ const PERIOD_LABELS: Partial<Record<StandardMetaPeriod, string>> = {
 export function standardMetaPeriodLabel(period: StandardMetaPeriod): string {
   if (period.startsWith('patch_')) return `Патч ${period.slice('patch_'.length)}`;
   return PERIOD_LABELS[period] ?? period;
+}
+
+/** Windows whose short label needs the full name: it goes into the option's tooltip. */
+const PERIOD_TITLES: Partial<Record<StandardMetaPeriod, string>> = {
+  black_empire_ban: 'Тёмная империя, с патча банов',
+};
+
+export function standardMetaPeriodTitle(period: string): string | undefined {
+  return PERIOD_TITLES[period as StandardMetaPeriod];
 }
 
 /** HSGuru's coin filter: whose turn the archetype's games started on. */

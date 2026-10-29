@@ -46,9 +46,12 @@ type Story = StoryObj<typeof meta>;
 export const Collected: Story = {
   play: async ({ canvas, canvasElement }) => {
     await expect(await canvas.findByText(/49\s117 игр/)).toBeInTheDocument();
+    await expect(canvas.getByRole('heading', { level: 2, name: 'Матчапы и муллиган' })).toBeInTheDocument();
+    // The window's short label has its full name in the tooltip of the filter and of its option.
+    await expect(canvas.getByRole('combobox', { name: /^Период/ })).toHaveAttribute('title', 'Тёмная империя, с патча банов');
     const phases = [...canvasElement.querySelectorAll('.constructed-card-stats__table th')].map(cell => cell.textContent?.trim());
     await expect(phases).toContain('Не пришла');
-    await expect(canvas.getByText('HSGuru · Легенда · Баны')).toBeInTheDocument();
+    await expect(canvas.getByText('HSGuru · Легенда · После банов')).toBeInTheDocument();
     // Class matchups of this slice are not collected yet: the week's Legend slice fills them, named as such.
     await expect(canvas.getByText('HSGuru · Легенда · Неделя')).toBeInTheDocument();
   },
@@ -58,9 +61,9 @@ export const SliceCollecting: Story = {
   play: async ({ canvas }) => {
     await canvas.findByText(/49\s117 игр/);
     await userEvent.selectOptions(canvas.getByRole('combobox', { name: /^Очерёдность хода/ }), 'on_coin');
-    await expect(await canvas.findByText('Срез «Легенда · Баны · С монеткой» ещё собирается')).toBeInTheDocument();
+    await expect(await canvas.findByText('Срез «Легенда · После банов · С монеткой» ещё собирается')).toBeInTheDocument();
     await expect(canvas.getByText(/собрано 520 из 8\s720 срезов \(5%\)/)).toBeInTheDocument();
-    await expect(canvas.getByRole('button', { name: 'Легенда · Баны' })).toBeInTheDocument();
+    await expect(canvas.getByRole('button', { name: 'Легенда · После банов' })).toBeInTheDocument();
   },
 };
 

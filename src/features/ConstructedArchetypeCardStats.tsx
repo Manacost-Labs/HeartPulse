@@ -130,7 +130,7 @@ async function downloadCsv(rows: readonly ConstructedCardStat[]) {
 }
 
 /**
- * `scope` names the slice in the eyebrow («HSGuru · Легенда · Баны»); `empty`
+ * `scope` names the slice in the eyebrow («HSGuru · Легенда · После банов»); `empty`
  * replaces the default message while a slice is still being collected.
  */
 export function CardStatsPanel({ analysis, scope, empty }: { analysis: CardStatsSource | null; scope?: string; empty?: ReactNode }) {

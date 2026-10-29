@@ -1,8 +1,16 @@
-/* The slice filters of the archetype's HSGuru stats (HsguruArchetypeStats). */
+/* The HSGuru section of the archetype page (HsguruArchetypeStats): its own frame holds the heading
+   and the slice filters, so the filters read as this section's controls and not as the frame above. */
+
+/* Every section frame of the page opens 1rem below the one before it (ConstructedArchetypes.css). */
+.hsguru-section { margin-top: 1rem; }
+/* The kicker is the section red of the page's other frames: the gold default is 1.8:1 on parchment. */
+.constructed-analysis-panel .archetypes-eyebrow { color: #8d171d; }
 
 .hsguru-slice {
   display: grid;
   gap: 0.5rem;
+  /* The heading's own inset, so the filters start under the title's left edge. */
+  padding: 0.85rem 1rem 1rem;
 }
 
 .hsguru-slice__filters {
@@ -11,28 +19,38 @@
   gap: 0.5rem;
 }
 
+/* A 48 px field: the select fills all of it (the label floats over its top edge), so a tap
+   anywhere in the field opens the list. The compare button of the build section is as tall. */
 .hsguru-slice__field {
   position: relative;
   display: grid;
   min-width: 0;
-  border: 1px solid rgba(85, 48, 23, 0.3);
+  min-height: 3rem;
+  /* A shadow, not a border: the select inside is exactly the field's 48 px. */
+  box-shadow: inset 0 0 0 1px rgba(85, 48, 23, 0.3);
   background: rgba(255, 248, 222, 0.72);
 }
 
 .hsguru-slice__field > span {
-  padding: 0.4rem 0.75rem 0;
+  position: absolute;
+  inset: 0.3rem 0.75rem auto 0.75rem;
+  overflow: hidden;
   color: var(--archetype-muted);
   font-size: 0.6875rem;
   font-weight: 800;
   letter-spacing: 0.04em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
   text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .hsguru-slice__field select {
   width: 100%;
   min-width: 0;
-  min-height: 34px;
-  padding: 0 2.2rem 0.3rem 0.75rem;
+  min-height: 3rem;
+  padding: 1.45rem 1.75rem 0.25rem 0.75rem;
   border: 0;
   outline: 0;
   color: var(--archetype-ink);
@@ -44,10 +62,12 @@
   cursor: pointer;
 }
 
+/* The loaded field's two lines at their heights: the label's line, then the value's. */
 .hsguru-slice__placeholder {
+  align-self: end;
   width: 60%;
   height: 1rem;
-  margin: 9px 0.75rem;
+  margin: 0 0.75rem 0.55rem;
   border-radius: 0;
 }
 
@@ -56,14 +76,14 @@
 }
 
 .hsguru-slice__field:focus-within {
-  outline: 2px solid #8d171d;
-  outline-offset: 1px;
+  outline: 3px solid #8d171d;
+  outline-offset: 2px;
 }
 
 .hsguru-slice__field svg {
   position: absolute;
   right: 0.7rem;
-  bottom: 0.65rem;
+  bottom: 0.5rem;
   width: 16px;
   height: 16px;
   color: #8d171d;
@@ -143,6 +163,21 @@
 @media (max-width: 899px) {
   .hsguru-slice__filters {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 820px) {
+  .hsguru-slice { padding: 0.65rem 0.8rem 0.8rem; }
+}
+
+@media (max-width: 390px) {
+  .hsguru-slice { padding: 0.55rem 0.65rem 0.65rem; }
+}
+
+/* Two columns leave 148 px at 360: «Очерёдность хода» and «Любой соперник» need their own rows. */
+@media (max-width: 370px) {
+  .hsguru-slice__field:nth-child(n + 3) {
+    grid-column: 1 / -1;
   }
 }
 

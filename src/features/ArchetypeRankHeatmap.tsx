@@ -5,7 +5,10 @@ import './ArchetypeRankHeatmap.css';
 
 const PERCENT = (value: number) => `${value.toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%`;
 const COUNT = (value: number) => Math.round(value).toLocaleString('ru-RU');
-/** Six period names do not fit a phone row: there the header shows these, the full name stays for screen readers. */
+/**
+ * Six period names do not fit a phone row: there the header shows these, the full name stays for screen readers.
+ * «Баны» is the 31 px column's abbreviation of «После банов» (the full name is the header everywhere else).
+ */
 const SHORT_PERIODS: Record<string, string> = {
   past_day: '1 д', past_3_days: '3 д', past_week: '7 д', past_2_weeks: '14 д', past_30_days: '30 д', black_empire: 'Доп.',
   black_empire_ban: 'Баны',

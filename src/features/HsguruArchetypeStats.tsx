@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { ChevronDown, Hourglass } from 'lucide-react';
+import { ChevronDown, Hourglass, SlidersHorizontal } from 'lucide-react';
 import { useArchetypeHsguruStats } from '../modules/constructedArchetypes/public';
 import { CardStatsPanel } from './ConstructedArchetypeCardStats';
 import { ClassMatchupsPanel, type ClassMatchupRow } from './ConstructedArchetypeClassMatchups';
 import type { ConstructedCardStat } from './ConstructedArchetypeCardStatsCells';
 import type { HsguruAnalysisState } from './archetypeDetailModel';
 import {
-  hsguruCoverageText, hsguruOptions, hsguruSliceLabel, hsguruSliceQuery, nearestCollectedSlices,
+  HSGURU_SECTION, hsguruCoverageText, hsguruGamesText, hsguruOptions, hsguruSliceLabel, hsguruSliceQuery, nearestCollectedSlices,
   type HsguruSlice, type HsguruSliceField, type HsguruStats,
 } from './hsguruStatsModel';
 import './HsguruArchetypeStats.css';
@@ -30,7 +30,6 @@ type LegacyAnalysis = {
 };
 
 const DATE = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-const COUNT = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
 
 function formatDate(value: string | null): string {
   return value && Number.isFinite(Date.parse(value)) ? DATE.format(new Date(value)) : '';
@@ -43,24 +42,28 @@ function SliceFilters({ slice, stats, page, busy, onChange }: {
   return (
     <div className="hsguru-slice" aria-busy={busy}>
       <div className="hsguru-slice__filters">
-        {FIELDS.map(({ field, label }) => (
-          <label key={field} className="hsguru-slice__field">
-            <span>{label}</span>
-            <select value={slice[field]} disabled={!stats} onChange={event => onChange({ ...slice, [field]: event.target.value })}>
-              {hsguruOptions(field, slice, stats?.slices ?? []).map(option => (
-                <option key={option.id} value={option.id}>{option.collected ? option.label : `${option.label} — собирается`}</option>
-              ))}
-            </select>
-            <ChevronDown aria-hidden="true" />
-          </label>
-        ))}
+        {FIELDS.map(({ field, label }) => {
+          const options = hsguruOptions(field, slice, stats?.slices ?? []);
+          return (
+            <label key={field} className="hsguru-slice__field">
+              <span>{label}</span>
+              <select value={slice[field]} disabled={!stats} title={options.find(option => option.id === slice[field])?.title}
+                onChange={event => onChange({ ...slice, [field]: event.target.value })}>
+                {options.map(option => (
+                  <option key={option.id} value={option.id} title={option.title}>{option.collected ? option.label : `${option.label} — собирается`}</option>
+                ))}
+              </select>
+              <ChevronDown aria-hidden="true" />
+            </label>
+          );
+        })}
       </div>
       {page ? (
         <p className="hsguru-slice__summary">
-          HSGuru · {page.games === null ? 'выборка неизвестна' : `${COUNT.format(page.games)} игр`}
+          HSGuru · {page.games === null ? 'выборка неизвестна' : hsguruGamesText(page.games)}
           {updated ? ` · обновлено ${updated}` : ''}
         </p>
-      ) : null}
+      ) : busy && !stats ? <p className="hsguru-slice__summary" aria-hidden="true">{'\u00a0'}</p> : null}
     </div>
   );
 }
@@ -123,7 +126,16 @@ export function HsguruArchetypeStats({ format, slug, legacy }: {
 
   return (
     <div className="constructed-analysis-stack" data-tour-id="archetype-analysis">
-      <SliceFilters slice={slice} stats={stats} page={mulligan} busy={read.loading} onChange={setPicked} />
+      <div className="constructed-analysis-panel hsguru-section">
+        <header className="constructed-analysis-heading">
+          <div>
+            <span className="archetypes-eyebrow"><SlidersHorizontal size={15} aria-hidden="true" />{HSGURU_SECTION.eyebrow}</span>
+            <h2>{HSGURU_SECTION.title}</h2>
+            <p>{HSGURU_SECTION.text}</p>
+          </div>
+        </header>
+        <SliceFilters slice={slice} stats={stats} page={mulligan} busy={read.loading} onChange={setPicked} />
+      </div>
       {read.error && !read.loading ? (
         <div className="hsguru-collecting" role="alert">
           <div>

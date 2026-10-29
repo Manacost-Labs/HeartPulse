@@ -23,7 +23,7 @@ export function radarPeriodLabel(period: string): string {
   const patch = /^patch_(\d+(?:\.\d+){1,3})$/.exec(period);
   if (patch) return `Патч ${patch[1]}`;
   // HSGuru называет окна дополнения по его имени: `black_empire`, `black_empire_ban`.
-  if (period.endsWith('_ban')) return 'Баны';
+  if (period.endsWith('_ban')) return 'После банов';
   return /^[a-z]+(?:_[a-z]+)*$/.test(period) ? 'Дополнение' : period;
 }
 

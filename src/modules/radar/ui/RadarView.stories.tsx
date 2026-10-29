@@ -57,7 +57,7 @@ const zoolock: RadarCandidate = {
   ...ritual, id: 'archetype:standard:Zoolock', kind: 'archetype', confidence: 42, previousConfidence: null, suggestedChange: null, headline: null,
   entity: { id: 'zoolock', dbfId: null, name: 'Зоолок', nameEn: 'Zoolock', classKey: 'warlock', href: '/standard/archetypes/standard/zoolock/' },
   verdict: 'Сильная, но уже не растущая колода: отдельное изменение может и не понадобиться.', reasons: [],
-  stats: { source: 'hsguru', rankLabel: 'Все ранги', periodLabel: 'Баны', winrate: 63, popularity: 11.1, games: 48_210, trend: [] },
+  stats: { source: 'hsguru', rankLabel: 'Все ранги', periodLabel: 'После банов', winrate: 63, popularity: 11.1, games: 48_210, trend: [] },
   social: { mentions: 0, reddit: 0, x: 0, sentiment: 'no_data', stance: 'no_data', summary: null, posts: [] },
   precedents: [],
   forecast: { keyNumbers: [], predictedChanges: [], metaImpact: null, calibration: null, trend: { status: 'new', delta: null }, confidenceHistory: [] },
@@ -68,7 +68,7 @@ const druid: RadarCandidate = {
   headline: 'Друид провалился после выхода дополнения',
   verdict: 'Класс держит 46,3% винрейта при 1,5% популярности: точечные баффы новых карт вероятны.',
   reasons: ['Худший винрейт среди классов'], suggestedChange: 'Расцветание: стоимость 2 → 1',
-  stats: { source: 'hsguru', rankLabel: 'Все ранги', periodLabel: 'Баны', winrate: 46.28, popularity: 1.5, games: 20_104, trend: [] },
+  stats: { source: 'hsguru', rankLabel: 'Все ранги', periodLabel: 'После банов', winrate: 46.28, popularity: 1.5, games: 20_104, trend: [] },
   social: { ...ritual.social, mentions: 4, reddit: 4, x: 0, sentiment: 'mixed', stance: 'wants_buff', summary: 'Игроки просят вернуть друиду ранний темп.' },
 };
 

@@ -20,7 +20,7 @@ export type RadarStance = 'wants_nerf' | 'wants_buff' | 'divided' | 'indifferent
 
 export type RadarTrendPoint = {
   period: string;
-  /** Подпись периода по-русски («Неделя», «Баны»). */
+  /** Подпись периода по-русски («Неделя», «После банов»). */
   label: string;
   /** Проценты 0–100; `null` — нет данных, а не ноль. */
   winrate: number | null;

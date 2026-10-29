@@ -3,7 +3,7 @@ import {
   type StandardMatchupsAvailable, type StandardMatchupsRank, type StandardMatchupsSlice,
 } from '../modules/standardMatchups/public';
 import type { StandardMetaPeriod } from '../../shared/standardMetaContract';
-import { orderStandardMetaPeriods, standardMetaPeriodLabel } from './standardMetaFilterModel';
+import { orderStandardMetaPeriods, standardMetaPeriodLabel, standardMetaPeriodTitle } from './standardMetaFilterModel';
 import './StandardMatchupsFilters.css';
 
 export const STANDARD_MATCHUPS_RANK_LABEL: Record<StandardMatchupsRank, string> = {
@@ -19,7 +19,7 @@ export const STANDARD_MATCHUPS_RANK_LABEL: Record<StandardMatchupsRank, string> 
 /**
  * Rank, period and minimum games of the HSGuru slice. Periods come from the
  * served payload (HSGuru's menu: the Bans window first); until it arrives the
- * period shows the default «Баны» and waits.
+ * period shows the default «После банов» and waits.
  */
 export function StandardMatchupsFilters({ slice, period, available, onChange }: {
   slice: StandardMatchupsSlice;
@@ -46,8 +46,8 @@ export function StandardMatchupsFilters({ slice, period, available, onChange }: 
         <select value={selectedPeriod} disabled={!periods.length}
           onChange={event => onChange({ period: event.target.value || null })}>
           {periods.length
-            ? periods.map(option => <option key={option} value={option}>{standardMetaPeriodLabel(option)}</option>)
-            : <option value={selectedPeriod}>{selectedPeriod ? standardMetaPeriodLabel(selectedPeriod as StandardMetaPeriod) : 'Баны'}</option>}
+            ? periods.map(option => <option key={option} value={option} title={standardMetaPeriodTitle(option)}>{standardMetaPeriodLabel(option)}</option>)
+            : <option value={selectedPeriod}>{selectedPeriod ? standardMetaPeriodLabel(selectedPeriod as StandardMetaPeriod) : 'После банов'}</option>}
         </select>
       </label>
       <label className="standard-matchups-filters__field">

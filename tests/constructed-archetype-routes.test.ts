@@ -246,7 +246,7 @@ try {
   assert.equal(ranks.status, 200);
   const ranksBody = await ranks.json() as any;
   assert.deepEqual(ranksBody.ranks.ranks.map((rank: any) => rank.label), ['Алмаз 1–4', 'Алмаз — Легенда', 'Легенда', 'Топ-5000', 'Топ-1000']);
-  assert.deepEqual(ranksBody.ranks.periods.slice(-2).map((period: any) => period.label), ['Тёмная империя', 'Баны']);
+  assert.deepEqual(ranksBody.ranks.periods.slice(-2).map((period: any) => period.label), ['Тёмная империя', 'После банов']);
   assert.equal(ranksBody.ranks.cells.length, 35);
   assert.equal(rankReads, 45);
   assert.equal(ranksBody.ranks.coins.period, 'black_empire_ban');

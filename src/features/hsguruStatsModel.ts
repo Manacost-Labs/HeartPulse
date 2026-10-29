@@ -1,4 +1,5 @@
-import { standardMetaPeriodLabel } from './standardMetaFilterModel';
+import { pluralRu } from '../shared/text/pluralRu';
+import { standardMetaPeriodLabel, standardMetaPeriodTitle } from './standardMetaFilterModel';
 import type { StandardMetaPeriod } from '../../shared/standardMetaPeriods';
 import type { ConstructedCardStat } from './ConstructedArchetypeCardStatsCells';
 
@@ -21,7 +22,15 @@ export type HsguruStats = {
   coverage: { collected: number; planned: number } | null;
 };
 export type HsguruSliceField = 'rank' | 'period' | 'coin' | 'opponentClass';
-export type HsguruOption = { id: string; label: string; collected: boolean };
+/** `title` is the option's tooltip: the full name of a window whose label is short. */
+export type HsguruOption = { id: string; label: string; collected: boolean; title?: string };
+
+/** The heading of the archetype page's HSGuru section; its placeholder (ConstructedArchetypeAnalysisSkeleton) reads the same text. */
+export const HSGURU_SECTION = {
+  eyebrow: 'Срез HSGuru',
+  title: 'Матчапы и муллиган',
+  text: 'Матчапы по классам и муллиган карт для выбранных периода, ранга, очерёдности хода и соперника.',
+} as const;
 
 export const HSGURU_RANKS: ReadonlyArray<{ id: HsguruStatRank; label: string }> = [
   { id: 'all', label: 'Все ранги' },
@@ -32,7 +41,7 @@ export const HSGURU_RANKS: ReadonlyArray<{ id: HsguruStatRank; label: string }> 
   { id: 'top_legend', label: 'Топ-1000' },
 ];
 export const HSGURU_COINS: ReadonlyArray<{ id: HsguruStatCoin; label: string }> = [
-  { id: 'any_player', label: 'Любая очерёдность' },
+  { id: 'any_player', label: 'Любая' },
   { id: 'going_first', label: 'Первым ходом' },
   { id: 'on_coin', label: 'С монеткой' },
 ];
@@ -71,10 +80,13 @@ export function hsguruOptions(field: HsguruSliceField, slice: HsguruSlice, slice
       : field === 'opponentClass' ? HSGURU_OPPONENTS
         : [...new Set([...PERIODS, ...slices.map(entry => entry.period), slice.period])]
           .map(period => ({ id: period, label: hsguruPeriodLabel(period) }));
-  return base.map(option => ({ ...option, collected: collected.has(option.id) }));
+  return base.map(option => {
+    const title = field === 'period' ? standardMetaPeriodTitle(option.id) : undefined;
+    return { ...option, collected: collected.has(option.id), ...(title ? { title } : {}) };
+  });
 }
 
-/** «Легенда · Баны» plus the coin and opponent when they narrow the slice. */
+/** «Легенда · После банов» plus the coin and opponent when they narrow the slice. */
 export function hsguruSliceLabel(slice: HsguruSlice, withOpponent = true): string {
   const parts = [HSGURU_RANKS.find(rank => rank.id === slice.rank)?.label ?? slice.rank, hsguruPeriodLabel(slice.period)];
   if (slice.coin !== 'any_player') parts.push(HSGURU_COINS.find(coin => coin.id === slice.coin)?.label ?? slice.coin);
@@ -88,6 +100,16 @@ export function hsguruSliceLabel(slice: HsguruSlice, withOpponent = true): strin
 export function hsguruSliceQuery(slice: HsguruSlice | null): string {
   if (!slice) return '';
   return new URLSearchParams({ rank: slice.rank, period: slice.period, coin: slice.coin, opponent: slice.opponentClass }).toString();
+}
+
+/**
+ * «5 302 игры»: the noun is declined by the number, and the digits are grouped
+ * with a no-break space (U+00A0). The ru-RU locale groups with a narrow no-break
+ * space in some engines, which the display font has no glyph for.
+ */
+export function hsguruGamesText(games: number): string {
+  const digits = String(Math.abs(Math.trunc(games))).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0');
+  return `${digits} ${pluralRu(games, 'игра', 'игры', 'игр')}`;
 }
 
 /** «Собрано 200 из 8 289 страниц (2%)» — the whole pipeline, while its first load runs. */

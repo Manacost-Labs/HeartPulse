@@ -38,7 +38,9 @@
 
 /* Build comparison: collapsed to its heading and one button until a reader opens it. */
 .archetype-compare:not([data-open]) .archetype-section-heading { border-bottom: 0; }
-.archetype-compare .archetype-section-heading { align-items: center; }
+/* The button stands under the description, where reading ends. Beside it the section spread a
+   description and a button over 1000 px with nothing between them. */
+.archetype-compare .archetype-section-heading { flex-direction: column; align-items: flex-start; justify-content: flex-start; gap: 0.85rem; }
 
 /* Scoped twice: `.archetypes-page button` resets the font of every page button. */
 .archetype-compare .archetype-compare__toggle {
@@ -47,12 +49,12 @@
   gap: 0.4rem;
   align-items: center;
   justify-content: center;
-  min-height: 42px;
-  padding: 0 0.95rem;
+  min-height: 3rem;
+  padding: 0 1.1rem;
   border: 1px solid rgba(111, 26, 32, 0.6);
   color: #fff0c4;
   background: #8d171d;
-  font-size: 0.78rem;
+  font-size: 0.8125rem;
   font-weight: 900;
   cursor: pointer;
 }
@@ -79,7 +81,6 @@
   .archetype-build-comparison-slot__picker { height: 13rem; }
   .archetype-build-comparison-slot__table { height: 14rem; }
   .archetype-compare .archetype-section-heading { align-items: stretch; }
-  .archetype-compare__toggle { min-height: 44px; }
   .archetype-insight { border-width: 5px; }
   .archetype-build-comparison-slot { margin: 0.55rem; padding: 0.55rem; }
   .archetype-radar { padding: 0.55rem; }

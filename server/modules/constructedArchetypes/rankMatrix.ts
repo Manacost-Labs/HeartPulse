@@ -17,7 +17,7 @@ export const ARCHETYPE_MATRIX_PERIODS = [
   { id: 'past_2_weeks', label: '2 недели' },
   { id: 'past_30_days', label: '30 дней' },
   { id: 'black_empire', label: 'Тёмная империя' },
-  { id: 'black_empire_ban', label: 'Баны' },
+  { id: 'black_empire_ban', label: 'После банов' },
 ] as const;
 
 /** Whose turn the games started on; split for the Bans window, the window the meta opens on. */

@@ -67,7 +67,7 @@ test('the radar contract maps the hs-data-api result to the page model', () => {
   russianRun.data.nerfs.find((item: { kind: string }) => item.kind === 'archetype').name = 'Зоолок';
   assert.equal(parseRadarReport(russianRun, { nameArchetype: namer }).nerfs.find(item => item.kind === 'archetype')?.entity.name, 'Зоолок',
     'the Russian name from hs-data-api is used when the site has no translation');
-  assert.deepEqual(archetype?.stats.trend.map(point => point.label), ['Сутки', 'Неделя', 'Дополнение', 'Баны']);
+  assert.deepEqual(archetype?.stats.trend.map(point => point.label), ['Сутки', 'Неделя', 'Дополнение', 'После банов']);
   const druid = report.buffs.find(candidate => candidate.kind === 'class');
   assert.deepEqual([druid?.entity.classKey, druid?.entity.href, druid?.stats.trend], ['druid', null, []]);
   assert.deepEqual([report.history?.balancePatches, report.history?.patterns.length, report.history?.from],
@@ -223,7 +223,7 @@ test('the radar contract rejects a response without its frame', () => {
   assert.equal(parseRadarReport(frame({ schemaVersion: 3, keyNumbers: ['новое поле'] })).nerfs.length, NERFS,
     'later schema versions only add fields and keep working');
   assert.deepEqual(['patch_36.6.3', 'black_empire_ban', 'black_empire', 'past_30_days'].map(radarPeriodLabel),
-    ['Патч 36.6.3', 'Баны', 'Дополнение', '30 дней']);
+    ['Патч 36.6.3', 'После банов', 'Дополнение', '30 дней']);
 });
 
 test('/api/radar serves the cached snapshot, waits between failed reads and marks the demo fixture', async () => {

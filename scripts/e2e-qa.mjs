@@ -111,11 +111,30 @@ function isHomeArticlesChunk(pathname) {
   return pathname === homeArticlesChunk;
 }
 
+// The archetype page's HSGuru section: the real answer of 25.10.2026 (Legend · «После банов»), its sample set to the
+// 5 302 games of the owner's report; any other slice is still being collected.
+const HSGURU_SLICE_ANSWER = (() => {
+  const answer = JSON.parse(readFileSync(new URL('../src/features/hsguruArchetypeStatsSnapshot.json', import.meta.url), 'utf8'));
+  answer.mulligan.games = 5302;
+  return answer;
+})();
+function archetypeHsguruApi(url) {
+  if (url.pathname !== '/api/constructed-archetype-stats/standard/qa-evenlock') return null;
+  const query = url.searchParams;
+  const collected = !url.search || (query.get('rank') === 'legend' && query.get('period') === 'black_empire_ban'
+    && query.get('coin') === 'any_player' && query.get('opponent') === 'any');
+  return collected ? HSGURU_SLICE_ANSWER : {
+    ...HSGURU_SLICE_ANSWER, mulligan: null, classMatchups: null,
+    slice: { rank: query.get('rank'), period: query.get('period'), coin: query.get('coin'), opponentClass: query.get('opponent') },
+  };
+}
+
 async function mockApplicationApi(page, {
   authenticated,
   admin = false,
   adminState = {},
   strictApi = false,
+  extraApi = null,
 }) {
   const handleQaApiRequest = createQaApiHandler({
     authenticated, admin, adminState, strictApi, origin: BASE_ORIGIN,
@@ -123,6 +142,12 @@ async function mockApplicationApi(page, {
   await page.setRequestInterception(true);
   page.on('request', request => {
     const url = new URL(request.url());
+    // Answers only this scenario needs, before the shared fixtures.
+    const extra = extraApi?.(url);
+    if (extra) {
+      request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify(extra) });
+      return;
+    }
     if (adminState.homeArticlesChunkFailure && isHomeArticlesChunk(url.pathname)) {
       request.abort('failed');
       return;
@@ -1758,6 +1783,7 @@ for (const [device, viewport] of [
     admin: true,
     adminState,
     strictApi: true,
+    extraApi: archetypeHsguruApi,
   });
   try {
     await page.goto(`${BASE}/admin?section=dashboard`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
@@ -2910,6 +2936,92 @@ for (const [device, viewport] of [
     }
     await page.click('.archetype-builds__more');
     await page.waitForFunction(() => document.querySelectorAll('.archetype-deck-card').length === 12);
+
+    // «Сравнение сборок» and «Матчапы и муллиган» are two sections: each has its own heading and frame,
+    // the filters belong to the second, the button stands under the description, and the sample reads «5 302 игры».
+    await page.$eval('.archetype-compare', node => node.scrollIntoView({ block: 'start' }));
+    await page.waitForFunction(() => document.querySelector('.hsguru-slice__summary')?.textContent?.includes('игр'), { timeout: 20_000 });
+    const archetypeSections = () => page.evaluate(() => {
+      const rect = selector => document.querySelector(selector)?.getBoundingClientRect();
+      const compare = rect('.archetype-compare');
+      const analysis = rect('.hsguru-section');
+      const toggle = rect('.archetype-compare__toggle');
+      const description = rect('.archetype-compare .archetype-section-heading p');
+      const heading = rect('.archetype-compare .archetype-section-heading');
+      const fields = [...document.querySelectorAll('.hsguru-slice__field')].map(field => field.getBoundingClientRect());
+      const select = document.querySelector('.hsguru-slice__field select');
+      return {
+        headings: [...document.querySelectorAll('.archetype-detail-page h2')].map(node => node.textContent?.trim()),
+        sectionHeading: document.querySelector('.hsguru-section h2')?.textContent?.trim(),
+        filtersInSection: Boolean(document.querySelector('.hsguru-section .hsguru-slice__filters')),
+        gap: analysis && compare ? Math.round(analysis.top - compare.bottom) : null,
+        toggleHeight: Math.round(toggle?.height ?? 0),
+        toggleWidth: Math.round(toggle?.width ?? 0),
+        toggleLeft: Math.round((toggle?.left ?? 0) - (description?.left ?? 0)),
+        toggleBelowText: toggle && description ? toggle.top >= description.bottom : false,
+        contentWidth: Math.round(heading?.width ?? 0),
+        fieldHeights: fields.map(field => Math.round(field.height)),
+        fieldsInsideSection: analysis ? fields.every(field => field.top >= analysis.top && field.bottom <= analysis.bottom) : false,
+        summary: document.querySelector('.hsguru-slice__summary')?.textContent ?? '',
+        period: select?.selectedOptions[0]?.textContent,
+        periodTitle: select?.title,
+        documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      };
+    });
+    const sections = await archetypeSections();
+    const headingOrder = sections.headings.indexOf('Сравнение сборок') >= 0
+      && sections.headings.indexOf('Сравнение сборок') < sections.headings.indexOf('Матчапы и муллиган');
+    if (!headingOrder || sections.sectionHeading !== 'Матчапы и муллиган' || !sections.filtersInSection || !sections.fieldsInsideSection) {
+      failures.push(`archetype sections [${device}]: the HSGuru filters are not under their own heading (${JSON.stringify(sections)})`);
+    }
+    if (sections.gap === null || sections.gap < 12 || sections.gap > 24) {
+      failures.push(`archetype sections [${device}]: the gap between the comparison and the HSGuru section is ${sections.gap}px (${JSON.stringify(sections)})`);
+    }
+    if (!/^HSGuru · 5\u00a0302 игры · обновлено /.test(sections.summary) || sections.period !== 'После банов'
+      || sections.periodTitle !== 'Тёмная империя, с патча банов') {
+      failures.push(`archetype sections [${device}]: the sample or the window label is wrong (${JSON.stringify(sections)})`);
+    }
+    const sameHeight = [sections.toggleHeight, ...sections.fieldHeights].every(height => height >= 44 && height === sections.toggleHeight);
+    const buttonPlace = device === 'mobile'
+      ? sections.toggleWidth >= sections.contentWidth - 2 * 17
+      : sections.toggleWidth < 320 && Math.abs(sections.toggleLeft) <= 1;
+    if (!sameHeight || !sections.toggleBelowText || !buttonPlace || sections.documentOverflow) {
+      failures.push(`archetype sections [${device}]: the compare button or the filters regressed (${JSON.stringify(sections)})`);
+    }
+    // A key press first, so the focus that follows counts as keyboard focus and shows the ring.
+    await page.keyboard.press('Shift');
+    await page.focus('.archetype-compare__toggle');
+    const toggleFocus = await page.$eval('.archetype-compare__toggle', node => {
+      const style = getComputedStyle(node);
+      return { visible: node.matches(':focus-visible'), width: parseFloat(style.outlineWidth), style: style.outlineStyle };
+    });
+    await page.focus('.hsguru-slice__field select');
+    const filterFocus = await page.$eval('.hsguru-slice__field', node => {
+      const style = getComputedStyle(node);
+      return { width: parseFloat(style.outlineWidth), style: style.outlineStyle };
+    });
+    if (!toggleFocus.visible || toggleFocus.style !== 'solid' || toggleFocus.width < 2 || filterFocus.style !== 'solid' || filterFocus.width < 2) {
+      failures.push(`archetype sections [${device}]: focus is not visible (${JSON.stringify({ toggleFocus, filterFocus })})`);
+    }
+    // Open the comparison, then pick another window and come back to «После банов».
+    await page.click('.archetype-compare__toggle');
+    await page.waitForSelector('.archetype-build-comparison-slot:not([hidden])', { timeout: 20_000 });
+    const opened = await page.$eval('.archetype-compare', node => ({
+      expanded: node.querySelector('.archetype-compare__toggle')?.getAttribute('aria-expanded'),
+      label: node.querySelector('.archetype-compare__toggle')?.textContent?.trim(),
+    }));
+    if (opened.expanded !== 'true' || opened.label !== 'Свернуть') {
+      failures.push(`archetype sections [${device}]: the comparison did not open (${JSON.stringify(opened)})`);
+    }
+    await page.click('.archetype-compare__toggle');
+    await page.select('.hsguru-slice__field:nth-child(1) select', 'past_week');
+    await page.waitForSelector('.hsguru-collecting', { timeout: 10_000 });
+    await page.select('.hsguru-slice__field:nth-child(1) select', 'black_empire_ban');
+    await page.waitForFunction(() => !document.querySelector('.hsguru-collecting')
+      && document.querySelector('.hsguru-slice__summary')?.textContent?.includes('игры'), { timeout: 10_000 });
+    const back = await page.$eval('.hsguru-slice__field select', node => node.selectedOptions[0]?.textContent);
+    if (back !== 'После банов') failures.push(`archetype sections [${device}]: the window did not return to «После банов» (${back})`);
+    await page.screenshot({ path: `${OUT}/archetype-sections-${device}.png`, fullPage: false });
     await auditAccessibility(page, `archetype detail [${device}]`, '.archetype-detail-page');
     await page.screenshot({ path: `${OUT}/archetype-detail-${device}.png`, fullPage: false });
     await page.click('.archetype-breadcrumb a');
