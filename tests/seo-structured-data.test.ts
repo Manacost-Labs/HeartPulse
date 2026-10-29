@@ -264,7 +264,7 @@ test('a closed Arena dataset says it is for subscribers and names only what the 
       assert.ok(text.includes(source), `${path} text names ${source}`);
     }
     for (const phrase of phrases) assert.ok(text.includes(phrase), `${path} text says «${phrase}»`);
-    assert.doesNotMatch(String(dataset.description), /\d+\s*(?:%|тыс|млн|миллион)/, `${path} dataset states no figures`);
+    assert.doesNotMatch(String(dataset.description).replace('каждые 6 часов', ''), /\d|%|миллион|тысяч/, `${path} dataset states no figures`);
   }
 });
 

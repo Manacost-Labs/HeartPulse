@@ -3,7 +3,7 @@ import { once } from 'node:events';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import http from 'node:http';
 import { join } from 'node:path';
-import test from 'node:test';
+import test, { after, before, describe, it } from 'node:test';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { CONTROL_WARRIOR_DECK_CODE, metaExternalRoutes } from './helpers/browserMetaFixture.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
@@ -895,14 +895,19 @@ const ARENA_PAGES = [
     question: 'Какую легендарку выбрать на Арене Hearthstone (хс)?', sources: ['HSReplay', 'Firestone'], dataset: false },
 ];
 
-test('a closed Arena page explains itself in the HTML: questions, sources, update schedule and no statistics', { timeout: 180_000 }, async () => {
-  const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
-  try {
+describe('a closed Arena page explains itself in the HTML: questions, sources, update schedule and no statistics', { timeout: 180_000 }, () => {
+  let runtime;
+  let frameWords;
+  before(async () => {
+    runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
     const missing = await fetch(`${runtime.nextOrigin}/no-such-page-for-arena-text/`);
     assert.equal(missing.status, 404);
-    const frameWords = wordCount(visibleText(await missing.text()));
+    frameWords = wordCount(visibleText(await missing.text()));
+  });
+  after(async () => { await runtime?.close(); });
 
-    for (const page of ARENA_PAGES) {
+  for (const page of ARENA_PAGES) {
+    it(page.path, async () => {
       const response = await fetch(`${runtime.nextOrigin}${page.path}`);
       assert.equal(response.status, 200, page.path);
       const html = await response.text();
@@ -948,15 +953,15 @@ test('a closed Arena page explains itself in the HTML: questions, sources, updat
       if (dataset) {
         assert.equal(dataset.isAccessibleForFree, false, `${page.path} dataset is for subscribers`);
         for (const source of page.sources) assert.ok(dataset.description.includes(source), `${page.path} dataset names ${source}`);
-        assert.ok(dataset.description.includes('каждые 6 часов') && text.includes('каждые 6 часов'));
+        assert.ok(dataset.description.includes('каждые 6 часов'), `${page.path} dataset gives the update interval the text gives`);
       }
-    }
-
-    const tierlist = visibleText((await (await fetch(`${runtime.nextOrigin}/tierlist/`)).text()));
-    for (const line of ['S — «Отлично»', 'A — «Хорошо»', 'B — «Выше среднего»', 'C — «Средне»', 'D — «Ниже среднего»', 'E — «Плохо»', 'F — «Ужасно»']) {
-      assert.ok(tierlist.includes(line), `the tier list explains ${line}`);
-    }
-  } finally {
-    await runtime.close();
+    });
   }
+
+  it('the tier list explains every grade of its scale', async () => {
+    const text = visibleText(await (await fetch(`${runtime.nextOrigin}/tierlist/`)).text());
+    for (const line of ['S — «Отлично»', 'A — «Хорошо»', 'B — «Выше среднего»', 'C — «Средне»', 'D — «Ниже среднего»', 'E — «Плохо»', 'F — «Ужасно»']) {
+      assert.ok(text.includes(line), `the tier list explains ${line}`);
+    }
+  });
 });

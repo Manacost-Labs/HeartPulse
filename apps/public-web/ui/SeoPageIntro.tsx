@@ -3,7 +3,7 @@ import './SeoPageIntro.css';
 import { seoCopyPieces, seoPageCopy } from '@/src/seo/pageCopy';
 
 function Inline({ text }: { text: string }) {
-  return <>{seoCopyPieces(text).map((piece, index) => <Fragment key={index}>
+  return <>{seoCopyPieces(text).map(piece => <Fragment key={`${piece.href ?? ''}:${piece.text}`}>
     {piece.href ? <a href={piece.href}>{piece.text}</a> : piece.text}
   </Fragment>)}</>;
 }
@@ -17,14 +17,15 @@ function Inline({ text }: { text: string }) {
  */
 export function SeoPageIntro({ path }: { path: string }) {
   const copy = seoPageCopy(path);
-  if (!copy) return null;
+  // A page that asks for its text must have it: fail the build, not the search snippet.
+  if (!copy) throw new Error(`No SEO page copy for ${path}`);
   return (
     <section className="seo-page-intro">
       {copy.sections.map(section => <Fragment key={section.question}>
         <h2>{section.question}</h2>
-        {section.body.map((block, index) => typeof block === 'string'
-          ? <p key={index}><Inline text={block} /></p>
-          : <ul key={index}>{block.map(item => <li key={item}><Inline text={item} /></li>)}</ul>)}
+        {section.body.map(block => typeof block === 'string'
+          ? <p key={block}><Inline text={block} /></p>
+          : <ul key={block.join('\n')}>{block.map(item => <li key={item}><Inline text={item} /></li>)}</ul>)}
       </Fragment>)}
     </section>
   );
