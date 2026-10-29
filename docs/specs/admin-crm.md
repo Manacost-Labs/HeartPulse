@@ -304,8 +304,20 @@ free, active with or without auto-renewal). «Доступ на сайте» tel
 subscriber who opens the site, one who does not, and one who pays for a level
 the site does not recognise — the case an administrator has to fix.
 
-Telegram columns: «Человек», «Telegram», «Доступ» and «VIP-группы». Chips:
-all, with access, linked without access, not linked, stale check, blocked.
+Telegram columns: «Человек», «Telegram», «Доступ к сайту» and «VIP-группы».
+Chips: all, access through Telegram, access not confirmed, not linked, stale
+check, blocked. The Telegram column shows the membership-check result and
+its date; site access and opened sections are separate, because access can
+come from another source. A failed, missing or stale membership check must
+not be presented as confirmed absence from VIP groups. Absence requires a
+successful result for every returned group, with an explicit non-member
+status. Known member/administrator/owner statuses establish membership even
+when the optional boolean flag is missing.
+
+Group errors have short readable labels, with the original diagnostic in a
+keyboard-accessible «Подробности» disclosure. Long names, emails, identifiers,
+opened-section lists and expanded diagnostics wrap within their cells on
+desktop and within the cards on mobile; this applies to all people lists.
 The name opens the client card, because a Telegram account is a site user. A
 group the bot cannot read for at least half of the checked accounts is named
 in the status block with the action to take; a failed request shows an error

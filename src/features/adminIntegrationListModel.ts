@@ -148,8 +148,8 @@ export type TelegramAccessFilter = 'all' | 'access' | 'checkable' | 'contact-onl
 
 const TELEGRAM_FILTERS: Array<{ id: TelegramAccessFilter; label: string; match: (account: TelegramAdminAccount) => boolean }> = [
   { id: 'all', label: 'Все', match: () => true },
-  { id: 'access', label: 'С доступом', match: account => account.telegramHasAccess },
-  { id: 'checkable', label: 'Привязан, без доступа', match: account => account.accessState === 'checkable' },
+  { id: 'access', label: 'Доступ через Telegram', match: account => account.telegramHasAccess },
+  { id: 'checkable', label: 'Доступ не подтверждён', match: account => account.accessState === 'checkable' },
   { id: 'contact-only', label: 'Не привязан', match: account => account.accessState === 'contact-only' },
   { id: 'stale', label: 'Проверка устарела', match: account => account.stale },
   { id: 'blocked', label: 'Заблокированы', match: account => account.accessState === 'blocked' },
@@ -175,14 +175,27 @@ export function filterTelegramAccounts(
 }
 
 const TELEGRAM_ACCESS: Record<TelegramAdminAccount['accessState'], { tone: ListTone; label: string }> = {
-  access: { tone: 'ok', label: 'Есть доступ' },
+  access: { tone: 'ok', label: 'Доступ подтверждён' },
   checkable: { tone: 'muted', label: 'Нет в VIP-группах' },
   'contact-only': { tone: 'warn', label: 'Telegram не привязан' },
   blocked: { tone: 'bad', label: 'Заблокирован' },
   'no-access': { tone: 'muted', label: 'Нет доступа' },
 };
 
-export const telegramAccess = (account: TelegramAdminAccount) => TELEGRAM_ACCESS[account.accessState] ?? TELEGRAM_ACCESS['no-access'];
+/** A failed or missing check cannot establish absence; site entitlements are independent. */
+export function telegramAccess(account: TelegramAdminAccount): { tone: ListTone; label: string } {
+  if (account.accessState === 'blocked' || account.accessState === 'contact-only' || account.accessState === 'no-access') {
+    return TELEGRAM_ACCESS[account.accessState];
+  }
+  if (account.stale) return { tone: 'warn', label: 'Проверка устарела' };
+  if (account.telegramHasAccess) return TELEGRAM_ACCESS.access;
+  if (!account.checkedAt) return { tone: 'muted', label: 'Ещё не проверялся' };
+  if (account.chats.some(chat => chat.error || chat.ok === false)) return { tone: 'warn', label: 'Проверка не удалась' };
+  const confirmedAbsent = account.chats.length > 0 && account.chats.every(chat =>
+    chat.status === 'left' || chat.status === 'kicked'
+    || (chat.status === 'restricted' && (chat.isMember === false || chat.hasAccess === false)));
+  return confirmedAbsent ? TELEGRAM_ACCESS.checkable : { tone: 'warn', label: 'Нет результата проверки' };
+}
 
 const CHAT_STATUS_LABEL: Record<string, string> = {
   creator: 'владелец группы', administrator: 'администратор группы', member: 'состоит', restricted: 'состоит с ограничениями',
@@ -191,13 +204,17 @@ const CHAT_STATUS_LABEL: Record<string, string> = {
 
 /** Telegram's member status or error for one VIP group, in words an operator can act on. */
 export function chatStateLabel(chat: Record<string, unknown>): { member: boolean; label: string } {
-  const member = Boolean(chat.isMember || chat.hasAccess);
   const error = String(chat.error || '');
   if (/chat not found|kicked|forbidden/i.test(error)) return { member: false, label: 'бот не видит эту группу' };
-  if (error) return { member: false, label: `ошибка проверки: ${error}` };
+  if (/member not found|participant_id_invalid/i.test(error)) return { member: false, label: 'не удалось проверить участника' };
+  if (error || chat.ok === false) return { member: false, label: 'ошибка проверки' };
   const status = String(chat.status || '');
+  const member = chat.isMember === true || chat.hasAccess === true || ['creator', 'administrator', 'member'].includes(status);
+  if (status === 'restricted' && !member) {
+    return { member, label: chat.isMember === false || chat.hasAccess === false ? 'не состоит' : 'членство не подтверждено' };
+  }
   if (CHAT_STATUS_LABEL[status]) return { member, label: CHAT_STATUS_LABEL[status] };
-  return { member, label: member ? 'состоит' : 'не состоит' };
+  return { member, label: member ? 'состоит' : 'статус неизвестен' };
 }
 
 /** VIP groups the bot could not read for at least half of the accounts it checked there. */

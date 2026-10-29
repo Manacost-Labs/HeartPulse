@@ -41,11 +41,14 @@ function TelegramChats({ account }: { account: TelegramAdminAccount }) {
     <div className="admin-people-chats">
       {account.chats.map((chat, index) => {
         const state = chatStateLabel(chat);
-        const tone = state.member ? 'is-member' : state.label.startsWith('бот не видит') || state.label.startsWith('ошибка') ? 'is-broken' : 'is-missing';
+        const error = String(chat.error || '');
+        const tone = state.member ? 'is-member' : error || chat.ok === false ? 'is-broken' : 'is-missing';
         return (
-          <span key={`${account.id}-${String(chat.chatId || index)}`} className={tone}>
-            {state.label} <code>{String(chat.chatId || chat.id || 'группа')}</code>
-          </span>
+          <div key={`${account.id}-${String(chat.chatId || index)}`} className="admin-people-chat">
+            <span className={tone}>{state.label}</span>
+            <code>{String(chat.chatId || chat.id || 'группа')}</code>
+            {error && <details className="admin-people-chat-error"><summary>Подробности</summary><p>{error}</p></details>}
+          </div>
         );
       })}
     </div>
@@ -74,11 +77,12 @@ function TelegramRow({ account, formatDate, entitlementLabels, onOpenPerson }: R
         <span>{account.telegramUsername ? `@${account.telegramUsername}` : 'ник не указан'}</span>
         <small>{account.telegramId ? `привязан, ID ${account.telegramId}` : 'не привязан к профилю'}</small>
         {account.telegramOidcId && <small>входил через Telegram</small>}
-      </td>
-      <td data-label="Доступ">
         <span className={`admin-crm-pill is-${access.tone}`}>{access.label}</span>
+        <small>{account.checkedAt ? `проверено ${formatDate(account.checkedAt)}` : 'дата проверки отсутствует'}</small>
+      </td>
+      <td data-label="Доступ к сайту">
+        <span className={`admin-crm-pill is-${account.hasAccess ? 'ok' : 'muted'}`}>{account.hasAccess ? 'Есть доступ к сайту' : 'Нет доступа к сайту'}</span>
         <small>{opened.length ? `открыто: ${opened.join(', ')}` : 'разделы не открыты'}</small>
-        <small>{account.checkedAt ? `проверено ${formatDate(account.checkedAt)}${account.stale ? ' · проверка устарела' : ''}` : 'ещё не проверялся'}</small>
       </td>
       <td data-label="VIP-группы"><TelegramChats account={account} /></td>
     </tr>
@@ -139,7 +143,7 @@ export function ContestAdminTelegram({ payload, loading, onReload, formatDate, e
         <div className="admin-people-table-wrap" aria-busy={loading}>
           <TableSurface title="Telegram"><table className="admin-people-table is-telegram">
             <thead>
-              <tr><th scope="col">Человек</th><th scope="col">Telegram</th><th scope="col">Доступ</th><th scope="col">VIP-группы</th></tr>
+              <tr><th scope="col">Человек</th><th scope="col">Telegram</th><th scope="col">Доступ к сайту</th><th scope="col">VIP-группы</th></tr>
             </thead>
             <tbody>
               {visible.map(account => <TelegramRow key={account.id} account={account} formatDate={formatDate} entitlementLabels={entitlementLabels} onOpenPerson={setPersonId} />)}

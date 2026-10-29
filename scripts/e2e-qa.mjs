@@ -2238,8 +2238,8 @@ for (const [device, viewport] of [
     if (telegramState.rows !== 2 || telegramState.chips.join(',') !== '2,1,0,1,1,0' || !telegramState.status.includes('настроен') || !telegramState.summary.includes('Всего 2')) {
       failures.push(`admin Telegram [${device}]: deterministic status, filters or account table did not render (${JSON.stringify(telegramState)})`);
     }
-    if (JSON.stringify(telegramState.headers) !== JSON.stringify(['Человек', 'Telegram', 'Доступ', 'VIP-группы'])
-      || JSON.stringify(telegramState.pills) !== JSON.stringify([['Есть доступ'], ['Telegram не привязан']])) {
+    if (JSON.stringify(telegramState.headers) !== JSON.stringify(['Человек', 'Telegram', 'Доступ к сайту', 'VIP-группы'])
+      || JSON.stringify(telegramState.pills) !== JSON.stringify([['Доступ подтверждён', 'Есть доступ к сайту'], ['Telegram не привязан', 'Нет доступа к сайту']])) {
       failures.push(`admin Telegram [${device}]: table columns or statuses changed (${JSON.stringify(telegramState)})`);
     }
     if (telegramState.scrollWidth > telegramState.clientWidth + 1) {
