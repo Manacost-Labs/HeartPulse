@@ -1,5 +1,15 @@
 {
   "schemaVersion": 1,
+  "organization": {
+    "@type": "Organization",
+    "@id": "https://hearthpulse.net/#org",
+    "name": "Manacost",
+    "url": "https://hearthpulse.net/",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://hearthpulse.net/assets/arena_icon.webp"
+    }
+  },
   "pages": {
     "/": [
       {
@@ -579,14 +589,31 @@
         "name": "Матчапы Стандарта Hearthstone",
         "description": "Матрица винрейтов архетипов актуальной меты Стандарта Hearthstone по данным HSGuru.",
         "url": "https://hearthpulse.net/standard/matchups/",
-        "creator": {
-          "@type": "Organization",
-          "name": "Manacost"
+        "isBasedOn": {
+          "@type": "Dataset",
+          "name": "HSGuru: Matchups",
+          "url": "https://www.hsguru.com/matchups"
         },
+        "variableMeasured": [
+          {
+            "@type": "PropertyValue",
+            "name": "Винрейт в матчапе",
+            "unitText": "%"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Число игр"
+          }
+        ],
+        "keywords": [
+          "Hearthstone",
+          "Стандарт",
+          "матчапы",
+          "винрейт архетипов"
+        ],
         "about": {
           "@type": "VideoGame",
-          "name": "Hearthstone",
-          "gameMode": "Standard"
+          "name": "Hearthstone"
         }
       }
     ],
@@ -614,7 +641,49 @@
         "name": "HSGuru: мета Hearthstone",
         "description": "Тир-лист колод Стандарта и Вольного режима с винрейтами, популярностью и готовыми сборками.",
         "url": "https://hearthpulse.net/standard/meta/",
-        "inLanguage": "ru"
+        "inLanguage": "ru",
+        "about": {
+          "@id": "https://hearthpulse.net/standard/meta/#dataset"
+        }
+      },
+      {
+        "@type": "Dataset",
+        "@id": "https://hearthpulse.net/standard/meta/#dataset",
+        "name": "Мета Стандарта Hearthstone: винрейт, популярность и число игр архетипов",
+        "description": "Срез меты Стандарта Hearthstone по данным HSGuru: винрейт, популярность и число игр архетипов. На странице показан бесплатный срез; полная таблица доступна подписчикам.",
+        "url": "https://hearthpulse.net/standard/meta/",
+        "isBasedOn": {
+          "@type": "Dataset",
+          "name": "HSGuru: Meta",
+          "url": "https://www.hsguru.com/meta"
+        },
+        "variableMeasured": [
+          {
+            "@type": "PropertyValue",
+            "name": "Винрейт",
+            "unitText": "%"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Популярность",
+            "unitText": "%"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Число игр"
+          }
+        ],
+        "keywords": [
+          "Hearthstone",
+          "мета Стандарта",
+          "архетипы",
+          "винрейт",
+          "тир-лист колод"
+        ],
+        "about": {
+          "@type": "VideoGame",
+          "name": "Hearthstone"
+        }
       }
     ],
     "/standard/fun-decks": [
@@ -674,14 +743,37 @@
         "name": "Архетипы Hearthstone: Стандарт и Вольный",
         "description": "Актуальные архетипы Стандарта и Вольного режима по данным HSGuru: винрейты, популярность и готовые сборки.",
         "url": "https://hearthpulse.net/standard/archetypes/",
-        "creator": {
-          "@type": "Organization",
-          "name": "Manacost"
+        "isBasedOn": {
+          "@type": "Dataset",
+          "name": "HSGuru: Meta",
+          "url": "https://www.hsguru.com/meta"
         },
+        "variableMeasured": [
+          {
+            "@type": "PropertyValue",
+            "name": "Винрейт",
+            "unitText": "%"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Популярность",
+            "unitText": "%"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Число игр"
+          }
+        ],
+        "keywords": [
+          "Hearthstone",
+          "Стандарт",
+          "Вольный формат",
+          "архетипы",
+          "винрейт"
+        ],
         "about": {
           "@type": "VideoGame",
-          "name": "Hearthstone",
-          "gameMode": "Standard"
+          "name": "Hearthstone"
         }
       }
     ],
@@ -715,14 +807,42 @@
         "name": "Vicious Syndicate Gold — мета Стандарта Hearthstone",
         "description": "Распределение классов и колод, готовые сборки и Power Tier по рангам Vicious Syndicate Live.",
         "url": "https://hearthpulse.net/standard/vicious-gold/",
-        "creator": {
-          "@type": "Organization",
-          "name": "Manacost"
+        "isBasedOn": {
+          "@type": "Dataset",
+          "name": "Vicious Syndicate: Data Reaper Live",
+          "url": "https://www.vicioussyndicate.com/data-reaper-live/"
         },
+        "variableMeasured": [
+          {
+            "@type": "PropertyValue",
+            "name": "Винрейт колоды",
+            "unitText": "%"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Частота колоды",
+            "unitText": "%"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Частота класса",
+            "unitText": "%"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Power Tier"
+          }
+        ],
+        "keywords": [
+          "Hearthstone",
+          "Стандарт",
+          "Vicious Syndicate",
+          "Power Tier",
+          "мета"
+        ],
         "about": {
           "@type": "VideoGame",
-          "name": "Hearthstone",
-          "gameMode": "Standard"
+          "name": "Hearthstone"
         }
       }
     ],
@@ -802,17 +922,36 @@
         "@type": "Dataset",
         "@id": "https://hearthpulse.net/classes/#dataset",
         "name": "Винрейт классов Арены Hearthstone",
-        "description": "Актуальные винрейты 11 классов в режиме Арена Hearthstone на основе данных HSReplay и Firestone.",
+        "description": "Актуальные винрейты классов в режиме Арена Hearthstone на основе данных HSReplay и Firestone.",
         "url": "https://hearthpulse.net/classes/",
-        "creator": {
-          "@type": "Organization",
-          "name": "Manacost"
-        },
-        "temporalCoverage": "P7D",
+        "isBasedOn": [
+          {
+            "@type": "Dataset",
+            "name": "HSReplay: Arena",
+            "url": "https://hsreplay.net/arena/"
+          },
+          {
+            "@type": "Dataset",
+            "name": "Firestone",
+            "url": "https://www.firestoneapp.com/"
+          }
+        ],
+        "variableMeasured": [
+          {
+            "@type": "PropertyValue",
+            "name": "Винрейт класса",
+            "unitText": "%"
+          }
+        ],
+        "keywords": [
+          "Hearthstone",
+          "Арена",
+          "классы",
+          "винрейт"
+        ],
         "about": {
           "@type": "VideoGame",
-          "name": "Hearthstone",
-          "gameMode": "Arena"
+          "name": "Hearthstone"
         }
       }
     ],
@@ -835,62 +974,44 @@
         ]
       },
       {
-        "@type": "ItemList",
-        "@id": "https://hearthpulse.net/tierlist/#tierlist",
-        "name": "Тир-лист карт Арены Hearthstone",
-        "description": "Оценки карт для режима Арена Hearthstone по всем классам от S до F.",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Тир S — Отлично (авто-пик)"
-          },
-          {
-            "@type": "ListItem",
-            "position": 2,
-            "name": "Тир A — Хорошо"
-          },
-          {
-            "@type": "ListItem",
-            "position": 3,
-            "name": "Тир B — Выше среднего"
-          },
-          {
-            "@type": "ListItem",
-            "position": 4,
-            "name": "Тир C — Средне"
-          },
-          {
-            "@type": "ListItem",
-            "position": 5,
-            "name": "Тир D — Ниже среднего"
-          },
-          {
-            "@type": "ListItem",
-            "position": 6,
-            "name": "Тир E — Плохо"
-          },
-          {
-            "@type": "ListItem",
-            "position": 7,
-            "name": "Тир F — Ужасно"
-          }
-        ]
-      },
-      {
         "@type": "Dataset",
         "@id": "https://hearthpulse.net/tierlist/#dataset",
         "name": "Тир-лист карт Арены Hearthstone",
         "description": "Полный тир-лист карт для каждого класса в режиме Арена Hearthstone с оценками от S до F.",
         "url": "https://hearthpulse.net/tierlist/",
-        "creator": {
-          "@type": "Organization",
-          "name": "Manacost"
-        },
+        "isBasedOn": [
+          {
+            "@type": "Dataset",
+            "name": "HearthArena: Tierlist",
+            "url": "https://www.heartharena.com/ru/tierlist"
+          },
+          {
+            "@type": "Dataset",
+            "name": "HSReplay: Arena cards",
+            "url": "https://hsreplay.net/arena/cards/"
+          },
+          {
+            "@type": "Dataset",
+            "name": "Firestone",
+            "url": "https://www.firestoneapp.com/"
+          }
+        ],
+        "variableMeasured": [
+          {
+            "@type": "PropertyValue",
+            "name": "Оценка карты",
+            "description": "Шкала от S до F"
+          }
+        ],
+        "keywords": [
+          "Hearthstone",
+          "Арена",
+          "тир-лист",
+          "оценка карт"
+        ],
         "about": {
           "@type": "VideoGame",
-          "name": "Hearthstone",
-          "gameMode": "Arena"
+          "name": "Hearthstone"
         }
       }
     ],
@@ -909,69 +1030,6 @@
             "position": 2,
             "name": "Легендарки",
             "item": "https://hearthpulse.net/legendaries/"
-          }
-        ]
-      },
-      {
-        "@type": "ItemList",
-        "@id": "https://hearthpulse.net/legendaries/#legendaries",
-        "name": "Легендарные группы для Арены Hearthstone",
-        "description": "Наборы карт для выбора первой легендарки на Арене Hearthstone с винрейтом каждой группы.",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Группы легендарных карт — Рыцарь смерти"
-          },
-          {
-            "@type": "ListItem",
-            "position": 2,
-            "name": "Группы легендарных карт — Паладин"
-          },
-          {
-            "@type": "ListItem",
-            "position": 3,
-            "name": "Группы легендарных карт — Шаман"
-          },
-          {
-            "@type": "ListItem",
-            "position": 4,
-            "name": "Группы легендарных карт — Охотник"
-          },
-          {
-            "@type": "ListItem",
-            "position": 5,
-            "name": "Группы легендарных карт — Маг"
-          },
-          {
-            "@type": "ListItem",
-            "position": 6,
-            "name": "Группы легендарных карт — Разбойник"
-          },
-          {
-            "@type": "ListItem",
-            "position": 7,
-            "name": "Группы легендарных карт — Чернокнижник"
-          },
-          {
-            "@type": "ListItem",
-            "position": 8,
-            "name": "Группы легендарных карт — Друид"
-          },
-          {
-            "@type": "ListItem",
-            "position": 9,
-            "name": "Группы легендарных карт — Воин"
-          },
-          {
-            "@type": "ListItem",
-            "position": 10,
-            "name": "Группы легендарных карт — Жрец"
-          },
-          {
-            "@type": "ListItem",
-            "position": 11,
-            "name": "Группы легендарных карт — Охотник на демонов"
           }
         ]
       }
@@ -1355,35 +1413,6 @@
         "description": "Существа, стратегии, заклинания и аксессуары Hearthstone Battlegrounds.",
         "url": "https://hearthpulse.net/battlegrounds/tier-list/",
         "inLanguage": "ru"
-      },
-      {
-        "@type": "ItemList",
-        "@id": "https://hearthpulse.net/battlegrounds/tier-list/#categories",
-        "name": "Разделы тир-листа БГ Hearthstone",
-        "description": "Рейтинги доступных на странице существ, стратегий, заклинаний и аксессуаров Полей сражений.",
-        "numberOfItems": 4,
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Тир-лист существ БГ"
-          },
-          {
-            "@type": "ListItem",
-            "position": 2,
-            "name": "Тир-лист стратегий БГ"
-          },
-          {
-            "@type": "ListItem",
-            "position": 3,
-            "name": "Тир-лист заклинаний БГ"
-          },
-          {
-            "@type": "ListItem",
-            "position": 4,
-            "name": "Тир-лист аксессуаров БГ"
-          }
-        ]
       }
     ],
     "/battlegrounds/tier-builder": [

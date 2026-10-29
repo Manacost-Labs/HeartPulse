@@ -15,10 +15,11 @@ export const generateMetadata = seoPageMetadata('/standard/archetypes', 'HearthP
 
 export default async function Page({ searchParams }: { searchParams: PageSearchParams }) {
   const initialSearch = searchParamsQuery(await searchParams);
+  // The loader is cached per render: the title, the page and the JSON-LD date read one answer.
+  const catalog = await loadPublicArchetypeCatalogTeaser(initialSearch);
   return <>
-    <SeoStructuredData path="/standard/archetypes" />
+    <SeoStructuredData path="/standard/archetypes" data={catalog} />
     <PageBannerPreload />
-    <ConstructedArchetypesPageClient initialSearch={initialSearch}
-      initialCatalog={await loadPublicArchetypeCatalogTeaser(initialSearch)} />
+    <ConstructedArchetypesPageClient initialSearch={initialSearch} initialCatalog={catalog} />
   </>;
 }

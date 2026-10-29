@@ -54,7 +54,10 @@ This slice must not open private API responses to indexing or shared caches.
 - JSON-LD describes what the page shows. `numberOfItems` equals the listed
   items or is omitted, one list never repeats a URL, and a breadcrumb has no
   section crumb without its own page. A Dataset's `license` is the site terms
-  (`/terms/`), the only reuse grant the owner has published.
+  (`/terms/`), the only reuse grant the owner has published. Its
+  `dateModified` is the update date of the data the page shows, and
+  `temporalCoverage` is written only when a source names the window
+  (`docs/specs/seo-entity-indexing.md#json-ld-of-statistics-pages`).
 - Article cards are real `<a href target="_blank">` links. A VIP article keeps
   its access flow on click; its `href` is the public, locked page.
 - Meta descriptions go through `fitMetaDescription` (`src/shared/seo/metaDescription.ts`):

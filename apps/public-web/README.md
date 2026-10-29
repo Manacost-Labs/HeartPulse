@@ -311,8 +311,11 @@ is a separate administrator workspace and retains its permission gate.
 - JSON-LD of listing and hub pages lives in
   `config/public-seo-structured-data.json`; the page renders it with
   `<SeoStructuredData path="/route" />` (`src/seo/structuredData.ts` adds
-  canonical URLs, breadcrumb links and dataset dates). Entity pages (card,
-  hero, library card, cosmetic) build their own.
+  canonical URLs, breadcrumb links and the `Organization` node a `Dataset`
+  points at). A page that prints the date of its data passes the teaser it
+  shows: `<SeoStructuredData path="/route" data={teaser} />` writes
+  `dateModified` from its `updatedAt`, and a page without a public date has
+  none. Entity pages (card, hero, library card, cosmetic) build their own.
 
 ## Add a public page
 

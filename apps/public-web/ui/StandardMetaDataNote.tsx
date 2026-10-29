@@ -1,22 +1,8 @@
 import './StandardMetaDataNote.css';
 import { seoDataDate } from '@/apps/public-web/lib/seoDataDate';
+import { hsguruSourceUrl } from '@/apps/public-web/lib/seoDataSource';
 import { standardMetaPeriodLabel } from '@/src/features/standardMetaFilterModel';
 import type { StandardMetaTeaserSeed } from '@/src/features/standardMetaTeaser';
-
-const HSGURU_HOSTS = new Set(['hsguru.com', 'www.hsguru.com']);
-
-/**
- * HSGuru's own page, linked only when the teaser names an https address on
- * HSGuru: the link is labelled «HSGuru», so any other host stays plain text.
- */
-function sourceHref(sourceUrl: string): string | null {
-  try {
-    const url = new URL(sourceUrl);
-    return url.protocol === 'https:' && HSGURU_HOSTS.has(url.hostname) ? sourceUrl : null;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * The line a reader without JavaScript (and a search engine) gets under the
@@ -28,7 +14,7 @@ export function StandardMetaDataNote({ teaser }: { teaser: StandardMetaTeaserSee
   const date = teaser && seoDataDate(teaser.data.updatedAt, Date.now());
   if (!teaser || !date) return null;
   const { data, period } = teaser;
-  const href = sourceHref(data.sourceUrl);
+  const href = hsguruSourceUrl(data.sourceUrl);
   return (
     <p className="standard-meta-data-note">
       Данные на <time dateTime={date.iso}>{date.date}, {date.time} МСК</time> · {data.formatLabel} · {data.rankLabel} · период «{standardMetaPeriodLabel(period)}» · от {data.minGames} игр · источник {href ? <a href={href} rel="noopener noreferrer">HSGuru</a> : 'HSGuru'}.

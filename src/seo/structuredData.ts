@@ -10,12 +10,33 @@ const SITE_ORIGIN = 'https://hearthpulse.net';
 const URL_KEYS = new Set(['@id', 'item', 'url']);
 const LANGUAGE_TYPES = new Set(['WebSite', 'WebApplication', 'CollectionPage', 'Dataset', 'ItemList', 'FAQPage']);
 const BREADCRUMB_LINKED_TYPES = new Set(['WebApplication', 'CollectionPage', 'Dataset', 'ItemList']);
-const DAY_MS = 24 * 3600 * 1000;
+// The page types whose text is the data the page shows, so the date of that data dates them.
+const DATA_DATED_TYPES = new Set(['CollectionPage', 'Dataset']);
 
-const PAGES = (rawStructuredData as { pages: Record<string, SchemaNode[]> }).pages;
+const { pages: PAGES, organization: ORGANIZATION } = rawStructuredData as {
+  pages: Record<string, SchemaNode[]>;
+  organization: SchemaNode;
+};
+const ORGANIZATION_REFERENCE = { '@id': String(ORGANIZATION['@id']) };
 
-function isoDay(date: Date): string {
-  return date.toISOString().slice(0, 10);
+/** What a page knows about the data it shows; the JSON-LD says no more than the page prints. */
+export type SeoStructuredDataFacts = {
+  /**
+   * When the data was last updated, from the source (not the server's clock).
+   * Without a readable date the graph has no `dateModified` at all.
+   */
+  dateModified?: string | null;
+  /** The address the data was read from; replaces the address of a Dataset's single `isBasedOn` source. */
+  sourceUrl?: string | null;
+};
+
+function isoInstant(value: string | null | undefined): string | null {
+  const timestamp = value ? Date.parse(value) : NaN;
+  return Number.isFinite(timestamp) ? new Date(timestamp).toISOString() : null;
+}
+
+function httpsAddress(value: string | null | undefined): string | null {
+  return value && URL.canParse(value) && new URL(value).protocol === 'https:' ? value : null;
 }
 
 /** Points references to this page and to other registered pages at their canonical URLs. */
@@ -38,10 +59,14 @@ async function canonicalized(value: SchemaValue, pagePath: string, pageUrl: stri
 
 /**
  * JSON-LD graph of a page listed in `config/public-seo-structured-data.json`,
- * or `null` when the page has no entry or is not indexable. Dataset nodes
- * describe the rolling 30-day statistics window that ends on `now`.
+ * or `null` when the page has no entry or is not indexable. A date or window
+ * is written only when the page's data supplies it: `dateModified` is the date
+ * the data was updated, and there is no `temporalCoverage` because no source
+ * names the window it covers. A page with a Dataset also carries the
+ * `Organization` node its `creator` and `publisher` point at: Google resolves
+ * an `@id` inside one document only.
  */
-export async function seoStructuredDataGraph(pathname: string, now = new Date()): Promise<SeoStructuredDataGraph | null> {
+export async function seoStructuredDataGraph(pathname: string, facts: SeoStructuredDataFacts = {}): Promise<SeoStructuredDataGraph | null> {
   const pagePath = normalizePublicPathname(pathname);
   const nodes = PAGES[pagePath];
   if (!nodes?.length) return null;
@@ -52,18 +77,26 @@ export async function seoStructuredDataGraph(pathname: string, now = new Date())
   const graph = await Promise.all(nodes.map(node => canonicalized(node, pagePath, pageUrl))) as SchemaNode[];
   const breadcrumb = graph.find(node => node['@type'] === 'BreadcrumbList');
   if (breadcrumb && !breadcrumb['@id']) breadcrumb['@id'] = `${pageUrl}#breadcrumb`;
+  const dateModified = isoInstant(facts.dateModified);
+  const sourceUrl = httpsAddress(facts.sourceUrl);
   for (const node of graph) {
     const type = String(node['@type']);
     if (!node.inLanguage && LANGUAGE_TYPES.has(type)) node.inLanguage = 'ru';
     if (breadcrumb && !node.breadcrumb && BREADCRUMB_LINKED_TYPES.has(type)) {
       node.breadcrumb = { '@id': breadcrumb['@id'] };
     }
+    if (dateModified && DATA_DATED_TYPES.has(type)) node.dateModified = dateModified;
     if (type === 'Dataset') {
       // The site terms are the only reuse grant the owner has published.
       if (!node.license) node.license = `${SITE_ORIGIN}/terms/`;
-      node.temporalCoverage = `${isoDay(new Date(now.getTime() - 30 * DAY_MS))}/${isoDay(now)}`;
-      node.dateModified = isoDay(now);
+      node.creator ??= { ...ORGANIZATION_REFERENCE };
+      node.publisher ??= { ...ORGANIZATION_REFERENCE };
+      const origin = node.isBasedOn;
+      if (sourceUrl && origin && typeof origin === 'object' && !Array.isArray(origin)) origin.url = sourceUrl;
     }
+  }
+  if (graph.some(node => node['@type'] === 'Dataset')) {
+    graph.unshift(await canonicalized(ORGANIZATION, pagePath, pageUrl) as SchemaNode);
   }
   return { '@context': 'https://schema.org', '@graph': graph };
 }
