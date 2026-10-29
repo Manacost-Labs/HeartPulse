@@ -5,6 +5,7 @@ import { TABS } from '../src/app/routing/navigationRoutes';
 import {
   publicSeoPages,
   renderSeoTemplate,
+  seoPageText,
   seoPageForExactPath,
   seoPageForNavigationRoute,
 } from '../src/seo/registry';
@@ -12,7 +13,6 @@ import { resolvePublicUrlPolicy } from '../src/shared/seo/publicUrlPolicy';
 import { subscriptionPaywallHeading } from '../src/components/subscriptionPaywallHeading';
 import { assertSeoDataTemplate, renderSeoDataTemplate } from '../src/seo/dataTemplate';
 import { standardMetaPeriodLabel } from '../src/features/standardMetaFilterModel';
-import { seoRegistryMetadata } from '../apps/public-web/lib/seoPageMetadata';
 import { seoDataDate } from '../apps/public-web/lib/seoDataDate';
 import {
   archetypeCatalogSeoValues, archetypeDetailSeoText, standardMetaSeoValues,
@@ -233,13 +233,8 @@ assert.match(standardMetaLandingSource, /<h1>Мета<\/h1>/);
       sourceUrl: 'https://www.hsguru.com/meta', translationSource: '', updatedAt, items,
     },
   });
-  const metaText = async (seed: ReturnType<typeof metaSeed> | null, now = NOW) => {
-    const metadata = await seoRegistryMetadata(META, 'alt', '', standardMetaSeoValues(seed, now));
-    assert.equal(metadata.openGraph?.title, metadata.title, 'og:title is the title');
-    assert.equal((metadata.twitter as { title?: string }).title, metadata.title, 'twitter:title is the title');
-    assert.equal(metadata.openGraph?.description, metadata.description, 'og:description is the description');
-    return { title: String(metadata.title), description: String(metadata.description) };
-  };
+  const metaText = async (seed: ReturnType<typeof metaSeed> | null, now = NOW) =>
+    seoPageText(staticPage(META), standardMetaSeoValues(seed, now));
   const FRESH = '2026-10-28T23:00:00.000Z';
   const TOP_ROWS = [metaRow('Зоолок', 61, 14800), metaRow('Граб\'Зи К\'тун Шаман', 58.2, 5400), metaRow('Н\'зот Чернокнижник', 57.4, 258)];
 
@@ -292,11 +287,8 @@ assert.match(standardMetaLandingSource, /<h1>Мета<\/h1>/);
         games: 100, winrate: 50, popularity: 1, turns: 8, durationMinutes: 7, climbingSpeed: 1, deckCount: 1, sourceUrl: '',
       })),
     }, format);
-  const catalogText = async (catalog: ReturnType<typeof catalogOf>, now = NOW) => {
-    const metadata = await seoRegistryMetadata(CATALOG, 'alt', '', archetypeCatalogSeoValues(catalog, now));
-    assert.equal(metadata.openGraph?.title, metadata.title);
-    return { title: String(metadata.title), description: String(metadata.description) };
-  };
+  const catalogText = async (catalog: ReturnType<typeof catalogOf>, now = NOW) =>
+    seoPageText(staticPage(CATALOG), archetypeCatalogSeoValues(catalog, now));
   assert.deepEqual(await catalogText(catalogOf(193)), {
     title: 'Архетипы Hearthstone: винрейт, октябрь 2026 | HearthPulse',
     description: 'Архетипы колод Хартстоуна (хс) на 29 октября 2026: 193 архетипа Стандарта — винрейт, популярность и число игр. Данные HSGuru.',

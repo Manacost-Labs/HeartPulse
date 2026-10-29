@@ -1,5 +1,6 @@
 import rawRegistry from '../../config/public-seo-pages.json';
-import { assertSeoDataTemplate } from './dataTemplate';
+import { META_DESCRIPTION_MAX, META_TITLE_MAX } from '../shared/seo/metaDescription';
+import { assertSeoDataTemplate, renderSeoDataTemplate, type SeoDataValues } from './dataTemplate';
 
 /**
  * Tokens the data templates (`dataTitle`, `dataDescription`) may use; the
@@ -104,6 +105,19 @@ const pagesByPath = new Map(pages.map(page => [page.pathname, page]));
 const pagesByNavigationRoute = new Map(
   pages.filter(page => page.navigationRouteId).map(page => [page.navigationRouteId, page]),
 );
+
+/**
+ * The title and description of a registry page. With `data` they come from the
+ * data templates, each falling back to its static text when the data cannot
+ * fill it (no date, a text that does not fit `META_TITLE_MAX` or `META_DESCRIPTION_MAX`).
+ */
+export function seoPageText(page: PublicSeoPage, data: SeoDataValues | null): { title: string; description: string } {
+  return {
+    title: (data && page.dataTitle && renderSeoDataTemplate(page.dataTitle, data, META_TITLE_MAX)) || page.title,
+    description: (data && page.dataDescription && renderSeoDataTemplate(page.dataDescription, data, META_DESCRIPTION_MAX))
+      || page.description,
+  };
+}
 
 export function publicSeoPages(): readonly PublicSeoPage[] {
   return pages;

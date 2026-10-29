@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
-import { renderSeoDataTemplate, type SeoDataValues } from '@/src/seo/dataTemplate';
-import { seoPageForExactPath } from '@/src/seo/registry';
-import { META_DESCRIPTION_MAX, META_TITLE_MAX } from '@/src/shared/seo/metaDescription';
+import type { SeoDataValues } from '@/src/seo/dataTemplate';
+import { seoPageForExactPath, seoPageText } from '@/src/seo/registry';
 import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
 import { SHARE_IMAGE_HEIGHT, SHARE_IMAGE_WIDTH, shareImagePath, shareImageSectionForPath } from '@/shared/shareImages';
 import { type PageSearchParams, searchParamsQuery } from './searchParams';
@@ -39,17 +38,14 @@ async function readDataValues(source: SeoDataSource | undefined, query: string):
  * image of the path's section (`shared/shareImages.ts`). Pages the
  * registry keeps out of the sitemap get no canonical or share tags.
  * With `data` the title and description come from the registry's data
- * templates, each falling back to its static text when the data cannot fill
- * it (no date, a title that does not fit `META_TITLE_MAX`).
+ * templates (`seoPageText`).
  */
 export async function seoRegistryMetadata(
   path: string, shareImageAlt: string, query = '', data: SeoDataValues | null = null,
 ): Promise<Metadata> {
   const seo = registeredPage(path, shareImageAlt);
   const policy = await resolvePublicUrlPolicy(seo.pathname, query);
-  const title = (data && seo.dataTitle && renderSeoDataTemplate(seo.dataTitle, data, META_TITLE_MAX)) || seo.title;
-  const description = (data && seo.dataDescription && renderSeoDataTemplate(seo.dataDescription, data, META_DESCRIPTION_MAX))
-    || seo.description;
+  const { title, description } = seoPageText(seo, data);
   const metadata: Metadata = { title, description, robots: policy.robots };
   if (!seo.sitemap) return metadata;
   const pageUrl = `${SITE_URL}${seo.pathname === '/' ? '/' : `${seo.pathname}/`}`;
