@@ -1,6 +1,5 @@
 import React, {
   useCallback,
-  useDeferredValue,
   useEffect,
   useMemo,
   useState,
@@ -18,20 +17,21 @@ import DeckListView from './decklist/DeckListView';
 import DeckRenderPreview from './deckrender/DeckRenderPreview';
 import { useResolvedDeck } from './decklist/useResolvedDeck';
 import {
-  FUN_DECKS_FREE_PREVIEW_COUNT,
-  orderFunDecks,
+  FUN_DECK_CLASSES,
+  funDeckClassId,
+  selectFunDecks,
   type FunDeckRow,
+  type FunDeckTagId,
   type FunDecksPayload,
-  type FunDecksSortMode,
 } from './funDecksPreview';
+import { FunDeckMetrics, FunDeckWhy, score } from './FunDeckFacts';
 import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
 import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
 import '../shared/ui/LoadingSurface.css';
 import './FunDecksPage.css';
-import { FUN_DECKS_FIRST_PAGE, FunDecksSkeleton } from './FunDecksSkeleton';
-
-type FormatFilter = 'all' | 'standard' | 'wild';
-type SortMode = FunDecksSortMode;
+import { FunDecksSkeleton } from './FunDecksSkeleton';
+import { FunDecksFilters } from './FunDecksFilters';
+import { useFunDecksFilters } from './useFunDecksFilters';
 
 const EMPTY_DATA: FunDecksPayload = {
   fetchedAt: null,
@@ -40,7 +40,6 @@ const EMPTY_DATA: FunDecksPayload = {
   decks: [],
 };
 
-const FREE_PREVIEW_COUNT = FUN_DECKS_FREE_PREVIEW_COUNT;
 const DEFAULT_PAYWALL_ACCESS: PaywallAccessState = {
   authUser: null,
   subscriptionStatus: null,
@@ -48,19 +47,9 @@ const DEFAULT_PAYWALL_ACCESS: PaywallAccessState = {
   onRefreshSubscription: async () => null,
 };
 
-const CLASS_META: Record<string, { label: string; color: string; icon: string }> = {
-  deathknight: { label: 'Рыцарь смерти', color: '#397b87', icon: '/class_icon/ui/deathknight-64.webp' },
-  demonhunter: { label: 'Охотник на демонов', color: '#556d24', icon: '/class_icon/ui/demonhunter-64.webp' },
-  druid: { label: 'Друид', color: '#8b4d25', icon: '/class_icon/ui/druid-64.webp' },
-  hunter: { label: 'Охотник', color: '#3f792f', icon: '/class_icon/ui/hunter-64.webp' },
-  mage: { label: 'Маг', color: '#326c97', icon: '/class_icon/ui/mage-64.webp' },
-  paladin: { label: 'Паладин', color: '#a77816', icon: '/class_icon/ui/paladin-64.webp' },
-  priest: { label: 'Жрец', color: '#6e6862', icon: '/class_icon/ui/priest-64.webp' },
-  rogue: { label: 'Разбойник', color: '#55545b', icon: '/class_icon/ui/rogue-64.webp' },
-  shaman: { label: 'Шаман', color: '#345aa0', icon: '/class_icon/ui/shaman-64.webp' },
-  warlock: { label: 'Чернокнижник', color: '#694477', icon: '/class_icon/ui/warlock-64.webp' },
-  warrior: { label: 'Воин', color: '#8e342f', icon: '/class_icon/ui/warrior-64.webp' },
-};
+const CLASS_META: Record<string, { label: string; color: string; icon: string }> = Object.fromEntries(
+  FUN_DECK_CLASSES.map(item => [item.id, item]),
+);
 
 const HERO_CLASS_BY_DBF: Record<number, string> = {
   7: 'warrior',
@@ -76,27 +65,8 @@ const HERO_CLASS_BY_DBF: Record<number, string> = {
   78065: 'deathknight',
 };
 
-function normalizeClass(value: string): string {
-  return String(value || '').toLowerCase().replace(/[^a-z]/g, '');
-}
-
 function formatOf(deck: FunDeckRow): 'standard' | 'wild' {
   return deck.format.toLowerCase() === 'wild' ? 'wild' : 'standard';
-}
-
-function percent(value: number | null, digits = 1): string {
-  if (value === null || !Number.isFinite(value)) return '—';
-  return `${value.toLocaleString('ru-RU', { maximumFractionDigits: digits })}%`;
-}
-
-function score(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return '—';
-  return `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`;
-}
-
-function metaDistance(value: number | null): string {
-  if (value === null || !Number.isFinite(value)) return '—';
-  return `${Math.round((1 - Math.max(0, Math.min(1, value))) * 100)}%`;
 }
 
 function timestamp(value: string | null): number {
@@ -143,11 +113,14 @@ function FunDeckCard({
   fresh = false,
   tourAnchor = false,
   eager = false,
+  pinnedTags = [],
 }: {
   deck: FunDeckRow;
   fresh?: boolean;
   tourAnchor?: boolean;
   eager?: boolean;
+  /** Tags the reader filters by: the card shows them first. */
+  pinnedTags?: readonly FunDeckTagId[];
 }) {
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'error'>('idle');
   const format = formatOf(deck);
@@ -156,7 +129,7 @@ function FunDeckCard({
     archetype: deck.nearestArchetype || undefined,
   });
   const resolvedClass = data ? HERO_CLASS_BY_DBF[data.heroDbfId] : '';
-  const classMeta = CLASS_META[normalizeClass(deck.className)] || CLASS_META[resolvedClass] || {
+  const classMeta = CLASS_META[funDeckClassId(deck)] || CLASS_META[resolvedClass] || {
     label: deck.className && deck.className !== '—' ? deck.className : 'Класс определяется',
     color: '#67131c',
     icon: '/arena-logo-icon.webp',
@@ -199,24 +172,9 @@ function FunDeckCard({
         </div>
       </header>
 
-      <dl className="fun-deck-card__metrics" data-tour-id={tourAnchor ? 'fun-decks-card-metrics' : undefined}>
-        <div>
-          <dt>Винрейт</dt>
-          <dd>{percent(deck.winRate)}</dd>
-        </div>
-        <div>
-          <dt>Игры</dt>
-          <dd>{deck.games?.toLocaleString('ru-RU') ?? '—'}</dd>
-        </div>
-        <div>
-          <dt>Не похожа на мету</dt>
-          <dd>{metaDistance(deck.maxMetaSimilarity)}</dd>
-        </div>
-        <div>
-          <dt>Индекс фана</dt>
-          <dd>{score(deck.funScore)}</dd>
-        </div>
-      </dl>
+      <FunDeckWhy deck={deck} pinnedTags={pinnedTags} />
+
+      <FunDeckMetrics deck={deck} tourAnchor={tourAnchor} />
 
       <div
         className="fun-deck-card__deck"
@@ -335,34 +293,16 @@ export default function FunDecksPage({
   // A guest whose complete list failed still has the preview it may see.
   const error = loadError && (hasFullAccess || !data.decks.length) ? loadError : '';
   const [arrivesLater] = useState(!initialPreview);
-  const [formatFilter, setFormatFilter] = useState<FormatFilter>('all');
-  const [sortMode, setSortMode] = useState<SortMode>('newest');
-  const [query, setQuery] = useState('');
-  const [visibleCount, setVisibleCount] = useState(FUN_DECKS_FIRST_PAGE);
-  const deferredQuery = useDeferredValue(query);
-
-  const filteredDecks = useMemo(() => {
-    const needle = deferredQuery.trim().toLocaleLowerCase('ru-RU');
-    const formatDecks = data.decks.filter(deck => (
-      formatFilter === 'all' || formatOf(deck) === formatFilter
-    ));
-    const sortedDecks = orderFunDecks(formatDecks, sortMode);
-    const accessibleDecks = hasFullAccess ? sortedDecks : sortedDecks.slice(0, FREE_PREVIEW_COUNT);
-    return accessibleDecks.filter(deck => {
-      if (!needle) return true;
-      const classLabel = CLASS_META[normalizeClass(deck.className)]?.label || deck.className;
-      return `${deck.title} ${classLabel} ${deck.streamer || ''} ${deck.nearestArchetype || ''}`
-        .toLocaleLowerCase('ru-RU')
-        .includes(needle);
-    });
-  }, [data.decks, deferredQuery, formatFilter, hasFullAccess, sortMode]);
+  const { filters, query, view, visibleCount, filtered, change, search, reset, showMore } = useFunDecksFilters();
+  const filteredDecks = useMemo(
+    () => selectFunDecks(data.decks, view, hasFullAccess),
+    [data.decks, view, hasFullAccess],
+  );
+  // Until the complete list arrives, only the guest preview is at hand: a filter or a sort from the link would show a wrong answer on it.
+  const settling = !complete && !loadError
+    && (filters.format !== 'all' || filters.classes.length > 0 || filters.tags.length > 0 || filters.sort !== 'newest');
 
   const visibleDecks = filteredDecks.slice(0, visibleCount);
-  const filterButtons: Array<{ id: FormatFilter; label: string; count: number }> = [
-    { id: 'all', label: 'Все', count: data.stats.total },
-    { id: 'standard', label: 'Стандарт', count: data.stats.standard },
-    { id: 'wild', label: 'Вольный', count: data.stats.wild },
-  ];
 
   return (
     <div className="fun-decks-page">
@@ -412,59 +352,22 @@ export default function FunDecksPage({
         <p className="fun-decks-method__gate">
           В подборку проходят колоды с индексом от {score(data.methodology?.minFunScore ?? 0.55)}
           {' '}и сходством с метой не выше {score(data.methodology?.maxMetaSimilarity ?? 0.42)}.
+          {' '}Рядом с винрейтом стоит 95%-й интервал: чем меньше игр, тем он шире.
         </p>
       </section>
 
-      <section
-        className="fun-decks-tools"
-        aria-label="Фильтры фан-колод"
-        data-tour-id="fun-decks-filters"
-      >
-        <div className="fun-decks-tools__formats" role="group" aria-label="Формат">
-          {filterButtons.map(filter => (
-            <button
-              key={filter.id}
-              type="button"
-              aria-pressed={formatFilter === filter.id}
-              onClick={() => {
-                setFormatFilter(filter.id);
-                setVisibleCount(FUN_DECKS_FIRST_PAGE);
-              }}
-            >
-              {filter.label}
-              <span>{filter.count}</span>
-            </button>
-          ))}
-        </div>
-        <label className="fun-decks-tools__search">
-          <Search aria-hidden="true" />
-          <span className="sr-only">Найти колоду или класс</span>
-          <input
-            type="search"
-            value={query}
-            onChange={event => {
-              setQuery(event.target.value);
-              setVisibleCount(FUN_DECKS_FIRST_PAGE);
-            }}
-            placeholder="Найти колоду или класс"
-          />
-        </label>
-        <label className="fun-decks-tools__sort">
-          <span>Сначала</span>
-          <select
-            value={sortMode}
-            onChange={event => {
-              setSortMode(event.target.value as SortMode);
-              setVisibleCount(FUN_DECKS_FIRST_PAGE);
-            }}
-          >
-            <option value="newest">Новые</option>
-            <option value="fun">Самые необычные</option>
-          </select>
-        </label>
-      </section>
+      <FunDecksFilters
+        filters={filters}
+        query={query}
+        counts={{ all: data.stats.total, standard: data.stats.standard, wild: data.stats.wild }}
+        filtered={filtered}
+        resultText={filtered && !loading && !settling && !error ? `Найдено: ${filteredDecks.length}` : ''}
+        onChange={change}
+        onSearch={search}
+        onReset={reset}
+      />
 
-      {loading ? (
+      {loading || settling ? (
         <FunDecksSkeleton />
       ) : error ? (
         <section className="fun-decks-page__state fun-decks-page__state--error" role="alert">
@@ -486,6 +389,7 @@ export default function FunDecksPage({
                   deck={deck}
                   fresh={isRecentlyAdded(deck, data.fetchedAt)}
                   tourAnchor={index === 0}
+                  pinnedTags={filters.tags}
                   // The deck images are in the server HTML: only the first,
                   // in view on every screen, loads with it; the rest wait for
                   // the viewport instead of taking a phone's bandwidth from
@@ -497,7 +401,7 @@ export default function FunDecksPage({
           </section>
           {hasFullAccess && visibleCount < filteredDecks.length ? (
             <div className="fun-decks-page__more">
-              <button type="button" onClick={() => setVisibleCount(count => count + FUN_DECKS_FIRST_PAGE)}>
+              <button type="button" onClick={showMore}>
                 Показать ещё
                 <span>{filteredDecks.length - visibleCount}</span>
               </button>
@@ -508,7 +412,17 @@ export default function FunDecksPage({
         <section className="fun-decks-page__state">
           <Search aria-hidden="true" />
           <h2>Колоды не найдены</h2>
-          <p>Измените формат или очистите строку поиска.</p>
+          <p>
+            {!filtered ? 'Подборка пока пуста.'
+              : hasFullAccess ? 'Ни одна колода не подходит под выбранные фильтры.'
+                : 'Среди открытых колод таких нет.'}
+          </p>
+          {filtered ? (
+            <button type="button" onClick={reset}>
+              <RefreshCw aria-hidden="true" />
+              Сбросить фильтры
+            </button>
+          ) : null}
         </section>
       )}
 

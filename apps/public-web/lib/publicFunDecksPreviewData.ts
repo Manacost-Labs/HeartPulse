@@ -29,6 +29,10 @@ function httpsUrl(value: unknown): string | null {
   try { return source && new URL(source).protocol === 'https:' ? source : null; } catch { return null; }
 }
 
+function strings(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string' && item.length <= 60).slice(0, 12) : [];
+}
+
 function count(value: unknown): number {
   if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0) throw new InvalidSelection();
   return value;
@@ -41,9 +45,11 @@ function deck(raw: unknown): FunDeckRow {
     title: text(row.title, 200), deckCode: text(row.deckCode, 400), format: text(row.format, 20),
     className: text(row.className, 40), streamer: optionalText(row.streamer, 120),
     funScore: optionalNumber(row.funScore), maxMetaSimilarity: optionalNumber(row.maxMetaSimilarity),
-    nearestArchetype: optionalText(row.nearestArchetype, 160), winRate: optionalNumber(row.winRate),
-    games: optionalNumber(row.games),
+    nearestArchetype: optionalText(row.nearestArchetype, 160), nearestArchetypeLabel: optionalText(row.nearestArchetypeLabel, 200),
+    winRate: optionalNumber(row.winRate), winRateCiLow: optionalNumber(row.winRateCiLow), winRateCiHigh: optionalNumber(row.winRateCiHigh),
+    variants: optionalNumber(row.variants), sourceTitle: optionalText(row.sourceTitle, 200), games: optionalNumber(row.games),
     reasons: Array.isArray(row.reasons) ? row.reasons.filter((reason): reason is string => typeof reason === 'string') : [],
+    why: strings(row.why), tags: strings(row.tags),
     url: httpsUrl(row.url), firstSeenAt: optionalText(row.firstSeenAt, 64), lastSeenAt: optionalText(row.lastSeenAt, 64),
     ...(render ? { render: { imageUrl: text(render.imageUrl, 500), previewImageUrl: text(render.previewImageUrl, 500) } } : {}),
   };
