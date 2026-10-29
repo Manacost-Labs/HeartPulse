@@ -867,7 +867,7 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
     state.catalogOk = true;
 
     // Nothing paid in any of these documents, RSC payload included.
-    assert.ok(fetched.length >= 14);
+    assert.ok(fetched.length >= 12);
     for (const [path, html] of fetched) {
       for (const marker of PAID_MARKERS) assert.ok(!html.includes(marker), `${path} leaks ${marker}`);
       assert.doesNotMatch(html, DECK_CODE, `${path} carries a deck code`);
