@@ -875,6 +875,37 @@ test('reads --only-files from the selection JSON, a bare suite map, an array or 
   assert.deepEqual([...parseOnlyFiles('')], []);
   assert.deepEqual([...parseOnlyFiles('{"files":{"unit":[]}}')], []);
   assert.throws(() => parseOnlyFiles('{"files": '), /not valid JSON/);
+});
+
+test('--only-files spells the same file the same way: ./, backslashes, doubled slashes and absolute paths', () => {
+  const root = '/work/checkout';
+  const spellings = [
+    './tests/a.test.ts', 'tests/a.test.ts', '././tests/a.test.ts', 'tests//a.test.ts', 'tests\\a.test.ts',
+    '.\\tests\\a.test.ts', '/work/checkout/tests/a.test.ts', ' ./tests/a.test.ts ',
+  ];
+  assert.deepEqual([...parseOnlyFiles(spellings.join('\n'), root)], ['tests/a.test.ts']);
+  assert.deepEqual([...parseOnlyFiles(JSON.stringify({ files: { unit: spellings } }), root)], ['tests/a.test.ts']);
+  assert.deepEqual([...parseOnlyFiles('./tests/a.test.ts')], ['tests/a.test.ts']);
+  assert.deepEqual([...parseOnlyFiles('/elsewhere/tests/a.test.ts', root)], ['/elsewhere/tests/a.test.ts']);
+});
+
+test('a ./-prefixed path in --only-files still selects the registered file', async () => {
+  await withRepository(async repositoryRoot => {
+    const files = ['tests/u0.test.ts', 'tests/u1.test.ts'];
+    for (const file of files) writeFixture(repositoryRoot, file);
+    const executed = [];
+    await runTestRegistry(registry(files), {
+      repositoryRoot,
+      suiteIds: ['unit'],
+      onlyFiles: parseOnlyFiles('./tests/u1.test.ts\n', repositoryRoot),
+      spawnImpl: (command, args) => {
+        executed.push(args.at(-1));
+        return completedChild();
+      },
+      logger: () => {},
+    });
+    assert.deepEqual(executed, ['tests/u1.test.ts']);
+  });
   assert.throws(() => parseOnlyFiles('{"files":{"unit":[1]}}'), /strings/);
 });
 

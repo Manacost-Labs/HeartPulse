@@ -97,7 +97,8 @@ everything, and `merge_group` and `main` always will. Use it to reproduce what
 a pull request run would select:
 
 ```bash
-# two commits (the base is compared at its merge-base with the head)
+# two commits (the base is compared at its merge-base with the head);
+# run it inside the repository: the import graph takes about 2.5 s
 node scripts/ci-affected-tests.mjs --base origin/main --head HEAD
 # or a list of paths, one per line; --output writes the JSON to a file
 node scripts/ci-affected-tests.mjs --files-from changed.txt --output selection.json
@@ -114,9 +115,11 @@ registry order) and `affectedModules`:
 - `subset`: every changed file is in a module root of
   `config/module-boundaries.json`, in a legacy area of
   `config/architecture-catalog.json`, or is a registered test. Selected are
-  the catalog `tests` of the changed modules and of every module that depends
-  on them (transitively, by the `dependencies` of the inventory), plus the
-  changed test files.
+  the catalog `tests` of the changed modules and of every module that
+  `scripts/agent-impact.mjs` reports as affected (modules that import them in
+  the import graph, and modules that declare a dependency on those; the
+  closure code is shared in `scripts/lib/module-impact.mjs`), plus the changed
+  test files. A changed legacy file also reaches the modules that import it.
 - `all`: anything else. That is `package*.json`, `.npmrc`, `.github/**`,
   `scripts/**`, `config/**`, `tests/test-suites.json`, test helpers and
   fixtures, the shared roots (`src/shared`, `server/shared`, `shared`),
@@ -125,7 +128,8 @@ registry order) and `affectedModules`:
   `tests/test-suites.json`, or a changed module with no registered test. Every
   registered file is selected.
 
-`--only-files <file>` accepts that JSON (or a plain list of paths) and keeps
+`--only-files <file>` accepts that JSON (or a plain list of paths; `./tests/a.test.ts`,
+backslashes and absolute paths inside the checkout are normalised) and keeps
 only those files of the chosen suites, before the quarantine filter and before
 sharding. A suite with nothing selected exits 0 and prints
 `ONLY-FILES selected 0 files; nothing to run`. A wrong `subset` is caught by

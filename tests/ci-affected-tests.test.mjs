@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
-  copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync,
+  mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
@@ -9,21 +9,23 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import fc from 'fast-check';
 
+import { createAgentImpact } from '../scripts/agent-impact.mjs';
+import { analyzeModuleBoundaries } from '../scripts/check-module-boundaries.mjs';
 import { selectAffectedTests } from '../scripts/lib/ci-affected-tests.mjs';
+import { resolveModuleOrPathSelector } from '../scripts/lib/module-inventory.mjs';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SCRIPT = path.join(repositoryRoot, 'scripts', 'ci-affected-tests.mjs');
-const CONFIG_FILES = [
-  'tests/test-suites.json',
-  'config/module-boundaries.json',
-  'config/architecture-catalog.json',
-];
 const PROPERTY_SETTINGS = {
   numRuns: Number(process.env.FAST_CHECK_RUNS || 200),
   seed: Number(process.env.FAST_CHECK_SEED || 20_261_029),
 };
 
+const importGraph = analyzeModuleBoundaries({ rootDir: repositoryRoot });
+assert.ok(importGraph.ok, 'the repository import graph must be valid for these tests');
+
 const realConfigs = {
+  edges: importGraph.edges,
   registry: JSON.parse(readFileSync(path.join(repositoryRoot, 'tests/test-suites.json'), 'utf8')),
   inventory: JSON.parse(readFileSync(path.join(repositoryRoot, 'config/module-boundaries.json'), 'utf8')),
   catalog: JSON.parse(readFileSync(path.join(repositoryRoot, 'config/architecture-catalog.json'), 'utf8')),
@@ -67,8 +69,8 @@ const miniConfigs = {
   },
 };
 
-function selectMini(changedFiles) {
-  return selectAffectedTests({ changedFiles, ...miniConfigs });
+function selectMini(changedFiles, edges = []) {
+  return selectAffectedTests({ changedFiles, edges, ...miniConfigs });
 }
 
 function everyRegisteredFile(registry) {
@@ -123,6 +125,25 @@ test('changes in several modules select the union of their tests', () => {
 
 test('a legacy host file selects the tests the architecture catalog lists for it', () => {
   assert.deepEqual(selectedFiles(selectMini(['src/features/Legacy.tsx'])), ['tests/legacy.test.ts']);
+});
+
+test('a module that imports the changed module is selected even without a declared dependency', () => {
+  const edges = [{ source: 'src/modules/gamma/view.ts', target: 'src/modules/alpha/model.ts', kind: 'runtime' }];
+  const selection = selectMini(['src/modules/alpha/model.ts'], edges);
+  assert.deepEqual(selection.affectedModules, ['client.alpha', 'client.beta', 'client.delta', 'client.gamma']);
+  assert.ok(selection.files.browser.includes('tests/gamma-browser.test.mjs'));
+  assert.deepEqual(selectMini(['src/modules/alpha/model.ts']).affectedModules, ['client.alpha', 'client.beta', 'client.delta']);
+});
+
+test('a changed legacy file also selects the modules that import it and their dependents', () => {
+  const edges = [{ source: 'src/modules/beta/page.tsx', target: 'src/features/Legacy.tsx', kind: 'runtime' }];
+  const selection = selectMini(['src/features/Legacy.tsx'], edges);
+  assert.deepEqual(selection.affectedModules, ['client.beta', 'client.delta', 'legacy:legacy-page']);
+  assert.deepEqual(selectedFiles(selection).sort(), ['tests/beta.test.ts', 'tests/delta.test.ts', 'tests/legacy.test.ts']);
+});
+
+test('the import graph is required', () => {
+  assert.throws(() => selectAffectedTests({ changedFiles: ['docs/a.md'], ...miniConfigs }), /import graph/);
 });
 
 test('moving a file between modules selects both modules', () => {
@@ -189,6 +210,7 @@ test('shared runtime code selects everything', () => {
   for (const file of ['src/shared/http.ts', 'server/shared/db.ts', 'shared/contracts.ts']) {
     const selection = selectAffectedTests({
       changedFiles: [file],
+      edges: [],
       ...miniConfigs,
       inventory: {
         ...miniConfigs.inventory,
@@ -238,19 +260,10 @@ const modulesWithCatalogTests = inventory.modules.filter(module => (
   catalog.modules.some(entry => entry.paths.includes(module.root) && entry.tests.length > 0)
 ));
 
-function oracleDependents(moduleId) {
-  const queue = [moduleId];
-  const affected = new Set(queue);
-  while (queue.length > 0) {
-    const current = queue.shift();
-    for (const module of inventory.modules) {
-      if (module.dependencies.includes(current) && !affected.has(module.id)) {
-        affected.add(module.id);
-        queue.push(module.id);
-      }
-    }
-  }
-  return affected;
+function agentImpactModules(module) {
+  const selection = resolveModuleOrPathSelector(inventory, module.id, repositoryRoot);
+  const impact = createAgentImpact({ inventory, graph: { edges: importGraph.edges }, selection });
+  return new Set(impact.affectedModules.map(affected => affected.id));
 }
 
 function oracleTests(affectedIds) {
@@ -297,9 +310,9 @@ const anyChangedFile = fc.oneof(
   registeredTestFile,
 );
 
-test('property: a changed module file selects every registered test of the module and of everything that depends on it', () => {
+test('property: a changed module file selects every registered test of the modules agent-impact says it reaches', () => {
   fc.assert(fc.property(fc.array(moduleFile, { minLength: 1, maxLength: 4 }), changes => {
-    const affected = new Set(changes.flatMap(({ module }) => [...oracleDependents(module.id)]));
+    const affected = new Set(changes.flatMap(({ module }) => [...agentImpactModules(module)]));
     const expected = [...new Set(oracleTests(affected))].sort();
     const selection = selectAffectedTests({ changedFiles: changes.map(({ file }) => file), ...realConfigs });
 
@@ -359,8 +372,32 @@ test('property: the answer does not depend on the order of the changed files', (
   }), PROPERTY_SETTINGS);
 });
 
+test('for every module the selection reaches at least the modules agent-impact reports', () => {
+  for (const module of inventory.modules) {
+    const selection = selectAffectedTests({ changedFiles: [`${module.root}/anything.ts`], ...realConfigs });
+    const expected = agentImpactModules(module);
+    if (selection.mode === 'all') {
+      assert.deepEqual(selectedFiles(selection).sort(), allRegistered, module.id);
+      continue;
+    }
+    for (const id of expected) assert.ok(selection.affectedModules.includes(id), `${module.id} must reach ${id}`);
+    for (const file of oracleTests(expected)) assert.ok(selectedFiles(selection).includes(file), `${module.id}: ${file}`);
+  }
+});
+
+test('a change in constructedArchetypes reaches publicApi through the import graph', () => {
+  const selection = selectAffectedTests({
+    changedFiles: ['server/modules/constructedArchetypes/metaSliceCache.ts'],
+    ...realConfigs,
+  });
+  assert.equal(selection.mode, 'subset');
+  assert.deepEqual(selection.affectedModules, [
+    'server.constructedArchetypes', 'server.publicApi', 'server.radar', 'server.streamers',
+  ]);
+});
+
 test('the real configuration only ever names registered files, once each', () => {
-  const selection = selectAffectedTests({ changedFiles: [modulesWithCatalogTests[0].root + '/x.ts'], ...realConfigs });
+  const selection = selectAffectedTests({ changedFiles: [`${modulesWithCatalogTests[0].root}/x.ts`], ...realConfigs });
   const selected = selectedFiles(selection);
   assert.equal(new Set(selected).size, selected.length);
   for (const file of selected) assert.ok(allRegistered.includes(file), file);
@@ -390,10 +427,6 @@ function withGitRepository(run) {
   const directory = mkdtempSync(path.join(tmpdir(), 'ci-affected-'));
   try {
     git(directory, 'init', '-q', '-b', 'main');
-    for (const file of CONFIG_FILES) {
-      mkdirSync(path.dirname(path.join(directory, file)), { recursive: true });
-      copyFileSync(path.join(repositoryRoot, file), path.join(directory, file));
-    }
     writeIn(directory, 'docs/guide.md', 'one\n');
     writeIn(directory, `${modulesWithCatalogTests[0].root}/model.ts`, 'export const one = 1;\n');
     git(directory, 'add', '-A');
@@ -405,7 +438,7 @@ function withGitRepository(run) {
 }
 
 function runCli(directory, ...args) {
-  const result = spawnSync(process.execPath, [SCRIPT, '--root', directory, ...args], { encoding: 'utf8' });
+  const result = spawnSync(process.execPath, [SCRIPT, ...args], { cwd: directory, encoding: 'utf8' });
   return { status: result.status, stdout: result.stdout, stderr: result.stderr };
 }
 

@@ -18,6 +18,7 @@
  */
 import path from 'node:path';
 
+import { affectedModuleReasons, reverseCallers } from './module-impact.mjs';
 import {
   moduleForRepositoryPath,
   sharedRootForRepositoryPath,
@@ -81,21 +82,15 @@ function indexCatalogTests({ catalog, inventory, registeredFiles }) {
   return { testsByOwner, legacyAreas };
 }
 
-/** Modules plus every module that declares a dependency on one of them, transitively. */
-export function closeOverDependents(moduleIds, modules) {
-  const affected = new Set(moduleIds);
-  let grew = true;
-  while (grew) {
-    grew = false;
-    for (const module of modules) {
-      if (affected.has(module.id)) continue;
-      if ((module.dependencies ?? []).some(dependency => affected.has(dependency))) {
-        affected.add(module.id);
-        grew = true;
-      }
-    }
-  }
-  return affected;
+/**
+ * Modules a change to `selection` reaches, exactly as `agent-impact` computes
+ * them: the owner, modules importing it (import graph), and every module that
+ * declares a dependency on those.
+ */
+function reachedModuleIds(selection, inventory, edges) {
+  const migrationAreas = inventory.migrationAreas ?? [];
+  const { transitiveCallers } = reverseCallers(selection, inventory.modules, migrationAreas, edges);
+  return new Set(affectedModuleReasons(selection, inventory.modules, migrationAreas, transitiveCallers).keys());
 }
 
 /**
@@ -104,9 +99,12 @@ export function closeOverDependents(moduleIds, modules) {
  * @param {object} input.registry parsed `tests/test-suites.json`
  * @param {object} input.inventory parsed `config/module-boundaries.json`
  * @param {object} input.catalog parsed `config/architecture-catalog.json`
+ * @param {{source: string, target: string, kind: string}[]} input.edges import graph of the sources
+ * (`analyzeModuleBoundaries().edges`)
  * @returns {{mode: 'all'|'subset'|'none', reason: string, files: Record<string, string[]>, affectedModules: string[]}}
  */
-export function selectAffectedTests({ changedFiles, registry, inventory, catalog }) {
+export function selectAffectedTests({ changedFiles, registry, inventory, catalog, edges }) {
+  if (!Array.isArray(edges)) throw new Error('the import graph edges are required');
   const suiteIds = registry.suites.map(suite => suite.id);
   const suiteOfFile = new Map(
     registry.suites.flatMap(suite => suite.files.map(file => [file, suite.id])),
@@ -121,7 +119,8 @@ export function selectAffectedTests({ changedFiles, registry, inventory, catalog
   });
 
   const { testsByOwner, legacyAreas } = indexCatalogTests({ catalog, inventory, registeredFiles });
-  const changedOwners = new Set();
+  const changedModules = new Set();
+  const changedLegacyFiles = new Map();
   const changedTests = new Set();
   let documentationOnly = true;
 
@@ -145,12 +144,12 @@ export function selectAffectedTests({ changedFiles, registry, inventory, catalog
     }
     const owner = moduleForRepositoryPath(inventory.modules, file);
     if (owner) {
-      changedOwners.add(owner.id);
+      changedModules.add(owner);
       continue;
     }
     const legacy = legacyAreas.find(area => area.paths.some(areaPath => isInside(file, areaPath)));
     if (legacy) {
-      changedOwners.add(legacy.owner);
+      changedLegacyFiles.set(legacy.owner, [...(changedLegacyFiles.get(legacy.owner) ?? []), file]);
       continue;
     }
     return everything(`not attributable to a module: ${file}`);
@@ -165,16 +164,27 @@ export function selectAffectedTests({ changedFiles, registry, inventory, catalog
   // all is a gap in the catalog, and the safe answer to a gap is `all`.
   const affected = new Set();
   const selected = new Set(changedTests);
-  for (const owner of changedOwners) {
-    const closure = owner.startsWith('legacy:')
-      ? new Set([owner])
-      : closeOverDependents([owner], inventory.modules);
-    const ownerTests = [...closure].flatMap(id => [...(testsByOwner.get(id) ?? [])]);
-    if (ownerTests.length === 0) {
+  const reach = reached => {
+    const ownerTests = [...reached].flatMap(id => [...(testsByOwner.get(id) ?? [])]);
+    if (ownerTests.length === 0) return false;
+    for (const id of reached) affected.add(id);
+    for (const test of ownerTests) selected.add(test);
+    return true;
+  };
+  for (const module of changedModules) {
+    const reached = reachedModuleIds({ kind: 'module', moduleId: module.id, path: module.root }, inventory, edges);
+    if (!reach(reached)) {
+      return everything(`no registered test is attributed to ${module.id} or its dependents`);
+    }
+  }
+  for (const [owner, files] of changedLegacyFiles) {
+    const reached = new Set([owner]);
+    for (const file of files) {
+      for (const id of reachedModuleIds({ kind: 'file', path: file, moduleId: null }, inventory, edges)) reached.add(id);
+    }
+    if (!reach(reached)) {
       return everything(`no registered test is attributed to ${owner} or its dependents`);
     }
-    for (const id of closure) affected.add(id);
-    for (const test of ownerTests) selected.add(test);
   }
   if (selected.size === 0) {
     return { mode: 'none', reason: 'no registered test is affected', files: emptySelection(), affectedModules: [] };

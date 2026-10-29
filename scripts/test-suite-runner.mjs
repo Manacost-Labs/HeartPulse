@@ -382,9 +382,20 @@ export function planShards(items, total, durations, fileOf = item => item) {
  * `scripts/ci-affected-tests.mjs` (its `files` map, or a bare `{ suite: [...] }`
  * map, or an array of paths) or plain text with one path per line. Returns the
  * set of allowed test paths; suites are not distinguished because a file
- * belongs to exactly one suite.
+ * belongs to exactly one suite. Paths are normalised to the registry's form
+ * (POSIX, relative to the repository root): `./tests/a.test.ts`,
+ * `tests\\a.test.ts` and `<repositoryRoot>/tests/a.test.ts` all mean
+ * `tests/a.test.ts`.
  */
-export function parseOnlyFiles(text) {
+export function parseOnlyFiles(text, repositoryRoot = null) {
+  const normalize = entry => {
+    let normalized = path.posix.normalize(entry.trim().replaceAll('\\', '/'));
+    if (repositoryRoot !== null) {
+      const root = repositoryRoot.split(path.sep).join('/').replace(/\/$/, '');
+      if (normalized.startsWith(`${root}/`)) normalized = normalized.slice(root.length + 1);
+    }
+    return normalized;
+  };
   const trimmed = String(text).trim();
   if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
     let parsed;
@@ -399,9 +410,9 @@ export function parseOnlyFiles(text) {
     if (!list.every(entry => typeof entry === 'string')) {
       throw new Error('--only-files must list test paths as strings');
     }
-    return new Set(list);
+    return new Set(list.map(normalize));
   }
-  return new Set(trimmed.split('\n').map(line => line.trim()).filter(Boolean));
+  return new Set(trimmed.split('\n').map(line => line.trim()).filter(Boolean).map(normalize));
 }
 
 function formatSeconds(milliseconds) {
@@ -655,7 +666,7 @@ async function main() {
     retryFailedOnce: options.retryFailedOnce,
     continueOnFailure: options.continueOnFailure,
     quarantine: options.quarantine,
-    onlyFiles: options.onlyFilesPath ? parseOnlyFiles(readFileSync(options.onlyFilesPath, 'utf8')) : null,
+    onlyFiles: options.onlyFilesPath ? parseOnlyFiles(readFileSync(options.onlyFilesPath, 'utf8'), repositoryRoot) : null,
     summaryPath: process.env.GITHUB_STEP_SUMMARY || null,
     annotations: process.env.GITHUB_ACTIONS === 'true',
   });
