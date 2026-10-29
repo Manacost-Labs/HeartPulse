@@ -11,11 +11,13 @@ import fc from 'fast-check';
 
 import { createAgentImpact } from '../scripts/agent-impact.mjs';
 import { analyzeModuleBoundaries } from '../scripts/check-module-boundaries.mjs';
+import { FULL_SHARDS, planTestShards } from '../scripts/ci-test-plan.mjs';
 import { selectAffectedTests } from '../scripts/lib/ci-affected-tests.mjs';
 import { resolveModuleOrPathSelector } from '../scripts/lib/module-inventory.mjs';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SCRIPT = path.join(repositoryRoot, 'scripts', 'ci-affected-tests.mjs');
+const PLAN_SCRIPT = path.join(repositoryRoot, 'scripts', 'ci-test-plan.mjs');
 const PROPERTY_SETTINGS = {
   numRuns: Number(process.env.FAST_CHECK_RUNS || 200),
   seed: Number(process.env.FAST_CHECK_SEED || 20_261_029),
@@ -229,6 +231,15 @@ test('a file that belongs to no module selects everything and names the file', (
   const selection = selectMini(['src/modules/gamma/a.ts', 'server/legacyRoutes.ts']);
   assert.equal(selection.mode, 'all');
   assert.equal(selection.reason, 'not attributable to a module: server/legacyRoutes.ts');
+});
+
+test('a composition root selects everything and names the file', () => {
+  for (const file of ['server/index.ts', 'src/features/DeferredRoutes.tsx', 'src/features/Battlegrounds.tsx']) {
+    const selection = selectAffectedTests({ changedFiles: ['docs/readme.md', file], ...realConfigs });
+    assert.equal(selection.mode, 'all', file);
+    assert.equal(selection.reason, `composition root changed: ${file}`);
+    assert.deepEqual(selectedFiles(selection).sort(), everyRegisteredFile(realConfigs.registry).sort(), file);
+  }
 });
 
 test('a module without any registered test cannot be narrowed and selects everything', () => {
@@ -517,5 +528,138 @@ test('the command rejects bad arguments and unknown revisions with a non-zero ex
     assert.equal(missing.status, 1);
     assert.match(missing.stderr, /^\[ci-affected-tests\]/);
     assert.equal(missing.stdout, '');
+  });
+});
+
+// --- the CI plan: which shards a run starts --------------------------------
+
+const planRegistry = {
+  suites: [
+    { id: 'unit', files: ['tests/u1.test.ts', 'tests/u2.test.ts', 'tests/u3.test.ts'] },
+    { id: 'integration', files: ['tests/i1.test.ts'] },
+    { id: 'browser', files: Array.from({ length: 18 }, (_, index) => `tests/b${index + 1}-browser.test.mjs`) },
+  ],
+  quarantine: [{ file: 'tests/b18-browser.test.mjs', issue: 'x', reason: 'flaky' }],
+};
+const FULL_PLAN_SHARDS = { registryShards: [1, 2], browserShards: [1, 2, 3, 4, 5, 6, 7, 8, 9], affectedTests: '' };
+
+function engineOutput(mode, files = {}) {
+  return `${JSON.stringify({ mode, reason: 'engine reason', files: { unit: [], integration: [], browser: [], ...files }, affectedModules: [] }, null, 2)}\n`;
+}
+
+function plan(event, status, output) {
+  return planTestShards({ event, status, output, registry: planRegistry });
+}
+
+test('a full run is two registry and nine browser shards', () => {
+  assert.deepEqual(FULL_SHARDS, { registry: 2, browser: 9 });
+});
+
+test('the merge queue, a push and a manual run test everything whatever the selection says', () => {
+  for (const event of ['merge_group', 'push', 'workflow_dispatch']) {
+    const result = plan(event, 0, engineOutput('none'));
+    assert.deepEqual(result, { mode: 'all', reason: `${event} always runs every test`, ...FULL_PLAN_SHARDS });
+  }
+});
+
+test('a documentation-only pull request starts no test shard', () => {
+  assert.deepEqual(plan('pull_request', 0, engineOutput('none')), {
+    mode: 'none', reason: 'engine reason', registryShards: [], browserShards: [], affectedTests: '',
+  });
+});
+
+test('a narrowed pull request passes the engine output unchanged and sizes the shards to it', () => {
+  const output = engineOutput('subset', { unit: ['tests/u1.test.ts'], browser: ['tests/b1-browser.test.mjs', 'tests/b2-browser.test.mjs'] });
+  assert.deepEqual(plan('pull_request', 0, output), {
+    mode: 'subset', reason: 'engine reason', registryShards: [1], browserShards: [1, 2], affectedTests: output,
+  });
+  const wide = engineOutput('subset', {
+    unit: ['tests/u1.test.ts', 'tests/u2.test.ts'],
+    integration: ['tests/i1.test.ts'],
+    browser: planRegistry.suites[2].files,
+  });
+  assert.deepEqual(plan('pull_request', 0, wide).registryShards, [1, 2]);
+  assert.deepEqual(plan('pull_request', 0, wide).browserShards, [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+});
+
+test('a selection of only quarantined browser tests starts no browser shard', () => {
+  const output = engineOutput('subset', { browser: ['tests/b18-browser.test.mjs'] });
+  assert.deepEqual(plan('pull_request', 0, output).browserShards, []);
+  assert.deepEqual(plan('pull_request', 0, output).registryShards, []);
+});
+
+test('an engine that answers all runs everything on a pull request', () => {
+  assert.deepEqual(plan('pull_request', 0, engineOutput('all')), { mode: 'all', reason: 'engine reason', ...FULL_PLAN_SHARDS });
+});
+
+test('any failure of the selection runs everything on a pull request', () => {
+  for (const [status, output, reason] of [
+    [1, engineOutput('none'), 'affected-test selection failed (exit 1); running everything'],
+    [2, null, 'affected-test selection failed (exit 2); running everything'],
+    ['SIGTERM', null, 'affected-test selection failed (exit SIGTERM); running everything'],
+    [0, null, 'affected-test selection was not written; running everything'],
+    [0, '', 'affected-test selection was not written; running everything'],
+    [0, '{"mode": "none"', 'affected-test selection is not JSON; running everything'],
+    [0, '{"mode": "none"}', 'affected-test selection is malformed; running everything'],
+    [0, '{"mode": "maybe", "files": {}}', 'affected-test selection is malformed; running everything'],
+    [0, engineOutput('subset', { unit: ['tests/unregistered.test.ts'] }), 'affected-test selection is malformed; running everything'],
+    [0, engineOutput('subset'), 'affected-test selection is malformed; running everything'],
+    [0, '{"mode": "subset", "reason": "r", "files": {}}', 'affected-test selection is malformed; running everything'],
+    [0, '{"mode": "subset", "reason": "r", "files": {"unit": ["tests/u1.test.ts"]}}', 'affected-test selection is malformed; running everything'],
+    [0, engineOutput('subset', { unit: ['tests/b1-browser.test.mjs'] }), 'affected-test selection is malformed; running everything'],
+    [0, engineOutput('subset', { extra: ['tests/u1.test.ts'] }), 'affected-test selection is malformed; running everything'],
+    [0, engineOutput('none', { unit: ['tests/u1.test.ts'] }), 'affected-test selection is malformed; running everything'],
+  ]) {
+    assert.deepEqual(plan('pull_request', status, output), { mode: 'all', reason, ...FULL_PLAN_SHARDS }, String(output));
+  }
+});
+
+function runPlan(directory, ...args) {
+  const outputDirectory = mkdtempSync(path.join(tmpdir(), 'ci-test-plan-out-'));
+  const githubOutput = path.join(outputDirectory, 'output');
+  try {
+    const { GITHUB_STEP_SUMMARY: _summary, ...env } = process.env;
+    const result = spawnSync(process.execPath, [PLAN_SCRIPT, ...args], {
+      cwd: directory, encoding: 'utf8', env: { ...env, GITHUB_OUTPUT: githubOutput },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return readFileSync(githubOutput, 'utf8');
+  } finally {
+    rmSync(outputDirectory, { recursive: true, force: true });
+  }
+}
+
+test('the plan command writes GitHub outputs for a real pull request', () => {
+  withGitRepository(directory => {
+    const base = git(directory, 'rev-parse', 'HEAD');
+    writeIn(directory, 'docs/guide.md', 'two\n');
+    git(directory, 'commit', '-qam', 'docs only');
+    const docsOutput = runPlan(directory, '--event', 'pull_request', '--base', base, '--head', 'HEAD');
+    assert.ok(docsOutput.startsWith('mode=none\nreason=only documentation changed\nregistry-shards=[]\nbrowser-shards=[]\naffected-tests<<'), docsOutput);
+
+    const unknownBase = runPlan(directory, '--event', 'pull_request', '--base', 'no-such-revision', '--head', 'HEAD');
+    assert.ok(unknownBase.startsWith('mode=all\nreason=affected-test selection failed (exit 1); running everything\n'
+      + 'registry-shards=[1,2]\nbrowser-shards=[1,2,3,4,5,6,7,8,9]\n'), unknownBase);
+    const noBase = runPlan(directory, '--event', 'pull_request', '--base', '', '--head', 'HEAD');
+    assert.ok(noBase.startsWith('mode=all\nreason=affected-test selection failed (exit 2)'), noBase);
+  });
+});
+
+test('the plan command hands the shards exactly the selection the engine wrote', () => {
+  withGitRepository(directory => {
+    const base = git(directory, 'rev-parse', 'HEAD');
+    const [firstModule] = modulesWithCatalogTests;
+    writeIn(directory, `${firstModule.root}/model.ts`, 'export const one = 2;\n');
+    git(directory, 'commit', '-qam', 'module change');
+    const enginePath = path.join(directory, 'engine.json');
+    assert.equal(runCli(directory, '--base', base, '--head', 'HEAD', '--output', enginePath).status, 0);
+    const engineText = readFileSync(enginePath, 'utf8');
+
+    const outputText = runPlan(directory, '--event', 'pull_request', '--base', base, '--head', 'HEAD');
+    const [, delimiter] = outputText.match(/^affected-tests<<(\S+)$/m);
+    const affectedTests = outputText.slice(outputText.indexOf(`<<${delimiter}\n`) + delimiter.length + 3, outputText.lastIndexOf(`\n${delimiter}\n`));
+    assert.equal(JSON.parse(engineText).mode, 'subset');
+    assert.ok(outputText.startsWith('mode=subset\n'), outputText);
+    assert.equal(`${affectedTests}\n`, engineText);
   });
 });

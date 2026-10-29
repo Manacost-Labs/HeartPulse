@@ -45,6 +45,43 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/find-validated-release.mjs
 
+  # Which test shards this run needs (scripts/ci-test-plan.mjs). Only a pull
+  # request is narrowed to the tests its change can affect, and a
+  # documentation-only one starts none; the merge queue, main and manual runs
+  # always test everything, and so does a pull request whose selection failed.
+  plan:
+    name: Plan test shards
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+    outputs:
+      registry-shards: ${{ steps.plan.outputs.registry-shards }}
+      browser-shards: ${{ steps.plan.outputs.browser-shards }}
+      affected-tests: ${{ steps.plan.outputs.affected-tests }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          # The selection diffs the pull request head against its merge-base
+          # with the base; names need commits and trees, not file contents.
+          fetch-depth: ${{ github.event_name == 'pull_request' && '0' || '1' }}
+          filter: blob:none
+
+      # The import graph of the selection parses sources with TypeScript.
+      - name: Install locked dependencies
+        if: github.event_name == 'pull_request'
+        uses: ./.github/actions/install-dependencies
+
+      - name: Plan test shards
+        id: plan
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: node scripts/ci-test-plan.mjs --event "$EVENT_NAME" --base "$BASE_SHA" --head "$HEAD_SHA"
+
   # Build once: every test job below downloads these exact outputs, and the
   # production release is packaged from the same workspace, so the deployed
   # bytes are the bytes the shards validated.
@@ -185,9 +222,10 @@ jobs:
 
   test-suites:
     name: Registry suites (shard ${{ matrix.shard }}/${{ strategy.job-total }})
-    needs: [build, storybook]
+    needs: [plan, build, storybook]
     # Explicit: the implicit success() also fails on the skipped reuse job upstream.
-    if: ${{ !cancelled() && needs.build.result == 'success' && needs.storybook.result == 'success' }}
+    # A plan without registry shards (a documentation-only pull request) skips the job.
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.registry-shards != '[]' && needs.build.result == 'success' && needs.storybook.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -196,7 +234,7 @@ jobs:
       # Every shard reports its own result; one failure must not hide the others.
       fail-fast: false
       matrix:
-        shard: [1, 2]
+        shard: ${{ fromJSON(needs.plan.outputs.registry-shards) }}
 
     steps:
       - name: Checkout repository
@@ -224,7 +262,16 @@ jobs:
           path: storybook-static
 
       - name: Run registered non-browser shard
-        run: npm run test:suite -- unit,integration,contract,production-smoke --shard ${{ matrix.shard }}/${{ strategy.job-total }} --continue-on-failure
+        env:
+          AFFECTED_TESTS: ${{ needs.plan.outputs.affected-tests }}
+        run: |
+          # A narrowed pull request runs only the planned files: the engine's selection, unchanged.
+          only_files=()
+          if [ -n "$AFFECTED_TESTS" ]; then
+            printf '%s\n' "$AFFECTED_TESTS" > "$RUNNER_TEMP/affected-tests.json"
+            only_files=(--only-files "$RUNNER_TEMP/affected-tests.json")
+          fi
+          npm run test:suite -- unit,integration,contract,production-smoke --shard ${{ matrix.shard }}/${{ strategy.job-total }} --continue-on-failure "${only_files[@]}"
 
       # The Next bundle budget test writes this; main's copy is the baseline source.
       # Exactly one shard runs that test, so only that shard has a file to upload.
@@ -239,9 +286,10 @@ jobs:
 
   browser-tests:
     name: Browser suite (shard ${{ matrix.shard }}/${{ strategy.job-total }})
-    needs: [build, storybook]
+    needs: [plan, build, storybook]
     # Explicit: the implicit success() also fails on the skipped reuse job upstream.
-    if: ${{ !cancelled() && needs.build.result == 'success' && needs.storybook.result == 'success' }}
+    # A plan without browser shards (a documentation-only pull request) skips the job.
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.browser-shards != '[]' && needs.build.result == 'success' && needs.storybook.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -250,7 +298,7 @@ jobs:
       # Every shard reports its own result; one failure must not hide the others.
       fail-fast: false
       matrix:
-        shard: [1, 2, 3, 4, 5, 6, 7, 8, 9]
+        shard: ${{ fromJSON(needs.plan.outputs.browser-shards) }}
 
     steps:
       - name: Checkout repository
@@ -271,7 +319,16 @@ jobs:
           path: storybook-static
 
       - name: Run registered browser shard
-        run: npm run test:suite -- browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure --quarantine exclude
+        env:
+          AFFECTED_TESTS: ${{ needs.plan.outputs.affected-tests }}
+        run: |
+          # A narrowed pull request runs only the planned files: the engine's selection, unchanged.
+          only_files=()
+          if [ -n "$AFFECTED_TESTS" ]; then
+            printf '%s\n' "$AFFECTED_TESTS" > "$RUNNER_TEMP/affected-tests.json"
+            only_files=(--only-files "$RUNNER_TEMP/affected-tests.json")
+          fi
+          npm run test:suite -- browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure --quarantine exclude "${only_files[@]}"
 
   # The registry's quarantined flaky tests, each with an open issue. Reported on
   # pull requests and manual runs but never gating: CI required and the
@@ -344,15 +401,22 @@ jobs:
         run: npm run qa:ci
 
   # The one stable required check for the merge queue ruleset; shard names may change.
+  # A test job may be skipped only on a pull request, and only when the plan
+  # gave it no shard; everywhere else every validation job must succeed.
   required:
     name: CI required
     if: always()
-    needs: [reuse, build, storybook, validate, test-suites, browser-tests, browser-observatory]
+    needs: [reuse, plan, build, storybook, validate, test-suites, browser-tests, browser-observatory]
     runs-on: ubuntu-latest
     timeout-minutes: 2
     steps:
       - name: Require every validation job to pass
-        run: test "${{ needs.reuse.outputs.run-id != '' || (needs.build.result == 'success' && needs.storybook.result == 'success' && needs.validate.result == 'success' && needs.test-suites.result == 'success' && needs.browser-tests.result == 'success' && needs.browser-observatory.result == 'success') }}" = true
+        run: >-
+          test "${{ needs.reuse.outputs.run-id != '' || (needs.plan.result == 'success'
+          && needs.build.result == 'success' && needs.storybook.result == 'success' && needs.validate.result == 'success'
+          && (needs.test-suites.result == 'success' || (github.event_name == 'pull_request' && needs.plan.outputs.registry-shards == '[]' && needs.test-suites.result == 'skipped'))
+          && (needs.browser-tests.result == 'success' || (github.event_name == 'pull_request' && needs.plan.outputs.browser-shards == '[]' && needs.browser-tests.result == 'skipped'))
+          && needs.browser-observatory.result == 'success') }}" = true
 
   # Keeps main's dependency and Next.js caches current when a reused merge-queue
   # run made the build job unnecessary. Never gates the deployment.

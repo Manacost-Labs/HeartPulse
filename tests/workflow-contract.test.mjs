@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
+import { FULL_SHARDS, planTestShards } from '../scripts/ci-test-plan.mjs';
 import { planShards, TEST_SUITE_IDS, validateTestDurations } from '../scripts/test-suite-runner.mjs';
 
 const workflow = readFileSync('.github/workflows/scrape.yml', 'utf8');
@@ -46,7 +47,7 @@ const ciJobs = Object.fromEntries([...ciWorkflow.slice(ciWorkflow.indexOf('\njob
   .map(([, id, body]) => [id, body]));
 assert.deepEqual(
   Object.keys(ciJobs),
-  ['reuse', 'build', 'storybook', 'validate', 'test-suites', 'browser-tests', 'browser-quarantine', 'browser-observatory', 'required',
+  ['reuse', 'plan', 'build', 'storybook', 'validate', 'test-suites', 'browser-tests', 'browser-quarantine', 'browser-observatory', 'required',
     'refresh-caches', 'deploy-production'],
 );
 const validationJobs = ['build', 'storybook', 'validate', 'test-suites', 'browser-tests', 'browser-observatory'];
@@ -54,10 +55,57 @@ const allValidationSucceeded = validationJobs.map(job => `needs.${job}.result ==
 assert.match(ciWorkflow, /^ {2}merge_group:\n {4}types: \[checks_requested\]$/m, 'the merge queue runs the same validation');
 assert.match(ciJobs.required, /^ {4}name: CI required$/m, 'the merge-queue ruleset requires this exact check name');
 assert.match(ciJobs.required, /^ {4}if: always\(\)$/m, 'a failed dependency must fail the check, not skip it');
-assert.ok(ciJobs.required.includes(`    needs: [reuse, ${validationJobs.join(', ')}]\n`), 'CI required waits for every validation job');
-assert.ok(ciJobs.required.includes(
-  `test "\${{ needs.reuse.outputs.run-id != '' || (${allValidationSucceeded.join(' && ')}) }}" = true`,
-), 'only an all-success set of validation jobs, or a reused merge-queue validation of this commit, satisfies CI required');
+assert.ok(ciJobs.required.includes(`    needs: [reuse, plan, ${validationJobs.join(', ')}]\n`), 'CI required waits for the plan and every validation job');
+assert.ok(ciJobs.required.includes([
+  '        run: >-',
+  '          test "${{ needs.reuse.outputs.run-id != \'\' || (needs.plan.result == \'success\'',
+  '          && needs.build.result == \'success\' && needs.storybook.result == \'success\' && needs.validate.result == \'success\'',
+  '          && (needs.test-suites.result == \'success\' || (github.event_name == \'pull_request\' && needs.plan.outputs.registry-shards == \'[]\' && needs.test-suites.result == \'skipped\'))',
+  '          && (needs.browser-tests.result == \'success\' || (github.event_name == \'pull_request\' && needs.plan.outputs.browser-shards == \'[]\' && needs.browser-tests.result == \'skipped\'))',
+  '          && needs.browser-observatory.result == \'success\') }}" = true',
+  '',
+].join('\n')), 'CI required: a reused merge-queue validation, or the plan and every validation job succeeded; a test job may be '
+  + 'skipped only on a pull request whose plan gave it no shard');
+
+// The plan: only a pull request is narrowed, by scripts/ci-test-plan.mjs.
+const planJob = ciJobs.plan;
+assert.doesNotMatch(planJob, /^ {4}needs:/m, 'the plan starts at once, beside the build');
+assert.match(planJob, /^ {4}timeout-minutes: [1-5]$/m);
+assert.ok(planJob.includes([
+  '    outputs:',
+  '      registry-shards: ${{ steps.plan.outputs.registry-shards }}',
+  '      browser-shards: ${{ steps.plan.outputs.browser-shards }}',
+  '      affected-tests: ${{ steps.plan.outputs.affected-tests }}',
+  '',
+].join('\n')));
+assert.ok(planJob.includes("          fetch-depth: ${{ github.event_name == 'pull_request' && '0' || '1' }}\n"),
+  'a pull request plan needs the history to its merge-base');
+assert.ok(planJob.includes([
+  '      - name: Plan test shards',
+  '        id: plan',
+  '        env:',
+  '          EVENT_NAME: ${{ github.event_name }}',
+  '          BASE_SHA: ${{ github.event.pull_request.base.sha }}',
+  '          HEAD_SHA: ${{ github.event.pull_request.head.sha }}',
+  '        run: node scripts/ci-test-plan.mjs --event "$EVENT_NAME" --base "$BASE_SHA" --head "$HEAD_SHA"',
+  '',
+].join('\n')));
+assert.doesNotMatch(planJob, /continue-on-error/, 'a failed plan fails CI required instead of testing nothing');
+for (const event of ['merge_group', 'push', 'workflow_dispatch']) {
+  assert.deepEqual(planTestShards({ event, status: 0, output: '{"mode":"none","files":{}}', registry: { suites: [] } }), {
+    mode: 'all',
+    reason: `${event} always runs every test`,
+    registryShards: [1, 2],
+    browserShards: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+    affectedTests: '',
+  }, `${event} runs the full matrices`);
+}
+for (const [job, shards] of [['test-suites', 'registry-shards'], ['browser-tests', 'browser-shards']]) {
+  assert.ok(ciJobs[job].includes(`      matrix:\n        shard: \${{ fromJSON(needs.plan.outputs.${shards}) }}\n`),
+    `${job} takes its shards from the plan`);
+  assert.ok(ciJobs[job].includes('        env:\n          AFFECTED_TESTS: ${{ needs.plan.outputs.affected-tests }}\n        run: |\n'),
+    `${job} receives the engine's selection unchanged`);
+}
 
 // A push of a commit the merge queue already validated reuses that run.
 assert.match(ciJobs.reuse, /^ {4}if: github\.event_name == 'push' && github\.ref == 'refs\/heads\/main'$/m,
@@ -127,10 +175,10 @@ for (const step of ['Create immutable production release', 'Upload immutable pro
     `${step} runs for a push to main and in the merge queue, whose release that push may reuse`);
 }
 assert.match(ciJobs.storybook, /name: storybook-static-\$\{\{ github\.sha \}\}\n {10}path: storybook-static\n/);
-for (const job of ['test-suites', 'browser-tests']) {
-  assert.match(ciJobs[job], /^ {4}needs: \[build, storybook\]$/m, `${job} must test the built outputs`);
-  assert.ok(ciJobs[job].includes("    if: ${{ !cancelled() && needs.build.result == 'success' && needs.storybook.result == 'success' }}\n"),
-    `${job} must run after both builds even though the reuse job upstream was skipped`);
+for (const [job, shards] of [['test-suites', 'registry-shards'], ['browser-tests', 'browser-shards']]) {
+  assert.match(ciJobs[job], /^ {4}needs: \[plan, build, storybook\]$/m, `${job} must test the built outputs as planned`);
+  assert.ok(ciJobs[job].includes(`    if: \${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.${shards} != '[]' && needs.build.result == 'success' && needs.storybook.result == 'success' }}\n`),
+    `${job} must run after both builds even though the reuse job upstream was skipped, unless the plan gave it no shard`);
   assert.ok(ciJobs[job].includes(buildOutputsName), `${job} must download the validated build outputs`);
   assert.match(ciJobs[job], /uses: actions\/download-artifact@v8\n {8}with:\n {10}name: build-outputs-\$\{\{ github\.sha \}\}\n\n/,
     'outputs restore at their repository paths (no custom download path)');
@@ -154,23 +202,31 @@ assert.match(ciJobs['test-suites'], /sudo apt-get install -y --no-install-recomm
   'the identity TLS and nginx regression tests need the system tools');
 
 // The registry suites: browser and everything else run in two sharded matrices.
-const suiteRun = ciJobs['test-suites'].match(
-  /run: npm run test:suite -- ([a-z,-]+) --shard \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\} --continue-on-failure$/m,
-)?.[1];
+const onlyFilesRun = command => [
+  '        run: |',
+  '          # A narrowed pull request runs only the planned files: the engine\'s selection, unchanged.',
+  '          only_files=()',
+  '          if [ -n "$AFFECTED_TESTS" ]; then',
+  '            printf \'%s\\n\' "$AFFECTED_TESTS" > "$RUNNER_TEMP/affected-tests.json"',
+  '            only_files=(--only-files "$RUNNER_TEMP/affected-tests.json")',
+  '          fi',
+  `          ${command} "\${only_files[@]}"`,
+  '',
+].join('\n');
+const suiteRun = ciJobs['test-suites'].match(/^ {10}npm run test:suite -- ([a-z,-]+) --shard /m)?.[1];
+assert.ok(suiteRun, 'the non-browser shards must run registry suites');
+assert.ok(ciJobs['test-suites'].includes(onlyFilesRun(
+  `npm run test:suite -- ${suiteRun} --shard \${{ matrix.shard }}/\${{ strategy.job-total }} --continue-on-failure`,
+)), 'the non-browser shards derive the total from the matrix and run only the planned files');
 assert.ok(suiteRun, 'the non-browser shards must run registry suites and derive the total from the matrix');
 assert.deepEqual([...suiteRun.split(','), 'browser'].sort(), [...TEST_SUITE_IDS].sort(),
   'every registry suite runs in exactly one job');
-const shardsOf = job => {
-  const list = ciJobs[job].match(/^ {8}shard: \[([0-9, ]+)\]$/m)?.[1].split(',').map(Number);
-  assert.ok(list && list.length >= 2, `${job} must be sharded`);
-  assert.deepEqual(list, list.map((_, index) => index + 1), 'shards are numbered 1..N');
-  return list;
-};
-const shardList = shardsOf('browser-tests');
-assert.deepEqual(shardsOf('test-suites'), [1, 2], 'the registry suites run in two shards: a third only added runner minutes outside the critical path');
-assert.match(
-  ciJobs['browser-tests'],
-  /- name: Run registered browser shard\s+run: npm run test:suite -- browser --shard \$\{\{ matrix\.shard \}\}\/\$\{\{ strategy\.job-total \}\} --retry-failed-once --continue-on-failure --quarantine exclude$/m,
+assert.deepEqual(FULL_SHARDS, { registry: 2, browser: 9 },
+  'a full run has two registry shards (a third only added runner minutes outside the critical path) and nine browser shards');
+assert.ok(
+  ciJobs['browser-tests'].includes(onlyFilesRun(
+    'npm run test:suite -- browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure --quarantine exclude',
+  )),
   'shards derive the total from the matrix, retry a failing file exactly once, report every failure and skip the quarantine',
 );
 // Quarantined flaky tests run on every event in their own job that never gates
@@ -198,7 +254,7 @@ const testDurations = validateTestDurations(JSON.parse(readFileSync('tests/test-
 const quarantined = new Set((testRegistry.quarantine ?? []).map(entry => entry.file));
 const browserFiles = testRegistry.suites.find(suite => suite.id === 'browser').files;
 assert.ok([...quarantined].every(file => browserFiles.includes(file)), 'only browser tests run in the browser quarantine job');
-for (const [suiteIds, shardCount] of [[['browser'], shardList.length], [suiteRun.split(','), shardsOf('test-suites').length]]) {
+for (const [suiteIds, shardCount] of [[['browser'], FULL_SHARDS.browser], [suiteRun.split(','), FULL_SHARDS.registry]]) {
   const files = testRegistry.suites.filter(suite => suiteIds.includes(suite.id)).flatMap(suite => suite.files)
     .filter(file => !quarantined.has(file));
   assert.deepEqual([...planShards(files, shardCount, testDurations).flat()].sort(), [...files].sort(),
