@@ -741,7 +741,7 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
     fetched.push([path, html]);
     const summary = html.match(/<section class="archetype-seo-summary"[\s\S]*?<\/section>/)?.[0] ?? '';
     return {
-      html, summary, text: visibleText(summary).replaceAll(' ', ' '),
+      html, summary, text: visibleText(summary.replace(/<\/(?:h2|p|li)>/g, '$& ')).replaceAll('\u00a0', ' '),
       robots: html.match(/<meta name="robots" content="([^"]*)"/)?.[1],
       canonical: html.match(/<link rel="canonical" href="([^"]*)"/)?.[1],
       title: decoded(html.match(/<title>([^<]*)<\/title>/)?.[1] ?? ''),
