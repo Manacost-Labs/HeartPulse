@@ -63,12 +63,17 @@
 
 ### Ближайший порядок P0 SEO
 
-1. Закрыть `SEO-103–105`: server-side `noindex` для admin/auth, реальные 404/410, единый slash/redirect contract и robots policy.
-2. Завершить оставшиеся дополнительные типы BG-сущностей только после появления полноценных SSR detail pages.
-3. Добавить article segment только после появления локальных полных материалов с автором и датами.
+Порядок для меты и статистики ведёт эпик E9 «SEO: мета и статистика» (#292); срезы идут по очереди.
+
+1. **Сделано, S1 (#294):** title и description меты Стандарта, каталога архетипов и страницы архетипа несут дату данных (месяц и год в title, полная дата в description), живые числа из бесплатного тизера и «данные HSGuru». HSGuru больше не стоит в начале title меты. Под метой видна строка с датой, срезом и источником. Шаблоны лежат в реестре `config/public-seo-pages.json` (`dataTitle`/`dataDescription`), статичные title и description остаются запасным вариантом без даты и чисел.
+2. S2a (#295) и S2b (#296): JSON-LD с датами из данных, `Dataset` меты, крошки каталога и карточки карты.
+3. S3a–S3c (#297–#299): индексация архетипов Стандарта (предикат, SSR-текст), снятие `noindex` в nginx с 301 с семейства `/standard/meta/…`, sitemap-сегмент архетипов.
 4. Закрыть `SEO-301/302`: публичный teaser paywall и автоматический тест, доказывающий отсутствие закрытых чисел, deck codes и subscriber payload в HTML/JSON-LD.
-5. Подключить `SEO-501` и исправлять CWV только по field p75: LCP, INP и CLS отдельно для route template, mobile/desktop и release.
-6. Завершить `SEO-601/602`: подключить Search Console + Яндекс baseline, операторский alert channel и провести failure/recovery drill для уже работающего пятиминутного SEO synthetic.
+5. Хабы кластеров (`SEO-404`) и тексты для тир-листов Арены и Полей сражений — после решения владельца, что из статистики бесплатно (#310).
+6. Подключить `SEO-501` и исправлять CWV только по field p75: LCP, INP и CLS отдельно для route template, mobile/desktop и release.
+7. Завершить `SEO-601/602`: подключить Search Console + Яндекс baseline, операторский alert channel и провести failure/recovery drill для уже работающего пятиминутного SEO synthetic.
+
+`SEO-103–105` (server-side `noindex`, реальные 404, единый slash/redirect contract, robots policy) на проде работают.
 
 Каждый пункт выходит отдельным вертикальным срезом: реализация, HTML-contract tests, crawl без JavaScript, production HTTP smoke и измеримый rollback. Массовое добавление detail URL в sitemap запрещено до прохождения этих ворот.
 

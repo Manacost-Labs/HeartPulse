@@ -52,8 +52,10 @@
     "/standard/meta": {
       "policyRouteId": "standard-meta",
       "navigationRouteId": "standard-meta",
-      "title": "HSGuru: мета Hearthstone {year} | HearthPulse",
-      "description": "Мета Hearthstone по данным HSGuru: тир-лист колод, винрейты, популярность и готовые сборки Стандарта и Вольного режима.",
+      "title": "Мета Hearthstone {year}: тир-лист колод | HearthPulse",
+      "description": "Мета Хартстоуна (хс) {year}: тир-лист колод Стандарта и Вольного формата, винрейт и популярность архетипов. Данные HSGuru.",
+      "dataTitle": "Мета Hearthstone {month}: тир-лист колод | HearthPulse",
+      "dataDescription": "Мета Хартстоуна (хс){asOf}: тир-лист колод Стандарта.[ Лидер — {leader}.][ Винрейт и популярность архетипов.] Данные HSGuru.",
       "sitemap": true
     },
     "/standard/fun-decks": {
@@ -66,8 +68,10 @@
     "/standard/archetypes": {
       "policyRouteId": "constructed-archetypes",
       "navigationRouteId": "constructed-archetypes",
-      "title": "Архетипы Hearthstone {year}: Стандарт и Вольный | HearthPulse",
-      "description": "Актуальные архетипы Стандарта и Вольного режима по данным HSGuru: винрейты, популярность, отдельные страницы, история и готовые сборки.",
+      "title": "Архетипы Hearthstone: винрейт, {year} | HearthPulse",
+      "description": "Архетипы колод Хартстоуна (хс) {year}: винрейт, популярность и число игр в Стандарте и Вольном формате. Данные HSGuru.",
+      "dataTitle": "Архетипы Hearthstone: винрейт, {month} | HearthPulse",
+      "dataDescription": "Архетипы колод Хартстоуна (хс){asOf}: {archetypes} {format} — винрейт, популярность и число игр. Данные HSGuru.",
       "sitemap": true
     },
     "/standard/vicious-gold": {

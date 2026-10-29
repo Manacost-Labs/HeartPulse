@@ -1,7 +1,5 @@
 import { useSyncExternalStore } from 'react';
-
-// The audience's zone: most viewers see no change once their own applies.
-const PRE_HYDRATION_TIME_ZONE = 'Europe/Moscow';
+import { SERVER_RENDER_TIME_ZONE as PRE_HYDRATION_TIME_ZONE } from './serverRenderTimeZone';
 
 const subscribe = () => () => undefined;
 

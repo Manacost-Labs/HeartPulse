@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
 import { SHARE_IMAGE_HEIGHT, SHARE_IMAGE_WIDTH, shareImagePath } from '@/shared/shareImages';
 import { loadPublicArchetypeTeaser } from './publicArchetypeTeaser';
+import { archetypeDetailSeoText } from './seoDataValues';
 
 export type ArchetypeRouteParams = Promise<{ format: string; archetypeSlug: string }>;
 export type ArchetypeFamily = 'archetypes' | 'meta';
@@ -21,8 +22,7 @@ export async function archetypeDetailMetadata(params: ArchetypeRouteParams, fami
   const { format, slug, detail } = await resolveArchetypeRoute(params);
   const pathname = `/standard/${family}/${format}/${slug}`;
   const policy = await resolvePublicUrlPolicy(pathname, '');
-  const title = `${detail.item.archetypeLabel} — сборки и статистика | HearthPulse`;
-  const description = `${detail.item.archetypeLabel}: винрейт, популярность и обзор архетипа ${detail.formatLabel.toLowerCase()} режима.`;
+  const { title, description } = archetypeDetailSeoText(detail, Date.now());
   const canonical = policy.canonicalUrl ?? `https://hearthpulse.net${pathname}/`;
   return {
     title, description, alternates: { canonical },

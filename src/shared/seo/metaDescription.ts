@@ -1,5 +1,7 @@
 /** Search engines show about 150–160 characters of a description snippet. */
 export const META_DESCRIPTION_MAX = 160;
+/** Google shows about 60 characters of a title; with the brand a page title stays within 65. */
+export const META_TITLE_MAX = 65;
 
 /**
  * Fits a meta description into the snippet length. Whitespace is collapsed and
