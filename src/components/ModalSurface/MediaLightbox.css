@@ -1,0 +1,305 @@
+/*
+ * MediaLightbox (MediaLightbox.tsx): the site's picture viewer on ModalSurface.
+ * The material is the canonical lightbox one (design.md, "Lightboxes And Hover
+ * Details"): the timber rail around red tavern cloth with cream and gold copy,
+ * and a dark wine stage for the art. Everything that moves is a transform or an
+ * opacity set from script with the --motion-* tokens (mediaLightboxController.ts).
+ */
+
+.media-lightbox {
+  z-index: 99999;
+  display: grid;
+  grid-template: minmax(0, 1fr) / minmax(0, 1fr);
+  padding: max(clamp(0.7rem, 2vw, 1.5rem), env(safe-area-inset-top)) max(clamp(0.7rem, 2vw, 1.5rem), env(safe-area-inset-right))
+    max(clamp(0.7rem, 2vw, 1.5rem), env(safe-area-inset-bottom)) max(clamp(0.7rem, 2vw, 1.5rem), env(safe-area-inset-left));
+  font-family: var(--font-body);
+}
+
+.media-lightbox__backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  background:
+    radial-gradient(circle at 28% 40%, rgba(132, 31, 32, 0.2), transparent 32rem),
+    linear-gradient(rgba(22, 7, 8, 0.91), rgba(9, 3, 4, 0.96)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+  backdrop-filter: blur(9px) saturate(0.82);
+  -webkit-backdrop-filter: blur(9px) saturate(0.82);
+}
+
+.media-lightbox__panel {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 3.5rem minmax(0, 1fr) 3.5rem;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    'bar bar bar'
+    'prev stage next'
+    'caption caption caption';
+  align-self: center;
+  justify-self: center;
+  width: min(1120px, 100%);
+  height: min(100%, 60rem);
+  overflow: hidden;
+  border: clamp(12px, 1.5vw, 18px) solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 / clamp(12px, 1.5vw, 18px) stretch;
+  color: #f7e3b7;
+  background:
+    radial-gradient(circle at 24% 18%, rgba(183, 74, 62, 0.24), transparent 30rem),
+    linear-gradient(145deg, rgba(105, 21, 27, 0.98), rgba(48, 8, 14, 0.99)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+  box-shadow: 0 30px 70px rgba(8, 2, 3, 0.68);
+}
+
+.media-lightbox__panel--single {
+  grid-template-columns: 0 minmax(0, 1fr) 0;
+}
+
+.media-lightbox__bar,
+.media-lightbox__caption {
+  background:
+    linear-gradient(rgba(76, 6, 11, 0.14), rgba(39, 3, 6, 0.24)),
+    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat;
+}
+
+.media-lightbox__bar {
+  grid-area: bar;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 3.5rem;
+  padding: 0.4rem 0.75rem;
+  border-bottom: 1px solid rgba(238, 195, 97, 0.24);
+}
+
+.media-lightbox__counter {
+  color: #fff0c4;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.media-lightbox__actions {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 0.5rem;
+  align-items: center;
+  margin-inline-start: auto;
+}
+
+/* A round 44 px control, the touch target size; links of a caller use the same class. */
+.media-lightbox__button,
+.media-lightbox__action {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0;
+  border: 1px solid rgba(231, 188, 98, 0.58);
+  border-radius: 22px;
+  color: #fff0c8;
+  background: linear-gradient(180deg, #793342, #441923);
+  box-shadow: 0 5px 14px rgba(20, 2, 4, 0.42);
+  font-size: 0.875rem;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
+}
+
+.media-lightbox__action {
+  padding: 0 0.9rem;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .media-lightbox__button:hover,
+  .media-lightbox__action:hover {
+    border-color: rgba(255, 218, 132, 0.82);
+    color: #fff7dc;
+    background: linear-gradient(180deg, #91404e, #551b26);
+  }
+}
+
+.media-lightbox__button:focus-visible,
+.media-lightbox__action:focus-visible {
+  outline: 2px solid #f1d27e;
+  outline-offset: 2px;
+}
+
+.media-lightbox__nav {
+  align-self: center;
+  justify-self: center;
+}
+
+.media-lightbox__nav--prev { grid-area: prev; }
+.media-lightbox__nav--next { grid-area: next; }
+
+/* The stage reads every gesture itself (Pointer Events), so the browser must not pan or zoom the page under a finger. */
+.media-lightbox__stage {
+  position: relative;
+  grid-area: stage;
+  --media-lightbox-gap: 12px;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(236, 187, 91, 0.14), transparent 55%),
+    #260408;
+}
+
+.media-lightbox__stage[data-zoomed] {
+  cursor: grab;
+}
+
+.media-lightbox__track {
+  position: absolute;
+  inset: 0;
+}
+
+.media-lightbox__slide {
+  position: absolute;
+  inset: 0;
+}
+
+/* Neighbouring pictures wait one stage width and a gap away (the gap also keeps their edge out of sight); useMediaLightboxPaging reads it. */
+.media-lightbox__slide[data-slot='prev'] { transform: translate3d(calc(-100% - var(--media-lightbox-gap)), 0, 0); }
+.media-lightbox__slide[data-slot='next'] { transform: translate3d(calc(100% + var(--media-lightbox-gap)), 0, 0); }
+
+.media-lightbox__pan {
+  position: absolute;
+  inset: 0;
+  transform-origin: 50% 50%;
+}
+
+/* Only a picture that is zoomed or being dragged gets its own layer. */
+.media-lightbox__pan[data-active] {
+  will-change: transform;
+}
+
+.media-lightbox__image,
+.media-lightbox__pan > video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.media-lightbox__image {
+  -webkit-user-drag: none;
+}
+
+.media-lightbox__caption {
+  grid-area: caption;
+  display: grid;
+  gap: 0.1rem;
+  align-content: center;
+  min-width: 0;
+  /* One height for every picture: a longer caption must not resize the stage while paging. */
+  height: 5.75rem;
+  padding: 0.5rem 1rem;
+  overflow: hidden;
+  border-top: 1px solid rgba(238, 195, 97, 0.24);
+}
+
+.media-lightbox__caption strong {
+  overflow: hidden;
+  color: #fff0c4;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.media-lightbox__caption span {
+  overflow: hidden;
+  color: #c9ad78;
+  font-size: 0.8125rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.media-lightbox__caption p {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: #e3c58a;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.media-lightbox__live {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .media-lightbox {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* The arrows sit at the two ends of the caption row. */
+  .media-lightbox__panel {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'bar'
+      'stage'
+      'caption';
+    width: 100%;
+    height: 100%;
+    border-width: 9px;
+    border-image-width: 9px;
+  }
+
+  .media-lightbox__nav--prev,
+  .media-lightbox__nav--next {
+    grid-area: caption;
+    z-index: 1;
+    margin-inline: 0.35rem;
+  }
+
+  .media-lightbox__nav--prev { justify-self: start; }
+  .media-lightbox__nav--next { justify-self: end; }
+
+  .media-lightbox__caption {
+    height: 4.75rem;
+    padding: 0.4rem 3.9rem;
+  }
+
+  .media-lightbox__panel--single .media-lightbox__caption {
+    padding-inline: 0.75rem;
+  }
+}
+
+/* A phone held sideways: only the picture and its title keep their room. */
+@media (max-height: 520px) {
+  .media-lightbox__bar { min-height: 3rem; padding-block: 0.2rem; }
+  .media-lightbox__caption { height: 3rem; }
+  .media-lightbox__caption span,
+  .media-lightbox__caption p { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .media-lightbox__button,
+  .media-lightbox__action {
+    transition: none;
+  }
+}

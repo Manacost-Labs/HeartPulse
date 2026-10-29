@@ -294,6 +294,21 @@ BG-specific styles live in `src/battlegrounds-parchment.css` and must stay scope
 - Arena card lightboxes must fit the complete card and all statistic rows inside `100dvh`; the modal shell itself must not require scrolling.
 - Every drawer and content lightbox locks both the root document and the iOS body at the current scroll position, then restores that exact position on close. Only the modal panel may scroll locally.
 - Hover tooltip stays `pointer-events: none` and never becomes the only source of information.
+- Every viewer of pictures (gallery art, the media of a card page) is the shared `MediaLightbox`
+  (`src/components/ModalSurface/MediaLightbox.tsx`) on `ModalSurface zoom`; a new picture viewer
+  passes it items instead of building its own markup. It opens from the pressed thumbnail and closes
+  back into the thumbnail of the picture on show, and has a counter («3 из 24»), the labelled buttons
+  «Предыдущая картинка» and «Следующая картинка», the caller's own actions beside «Закрыть» (the
+  gallery's «Скачать»), and a caption of one fixed height so that paging never resizes the stage.
+  Dialog name and the «Картинка 3 из 24: <название>» announcement follow the picture on show; the
+  neighbours of that picture are mounted beside it and preloaded.
+- Its gestures are Pointer Events on the stage (`touch-action: none`): a swipe sideways pages, a swipe
+  down closes (the picture follows the finger and the backdrop dims in proportion; a long or quick
+  pull closes, a short one settles back), a pinch zooms from fitted to the file's natural size (never
+  less than 2×), a double tap or double click zooms in at the point and back, and a zoomed picture is
+  dragged within its edges and is not paged by a swipe. A tap beside the picture closes. Keys: ← →
+  page, `+` `-` zoom, `0` fitted, Esc closes; Tab stays inside the dialog and the focus returns to the
+  thumbnail that opened it. The arithmetic is `mediaLightboxGestures.ts` (property-tested).
 
 ## Motion And Protected Interactions
 
@@ -303,6 +318,12 @@ Protected behavior includes:
   `card-modal-shell`). The shared content lightboxes on `ModalSurface zoom`
   open with a zoom from the pressed thumbnail and close back into it
   (`docs/specs/public-client-navigation.md`, modals).
+- `MediaLightbox` motion: a page turn slides the picture track by `--motion-base` scaled to the
+  distance left (never under `--motion-instant`; a key press takes `--motion-fast`), a double tap
+  zooms over `--motion-base` and a key or wheel zoom is instant; a drag, pinch and pan write
+  `transform` straight to the picture, nothing else is animated, and `will-change` is set only on a
+  picture that is zoomed or being dragged. Under `prefers-reduced-motion` a swipe is read but does not
+  carry the picture, a page turn and the closing only fade (`--motion-fast`), and no picture flies.
 - Battlegrounds related-card and hero-power reveals.
 - Golden card base/golden two-layer animation.
 - Builder drag/drop, canvas placement and export.

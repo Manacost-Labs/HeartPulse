@@ -767,26 +767,6 @@
 
 .arena-app-gallery .gallery-empty strong { color: #3b281b !important; }
 
-.gallery-lightbox-panel {
-  border: 12px solid transparent !important;
-  border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
-  border-image-slice: 18 !important;
-  border-image-width: 12px !important;
-  border-image-repeat: stretch !important;
-  border-radius: 1px !important;
-  background: #3d070b !important;
-}
-
-.gallery-lightbox-head,
-.gallery-lightbox-caption {
-  border-color: rgba(238, 195, 97, 0.24) !important;
-  color: #e3c58a !important;
-  background: url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
-}
-
-.gallery-lightbox-head strong { color: #fff0c4 !important; }
-.gallery-lightbox-head span { color: #c9ad78 !important; }
-
 /* Articles — a pinned editorial board on parchment. */
 .arena-app-articles .articles-toolbar-modern {
   grid-template-columns: minmax(260px, 0.42fr) minmax(0, 1fr);
@@ -1401,10 +1381,9 @@
   }
 }
 
-/* Shared gallery/deck lightbox material. Arena card modals are owned by the
+/* Deck lightbox material (the gallery's is MediaLightbox). Arena card modals are owned by the
    deferred Tier List bundle so loading that feature cannot alter other routes. */
-.deck-card-lightbox-backdrop,
-.gallery-lightbox-backdrop {
+.deck-card-lightbox-backdrop {
   background:
     radial-gradient(circle at 28% 40%, rgba(132, 31, 32, 0.2), transparent 32rem),
     linear-gradient(rgba(22, 7, 8, 0.91), rgba(9, 3, 4, 0.96)),
@@ -1413,8 +1392,7 @@
   -webkit-backdrop-filter: blur(9px) saturate(0.82) !important;
 }
 
-.deck-card-lightbox-panel,
-.gallery-lightbox-panel {
+.deck-card-lightbox-panel {
   min-width: 0;
   border: clamp(12px, 1.5vw, 18px) solid transparent !important;
   border-image-source: url('/wallpaper/main-page-rail-border.png') !important;
@@ -1441,30 +1419,14 @@
   object-fit: contain;
 }
 
-.gallery-lightbox-panel > img {
-  background:
-    radial-gradient(circle at 50% 42%, rgba(236, 187, 91, 0.14), transparent 55%),
-    #260408 !important;
-}
-
-.gallery-lightbox-head,
-.gallery-lightbox-caption {
-  color: #e3c58a !important;
-  background:
-    linear-gradient(rgba(76, 6, 11, 0.14), rgba(39, 3, 6, 0.24)),
-    url('/wallpaper/arena-rail-red.jpg') center / 375px 172px repeat !important;
-}
-
-.hs-lightbox-close,
-.gallery-icon-action {
+.hs-lightbox-close {
   border: 1px solid rgba(231, 188, 98, 0.58) !important;
   color: #fff0c8 !important;
   background: linear-gradient(180deg, #793342, #441923) !important;
   box-shadow: 0 5px 14px rgba(20, 2, 4, 0.42) !important;
 }
 
-.hs-lightbox-close:hover,
-.gallery-icon-action:hover {
+.hs-lightbox-close:hover {
   border-color: rgba(255, 218, 132, 0.82) !important;
   color: #fff7dc !important;
   background: linear-gradient(180deg, #91404e, #551b26) !important;
@@ -1510,8 +1472,7 @@
     max-width: 100% !important;
   }
 
-  .deck-card-lightbox-panel,
-  .gallery-lightbox-panel {
+  .deck-card-lightbox-panel {
     border-width: 9px !important;
     border-image-width: 9px !important;
   }

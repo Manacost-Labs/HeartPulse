@@ -8,8 +8,10 @@ type LightboxImageProps = {
   sizes?: string;
   alt: string;
   className?: string;
-  /** A smaller copy already on the page; defaults to the picture that opened the lightbox. */
+  /** A smaller copy already on the page; defaults to the picture that opened the lightbox. An empty string: none. */
   thumb?: string | null;
+  /** False for a picture waiting beside the one on show (MediaLightbox): the opening zoom and closing target `[data-lightbox-media]`. */
+  media?: boolean;
   onError?: (event: SyntheticEvent<HTMLImageElement>) => void;
 };
 
@@ -20,14 +22,14 @@ type LightboxImageProps = {
  * decoded, without a blank frame. A full size preloaded on hover is shown
  * straight away.
  */
-export function LightboxImage({ src, srcSet, sizes, alt, className, thumb, onError }: LightboxImageProps) {
+export function LightboxImage({ src, srcSet, sizes, alt, className, thumb, media = true, onError }: LightboxImageProps) {
   const origin = useContext(LightboxOriginContext);
   const preview = thumb ?? origin;
   const [sharp, setSharp] = useState(() => !preview || preview === src || lightboxImageDecoded(src));
   return (
     <>
       <img
-        data-lightbox-media=""
+        data-lightbox-media={media ? '' : undefined}
         className={className}
         src={sharp ? src : preview ?? src}
         srcSet={sharp ? srcSet : undefined}

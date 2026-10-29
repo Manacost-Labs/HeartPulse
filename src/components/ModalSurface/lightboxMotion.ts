@@ -78,12 +78,22 @@ function layerAbove(surface: HTMLElement): number {
 export type LightboxMotion = { opened: Promise<void>; close: () => Promise<void>; cancel: () => void };
 
 /**
+ * A lightbox of several pictures tells its closing which picture is on show and
+ * which page thumbnail it flies back into (`opened` is the thumbnail that
+ * opened the lightbox). A resolver returning null closes with a fade.
+ */
+export type ClosingTargets = {
+  media?: () => HTMLImageElement | null;
+  origin?: (opened: HTMLImageElement | null) => HTMLImageElement | null;
+};
+
+/**
  * Plays the opening and returns the closing. `media` is the lightbox picture
  * (it shows the same loaded image as `origin` on its first frame); without an
  * origin, or under reduced motion, the lightbox only fades.
  */
 export function playLightbox(surface: HTMLElement, panel: HTMLElement, media: HTMLImageElement | null,
-  origin: HTMLImageElement | null): LightboxMotion {
+  origin: HTMLImageElement | null, closing?: () => ClosingTargets | undefined): LightboxMotion {
   const duration = motionMs('--motion-base');
   const fadeDuration = motionMs('--motion-fast');
   const easing = motionEasing('--motion-ease');
@@ -93,8 +103,9 @@ export function playLightbox(surface: HTMLElement, panel: HTMLElement, media: HT
   const finished = (animation: Animation) => animation.finished.then(() => undefined, () => undefined);
   const backdrop = surface.querySelector<HTMLElement>('[data-modal-surface-backdrop]');
   const fadeIn = (element: Element | null, time: number) => element ? track(element.animate([{ opacity: 0 }, { opacity: 1 }], { duration: time, easing })) : null;
+  // From where the element is: a swipe has already dimmed the backdrop, and a close during the opening starts mid-fade.
   const fadeOut = (element: Element | null, time: number) => element
-    ? track(element.animate([{ opacity: 1 }, { opacity: 0 }], { duration: time, easing: exit, fill: 'forwards' })) : null;
+    ? track(element.animate([{ opacity: getComputedStyle(element).opacity }, { opacity: 0 }], { duration: time, easing: exit, fill: 'forwards' })) : null;
 
   const zoom = Boolean(duration && origin && media?.complete && media.naturalWidth && !prefersReducedMotion());
   if (!zoom || !origin || !media) {
@@ -120,14 +131,17 @@ export function playLightbox(surface: HTMLElement, panel: HTMLElement, media: HT
 
   const close = async () => {
     await opened;
-    const page = origin.isConnected && visible(origin.getBoundingClientRect()) ? pictureBox(origin) : null;
-    if (!page) {
+    const targets = closing?.();
+    const shown = targets?.media ? targets.media() : media;
+    const returnTo = targets?.origin ? targets.origin(origin) : origin;
+    const page = shown && returnTo?.isConnected && visible(returnTo.getBoundingClientRect()) ? pictureBox(returnTo) : null;
+    if (!page || !shown) {
       await Promise.all([fadeOut(backdrop, fadeDuration), fadeOut(panel, fadeDuration)].map(animation => animation ? finished(animation) : undefined));
       return;
     }
-    const from = pictureBox(media);
-    const back = flightCopy(media, from, layerAbove(surface));
-    media.style.visibility = 'hidden';
+    const from = pictureBox(shown);
+    const back = flightCopy(shown, from, layerAbove(surface));
+    shown.style.visibility = 'hidden';
     const flightBack = track(back.animate([{ transform: 'none' }, { transform: flightTransform(page, from) }], { duration, easing: exit, fill: 'forwards' }));
     fadeOut(backdrop, duration);
     fadeOut(panel, fadeDuration || duration);

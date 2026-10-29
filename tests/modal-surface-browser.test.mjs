@@ -28,16 +28,16 @@ try {
   await page.waitForSelector('#lightbox-trigger');
 
   await page.click('#lightbox-trigger');
-  await page.waitForSelector('.constructed-card-lightbox');
+  await page.waitForSelector('[role="dialog"]');
   const opened = await page.evaluate(() => {
-    const surface = document.querySelector('.constructed-card-lightbox');
+    const surface = document.querySelector('[role="dialog"]');
     const root = document.getElementById('root');
     const style = surface instanceof HTMLElement ? getComputedStyle(surface) : null;
     return {
       portalParent: surface?.parentElement?.tagName,
       rootInert: root?.inert,
       rootAriaHidden: root?.getAttribute('aria-hidden'),
-      activeId: document.activeElement?.className,
+      activeLabel: document.activeElement?.getAttribute('aria-label'),
       activeElement: document.activeElement?.outerHTML,
       bodyOverflow: document.body.style.overflow,
       bodyPosition: document.body.style.position,
@@ -48,13 +48,13 @@ try {
   assert.equal(opened.portalParent, 'BODY', 'the modal must use a body portal');
   assert.equal(opened.rootInert, true);
   assert.equal(opened.rootAriaHidden, 'true');
-  assert.match(String(opened.activeId), /constructed-card-lightbox__close/, JSON.stringify(opened));
+  assert.equal(opened.activeLabel, 'Закрыть', `the close button takes the focus: ${JSON.stringify(opened)}`);
   assert.equal(opened.bodyOverflow, 'hidden');
   assert.equal(opened.bodyPosition, 'fixed');
   assert.ok(opened.viewportHeight > 0 && Math.abs(opened.surfaceHeight - opened.viewportHeight) < 2);
   await page.setViewport({ width: 390, height: 520, deviceScaleFactor: 1 });
   await page.waitForFunction(() => {
-    const surface = document.querySelector('.constructed-card-lightbox');
+    const surface = document.querySelector('[role="dialog"]');
     if (!(surface instanceof HTMLElement)) return false;
     const variable = Number.parseFloat(getComputedStyle(surface).getPropertyValue('--modal-surface-height'));
     return Math.abs(variable - window.visualViewport.height) < 2
@@ -68,10 +68,13 @@ try {
   })), { backdropAnimation: 'none', panelAnimation: 'none' });
   await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
 
-  await page.click('[aria-label="Следующее изображение"]');
-  await page.waitForFunction(() => document.querySelector('#constructed-card-lightbox-title')?.textContent === 'Вторая карта');
+  await page.click('[aria-label="Следующая картинка"]');
+  await page.waitForFunction(() => {
+    const dialog = document.querySelector('[role="dialog"]');
+    return document.getElementById(dialog?.getAttribute('aria-labelledby') ?? '')?.textContent === 'Вторая карта';
+  });
   await page.keyboard.press('Escape');
-  await page.waitForSelector('.constructed-card-lightbox', { hidden: true });
+  await page.waitForSelector('[role="dialog"]', { hidden: true });
   assert.equal(await page.evaluate(() => document.activeElement?.id), 'lightbox-trigger', 'changing slides must not replace the original focus target');
   assert.deepEqual(await page.evaluate(() => ({
     inert: document.getElementById('root')?.inert,
@@ -84,15 +87,16 @@ try {
   await page.keyboard.down('Shift');
   await page.keyboard.press('Tab');
   await page.keyboard.up('Shift');
-  assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Следующее изображение');
+  assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Следующая картинка');
   await page.keyboard.press('Tab');
-  assert.match(String(await page.evaluate(() => document.activeElement?.className)), /constructed-card-lightbox__close/);
+  assert.equal(await page.evaluate(() => document.activeElement?.getAttribute('aria-label')), 'Закрыть');
   // With the page styles a phone-sized lightbox covers its whole backdrop, so
   // the backdrop is clicked where it is reachable: beside the panel on a wide screen.
   await page.setViewport({ width: 1280, height: 800, deviceScaleFactor: 1 });
-  assert.match(String(await page.evaluate(() => document.elementFromPoint(8, 8)?.className)), /constructed-card-lightbox__backdrop/);
+  assert.equal(await page.evaluate(() => document.elementFromPoint(8, 8)?.getAttribute('aria-label')), 'Закрыть просмотр',
+    'beside the panel the pointer is on the backdrop');
   await page.mouse.click(8, 8);
-  await page.waitForSelector('.constructed-card-lightbox', { hidden: true });
+  await page.waitForSelector('[role="dialog"]', { hidden: true });
   await page.setViewport({ width: 390, height: 700, deviceScaleFactor: 1 });
 
   await page.click('#first-trigger');

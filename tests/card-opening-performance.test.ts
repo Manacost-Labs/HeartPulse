@@ -7,6 +7,7 @@ const cardsStyles = readFileSync(new URL('../src/features/StandardCards.css', im
 const detailPrefetchSource = readFileSync(new URL('../src/features/constructedCardDetailPrefetch.ts', import.meta.url), 'utf8');
 const listPrefetchSource = readFileSync(new URL('../src/features/constructedCardListPrefetch.ts', import.meta.url), 'utf8');
 const lightboxSource = readFileSync(new URL('../src/features/ConstructedCardLightbox.tsx', import.meta.url), 'utf8');
+const mediaLightboxSource = readFileSync(new URL('../src/components/ModalSurface/MediaLightbox.tsx', import.meta.url), 'utf8');
 const deferredSource = readFileSync(new URL('../src/features/DeferredRoutes.tsx', import.meta.url), 'utf8');
 
 // A card page is a new document and its API response is no-store, so a detail
@@ -41,10 +42,10 @@ assert.match(listPrefetchSource, /statsAccess \? 'paid' : 'public'/,
 assert.match(cardsStyles, /\.constructed-cards__state\s*\{[^}]*min-height:\s*70vh/,
   'the cold catalog loader must reserve enough viewport space to avoid a late footer shift');
 
-assert.match(lightboxSource, /<LightboxImage[\s\S]*?thumb=\{item\.thumbnailUrl\}/,
+assert.match(lightboxSource, /thumb: item\.thumbnailUrl/,
   'constructed-card lightboxes must show an already-loaded preview while full media decodes');
-assert.match(lightboxSource, /const next = items\[\(index \+ 1\) % items\.length\]/,
-  'gallery navigation must warm the next image');
+assert.match(mediaLightboxSource, /preloadLightboxImage\(neighbour\.src/,
+  'the media lightbox must warm both neighbours of the picture on show (tests/media-lightbox-browser.test.mjs checks the requests)');
 assert.match(deferredSource, /onPointerEnter=\{\(\) => preloadImage\(fullSrc\)\}/,
   'legendary card thumbnails must warm the full render on hover');
 assert.match(deferredSource, /ready \|\| !hasPreview \? fullSrc : previewSrc/,

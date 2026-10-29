@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState, type RefObject } from 'react';
-import { lightboxOrigin, playLightbox, swipeToClose, type LightboxMotion } from './lightboxMotion';
+import { lightboxOrigin, playLightbox, swipeToClose, type ClosingTargets, type LightboxMotion } from './lightboxMotion';
 
 /**
  * ModalSurface's `zoom`: the origin picture (read once, before the content's
@@ -8,9 +8,11 @@ import { lightboxOrigin, playLightbox, swipeToClose, type LightboxMotion } from 
  * every way of closing plays the closing before the caller's `onClose`.
  */
 export function useLightboxZoom(zoom: boolean, surfaceRef: RefObject<HTMLElement | null>, panelRef: RefObject<HTMLElement | null>,
-  onCloseRef: RefObject<() => void>) {
+  onCloseRef: RefObject<() => void>, { swipeClose = true, targets }: { swipeClose?: boolean; targets?: ClosingTargets } = {}) {
   const [origin] = useState(() => (zoom && typeof document !== 'undefined' ? lightboxOrigin() : null));
   const motionRef = useRef<LightboxMotion | null>(null);
+  const targetsRef = useRef(targets);
+  useLayoutEffect(() => { targetsRef.current = targets; });
   const closingRef = useRef(false);
   const requestCloseRef = useRef(() => {
     if (closingRef.current) return;
@@ -25,12 +27,13 @@ export function useLightboxZoom(zoom: boolean, surfaceRef: RefObject<HTMLElement
     const panel = panelRef.current;
     if (!zoom || !surface || !panel?.animate) return undefined;
     const media = panel.querySelector<HTMLImageElement>('img[data-lightbox-media]');
-    const motion = playLightbox(surface, panel, media, origin);
+    const motion = playLightbox(surface, panel, media, origin, () => targetsRef.current);
     motionRef.current = motion;
     const backdrop = surface.querySelector<HTMLElement>('[data-modal-surface-backdrop]');
-    const stopSwipe = swipeToClose(panel, backdrop, () => requestCloseRef.current());
+    // A lightbox with gestures of its own (MediaLightbox) closes on its own swipe.
+    const stopSwipe = swipeClose ? swipeToClose(panel, backdrop, () => requestCloseRef.current()) : () => undefined;
     return () => { stopSwipe(); motion.cancel(); motionRef.current = null; };
-  }, [zoom, origin, surfaceRef, panelRef]);
+  }, [zoom, origin, surfaceRef, panelRef, swipeClose]);
 
   return { originSource: origin ? origin.currentSrc || origin.src : null, requestCloseRef };
 }

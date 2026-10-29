@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
-import { Download, Image as ImageIcon, Maximize2, X } from 'lucide-react';
-import ModalSurface from '../components/ModalSurface/ModalSurface';
-import { LightboxImage } from '../components/ModalSurface/LightboxImage';
+import React, { useMemo, useState } from 'react';
+import { Download, Image as ImageIcon, Maximize2 } from 'lucide-react';
+import MediaLightbox, { type MediaLightboxItem } from '../components/ModalSurface/MediaLightbox';
 import { Breadcrumbs, SectionBanner } from './EditorialRouteChrome';
 import '../route-parchment.css';
 import './TraditionalModeBanner.css';
@@ -52,52 +51,6 @@ function formatGalleryDate(value?: string | null) {
   });
 }
 
-function GalleryLightbox({ item, onClose }: { item: GalleryItem; onClose: () => void }) {
-  return (
-    <ModalSurface
-      className="gallery-lightbox"
-      backdropClassName="gallery-lightbox-backdrop"
-      panelClassName="gallery-lightbox-panel"
-      ariaLabel={item.title}
-      closeLabel="Закрыть галерею"
-      onClose={onClose}
-      zoom
-    >
-      <div className="gallery-lightbox-head">
-        <div>
-          <strong>{item.title}</strong>
-          <span>
-            {[
-              item.width && item.height ? `${item.width} x ${item.height}` : '',
-              formatGalleryBytes(item.bytes),
-            ].filter(Boolean).join(' · ')}
-          </span>
-        </div>
-        <div>
-          <a href={item.downloadUrl} className="gallery-icon-action" title="Скачать оригинал">
-            <Download size={18} aria-hidden="true" />
-          </a>
-          <button
-            type="button"
-            className="gallery-icon-action"
-            data-modal-close=""
-            title="Закрыть"
-          >
-            <X size={18} aria-hidden="true" />
-          </button>
-        </div>
-      </div>
-      <LightboxImage src={item.previewUrl || item.imageUrl} alt={item.title} />
-      {(item.description || item.source) && (
-        <div className="gallery-lightbox-caption">
-          {item.description && <p>{item.description}</p>}
-          {item.source && <span>{item.source}</span>}
-        </div>
-      )}
-    </ModalSurface>
-  );
-}
-
 export default function GalleryTab({
   data,
   loading,
@@ -107,8 +60,18 @@ export default function GalleryTab({
   loading: boolean;
   onNavigate: (tab: string) => void;
 }) {
-  const [selectedItem, setSelectedItem] = useState<GalleryItem | null>(null);
-  const items = Array.isArray(data.items) ? data.items : [];
+  const [selected, setSelected] = useState(-1);
+  const items = useMemo(() => (Array.isArray(data.items) ? data.items : []), [data.items]);
+  // The lightbox pages through every art of the list, in the order of the tiles.
+  const lightboxItems = useMemo<MediaLightboxItem[]>(() => items.map(item => ({
+    id: item.id,
+    src: item.previewUrl || item.imageUrl,
+    thumb: item.thumbUrl || item.previewUrl,
+    alt: item.title,
+    title: item.title,
+    description: item.description,
+    meta: [item.width && item.height ? `${item.width} x ${item.height}` : '', formatGalleryBytes(item.bytes), item.source].filter(Boolean).join(' · '),
+  })), [items]);
 
   return (
     <div className="gallery-page">
@@ -145,13 +108,13 @@ export default function GalleryTab({
         </div>
       ) : (
         <div className="gallery-grid">
-          {items.map(item => (
+          {items.map((item, position) => (
             <article key={item.id} className="gallery-card">
               <button
                 type="button"
                 className="gallery-card-image"
                 data-lightbox-src={item.previewUrl || item.imageUrl}
-                onClick={() => setSelectedItem(item)}
+                onClick={() => setSelected(position)}
                 aria-label={`Открыть ${item.title}`}
               >
                 <img
@@ -187,8 +150,18 @@ export default function GalleryTab({
           ))}
         </div>
       )}
-      {selectedItem && (
-        <GalleryLightbox item={selectedItem} onClose={() => setSelectedItem(null)} />
+      {selected >= 0 && items[selected] && (
+        <MediaLightbox
+          items={lightboxItems}
+          index={selected}
+          onClose={() => setSelected(-1)}
+          onIndexChange={setSelected}
+          actions={(
+            <a href={items[selected].downloadUrl} className="media-lightbox__action" aria-label="Скачать оригинал">
+              <Download size={18} aria-hidden="true" /> Скачать
+            </a>
+          )}
+        />
       )}
     </div>
   );
