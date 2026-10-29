@@ -16,41 +16,41 @@ const NOW = () => new Date('2026-10-28T00:00:00Z');
  * The GitHub network boundary: answers `gh api` endpoints from recorded API
  * responses. Everything the report computes runs for real on top of it.
  */
-function fixtureApi({ requests = [] } = {}) {
+function fixtureApi({ requests = [], data = fixture } = {}) {
   return async endpoint => {
     requests.push(endpoint);
     const url = new URL(`https://api.github.test/${endpoint}`);
-    const route = url.pathname.replace(/^\//, '').replace(`repos/${fixture.repository}/`, '');
+    const route = url.pathname.replace(/^\//, '').replace(`repos/${data.repository}/`, '');
     const page = Number(url.searchParams.get('page') ?? 1);
     const perPage = Number(url.searchParams.get('per_page') ?? 30);
     const slice = items => items.slice((page - 1) * perPage, page * perPage);
     let match;
-    if (endpoint === 'repos/{owner}/{repo}') return JSON.stringify({ full_name: fixture.repository });
+    if (endpoint === 'repos/{owner}/{repo}') return JSON.stringify({ full_name: data.repository });
     if (route === 'actions/workflows/ci.yml/runs') {
       const created = url.searchParams.get('created');
       const floor = created ? Date.parse(created.replace('>=', '')) : -Infinity;
-      const all = fixture.runs.workflow_runs.filter(run => Date.parse(run.created_at) >= floor);
+      const all = data.runs.workflow_runs.filter(run => Date.parse(run.created_at) >= floor);
       return JSON.stringify({ total_count: all.length, workflow_runs: slice(all) });
     }
     if ((match = /^actions\/runs\/(\d+)\/attempts\/(\d+)\/jobs$/.exec(route))) {
-      const recorded = fixture.jobs[`${match[1]}/${match[2]}`];
+      const recorded = data.jobs[`${match[1]}/${match[2]}`];
       assert.ok(recorded, `fixture has no jobs for ${route}`);
       return JSON.stringify({ total_count: recorded.jobs.length, jobs: slice(recorded.jobs) });
     }
     if ((match = /^actions\/runs\/(\d+)\/attempts\/(\d+)$/.exec(route))) {
-      assert.ok(fixture.attempts[`${match[1]}/${match[2]}`], `fixture has no attempt ${route}`);
-      return JSON.stringify(fixture.attempts[`${match[1]}/${match[2]}`]);
+      assert.ok(data.attempts[`${match[1]}/${match[2]}`], `fixture has no attempt ${route}`);
+      return JSON.stringify(data.attempts[`${match[1]}/${match[2]}`]);
     }
     if ((match = /^check-runs\/(\d+)\/annotations$/.exec(route))) {
-      return JSON.stringify(slice(fixture.annotations[match[1]] ?? []));
+      return JSON.stringify(slice(data.annotations[match[1]] ?? []));
     }
     if ((match = /^actions\/jobs\/(\d+)\/logs$/.exec(route))) {
-      if (!(match[1] in fixture.logs)) {
+      if (!(match[1] in data.logs)) {
         const error = new ReportError('gh api завершился с ошибкой: gh: Not Found (HTTP 404).');
         error.notFound = true;
         throw error;
       }
-      return fixture.logs[match[1]];
+      return data.logs[match[1]];
     }
     throw new Error(`unexpected endpoint ${endpoint}`);
   };
@@ -384,4 +384,30 @@ test('median and p90 stay inside the data and order correctly', () => {
     const p90 = percentile(values, 0.9);
     return low <= mid && mid <= high && values.includes(p90) && mid <= p90 && percentile(values, 1) === high;
   }));
+});
+
+function withRunChanges(changes) {
+  const data = structuredClone(fixture);
+  for (const item of data.runs.workflow_runs) Object.assign(item, changes[item.id] ?? {});
+  return data;
+}
+
+async function reportFor(data) {
+  const result = await run(['--json'], { api: fixtureApi({ data }) });
+  assert.equal(result.code, 0, result.err);
+  return JSON.parse(result.out);
+}
+
+test('a green run of the same commit that finished BEFORE the failure does not make it flaky', async () => {
+  assert.equal(classOf(await runJson(), 101), 'flaky', 'baseline: run 102 passed after run 101');
+  const earlier = await reportFor(withRunChanges({ 102: { created_at: '2026-10-27T08:50:00Z', run_started_at: '2026-10-27T08:50:00Z' } }));
+  assert.equal(classOf(earlier, 101), 'real', 'a pass before the failure says nothing about it');
+});
+
+test('table cells keep backslashes, pipes and line breaks from breaking the markdown row', async () => {
+  const data = withRunChanges({ 105: { head_branch: 'fix/a\\|b\\\nnext|c' } });
+  const { out } = await run([], { api: fixtureApi({ data }) });
+  const row = out.split('\n').find(line => line.includes('actions/runs/105)'));
+  assert.ok(row, 'the red attempt of run 105 stays on a single line');
+  assert.ok(row.includes('| fix/a\\\\\\|b\\\\ next\\|c |'), row);
 });

@@ -545,7 +545,8 @@ export function buildReport(dataset, { top = DEFAULT_TOP, now = () => new Date()
 
 const pct = value => `${value.toFixed(1).replace('.', ',')}%`;
 const minutes = value => (value === null ? '—' : `${(value / 60).toFixed(1).replace('.', ',')} мин`);
-const cell = text => String(text).replace(/\|/g, '\\|');
+// Backslash first, so the one added in front of `|` is not escaped again; a line break would end the row.
+const cell = text => String(text).replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\r?\n/g, ' ');
 
 function table(headers, rows) {
   if (rows.length === 0) return '_нет данных_\n';
