@@ -9458,6 +9458,10 @@ const funDeckPreviewCoordinator = createFunDeckPreviewCoordinator({
 
 app.use('/api', createPublicFunDecksRouter({
   loadFunDecks: loadFunDecksDataset,
+  loadArchetypeLabels: async () => {
+    const { map } = await getStandardArchetypeTranslations();
+    return name => archetypeLabel(name, map);
+  },
   getPreview: funDeckPreviewCoordinator.getPreview,
   schedulePreviews: funDeckPreviewCoordinator.schedule,
   onError: error => console.error('[public fun decks]', error instanceof Error ? error.message : error),

@@ -37,8 +37,9 @@ function funDecks(variant) {
     format: index % 3 === 2 ? 'wild' : 'standard',
     className,
     streamer: pick(variant, 'Стример с длинным псевдонимом', null),
-    funScore: 0.71 - index * 0.01, maxMetaSimilarity: 0.31, nearestArchetype: 'Мех-маг',
-    winRate: 52.4, games: 1240 + index, reasons: ['Редкие сочетания'],
+    funScore: 0.71 - index * 0.01, maxMetaSimilarity: 0.31, nearestArchetype: 'Mech Mage', nearestArchetypeLabel: 'Мех-маг',
+    winRate: 52.4, winRateCiLow: 46.1, winRateCiHigh: 58.6, variants: 0, sourceTitle: null, games: 1240 + index,
+    reasons: ['highlander_shape', 'concept_title'],
     url: 'https://www.hsguru.com/decks/fixture',
     firstSeenAt: `2026-10-${String(19 - index).padStart(2, '0')}T10:00:00.000Z`, lastSeenAt: NOW,
   }));
