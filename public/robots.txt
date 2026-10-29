@@ -19,4 +19,9 @@ Allow: /main_assets/
 Allow: /wallpaper/
 Allow: /fonts/
 
+# Yandex only: advertising and tracking labels do not change a page, so its
+# robot treats such URLs as one. Functional parameters (format, q, class,
+# period) change the content and are deliberately not listed.
+Clean-param: utm_source&utm_medium&utm_campaign&utm_content&utm_term&yclid&fbclid&gclid&ref /
+
 Sitemap: https://hearthpulse.net/sitemap.xml

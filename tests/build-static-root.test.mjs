@@ -84,6 +84,89 @@ test('static root is assembled from public assets and SEO registries', () => {
   }
 });
 
+// What the static root serves at /llms.txt, section by section: where the data
+// comes from, how often it refreshes and what a visitor without a subscription
+// gets. `open` and `paid` say which of the two the section text must mention.
+const LLMS_SECTIONS = [
+  { urls: ['/standard/meta/'], sources: ['HSGuru'], update: 'несколько раз в сутки', open: true, paid: true },
+  { urls: ['/standard/archetypes/'], sources: ['HSGuru'], update: 'несколько раз в сутки', open: true, paid: true },
+  { urls: ['/standard/matchups/'], sources: ['HSGuru'], open: false, paid: true },
+  { urls: ['/standard/vicious-gold/'], sources: ['Vicious Syndicate'], update: 'каждые 2 часа', open: false, paid: true },
+  { urls: ['/standard/fun-decks/'], sources: ['HSGuru'], update: 'каждые 2 часа', open: true, paid: true },
+  { urls: ['/standard/cards/', '/standard/cards/standard/', '/standard/cards/wild/'], sources: ['HSReplay'], open: true, paid: true },
+  { urls: ['/standard/patches/'], sources: ['hs-manacost.ru'], update: 'раз в сутки', open: true, paid: false },
+  { urls: ['/standard/radar/'], sources: ['HSGuru', 'HSReplay', 'Reddit'], update: 'два раза в сутки', open: true, paid: false },
+  { urls: ['/classes/'], sources: ['HSReplay', 'Firestone'], update: 'каждые 6 часов', open: false, paid: true },
+  { urls: ['/tierlist/'], sources: ['HSReplay', 'HearthArena', 'Firestone'], update: 'каждые 6 часов', open: false, paid: true },
+  { urls: ['/legendaries/'], sources: ['HSReplay', 'Firestone'], update: 'каждые 6 часов', open: false, paid: true },
+  { urls: ['/battlegrounds/tier-list/', '/battlegrounds/strategies/'], sources: ['HSReplay', 'Firestone'], update: 'раз в сутки', open: false, paid: true },
+  { urls: ['/heroes/', '/library/'], sources: ['HSReplay', 'Firestone'], open: true, paid: true },
+  { urls: ['/faq/'], sources: [], open: true, paid: false },
+  { urls: ['/articles/'], sources: [], open: true, paid: false },
+];
+
+function llmsEntries(llms) {
+  const entries = [];
+  for (const line of llms.split('\n')) {
+    if (line.startsWith('- ')) entries.push(line);
+    else if (entries.length && line.startsWith('  ')) entries[entries.length - 1] += ` ${line.trim()}`;
+  }
+  return entries;
+}
+
+test('llms.txt tells a crawler what each section offers, from where, and what needs a subscription', () => {
+  const workspace = mkdtempSync(join(tmpdir(), 'hearthpulse-static-root-llms-'));
+  const outDir = join(workspace, 'dist');
+  try {
+    buildStaticRoot(outDir);
+    const llms = readFileSync(join(outDir, 'llms.txt'), 'utf8');
+    const origin = routeInventory.canonicalOrigin;
+
+    assert.match(llms, /^# HearthPulse\n\n> /, 'llms.txt starts with the site name and a summary');
+    const revision = llms.match(/^Редакция: (\d{4}-\d{2}-\d{2})$/m)?.[1];
+    assert.ok(revision && new Date(`${revision}T00:00:00Z`).toISOString().startsWith(revision),
+      'llms.txt carries a valid revision date');
+
+    // Every link points to a real canonical page, with the trailing slash, or to a sitemap that exists.
+    const sitemapSegments = locations(readFileSync(join(outDir, 'sitemap.xml'), 'utf8'));
+    const cardFormatListings = ['/standard/cards/standard', '/standard/cards/wild'];
+    const links = [...llms.matchAll(/https:\/\/hearthpulse\.net\/[^\s)]*/g)].map(match => match[0]);
+    assert.ok(links.length > 20, 'llms.txt links to the sections');
+    for (const link of links) {
+      assert.ok(link.startsWith(`${origin}/`), `${link} must use the canonical origin`);
+      if (link.endsWith('.xml')) {
+        assert.ok([`${origin}/sitemap.xml`, ...sitemapSegments].includes(link), `${link} must be a published sitemap`);
+      } else {
+        assert.ok(link.endsWith('/'), `${link} must end with a slash`);
+        const path = link.slice(origin.length).replace(/(.)\/$/, '$1');
+        assert.ok(registry.pages[path] || cardFormatListings.includes(path), `${link} must be a page of the site`);
+      }
+    }
+    for (const required of [`${origin}/sitemap.xml`, `${origin}/terms/`, `${origin}/privacy/`]) {
+      assert.ok(links.includes(required), `llms.txt must link ${required}`);
+    }
+
+    const entries = llmsEntries(llms);
+    for (const section of LLMS_SECTIONS) {
+      const entry = entries.find(candidate => section.urls.every(url => candidate.includes(`](${origin}${url})`)));
+      assert.ok(entry, `llms.txt must describe ${section.urls.join(' and ')} in one entry`);
+      for (const source of section.sources) {
+        assert.ok(entry.includes(source), `${section.urls[0]} must name its source ${source}`);
+      }
+      if (section.update) assert.ok(entry.includes(section.update), `${section.urls[0]} must say: ${section.update}`);
+      assert.equal(/по подписке/i.test(entry), section.paid, `${section.urls[0]}: subscription mention`);
+      assert.equal(/открыт|без подписки/i.test(entry), section.open, `${section.urls[0]}: free access mention`);
+    }
+
+    // Promises of the old file that the anonymous HTML does not keep.
+    for (const stale of ['с количеством игр', 'датой последнего обновления', 'по всем 11 классам', '00:15', '06:15', '12:15', '18:15']) {
+      assert.ok(!llms.includes(stale), `llms.txt must not promise "${stale}"`);
+    }
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
 test('static root is rebuilt from scratch in a reused workspace', () => {
   const workspace = mkdtempSync(join(tmpdir(), 'hearthpulse-static-root-stale-'));
   const outDir = join(workspace, 'dist');
