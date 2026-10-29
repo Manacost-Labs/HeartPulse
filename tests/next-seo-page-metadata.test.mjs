@@ -675,6 +675,7 @@ const STANDARD_ROWS = [
   catalogRow('standard', 'hunter-a', 'Охотник А', 'Hunter A', 'hunter', 4000, 51.5, 4, 2),
   catalogRow('standard', 'pure-paladin', 'Чистый Паладин', 'Pure Paladin', 'paladin', 53208, 51, 1.7, 86),
   catalogRow('standard', 'archmage-paladin', 'Чистый Паладин', 'Archmage Paladin', 'paladin', 598, 49, 0, 5),
+  catalogRow('standard', 'rare-priest', 'Редкий Жрец', 'Rare Priest', 'priest', 300, 52, 0.04, 1),
 ];
 const WILD_ROWS = [
   catalogRow('wild', 'zoolock', 'Зоолок', 'Zoolock', 'warlock', 20000, 58, 10, 3),
@@ -711,6 +712,11 @@ function startArchetypeExpress(state) {
 }
 
 const countWords = text => text.split(/\s+/).filter(token => /[\p{L}\p{N}]/u.test(token)).length;
+/** A page of the summary reads 150–250 words without JavaScript, whatever the catalog said. */
+const assertLength = ({ text }, name) => {
+  const words = countWords(text);
+  assert.ok(words >= 150 && words <= 250, `${name}: the summary has ${words} words`);
+};
 const numbersIn = (value, found = []) => {
   if (typeof value === 'number') found.push(value);
   else if (Array.isArray(value)) value.forEach(item => numbersIn(item, found));
@@ -764,7 +770,7 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
     assert.ok(countWords(lead.split('Медианный')[0]) <= 60, 'the answer comes in the first 60 words');
     for (const expected of ['Медианный винрейт 10 архетипов Стандарта с выборкой от 1 000 игр — 51,3%, а Зоолок выше медианы на 10 п. п.',
       'Среди 5 архетипов класса Чернокнижник с выборкой от 1 000 игр медиана — 52%, а он выше медианы на 9,2 п. п.',
-      'По числу игр он на 2-м месте из 13 архетипов Стандарта.', 'В каталог входят архетипы с выборкой от 50 игр',
+      'По числу игр он на 2-м месте из 14 архетипов Стандарта.', 'В каталог входят архетипы с выборкой от 50 игр',
       'доступны по подписке HearthPulse']) {
       assert.ok(strong.text.includes(expected), `the text says «${expected}»`);
     }
@@ -804,7 +810,7 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
     for (const [name, other] of [['weak', weak], ['wild', wild], ['legacy', legacy]]) {
       assert.equal(other.robots, 'noindex, follow', `${name} robots`);
       assert.deepEqual(other.graphs, [], `${name} has no JSON-LD`);
-      assert.ok(countWords(other.text) >= 80, `${name} has the summary`);
+      assertLength(other, name);
     }
     assert.equal(weak.canonical, 'https://hearthpulse.net/standard/archetypes/standard/weak-warlock/');
     assert.equal(legacy.canonical, 'https://hearthpulse.net/standard/meta/standard/zoolock/', 'the old family keeps its own canonical');
@@ -823,6 +829,22 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
     assert.ok(pure.title.length <= 65 && archmage.title.length <= 65);
     assert.equal(archmage.robots, 'noindex, follow');
     assert.equal(pure.robots, strong.robots);
+    // The same name twice: the English one tells the texts apart as it does the titles; a name nobody shares stays plain.
+    assert.ok(pure.text.trim().startsWith('Насколько силён Чистый Паладин (Pure Paladin) в Стандарте сейчас Чистый Паладин (Pure Paladin) — архетип класса Паладин'), pure.text.slice(0, 160));
+    assert.ok(archmage.text.trim().startsWith('Насколько силён Чистый Паладин (Archmage Paladin) в Стандарте сейчас Чистый Паладин (Archmage Paladin) — архетип класса Паладин'));
+    assert.ok(pure.text.includes('Чистый Паладин (Archmage Paladin) — 49%'), 'the twin is named in the class links by the same rule');
+    assert.notEqual(pure.text, archmage.text);
+    assert.ok(!strong.text.includes('Зоолок ('), 'a name nobody shares has no brackets');
+    for (const [name, other] of [['pure', pure], ['archmage', archmage]]) assertLength(other, name);
+
+    // A class with nobody to link to, and a share that rounds to zero.
+    const alonePriest = await page('/standard/archetypes/standard/rare-priest/');
+    assert.ok(alonePriest.text.includes('популярность — менее 0,1%') && !alonePriest.text.includes('популярность — 0%'));
+    assert.ok(alonePriest.text.includes('Что такое архетип') && !alonePriest.text.includes('Другие архетипы'));
+    const alone1 = await page('/standard/archetypes/standard/rogue-a/');
+    assert.ok(alone1.text.includes('Что такое архетип'), 'the primer takes the place of the class links');
+    for (const [name, other] of [['rare priest', alonePriest], ['class of one', alone1], ['strong', strong]]) assertLength(other, name);
+    assert.ok(!strong.text.includes('Что такое архетип'), 'a page with its class links has no primer');
 
     // Without the catalog the page keeps its own numbers, its robots and its graph; the extras go.
     state.catalogOk = false;
@@ -833,10 +855,19 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
     assert.ok(alone.text.includes('в выборке 53 208 игр'));
     assert.ok(!alone.text.includes('Медианный') && !alone.text.includes('Другие архетипы'));
     assert.deepEqual(alone.links.slice(-1), ['/standard/archetypes/'], 'the catalog link stays');
+    // The text keeps its length without a word of the catalog: no median, no place, no neighbour, no twin's name.
+    const noCatalog = [alone, await page('/standard/archetypes/standard/archmage-paladin/'),
+      await page('/standard/archetypes/standard/weak-warlock/'), await page('/standard/archetypes/wild/zoolock/')];
+    for (const [index, other] of noCatalog.entries()) {
+      assertLength(other, `without the catalog, page ${index}`);
+      assert.ok(other.text.includes('Что такое архетип'), `without the catalog, page ${index} has the primer`);
+      assert.doesNotMatch(other.text, /Медианный|Среди|месте из|Другие архетипы|\(Pure Paladin\)|\(Archmage Paladin\)|51,3|52%/, `without the catalog, page ${index}`);
+      assert.deepEqual(other.links.filter(href => /^\/standard\/archetypes\/(?:standard|wild)\//.test(href)), [], `without the catalog, page ${index} links no archetype`);
+    }
     state.catalogOk = true;
 
     // Nothing paid in any of these documents, RSC payload included.
-    assert.ok(fetched.length >= 7);
+    assert.ok(fetched.length >= 14);
     for (const [path, html] of fetched) {
       for (const marker of PAID_MARKERS) assert.ok(!html.includes(marker), `${path} leaks ${marker}`);
       assert.doesNotMatch(html, DECK_CODE, `${path} carries a deck code`);

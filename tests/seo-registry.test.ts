@@ -20,7 +20,7 @@ import {
 } from '../apps/public-web/lib/seoDataValues';
 import { publicArchetypeCatalog } from '../apps/public-web/lib/publicArchetypeCatalogTeaserData';
 import { publicArchetypeTeaser } from '../apps/public-web/lib/publicArchetypeTeaserData';
-import { archetypeSeoFacts } from '../apps/public-web/lib/archetypeSeoSummary';
+import { archetypeCountText, archetypeSeoFacts, formatShare } from '../apps/public-web/lib/archetypeSeoSummary';
 import { INDEXABLE_ARCHETYPE_MIN_GAMES, isIndexableArchetype } from '../shared/constructedArchetypeIndexing';
 import { archetypeStructuredDataGraph } from '../src/seo/archetypeStructuredData';
 import { assertProperty } from './helpers/propertyRuns';
@@ -469,6 +469,16 @@ assert.match(standardMetaLandingSource, /<h1>Мета<\/h1>/);
   assert.equal(archetypeSeoFacts(target, catalogOf([mk('x', 'mage', 50, 5000)])).gamesPlace, null, 'a catalog without the page cannot place it');
   const ranked = archetypeSeoFacts(target, catalogOf(Array.from({ length: 12 }, (_, index) => mk(`p${index}`, 'paladin', 50, 2000 + index))));
   assert.equal(ranked.neighbours.length, 6, 'at most six links');
+
+  // The numbers the text prints: a share above zero is never printed as nothing, a count takes its own genitive.
+  assert.deepEqual([0, 1.7, 20.44, 0.05, 0.049, 0.0001].map(formatShare), ['0%', '1,7%', '20,4%', '0,1%', 'менее 0,1%', 'менее 0,1%']);
+  assertProperty(fc.property(fc.double({ min: 1e-9, max: 100, noNaN: true }), share => {
+    assert.notEqual(formatShare(share), '0%');
+  }));
+  assert.deepEqual([1, 2, 5, 11, 21, 22, 101, 111, 201, 211].map(archetypeCountText), [
+    '1 архетипа', '2 архетипов', '5 архетипов', '11 архетипов', '21 архетипа', '22 архетипов', '101 архетипа', '111 архетипов',
+    '201 архетипа', '211 архетипов',
+  ]);
 
   // The graph of an indexable archetype: the teaser's numbers as they are, the date of the data, no paid word.
   const graphFacts = {

@@ -1,7 +1,19 @@
 import type { ArchetypeCatalog, ArchetypeDetail } from '@/src/features/ConstructedArchetypes';
 import { INDEXABLE_ARCHETYPE_MIN_GAMES, isIndexableArchetype } from '@/shared/constructedArchetypeIndexing';
+import { pluralRu } from '@/src/shared/text/pluralRu';
 
 type CatalogRow = ArchetypeCatalog['items'][number];
+
+/** A number as the page prints it: Russian separators, at most `maximumFractionDigits` decimals. */
+export const formatNumber = (value: number, maximumFractionDigits = 1) => value.toLocaleString('ru-RU', { maximumFractionDigits });
+
+/** A share in percent; a share above zero that rounds to zero reads «менее 0,1%», never as nobody. */
+export function formatShare(value: number): string {
+  return value > 0 && formatNumber(value) === '0' ? 'менее 0,1%' : `${formatNumber(value)}%`;
+}
+
+/** «21 архетипа», «22 архетипов»: the genitive a count takes after «из», «среди» or a noun. */
+export const archetypeCountText = (count: number) => `${count} ${pluralRu(count, 'архетипа', 'архетипов', 'архетипов')}`;
 
 /** Same-class links under the summary: enough to cross-link the class, not a second catalog. */
 export const SUMMARY_NEIGHBOURS_MAX = 6;

@@ -200,9 +200,18 @@ catalog that is 72 of 196 Standard archetypes. Wild is never indexable.
   «Источник: HSGuru» link, a sentence that builds and deck codes are for
   subscribers (no values) and 4–6 links to archetypes of the same class
   (indexable first). 150–250 words. The word «лидер» is not used: a ranking
-  word needs a sample threshold. Builds, deck codes, history, analysis and the
-  numbers of `featuredBuild` never reach the HTML or the RSC payload; the
-  sentinel test in `tests/next-seo-page-metadata.test.mjs` fails on any of them.
+  word needs a sample threshold. A share above zero that rounds to zero is
+  printed «менее 0,1%». When two catalog rows share a Russian name, the English
+  one follows it in brackets in the title, the heading, the first sentence and
+  the links (the H1 stays as the page prints it). Without the catalog (it did
+  not answer within the first-paint budget) or with fewer than three archetypes
+  of the class to link, a short neutral primer («Что такое архетип», no catalog
+  numbers) replaces the comparison and the links, so the text keeps its length.
+  Builds, deck codes, history and analysis never reach the HTML or the RSC
+  payload, and the summary and the JSON-LD do not use the numbers of
+  `featuredBuild` (the public teaser carries them and the page's «Главная сборка»
+  block shows them); the sentinel test in `tests/next-seo-page-metadata.test.mjs`
+  fails on any leak.
 - JSON-LD only for an indexable archetype, built by `archetypeStructuredDataGraph`
   (`src/seo/archetypeStructuredData.ts`) through the same finishing step as the
   registry pages (`seoStructuredDataGraphOf`): `Organization` `#org`,
