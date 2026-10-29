@@ -26,6 +26,25 @@ const teaser = {
     sampleRank: 'all', samplePeriod: 'past_30_days', deckCode: 'PRIVATE_FEATURED_DECK' },
   history: [{ recordedAt: 'PRIVATE_HISTORY' }], analysis: { private: 'PRIVATE_ANALYSIS' },
 };
+// Standard archetypes: one strong enough to be indexed, one that is not; the catalog gives the summary its neighbours.
+const catalogRow = (format, slug, label, english, classKey, games, winrate, popularity, deckCount) => ({
+  slug, archetype: english, archetypeLabel: label, translated: true, classKey, format, games, winrate, popularity, turns: 7.9,
+  durationMinutes: 8, climbingSpeed: 1.24, deckCount, sourceUrl: 'https://www.hsguru.com/meta', builds: [{ deckCode: 'PRIVATE_DECK' }],
+});
+const STANDARD_ROWS = [
+  catalogRow('standard', 'zoolock', 'Зоолок', 'Zoolock', 'warlock', 14800, 61.2, 20.4, 3),
+  catalogRow('standard', 'cube-warlock', 'Куб Чернокнижник', 'Cube Warlock', 'warlock', 9000, 55.5, 8, 2),
+  catalogRow('standard', 'handlock', 'Ханделок', 'Handlock', 'warlock', 5000, 52, 5, 2),
+  catalogRow('standard', 'wincon-warlock', 'Вин-кон Чернокнижник', 'Wincon Warlock', 'warlock', 2000, 49, 2, 1),
+  catalogRow('standard', 'weak-warlock', 'Слабый Чернокнижник', 'Weak Warlock', 'warlock', 500, 50, 0.2, 0),
+];
+const WILD_ROWS = [catalogRow('wild', 'thief-priest', 'Воровской Жрец', 'Thief Priest', 'priest', 31959, 58.3, 13.5, 1)];
+const teaserOf = item => ({ ...teaser, format: item.format, formatLabel: item.format === 'wild' ? 'Вольный' : 'Стандарт', item });
+const catalogOf = format => ({
+  format, formatLabel: format === 'wild' ? 'Вольный' : 'Стандарт', patch: '36.0.3', minimumGames: 50, updatedAt: teaser.updatedAt,
+  coverage: {}, items: format === 'wild' ? WILD_ROWS : STANDARD_ROWS,
+});
+const INDEXABLE_ROBOTS = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
 const placeholder = readFileSync(new URL('../public/arena-logo-icon.webp', import.meta.url));
 
@@ -39,6 +58,11 @@ test('Next archetype details isolate access and load builds before independent o
     const pathname = new URL(request.url, 'http://fixture').pathname;
     if (pathname === '/api/constructed-archetypes/teaser/wild/thief-priest') {
       response.end(JSON.stringify(teaser)); return;
+    }
+    const standardRow = STANDARD_ROWS.find(row => pathname === `/api/constructed-archetypes/teaser/standard/${row.slug}`);
+    if (standardRow) { response.end(JSON.stringify(teaserOf(standardRow))); return; }
+    if (pathname === '/api/constructed-archetypes/teaser') {
+      response.end(JSON.stringify(catalogOf(new URL(request.url, 'http://fixture').searchParams.get('format') === 'wild' ? 'wild' : 'standard'))); return;
     }
     if (pathname.startsWith('/api/constructed-archetypes/teaser/')) {
       response.writeHead(404).end('{"error":"missing"}'); return;
@@ -103,13 +127,23 @@ test('Next archetype details isolate access and load builds before independent o
     const errors = []; const failed = []; const protectedCalls = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-    page.on('requestfailed', request => { if (!isAbortedRoutePrefetch(request)) failed.push(request.url()); });
+    // Opening the next document cancels the class art the previous one was still fetching: not a failed page.
+    const isAbortedImage = request => request.resourceType() === 'image' && request.failure()?.errorText === 'net::ERR_ABORTED';
+    page.on('requestfailed', request => { if (!isAbortedRoutePrefetch(request) && !isAbortedImage(request)) failed.push(request.url()); });
     page.on('request', request => {
       if (/^\/api\/constructed-archetypes\/(?!teaser\/)/.test(new URL(request.url()).pathname)) protectedCalls.push(request.url());
     });
-    for (const [family, width] of [['archetypes', 1440], ['meta', 390]]) {
+    // The strong Standard archetype is the only one offered to search engines; every page carries the summary.
+    const NOINDEX = 'noindex, follow';
+    for (const [path, width, h1, robots, graph] of [
+      ['/standard/archetypes/wild/thief-priest/', 1440, 'Воровской Жрец', NOINDEX, false],
+      ['/standard/meta/wild/thief-priest/', 390, 'Воровской Жрец', NOINDEX, false],
+      ['/standard/archetypes/standard/zoolock/', 1440, 'Зоолок', INDEXABLE_ROBOTS, true],
+      ['/standard/archetypes/standard/zoolock/', 390, 'Зоолок', INDEXABLE_ROBOTS, true],
+      ['/standard/archetypes/standard/weak-warlock/', 390, 'Слабый Чернокнижник', NOINDEX, false],
+      ['/standard/meta/standard/zoolock/', 1440, 'Зоолок', NOINDEX, false],
+    ]) {
       await page.setViewport({ width, height: 900 });
-      const path = `/standard/${family}/wild/thief-priest/`;
       const response = await page.goto(`${origin}${path}`, { waitUntil: 'networkidle2' });
       assert.equal(response.status(), 200);
       await page.evaluate(axe);
@@ -120,18 +154,39 @@ test('Next archetype details isolate access and load builds before independent o
         h1: [...document.querySelectorAll('h1')].map(node => node.textContent?.trim()),
         main: document.querySelectorAll('main').length,
         overflow: document.documentElement.scrollWidth > innerWidth,
+        graphs: document.querySelectorAll('script[type="application/ld+json"]').length,
+        summary: (summary => summary && { heading: summary.querySelector('h2')?.textContent, height: summary.getBoundingClientRect().height,
+          right: summary.getBoundingClientRect().right, inMain: Boolean(summary.closest('main')) })(document.querySelector('.archetype-seo-summary')),
         accessibility: (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } }))
           .violations.map(violation => violation.id),
       }));
-      assert.deepEqual(document.h1, ['Воровской Жрец']);
-      assert.equal(document.main, 1);
-      assert.equal(document.overflow, false);
-      assert.deepEqual(document.accessibility, []);
+      assert.deepEqual(document.h1, [h1], path);
+      assert.equal(document.main, 1, path);
+      assert.equal(document.overflow, false, `${path} at ${width}px`);
+      assert.deepEqual(document.accessibility, [], path);
       assert.equal(document.canonical, `https://hearthpulse.net${path}`);
-      assert.match(document.robots, /noindex/);
-      assert.match(document.robots, /follow/);
+      assert.equal(document.robots, robots, path);
+      assert.equal(document.graphs, graph ? 1 : 0, `${path} JSON-LD`);
+      assert.match(document.summary?.heading ?? '', /^Насколько силён /, `${path} shows the summary`);
+      assert.ok(document.summary.inMain && document.summary.height > 150 && document.summary.right <= width, `${path} summary sits in <main> inside the viewport`);
       assert.equal(document.html.includes('PRIVATE_'), false);
+      assert.doesNotMatch(document.html, /AAE[A-Za-z0-9+/=]{12,}/, `${path} carries no deck code`);
     }
+    // Without JavaScript the strong page still reads: the question, the date, the source and the class links.
+    const plain = await browser.newPage();
+    await plain.setJavaScriptEnabled(false);
+    await plain.goto(`${origin}/standard/archetypes/standard/zoolock/`, { waitUntil: 'domcontentloaded' });
+    const bare = await plain.evaluate(() => {
+      const summary = document.querySelector('.archetype-seo-summary');
+      return { text: (summary?.innerText ?? '').replaceAll('\u00a0', ' '), time: summary?.querySelector('time')?.getAttribute('datetime'),
+        links: [...(summary?.querySelectorAll('a[href^="/standard/archetypes/standard/"]') ?? [])].length };
+    });
+    await plain.close();
+    const bareWords = bare.text.split(/\s+/).filter(token => /[\p{L}\p{N}]/u.test(token)).length;
+    assert.ok(bareWords >= 150 && bareWords <= 250, `the summary has ${bareWords} words without JavaScript`);
+    assert.ok(bare.text.includes('HSGuru') && bare.text.includes('14 800') && bare.text.includes('от 50 игр'));
+    assert.equal(bare.time, '2026-07-24T12:38:57.727Z');
+    assert.ok(bare.links >= 3 && bare.links <= 6, `${bare.links} class links`);
     assert.deepEqual(errors, []);
     assert.deepEqual(failed, []);
     assert.deepEqual(protectedCalls, []);

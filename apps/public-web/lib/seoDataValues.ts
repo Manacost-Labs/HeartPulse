@@ -31,8 +31,8 @@ export function standardMetaSeoValues(seed: StandardMetaTeaserSeed | null, now: 
   };
 }
 
-const FORMAT_GENITIVE = { standard: 'Стандарта', wild: 'Вольного формата' } as const;
-const FORMAT_LOCATIVE = { standard: 'в Стандарте', wild: 'в Вольном формате' } as const;
+export const FORMAT_GENITIVE = { standard: 'Стандарта', wild: 'Вольного формата' } as const;
+export const FORMAT_LOCATIVE = { standard: 'в Стандарте', wild: 'в Вольном формате' } as const;
 
 /** Values of `/standard/archetypes`' data templates from the catalog teaser the page shows. */
 export function archetypeCatalogSeoValues(catalog: ArchetypeCatalog | null, now: number): SeoDataValues | null {
@@ -47,7 +47,7 @@ export function archetypeCatalogSeoValues(catalog: ArchetypeCatalog | null, now:
 }
 
 /** The HSGuru window of an archetype page: the detail answer names it in `period` or, as `black_empire_ban`, in `patch`. */
-function detailPeriodLabel(detail: Pick<ArchetypeDetail, 'period' | 'patch'>): string | null {
+export function detailPeriodLabel(detail: Pick<ArchetypeDetail, 'period' | 'patch'>): string | null {
   const period = detail.period ?? (isStandardMetaPeriod(detail.patch) ? detail.patch : null);
   if (period) return standardMetaPeriodLabel(period);
   return detail.patch ? `Патч ${detail.patch}` : null;
@@ -86,11 +86,50 @@ function fitWithLabel(template: string, values: SeoDataValues, maxLength: number
     ?? fitMetaDescription(label, maxLength);
 }
 
-/** Title and description of an archetype page: the data date, winrate and games of its teaser. */
-export function archetypeDetailSeoText(detail: ArchetypeDetail, now: number): { title: string; description: string } {
+// The longest name that leaves room for « — колода Hearthstone» inside a title.
+const TITLE_NAME_MAX = META_TITLE_MAX - ' — колода Hearthstone'.length;
+const TITLE_ALIAS_MAX = 24;
+
+type ArchetypeNames = Pick<ArchetypeDetail['item'], 'slug' | 'archetype' | 'archetypeLabel'>;
+
+const nameKey = (name: string) => name.trim().toLowerCase();
+
+/**
+ * What tells an archetype from the catalog rows that carry the same Russian
+ * name («Чистый Паладин» twice in Standard): its English name, or its slug when
+ * that is the name too or a twin has it. `null` for a name nobody else has.
+ */
+export function archetypeTitleAlias(item: ArchetypeNames, catalogItems: readonly ArchetypeNames[]): string | null {
+  const twins = catalogItems.filter(other => other.slug !== item.slug && nameKey(other.archetypeLabel) === nameKey(item.archetypeLabel));
+  if (twins.length === 0) return null;
+  const english = item.archetype.trim();
+  const unique = english !== '' && nameKey(english) !== nameKey(item.archetypeLabel)
+    && !twins.some(twin => nameKey(twin.archetype) === nameKey(english));
+  return unique ? english : item.slug;
+}
+
+/** The name in a title: with its alias in brackets, which the Russian name gives way to when both do not fit. */
+function titleName(label: string, alias: string | null): string {
+  if (!alias) return label;
+  const tag = ` (${fitMetaDescription(alias, TITLE_ALIAS_MAX)})`;
+  return `${fitMetaDescription(label, TITLE_NAME_MAX - tag.length)}${tag}`;
+}
+
+/**
+ * Title and description of an archetype page: the data date, winrate and games
+ * of its teaser. `catalog` is the one of the page's format: a name shared with
+ * another row gets that row's alias in the title, so no two pages of the
+ * catalog have the same one. Without a catalog the title is the plain name.
+ */
+export function archetypeDetailSeoText(
+  detail: ArchetypeDetail,
+  now: number,
+  catalog: Pick<ArchetypeCatalog, 'items'> | null = null,
+): { title: string; description: string } {
   const values = archetypeDetailSeoValues(detail, now);
+  const alias = catalog ? archetypeTitleAlias(detail.item, catalog.items) : null;
   return {
-    title: fitWithLabel(TITLE_TEMPLATE, values, META_TITLE_MAX, TITLE_LABEL_MAX),
+    title: fitWithLabel(TITLE_TEMPLATE, { ...values, label: titleName(detail.item.archetypeLabel, alias) }, META_TITLE_MAX, TITLE_LABEL_MAX),
     description: fitWithLabel(DESCRIPTION_TEMPLATE, values, META_DESCRIPTION_MAX, DESCRIPTION_LABEL_MAX),
   };
 }

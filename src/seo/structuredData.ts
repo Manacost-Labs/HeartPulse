@@ -3,15 +3,15 @@ import { normalizePublicPathname, resolvePublicUrlPolicy } from '../shared/seo/p
 import { seoPageForExactPath } from './registry';
 
 type SchemaValue = string | number | boolean | null | SchemaValue[] | { [key: string]: SchemaValue };
-type SchemaNode = { [key: string]: SchemaValue };
+export type SchemaNode = { [key: string]: SchemaValue };
 export type SeoStructuredDataGraph = { '@context': 'https://schema.org'; '@graph': SchemaNode[] };
 
 const SITE_ORIGIN = 'https://hearthpulse.net';
 const URL_KEYS = new Set(['@id', 'item', 'url']);
-const LANGUAGE_TYPES = new Set(['WebSite', 'WebApplication', 'CollectionPage', 'Dataset', 'ItemList', 'FAQPage']);
-const BREADCRUMB_LINKED_TYPES = new Set(['WebApplication', 'CollectionPage', 'Dataset', 'ItemList']);
+const LANGUAGE_TYPES = new Set(['WebSite', 'WebApplication', 'CollectionPage', 'ItemPage', 'Dataset', 'ItemList', 'FAQPage']);
+const BREADCRUMB_LINKED_TYPES = new Set(['WebApplication', 'CollectionPage', 'ItemPage', 'Dataset', 'ItemList']);
 // The page types whose text is the data the page shows, so the date of that data dates them.
-const DATA_DATED_TYPES = new Set(['CollectionPage', 'Dataset']);
+const DATA_DATED_TYPES = new Set(['CollectionPage', 'ItemPage', 'Dataset']);
 
 const { pages: PAGES, organization: ORGANIZATION } = rawStructuredData as {
   pages: Record<string, SchemaNode[]>;
@@ -69,7 +69,20 @@ async function canonicalized(value: SchemaValue, pagePath: string, pageUrl: stri
 export async function seoStructuredDataGraph(pathname: string, facts: SeoStructuredDataFacts = {}): Promise<SeoStructuredDataGraph | null> {
   const pagePath = normalizePublicPathname(pathname);
   const nodes = PAGES[pagePath];
-  if (!nodes?.length) return null;
+  return nodes?.length ? pageGraph(pagePath, nodes, facts) : null;
+}
+
+/**
+ * The same graph for a page whose nodes are built from its data and so are not
+ * in the registry (an archetype page): canonical URLs, language, breadcrumb
+ * links, the data date, and the `Organization` and licence of every `Dataset`
+ * are added exactly as for a registry page. `null` when the path is not indexable.
+ */
+export function seoStructuredDataGraphOf(pathname: string, nodes: readonly SchemaNode[], facts: SeoStructuredDataFacts = {}): Promise<SeoStructuredDataGraph | null> {
+  return pageGraph(normalizePublicPathname(pathname), nodes, facts);
+}
+
+async function pageGraph(pagePath: string, nodes: readonly SchemaNode[], facts: SeoStructuredDataFacts): Promise<SeoStructuredDataGraph | null> {
   const policy = await resolvePublicUrlPolicy(pagePath);
   if (policy.indexPolicy !== 'index' || !policy.canonicalUrl) return null;
 
