@@ -14,11 +14,19 @@ const LASTMOD_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 // Editorial segments key by URL slug rather than a card ID; both stay URL-safe.
 const COSMETICS_KEY_PATTERN = /^(?:heroes|coins|pets)\/[A-Za-z0-9_-]{1,100}$/;
 const GUIDE_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._~-]{0,159}$/;
+// Archetype pages are keyed by their slug, exactly as the page route accepts it.
+const ARCHETYPE_KEY_PATTERN = /^[a-z0-9-]{1,90}$/;
 
 function keyIsValid(key: string, segment: SitemapSegment): boolean {
   if (segment === 'cosmetics') return COSMETICS_KEY_PATTERN.test(key);
   if (segment === 'guides-archive') return GUIDE_KEY_PATTERN.test(key);
+  if (segment === 'archetypes') return ARCHETYPE_KEY_PATTERN.test(key);
   return KEY_PATTERN.test(key);
+}
+
+function validDataDate(value: unknown): value is string {
+  return typeof value === 'string' && LASTMOD_PATTERN.test(value)
+    && new Date(`${value}T00:00:00.000Z`).toISOString().slice(0, 10) === value;
 }
 
 export class SitemapCandidateRejectedError extends Error {
@@ -50,6 +58,7 @@ function entryPathIsValid(pathname: string, key: string, segment: SitemapSegment
   if (segment === 'battleground-heroes') return pathname === `/heroes/${key}/`;
   if (segment === 'cosmetics') return pathname === `/cosmetics/${key}/`;
   if (segment === 'guides-archive') return pathname === `/guides-archive/${key}/`;
+  if (segment === 'archetypes') return pathname === `/standard/archetypes/standard/${key}/`;
   const libraryKind = segment === 'battleground-minions' ? 'minions' : 'spells';
   return pathname.startsWith(`/library/${libraryKind}/`)
     && pathname.endsWith(`-${key}/`)
@@ -87,12 +96,16 @@ export function normalizeSitemapCandidate(
   }
   const keys = new Set<string>();
   const locations = new Set<string>();
-  const normalized = entries.map(entry => ({
+  const normalized: SitemapSemanticEntry[] = entries.map(entry => ({
     key: String(entry?.key ?? ''),
     location: String(entry?.location ?? ''),
     semanticHash: String(entry?.semanticHash ?? ''),
+    ...(entry?.dataDate === undefined ? {} : { dataDate: entry.dataDate }),
   }));
   for (const entry of normalized) {
+    if (entry.dataDate !== undefined && !validDataDate(entry.dataDate)) {
+      throw new SitemapCandidateRejectedError('Sitemap candidate has an invalid data date');
+    }
     if (!keyIsValid(entry.key, segment)) throw new SitemapCandidateRejectedError('Sitemap candidate has an invalid entity key');
     if (!entryLocationIsValid(entry.location, origin, entry.key, segment)) {
       throw new SitemapCandidateRejectedError('Sitemap candidate has an invalid canonical location');

@@ -10,6 +10,7 @@ import {
   canonicalSitemapOrigin,
   projectBattlegroundHeroSitemapCatalog,
   projectBattlegroundLibrarySitemapCatalog,
+  projectConstructedArchetypeSitemapCatalog,
   projectConstructedCardSitemapCatalog,
   projectStandardCardSitemapCatalog,
 } from './entitySitemapProjections.js';
@@ -45,6 +46,7 @@ export type EntitySitemapRouterDependencies = {
   loadBattlegroundHeroes?: () => Promise<unknown[]>;
   loadCosmetics?: () => Promise<unknown[]>;
   loadGuidesArchive?: () => Promise<unknown[]>;
+  loadArchetypes?: () => Promise<unknown[]>;
   staticUrls: string[];
   stateDirectory: string;
   canonicalOrigin?: string;
@@ -57,6 +59,7 @@ export type EntitySitemapRouterDependencies = {
   minimumBattlegroundHeroCount?: number;
   minimumCosmeticsCount?: number;
   minimumGuideCount?: number;
+  minimumArchetypeCount?: number;
   staticLastModifiedMs?: number;
   retryAfterSeconds?: number;
   now?: () => number;
@@ -71,6 +74,7 @@ const ENTITY_SITEMAP_PATHS: DynamicSitemapDefinition['pathname'][] = [
   '/sitemaps/battleground-heroes.xml',
   '/sitemaps/cosmetics.xml',
   '/sitemaps/guides-archive.xml',
+  '/sitemaps/archetypes.xml',
 ];
 
 export {
@@ -190,6 +194,11 @@ function dynamicSitemapDefinitions(
   if (dependencies.loadGuidesArchive) definitions.push({
     segment: 'guides-archive', pathname: '/sitemaps/guides-archive.xml', load: dependencies.loadGuidesArchive,
     project: projectGuideArchiveSitemapCatalog, minimumEntryCount: dependencies.minimumGuideCount ?? 500,
+  });
+  if (dependencies.loadArchetypes) definitions.push({
+    segment: 'archetypes', pathname: '/sitemaps/archetypes.xml', load: dependencies.loadArchetypes,
+    project: rows => projectConstructedArchetypeSitemapCatalog(rows, origin),
+    minimumEntryCount: dependencies.minimumArchetypeCount ?? 30,
   });
   return definitions;
 }

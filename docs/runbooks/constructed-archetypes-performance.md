@@ -80,6 +80,39 @@
 Авторизованный production-сценарий пока не измерен; корректность доступа
 проверяется изолированными API/browser fixtures без чтения чужих сессий.
 
+## Sitemap архетипов Стандарта
+
+`/sitemaps/archetypes.xml` перечисляет страницы
+`/standard/archetypes/standard/<slug>/`, которые проходят
+`isIndexableArchetype` (`shared/constructedArchetypeIndexing.ts`), по тому же
+каталогу, на котором открываются сами страницы. Контракт и `lastmod` — в
+`docs/specs/seo-entity-indexing.md`, «Archetype sitemap segment».
+
+Жизненный цикл архетипа:
+
+- **Выпал из меты** (нет в каталоге): страница отвечает `404` с `noindex`, а в
+  сегменте его нет после ближайшего обновления — кеш документа 10 минут (5–15,
+  `SITEMAP_CACHE_TTL_MS`) и кеш каталога 5 минут.
+- **Опустился ниже порога** (меньше 1000 игр, нет сборок, доля 0): страница
+  остаётся с `noindex, follow`, из сегмента уходит так же.
+- **Вошёл**: попадает в сегмент с `lastmod` = день `updatedAt` каталога.
+- **Смена периода или патча**: число страниц в сегменте может упасть с 72 до
+  40 и вернуться. Относительной защиты от усечения у сегмента нет,
+  ограничивает только порог `SITEMAP_ARCHETYPES_MIN` (по умолчанию 30). Если
+  после патча проходящих архетипов меньше порога, сегмент остаётся на
+  последнем хорошем состоянии (`X-Sitemap-Source: last-known-good`, поле
+  `sitemapSources.archetypes` в отчёте монитора). Тогда монитор может краснеть
+  на выборке: страница из старого списка уже `noindex`. Это сигнал, а не
+  поломка: дождаться роста выборок или снизить `SITEMAP_ARCHETYPES_MIN` в
+  окружении сервера (перезапуск) и проверить, что число страниц в сегменте
+  совпало с числом проходящих архетипов каталога.
+- **Диагностика**: `curl -s https://hearthpulse.net/sitemaps/archetypes.xml |
+  grep -c '<loc>'` против числа архетипов `format=standard` каталога
+  (`/api/constructed-archetypes/teaser?format=standard`) с `games >= 1000`,
+  `deckCount > 0`, `popularity > 0`; заголовок `X-Sitemap-Source`; журнал
+  сервера `[entity-sitemap] catalog refresh failed` называет причину отказа
+  кандидата.
+
 ## Проверки
 
 - Кеш: `npm run test:archetypes-catalog-cache`.
