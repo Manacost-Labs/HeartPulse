@@ -274,7 +274,7 @@ jobs:
         run: npm run test:suite -- browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure --quarantine exclude
 
   # The registry's quarantined flaky tests, each with an open issue. Reported on
-  # every run but never gating: CI required and the deployment do not need it.
+  # pull requests but never gating: CI required and the deployment do not need it.
   browser-quarantine:
     name: Browser quarantine (non-blocking)
     needs: [build, storybook]
