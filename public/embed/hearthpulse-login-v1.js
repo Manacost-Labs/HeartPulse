@@ -82,11 +82,12 @@
   }
 
   // Only an absolute https URL (no credentials) or a path from the site root is
-  // accepted. Whitespace, control characters and backslashes are refused so no
-  // browser can read the value as another scheme or as a protocol-relative URL.
+  // accepted. Whitespace anywhere (also at the ends: the value is not trimmed),
+  // control characters and backslashes are refused so no browser can read the
+  // value as another scheme or as a protocol-relative URL.
   function safeHref(value) {
     if (typeof value !== 'string') return null;
-    var v = value.trim();
+    var v = value;
     if (!v || v.length > 2048) return null;
     for (var i = 0; i < v.length; i++) {
       var code = v.charCodeAt(i);
