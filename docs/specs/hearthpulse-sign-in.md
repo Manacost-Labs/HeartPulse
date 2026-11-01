@@ -83,21 +83,22 @@ Discovery:
 | Scope | `openid profile`; `offline_access` разрешён только зарезервированному клиенту Манакоста, остальные получают `error=invalid_scope` после согласия |
 | Claims | `sub` (идентификатор пользователя HearthPulse, строка); `name` (имя профиля) приходит из userinfo, не из `id_token` |
 | `state`, `nonce` | провайдер их не требует, но обязательно используйте оба: библиотека проверит их при обмене |
-| `prompt` | клиент Манакоста передаёт `login consent`: страница согласия показывается при каждом входе. Тесты провайдера покрывают именно этот вариант |
+| `prompt` | передавайте `login consent`, как клиент Манакоста: без `prompt=consent` согласие показывается только первый раз, пока жив grant, а повторный `/auth` в живой сессии провайдера сразу отдаёт `code` без страницы согласия. Тесты провайдера покрывают именно вариант `login consent` |
 | Ответ провайдера | используйте `response_mode=query` (по умолчанию); в ответе есть `iss`, его проверяет OIDC-библиотека |
-| Время жизни | код авторизации 60 с; access token 300 с; `id_token` 300 с; интеракция (вход и согласие) 600 с; сессия провайдера 24 ч; grant 7 суток |
+| Время жизни | код авторизации 60 с; access token 300 с; `id_token` 300 с; интеракция (вход и согласие) 600 с; сессия провайдера 24 ч; grant 7 суток по умолчанию. Исключение: точный клиент Манакоста с `offline_access` получает 30 суток, дедлайн не продлевается при ротации refresh. Сторонним клиентам `offline_access` недоступен (`invalid_scope`) |
 | Refresh token | не выдаётся без `offline_access`, поэтому у обычного клиента его нет: после обмена кода создавайте свою сессию |
 | Revocation и introspection | только токены того же клиента; introspection отвечает `active: true` лишь пока жива исходная сессия HearthPulse |
 | Redirect URI | ровно один на клиента, совпадение строгое (см. ниже) |
-| CORS | нет: `clientBasedCORS` выключен, заголовка `Access-Control-Allow-Origin` у `/identity/*` нет. Token endpoint вызывается только с сервера |
-| Лимит | около 120 запросов в минуту с одного адреса на все маршруты `/identity` |
+| CORS | нет: `clientBasedCORS` выключен, заголовка `Access-Control-Allow-Origin` у `/identity/*` нет (`Access-Control-Allow-Methods/Headers` в ответах есть, но без Allow-Origin браузер запрос не разрешит). Token endpoint вызывается только с сервера |
+| Лимит | около 120 запросов в минуту с одного адреса на роутер провайдера (`/identity/auth`, `/token`, `/me` и др.); смонтированные раньше `/identity/reader-entitlements` и `/identity/reader-permissions` имеют свои лимиты |
 
 <!-- markdownlint-enable MD013 -->
 
 Discovery показывает и общие возможности библиотеки провайдера
-(`client_secret_post`, `private_key_jwt`, `none`, DPoP, pushed authorization
-requests, `form_post`, `fragment`). Для клиентов HearthPulse они не
-настроены и контрактом не являются: клиент регистрируется с
+(`client_secret_post`, `client_secret_jwt`, `private_key_jwt`, `none`, DPoP,
+pushed authorization requests, `form_post`, `fragment`). Для клиентов
+HearthPulse они не настроены и контрактом не являются: поддерживается только
+`client_secret_basic`. Клиент регистрируется с
 `response_types: ['code']`, `grant_types: ['authorization_code',
 'refresh_token']` и `token_endpoint_auth_method: client_secret_basic`.
 Динамической регистрации клиентов нет, параметр `request_uri` не
@@ -107,8 +108,11 @@ requests, `form_post`, `fragment`). Для клиентов HearthPulse они �
 зарегистрированы `post_logout_redirect_uris`, и контрактом v1 он не
 является. Выход из вашего сайта — это закрытие вашей локальной сессии и, по
 желанию, отзыв токенов (см. «Выход и отзыв»). Выход пользователя из
-HearthPulse закрывает и вход на вашем сайте, пока токены живы: каждая
-проверка токена сверяется с исходной сессией HearthPulse.
+HearthPulse **сам по себе вашу сессию не закрывает**: пример ниже после
+обмена кода выбрасывает токены и живёт на своей сессии, а проверенный
+`id_token` действует до своего `exp`. Закрывать вход на вашем сайте вслед за
+HearthPulse можно только если сервер хранит access token и проверяет его
+через introspection или userinfo (см. «Выход и отзыв»).
 
 ## Как получить клиента
 
@@ -155,8 +159,9 @@ production-провайдера, а список допустимых клиен
 
 Пример для Node.js 22 на Express с `express-session` и
 [`openid-client`](https://github.com/panva/openid-client) 6.x (та же
-библиотека и те же вызовы, что в BFF Манакоста). В примере нет настоящих
-клиентов и секретов; значения берутся из окружения.
+библиотека, что в BFF Манакоста). В примере нет настоящих клиентов и
+секретов; значения берутся из окружения. Запускайте с `NODE_ENV=production`:
+без него Express отдаёт ошибки (`next(error)`) в виде 500 со стеком.
 
 ```js
 import express from 'express';
@@ -169,6 +174,10 @@ const CLIENT_SECRET = process.env.HEARTHPULSE_CLIENT_SECRET; // только с�
 const REDIRECT_URI = process.env.HEARTHPULSE_REDIRECT_URI; // как в allowlist
 
 const app = express();
+// За TLS-прокси (nginx, Cloudflare) запрос приходит по http. Без этой
+// строки express-session не выставит cookie с secure: true, и callback
+// всегда ответит 400. Число хопов задайте по своей инфраструктуре.
+app.set('trust proxy', 1);
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
@@ -246,6 +255,7 @@ app.get('/reader-auth/callback', async (req, res, next) => {
       if (error) return next(error);
       // Токены HearthPulse дальше не нужны: access живёт 300 с.
       req.session.user = { hearthpulseId: claims.sub, name: profile.name };
+      // Токены не сохранены: выход из HearthPulse эта сессия не отслеживает.
       res.redirect(303, '/');
     });
   } catch (error) {
@@ -274,7 +284,13 @@ export default app;
   нужен только факт входа, access token можно сразу отозвать через
   `oidc.tokenRevocation`.
 - Идентифицируйте пользователя по `sub`, а не по имени. Почты в claims нет
-  нет в v1.
+  в v1. `profile.name` — пользовательский текст: экранируйте его при выводе.
+- Пример **не** закрывает вход на вашем сайте, когда пользователь вышел из
+  HearthPulse, сбросил или потерял сессию: токены выброшены, а ваша сессия
+  живёт сама. Если вам нужна такая политика, см. «Выход и отзыв».
+- `prompt: 'login consent'` нужен, чтобы страница согласия показывалась при
+  каждом входе: без него повторный `/auth` в живой сессии провайдера сразу
+  отдаст `code`.
 - Отмена на странице согласия приходит на тот же callback как
   `error=access_denied`.
 
@@ -317,6 +333,16 @@ HearthPulse: он отвечает на конкретном браузере с
 ## Выход и отзыв
 
 - Выход из вашего сайта — закрытие вашей сессии. HearthPulse он не затрагивает.
+- Страница согласия говорит пользователю: «Выход или отзыв этой сессии
+  HearthPulse также закроет вход на этом сайте». Пример этого не обеспечивает
+  (токены выброшены, `id_token` действует до `exp`). Чтобы обещание
+  выполнялось, храните на сервере access token (300 с, refresh нет) и перед
+  чувствительными действиями проверяйте его через
+  `oidc.tokenIntrospection` или `oidc.fetchUserInfo`: после выхода, сброса или
+  блокировки канонической сессии HearthPulse эти ответы становятся
+  неактивными, и тогда закрывайте свою сессию. Через 300 с токен истекает сам,
+  так что такая проверка надёжна только в этот срок; более долгая политика
+  требует нового входа.
 - Токены клиента можно отозвать на
   `https://hearthpulse.net/identity/token/revocation`
   (`oidc.tokenRevocation`) и проверить на
@@ -336,12 +362,15 @@ HearthPulse: он отвечает на конкретном браузере с
 границы клиента [application-connect-api-slice](../architecture/application-connect-api-slice.md)).
 Схема:
 
-1. Приложение вызывает `POST /api/v1/oauth/device/code` и получает
-   `verification_uri_complete`.
+1. Приложение вызывает `POST /api/v1/oauth/device/code` с телом
+   `client_id=manacost-tracker` и `scope` (список через пробел) и получает
+   `device_code`, `user_code`, `verification_uri_complete`, `interval`.
 2. Открывает её в системном браузере, где пользователь входит в HearthPulse
    и подтверждает приложение на `/connect`.
-3. Приложение опрашивает `POST /api/v1/oauth/token` не чаще `interval` и
-   получает bearer-токен для Public API.
+3. Приложение опрашивает `POST /api/v1/oauth/token` не чаще `interval` с
+   `grant_type=urn:ietf:params:oauth:grant-type:device_code`, `client_id` и
+   `device_code` и получает bearer-токен для Public API. Обновление — тот же
+   endpoint с `grant_type=refresh_token`, `client_id` и `refresh_token`.
 
 Ограничения, о которых лучше знать сразу:
 
