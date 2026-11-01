@@ -90,7 +90,8 @@ signs in **through hearthpulse.net** and **into which site**: heading
 `в <name> (<host>)` (the parenthesis wraps together with the host), the
 HearthPulse mark as inline SVG (the page CSP is `default-src 'none'`, so no
 `<img>`, not even `data:`), light and dark colour schemes, no external
-resource. The form, CSRF check, `decision` values and every response header are unchanged.
+resource. The form, CSRF check, `decision` values and every response header
+are unchanged.
 
 The destination name comes from code, not from environment: `clientPresentation()`
 in `server/modules/browserIdentity/configuration.ts` returns
