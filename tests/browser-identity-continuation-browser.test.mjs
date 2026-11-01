@@ -20,13 +20,21 @@ const loginCard = resolve('src/modules/identity/ui/LoginCard.tsx');
 const loginStyles = resolve('src/modules/identity/ui/LoginPanel.css');
 
 writeFileSync(entry, `
-  import React, { useState } from 'react';
+  import React, { useEffect, useState } from 'react';
   import { createRoot } from 'react-dom/client';
   import ReaderAccountRoute from ${JSON.stringify(wrapper)};
+  // ?asuser: already signed in; ?checking: the session check is still running for half a second.
+  const flags = new URLSearchParams(location.search);
   function Harness() {
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useState(flags.has('asuser') ? { id: 'reader' } : null);
+    const [checking, setChecking] = useState(flags.has('checking'));
+    useEffect(() => {
+      if (!checking) return undefined;
+      const timer = setTimeout(() => setChecking(false), 500);
+      return () => clearTimeout(timer);
+    }, []);
     return <><button id="login" onClick={() => setUser({ id: 'reader' })}>login</button>
-      <ReaderAccountRoute user={user} /></>;
+      <ReaderAccountRoute user={user} checking={checking} /></>;
   }
   createRoot(document.getElementById('root')).render(<Harness />);
 `);
@@ -67,6 +75,21 @@ await build({
   }],
 });
 
+// The same page with the real AccountRoute and LoginPanel, so the hand-over of the site to the card is exercised.
+await build({
+  entryPoints: [entry],
+  outfile: join(root, 'real.js'),
+  bundle: true,
+  format: 'iife',
+  jsx: 'automatic',
+  nodePaths: [resolve('node_modules')],
+  define: { 'process.env.NODE_ENV': '"production"' },
+  loader: { '.svg': 'dataurl', '.png': 'dataurl', '.woff2': 'dataurl' },
+  external: ['/wallpaper/*', '/fonts/*', '/assets/*'],
+  logLevel: 'silent',
+});
+const realScript = readFileSync(join(root, 'real.js'));
+const realStyles = readFileSync(join(root, 'real.css'));
 const script = readFileSync(bundle);
 const styles = readFileSync(join(root, 'bundle.css'));
 const clientAnswers = {
@@ -76,6 +99,18 @@ const clientAnswers = {
 };
 const server = createServer((request, response) => {
   httpRequestUrls.push(request.url);
+  if (request.url === '/real.js') {
+    response.writeHead(200, { 'Content-Type': 'application/javascript' });
+    response.end(realScript); return;
+  }
+  if (request.url === '/real.css') {
+    response.writeHead(200, { 'Content-Type': 'text/css' });
+    response.end(realStyles); return;
+  }
+  if (request.url.startsWith('/api/auth/')) {
+    response.writeHead(200, { 'Content-Type': 'application/json' });
+    response.end(JSON.stringify({ user: null, adminAllowed: false, contestAdminAllowed: false, enabled: false, mode: 'disabled', socialProviders: [] })); return;
+  }
   if (request.url === '/bundle.js') {
     response.writeHead(200, { 'Content-Type': 'application/javascript' });
     response.end(script); return;
@@ -91,8 +126,13 @@ const server = createServer((request, response) => {
     response.writeHead(answer.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     response.end(answer.body ? JSON.stringify(answer.body) : undefined); return;
   }
-  response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-  response.end('<!doctype html><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="/bundle.css"><div id="root"></div><script src="/bundle.js"></script>');
+  // The consent page answers slowly, so a request the page would still make while leaving is not lost with it.
+  const slow = request.url.startsWith('/identity/interaction/') ? 400 : 0;
+  const real = request.url.startsWith('/real/');
+  setTimeout(() => {
+    response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
+    response.end(`<!doctype html><meta name="viewport" content="width=device-width"><link rel="stylesheet" href="/${real ? 'real' : 'bundle'}.css"><div id="root"></div><script src="/${real ? 'real' : 'bundle'}.js"></script>`);
+  }, slow);
 });
 
 function listen() {
@@ -127,6 +167,7 @@ try {
   const siteLine = 'Вход через hearthpulse.net для сайта Манакост (hs-manacost.ru)';
   const bodyText = () => page.evaluate(() => document.body.innerText);
   const clientRequests = () => httpRequestUrls.filter(url => url.startsWith('/identity/'));
+  const lookups = () => clientRequests().filter(url => url.endsWith('/client'));
   const waitForSiteLine = () => page.waitForFunction(line => document.body.innerText.includes(line), {}, siteLine);
 
   // An ordinary sign-in names no site and never talks to /identity/.
@@ -197,6 +238,34 @@ try {
   await page.evaluate(() => [...document.querySelectorAll('button')].find(button => button.textContent === 'Забыли пароль?').click());
   await page.waitForFunction(() => document.body.innerText.includes('Восстановление пароля'));
   assert.ok((await bodyText()).includes(siteLine), 'password recovery names the site');
+
+  // The real account route and sign-in panel carry the site to the card.
+  await page.goto('about:blank');
+  await page.goto(`${origin}/real/?login#reader_interaction=${interaction}`, { waitUntil: 'networkidle0' });
+  await waitForSiteLine();
+  assert.match(await bodyText(), /Пароль вводится только на hearthpulse\.net/);
+  assert.match(await bodyText(), /Вход в HearthPulse/);
+  await page.evaluate(() => sessionStorage.clear());
+  await page.goto('about:blank');
+  await page.goto(`${origin}/real/?login`, { waitUntil: 'networkidle0' });
+  await page.waitForSelector('h1');
+  assert.doesNotMatch(await bodyText(), /Вход через hearthpulse\.net/, 'the real card shows no site without a handle');
+
+  // Only a guest is looked up: nothing while the session is still being checked, nothing for someone already signed in.
+  await page.goto('about:blank');
+  const requestsBeforeChecking = lookups().length;
+  await page.goto(`${origin}/?login&checking#reader_interaction=${interaction}`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('#login');
+  await new Promise(resolve => setTimeout(resolve, 250));
+  assert.equal(lookups().length, requestsBeforeChecking, 'no lookup while the session check is running');
+  await waitForSiteLine();
+  assert.equal(lookups().length, requestsBeforeChecking + 1, 'one lookup once the visitor is known to be a guest');
+
+  await page.goto('about:blank');
+  const lookupsBeforeSignedIn = lookups().length;
+  await page.goto(`${origin}/?login&asuser#reader_interaction=${interaction}`, { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(uid => location.pathname === `/identity/interaction/${uid}`, {}, interaction);
+  assert.equal(lookups().length, lookupsBeforeSignedIn, 'a signed-in visitor goes straight to consent without a lookup');
 
   // A made-up or broken answer leaves the ordinary card and no script errors.
   for (const uid of [unknownInteraction, brokenInteraction]) {

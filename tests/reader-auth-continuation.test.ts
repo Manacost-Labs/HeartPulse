@@ -75,6 +75,7 @@ test('anything but a well-formed answer means no sign-in site', async () => {
   const answers: Array<() => Response | Promise<Response>> = [
     () => new Response(null, { status: 404 }),
     () => new Response('boom', { status: 500 }),
+    () => Response.json({ name: 'Манакост', host: 'hs-manacost.ru' }, { status: 500 }),
     () => new Response('<html>', { status: 200 }),
     () => Response.json(null),
     () => Response.json({ name: 'Манакост' }),
