@@ -27,7 +27,11 @@ export type LoginCardProps = {
   providers: ReactNode;
   /** 1 on `/?login`; lower where the card sits inside another page, such as `/connect/`. */
   headingLevel?: 1 | 2 | 3;
+  /** Set when the guest was sent here from another site; the name and host come from the server, never from the URL. */
+  signInFor?: SignInFor;
 };
+
+export type SignInFor = { name: string; host: string };
 
 const TITLES: Record<LoginMode, string> = {
   login: 'Вход в HearthPulse',
@@ -134,9 +138,20 @@ function CodeFields({ mode, values, onChange, onEditCredentials }: Pick<LoginCar
   );
 }
 
+function SignInForSite({ site }: { site: SignInFor }) {
+  return (
+    <div className="login-site">
+      <p className="login-site__line">
+        Вход через hearthpulse.net для сайта <b>{site.name}</b>{site.host !== site.name && <> ({site.host})</>}
+      </p>
+      <p className="login-site__note">Пароль вводится только на hearthpulse.net</p>
+    </div>
+  );
+}
+
 /** The signed-out `/?login` page: sign-in, registration and password reset. State stays in `LoginPanel`. */
 export default function LoginCard(props: LoginCardProps) {
-  const { mode, step, message, loading, onModeChange, headingLevel = 1 } = props;
+  const { mode, step, message, loading, onModeChange, headingLevel = 1, signInFor } = props;
   const Heading = `h${headingLevel}` as const;
   return (
     <div className="login-page">
@@ -146,6 +161,7 @@ export default function LoginCard(props: LoginCardProps) {
           <Heading id="login-card-title" className="login-card__title">{TITLES[mode]}</Heading>
           <p className="login-card__intro">{INTROS[mode]}</p>
         </div>
+        {signInFor && <SignInForSite site={signInFor} />}
         {message && (
           <div className={`login-message login-message--${message.type}`} role={message.type === 'err' ? 'alert' : 'status'}>
             {message.text}

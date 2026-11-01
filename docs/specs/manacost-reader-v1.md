@@ -109,5 +109,25 @@ method other than GET. Headers are the shared private ones (no-store, CSP,
 noindex); there is no CORS, and the interaction cookie (`Path=/identity/interaction/<uid>`)
 is what scopes the answer to one browser.
 
+### Sign-in card names the site (E20 S2)
+
+A guest sent to `/?login#reader_interaction=<uid>` sees, above the form of the
+card "Вход в HearthPulse", the note "Вход через hearthpulse.net для сайта
+**`<name>`** (`<host>`)" and the line "Пароль вводится только на hearthpulse.net".
+When the name equals the host it is shown once. The note appears in sign-in,
+registration, password recovery and the code step, and again after a social
+sign-in returns to `/?login`.
+
+Name and host come only from `GET /identity/interaction/<uid>/client`,
+requested with `credentials: 'same-origin'` and `cache: 'no-store'` when the
+handle in `sessionStorage` (`hp_reader_interaction`, ten minutes) is alive and
+nobody is signed in. They are rendered as text and never taken from the URL, so
+a forged link with an unknown uid shows nothing. A `404`, any other status, a
+network failure or an answer of an unexpected shape leaves the ordinary card
+without a note. A sign-in without a handle makes no `/identity/` request.
+Reading the handle for the note (`pendingReaderInteraction`) does not consume
+or extend it; the redirect to `/identity/interaction/<uid>` after sign-in and
+the removal of the handle are unchanged.
+
 An expired or unknown interaction on the consent URL answers `400` with
 "Вход истёк. Вернитесь на сайт, с которого начали вход, и начните заново."
