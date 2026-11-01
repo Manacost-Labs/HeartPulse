@@ -264,8 +264,6 @@ async function startConsentHarness(config: {
   return { request, startInteraction, login, logout, close, database, cookies, setCookies, origin: issuerUrl.origin };
 }
 
-const visibleText = (html: string) => html.replace(/<style>[\s\S]*?<\/style>|<svg[\s\S]*?<\/svg>/g, '').replace(/<[^>]+>/g, '');
-
 const PRODUCTION_ISSUER = 'https://hearthpulse.net/identity';
 const PRODUCTION_CALLBACK = 'https://hs-manacost.ru/reader-auth/callback';
 const STAGING_CALLBACK = 'https://test.hs-manacost.ru/reader-auth/callback';
@@ -281,7 +279,8 @@ test('consent page for the production Manacost reader names hearthpulse.net and 
     const html = await response.text();
     assert.match(html, /<html lang="ru">/);
     assert.ok(html.includes('Вход через hearthpulse.net'));
-    assert.ok(visibleText(html).includes('в Манакост (hs-manacost.ru)'));
+    assert.ok(html.includes('<h1>Вход через hearthpulse.net <span class="to">в Манакост <span class="host">(hs-manacost.ru)</span></span></h1>'),
+      'the destination belongs to the heading, and the parenthesis wraps together with the host');
     assert.ok(html.includes('<svg'), 'the HearthPulse mark is inline because the page CSP blocks every image');
     assert.ok(html.includes('Пароль, почта и платёжные данные не передаются'));
     assert.ok(!html.includes('<script>'), 'the profile name must be escaped');
@@ -299,7 +298,7 @@ test('consent page for the staging Manacost reader shows the test host', async (
     harness.login();
     const html = await (await harness.request(interactionUrl)).text();
     assert.ok(html.includes('Вход через hearthpulse.net'));
-    assert.ok(visibleText(html).includes('в Манакост (тест) (test.hs-manacost.ru)'));
+    assert.ok(html.includes('в Манакост — тест <span class="host">(test.hs-manacost.ru)</span>'));
   } finally { await harness.close(); }
 });
 
@@ -310,7 +309,7 @@ test('consent page for a client without a reserved presentation falls back to it
     const interactionUrl = await harness.startInteraction();
     harness.login();
     const html = await (await harness.request(interactionUrl)).text();
-    assert.ok(visibleText(html).includes('в partner.example.test (partner.example.test)'));
+    assert.ok(html.includes('в partner.example.test <span class="host">(partner.example.test)</span>'));
     assert.ok(!html.includes('Манакост'));
   } finally { await harness.close(); }
 });
@@ -394,9 +393,9 @@ test('with the staging bridge both clients are named by their own interaction', 
   try {
     const interactionUrl = await harness.startInteraction();
     assert.equal(await (await harness.request(`${interactionUrl.pathname}/client`)).text(),
-      '{"name":"Манакост (тест)","host":"test.hs-manacost.ru"}');
+      '{"name":"Манакост — тест","host":"test.hs-manacost.ru"}');
     harness.login();
-    assert.ok(visibleText(await (await harness.request(interactionUrl)).text()).includes('в Манакост (тест) (test.hs-manacost.ru)'));
+    assert.ok((await (await harness.request(interactionUrl)).text()).includes('в Манакост — тест <span class="host">(test.hs-manacost.ru)</span>'));
   } finally { await harness.close(); }
 });
 
@@ -425,7 +424,7 @@ test('client context of the staging and unreserved clients', async () => {
   try {
     const interactionUrl = await staging.startInteraction();
     assert.equal(await (await staging.request(`${interactionUrl.pathname}/client`)).text(),
-      '{"name":"Манакост (тест)","host":"test.hs-manacost.ru"}');
+      '{"name":"Манакост — тест","host":"test.hs-manacost.ru"}');
   } finally { await staging.close(); }
   const other = await startConsentHarness({ deployment: 'test', issuer: 'https://identity.example.test/identity',
     clientId: 'test-reader', redirectUri: 'https://partner.example.test/reader-auth/callback' });

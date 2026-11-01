@@ -86,7 +86,7 @@ are exposed in this DTO. `POST /reader-auth/logout` requires Origin and
 
 The OIDC consent page at `GET /identity/interaction/:uid` states that the visitor
 signs in **through hearthpulse.net** and **into which site**: heading
-"Вход через hearthpulse.net", subtitle `в <name> (<host>)`, the HearthPulse mark
+"Вход через hearthpulse.net", destination inside the heading, `в <name> (<host>)`, the HearthPulse mark
 as inline SVG (the page CSP is `default-src 'none'`, so no `<img>`, not even
 `data:`), light and dark colour schemes, no external resource. The form, CSRF
 check, `decision` values and every response header are unchanged.
@@ -94,7 +94,7 @@ check, `decision` values and every response header are unchanged.
 The destination name comes from code, not from environment: `clientPresentation()`
 in `server/modules/browserIdentity/configuration.ts` returns
 `Манакост / hs-manacost.ru` for `manacost-reader-production` and
-`Манакост (тест) / test.hs-manacost.ru` for `manacost-reader-staging` (only for
+`Манакост — тест / test.hs-manacost.ru` for `manacost-reader-staging` (only for
 the exact registered callback). Any other client is shown by its callback host.
 `validateIdentityOptions` and the client allowlist are not touched.
 

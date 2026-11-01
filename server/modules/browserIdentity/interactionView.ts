@@ -24,7 +24,7 @@ main{max-width:34rem;margin:6vh auto 0;padding:1.5rem;background:var(--panel);bo
 .mark{flex:none;border-radius:10px}
 h1{margin:0;font-size:1.65rem;line-height:1.25}
 p{margin:.75rem 0;overflow-wrap:anywhere}
-.target{font-size:1.2rem}
+.to{display:block;margin-top:.35rem;font-size:1.2rem;font-weight:600}
 .host{display:inline-block;max-width:100%}
 form{display:flex;gap:.75rem;flex-wrap:wrap;margin:1.5rem 0 0}
 button{flex:1 1 9rem;font:inherit;font-weight:600;min-height:44px;padding:.75rem 1.5rem;border:2px solid var(--stop-line);border-radius:6px;background:transparent;color:var(--text);cursor:pointer}
@@ -35,12 +35,12 @@ small{color:var(--muted)}
 
 /** `client` is the destination site shown to the person; `csrf` binds the decision form to this session. */
 export function interactionView(name: string, client: ClientPresentation, csrf: string, rememberLogin = false): string {
-  const destination = `${escape(client.displayName)} (<span class="host">${escape(client.host)}</span>)`;
+  // The parenthesis lives inside the inline-block, so it wraps together with the host.
+  const destination = `${escape(client.displayName)} <span class="host">(${escape(client.host)})</span>`;
   return `<!doctype html><html lang="ru"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Вход через hearthpulse.net в ${escape(client.displayName)}</title><style>${STYLE}</style>
 <main><p class="brand">${HEARTHPULSE_MARK}<span>hearthpulse.net</span></p>
-<h1>Вход через hearthpulse.net</h1>
-<p class="target"><strong>в ${destination}</strong></p>
+<h1>Вход через hearthpulse.net <span class="to">в ${destination}</span></h1>
 <p>Вы вошли как <strong>${escape(name || 'Читатель')}</strong>.</p>
 <p>Сайт <strong>${escape(client.displayName)}</strong> получит ваш идентификатор и имя профиля. Пароль, почта и платёжные данные не передаются.</p>
 ${rememberLogin ? '<p>Вы разрешаете этому кабинету обновлять вход до 30 дней с момента согласия. Выход или отзыв сессии HearthPulse закроет доступ раньше.</p>' : ''}

@@ -30,7 +30,7 @@ export interface ClientPresentation {
 }
 
 const READER_PRESENTATIONS = new Map<string, ClientPresentation>([
-  [READER_STAGING_CLIENT_ID, { displayName: 'Манакост (тест)', host: 'test.hs-manacost.ru' }],
+  [READER_STAGING_CLIENT_ID, { displayName: 'Манакост — тест', host: 'test.hs-manacost.ru' }],
   [READER_PRODUCTION_CLIENT_ID, { displayName: 'Манакост', host: 'hs-manacost.ru' }],
 ]);
 
