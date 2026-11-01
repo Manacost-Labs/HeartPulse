@@ -29,7 +29,7 @@ import './IdentityProfile.css';
 import '../../../shared/ui/LoadingSurface.css';
 import './LoginCardSkeleton.css';
 import AccountDashboard from './AccountDashboard';
-import LoginCard from './LoginCard';
+import LoginCard, { type SignInFor } from './LoginCard';
 import { LoginCardSkeleton } from './LoginCardSkeleton';
 import { isRealAuthEmail } from '../model/accountDashboard';
 import { continueToCoverAfterLogin, coverSsoReturnTo } from '../../coverAdminSso/public';
@@ -171,12 +171,15 @@ export function LoginPanel({
   initialAuthUser = null,
   parentAuthChecking = false,
   headingLevel = 1,
+  signInFor,
 }: {
   onAuthChange?: (user: AuthUser | null) => void;
   /** Heading level of the sign-in card: 1 on `/?login`, lower inside another page. */
   headingLevel?: 1 | 2 | 3;
   initialAuthUser?: AuthUser | null;
   parentAuthChecking?: boolean;
+  /** The site the guest was sent from; shown on the card and nowhere else. */
+  signInFor?: SignInFor;
 }) {
   const [authUser, setAuthUser] = useState<AuthUser | null>(() => initialAuthUser);
   const authChecking = parentAuthChecking;
@@ -549,6 +552,7 @@ export function LoginPanel({
   return (
     <LoginCard
       headingLevel={headingLevel}
+      signInFor={signInFor}
       mode={authMode}
       step={authStep}
       message={msg}

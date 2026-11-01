@@ -8,6 +8,7 @@ export {
   canManageContests,
 } from './model/authAccess';
 export type { AuthUser } from './model/authUser';
+export type { SignInFor } from './ui/LoginCard';
 export type { PublicProfile } from './model/publicProfile';
 export { default as AuthAvatar } from './ui/AuthAvatar';
 export type { AccountPlanSummary } from './model/accountPlan';
