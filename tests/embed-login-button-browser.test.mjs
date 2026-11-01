@@ -188,7 +188,7 @@ function button(page, selector = '#login') {
 
 function findLink(node) {
   if (!node) return null;
-  if (node.role === 'link' && (node.name ?? '').includes('hearthpulse.net')) return node;
+  if (node.role === 'link' && node.name === 'Войти через HearthPulse hearthpulse.net') return node;
   for (const child of node.children ?? []) {
     const found = findLink(child);
     if (found) return found;
