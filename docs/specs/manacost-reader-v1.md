@@ -81,3 +81,33 @@ UI: `GET /reader-api/v1/me` returns `{user:{displayName},csrfToken,profileUrl}`;
 401 means no active session; 503 means unavailable identity. No tokens or user IDs
 are exposed in this DTO. `POST /reader-auth/logout` requires Origin and
 `X-Reader-CSRF` and returns 204. Public HTML always contains an anonymous shell.
+
+## Consent page and client context (E20 S1)
+
+The OIDC consent page at `GET /identity/interaction/:uid` states that the visitor
+signs in **through hearthpulse.net** and **into which site**: heading
+"Вход через hearthpulse.net" followed, inside the same heading, by
+`в <name> (<host>)` (the parenthesis wraps together with the host), the
+HearthPulse mark as inline SVG (the page CSP is `default-src 'none'`, so no
+`<img>`, not even `data:`), light and dark colour schemes, no external
+resource. The form, CSRF check, `decision` values and every response header
+are unchanged.
+
+The destination name comes from code, not from environment: `clientPresentation()`
+in `server/modules/browserIdentity/configuration.ts` returns
+`Манакост / hs-manacost.ru` for `manacost-reader-production` and
+`Манакост — тест / test.hs-manacost.ru` for `manacost-reader-staging` (only for
+the exact registered callback). Any other client is shown by its callback host.
+`validateIdentityOptions` and the client allowlist are not touched.
+
+`GET /identity/interaction/:uid/client` returns `{"name":"Манакост","host":"hs-manacost.ru"}`
+for the live interaction held by the requesting browser. It needs no HearthPulse
+session (the login card needs it for guests) and exposes no account data.
+It answers `404` with an empty body when the interaction cookie is missing,
+belongs to another uid, expired, already decided or consumed, and `405` for any
+method other than GET. Headers are the shared private ones (no-store, CSP,
+noindex); there is no CORS, and the interaction cookie (`Path=/identity/interaction/<uid>`)
+is what scopes the answer to one browser.
+
+An expired or unknown interaction on the consent URL answers `400` with
+"Вход истёк. Вернитесь на сайт, с которого начали вход, и начните заново."

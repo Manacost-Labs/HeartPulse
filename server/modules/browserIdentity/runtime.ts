@@ -2,7 +2,7 @@ import { createHash, createHmac, timingSafeEqual } from 'node:crypto';
 import type { IncomingMessage } from 'node:http';
 import { Router, urlencoded } from 'express';
 import rateLimit from 'express-rate-limit';
-import type { BrowserIdentityOptions } from './configuration.js';
+import { clientPresentation, type BrowserIdentityOptions } from './configuration.js';
 import { createBrowserIdentityProvider, offlineAccessRequested, readerGrantPolicy, REMEMBERED_READER_GRANT_TTL_SECONDS } from './provider.js';
 import { createSessionBindings } from './sessionBindings.js';
 import { interactionView } from './interactionView.js';
@@ -49,6 +49,18 @@ export function createBrowserIdentityRuntime(options: RuntimeOptions) {
   });
   router.use(rateLimit({ windowMs: 60_000, max: 120, standardHeaders: true, legacyHeaders: false }));
   const csrf = (uid: string, parent: string) => createHmac('sha256', options.cookieKeys[0]).update(`${uid}:${parent}`).digest('base64url');
+  // Guests need the destination name on the login card before they have a HearthPulse session, so this
+  // answers for this browser's live interaction only (the interaction cookie is scoped to its uid path).
+  router.all('/interaction/:uid/client', async (req, res) => {
+    if (req.method !== 'GET') { res.set('Allow', 'GET').sendStatus(405); return; }
+    try {
+      const interaction = await provider.interactionDetails(req, res);
+      const client = options.clients.find(item => item.id === interaction.params.client_id);
+      if (interaction.uid !== req.params.uid || interaction.result || !client) { res.status(404).end(); return; }
+      const { displayName, host } = clientPresentation(client);
+      res.json({ name: displayName, host });
+    } catch { if (!res.headersSent) res.status(404).end(); }
+  });
   router.all('/interaction/:uid', urlencoded({ extended: false, limit: '4kb' }), async (req, res) => {
     try {
       if (!['GET', 'POST'].includes(req.method)) { res.sendStatus(405); return; }
@@ -68,7 +80,7 @@ export function createBrowserIdentityRuntime(options: RuntimeOptions) {
         res.set('Referrer-Policy', 'same-origin');
         // Browsers also apply form-action to the authorization redirect back to this client.
         res.set('Content-Security-Policy', `default-src 'none'; style-src 'unsafe-inline'; form-action 'self' ${client.redirectUri}; frame-ancestors 'none'; base-uri 'none'`);
-        res.type('html').send(interactionView(account.displayName ?? '', new URL(client.redirectUri).hostname,
+        res.type('html').send(interactionView(account.displayName ?? '', clientPresentation(client),
           expected, grantPolicy.rememberLogin)); return;
       }
       const supplied = typeof req.body?.csrf === 'string' ? req.body.csrf : '';
@@ -92,7 +104,7 @@ export function createBrowserIdentityRuntime(options: RuntimeOptions) {
       await provider.interactionFinished(req, res, {
         login: { accountId: account.subject }, consent: { grantId },
       }, { mergeWithLastSubmission: false });
-    } catch { if (!res.headersSent) res.status(400).type('text').send('Вход истёк. Вернитесь на Манакост и начните заново.'); }
+    } catch { if (!res.headersSent) res.status(400).type('text').send('Вход истёк. Вернитесь на сайт, с которого начали вход, и начните заново.'); }
   });
   router.use(provider.callback());
   return { router, provider, bindings };

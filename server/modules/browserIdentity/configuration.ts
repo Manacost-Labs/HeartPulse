@@ -23,8 +23,27 @@ const READER_CALLBACKS = new Map([
   [READER_PRODUCTION_CLIENT_ID, READER_PRODUCTION_CALLBACK],
 ]);
 
+/** What a person sees as the destination of a hearthpulse.net sign-in. */
+export interface ClientPresentation {
+  displayName: string;
+  host: string;
+}
+
+const READER_PRESENTATIONS = new Map<string, ClientPresentation>([
+  [READER_STAGING_CLIENT_ID, { displayName: 'Манакост — тест', host: 'test.hs-manacost.ru' }],
+  [READER_PRODUCTION_CLIENT_ID, { displayName: 'Манакост', host: 'hs-manacost.ru' }],
+]);
+
 export function isExactReaderClient(client: BrowserIdentityClient): boolean {
   return READER_CALLBACKS.get(client.id) === client.redirectUri;
+}
+
+/** Reserved Manacost readers get their brand name; any other client is shown by its callback host. */
+export function clientPresentation(client: BrowserIdentityClient): ClientPresentation {
+  const reserved = isExactReaderClient(client) ? READER_PRESENTATIONS.get(client.id) : undefined;
+  if (reserved) return { ...reserved };
+  const { hostname } = new URL(client.redirectUri);
+  return { displayName: hostname, host: hostname };
 }
 
 export function isReaderClientId(clientId: string): boolean {
