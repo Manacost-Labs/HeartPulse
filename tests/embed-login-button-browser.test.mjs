@@ -88,12 +88,16 @@ before(async () => {
 
   hostServer = createServer((request, response) => {
     hostRequests.push(request.url);
-    const csp = `default-src 'none'; script-src ${widgetOrigin}; style-src 'self'`;
+    // `/open` additionally lets the page connect anywhere, so that a request the
+    // widget might start (fetch, beacon, WebSocket) is not hidden by the CSP.
+    const open = request.url === '/open' ? '; connect-src *; img-src *' : '';
+    const csp = `default-src 'none'; script-src ${widgetOrigin}; style-src 'self'${open}`;
     const send = (type, body) => response.writeHead(200, {
       'Content-Type': type, 'Content-Security-Policy': csp, 'Cache-Control': 'no-store',
     }).end(body);
     if (request.url === '/page.css') return send('text/css', PAGE_CSS);
     if (request.url === '/') return send('text/html; charset=utf-8', pageHtml(BUTTON));
+    if (request.url === '/open') return send('text/html; charset=utf-8', pageHtml(BUTTON));
     if (request.url === '/plain') return send('text/html; charset=utf-8', pageHtml('', false));
     if (request.url === '/nojs') return send('text/html; charset=utf-8', pageHtml(BUTTON, false));
     if (request.url === '/empty') return send('text/html; charset=utf-8', pageHtml(''));
@@ -135,14 +139,20 @@ async function openPage(path, { width = 1440, height = 900, scheme = 'light' } =
   });
   page.on('pageerror', error => seen.errors.push(String(error)));
   page.on('dialog', async dialog => { seen.dialogs.push(dialog.message()); await dialog.dismiss(); });
+  // Every network request the page starts (document, script, fetch, XHR,
+  // sendBeacon, image, WebSocket) is seen at the CDP level, before any fake.
+  const cdp = await page.createCDPSession();
+  await cdp.send('Network.enable');
+  cdp.on('Network.requestWillBeSent', event => {
+    if (!event.request.url.endsWith('/favicon.ico')) seen.requests.push(event.request.url);
+  });
+  cdp.on('Network.webSocketCreated', event => seen.requests.push(event.url));
   await page.setRequestInterception(true);
   page.on('request', request => {
-    const url = request.url();
-    if (url.startsWith('https://consumer.example/')) {
+    if (request.url().startsWith('https://consumer.example/')) {
       request.respond({ status: 200, contentType: 'text/html', body: '<!doctype html><title>consumer</title>' });
       return;
     }
-    if (!url.endsWith('/favicon.ico')) seen.requests.push(url);
     request.continue();
   });
   await page.setViewport({ width, height });
@@ -178,7 +188,7 @@ function button(page, selector = '#login') {
 
 function findLink(node) {
   if (!node) return null;
-  if (node.role === 'link' && /hearthpulse\.net/.test(node.name ?? '')) return node;
+  if (node.role === 'link' && (node.name ?? '').includes('hearthpulse.net')) return node;
   for (const child of node.children ?? []) {
     const found = findLink(child);
     if (found) return found;
@@ -197,7 +207,7 @@ test('button renders styled under a strict consumer CSP and exposes a named link
   const { page, seen } = await openPage('/');
   try {
     const state = await button(page);
-    assert.equal(state.text, 'Войти через HearthPulsehearthpulse.net');
+    assert.equal(state.text, 'Войти через HearthPulse hearthpulse.net');
     assert.equal(state.href, '/start');
     assert.equal(state.lang, 'ru');
     assert.equal(state.hasSvg, true);
@@ -312,7 +322,7 @@ test('unsafe or malformed href disables the button: no navigation, one warning',
     await page.$eval('#no-href', element => element.setAttribute('lang', 'en'));
     await settle(page);
     assert.equal(seen.warnings.length, bad.length + 1);
-    assert.equal((await button(page, '#no-href')).text, 'Sign in with HearthPulsehearthpulse.net');
+    assert.equal((await button(page, '#no-href')).text, 'Sign in with HearthPulse hearthpulse.net');
 
     assert.deepEqual(seen.dialogs, []);
     assert.deepEqual(seen.errors, []);
@@ -364,8 +374,8 @@ test('theme attribute and prefers-color-scheme choose light or dark; language fa
   }
   const { page } = await openPage('/');
   try {
-    for (const [lang, text] of [['en', 'Sign in with HearthPulsehearthpulse.net'], ['EN-us', 'Sign in with HearthPulsehearthpulse.net'],
-      ['de', 'Войти через HearthPulsehearthpulse.net'], ['ru', 'Войти через HearthPulsehearthpulse.net']]) {
+    for (const [lang, text] of [['en', 'Sign in with HearthPulse hearthpulse.net'], ['EN-us', 'Sign in with HearthPulse hearthpulse.net'],
+      ['de', 'Войти через HearthPulse hearthpulse.net'], ['ru', 'Войти через HearthPulse hearthpulse.net']]) {
       await page.$eval('#login', (element, value) => element.setAttribute('lang', value), lang);
       await settle(page);
       assert.equal((await button(page)).text, text, `lang=${lang}`);
@@ -469,22 +479,119 @@ test('the host page styles do not reach the button and the button leaks nothing 
 
 test('the widget makes no requests besides its script and touches no cookies or storage', async () => {
   widgetRequests.length = 0;
-  const { page, seen } = await openPage('/');
+  const { page, seen } = await openPage('/open');
   try {
-    assert.deepEqual(seen.requests, [`${hostOrigin}/`, `${hostOrigin}/page.css`, `${widgetOrigin}${SCRIPT_PATH}`]);
+    assert.deepEqual(seen.requests, [`${hostOrigin}/open`, `${hostOrigin}/page.css`, `${widgetOrigin}${SCRIPT_PATH}`]);
     assert.deepEqual(widgetRequests, [SCRIPT_PATH]);
+
+    // Everything a user can do to the button, including a click that stays on
+    // the page (disabled) and attribute changes, must stay off the network too.
+    const loaded = seen.requests.length;
+    await page.mouse.move(5, 5);
+    const point = await center(page, '#login');
+    await page.mouse.move(point.x, point.y);
+    await page.keyboard.press('Tab');
+    await page.keyboard.press('Tab');
+    await page.$eval('#login', element => {
+      element.setAttribute('theme', 'dark');
+      element.setAttribute('lang', 'en');
+      element.setAttribute('href', 'javascript:alert(1)');
+    });
+    await settle(page);
+    await page.mouse.click(point.x, point.y);
+    await settle(page);
+    assert.deepEqual(seen.requests.slice(loaded), [], 'rendering and interacting must not start any request');
+
+    // The recorder itself must see fetch, beacon and WebSocket, or the checks above prove nothing.
+    await page.evaluate(origin => {
+      fetch(`${origin}/probe-fetch`).catch(() => {});
+      navigator.sendBeacon(`${origin}/probe-beacon`, 'x');
+      try { new WebSocket(`ws://127.0.0.1:9/probe-ws`); } catch { /* the recorder only needs the attempt */ }
+    }, hostOrigin);
+    await settle(page);
+    const probes = seen.requests.slice(loaded);
+    assert.ok(probes.includes(`${hostOrigin}/probe-fetch`), 'a fetch must be recorded');
+    assert.ok(probes.includes(`${hostOrigin}/probe-beacon`), 'a beacon must be recorded');
+    assert.ok(probes.includes('ws://127.0.0.1:9/probe-ws'), 'a WebSocket must be recorded');
+
     const stored = await page.evaluate(async () => ({
       cookie: document.cookie, local: localStorage.length, session: sessionStorage.length,
       databases: (await indexedDB.databases()).length, caches: (await caches.keys()).length,
-      entries: performance.getEntriesByType('resource').map(entry => entry.name),
     }));
     assert.equal(stored.cookie, '');
     assert.equal(stored.local, 0);
     assert.equal(stored.session, 0);
     assert.equal(stored.databases, 0);
     assert.equal(stored.caches, 0);
-    assert.deepEqual(stored.entries, [`${hostOrigin}/page.css`, `${widgetOrigin}${SCRIPT_PATH}`]);
     assert.deepEqual(await page.cookies(), []);
+  } finally { await page.close(); }
+});
+
+test('a 120 px container keeps the label and caption inside the button', async () => {
+  const { page } = await openPage('/empty', { width: 390 });
+  try {
+    for (const [lang, theme] of [['ru', 'light'], ['en', 'dark']]) {
+      const layout = await page.evaluate((langValue, themeValue) => {
+        const box = document.createElement('div');
+        box.style.width = '120px';
+        const element = document.createElement('hearthpulse-login-button');
+        element.setAttribute('href', '/x');
+        element.setAttribute('lang', langValue);
+        element.setAttribute('theme', themeValue);
+        box.append(element);
+        document.body.append(box);
+        return new Promise(resolve => setTimeout(() => {
+          const link = element.shadowRoot.querySelector('a');
+          const edge = link.getBoundingClientRect().right;
+          const spans = [...link.querySelectorAll('span')].map(span => span.getBoundingClientRect().right);
+          resolve({
+            overflow: link.scrollWidth > link.clientWidth,
+            width: link.getBoundingClientRect().width,
+            hostRight: element.getBoundingClientRect().right,
+            boxRight: box.getBoundingClientRect().right,
+            spansInside: spans.every(right => right <= edge),
+          });
+        }, 100));
+      }, lang, theme);
+      assert.equal(layout.overflow, false, `${lang}: no horizontal overflow of the button`);
+      assert.equal(layout.spansInside, true, `${lang}: label and caption stay inside the button`);
+      assert.ok(layout.width <= 120, `${lang}: button width ${layout.width}`);
+      assert.ok(layout.hostRight <= layout.boxRight, `${lang}: the button stays inside its container`);
+    }
+  } finally { await page.close(); }
+});
+
+test('a button inserted into another document (iframe) is built and styled', async () => {
+  const { page, seen } = await openPage('/');
+  try {
+    const result = await page.evaluate(() => new Promise(resolve => {
+      const frame = document.createElement('iframe');
+      frame.addEventListener('load', () => {
+        const inner = frame.contentDocument;
+        const element = document.createElement('hearthpulse-login-button');
+        element.setAttribute('href', '/start');
+        element.setAttribute('theme', 'dark');
+        inner.body.append(element);
+        setTimeout(() => {
+          const link = element.shadowRoot && element.shadowRoot.querySelector('a');
+          resolve(link ? {
+            text: link.textContent,
+            href: link.getAttribute('href'),
+            background: frame.contentWindow.getComputedStyle(link).backgroundColor,
+            height: link.getBoundingClientRect().height,
+          } : null);
+        }, 100);
+      });
+      document.body.append(frame);
+    }));
+    assert.deepEqual(seen.errors, []);
+    assert.ok(result, 'the button must be built in the iframe document');
+    assert.deepEqual({ ...result, height: undefined }, {
+      text: 'Войти через HearthPulse hearthpulse.net', href: '/start', background: DARK_BG, height: undefined,
+    });
+    assert.ok(result.height >= 44);
+    // The main document's own button keeps working after the iframe one was built.
+    assert.equal((await button(page)).background, LIGHT_BG);
   } finally { await page.close(); }
 });
 

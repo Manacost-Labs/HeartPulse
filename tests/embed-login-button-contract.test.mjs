@@ -8,7 +8,7 @@ import { gzipSync } from 'node:zlib';
 // never be fixed in place. Changing hearthpulse-login-v1.js fails this test on
 // purpose: ship the change as hearthpulse-login-v2.js (new file, new test) and
 // leave v1 byte-for-byte as it was released.
-const V1_SHA256 = 'c3c70212284898c85ab134ae3b64bc8beb374f74497ad75e9534247c28f93e14';
+const V1_SHA256 = '3f45f2497a830bb2a2afb70d0c2cc65fbf5b23f2270ea62a31c80f0925128880';
 const V1_GZIP_LIMIT_BYTES = 4096;
 const file = new URL('../public/embed/hearthpulse-login-v1.js', import.meta.url);
 

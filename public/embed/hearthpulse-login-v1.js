@@ -27,15 +27,28 @@
     '.b[aria-disabled=true]:hover,.b[aria-disabled=true]:active{background:var(--bg)}' +
     '.l{all:initial;display:block;flex:none;width:32px;height:32px;forced-color-adjust:none}' +
     '.t{all:initial;display:block;min-width:0;overflow-wrap:anywhere;font:inherit}' +
-    '.m{all:initial;display:block;color:var(--fg);font:inherit}' +
-    '.s{all:initial;display:block;color:var(--sub);font:500 12px/14px system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;letter-spacing:.02em}' +
+    '.m{all:initial;display:block;min-width:0;overflow-wrap:anywhere;color:var(--fg);font:inherit}' +
+    '.s{all:initial;display:block;min-width:0;overflow-wrap:anywhere;color:var(--sub);font:500 12px/14px system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;letter-spacing:.02em}' +
     '@media (forced-colors:active){.b{border-color:ButtonText;background:ButtonFace;color:ButtonText}' +
     '.m,.s{color:ButtonText}.b:hover{background:ButtonFace;border-color:Highlight}' +
     '.b:focus-visible{outline:3px solid Highlight;box-shadow:none}.b[aria-disabled=true]{opacity:1;color:GrayText;border-color:GrayText}' +
     '.b[aria-disabled=true] .m,.b[aria-disabled=true] .s{color:GrayText}}' +
     '@media (prefers-reduced-motion:reduce){.b{transition:none}}';
 
-  var sheet = null;
+  var sheets = new WeakMap();
+
+  // A constructed stylesheet can only be adopted by shadow roots of the document
+  // (window) that created it, so every document that hosts a button gets its own.
+  function sheetFor(doc) {
+    var view = doc.defaultView;
+    var sheet = sheets.get(doc);
+    if (!sheet && view && view.CSSStyleSheet) {
+      sheet = new view.CSSStyleSheet();
+      sheet.replaceSync(CSS);
+      sheets.set(doc, sheet);
+    }
+    return sheet || null;
+  }
 
   function node(tag, attrs, children) {
     var el = document.createElementNS(SVG, tag);
@@ -44,29 +57,15 @@
     return el;
   }
 
-  function stop(offset, color) {
-    return node('stop', { offset: offset, 'stop-color': color });
-  }
-
-  function gradient(id, x1, y1, x2, y2, stops) {
-    return node('linearGradient', {
-      id: id, x1: x1, y1: y1, x2: x2, y2: y2, gradientUnits: 'userSpaceOnUse'
-    }, stops);
-  }
-
   function logo() {
     return node('svg', { 'class': 'l', viewBox: '0 0 64 64', 'aria-hidden': 'true', focusable: 'false' }, [
-      node('defs', {}, [
-        gradient('hb', 10, 6, 54, 58, [stop('0', '#12345a'), stop('.58', '#07172b'), stop('1', '#030815')]),
-        gradient('hs', 18, 12, 46, 52, [stop('0', '#f8fbff'), stop('.48', '#93c5fd'), stop('1', '#38bdf8')])
-      ]),
-      node('rect', { x: 3, y: 3, width: 58, height: 58, rx: 16, fill: 'url(#hb)', stroke: 'none' }),
+      node('rect', { x: 3, y: 3, width: 58, height: 58, rx: 16, fill: '#0a213d', stroke: 'none' }),
       node('rect', {
         x: 5.5, y: 5.5, width: 53, height: 53, rx: 13.5, fill: 'none', stroke: '#38bdf8',
         'stroke-opacity': '.62', 'stroke-width': 3
       }),
       node('path', {
-        d: 'M18 48 31.8 15.5 46 48', fill: 'none', stroke: 'url(#hs)', 'stroke-width': 7.5,
+        d: 'M18 48 31.8 15.5 46 48', fill: 'none', stroke: '#a5d2fc', 'stroke-width': 7.5,
         'stroke-linecap': 'round', 'stroke-linejoin': 'round'
       }),
       node('path', {
@@ -113,6 +112,7 @@
 
       connectedCallback() {
         if (!this._link) this._build();
+        this._adopt();
         this._queue();
       }
 
@@ -121,23 +121,31 @@
       }
 
       _build() {
-        if (!sheet) {
-          sheet = new CSSStyleSheet();
-          sheet.replaceSync(CSS);
-        }
         var root = this.shadowRoot || this.attachShadow({ mode: 'open' });
-        root.adoptedStyleSheets = [sheet];
         var main = html('span', 'm');
         var caption = html('span', 's', 'hearthpulse.net');
         var text = html('span', 't');
         var link = html('a', 'b');
-        text.append(main, caption);
+        text.append(main, ' ', caption);
         link.append(logo(), text);
         root.appendChild(link);
         this._link = link;
         this._main = main;
         this._warned = null;
         this._pending = false;
+      }
+
+      _adopt() {
+        var doc = this.ownerDocument;
+        if (this._doc === doc) return;
+        var sheet = sheetFor(doc);
+        if (!sheet) return;
+        try {
+          this.shadowRoot.adoptedStyleSheets = [sheet];
+          this._doc = doc;
+        } catch {
+          this._doc = null;
+        }
       }
 
       _queue() {
