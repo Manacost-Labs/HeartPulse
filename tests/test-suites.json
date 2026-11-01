@@ -408,6 +408,7 @@
         "tests/agent-context.test.mjs",
         "tests/agent-session-preflight.test.mjs",
         "tests/agent-tooling-contract.test.mjs",
+        "tests/embed-login-button-contract.test.mjs",
         "tests/api-rate-limit-policy.test.ts",
         "tests/app-error-boundary.test.tsx",
         "tests/auth-security.test.ts",
@@ -558,7 +559,8 @@
         "tests/user-flow-leaderboards-browser.test.mjs",
         "tests/user-flow-meta-deck-browser.test.mjs",
         "tests/user-flow-mobile-navigation-browser.test.mjs",
-        "tests/user-flow-paywall-sign-in-browser.test.mjs"
+        "tests/user-flow-paywall-sign-in-browser.test.mjs",
+        "tests/embed-login-button-browser.test.mjs"
       ]
     },
     {
