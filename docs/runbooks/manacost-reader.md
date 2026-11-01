@@ -1,7 +1,10 @@
 # Manacost reader identity operations
 
-Status: opt-in production-identity bridge candidate. Deployed SHA, flags and
-browser acceptance must be checked separately before declaring activation.
+Status: the production Reader client is accepted by the provider (anonymous
+redirect from `https://hs-manacost.ru/reader-auth/start` to the consent
+interaction observed on 2026-11-01, release `eb913c0e`). A complete login with a
+real account is not recorded; deployed SHA, flags and browser acceptance must
+still be checked separately for each release.
 
 ## Boundary and configuration
 

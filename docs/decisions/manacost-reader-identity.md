@@ -1,8 +1,15 @@
 # Manacost reader identity
 
-Status: staging bridge exists; an exact production Reader client is prepared as
-a disabled release candidate. Activation still requires reviewed release and
-separate browser acceptance evidence.
+Status: the production Reader client `manacost-reader-production` is accepted
+by `https://hearthpulse.net/identity`. Checked on 2026-11-01 against production
+release `eb913c0e`: the anonymous `GET https://hs-manacost.ru/reader-auth/start`
+redirects to `/identity/auth` with that client, and `/identity/auth` with the
+exact callback and S256 PKCE answers `303` to the consent interaction, while an
+unknown client answers `400`. A complete browser login with a real account is
+not recorded yet; it needs separate acceptance evidence. The default-off
+staging bridge still exists. The decision below is unchanged. Integrator-facing
+description of the provider:
+[HearthPulse sign-in guide](../specs/hearthpulse-sign-in.md).
 
 ## First vertical slice
 
