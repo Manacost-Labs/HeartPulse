@@ -16,6 +16,7 @@ async function resolveReplay(params: Props['params']) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const replay = await resolveReplay(params);
+  if (replay === 'unavailable') return { title: 'Реплей — HearthPulse', robots: { index: false, follow: false } };
   const title = replay.kind === 'battlegrounds' ? `Реплей Полей сражений: ${replay.summary.heroName}` : `Реплей: ${replay.summary.heroName}`;
   // A player's game, shared by link: not for search engines.
   return { title: `${title} — HearthPulse`, robots: { index: false, follow: false } };
@@ -26,14 +27,22 @@ const SIDE: Record<string, string> = { you: 'Вы', opponent: 'Соперник'
 /** A game shared from the Hearthpulse app (plan 2.2): the summary and a turn-by-turn timeline, as the player saw it. */
 export default async function Page({ params }: Props) {
   const replay = await resolveReplay(params);
+  if (replay === 'unavailable') {
+    return (
+      <main className="replay-page">
+        <h1>Реплей временно недоступен</h1>
+        <p className="replay-page__note">Сайт сейчас перегружен. Обновите страницу через минуту.</p>
+      </main>
+    );
+  }
   const { summary } = replay;
   const bg = replay.kind === 'battlegrounds';
   return (
     <main className="replay-page">
       <header className="replay-page__head">
-        <h1>{bg ? 'Поля сражений' : summary.mode || 'Матч'} · {summary.heroName}</h1>
+        <h1>{summary.mode} · {summary.heroName}</h1>
         <p className="replay-page__meta">
-          {bg ? `${summary.placement}-е место` : `${summary.result === 'Win' ? 'Победа' : summary.result === 'Loss' ? 'Поражение' : summary.result}`}
+          {bg ? `${summary.placement}-е место` : summary.result || 'Итог неизвестен'}
           {!bg && summary.opponentHeroName ? ` против ${summary.opponentHeroName}` : ''}
           {summary.opponentArchetype ? ` (${summary.opponentArchetype})` : ''}
           {summary.turns ? ` · ${summary.turns} ход.` : ''} · {new Date(replay.createdAt).toLocaleDateString('ru-RU')}

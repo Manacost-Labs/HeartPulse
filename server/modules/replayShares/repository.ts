@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
-import { gzipSync } from 'node:zlib';
+import { gunzipSync, gzipSync } from 'node:zlib';
 import type { ReplayKind } from './sanitize.js';
 
 /** Shared replays are kept this long, then deleted (privacy policy, "Реплеи"). */
@@ -38,6 +38,8 @@ export type ReplayShareRepository = {
   deleteOwned: (userId: string, id: string) => boolean;
   /** Deletes replays older than REPLAY_KEEP_DAYS; returns how many. */
   prune: (now: number) => number;
+  /** The account's replays for its data export, one JSON object each (id, kind, time, header, file), read one by one. */
+  exportRows: (userId: string, now: number) => Iterable<string>;
 };
 
 const DAY = 86_400_000;
@@ -55,7 +57,7 @@ export function initializeReplayShareRepository(getDatabase: () => DatabaseSync)
 
 export function createSqliteReplayShareRepository(getDatabase: () => DatabaseSync): ReplayShareRepository {
   const since = (now: number) => now - REPLAY_KEEP_DAYS * DAY;
-  return {
+  const repository: ReplayShareRepository = {
     store(userId, kind, header, text, now) {
       const database = getDatabase();
       const count = Number((database.prepare('SELECT COUNT(*) AS n FROM replay_shares WHERE user_id = ? AND created_at >= ?')
@@ -88,5 +90,14 @@ export function createSqliteReplayShareRepository(getDatabase: () => DatabaseSyn
     prune(now) {
       return Number(getDatabase().prepare('DELETE FROM replay_shares WHERE created_at < ?').run(since(now)).changes);
     },
+    *exportRows(userId, now) {
+      for (const replay of repository.list(userId, now)) {
+        const row = repository.read(replay.id, now);
+        if (!row) continue;
+        yield JSON.stringify({ id: replay.id, kind: row.kind, createdAt: new Date(row.createdAt).toISOString(), header: row.header,
+          text: gunzipSync(row.gzip).toString('utf8') });
+      }
+    },
   };
+  return repository;
 }

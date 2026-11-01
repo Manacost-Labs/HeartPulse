@@ -1,5 +1,6 @@
 import 'server-only';
 import { cache } from 'react';
+import { replayModeLabel, replayResultLabel } from '@/src/shared/text/replayLabels';
 import { fetchPublicExpress } from './expressApi';
 
 /** One line of the timeline: who did what, cards only by their known names. */
@@ -9,6 +10,7 @@ export type PublicReplay = {
   id: string;
   kind: 'constructed' | 'battlegrounds';
   createdAt: string;
+  /** Mode and result in Russian (result '' when unknown). */
   summary: { mode: string; result: string; turns: number; placement: number; heroName: string; opponentHeroName: string;
     opponentArchetype: string; finalBoard: Array<{ name: string; attack: number; health: number; golden: boolean }> };
   turns: ReplayTurn[];
@@ -26,13 +28,21 @@ function isPayload(value: unknown): value is Payload {
     && !!fields.cardNames && typeof fields.cardNames === 'object';
 }
 
-/** The replay for `/replay/<id>`, or null (unknown id, deleted, or the API failed). */
-export const loadPublicReplay = cache(async (id: string): Promise<PublicReplay | null> => {
+/**
+ * The replay for `/replay/<id>`: null for an unknown or deleted id, 'unavailable' when the API is busy or down (the page
+ * says so instead of failing). Not cached, so a deleted replay is gone at once.
+ */
+export const loadPublicReplay = cache(async (id: string): Promise<PublicReplay | 'unavailable' | null> => {
   if (!REPLAY_ID.test(id)) return null;
-  const response = await fetchPublicExpress(`/api/v1/replays/${encodeURIComponent(id)}`, undefined, { revalidate: 300 });
+  let response: Response;
+  try {
+    response = await fetchPublicExpress(`/api/v1/replays/${encodeURIComponent(id)}`);
+  } catch {
+    return 'unavailable';
+  }
   if (response.status === 404) return null;
-  if (!response.ok) throw new Error('Replay temporarily unavailable');
-  const payload: unknown = await response.json();
+  if (!response.ok) return 'unavailable';
+  const payload: unknown = await response.json().catch(() => null);
   return isPayload(payload) ? readReplay(payload) : null;
 });
 
@@ -52,7 +62,7 @@ export function readReplay(payload: Payload): PublicReplay {
     kind: payload.kind as PublicReplay['kind'],
     createdAt: payload.createdAt,
     summary: {
-      mode: text(summary.mode), result: text(summary.result), turns: count(summary.turns), placement: count(summary.placement),
+      mode: replayModeLabel(summary.mode), result: replayResultLabel(summary.result), turns: count(summary.turns), placement: count(summary.placement),
       heroName: name(text(summary.heroCardId)), opponentHeroName: summary.opponentHeroCardId ? name(text(summary.opponentHeroCardId)) : '',
       opponentArchetype: text(summary.opponentArchetype),
       finalBoard: board.map(minion => ({ name: name(text(minion.cardId)), attack: count(minion.attack), health: count(minion.health),

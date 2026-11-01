@@ -7160,16 +7160,20 @@ const applicationAuth = registerApplicationAuth({
   setPrivateNoStore,
 });
 // The statistics read the tracker events through closures: the repository exists once the tracker is registered below.
+// One Russian card name map for the statistics and the web replays.
+const ruCardNames = createCardNameLookup({ url: HEARTHSTONE_RU_CARDS_URL });
 const playerStats = registerPlayerGames({ app, userAuth, setPrivateNoStore,
   loadEvents: (userId, query) => trackerEvents.listEvents(userId, query),
   countEvents: (userId, types, minSchemaVersion) => trackerEvents.countEvents(userId, types, minSchemaVersion),
-  hasEntitlement: requestHasEntitlementAccess, resolveCardNames: createCardNameLookup({ url: HEARTHSTONE_RU_CARDS_URL }),
+  hasEntitlement: requestHasEntitlementAccess, resolveCardNames: ruCardNames,
   global: createPlayerGamesGlobalSources({
     loadConstructedMeta: format => loadStandardMeta(format, 'all', 'past_week', 'any_player', 100) }) });
 const trackerEvents = registerTrackerIngestion({ app, getDatabase: db, accessTokens: applicationAuth, setPrivateNoStore,
-  validatePayload: validateStatisticsPayload, onStored: playerStats.invalidate, userAuth, onDeleted: playerStats.invalidate });
-registerReplayShares({ app, getDatabase: db, accessTokens: applicationAuth, setPrivateNoStore, userAuth, publicOrigin: APP_URL,
-  resolveCardNames: createCardNameLookup({ url: HEARTHSTONE_RU_CARDS_URL }) });
+  validatePayload: validateStatisticsPayload, onStored: playerStats.invalidate, userAuth, onDeleted: playerStats.invalidate,
+  // The export reads the replays through a closure: their module is registered just below.
+  exportReplays: userId => replayShares.exportRows(userId, Date.now()) });
+const replayShares = registerReplayShares({ app, getDatabase: db, accessTokens: applicationAuth, setPrivateNoStore, userAuth,
+  publicOrigin: APP_URL, resolveCardNames: ruCardNames, backgroundJobs: BACKGROUND_JOBS_ENABLED });
 registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit, cardImageDependencies: cardImageRouterDependencies, accessTokens: applicationAuth, publicOrigin: APP_URL, ...createPublicApiCardSources(() => constructedCardDataService), metaStatistics: { loadMeta: loadStandardMeta, loadCatalog: loadConstructedArchetypeCatalog, loadHistory: loadConstructedArchetypeHistory, loadAnalysis: loadConstructedArchetypeAnalysis }, deckStatistics: { loadCatalog: loadConstructedArchetypeCatalog }, arenaStatistics: { loadClasses: source => source === 'firestone' ? fetchFirestoneClassWinratesData() : fetchFreshestClassWinratesData(), loadCards: source => getTierlistApiData(source, Date.now()).then(result => result.data), loadLegendaries: source => getLegendariesApiData(source, Date.now()).then(result => result.data), loadMatchups: source => source === 'firestone' ? fetchFirestoneClassWinratesData().then(firestoneArenaMatchupsDataset) : fetchClassMatchupsData() } });
 app.use('/_internal', createTierlistCacheBustRouter({
   resolveSource: source => Object.prototype.hasOwnProperty.call(TIERLIST_DATASET_BY_SOURCE, source ?? '')

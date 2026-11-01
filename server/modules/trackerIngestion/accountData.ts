@@ -8,6 +8,8 @@ export type TrackerAccountDataDependencies = {
   setPrivateNoStore: (response: Response) => void;
   /** Told after an account's events were deleted, so derived caches can drop that account. */
   onDeleted?: (userId: string) => void;
+  /** The account's web replays (another module), written after the events, one JSON object each. */
+  exportReplays?: (userId: string) => Iterable<string>;
   now?: () => number;
 };
 
@@ -83,6 +85,16 @@ export function createTrackerAccountDataRouter(dependencies: TrackerAccountDataD
         await nextTurn();
         if (response.destroyed) return;
         page = dependencies.repository.exportPage(user.id, page.next, EXPORT_PAGE_ROWS, EXPORT_PAGE_BYTES);
+      }
+      if (dependencies.exportReplays) {
+        await writeChunk(response, '\n],"replays":[');
+        let firstReplay = true;
+        for (const row of dependencies.exportReplays(user.id)) {
+          if (response.destroyed) return;
+          await writeChunk(response, `${firstReplay ? '' : ','}\n${row}`);
+          firstReplay = false;
+          await nextTurn();
+        }
       }
       response.end('\n]}\n');
     } catch {

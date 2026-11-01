@@ -6,4 +6,4 @@ export {
   REPLAY_MAX_PER_ACCOUNT,
   type ReplayShareRepository,
 } from './repository.js';
-export { sanitizeReplayText, sanitizeReplayUpload, REPLAY_MAX_COMPRESSED_BYTES, type SanitizedReplay } from './sanitize.js';
+export { isCardId, sanitizeReplayText, sanitizeReplayUpload, REPLAY_MAX_COMPRESSED_BYTES, REPLAY_MODES, REPLAY_RESULTS, type SanitizedReplay } from './sanitize.js';
