@@ -216,6 +216,7 @@ const DEFAULT_HEADERS = {
 
 async function startConsentHarness(config: {
   deployment: 'production' | 'test'; issuer: string; clientId: string; redirectUri: string; userName?: string;
+  stagingBridge?: boolean;
 }) {
   const secret = randomBytes(32).toString('base64url');
   const token = randomBytes(32).toString('hex');
@@ -224,10 +225,14 @@ async function startConsentHarness(config: {
     CREATE TABLE sessions (token_hash TEXT PRIMARY KEY, user_id TEXT, expires_at INTEGER);`);
   database.prepare('INSERT INTO users VALUES (?, ?, NULL)').run('reader', config.userName ?? 'Читатель');
   database.prepare('INSERT INTO sessions VALUES (?, ?, ?)').run(createHash('sha256').update(token).digest('hex'), 'reader', Date.now() + 600_000);
+  // The production bridge registers the production reader first and the staging reader second.
+  const clients = [{ id: config.clientId, secret, redirectUri: config.redirectUri }];
+  if (config.stagingBridge) clients.unshift({ id: 'manacost-reader-production', secret, redirectUri: PRODUCTION_CALLBACK });
   const runtime = createBrowserIdentityRuntime({ issuer: config.issuer, deployment: config.deployment, database,
     encryptionKey: randomBytes(32), authCookieName: 'hp_test_login', trustedProxy: true, cookieKeys: [randomBytes(32).toString('base64url')],
     signingKeys: { keys: [{ ...generateKeyPairSync('rsa', { modulusLength: 2048 }).privateKey.export({ format: 'jwk' }), kid: 'test', use: 'sig', alg: 'RS256' }] },
-    clients: [{ id: config.clientId, secret, redirectUri: config.redirectUri }] });
+    allowStagingClient: config.stagingBridge,
+    clients });
   const app = express(); app.set('trust proxy', 'loopback'); app.use('/identity', runtime.router);
   const server = createServer(app);
   await new Promise<void>(resolve => server.listen(0, '127.0.0.1', resolve));
@@ -383,6 +388,37 @@ test('GET interaction client context returns only name and host for a live inter
   } finally { await harness.close(); }
 });
 
+test('with the staging bridge both clients are named by their own interaction', async () => {
+  const harness = await startConsentHarness({ deployment: 'production', issuer: PRODUCTION_ISSUER, stagingBridge: true,
+    clientId: 'manacost-reader-staging', redirectUri: STAGING_CALLBACK });
+  try {
+    const interactionUrl = await harness.startInteraction();
+    assert.equal(await (await harness.request(`${interactionUrl.pathname}/client`)).text(),
+      '{"name":"Манакост (тест)","host":"test.hs-manacost.ru"}');
+    harness.login();
+    assert.ok(visibleText(await (await harness.request(interactionUrl)).text()).includes('в Манакост (тест) (test.hs-manacost.ru)'));
+  } finally { await harness.close(); }
+});
+
+test('consent page escapes every special character of the profile name and names a nameless reader', async () => {
+  const special = await startConsentHarness({ deployment: 'production', issuer: PRODUCTION_ISSUER,
+    clientId: 'manacost-reader-production', redirectUri: PRODUCTION_CALLBACK, userName: `A&B "q" 'z' <i>` });
+  try {
+    const interactionUrl = await special.startInteraction();
+    special.login();
+    const html = await (await special.request(interactionUrl)).text();
+    assert.ok(html.includes('<strong>A&amp;B &quot;q&quot; &#39;z&#39; &lt;i&gt;</strong>'));
+    assert.ok(!html.includes('до 30 дней'), 'a plain sign-in does not mention remembered login');
+  } finally { await special.close(); }
+  const nameless = await startConsentHarness({ deployment: 'production', issuer: PRODUCTION_ISSUER,
+    clientId: 'manacost-reader-production', redirectUri: PRODUCTION_CALLBACK, userName: '' });
+  try {
+    const interactionUrl = await nameless.startInteraction();
+    nameless.login();
+    assert.ok((await (await nameless.request(interactionUrl)).text()).includes('Вы вошли как <strong>Читатель</strong>'));
+  } finally { await nameless.close(); }
+});
+
 test('client context of the staging and unreserved clients', async () => {
   const staging = await startConsentHarness({ deployment: 'test', issuer: 'https://identity.example.test/identity',
     clientId: 'manacost-reader-staging', redirectUri: STAGING_CALLBACK });
@@ -424,6 +460,7 @@ test('client context is hidden without this browser live interaction', async () 
       for (const [key, value] of interactionCookies) harness.cookies.set(key, value);
       const response = await harness.request(contextUrl, { method, headers: { origin: harness.origin } });
       assert.equal(response.status, 405, method);
+      assert.equal(response.headers.get('allow'), 'GET', method);
       assert.ok(!(await response.text()).includes('Манакост'), method);
     }
     // Expired interaction.
