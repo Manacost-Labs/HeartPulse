@@ -13,6 +13,7 @@ import AccountHero from './AccountHero';
 import AccountLinks, { type AccountTelegramLink } from './AccountLinks';
 import AccountPlanSection from './AccountPlanSection';
 import AccountSectionHead from './AccountSectionHead';
+import AccountReplays from './AccountReplays';
 import AccountTrackerData from './AccountTrackerData';
 import AccountPublicProfile, { type AccountPublicProfileProps } from './AccountPublicProfile';
 import AccountSettings, { type AccountSettingsProps } from './AccountSettings';
@@ -113,6 +114,7 @@ export default function AccountDashboard(props: AccountDashboardProps) {
         </Suspense>
       ) : null}
       <AccountTrackerData />
+      <AccountReplays />
       {props.publicProfile && <AccountPublicProfile {...props.publicProfile} />}
       <AccountLinks user={props.user} subscription={props.subscription} telegram={props.telegram} patreonLinkUrl={props.patreonLinkUrl} social={props.social} sessions={props.sessions} />
       <AccountSettings {...props.settings} />
