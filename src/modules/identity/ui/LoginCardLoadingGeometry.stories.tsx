@@ -50,6 +50,16 @@ export const ForExternalSite: Story = {
   },
 };
 
+/** The same guest before the server has named the site (or when it cannot): the neutral words, the line's place held. */
+export const ForExternalSiteUnnamed: Story = {
+  args: { signInFor: 'unnamed' },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText(/Вход через hearthpulse\.net/)).toHaveTextContent(/^Вход через hearthpulse\.net$/);
+    await expect(canvas.queryByText(/для сайта/)).not.toBeInTheDocument();
+    await expect(canvas.getByText('Пароль вводится только на hearthpulse.net')).toBeVisible();
+  },
+};
+
 export const Loading: Story = {
   render: () => <LoginCardSkeleton />,
   play: async ({ canvas }) => {

@@ -122,12 +122,28 @@ Name and host come only from `GET /identity/interaction/<uid>/client`,
 requested with `credentials: 'same-origin'` and `cache: 'no-store'` when the
 handle in `sessionStorage` (`hp_reader_interaction`, ten minutes) is alive and
 nobody is signed in. They are rendered as text and never taken from the URL, so
-a forged link with an unknown uid shows nothing. A `404`, any other status, a
-network failure or an answer of an unexpected shape leaves the ordinary card
-without a note. A sign-in without a handle makes no `/identity/` request.
-Reading the handle for the note (`pendingReaderInteraction`) does not consume
+a forged link with an unknown uid never shows a name. A sign-in without a handle
+makes no `/identity/` request and reserves nothing. Reading the handle for the
+note (`incomingReaderInteraction`, `pendingReaderInteraction`) does not consume
 or extend it; the redirect to `/identity/interaction/<uid>` after sign-in and
 the removal of the handle are unchanged.
+
+The place for the note is held from the first frame (E20 S2 follow-up). As soon
+as a live handle is known (the fragment of `/?login`, or `sessionStorage`) and
+nobody is signed in, the card shows the neutral words "Вход через
+hearthpulse.net" and "Пароль вводится только на hearthpulse.net"; the
+"для сайта `<name>` (`<host>`)" part is appended to the same line when the
+answer arrives. The line keeps the height of a named site (two lines, three on
+screens up to 350 px), so the form below does not move, whether the answer
+takes a moment or never comes. Only the name is ever cut, to one line with an
+ellipsis (the full text stays in the page); the host is always shown whole, so a
+name that imitates another host cannot hide where the sign-in goes. A name much
+longer than a site name can add a line. The handle is read once, on the first
+render, so the note stays even where `sessionStorage` cannot be read. A `404`,
+any other status, a network failure or an answer of an unexpected shape leaves
+the neutral words without a name: removing the note would move the form by the
+height of the note, and the neutral words are true for any handle and say
+nothing a forged link could choose.
 
 An expired or unknown interaction on the consent URL answers `400` with
 "Вход истёк. Вернитесь на сайт, с которого начали вход, и начните заново."

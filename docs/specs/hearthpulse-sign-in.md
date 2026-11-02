@@ -2,7 +2,7 @@
 
 Документ для разработчика сайта или приложения, которое хочет войти
 пользователя через **hearthpulse.net**. Эпик E20, срез S4. Все факты сверены с
-кодом `origin/main` (`eb913c0e`), с живым discovery и с живыми ответами
+кодом `origin/main` (`f2c7ad6d`), с живым discovery и с живыми ответами
 `GET /identity/auth` на 2026-11-01; как именно — в разделе
 «Как сверено».
 
@@ -312,11 +312,18 @@ export default app;
 
 ## Что видит пользователь
 
-1. Если он не вошёл в HearthPulse, он попадает на обычную карточку входа
-   HearthPulse на hearthpulse.net. Название вашего сайта на этой карточке
-   сейчас не показывается: плашка в работе
-   ([#330](https://github.com/Manacost-Labs/HeartPulse/issues/330)), до
-   релиза на неё не рассчитывайте.
+1. Если он не вошёл в HearthPulse, он попадает на карточку входа HearthPulse
+   на hearthpulse.net. Ссылка со стороны вашего сервера ведёт на
+   `/?login#reader_interaction=<uid>`, и над формой карточка пишет: «Вход через
+   hearthpulse.net для сайта `<название>` (`<хост>`)» и «Пароль вводится только
+   на hearthpulse.net». Название и хост берутся с сервера HearthPulse по этому
+   `<uid>` (то же имя, что на странице согласия), а не из ссылки: подделать
+   название адресной строкой нельзя. Если название совпадает с хостом, хост не
+   повторяется. Первые слова «Вход через hearthpulse.net» и вторая строка
+   видны сразу, название дописывается, когда придёт ответ, и форма при этом не
+   сдвигается. Если сервер не ответил или не знает этот `<uid>`, остаются
+   только нейтральные слова без названия. Сама карточка («Вход в HearthPulse»),
+   регистрация и восстановление пароля работают как обычно.
 2. Затем страница согласия `GET /identity/interaction/<uid>`:
    «Вход через hearthpulse.net в `<название>` (`<хост>`)», знак HearthPulse,
    текст «Сайт … получит ваш идентификатор и имя профиля. Пароль, почта и
@@ -399,7 +406,10 @@ CORS и SRI для скрипта кнопки; выход через `end_sessi
   `server/app/registerBrowserIdentity.ts`,
   `server/app/registerApplicationAuth.ts`, тесты
   `tests/browser-identity-runtime.test.ts` и
-  `tests/browser-identity-provider.test.ts`.
+  `tests/browser-identity-provider.test.ts`; карточка входа —
+  `src/modules/browserIdentity/ReaderAccountRoute.tsx`,
+  `src/modules/identity/ui/LoginCard.tsx` и браузерный тест
+  `tests/browser-identity-continuation-browser.test.mjs`.
 - Живой discovery: `curl -s
   https://hearthpulse.net/identity/.well-known/openid-configuration`.
 - Живой `GET /identity/auth` с точным клиентом Манакоста и корректным PKCE

@@ -12,6 +12,17 @@ export function pendingReaderInteraction(storageSource: StoragePort | (() => Sto
   } catch { return null; }
 }
 
+/**
+ * The handle this visit brings, known before the fragment is captured: the one in `/?login#reader_interaction=…`
+ * (only where `readerAuthContinuation` would store it) or the one already remembered. Writes nothing.
+ */
+export function incomingReaderInteraction(search: string, hash: string, storageSource: StoragePort | (() => StoragePort), now = Date.now()): string | null {
+  const params = new URLSearchParams(search);
+  const fragment = /^#reader_interaction=([A-Za-z0-9_-]{20,128})$/.exec(hash);
+  if (fragment && params.has('login') && !params.has('reader_interaction')) return fragment[1];
+  return pendingReaderInteraction(storageSource, now);
+}
+
 /** Only a short-lived interaction handle survives social-login navigation; it is not an authentication credential. */
 export function readerAuthContinuation(search: string, storageSource: StoragePort | (() => StoragePort), authenticated: boolean, now = Date.now(), hash = ''): string | null {
   try {
