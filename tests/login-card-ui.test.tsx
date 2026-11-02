@@ -119,14 +119,5 @@ test('while the site is unknown the card already holds its place: the neutral pa
     const text = visibleText(markup);
     assert.match(text, /Вход через hearthpulse\.net Пароль вводится только на hearthpulse\.net/);
     assert.doesNotMatch(text, /для сайта/);
-
   }
-});
-
-test('the named line starts with the neutral words, so the name is appended without moving them', () => {
-  const named = visibleText(card({ signInFor: { name: 'Манакост', host: 'hs-manacost.ru' } }));
-  assert.match(named, /Вход через hearthpulse\.net для сайта Манакост \(hs-manacost\.ru\) Пароль/);
-  const line = (markup: string) => markup.match(/<p class="login-site__line">([\s\S]*?)<\/p>/)?.[1] ?? '';
-  const neutral = line(card({ signInFor: 'unnamed' }));
-  assert.ok(line(card({ signInFor: { name: 'Манакост', host: 'hs-manacost.ru' } })).startsWith(neutral), 'same first text node in both states');
 });

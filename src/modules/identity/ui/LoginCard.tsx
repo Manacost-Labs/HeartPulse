@@ -147,7 +147,7 @@ function SignInForSite({ site }: { site: SignInFor }) {
     <div className="login-site">
       <p className="login-site__line">
         Вход через hearthpulse.net
-        {site !== 'unnamed' && <> для сайта <b>{site.name}</b>{site.host !== site.name && <> ({site.host})</>}</>}
+        {site !== 'unnamed' && <> для сайта <b className="login-site__name">{site.name}</b>{site.host !== site.name && <> <span className="login-site__host">({site.host})</span></>}</>}
       </p>
       <p className="login-site__note">Пароль вводится только на hearthpulse.net</p>
     </div>

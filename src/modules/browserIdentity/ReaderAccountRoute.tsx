@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import AccountRoute from '../accountRoute/public';
 import { incomingReaderInteraction, readerAuthContinuation } from './continuation';
 import { fetchReaderSignInSite, type ReaderSignInSite } from './signInSite';
@@ -18,15 +18,17 @@ export default function ReaderAccountRoute(props: React.ComponentProps<typeof Ac
     if (hash.startsWith('#reader_interaction=')) window.history.replaceState(window.history.state, '', `${window.location.pathname}${search}`);
     if (next) window.location.replace(next);
   }, [search, hash, props.user, props.connect]);
-  // Known while rendering, before the fragment is captured, so the card holds the place for the site from its first frame.
-  const uid = useMemo(() => (guest ? incomingReaderInteraction(search, hash, () => window.sessionStorage) : null), [guest, search, hash]);
+  // Fixed on the first render: the fragment is removed from the URL below and storage may be unreadable, but the
+  // card must hold the place for the site from its first frame to the last.
+  const [uid] = useState(() => (typeof window === 'undefined' ? null : incomingReaderInteraction(search, hash, () => window.sessionStorage)));
+  const pendingUid = guest ? uid : null;
   useEffect(() => {
-    if (!uid) return undefined;
+    if (!pendingUid) return undefined;
     const abort = new AbortController();
-    void fetchReaderSignInSite(uid, abort.signal).then(site => { if (!abort.signal.aborted) setLookup({ uid, site }); });
+    void fetchReaderSignInSite(pendingUid, abort.signal).then(site => { if (!abort.signal.aborted) setLookup({ uid: pendingUid, site }); });
     return () => abort.abort();
-  }, [uid]);
+  }, [pendingUid]);
   // Until the server answers, and if it never names a site, the neutral words stay: the card does not change height.
-  const signInFor = uid ? (lookup?.uid === uid && lookup.site) || 'unnamed' : undefined;
+  const signInFor = pendingUid ? (lookup?.uid === pendingUid && lookup.site) || 'unnamed' : undefined;
   return <AccountRoute {...props} signInFor={signInFor} />;
 }

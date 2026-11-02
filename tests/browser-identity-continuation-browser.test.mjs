@@ -15,6 +15,8 @@ const hostileInteraction = 'E'.repeat(24);
 const lateInteraction = 'F'.repeat(24);
 const lateLongInteraction = 'G'.repeat(24);
 const lateMissingInteraction = 'H'.repeat(24);
+const lateDecoyInteraction = 'I'.repeat(24);
+const decoyName = 'hs-manacost.ru Манакост официальный сайт — безопасный вход для читателей и игроков Hearthstone';
 // The answer to /client arrives this long after the card is on screen.
 const lateAnswerMs = 1000;
 const httpRequestUrls = [];
@@ -104,6 +106,8 @@ const clientAnswers = {
   [lateInteraction]: { status: 200, body: { name: 'Манакост', host: 'hs-manacost.ru' }, delay: lateAnswerMs },
   [lateLongInteraction]: { status: 200, body: { name: 'Манакост. Статистика, колоды и разборы Hearthstone для игроков'.repeat(2), host: 'a-very-long-subdomain.partner-site.example.com' }, delay: lateAnswerMs },
   [lateMissingInteraction]: { status: 404, delay: lateAnswerMs },
+  // A name that imitates another host, with the real host last: the host must never be the part that is cut.
+  [lateDecoyInteraction]: { status: 200, body: { name: decoyName, host: 'evil.example' }, delay: lateAnswerMs },
 };
 const server = createServer((request, response) => {
   httpRequestUrls.push(request.url);
@@ -307,6 +311,12 @@ try {
 
   // A late answer must not move the form: the place for the site line is reserved as soon as a handle is known.
   await page.evaluateOnNewDocument(() => {
+    // ?storage-denied: session storage refuses every read and write, as in a locked-down browser profile.
+    if (location.search.includes('storage-denied')) {
+      for (const method of ['getItem', 'setItem', 'removeItem']) {
+        Storage.prototype[method] = () => { throw new DOMException('Storage is denied', 'SecurityError'); };
+      }
+    }
     window.__shift = 0;
     window.__tops = [];
     window.__named = false;
@@ -322,10 +332,10 @@ try {
     };
     requestAnimationFrame(frame);
   });
-  async function lateAnswer(path, uid, width) {
+  async function lateAnswer(path, uid, width, query = '') {
     await page.setViewport({ width, height: 844 });
     await page.goto('about:blank');
-    await page.goto(`${origin}${path}/?login#reader_interaction=${uid}`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${origin}${path}/?login${query}#reader_interaction=${uid}`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.login-form');
     const early = await bodyText();
     await new Promise(resolve => setTimeout(resolve, lateAnswerMs + 500));
@@ -341,7 +351,30 @@ try {
         formBottom: form.bottom,
         overflow: document.documentElement.scrollWidth > window.innerWidth,
         cardRight: document.querySelector('.login-card').getBoundingClientRect().right,
-        bannerHeight: document.querySelector('.login-site').getBoundingClientRect().height,
+        bannerHeight: document.querySelector('.login-site')?.getBoundingClientRect().height ?? null,
+        ...(() => {
+          const banner = document.querySelector('.login-site');
+          const name = banner?.querySelector('.login-site__name');
+          const host = banner?.querySelector('.login-site__host');
+          const box = banner?.getBoundingClientRect();
+          const rects = host ? [...host.getClientRects()] : [];
+          // Hit-test both ends of every box of the host: a clipped part is not hit.
+          const hit = rects.every(r => [r.left + 1, r.right - 1].every(x => {
+            const element = document.elementFromPoint(x, r.top + r.height / 2);
+            return Boolean(element && host.contains(element));
+          }));
+          // The text itself is no wider than the boxes that carry it: nothing is cut inside the host.
+          const range = document.createRange();
+          if (host) range.selectNodeContents(host);
+          const text = host ? range.getBoundingClientRect() : null;
+          const textFits = Boolean(text) && text.right <= Math.max(...rects.map(r => r.right)) + 1 && text.left >= Math.min(...rects.map(r => r.left)) - 1;
+          return {
+            nameClipped: name ? name.scrollWidth > name.clientWidth : null,
+            hostText: host ? host.textContent : null,
+            hostWhole: rects.length > 0 && hit && textFits
+              && rects.every(r => r.left >= box.left && r.right <= box.right + 0.5 && r.top >= box.top && r.bottom <= box.bottom + 0.5 && r.right <= window.innerWidth),
+          };
+        })(),
       };
     }).then(result => ({ ...result, early }));
   }
@@ -358,14 +391,33 @@ try {
       assert.equal(late.overflow, false, `${label}: no horizontal overflow`);
     }
   }
-  // A very long name and host are cut to the reserved lines instead of growing the card.
+  // The regular name is shown whole: nothing the card holds back is cut off on narrow screens.
   for (const width of [390, 320]) {
-    const long = await lateAnswer('', lateLongInteraction, width);
-    assert.ok(long.named, `long name at ${width}px: the name arrived`);
-    assert.ok(long.shift < 0.005, `long name at ${width}px: layout shift ${long.shift}`);
-    assert.ok(long.spread <= 1, `long name at ${width}px: the form top moved by ${long.spread}px`);
-    assert.equal(long.overflow, false);
-    assert.ok(long.cardRight <= width);
+    const regular = await lateAnswer('', lateInteraction, width);
+    assert.equal(regular.nameClipped, false, `Манакост at ${width}px: the name is cut`);
+    assert.equal(regular.hostText, '(hs-manacost.ru)');
+    assert.equal(regular.hostWhole, true, `Манакост at ${width}px: the host is not fully visible`);
+  }
+  // A very long name is cut (and only the name); the host stays whole, also behind a name that imitates another host.
+  for (const width of [390, 320]) {
+    for (const [uid, host] of [[lateLongInteraction, 'a-very-long-subdomain.partner-site.example.com'], [lateDecoyInteraction, 'evil.example']]) {
+      const long = await lateAnswer('', uid, width);
+      assert.ok(long.named, `long name at ${width}px: the name arrived`);
+      assert.equal(long.nameClipped, true, `long name at ${width}px: the name is cut to one line`);
+      assert.equal(long.hostText, `(${host})`);
+      assert.equal(long.hostWhole, true, `${host} at ${width}px: the host must be fully visible`);
+      assert.equal(long.overflow, false);
+      assert.ok(long.cardRight <= width);
+      // The cut name keeps its one line; only a host that itself needs several lines can add lines of its own.
+      assert.ok(long.spread <= (host === 'evil.example' ? 23 : 46), `${host} at ${width}px: the form moved by ${long.spread}px`);
+    }
+  }
+  // Session storage that throws changes nothing: the place for the site is held for the whole time, and the name arrives.
+  for (const width of [390, 320]) {
+    const denied = await lateAnswer('', lateInteraction, width, '&storage-denied');
+    assert.match(denied.early, /Вход через hearthpulse\.net\s+Пароль вводится только на hearthpulse\.net/, `storage denied at ${width}px: neutral words on the first frame`);
+    assert.ok(denied.named, `storage denied at ${width}px: the name arrived`);
+    assert.ok(denied.shift < 0.005 && denied.spread <= 1, `storage denied at ${width}px: the form moved by ${denied.spread}px (shift ${denied.shift})`);
   }
   // A late 404 keeps the neutral words: nothing moves when the lookup fails.
   const missing = await lateAnswer('', lateMissingInteraction, 390);

@@ -134,12 +134,16 @@ nobody is signed in, the card shows the neutral words "Вход через
 hearthpulse.net" and "Пароль вводится только на hearthpulse.net"; the
 "для сайта `<name>` (`<host>`)" part is appended to the same line when the
 answer arrives. The line keeps the height of a named site (two lines, three on
-screens up to 350 px; a longer name is cut to those lines, the full text stays
-in the page), so the form below does not move, whether the answer takes a
-moment or never comes. A `404`, any other status, a network failure or an
-answer of an unexpected shape leaves the neutral words without a name: removing
-the note would move the form by the height of the note, and the neutral words
-are true for any handle and say nothing a forged link could choose.
+screens up to 350 px), so the form below does not move, whether the answer
+takes a moment or never comes. Only the name is ever cut, to one line with an
+ellipsis (the full text stays in the page); the host is always shown whole, so a
+name that imitates another host cannot hide where the sign-in goes. A name much
+longer than a site name can add a line. The handle is read once, on the first
+render, so the note stays even where `sessionStorage` cannot be read. A `404`,
+any other status, a network failure or an answer of an unexpected shape leaves
+the neutral words without a name: removing the note would move the form by the
+height of the note, and the neutral words are true for any handle and say
+nothing a forged link could choose.
 
 An expired or unknown interaction on the consent URL answers `400` with
 "Вход истёк. Вернитесь на сайт, с которого начали вход, и начните заново."
