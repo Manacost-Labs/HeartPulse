@@ -27,8 +27,6 @@ export function createCrashReportRouter(dependencies: CrashReportRouterDependenc
     }
     const report = readCrashReport(request.body);
     if (!report) return response.status(400).json(apiError('INVALID_REPORT', 'Not a Hearthpulse crash report'));
-    // A ceiling on the table: past it the app keeps the report and tries at a later start.
-    if (dependencies.repository.full()) return response.status(503).json(apiError('FULL', 'Crash reports are not taken now'));
     dependencies.repository.store(report, now());
     return response.status(201).json({ ok: true });
   });

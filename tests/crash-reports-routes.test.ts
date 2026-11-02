@@ -43,6 +43,15 @@ for (const [text, expected] of [
   ['Could not open D:\\Иван Петров\\Logs\\Power.log', 'Could not open <path>'],
   ['Bad file %USERPROFILE%\\OneDrive - Компания\\x.hpr', 'Bad file <path>'],
   ['Entity=Ivan tag=ZONE', 'Entity=<value> tag=<value>'],
+  // An apostrophe inside a name or a path does not end it; file:/// and forward slashes; long values; other quotes.
+  ["The given key 'O'Brien Smith' was not present", "The given key '<value>' was not present"],
+  ["Could not find file 'C:\\Users\\bob\\OneDrive - Bob's Company\\Documents\\x.hpr'", "Could not find file '<value>'"],
+  ["D:\\Mike's Games\\Hearthstone\\Logs\\Power.log is locked", '<path>'],
+  ['Invalid URI: file:///D:/Иван Петров/replays/a.hpr', 'Invalid URI: <path>'],
+  [`Key '${'Иван Петров '.repeat(20)}' missing`, "Key '<value>' missing"],
+  ['«Иван Петров» not found', '«<value>» not found'],
+  ['“Ivan” missing', '“<value>” missing'],
+  ['/opt/Ivan Petrov/x is gone', '<path>'],
 ]) {
   assert.equal(scrubCrashText(text, 300), expected);
 }
@@ -80,6 +89,11 @@ try {
   clock += (CRASH_REPORT_KEEP_DAYS + 1) * 86_400_000;
   assert.equal(repository.prune(clock), 1);
   assert.equal(rows(), 0);
+  // Past the ceiling the oldest go: the newest report is always kept.
+  const small = createSqliteCrashReportRepository(() => database, 3);
+  for (let i = 0; i < 5; i++) small.store(readCrashReport(report())!, clock + i);
+  assert.equal(rows(), 3);
+  assert.equal(Number((database.prepare('SELECT MIN(received_at) AS t FROM crash_reports').get() as { t: number }).t), clock + 2);
 } finally {
   server.close();
 }

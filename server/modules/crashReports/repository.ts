@@ -16,10 +16,8 @@ export const CRASH_REPORT_TABLES_SQL = `
 `;
 
 export type CrashReportRepository = {
-  /** Stores the report; false when its id was already stored (a resend). */
+  /** Stores the report, then drops the oldest past the ceiling; false when its id was already stored (a resend). */
   store: (report: CrashReport, now: number) => boolean;
-  /** Whether the table holds CRASH_REPORT_MAX_ROWS reports: new ones wait for the prune. */
-  full: () => boolean;
   /** Deletes reports older than CRASH_REPORT_KEEP_DAYS; returns how many. */
   prune: (now: number) => number;
 };
@@ -28,14 +26,18 @@ export function initializeCrashReportRepository(getDatabase: () => DatabaseSync)
   getDatabase().exec(CRASH_REPORT_TABLES_SQL);
 }
 
-export function createSqliteCrashReportRepository(getDatabase: () => DatabaseSync): CrashReportRepository {
+export function createSqliteCrashReportRepository(getDatabase: () => DatabaseSync, maxRows = CRASH_REPORT_MAX_ROWS): CrashReportRepository {
   return {
     store(report, now) {
-      return Number(getDatabase().prepare(`INSERT OR IGNORE INTO crash_reports (id, received_at, version, ui, error_type, report_json)
+      const database = getDatabase();
+      const stored = Number(database.prepare(`INSERT OR IGNORE INTO crash_reports (id, received_at, version, ui, error_type, report_json)
         VALUES (?, ?, ?, ?, ?, ?)`).run(report.id, now, report.version, report.ui, report.errors[0].type, JSON.stringify(report)).changes) > 0;
-    },
-    full() {
-      return Number((getDatabase().prepare('SELECT COUNT(*) AS n FROM crash_reports').get() as { n: number }).n) >= CRASH_REPORT_MAX_ROWS;
+      if (stored) {
+        // Past the ceiling the oldest reports go: a flood pushes out itself, not the reports that come after it.
+        database.prepare(`DELETE FROM crash_reports WHERE rowid IN (SELECT rowid FROM crash_reports ORDER BY received_at, rowid
+          LIMIT MAX((SELECT COUNT(*) FROM crash_reports) - ?, 0))`).run(maxRows);
+      }
+      return stored;
     },
     prune(now) {
       return Number(getDatabase().prepare('DELETE FROM crash_reports WHERE received_at < ?')

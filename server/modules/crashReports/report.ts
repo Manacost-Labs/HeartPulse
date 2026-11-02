@@ -7,7 +7,7 @@
 export const CRASH_REPORT_MAX_BYTES = 32 * 1024;
 /** Reports are kept this long, then deleted. */
 export const CRASH_REPORT_KEEP_DAYS = 90;
-/** At most this many reports are kept at once; past it new ones are refused until the prune makes room. */
+/** At most this many reports are kept at once; past it the oldest go, so a flood cannot shut real reports out. */
 export const CRASH_REPORT_MAX_ROWS = 20_000;
 
 const WHERE = new Set(['UI error', 'Fatal error', 'Unhandled error', 'Background error']);
@@ -44,9 +44,10 @@ export function scrubCrashText(value: unknown, max: number): string | null {
     .replace(/[\u0000-\u001f\u007f]/g, ' ')
     .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '<email>')
     .replace(/[\p{L}\p{N}_]{2,24}#\d{3,6}/gu, '<name>')
-    .replace(/(['"])[^'"]{1,200}\1/g, '$1<value>$1')
+    // Paths whole before quoted values: an apostrophe ends one only before a space, punctuation or the end.
+    .replace(/(?:file:\/\/\/|[A-Za-z]:[\\/]|\\\\|%USERPROFILE%(?=[\\/]|$)|\/(?:home|Users|tmp|var|private|mnt|media|root|Volumes|opt|srv)\/)(?:[^"'<>|«»“”„]|'(?![\s.,;:!?)\]]|$))*/g, '<path>')
+    .replace(/('|"|«|“|„)(?:(?<=')(?:[^']|'(?![\s.,;:!?)\]]|$))+(?='(?:[\s.,;:!?)\]]|$))|(?<=")[^"]+(?=")|(?<=«)[^»]+(?=»)|(?<=[“„])[^”“]+(?=[”“]))('|"|»|”|“)/g, '$1<value>$2')
     .replace(/\b([A-Za-z_][A-Za-z0-9_]{0,40})=[^\s,;)\]]+/g, '$1=<value>')
-    .replace(/(?:[A-Za-z]:\\|\\\\|%USERPROFILE%|\/(?:home|Users|tmp|var|private|mnt|media|root|Volumes)\/)[^"'<>|]*/g, '<path>')
     .replace(/\b\d{1,3}(?:\.\d{1,3}){3}\b/g, '<ip>')
     .replace(/\d{7,}/g, '<number>');
 }

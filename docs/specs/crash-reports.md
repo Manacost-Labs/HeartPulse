@@ -15,9 +15,11 @@ never tied to an account), 10 requests an hour per address
 (`registerCrashReportsRateLimit`). 201 `{ ok: true }`; a report already
 stored by its id is taken again without a second row; 400 `INVALID_REPORT`
 when it is not the app's shape; 413 above 32 KB (or a declared body above
-40 KB); 503 `FULL` while the table holds `CRASH_REPORT_MAX_ROWS` (20 000)
-reports. nginx (`deploy/nginx/hearthpulse-crash-reports.conf`) caps the body
-at 40 KB and keeps the route out of the access log.
+40 KB). Past `CRASH_REPORT_MAX_ROWS` (20 000) stored reports the oldest are
+deleted, so a flood cannot shut real reports out. nginx caps the body at 40
+KB and keeps the route out of the access log, on the origin
+(`deploy/nginx/hearthpulse-crash-reports.conf`, to the API on 3101) and on
+the edge (`hearthpulse-shadow-app.conf`).
 
 The shape (`server/modules/crashReports/report.ts`): `v: 1`, `id` (UUID),
 `app: "hearthpulse"`, `version`, `ui` (`wpf` | `avalonia`), `os`, `runtime`,
