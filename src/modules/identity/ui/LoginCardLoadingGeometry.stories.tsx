@@ -40,12 +40,12 @@ export const Ready: Story = {
   },
 };
 
-/** A guest sent from another site: the card names the site and where the password goes. */
+/** A guest sent from another site: the card names the site in fixed rows and says where the password goes. */
 export const ForExternalSite: Story = {
   args: { signInFor: { name: 'Манакост', host: 'hs-manacost.ru' } },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('heading', { name: 'Вход в HearthPulse' })).toBeVisible();
-    await expect(canvas.getByText(/Вход через hearthpulse\.net для сайта/)).toHaveTextContent('Вход через hearthpulse.net для сайта Манакост (hs-manacost.ru)');
+    await expect(canvas.getByText('Вход через hearthpulse.net').closest('p')).toHaveTextContent('Вход через hearthpulse.net для сайта Манакост (hs-manacost.ru)');
     await expect(canvas.getByText('Пароль вводится только на hearthpulse.net')).toBeVisible();
   },
 };

@@ -142,12 +142,19 @@ function CodeFields({ mode, values, onChange, onEditCredentials }: Pick<LoginCar
   );
 }
 
+/**
+ * Fixed rows, whatever the width: the lead words, then "для сайта <name>" (one line, the name is cut with an ellipsis),
+ * then the host (whole), so the neutral card holds exactly the rows a named site fills in and nothing moves.
+ */
 function SignInForSite({ site }: { site: SignInFor }) {
+  const named = site !== 'unnamed';
+  const hostIsName = named && site.host === site.name;
   return (
     <div className="login-site">
       <p className="login-site__line">
-        Вход через hearthpulse.net
-        {site !== 'unnamed' && <> для сайта <b className="login-site__name">{site.name}</b>{site.host !== site.name && <> <span className="login-site__host">({site.host})</span></>}</>}
+        <span className="login-site__lead">Вход через hearthpulse.net</span>{' '}
+        <span className="login-site__for">{named && <>для сайта{!hostIsName && <> <b>{site.name}</b></>}</>}</span>{' '}
+        <span className="login-site__host">{named && (hostIsName ? site.host : `(${site.host})`)}</span>
       </p>
       <p className="login-site__note">Пароль вводится только на hearthpulse.net</p>
     </div>

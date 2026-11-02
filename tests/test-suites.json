@@ -500,6 +500,7 @@
         "tests/next-standard-guest-paywall-browser.test.mjs",
         "tests/next-modal-isolation-browser.test.mjs",
         "tests/next-support-prompt-browser.test.mjs",
+        "tests/login-site-steady-browser.test.mjs",
         "tests/next-home-hydration-browser.test.mjs",
         "tests/next-article-covers-browser.test.mjs",
         "tests/next-card-scroll-position-browser.test.mjs",
