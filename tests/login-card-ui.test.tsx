@@ -112,3 +112,21 @@ test('a site whose name is its host is named once, and the name is plain text', 
   assert.doesNotMatch(hostile, /<img/);
   assert.match(hostile, /&lt;img src=x onerror=alert\(1\)&gt;/);
 });
+
+test('while the site is unknown the card already holds its place: the neutral part is shown, the name is not', () => {
+  for (const patch of [{}, { mode: 'register' as const }, { mode: 'reset' as const }, { step: 'code' as const }]) {
+    const markup = card({ signInFor: 'unnamed', ...patch });
+    const text = visibleText(markup);
+    assert.match(text, /Вход через hearthpulse\.net Пароль вводится только на hearthpulse\.net/);
+    assert.doesNotMatch(text, /для сайта/);
+
+  }
+});
+
+test('the named line starts with the neutral words, so the name is appended without moving them', () => {
+  const named = visibleText(card({ signInFor: { name: 'Манакост', host: 'hs-manacost.ru' } }));
+  assert.match(named, /Вход через hearthpulse\.net для сайта Манакост \(hs-manacost\.ru\) Пароль/);
+  const line = (markup: string) => markup.match(/<p class="login-site__line">([\s\S]*?)<\/p>/)?.[1] ?? '';
+  const neutral = line(card({ signInFor: 'unnamed' }));
+  assert.ok(line(card({ signInFor: { name: 'Манакост', host: 'hs-manacost.ru' } })).startsWith(neutral), 'same first text node in both states');
+});

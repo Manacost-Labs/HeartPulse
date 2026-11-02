@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { pendingReaderInteraction, readerAuthContinuation } from '../src/modules/browserIdentity/continuation.js';
+import { incomingReaderInteraction, pendingReaderInteraction, readerAuthContinuation } from '../src/modules/browserIdentity/continuation.js';
 import { fetchReaderSignInSite } from '../src/modules/browserIdentity/signInSite.js';
 
 test('login continuation preserves only a bounded handle through social callback, expires and consumes once', () => {
@@ -49,6 +49,21 @@ test('pending interaction is read without consuming, extending or clearing it', 
   values.set('hp_reader_interaction', 'not json');
   assert.equal(pendingReaderInteraction(storage, 2000), null);
   assert.equal(pendingReaderInteraction(() => { throw new DOMException('Storage disabled', 'SecurityError'); }, 2000), null);
+});
+
+test('an incoming interaction is known before anything is captured, from the fragment or from storage, and nothing is written', () => {
+  const { values, storage } = memoryStorage();
+  const uid = 'f'.repeat(32);
+  assert.equal(incomingReaderInteraction('?login', `#reader_interaction=${uid}`, storage, 1000), uid, 'the fragment of /?login counts');
+  assert.equal(values.size, 0, 'looking ahead writes nothing');
+  assert.equal(incomingReaderInteraction('', `#reader_interaction=${uid}`, storage, 1000), null, 'the fragment counts only on the login page');
+  assert.equal(incomingReaderInteraction(`?login&reader_interaction=${uid}`, `#reader_interaction=${uid}`, storage, 1000), null, 'a query handle disables the fragment');
+  assert.equal(incomingReaderInteraction('?login', '#reader_interaction=short', storage, 1000), null);
+  assert.equal(incomingReaderInteraction('?login', '', storage, 1000), null);
+  readerAuthContinuation('?login', storage, false, 1000, `#reader_interaction=${uid}`);
+  assert.equal(incomingReaderInteraction('?login', '', storage, 2000), uid, 'after the fragment is removed the stored handle remains');
+  assert.equal(incomingReaderInteraction('?login', '', storage, 601000), null, 'an expired handle is not reported');
+  assert.equal(incomingReaderInteraction('?login', '', () => { throw new DOMException('Storage disabled', 'SecurityError'); }, 2000), null);
 });
 
 type FetchCall = { input: string; init: RequestInit | undefined };

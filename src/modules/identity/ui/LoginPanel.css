@@ -77,7 +77,27 @@
   overflow-wrap: anywhere;
 }
 
-.login-card .login-site__line { margin: 0; color: #3d2a1e; font-weight: 600; }
+/*
+ * The line keeps the height of a named site from the first frame, before the server has answered (or when it never
+ * does), so the form below does not move when the name is appended. A longer name is cut to the same lines.
+ */
+.login-card .login-site__line {
+  --login-site-lines: 2;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--login-site-lines);
+  line-clamp: var(--login-site-lines);
+  min-height: calc(var(--login-site-lines) * 1.4em);
+  margin: 0;
+  overflow: hidden;
+  color: #3d2a1e;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+@media (max-width: 350px) {
+  .login-card .login-site__line { --login-site-lines: 3; }
+}
 .login-card .login-site__note { margin: 0; color: #6a513a; font-size: 0.9rem; }
 
 .login-message {
