@@ -8,11 +8,13 @@ import {
   createSqliteCrashReportRepository,
   initializeCrashReportRepository,
   readCrashReport,
+  scrubCrashText,
 } from '../server/modules/crashReports/public.js';
+import { registerCrashReportsRateLimit } from '../server/app/registerCrashReports.js';
 
 const report = (patch: Record<string, unknown> = {}) => ({
   v: 1, id: randomUUID(), app: 'hearthpulse', version: '0.15.0', ui: 'wpf', os: 'Microsoft Windows 10.0.26200 X64',
-  runtime: '.NET 10.0.0', language: 'ru-RU', where: 'UI error', count: 1, uptimeSeconds: 600, at: '2026-11-02T12:00:00Z',
+  runtime: '.NET 10.0.0', language: 'ru-RU', where: 'UI error', uptimeSeconds: 600, at: '2026-11-02T12:00:00Z',
   errors: [{ type: 'System.InvalidOperationException', message: 'Sequence contains no elements', stack: ['at Hearthpulse.Core.X.Y()'] }],
   ...patch,
 });
@@ -32,9 +34,18 @@ const scrubbed = readCrashReport(report({
     stack: ['at A.B() in C:\\src\\A.cs:line 5'] }],
 }));
 assert.ok(scrubbed);
-assert.equal(scrubbed.errors[0].message, '<name> <email> <ip> <number> <path> <path>');
-assert.equal(scrubbed.errors[0].stack[0], 'at A.B() in <path> 5');
+assert.equal(scrubbed.errors[0].message, '<name> <email> <ip> <number> <path>');
+assert.equal(scrubbed.errors[0].stack[0], 'at A.B() in <path>');
 assert.ok(!JSON.stringify(scrubbed).includes('zulut'));
+// The app's rules again: names in quotes and key=value, whole paths with spaces, paths under the profile.
+for (const [text, expected] of [
+  ["The given key 'Иван Петров' was not present", "The given key '<value>' was not present"],
+  ['Could not open D:\\Иван Петров\\Logs\\Power.log', 'Could not open <path>'],
+  ['Bad file %USERPROFILE%\\OneDrive - Компания\\x.hpr', 'Bad file <path>'],
+  ['Entity=Ivan tag=ZONE', 'Entity=<value> tag=<value>'],
+]) {
+  assert.equal(scrubCrashText(text, 300), expected);
+}
 
 // ---- the route ------------------------------------------------------------------------------------------------------
 
@@ -71,5 +82,23 @@ try {
   assert.equal(rows(), 0);
 } finally {
   server.close();
+}
+
+// Ten reports an hour from one address.
+const limited = express();
+registerCrashReportsRateLimit(limited);
+limited.post('/api/v1/crash-reports', (_request, response) => { response.status(201).end(); });
+const limitServer = limited.listen(0, '127.0.0.1');
+await new Promise<void>((resolve, reject) => { limitServer.once('listening', resolve); limitServer.once('error', reject); });
+try {
+  const limitAddress = limitServer.address();
+  assert.ok(limitAddress && typeof limitAddress === 'object');
+  const statuses = [];
+  for (let i = 0; i < 11; i++) {
+    statuses.push((await fetch(`http://127.0.0.1:${limitAddress.port}/api/v1/crash-reports`, { method: 'POST' })).status);
+  }
+  assert.deepEqual(statuses, [...Array(10).fill(201), 429]);
+} finally {
+  limitServer.close();
 }
 console.log('crash reports routes: ok');

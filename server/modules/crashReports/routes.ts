@@ -20,11 +20,15 @@ export function createCrashReportRouter(dependencies: CrashReportRouterDependenc
 
   router.post('/v1/crash-reports', (request, response) => {
     dependencies.setPrivateNoStore(response);
-    if (JSON.stringify(request.body ?? null).length > CRASH_REPORT_MAX_BYTES) {
+    // The declared size first (nginx caps the body at 40 KB too), then the parsed report.
+    if (Number(request.headers['content-length'] ?? 0) > CRASH_REPORT_MAX_BYTES + 8 * 1024
+      || JSON.stringify(request.body ?? null).length > CRASH_REPORT_MAX_BYTES) {
       return response.status(413).json(apiError('TOO_LARGE', 'A crash report is at most 32 KB'));
     }
     const report = readCrashReport(request.body);
     if (!report) return response.status(400).json(apiError('INVALID_REPORT', 'Not a Hearthpulse crash report'));
+    // A ceiling on the table: past it the app keeps the report and tries at a later start.
+    if (dependencies.repository.full()) return response.status(503).json(apiError('FULL', 'Crash reports are not taken now'));
     dependencies.repository.store(report, now());
     return response.status(201).json({ ok: true });
   });

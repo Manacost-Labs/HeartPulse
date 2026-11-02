@@ -31,7 +31,11 @@ current contract is the indexable HearthPulse canonical host and public CDN.
 6. When Tribute analytics is enabled, install
    `arena-tribute-webhook.conf` as
    `/etc/nginx/snippets/arena-tribute-webhook.conf` and include it in the
-   canonical HTTPS server before `arena-html-routing.conf`.
+   canonical HTTPS server before `arena-html-routing.conf`. In the same way
+   install `hearthpulse-crash-reports.conf` as
+   `/etc/nginx/snippets/hearthpulse-crash-reports.conf` and include it before
+   `arena-html-routing.conf`: crash reports from the app are not written to the
+   access log (the site keeps no IP for them) and their body is capped at 40 KB.
 7. Install `arena-canonical-host-redirect.conf` as
    `/etc/nginx/snippets/arena-canonical-host-redirect.conf` and include it in
    every HTTP, `www` and legacy `hs-arena.ru` redirect server. These hosts then

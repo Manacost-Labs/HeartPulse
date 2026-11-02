@@ -7,6 +7,8 @@
 export const CRASH_REPORT_MAX_BYTES = 32 * 1024;
 /** Reports are kept this long, then deleted. */
 export const CRASH_REPORT_KEEP_DAYS = 90;
+/** At most this many reports are kept at once; past it new ones are refused until the prune makes room. */
+export const CRASH_REPORT_MAX_ROWS = 20_000;
 
 const WHERE = new Set(['UI error', 'Fatal error', 'Unhandled error', 'Background error']);
 const UI = new Set(['wpf', 'avalonia']);
@@ -27,21 +29,24 @@ export type CrashReport = {
   runtime: string;
   language: string;
   where: string;
-  count: number;
   uptimeSeconds: number;
   at: string;
   errors: CrashError[];
 };
 
-/** Text the app sends, scrubbed again: control characters, e-mails, BattleTags, IP addresses, long numbers, paths. */
+/**
+ * Text the app sends, scrubbed again with the app's rules: control characters, e-mails, BattleTags, quoted values,
+ * key=value pairs, every absolute path whole (spaces included, to a quote or the end), IP addresses, long numbers.
+ */
 export function scrubCrashText(value: unknown, max: number): string | null {
   if (typeof value !== 'string' || value.length > max + 1) return null;
   return value
     .replace(/[\u0000-\u001f\u007f]/g, ' ')
     .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '<email>')
     .replace(/[\p{L}\p{N}_]{2,24}#\d{3,6}/gu, '<name>')
-    .replace(/([A-Za-z]:\\|\\\\)[^\s"'<>|]*/g, '<path>')
-    .replace(/\/(?:home|Users|tmp|var|private|mnt|media|root)\/[^\s"'<>|]*/g, '<path>')
+    .replace(/(['"])[^'"]{1,200}\1/g, '$1<value>$1')
+    .replace(/\b([A-Za-z_][A-Za-z0-9_]{0,40})=[^\s,;)\]]+/g, '$1=<value>')
+    .replace(/(?:[A-Za-z]:\\|\\\\|%USERPROFILE%|\/(?:home|Users|tmp|var|private|mnt|media|root|Volumes)\/)[^"'<>|]*/g, '<path>')
     .replace(/\b\d{1,3}(?:\.\d{1,3}){3}\b/g, '<ip>')
     .replace(/\d{7,}/g, '<number>');
 }
@@ -62,9 +67,8 @@ export function readCrashReport(body: unknown): CrashReport | null {
   if (typeof input.at !== 'string' || !AT.test(input.at)) return null;
   const os = scrubCrashText(input.os, 120);
   const runtime = scrubCrashText(input.runtime, 60);
-  const count = integer(input.count, 1_000_000);
   const uptimeSeconds = integer(input.uptimeSeconds, 2_147_483_647);
-  if (os === null || runtime === null || count === null || uptimeSeconds === null) return null;
+  if (os === null || runtime === null || uptimeSeconds === null) return null;
   if (!Array.isArray(input.errors) || input.errors.length < 1 || input.errors.length > 5) return null;
 
   const errors: CrashError[] = [];
@@ -84,6 +88,6 @@ export function readCrashReport(body: unknown): CrashReport | null {
 
   return {
     v: 1, id: input.id, app: 'hearthpulse', version: input.version, ui: input.ui, os, runtime, language: input.language,
-    where: input.where, count, uptimeSeconds, at: input.at, errors,
+    where: input.where, uptimeSeconds, at: input.at, errors,
   };
 }
