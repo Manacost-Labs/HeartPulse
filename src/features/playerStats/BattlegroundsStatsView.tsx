@@ -20,6 +20,7 @@ import {
   type HeroStats,
 } from '../../modules/playerStats/public';
 import { DATA_TABLE_LABELS, KPI_LABELS } from './playerStatsLabels';
+import { RecentBattlegroundsGames } from './RecentGamesBlock';
 import { GlobalNote, StatsBlock } from './StatsBlock';
 
 const MMR_OPTIONS: Array<{ value: GlobalMmrFilter; label: string }> = [
@@ -110,6 +111,7 @@ export function BattlegroundsStatsView({ stats, mmr, onMmrChange }: {
           density="compact" locale="ru-RU" labels={DATA_TABLE_LABELS} pageSize={20}
           empty={`Нет героев с ${minGames} и более играми`} />
       </StatsBlock>
+      <RecentBattlegroundsGames games={stats.recentGames} names={stats.cards} />
     </>
   );
 }

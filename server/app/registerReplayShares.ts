@@ -41,9 +41,9 @@ export function registerReplaySharesRateLimit(app: Application): void {
 
 /**
  * Web replays (plan 2.2, docs in the module): upload from the app, the public page's read, deleting. Returns the
- * repository, so the account's data export can include the replays.
+ * repository's readers, so the account's data export includes the replays and the profile links its games to them.
  */
-export function registerReplayShares(dependencies: RegisterReplaySharesDependencies): Pick<ReplayShareRepository, 'exportRows'> {
+export function registerReplayShares(dependencies: RegisterReplaySharesDependencies): Pick<ReplayShareRepository, 'exportRows' | 'replaysOfGames'> {
   initializeReplayShareRepository(dependencies.getDatabase);
   const knownArchetypes = new Set(Object.keys(archetypeFallbackTranslations()).map(name => name.toLowerCase()));
   const repository = createSqliteReplayShareRepository(dependencies.getDatabase);
@@ -69,5 +69,5 @@ export function registerReplayShares(dependencies: RegisterReplaySharesDependenc
     setTimeout(prune, 60_000).unref();
     setInterval(prune, 24 * 60 * 60_000).unref();
   }
-  return { exportRows: repository.exportRows };
+  return { exportRows: repository.exportRows, replaysOfGames: repository.replaysOfGames };
 }

@@ -35,6 +35,8 @@ export type PlayerStatsDependencies = {
   global: GlobalStatisticsSources;
   /** Localized names for card ids; missing names fall back to the id on the page. */
   resolveCardNames?: (cardIds: string[]) => Promise<Record<string, string>>;
+  /** The account's web replays of these games (game event id → replay id); read on every answer, never cached. */
+  replaysOfGames?: (userId: string, gameIds: string[]) => Record<string, string>;
   now?: () => number;
 };
 
@@ -95,6 +97,7 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
     if (stats.mode !== 'battlegrounds' || !resolveCardNames) return {};
     const ids = new Set<string>();
     for (const hero of stats.heroes) ids.add(hero.heroCardId);
+    for (const game of stats.recentGames) ids.add(game.heroCardId);
     for (const point of stats.ratingSeries) {
       ids.add(point.heroCardId);
       if (point.anomalyCardId) ids.add(point.anomalyCardId);
@@ -109,6 +112,16 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
   }
 
   const results = new Map<string, { expiresAt: number; value: PlayerStats }>();
+
+  /** Links «Последние игры» to the account's replays as they are now: an upload or a delete shows at once. */
+  function withReplays(userId: string, stats: PlayerStats): PlayerStats {
+    const replays = dependencies.replaysOfGames;
+    if (!replays || stats.recentGames.length === 0) return stats;
+    const byGame = replays(userId, stats.recentGames.map(game => game.id));
+    const recentGames: Array<{ id: string; replayId: string | null }> = stats.recentGames;
+    // Same mode, same game shapes: only `replayId` changes.
+    return { ...stats, recentGames: recentGames.map(game => ({ ...game, replayId: byGame[game.id] ?? null })) } as PlayerStats;
+  }
 
   return {
     /** Which tabs have data: version 2 game and run events per mode, counted without reading payloads. */
@@ -131,11 +144,11 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
     async load(userId: string, query: PlayerStatsQuery, globalAllowed: boolean): Promise<PlayerStats> {
       const key = `${userId}|${query.mode}:${query.period}:${query.duos}:${query.mmr}:${globalAllowed}`;
       const hit = results.get(key);
-      if (hit && hit.expiresAt > now()) return hit.value;
+      if (hit && hit.expiresAt > now()) return withReplays(userId, hit.value);
       const value = await compute(userId, query, globalAllowed);
       results.set(key, { expiresAt: now() + RESULT_TTL_MS, value });
       if (results.size > MAX_RESULT_ENTRIES) results.delete(results.keys().next().value as string);
-      return value;
+      return withReplays(userId, value);
     },
   };
 

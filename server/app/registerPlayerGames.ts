@@ -18,6 +18,8 @@ type RegisterPlayerGamesDependencies = {
   hasEntitlement: (request: Request, entitlement: GlobalStatsEntitlement) => Promise<boolean>;
   global: GlobalStatisticsSources;
   resolveCardNames?: (cardIds: string[]) => Promise<Record<string, string>>;
+  /** The account's web replays of its games, for links in «Последние игры». */
+  replaysOfGames?: (userId: string, gameIds: string[]) => Record<string, string>;
   setPrivateNoStore: (response: Response) => void;
   environment?: NodeJS.ProcessEnv;
 };
@@ -41,6 +43,7 @@ export function registerPlayerGames(dependencies: RegisterPlayerGamesDependencie
     countEvents: dependencies.countEvents,
     global: dependencies.global,
     resolveCardNames: dependencies.resolveCardNames,
+    replaysOfGames: dependencies.replaysOfGames,
   });
   dependencies.app.use('/api', createPlayerStatsRouter({
     userAuth: dependencies.userAuth,

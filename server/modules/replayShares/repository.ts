@@ -17,17 +17,20 @@ export const REPLAY_SHARE_TABLES_SQL = `
     header_json TEXT NOT NULL,
     body_gzip BLOB NOT NULL,
     delete_token_hash TEXT NOT NULL,
+    game_id TEXT,
     FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
   );
   CREATE INDEX IF NOT EXISTS idx_replay_shares_user_time ON replay_shares(user_id, created_at DESC);
   CREATE INDEX IF NOT EXISTS idx_replay_shares_time ON replay_shares(created_at);
 `;
+/** Added in plan 2.3 (the profile's «Последние игры»): the game's tracker event id, never published. */
+const REPLAY_SHARE_GAME_INDEX_SQL = 'CREATE INDEX IF NOT EXISTS idx_replay_shares_user_game ON replay_shares(user_id, game_id)';
 
 export type StoredReplay = { id: string; kind: ReplayKind; createdAt: number; header: Record<string, unknown> };
 
 export type ReplayShareRepository = {
   /** Stores a sanitized replay; null when the account already keeps REPLAY_MAX_PER_ACCOUNT. Old replays go first. */
-  store: (userId: string, kind: ReplayKind, header: Record<string, unknown>, text: string, now: number) => { id: string; deleteToken: string } | null;
+  store: (userId: string, kind: ReplayKind, header: Record<string, unknown>, text: string, now: number, gameId?: string | null) => { id: string; deleteToken: string } | null;
   /** The stored file (gzip) and its header, or null. */
   read: (id: string, now: number) => { header: Record<string, unknown>; kind: ReplayKind; createdAt: number; gzip: Buffer } | null;
   /** The account's replays, newest first (no files). */
@@ -38,6 +41,8 @@ export type ReplayShareRepository = {
   deleteOwned: (userId: string, id: string) => boolean;
   /** Deletes replays older than REPLAY_KEEP_DAYS; returns how many. */
   prune: (now: number) => number;
+  /** The account's live replays of these games (game event id → newest replay id), for the profile's game list. */
+  replaysOfGames: (userId: string, gameIds: string[], now: number) => Record<string, string>;
   /** The account's replays for its data export, one JSON object each (id, kind, time, header, file), read one by one. */
   exportRows: (userId: string, now: number) => Iterable<string>;
 };
@@ -52,21 +57,25 @@ export function newReplayId(): string {
 const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');
 
 export function initializeReplayShareRepository(getDatabase: () => DatabaseSync): void {
-  getDatabase().exec(REPLAY_SHARE_TABLES_SQL);
+  const database = getDatabase();
+  database.exec(REPLAY_SHARE_TABLES_SQL);
+  const columns = database.prepare('PRAGMA table_info(replay_shares)').all() as Array<{ name: string }>;
+  if (!columns.some(column => column.name === 'game_id')) database.exec('ALTER TABLE replay_shares ADD COLUMN game_id TEXT');
+  database.exec(REPLAY_SHARE_GAME_INDEX_SQL);
 }
 
 export function createSqliteReplayShareRepository(getDatabase: () => DatabaseSync): ReplayShareRepository {
   const since = (now: number) => now - REPLAY_KEEP_DAYS * DAY;
   const repository: ReplayShareRepository = {
-    store(userId, kind, header, text, now) {
+    store(userId, kind, header, text, now, gameId = null) {
       const database = getDatabase();
       const count = Number((database.prepare('SELECT COUNT(*) AS n FROM replay_shares WHERE user_id = ? AND created_at >= ?')
         .get(userId, since(now)) as { n: number }).n);
       if (count >= REPLAY_MAX_PER_ACCOUNT) return null;
       const id = newReplayId();
       const deleteToken = randomBytes(24).toString('base64url');
-      database.prepare(`INSERT INTO replay_shares (id, user_id, kind, created_at, header_json, body_gzip, delete_token_hash)
-        VALUES (?, ?, ?, ?, ?, ?, ?)`).run(id, userId, kind, now, JSON.stringify(header), gzipSync(text), hashToken(deleteToken));
+      database.prepare(`INSERT INTO replay_shares (id, user_id, kind, created_at, header_json, body_gzip, delete_token_hash, game_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(id, userId, kind, now, JSON.stringify(header), gzipSync(text), hashToken(deleteToken), gameId);
       return { id, deleteToken };
     },
     read(id, now) {
@@ -89,6 +98,15 @@ export function createSqliteReplayShareRepository(getDatabase: () => DatabaseSyn
     },
     prune(now) {
       return Number(getDatabase().prepare('DELETE FROM replay_shares WHERE created_at < ?').run(since(now)).changes);
+    },
+    replaysOfGames(userId, gameIds, now) {
+      const ids = [...new Set(gameIds)].slice(0, 200);
+      if (ids.length === 0) return {};
+      const rows = getDatabase().prepare(`SELECT id, game_id FROM replay_shares
+        WHERE user_id = ? AND created_at >= ? AND game_id IN (${ids.map(() => '?').join(',')}) ORDER BY created_at ASC`)
+        .all(userId, since(now), ...ids) as Array<{ id: string; game_id: string }>;
+      // Newest last, so a game uploaded twice links its newest replay.
+      return Object.fromEntries(rows.map(row => [row.game_id, row.id]));
     },
     *exportRows(userId, now) {
       for (const replay of repository.list(userId, now)) {

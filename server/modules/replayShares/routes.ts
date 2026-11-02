@@ -23,6 +23,8 @@ const apiError = (code: string, message: string) => ({ error: { code, message } 
 /** Unpacked replays kept for the public read: a shared link is opened by many at once. */
 const READ_CACHE_SIZE = 32;
 const REPLAY_ID = /^[0-9A-Za-z]{10}$/;
+/** The game's tracker event id (a UUID, plan 2.3): links the replay in the profile's game list; never published. */
+const GAME_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 /** Tokens that look like card ids (a letter, then letters, digits and at least one underscore). */
 const CARD_ID = /\b[A-Za-z][A-Za-z0-9]*_[A-Za-z0-9_]{1,60}\b/g;
 
@@ -57,8 +59,10 @@ export function createReplayShareRouter(dependencies: ReplayShareRouterDependenc
       return response.status(403).json(apiError('INSUFFICIENT_SCOPE', 'Access token does not grant tracker.write'));
     }
     const encoded = request.body?.hpr;
-    if (request.body?.v !== 1 || typeof encoded !== 'string' || encoded.length > 1_000_000 || !/^[A-Za-z0-9+/=]+$/.test(encoded)) {
-      return response.status(400).json(apiError('INVALID_BODY', 'Send {"v":1,"hpr":"<base64 gzip>"}'));
+    const gameId = request.body?.gameId ?? null;
+    if (request.body?.v !== 1 || typeof encoded !== 'string' || encoded.length > 1_000_000 || !/^[A-Za-z0-9+/=]+$/.test(encoded)
+      || (gameId !== null && (typeof gameId !== 'string' || !GAME_ID.test(gameId)))) {
+      return response.status(400).json(apiError('INVALID_BODY', 'Send {"v":1,"hpr":"<base64 gzip>","gameId"?:"<uuid>"}'));
     }
     const result = sanitizeReplayUpload(Buffer.from(encoded, 'base64'), dependencies.knownArchetypes);
     if ('code' in result) {
@@ -67,7 +71,7 @@ export function createReplayShareRouter(dependencies: ReplayShareRouterDependenc
     }
     const at = now();
     prune(at);
-    const stored = dependencies.repository.store(authenticated.userId, result.kind, result.header, result.text, at);
+    const stored = dependencies.repository.store(authenticated.userId, result.kind, result.header, result.text, at, gameId);
     if (!stored) return response.status(409).json(apiError('QUOTA_EXCEEDED', 'The account keeps the most replays it may'));
     return response.status(201).json({
       id: stored.id,

@@ -180,6 +180,17 @@ try {
   assert.equal((await fetch(`${base}/v1/tracker/replays/${id}`, { method: 'DELETE', headers: { 'x-delete-token': deleteToken } })).status, 204);
   assert.equal((await fetch(`${base}/v1/replays/${id}`)).status, 404);
 
+  // The game's event id links the replay in the profile's game list (plan 2.3): only a UUID, never published.
+  const gameId = '6f1d2c1e-4b5a-5f0e-9a51-3c7b8d2e9f10';
+  assert.equal((await upload({ ...hpr(game), gameId: 'Zulut-2187' })).status, 400);
+  const withGame = await (await upload({ ...hpr(game), gameId })).json() as { id: string; deleteToken: string };
+  const publicRead = await (await fetch(`${base}/v1/replays/${withGame.id}`)).json() as Record<string, unknown>;
+  assert.ok(!JSON.stringify(publicRead).includes(gameId));
+  assert.deepEqual(repository.replaysOfGames('user-1', [gameId, 'other'], clock), { [gameId]: withGame.id });
+  assert.deepEqual(repository.replaysOfGames('user-2', [gameId], clock), {});
+  assert.equal((await fetch(`${base}/v1/tracker/replays/${withGame.id}`, { method: 'DELETE', headers: { 'x-delete-token': withGame.deleteToken } })).status, 204);
+  assert.deepEqual(repository.replaysOfGames('user-1', [gameId], clock), {});
+
   // Deleting from the account page, and the retention: the prune runs on its own (the daily timer), without an upload.
   const second = await (await upload(hpr(game))).json() as { id: string };
   assert.equal((await fetch(`${base}/v1/replays/${second.id}`)).status, 200);

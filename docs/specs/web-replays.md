@@ -15,7 +15,8 @@ at start: `id` (10 base62 characters), `user_id` (FK `users`, `ON DELETE
 CASCADE`), `kind` (`constructed` | `battlegrounds`), `created_at` (epoch ms),
 `header_json` (the rebuilt header), `body_gzip` (the sanitized file),
 `delete_token_hash` (sha256 of the delete token; the token itself is handed
-out once). No IP address, device or name is stored.
+out once), `game_id` (the game's tracker event id, or null; added at start to
+an older table). No IP address, device or name is stored.
 
 Limits: 200 replays per account (`REPLAY_MAX_PER_ACCOUNT`), kept 180 days
 (`REPLAY_KEEP_DAYS`): the prune runs at each upload, a minute after start and
@@ -50,7 +51,10 @@ Limits: 512 KB gzip, 8 MB text, 100 000 lines, 512 characters a line.
   "hpr":"<base64 gzip>"}` → 201 `{ id, url, deleteToken, events }`. 401
   without a token, 403 without the scope, 400 not a replay or a refused line,
   413 too large, 409 the account keeps 200, 429 more than 20 uploads an hour
-  from one address.
+  from one address. Optional `gameId`: the game's tracker event id (a UUID,
+  otherwise 400), sent by the app only while the player sends games to the
+  profile; it links the replay in the account's «Последние игры»
+  ([player game statistics](player-game-stats.md)) and is never published.
 - `DELETE /api/v1/tracker/replays/:id` — `X-Delete-Token`, or the owner's
   Bearer → 204; otherwise 404. Not counted by the upload limit.
 - `GET /api/v1/replays/:id` — public, `Cache-Control: private, no-store`,
