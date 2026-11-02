@@ -398,6 +398,7 @@
         "tests/player-games-schema.test.ts",
         "tests/replay-shares-routes.test.ts",
         "tests/app-usage-routes.test.ts",
+        "tests/crash-reports-routes.test.ts",
         "tests/tracker-account-data-routes.test.ts",
         "tests/tracker-ingestion-routes.test.ts",
         "tests/web-vitals-routes.test.ts",

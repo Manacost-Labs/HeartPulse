@@ -168,6 +168,7 @@ import {
 } from './app/registerTrackerIngestion.js';
 import { registerReplayShares, registerReplaySharesRateLimit } from './app/registerReplayShares.js';
 import { registerAppUsage, registerAppUsageRateLimit } from './app/registerAppUsage.js';
+import { registerCrashReports, registerCrashReportsRateLimit } from './app/registerCrashReports.js';
 import { TRACKER_MAX_BATCH_BYTES } from './modules/trackerIngestion/public.js';
 import { registerBrowserIdentity } from './app/registerBrowserIdentity.js';
 import { registerPlayerGames, registerPlayerGamesRateLimit } from './app/registerPlayerGames.js';
@@ -7128,6 +7129,7 @@ const browserIdentity = registerBrowserIdentity({ app, getDatabase: db, authCook
 registerTrackerIngestionRateLimit(app);
 registerReplaySharesRateLimit(app);
 registerAppUsageRateLimit(app);
+registerCrashReportsRateLimit(app);
 registerPlayerGamesRateLimit(app);
 app.use(createRouteAwareJsonParser({
   defaultLimit: process.env.API_JSON_BODY_LIMIT || '1mb',
@@ -7178,6 +7180,7 @@ const trackerEvents = registerTrackerIngestion({ app, getDatabase: db, accessTok
   exportUsage: userId => appUsage.exportRows(userId) });
 const replayShares = registerReplayShares({ app, getDatabase: db, accessTokens: applicationAuth, setPrivateNoStore, userAuth,
   publicOrigin: APP_URL, resolveCardNames: ruCardNames, backgroundJobs: BACKGROUND_JOBS_ENABLED });
+registerCrashReports({ app, getDatabase: db, setPrivateNoStore, backgroundJobs: BACKGROUND_JOBS_ENABLED });
 const appUsage = registerAppUsage({ app, getDatabase: db, accessTokens: applicationAuth, setPrivateNoStore, backgroundJobs: BACKGROUND_JOBS_ENABLED,
   hasSection: (userId, section) => {
     const status = readSubscriptionStatus(userId);
