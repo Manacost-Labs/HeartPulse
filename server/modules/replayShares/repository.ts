@@ -43,7 +43,7 @@ export type ReplayShareRepository = {
   prune: (now: number) => number;
   /** The account's live replays of these games (game event id → newest replay id), for the profile's game list. */
   replaysOfGames: (userId: string, gameIds: string[], now: number) => Record<string, string>;
-  /** The account's replays for its data export, one JSON object each (id, kind, time, header, file), read one by one. */
+  /** The account's replays for its data export, one JSON object each (id, kind, time, game id, header, file), read one by one. */
   exportRows: (userId: string, now: number) => Iterable<string>;
 };
 
@@ -109,10 +109,12 @@ export function createSqliteReplayShareRepository(getDatabase: () => DatabaseSyn
       return Object.fromEntries(rows.map(row => [row.game_id, row.id]));
     },
     *exportRows(userId, now) {
+      const gameOf = getDatabase().prepare('SELECT game_id FROM replay_shares WHERE id = ?');
       for (const replay of repository.list(userId, now)) {
         const row = repository.read(replay.id, now);
         if (!row) continue;
-        yield JSON.stringify({ id: replay.id, kind: row.kind, createdAt: new Date(row.createdAt).toISOString(), header: row.header,
+        const gameId = (gameOf.get(replay.id) as { game_id: string | null } | undefined)?.game_id ?? null;
+        yield JSON.stringify({ id: replay.id, kind: row.kind, createdAt: new Date(row.createdAt).toISOString(), gameId, header: row.header,
           text: gunzipSync(row.gzip).toString('utf8') });
       }
     },

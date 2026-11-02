@@ -26,11 +26,11 @@ function ClassCell({ playerClass, detail }: { playerClass: RecentConstructedGame
   );
 }
 
-/** The game's web replay, when the player uploaded it from the app. */
-function replayColumn<T extends { replayId: string | null }>(): DataTableColumn<T> {
+/** The game's web replay, when the player uploaded it from the app; the link names the game for a screen reader. */
+function replayColumn<T extends { replayId: string | null; startedAt: number }>(): DataTableColumn<T> {
   return { key: 'replayId', header: 'Реплей', align: 'right', cell: game => (game.replayId
-    ? <a href={`/replay/${game.replayId}`}>Смотреть</a>
-    : <span aria-label="Реплея на сайте нет">—</span>) };
+    ? <a href={`/replay/${game.replayId}`} aria-label={`Смотреть реплей игры ${formatGameDate(game.startedAt)}`}>Смотреть</a>
+    : <><span aria-hidden="true">—</span><span className="player-stats-visually-hidden">Реплея на сайте нет</span></>) };
 }
 
 const dateColumn = <T extends { startedAt: number }>(): DataTableColumn<T> =>

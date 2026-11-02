@@ -74,8 +74,11 @@ export function formatDuration(seconds: number | null): string {
   return minutes % 60 ? `${hours} ч ${minutes % 60} мин` : `${hours} ч`;
 }
 
-export function formatGameDate(timestamp: number): string {
-  return new Date(timestamp).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+/** «3 нояб., 18:40»; a game of another year shows the year too («3 нояб. 2025 г., 18:40»). */
+export function formatGameDate(timestamp: number, now = Date.now()): string {
+  const date = new Date(timestamp);
+  const year = date.getFullYear() !== new Date(now).getFullYear() ? { year: 'numeric' as const } : {};
+  return date.toLocaleString('ru-RU', { day: 'numeric', month: 'short', ...year, hour: '2-digit', minute: '2-digit' });
 }
 
 export function pluralGames(count: number): string {

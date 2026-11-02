@@ -187,6 +187,10 @@ try {
   const publicRead = await (await fetch(`${base}/v1/replays/${withGame.id}`)).json() as Record<string, unknown>;
   assert.ok(!JSON.stringify(publicRead).includes(gameId));
   assert.deepEqual(repository.replaysOfGames('user-1', [gameId, 'other'], clock), { [gameId]: withGame.id });
+  // The account's own data export carries it.
+  const exportedGame = [...repository.exportRows('user-1', clock)].map(row => JSON.parse(row) as { id: string; gameId: string | null })
+    .find(row => row.id === withGame.id);
+  assert.equal(exportedGame?.gameId, gameId);
   assert.deepEqual(repository.replaysOfGames('user-2', [gameId], clock), {});
   assert.equal((await fetch(`${base}/v1/tracker/replays/${withGame.id}`, { method: 'DELETE', headers: { 'x-delete-token': withGame.deleteToken } })).status, 204);
   assert.deepEqual(repository.replaysOfGames('user-1', [gameId], clock), {});

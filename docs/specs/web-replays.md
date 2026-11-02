@@ -65,7 +65,7 @@ Limits: 512 KB gzip, 8 MB text, 100 000 lines, 512 characters a line.
 - `GET /api/account/replays`, `DELETE /api/account/replays/:id` — the site
   session (CSRF rules of `/api/account`): the list (no files) and deleting.
 - The account's data export (`GET /api/account/tracker-data/export`) carries
-  `replays: [{ id, kind, createdAt, header, text }]` after `events`.
+  `replays: [{ id, kind, createdAt, gameId, header, text }]` after `events`.
 
 ## Pages
 
