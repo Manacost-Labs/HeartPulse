@@ -181,9 +181,11 @@ try {
   page.on('console', message => { if (message.type() === 'error') consoleErrors.push(message.text()); });
   const siteLine = 'Вход через hearthpulse.net для сайта Манакост (hs-manacost.ru)';
   const bodyText = () => page.evaluate(() => document.body.innerText);
+  // The notice is laid out in rows, so a sentence is compared with its line breaks read as spaces.
+  const flatText = async () => (await bodyText()).replace(/\s+/g, ' ');
   const clientRequests = () => httpRequestUrls.filter(url => url.startsWith('/identity/'));
   const lookups = () => clientRequests().filter(url => url.endsWith('/client'));
-  const waitForSiteLine = () => page.waitForFunction(line => document.body.innerText.includes(line), {}, siteLine);
+  const waitForSiteLine = () => page.waitForFunction(line => document.body.innerText.replace(/\s+/g, ' ').includes(line), {}, siteLine);
 
   // An ordinary sign-in names no site and never talks to /identity/.
   await page.goto(`${origin}/?login`, { waitUntil: 'networkidle0' });
@@ -248,11 +250,11 @@ try {
   await waitForSiteLine();
   await page.evaluate(() => [...document.querySelectorAll('button')].find(button => button.textContent === 'Регистрация').click());
   await page.waitForFunction(() => document.body.innerText.includes('Регистрация в HearthPulse'));
-  assert.ok((await bodyText()).includes(siteLine), 'registration names the site');
+  assert.ok((await flatText()).includes(siteLine), 'registration names the site');
   await page.evaluate(() => [...document.querySelectorAll('button')].find(button => button.textContent === 'Вход').click());
   await page.evaluate(() => [...document.querySelectorAll('button')].find(button => button.textContent === 'Забыли пароль?').click());
   await page.waitForFunction(() => document.body.innerText.includes('Восстановление пароля'));
-  assert.ok((await bodyText()).includes(siteLine), 'password recovery names the site');
+  assert.ok((await flatText()).includes(siteLine), 'password recovery names the site');
 
   // The real account route and sign-in panel carry the site to the card.
   await page.goto('about:blank');
@@ -354,7 +356,7 @@ try {
         bannerHeight: document.querySelector('.login-site')?.getBoundingClientRect().height ?? null,
         ...(() => {
           const banner = document.querySelector('.login-site');
-          const name = banner?.querySelector('.login-site__name');
+          const name = banner?.querySelector('.login-site__for');
           const host = banner?.querySelector('.login-site__host');
           const box = banner?.getBoundingClientRect();
           const rects = host ? [...host.getClientRects()] : [];
@@ -384,7 +386,7 @@ try {
       const late = await lateAnswer(path, lateInteraction, width);
       assert.match(late.early, /Вход через hearthpulse\.net\s+Пароль вводится только на hearthpulse\.net/, `${label}: the neutral words are on the first frame`);
       assert.doesNotMatch(late.early, /для сайта/, `${label}: the name is not invented before the answer`);
-      assert.ok((await bodyText()).includes(siteLine), `${label}: the name arrives in the same line`);
+      assert.ok((await flatText()).includes(siteLine), `${label}: the name arrives in the same line`);
       assert.ok(late.named && late.frames > 20, `${label}: the page was observed across the arrival of the name`);
       assert.ok(late.shift < 0.005, `${label}: layout shift ${late.shift} must stay near zero`);
       assert.ok(late.spread <= 1, `${label}: the form top moved by ${late.spread}px`);
@@ -408,8 +410,8 @@ try {
       assert.equal(long.hostWhole, true, `${host} at ${width}px: the host must be fully visible`);
       assert.equal(long.overflow, false);
       assert.ok(long.cardRight <= width);
-      // The cut name keeps its one line; only a host that itself needs several lines can add lines of its own.
-      assert.ok(long.spread <= (host === 'evil.example' ? 23 : 46), `${host} at ${width}px: the form moved by ${long.spread}px`);
+      // The cut name keeps its one row; only a host that itself needs several lines can add lines of its own.
+      assert.ok(long.spread <= (host === 'evil.example' ? 1 : 46), `${host} at ${width}px: the form moved by ${long.spread}px`);
     }
   }
   // Session storage that throws changes nothing: the place for the site is held for the whole time, and the name arrives.

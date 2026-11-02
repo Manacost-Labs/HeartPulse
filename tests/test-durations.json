@@ -301,6 +301,7 @@
     "tests/next-first-paint-data-browser.test.mjs": 9,
     "tests/next-font-swap-browser.test.mjs": 15,
     "tests/next-guide-detail-browser.test.mjs": 6.8,
+    "tests/login-site-steady-browser.test.mjs": 45,
     "tests/next-home-hydration-browser.test.mjs": 27,
     "tests/next-import-paths.test.mjs": 0.1,
     "tests/next-instant-access-browser.test.mjs": 67,

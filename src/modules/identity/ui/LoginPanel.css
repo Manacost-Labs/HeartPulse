@@ -78,30 +78,26 @@
 }
 
 /*
- * The line keeps the height of a named site from the first frame, before the server has answered (or when it never
- * does), so the form below does not move when the name is appended. Only the name is ever cut (to one line, with an
- * ellipsis): the host, which is what tells the guest where they are going, is always shown whole.
+ * Fixed rows, so the height of the notice is the same at every width and the form below never moves when the server
+ * names the site: the lead words (the same text before and after), "для сайта <name>" on one line (only the name is cut,
+ * with an ellipsis) and the host on its own line, always whole. The two rows hold their line before they have text.
  */
 .login-card .login-site__line {
-  --login-site-lines: 2;
-  min-height: calc(var(--login-site-lines) * 1.4em);
   margin: 0;
   color: #3d2a1e;
   font-weight: 600;
   line-height: 1.4;
 }
 
-.login-card .login-site__name {
-  display: inline-block;
-  max-width: 12em;
+.login-card .login-site__line > span { display: block; }
+
+.login-card .login-site__for,
+.login-card .login-site__host { min-height: 1.4em; }
+
+.login-card .login-site__for {
   overflow: hidden;
   text-overflow: ellipsis;
-  vertical-align: bottom;
   white-space: nowrap;
-}
-
-@media (max-width: 350px) {
-  .login-card .login-site__line { --login-site-lines: 3; }
 }
 
 .login-card .login-site__note { margin: 0; color: #6a513a; font-size: 0.9rem; }
