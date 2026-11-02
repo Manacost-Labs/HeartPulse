@@ -10,6 +10,8 @@ export type TrackerAccountDataDependencies = {
   onDeleted?: (userId: string) => void;
   /** The account's web replays (another module), written after the events, one JSON object each. */
   exportReplays?: (userId: string) => Iterable<string>;
+  /** The account's app usage claims (another module, plan 3.1), written after the replays. */
+  exportUsage?: (userId: string) => Iterable<string>;
   now?: () => number;
 };
 
@@ -94,6 +96,15 @@ export function createTrackerAccountDataRouter(dependencies: TrackerAccountDataD
           await writeChunk(response, `${firstReplay ? '' : ','}\n${row}`);
           firstReplay = false;
           await nextTurn();
+        }
+      }
+      if (dependencies.exportUsage) {
+        await writeChunk(response, '\n],"usage":[');
+        let firstClaim = true;
+        for (const row of dependencies.exportUsage(user.id)) {
+          if (response.destroyed) return;
+          await writeChunk(response, `${firstClaim ? '' : ','}\n${row}`);
+          firstClaim = false;
         }
       }
       response.end('\n]}\n');

@@ -29,7 +29,7 @@ export function registerAppUsageRateLimit(app: Application): void {
 }
 
 /** Daily free use of the app's paid analytics (plan 3.1, docs/specs/app-usage-limits.md). */
-export function registerAppUsage(dependencies: RegisterAppUsageDependencies): void {
+export function registerAppUsage(dependencies: RegisterAppUsageDependencies): { exportRows: (userId: string) => Iterable<string> } {
   initializeAppUsageRepository(dependencies.getDatabase);
   const repository = createSqliteAppUsageRepository(dependencies.getDatabase);
   dependencies.app.use('/api', createAppUsageRouter({
@@ -50,4 +50,6 @@ export function registerAppUsage(dependencies: RegisterAppUsageDependencies): vo
     setTimeout(prune, 60_000).unref();
     setInterval(prune, 24 * 60 * 60_000).unref();
   }
+  // The account's claims go into its data export (right of access).
+  return { exportRows: repository.exportRows };
 }

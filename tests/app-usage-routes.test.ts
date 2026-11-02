@@ -86,6 +86,13 @@ try {
   assert.deepEqual([fourth.allowed, fourth.used, fourth.resetsAt], [false, 3, '2026-11-03T00:00:00.000Z']);
   const today = await (await fetch(base, { headers: { authorization: 'Bearer free' } })).json() as { usage: Record<string, { used: number; unlimited: boolean }> };
   assert.deepEqual(today.usage[BG_POOL_STATS], { unlimited: false, used: 3, limit: 3 });
+  // The count and the insert are one statement: at the limit nothing more is counted, whoever asks.
+  assert.equal(repository.claimWithin('free', '2026-11-02', BG_POOL_STATS, randomUUID(), 3, clock), false);
+  assert.equal(repository.used('free', '2026-11-02', BG_POOL_STATS), 3);
+  // The account's own data export carries its claims (day, feature, random game id, time).
+  const exported = [...repository.exportRows('free')].map(row => JSON.parse(row) as { day: string; feature: string; gameId: string });
+  assert.deepEqual(exported.map(row => row.gameId).sort(), [...games].sort());
+  assert.ok(exported.every(row => row.day === '2026-11-02' && row.feature === BG_POOL_STATS));
 
   // Another account has its own count; a subscriber of the section has no limit and nothing is stored.
   assert.equal(((await (await claim('other', { feature: BG_POOL_STATS, gameId: randomUUID() })).json()) as Claim).used, 1);

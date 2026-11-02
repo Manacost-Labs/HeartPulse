@@ -86,14 +86,10 @@ export function createAppUsageRouter(dependencies: AppUsageRouterDependencies): 
       return response.json({ ...base, allowed: true, unlimited: true, used: 0 });
     }
     const repository = dependencies.repository;
-    // node:sqlite is synchronous: the count and the insert run without another request in between.
-    if (repository.claimed(userId, day, feature.key, gameId)) {
-      return response.json({ ...base, allowed: true, unlimited: false, used: repository.used(userId, day, feature.key) });
-    }
-    const used = repository.used(userId, day, feature.key);
-    if (used >= feature.freePerDay) return response.json({ ...base, allowed: false, unlimited: false, used });
-    repository.claim(userId, day, feature.key, gameId, now());
-    return response.json({ ...base, allowed: true, unlimited: false, used: used + 1 });
+    // A game already counted today stays allowed; a new one is counted only under the limit, in one statement.
+    const allowed = repository.claimed(userId, day, feature.key, gameId)
+      || repository.claimWithin(userId, day, feature.key, gameId, feature.freePerDay, now());
+    return response.json({ ...base, allowed, unlimited: false, used: repository.used(userId, day, feature.key) });
   });
 
   return router;

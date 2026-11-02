@@ -7174,10 +7174,11 @@ const playerStats = registerPlayerGames({ app, userAuth, setPrivateNoStore,
 const trackerEvents = registerTrackerIngestion({ app, getDatabase: db, accessTokens: applicationAuth, setPrivateNoStore,
   validatePayload: validateStatisticsPayload, onStored: playerStats.invalidate, userAuth, onDeleted: playerStats.invalidate,
   // The export reads the replays through a closure: their module is registered just below.
-  exportReplays: userId => replayShares.exportRows(userId, Date.now()) });
+  exportReplays: userId => replayShares.exportRows(userId, Date.now()),
+  exportUsage: userId => appUsage.exportRows(userId) });
 const replayShares = registerReplayShares({ app, getDatabase: db, accessTokens: applicationAuth, setPrivateNoStore, userAuth,
   publicOrigin: APP_URL, resolveCardNames: ruCardNames, backgroundJobs: BACKGROUND_JOBS_ENABLED });
-registerAppUsage({ app, getDatabase: db, accessTokens: applicationAuth, setPrivateNoStore, backgroundJobs: BACKGROUND_JOBS_ENABLED,
+const appUsage = registerAppUsage({ app, getDatabase: db, accessTokens: applicationAuth, setPrivateNoStore, backgroundJobs: BACKGROUND_JOBS_ENABLED,
   hasSection: (userId, section) => {
     const status = readSubscriptionStatus(userId);
     return Boolean(status?.hasAccess && status.entitlements[section]);

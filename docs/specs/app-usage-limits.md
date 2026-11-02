@@ -32,7 +32,11 @@ Table `app_usage_claims` (`server/modules/appUsage/repository.ts`): `user_id`
 `game_id` (a random UUID the app makes per game: not a time, not a name),
 `created_at`; primary key over the first four, so a game counts once. Kept 7
 days (`APP_USAGE_KEEP_DAYS`), pruned a minute after start and once a day where
-background jobs run. A subscriber's claims are not stored.
+background jobs run. A subscriber's claims are not stored. A new claim is
+counted by one `INSERT … SELECT … WHERE (SELECT COUNT(*) …) < limit` in a
+`BEGIN IMMEDIATE` transaction, so concurrent requests or processes never pass
+the limit. The account's data export (`GET /api/account/tracker-data/export`)
+carries them as `usage: [{ day, feature, gameId, at }]` after `replays`.
 
 ## API
 
@@ -48,6 +52,14 @@ All under `/api/v1/usage`, 120 requests a minute per address.
   the scope. Off or a subscriber: `allowed: true, unlimited: true`. A game
   already counted today: allowed, not counted again. Otherwise allowed while
   `used < limit` (then counted), else `allowed: false`.
+
+## Terms
+
+`src/modules/legalPages/content.json`, terms section 3: what the subscription
+gives in the app (no daily limit of the pool's in-game hints), that the free
+number may change and the hints depend on the pool's data, that cards, their
+art and third-party stats stay free, and that refunds follow the platform
+(Boosty, Patreon, Telegram).
 
 ## Privacy
 
