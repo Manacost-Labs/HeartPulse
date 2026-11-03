@@ -21,6 +21,22 @@ background refresh runs; a failed refresh is retried after a minute, not per
 request. Only the first read after a restart waits; if it fails, the API
 answers `502`.
 
+### Official article supplements
+
+A newly released patch can be supplied by a reviewed Russian transcription of
+Blizzard's official notes in `server/modules/patchNotes/data/`. The server
+composition passes these articles as `officialArticles`; the ordinary parser,
+card lookup, history and meta enrichment apply unchanged. A supplement is used
+only while the upstream archive has no parsed changes for that version. A
+matched upstream article with changes takes priority, without duplicate archive
+entries. Official supplements have no hs-manacost source link; their source
+link and footer point to Blizzard. No database schema or scrape schedule changes.
+
+Patch 37.0.2 is transcribed from
+<https://hearthstone.blizzard.com/en-us/news/24307311>, published 3 November
+2026. Exact before/after changes, Arena and pool notes, refund exceptions and
+general rules are preserved; developer commentary is summarized in Russian.
+
 ## Parsing contract
 
 - A change is a card name line followed by `До изменения: …` and `После: …`.

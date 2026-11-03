@@ -1,6 +1,7 @@
 import { createPatchNotesRouter } from './routes.js';
 import { createPatchNotesService, type PatchNotesServiceDependencies } from './service.js';
 import { PatchArchetypeSnapshotStore, createPatchArchetypeRecorder } from './archetypeSnapshots.js';
+import { official3702 } from './data/official3702.js';
 
 export { createPatchNotesRouter, type PatchNotesRouterDependencies } from './routes.js';
 export { createPatchNotesService, type PatchNotesServiceDependencies } from './service.js';
@@ -23,5 +24,6 @@ export function createPatchNotesApi(dependencies: PatchNotesServiceDependencies 
     setTimeout(record, 2 * 60_000).unref();
     setInterval(record, 60 * 60_000).unref();
   }
-  return createPatchNotesRouter({ load: createPatchNotesService({ ...service, archetypeSnapshots }).load, ...(onError ? { onError } : {}) });
+  return createPatchNotesRouter({ load: createPatchNotesService({ officialArticles: [official3702], ...service, archetypeSnapshots }).load,
+    ...(onError ? { onError } : {}) });
 }
