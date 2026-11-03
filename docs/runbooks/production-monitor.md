@@ -54,8 +54,10 @@ node scripts/production-monitor.mjs
 The monitor checks production liveness, readiness, required dataset freshness,
 critical public HTML routes, `robots.txt`, the exact sitemap index, static and
 all entity sitemap contracts (Standard, Wild-only, Battlegrounds minions,
-spells and heroes), deterministic first/middle/last SSR samples for every
-entity type, canonical redirects, JSON-LD identity, public-payload privacy, and
+spells and heroes, cosmetics, guides archive and the Standard archetypes),
+deterministic first/middle/last SSR samples for every entity type (five spread
+samples for archetypes, whose JSON-LD must describe the page's own URL),
+canonical redirects, JSON-LD identity, public-payload privacy, and
 a real noindex `404` for an unknown card. While the card API reports its
 catalog as last-known-good (`X-Data-Cache: LKG`), absence cannot be proven and
 the expected answer is the retryable noindex `503` with `Retry-After`; the

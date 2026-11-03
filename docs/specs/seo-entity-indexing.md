@@ -27,7 +27,11 @@ will index every submitted URL or rank it for a particular query.
   the last known good sitemap snapshot.
 - `lastmod` changes only when the public semantic projection of an entity
   changes. The first observation does not invent a historical modification
-  date.
+  date. The one exception is a segment whose source states the date of its
+  data (archetypes, below): that day is the date of a first observation too.
+- The archetypes segment lists only Standard archetype pages that pass
+  `isIndexableArchetype` (see «Archetype pages»); Wild, the legacy
+  `/standard/meta/…` family and archetypes below the threshold never enter it.
 
 ## Page contract
 
@@ -159,7 +163,8 @@ No new dependency, database migration or public JSON API is introduced.
 ## Success criteria
 
 - The sitemap index advertises static, Standard, Wild-only, Battlegrounds
-  minion, Battlegrounds spell and Battlegrounds hero segments.
+  minion, Battlegrounds spell, Battlegrounds hero, cosmetics, guides-archive
+  and archetypes segments.
 - Every URL in each entity segment is unique, canonical, parameter-free and
   within protocol limits.
 - Entity SSR pages use HearthPulse branding, expose aligned `WebPage`, entity
@@ -173,9 +178,10 @@ No new dependency, database migration or public JSON API is introduced.
 `/standard/archetypes/:format/:archetypeSlug/` is an indexable detail type, but
 page by page. The rule is `isIndexableArchetype`
 (`shared/constructedArchetypeIndexing.ts`), the single reader of which is the
-page's metadata and JSON-LD today and the sitemap source of the Express server
-tomorrow: format Standard, at least `INDEXABLE_ARCHETYPE_MIN_GAMES` (1000)
-games, at least one build and a popularity above zero. At the 2026-10-29
+page's metadata and JSON-LD and the sitemap source of the Express server
+(«Archetype sitemap segment»): format Standard, at least
+`INDEXABLE_ARCHETYPE_MIN_GAMES` (1000) games, at least one build and a
+popularity above zero. At the 2026-10-29
 catalog that is 72 of 196 Standard archetypes. Wild is never indexable.
 
 - Indexable: HTTP 200, `index, follow` with the preview directives
@@ -232,6 +238,62 @@ catalog that is 72 of 196 Standard archetypes. Wild is never indexable.
   text, and the test checks that each is in the public teaser. `isAccessibleForFree`
   is not written: the numbers it describes are free, and the paid parts are not
   described at all.
+
+### Archetype sitemap segment (E9 S3c)
+
+`/sitemaps/archetypes.xml`, the last segment of `/sitemap.xml`. Its entries are
+`https://hearthpulse.net/standard/archetypes/standard/<slug>/` of the Standard
+archetypes that pass `isIndexableArchetype` (72 of 196 at the 2026-10-29
+catalog) and nothing else.
+
+- **Source.** The catalog the archetype pages open on:
+  `loadArchetypeCatalogForPeriod(constructedArchetypeCatalogCache.load, 'standard')`
+  in `server/index.ts`, the same call as the page's teaser, so a listed page is
+  one the page finds in the same catalog. `selectIndexableArchetypeRows`
+  (`server/entitySitemapSources.ts`) applies the shared rule, with no copy of
+  it. The page serves the first catalog row of a slug, so a later row with the
+  same slug is never listed. The projection
+  (`projectConstructedArchetypeSitemapCatalog`) checks the rule again and
+  rejects the whole candidate on a page the rule keeps out, so a wrong wiring
+  produces the last good segment, not a `noindex` URL in the sitemap.
+- **`lastmod`.** The UTC day of the catalog's `updatedAt` (hs-data-api
+  `fetched_at`), the same date the page prints as `dateModified`; never the
+  day of the request or of the refresh. It is set when an archetype is first
+  listed or when its semantic hash changes, and kept while the numbers hold
+  still. The semantic hash covers what the page prints: slug, English and
+  Russian name, class, games, winrate, popularity, turns, duration, climbing
+  speed, number of builds, HSGuru link and period. Builds and deck codes are
+  not read. With the catalog refreshing daily and games growing, the date in
+  practice follows the catalog; an archetype whose numbers did not move keeps
+  its older date. The store never sets a date ahead of today and never moves a
+  date back. A catalog without a valid `updatedAt` cannot date `lastmod`: the
+  candidate is rejected.
+- **Guard against empty and truncated candidates.** The segment has a floor,
+  `SITEMAP_ARCHETYPES_MIN` (default 30, integer 1–50000). A candidate below it,
+  an empty one, a catalog that is not Standard or an unreadable one leaves the
+  last good segment (`X-Sitemap-Source: last-known-good`); with no good segment
+  yet the answer is `503` with `Retry-After`. The relative guard that protects
+  the other segments (a candidate below 90% of the last good count is
+  rejected) is **off** here: the number of indexable archetypes follows the
+  catalog's period and moves by far more than a tenth (72 can become 40 after
+  a patch and grow back), and that is a change of the data, not a truncation.
+  The floor is the only count guard, so after a patch that leaves fewer than
+  30 archetypes above the games threshold the segment stays on its last good
+  state until enough of them cross it; lower the floor then rather than
+  disabling the check.
+- **Lifecycle.** An archetype that falls out of the catalog answers `404`
+  (`noindex`) and leaves the segment at the next refresh. One that drops below
+  the threshold keeps a `noindex, follow` page and leaves the segment the same
+  way. Between the data change and the refresh the segment may still list the
+  page: the sitemap document cache (10 minutes by default, 5–15) plus the
+  catalog cache (5 minutes).
+- **Monitor** (`scripts/production-monitor.mjs`, `docs/runbooks/production-monitor.md`):
+  the exact index, at least 30 unique URLs of the `archetypes` pattern with no
+  query, SHA-256 `ETag`, `X-Sitemap-Source`, then five URLs spread over the
+  list: `200`, no `noindex` in `X-Robots-Tag`, one H1, meta `index`, canonical
+  equal to the `loc`, and a JSON-LD block that describes that URL.
+- nginx needs no change: `location ^~ /sitemaps/` already proxies every
+  segment to Express.
 
 ## JSON-LD of statistics pages
 

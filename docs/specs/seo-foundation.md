@@ -54,11 +54,14 @@ This slice must not open private API responses to indexing or shared caches.
   trailing-slash form; a slash-less page URL costs a `301`.
 - An entity sitemap `lastmod` moves only when the page content changes. Cache
   busters (card image `?v=`) and upstream sync stamps (cosmetics `updatedAt`)
-  stay out of the semantic hash. `static.xml` has no `lastmod`: its pages are
-  data-driven and no source dates their content honestly.
+  stay out of the semantic hash. The archetypes segment dates a change by the
+  catalog's own `updatedAt` instead of the day the server saw it. `static.xml`
+  has no `lastmod`: its pages are data-driven and no source dates their content
+  honestly.
 - Every indexable detail route has a sitemap segment: cards, BG cards and
   heroes, plus `cosmetics.xml` and `guides-archive.xml`, whose listings do not
-  link the detail pages in server HTML.
+  link the detail pages in server HTML. `archetypes.xml` lists only the
+  archetype pages that pass the indexing rule, not every detail route.
 - JSON-LD describes what the page shows. `numberOfItems` equals the listed
   items or is omitted, one list never repeats a URL, and a breadcrumb has no
   section crumb without its own page. A Dataset's `license` is the site terms

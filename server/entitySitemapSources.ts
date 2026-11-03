@@ -1,5 +1,11 @@
 import type { BattlegroundLibraryKind } from './battlegroundLibrarySeoRoutes.js';
 import {
+  archetypeIndexingFacts,
+  archetypePageSlug,
+  type ArchetypeSitemapRow,
+} from './entitySitemapProjections.js';
+import { isIndexableArchetype } from '../shared/constructedArchetypeIndexing.js';
+import {
   loadCosmeticsSitemapRows,
   loadGuideArchiveSitemapRows,
   type CosmeticsCatalogLoader,
@@ -16,6 +22,18 @@ type SourceOptions = {
 type ConstructedCardLoader = (
   format: 'standard' | 'wild',
 ) => Promise<{ cards: unknown[] }>;
+
+/** The catalog the archetype pages open on (`loadArchetypeCatalogForPeriod`), as far as the sitemap reads it. */
+export type ArchetypeSitemapCatalog = {
+  format: string;
+  period: string | null;
+  updatedAt: string | null;
+  items: unknown[];
+};
+
+type ArchetypeSitemapSource = {
+  loadCatalog: (format: 'standard') => Promise<ArchetypeSitemapCatalog>;
+};
 
 const BATTLEGROUNDS_ORIGIN = 'http://127.0.0.1:3108';
 
@@ -86,6 +104,27 @@ export async function loadBattlegroundHeroSitemapRows(
   });
 }
 
+/**
+ * The archetype rows of the Standard sitemap: those the page of the same
+ * catalog answers as indexable. The page serves the first row of a slug, so a
+ * later row with the same slug never enters the list, whatever its numbers.
+ * Wild is not read at all.
+ */
+export function selectIndexableArchetypeRows(catalog: ArchetypeSitemapCatalog): ArchetypeSitemapRow[] {
+  if (catalog?.format !== 'standard' || !Array.isArray(catalog.items)) {
+    throw new Error('Entity sitemap archetype catalog is invalid');
+  }
+  const seen = new Set<string>();
+  return catalog.items.flatMap(item => {
+    const slug = archetypePageSlug(item);
+    if (slug === null || seen.has(slug)) return [];
+    seen.add(slug);
+    return isIndexableArchetype(archetypeIndexingFacts(item))
+      ? [{ item, updatedAt: catalog.updatedAt, period: catalog.period }]
+      : [];
+  });
+}
+
 export function excludeStandardCardsFromWildCatalog(
   standardCards: unknown[],
   wildCards: unknown[],
@@ -123,9 +162,14 @@ export function createEntitySitemapRuntimeOptions(
   loadConstructedCards: ConstructedCardLoader,
   environment: Record<string, string | undefined>,
   editorial?: EditorialSitemapSources,
+  archetypes?: ArchetypeSitemapSource,
 ) {
   return {
     ...createEntitySitemapLoaders(loadConstructedCards),
+    ...(archetypes ? {
+      loadArchetypes: async () => selectIndexableArchetypeRows(await archetypes.loadCatalog('standard')),
+      minimumArchetypeCount: minimumFromEnvironment(environment.SITEMAP_ARCHETYPES_MIN, 30),
+    } : {}),
     ...(editorial ? {
       loadCosmetics: () => loadCosmeticsSitemapRows(editorial.loadCosmeticsCatalog),
       loadGuidesArchive: async () => loadGuideArchiveSitemapRows(editorial.getGuidesDatabase()),

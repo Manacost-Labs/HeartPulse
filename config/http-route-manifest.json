@@ -2110,6 +2110,19 @@
     },
     {
       "kind": "route",
+      "method": "GET",
+      "path": "/sitemaps/archetypes.xml",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/entitySitemapRoutes.ts",
+      "sourceOrder": 2,
+      "expansionOrder": 7
+    },
+    {
+      "kind": "route",
       "method": "ALL",
       "path": "/^\\/sitemaps\\/.*$/",
       "pathKind": "regexp",
