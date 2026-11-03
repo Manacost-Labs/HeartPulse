@@ -1,6 +1,6 @@
 /**
- * Public patch-notes projection. The source is the Russian hs-manacost.ru article
- * that hs-data-api stores per patch: it states card changes as "До изменения: …"
+ * Public patch-notes projection. Sources are stored Russian hs-manacost.ru articles
+ * and reviewed official-note transcriptions: they state card changes as "До изменения: …"
  * and "После: …" lines, and Battlegrounds cost or armor changes as "a → b".
  * Nothing here is invented: a value the article does not state is absent.
  */

@@ -1,3 +1,4 @@
+import { buildNumber, supplementOfficialArticles } from './officialArticles.js';
 import { shortPatchVersion, type PatchNotesDetail, type PatchNotesFormat, type PatchNotesSummary } from './contract.js';
 import { createArtworkLookup, createDbfLookup, enrichEntry, withArtwork, withHistory, type PatchEntryContext } from './enrichment.js';
 import { buildPatchMetaIndex, type PatchMetaIndex } from './metaImpact.js';
@@ -14,6 +15,8 @@ export type PatchNotesServiceDependencies = {
   /** Reads hs-data-api `/api/patches?include_content=1`. */
   fetchJson: (url: string) => Promise<unknown>;
   patchesUrl: string;
+  /** Reviewed official notes used only until the upstream version has parsed changes. */
+  officialArticles?: readonly Row[];
   /** Russian collectible card names; an empty map leaves entries without pictures. */
   loadCardNames: () => Promise<Record<string, CardName>>;
   /** Battlegrounds catalog; without it Battlegrounds entries keep the article's names and no pictures. */
@@ -75,11 +78,6 @@ export function createPatchCardResolver(cards: Record<string, CardName>, battleg
 
 function sections(value: unknown): { level?: unknown; title?: unknown }[] {
   return Array.isArray(value) ? value.filter(item => item && typeof item === 'object') : [];
-}
-
-function buildNumber(value: unknown): number {
-  const match = String(value ?? '').match(/\d+\.\d+\.\d+\.(\d+)/);
-  return match ? Number(match[1]) : 0;
 }
 
 function publishedAt(row: Row): string | null {
@@ -211,7 +209,9 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
     ]);
     const rows = (payload as { patches?: unknown })?.patches;
     if (!Array.isArray(rows)) throw new Error('Patch archive payload has no patches');
-    const value = buildPatchNotesSnapshot(rows as Row[], createPatchCardResolver(cards, battlegrounds), new Date(now()).toISOString(),
+    const resolve = createPatchCardResolver(cards, battlegrounds);
+    const articles = supplementOfficialArticles(dropForeignArticleBuilds(rows as Row[]), dependencies.officialArticles ?? [], resolve);
+    const value = buildPatchNotesSnapshot(articles, resolve, new Date(now()).toISOString(),
       { standard: new Set(standard), dbfs: createDbfLookup(cards), artwork }, metaFor);
     snapshot = { value, expiresAt: now() + dependencies.ttlMs };
     // Started only now: read alongside the archive it still slowed the first answer down.

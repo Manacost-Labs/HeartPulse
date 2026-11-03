@@ -620,3 +620,52 @@ test('the header digest names the cards of a short section and counts the kinds 
     { section: 'battlegrounds', title: 'Поля сражений', parts: [{ kind: 'nerf', count: 2, names: null }, { kind: 'buff', count: 3, names: null }] },
   ]);
 });
+
+test('official notes fill a missing patch until a parsed Russian article arrives', async () => {
+  let clock = Date.parse('2026-11-03T18:00:00Z');
+  let upstream: Record<string, unknown>[] = [{ version: '37.0.2.255000', match_state: 'missing_manacost' }];
+  const official = { version: '37.0.2', match_state: 'matched', title: 'Обновление 37.0.2',
+    official_url: 'https://hearthstone.blizzard.com/en-us/news/24307311',
+    official_published_at: '2026-11-03T17:00:00Z',
+    content_text: 'Изменения Hearthstone\nМАТРИАРХ\nДо изменения: [Стоимость 9]\nПосле: [Стоимость 10]' };
+  upstream.push({ ...official, version: '37.0.2.254000' });
+  const service = createPatchNotesService({
+    fetchJson: async () => ({ patches: upstream }), patchesUrl: 'patches', ttlMs: 1000, now: () => clock,
+    loadCardNames: async () => ({ BE_036: { name: 'МАТРИАРХ', playerClass: 'NEUTRAL' } }),
+    officialArticles: [official],
+  });
+  const initial = await service.load();
+  assert.equal(initial.patches.length, 1);
+  assert.equal(initial.patches[0].changeCount, 1);
+  assert.equal(initial.patches[0].sourceUrl, null);
+  assert.equal(initial.patches[0].officialUrl, official.official_url);
+  assert.equal(initial.patches[0].entries[0].cardId, 'BE_036');
+  upstream = [{ ...official, version: '37.0.2.255000', source_url: 'https://hs-manacost.ru/obnovlenie-37-0-2/',
+    content_text: official.content_text + '\nНовая карта\nДо изменения: [Стоимость 3]\nПосле: [Стоимость 2]' }];
+  clock += 2000;
+  await service.load();
+  await new Promise(resolve => setImmediate(resolve));
+  const refreshed = await service.load();
+  assert.equal(refreshed.patches.length, 1);
+  assert.equal(refreshed.patches[0].changeCount, 2);
+  assert.equal(refreshed.patches[0].sourceUrl, upstream[0].source_url);
+});
+
+test('37.0.2 contains every official before/after pair and trinket cost, with Russian names', async () => {
+  const { official3702 } = await import('../server/modules/patchNotes/data/official3702.js');
+  const snapshot = buildPatchNotesSnapshot([official3702], () => null, '2026-11-03T18:00:00Z');
+  const patch = snapshot.patches[0];
+  // Blizzard lists 98 pairs and 35 trinket costs; Khelos and the Wild quest have prose changes.
+  assert.equal(patch.changeCount, 135);
+  assert.equal(patch.missingBefore, 0);
+  assert.deepEqual(patch.pictureSections, []);
+  assert.equal(patch.sourceUrl, null);
+  assert.equal(patch.officialUrl, 'https://hearthstone.blizzard.com/en-us/news/24307311');
+  assert.equal(patch.entries.filter(entry => entry.mode === 'constructed').length, 32);
+  assert.equal(patch.entries.filter(entry => entry.mode === 'battlegrounds').length, 103);
+  assert.ok(patch.generalChanges.some(group => group.mode === 'arena' && group.lines.some(line => line.includes('Кит\'икс'))));
+  const mother = patch.entries.find(entry => entry.name === 'МАТРИАРХ');
+  assert.deepEqual(mother?.changes, [{ label: 'Стоимость', before: 9, after: 10, better: 'lower' }]);
+  const greaterGlass = patch.entries.find(entry => entry.name === 'Бокал свежего взгляда' && entry.subtitle?.includes('Большой'));
+  assert.deepEqual(greaterGlass?.changes, [{ label: 'Стоимость', before: 3, after: 4, better: 'lower' }]);
+});
