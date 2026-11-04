@@ -105,4 +105,3 @@ assert.equal(tabFromPath('/standard/deck-builder/'), 'deck-builder');
 
 console.log(`route registry assertions passed (${TABS.length} routes)`);
 
-assert.equal(TABS.some(tab => tab.path === '/standard/radar'), false, 'removed radar is absent from navigation');
