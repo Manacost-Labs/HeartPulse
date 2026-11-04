@@ -20,13 +20,13 @@ export function orderStandardMetaPeriods(
   ];
 }
 
-/** The period the page opens on: the current Bans window, else the current expansion window, else the patch. */
+/** The page opens on the current patch, falling back to the current Bans or expansion window. */
 export function resolveStandardMetaDefaultPeriod(
   availablePeriods: StandardMetaPeriod[],
   currentPeriod: StandardMetaPeriod | null,
   currentPatchPeriod: StandardMetaPeriod | null,
 ): StandardMetaPeriod | null {
-  return [latestStandardMetaBanPeriod(availablePeriods, currentPeriod), currentPeriod, currentPatchPeriod]
+  return [currentPatchPeriod, latestStandardMetaBanPeriod(availablePeriods, currentPeriod), currentPeriod]
     .find((period): period is StandardMetaPeriod => Boolean(period && availablePeriods.includes(period)))
     ?? null;
 }
