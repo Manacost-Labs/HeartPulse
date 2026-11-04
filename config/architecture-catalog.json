@@ -1930,7 +1930,7 @@
       "purpose": "Render the nerf and buff radar: summary, the two sections, class/kind/confidence filters, candidate cards with statistics and community posts.",
       "paths": ["src/modules/radar"],
       "publicEntrypoints": ["src/modules/radar/public.ts"],
-      "frontendRoutes": ["/standard/radar"],
+      "frontendRoutes": [],
       "backendRoutes": [],
       "contracts": ["src/modules/radar/model/types.ts", "docs/specs/nerf-buff-radar.md"],
       "jobs": [],
