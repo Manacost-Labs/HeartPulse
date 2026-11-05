@@ -885,6 +885,41 @@ checks worker ordering and cleanup after both success and launch failure.
 [proc-docs]: https://docs.kernel.org/filesystems/proc.html
 [sched-docs]: https://docs.kernel.org/scheduler/sched-stats.html
 
+## Executable page-cache preload experiment
+
+Run `42129521691` on `a78582e0` completed required validation in 175 seconds;
+all 549 blocking files passed without retries. Its slow browser startups
+repeatedly sampled state `D` and wait channel `folio_wait_bit_common` while
+storage-read counters increased. The final shard's 14.045-second launch used
+only about 288 ms of main-thread CPU and 2 ms in its run queue. This points to
+file-page I/O waits during cold loading; it does not identify the underlying
+GitHub storage mechanism.
+
+The next full run enables `HP_BROWSER_PRELOAD=1` only in the browser matrix.
+Before the usual blank-browser warmup, it sequentially reads the Chrome ELF
+through one open descriptor in 1 MiB chunks. Google's resolved `google-chrome`
+wrapper selects its sibling `chrome`; other executable paths are checked
+as-is. Only regular ELF files up to 512 MiB qualify. A ten-second abort signal
+is checked between reads; an in-flight filesystem read must finish before it
+can be noticed. Missing, unsupported, interrupted or failed preloads continue
+to the unchanged real browser launch. Nothing is executed or modified by the
+preload, and the emitted result contains only status, bytes, time and an error
+code. All preload time remains inside the measured CI job.
+
+A local ABBA experiment evicted only a private copy of the executable, leaving
+system resources and libraries alone. It did not improve total time on the
+local fast disk: controls were 640/627 ms, candidates 645/643 ms. This is not
+speedup evidence for GitHub. The hosted file-wait profile motivates a bounded
+trial; retain it only if complete hosted runs support a reduction in setup or
+critical-path time without failures or missing coverage. Revert the experiment
+if it adds overhead without benefit.
+
+The preload regression fails against a no-op and passes after implementation.
+It checks exact bytes through a symlinked wrapper, unchanged contents, abort,
+size/type limits and missing files. All nine worker/workflow checks pass, and
+a real-Chrome probe confirms preload precedes normal launch/close and all four
+workers. Launch flags, deadlines, retry limits and assertions are unchanged.
+
 ## Verification
 
 Focused runner and workflow tests must prove deterministic complete sharding,

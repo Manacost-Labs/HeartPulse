@@ -5,6 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { parseRunnerArguments } from './test-suite-runner.mjs';
 import { runProcess } from './lib/process-task.mjs';
 import { startWarmupDiagnostics } from './lib/browser-warmup-diagnostics.mjs';
+import { preloadBrowserExecutable } from './lib/browser-preload.mjs';
 
 /** Stripe global shards across jobs so the longest shards do not compete on one runner. */
 export function planTestWorkers(args) {
@@ -39,6 +40,9 @@ export function planTestWorkers(args) {
 async function warmBrowser(environment) {
   if (!environment.CHROMIUM_PATH) throw new Error('--warmup-browser requires CHROMIUM_PATH');
   const { launchBrowser } = await import('./lib/browser-launch.mjs');
+  if (process.platform === 'linux' && environment.GITHUB_ACTIONS === 'true' && environment.HP_BROWSER_PRELOAD === '1') {
+    console.log(`[browser-preload] ${JSON.stringify(await preloadBrowserExecutable(environment.CHROMIUM_PATH))}`);
+  }
   const stopDiagnostics = environment.GITHUB_ACTIONS === 'true' ? startWarmupDiagnostics() : () => {};
   try {
     const browser = await launchBrowser({

@@ -2,8 +2,12 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { fork } from 'node:child_process';
 import { once } from 'node:events';
+import { mkdtemp, readFile, rm, symlink, truncate, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { planTestWorkers, runTestWorkers } from '../scripts/run-test-workers.mjs';
 import { startWarmupDiagnostics } from '../scripts/lib/browser-warmup-diagnostics.mjs';
+import { preloadBrowserExecutable } from '../scripts/lib/browser-preload.mjs';
 import { credentialBackendArguments } from './helpers/credentialBackend.mjs';
 
 test('workers partition the full matrix into disjoint global shards and separate reports', () => {
@@ -137,5 +141,33 @@ test('warmup diagnostics expose only counters and stop without touching the chil
       child.kill('SIGKILL');
       await closed;
     }
+  }
+});
+
+test('browser preload reads the exact ELF through a Google wrapper without modifying or executing files', async () => {
+  const directory = await mkdtemp(path.join(tmpdir(), 'hp-browser-preload-'));
+  try {
+    const executable = path.join(directory, 'chrome');
+    const bytes = Buffer.concat([Buffer.from([0x7f, 0x45, 0x4c, 0x46]), Buffer.alloc(2 * 1024 * 1024, 42)]);
+    await writeFile(executable, bytes);
+    await writeFile(path.join(directory, 'google-chrome'), 'this wrapper must not execute');
+    await symlink(path.join(directory, 'google-chrome'), path.join(directory, 'launcher'));
+    for (const name of ['chrome', 'launcher']) {
+      const result = await preloadBrowserExecutable(path.join(directory, name));
+      assert.equal(result.outcome, 'ready');
+      assert.equal(result.bytes, bytes.length);
+    }
+    assert.deepEqual(await readFile(executable), bytes);
+    assert.equal((await preloadBrowserExecutable(executable, { signal: AbortSignal.abort() })).outcome, 'unavailable');
+    await truncate(executable, 512 * 1024 * 1024 + 1);
+    const oversized = await preloadBrowserExecutable(executable);
+    assert.equal(oversized.outcome, 'skipped');
+    assert.equal(oversized.bytes, 0, 'oversized candidates are never streamed');
+    await writeFile(executable, 'not an ELF executable');
+    assert.equal((await preloadBrowserExecutable(executable)).outcome, 'skipped');
+    assert.equal((await preloadBrowserExecutable(directory)).outcome, 'skipped');
+    assert.equal((await preloadBrowserExecutable(path.join(directory, 'missing'))).outcome, 'unavailable');
+  } finally {
+    await rm(directory, { recursive: true, force: true });
   }
 });
