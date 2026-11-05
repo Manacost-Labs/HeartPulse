@@ -536,6 +536,29 @@ This in-sample replay excludes queues, setup and changed contention; only a
 new full hosted run can establish the actual effect. It does not establish
 the two-minute SLO or justify changing test deadlines or failure handling.
 
+## Hero-filter prefetch fixture ordering
+
+Run `42102338038` (`afd2277b`) failed browser job 3 because the hero-filter
+fixture returned an immediate Top 1% error. The component prefetches on
+pointer entry and focus; if that failed request finishes before selection,
+the next input legitimately starts another request. The test expected one
+request regardless of input scheduling and failed on both attempts.
+
+A forced hover-before-click probe reproduced the duplicate request locally.
+The fixture now holds its Top 1% response until the button is selected, so
+prefetch and selection share the pending request. The same probe then passed.
+The exact request sequence, visible error, absence of fallback rows, late
+Top 20% response rejection and final Top 5% assertions remain unchanged.
+No product request behavior, retry policy or timeout is changed.
+
+Local verification: all three hero-motion scenarios passed in isolation.
+The exact four-worker shard was not clean: 7 PASS, 1 FLAKY (library controls)
+and 1 FAIL (other hero scenarios hit CSS/selector failures). The corrected
+filter scenario passed on retry. A separate sequential control again passed
+all hero scenarios but timed out in the unchanged library test; that file
+passed in the failed hosted run. These local failures remain limitations,
+not evidence of a successful full-shard run. Semgrep found no issues.
+
 ## Verification
 
 Focused runner and workflow tests must prove deterministic complete sharding,
