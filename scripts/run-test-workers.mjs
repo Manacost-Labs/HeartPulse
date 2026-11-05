@@ -40,6 +40,8 @@ async function warmBrowser(environment) {
   const { launchBrowser } = await import('./lib/browser-launch.mjs');
   const browser = await launchBrowser({
     executablePath: environment.CHROMIUM_PATH, headless: true, args: ['--no-sandbox'],
+    // This browser opens only about:blank; expose cold-start stderr, never test pages.
+    dumpio: environment.GITHUB_ACTIONS === 'true',
   });
   await browser.close();
 }

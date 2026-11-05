@@ -585,6 +585,16 @@ fails the job before any worker starts. Standalone and registry runs retain
 their previous default. The launch logs identify the wrapper separately, so
 hosted evaluation must include warmup cost and subsequent initial launches.
 This experiment does not establish the internal cause of cold-start delays.
+Run `42125084896` passed all checks with 549 blocking files passing first try;
+its required gate took235s including queue time. The last browser shard spent
+36.946s launching warmup Chrome and1.488s closing it, then65s in its longest
+worker. The plan finished before build artifacts were ready and did not
+extend that dependency path. To identify the cold-start phase, CI warmup now
+sets Puppeteer's documented `dumpio` option: Chrome stdout/stderr and its
+DevTools endpoint appear between existing launch markers. Only this disposable
+`about:blank` browser emits raw output; test browsers retain their old defaults.
+No flags, timeout, retry, matrix or test-selection change accompanies this
+instrumentation. It is diagnostic evidence gathering, not a speedup claim.
 Six worker-plan/lifecycle checks and seven calibration checks passed, as did
 an actual missing-executable failure probe. The exact four-worker browser1
 shard on four local CPUs completed with6 PASS/1 FLAKY: account-surface hit an
