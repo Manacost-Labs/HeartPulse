@@ -5,6 +5,7 @@
 // Usage:
 //   npm run qa:ci                                   builds, starts the Next.js runtime and runs this suite
 //   npm run qa:e2e -- --url=http://127.0.0.1:3000   against an already running site
+import { createHomeOrbitInspector } from './qa/homeOrbitFixtures.mjs';
 import { qaGroupFilter } from './qa/groups.mjs';
 import { screenshotCapture } from './qa/screenshots.mjs';
 import { launchBrowser } from './lib/browser-launch.mjs';
@@ -4595,7 +4596,7 @@ if (runsQaGroup('home')) {
     if (Object.values(homeLandmarks).some(value => value === false)) {
       failures.push(`home landmarks: one or more primary elements disappeared (${JSON.stringify(homeLandmarks)})`);
     }
-    const cssOwners = await loadedCssOwners(page, ['homeArena', 'homeBattlegrounds', 'homeArticles']);
+    const cssOwners = await loadedCssOwners(page, ['homeArena', 'homeBattlegrounds', 'homeArticles', 'supportPrompt', 'siteFooter']);
     const homeCssState = {
       routeCssLoaded: cssOwners.routeParchment,
       deferredRoutesCssLoaded: cssOwners.deferredRoutes,
@@ -4782,29 +4783,8 @@ if (runsQaGroup('home')) {
       || desktopBgDirectory.featuredLabel !== 'rgb(125, 64, 91)') {
       failures.push(`home Battlegrounds directory: desktop frame changed (${JSON.stringify(desktopBgDirectory)})`);
     }
-    await page.evaluate(() => {
-      const board = document.querySelector('.home-draft-orbit__board');
-      if (!document.querySelector('.home-orbit-class__copy')) {
-        const fixture = document.createElement('div');
-        fixture.dataset.qaHomeOrbitFixture = 'true';
-        fixture.className = 'home-orbit-class';
-        fixture.setAttribute('aria-hidden', 'true');
-        fixture.style.visibility = 'hidden';
-        fixture.innerHTML = `
-          <span class="home-orbit-class__icon"><img alt="" width="44" height="44"></span>
-          <span class="home-orbit-class__copy"><small>Class</small><strong>Name</strong><b>50%</b></span>`;
-        board?.append(fixture);
-      }
-      if (!document.querySelector('.home-orbit-empty')) {
-        const emptyFixture = document.createElement('div');
-        emptyFixture.dataset.qaHomeOrbitEmptyFixture = 'true';
-        emptyFixture.className = 'home-orbit-empty';
-        emptyFixture.setAttribute('aria-hidden', 'true');
-        emptyFixture.style.visibility = 'hidden';
-        board?.append(emptyFixture);
-      }
-    });
-    const desktopShell = await page.$eval('.home-workbench', element => {
+    const inspectHomeOrbit = await page.evaluateHandle(createHomeOrbitInspector);
+    const desktopShell = await page.$eval('.home-workbench', (element, withFixtures) => withFixtures(element, () => {
       const stage = element.querySelector('.home-stage');
       const stageLabelDot = element.querySelector('.home-stage__label > span');
       const pageHeading = element.querySelector('#draft-home-title');
@@ -4851,8 +4831,8 @@ if (runsQaGroup('home')) {
         orbitValueColor: orbitValue ? getComputedStyle(orbitValue).color : '',
         sectionPaddingTop: firstSection ? Number.parseFloat(getComputedStyle(firstSection).paddingTop) : Number.NaN,
       };
-    });
-    const desktopStageLayout = await page.$eval('.home-stage', element => {
+    }), inspectHomeOrbit);
+    const desktopStageLayout = await page.$eval('.home-stage', (element, withFixtures) => withFixtures(element, () => {
       const stageStyles = getComputedStyle(element);
       const copy = element.querySelector('.home-stage__copy');
       const label = element.querySelector('.home-stage__label');
@@ -4939,11 +4919,8 @@ if (runsQaGroup('home')) {
         orbitEmptyWidth: orbitEmpty?.getBoundingClientRect().width || 0,
         pageIndexMarginTop: pageIndex ? getComputedStyle(pageIndex).marginTop : '',
       };
-    });
-    await page.evaluate(() => {
-      document.querySelector('[data-qa-home-orbit-fixture]')?.remove();
-      document.querySelector('[data-qa-home-orbit-empty-fixture]')?.remove();
-    });
+    }), inspectHomeOrbit);
+    await inspectHomeOrbit.dispose();
     if (Math.abs(desktopShell.gap - 74.88) > 0.1
       || desktopShell.color !== 'rgb(48, 37, 28)'
       || desktopShell.stageRadius !== '0px'

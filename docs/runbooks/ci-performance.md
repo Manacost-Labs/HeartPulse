@@ -419,6 +419,21 @@ viewport, network-error and final tier-data failure assertions stay intact.
 The exact four-worker browser shard8 passed on four local CPUs: all10 files
 PASS without retries. Docs lint and selected-source Semgrep also passed.
 
+The next hosted run, [42092177251](https://github.com/Manacost-Labs/HeartPulse/actions/runs/42092177251),
+confirmed the tier-list fix on its first attempt. Observatory batch1 exposed a
+separate QA race: its home CSS inspection appended synthetic orbit elements
+to the server-rendered React tree before hydration finished. React then raised
+error418 and replaced the tree during layout inspection. Holding the initial
+five JS requests reproduced this failure locally; the same probe passed when
+fixture insertion, measurement and cleanup ran in one synchronous browser
+call. The helper removes only its own nodes, including when inspection throws.
+Desktop style assertions and subsequent mobile checks are unchanged. The CSS
+owner check also waits for support-prompt and footer styles within its existing
+10s bound instead of sampling them while their lazy chunks are still loading.
+Batch1 passed with both isolated runtimes on four local CPUs; the final home
+scenario, docs lint and selected-source Semgrep also passed. Hosted validation
+of this correction remains pending.
+
 A disposable Turbopack probe failed after 5.8 seconds: four explicit `.js`
 TypeScript import-resolution errors, invalid generated CSS at
 `section::after::after`, and a UMD/CommonJS-format warning. The probe config and
