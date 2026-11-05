@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { boostyChannelMembershipIndex, BOOSTY_VIP_CHANNEL_ID } from '../src/modules/adminCrm/ui/boostyTelegramMembershipModel.js';
 import {
   boostyFilterOptions,
   boostySiteAccess,
@@ -104,5 +105,34 @@ assert.deepEqual(unreadableTelegramChats([
   account('c', { chats: [{ chatId: '-100', ok: false, error: 'timeout' }] }),
 ]), ['-5077378176']);
 assert.deepEqual(unreadableTelegramChats(accounts), []);
+
+const channelAccount = (values: Partial<TelegramAdminAccount> = {}) => account('channel-user', {
+  email: ' Paid-Site@Example.Test ',
+  chats: [{ chatId: BOOSTY_VIP_CHANNEL_ID, status: 'member', ok: true }],
+  ...values,
+});
+const membership = (values: Partial<TelegramAdminAccount> = {}) =>
+  boostyChannelMembershipIndex([channelAccount(values)]).get('paid-site@example.test');
+assert.equal(membership()?.state, 'member');
+assert.equal(membership({ hasAccess: false, telegramHasAccess: false })?.state, 'member');
+assert.equal(membership({ chats: [{ chatId: BOOSTY_VIP_CHANNEL_ID, status: 'left', ok: true }] })?.state, 'absent');
+assert.equal(membership({ chats: [{ chatId: BOOSTY_VIP_CHANNEL_ID, status: 'kicked', ok: true }] })?.state, 'absent');
+assert.equal(membership({ chats: [{ chatId: BOOSTY_VIP_CHANNEL_ID, status: 'restricted', isMember: true }] })?.state, 'member');
+assert.equal(membership({ chats: [{ chatId: BOOSTY_VIP_CHANNEL_ID, status: 'restricted', isMember: false }] })?.state, 'absent');
+assert.equal(membership({ chats: [{ chatId: BOOSTY_VIP_CHANNEL_ID, status: 'restricted' }] })?.state, 'unknown');
+assert.equal(membership({ chats: [{ chatId: BOOSTY_VIP_CHANNEL_ID, status: 'member', ok: false }] })?.state, 'unknown');
+assert.equal(membership({ chats: [{ chatId: BOOSTY_VIP_CHANNEL_ID, status: 'member', error: 'timeout' }] })?.state, 'unknown');
+assert.equal(membership({ chats: [{ chatId: '-100-other', status: 'member' }] })?.state, 'unknown');
+assert.equal(membership({ stale: true })?.state, 'stale');
+assert.equal(membership({ checkedAt: '' })?.state, 'unknown');
+assert.equal(membership({ checkedAt: 'not-a-date' })?.state, 'unknown');
+assert.equal(membership({ telegramId: '', telegramUsername: 'known_name' })?.state, 'unlinked');
+assert.equal(membership({ telegramId: 'oidc-subject' })?.state, 'unlinked');
+assert.equal(boostyChannelMembershipIndex([channelAccount({ email: '' })]).size, 0);
+assert.equal(boostyChannelMembershipIndex([channelAccount(), channelAccount({ telegramId: '2' })]).get('paid-site@example.test')?.state, 'unknown');
+assert.equal(membership({ chats: [
+  { chatId: BOOSTY_VIP_CHANNEL_ID, status: 'member', ok: true },
+  { chatId: '-100-other', ok: false, error: 'chat not found' },
+] })?.state, 'member');
 
 console.log('admin integration lists model: ok');
