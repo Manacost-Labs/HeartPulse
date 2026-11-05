@@ -56,6 +56,9 @@ export type AccountDashboardProps = {
 function AccountMessage({ message }: Pick<AccountDashboardProps, 'message'>) {
   const [closed, setClosed] = useState<AccountDashboardProps['message']>(null);
   const toast = useRef<HTMLDivElement>(null);
+  // Rendered after mounting only: the server and the first client render agree (nothing), then the portal appears.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
   const visible = Boolean(message) && message !== closed;
   useEffect(() => {
     if (message?.type !== 'ok') return undefined;
@@ -79,8 +82,8 @@ function AccountMessage({ message }: Pick<AccountDashboardProps, 'message'>) {
     if (!visible || !toast.current || !target?.isConnected) return;
     const overlap = target.getBoundingClientRect().bottom + 12 - toast.current.getBoundingClientRect().top;
     if (overlap > 0) window.scrollBy({ top: overlap, behavior: 'auto' });
-  }, [visible, message]);
-  if (!message || !visible || typeof document === 'undefined') return null;
+  }, [visible, message, mounted]);
+  if (!message || !visible || !mounted) return null;
   return (
     <>
       <div className="account-message-room" aria-hidden="true" />
