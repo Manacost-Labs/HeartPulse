@@ -265,7 +265,7 @@ below one second. The observatory's initial launches took10.9s. These measured
 phase differences do not prove why cold launch is slow; close is not the
 observed bottleneck.
 
-The next hosted experiment uses Puppeteer's supported DevTools `pipe` transport
+The subsequent hosted experiment tried Puppeteer's supported DevTools `pipe` transport
 in GitHub Actions, avoiding WebSocket endpoint log discovery and its TCP
 connection. Explicit `pipe`/`debuggingPort` options remain authoritative, and
 standalone defaults are unchanged. Browser flags, profile isolation, worker
@@ -298,7 +298,31 @@ concurrency or attributing a slow host to memory/CPU pressure. Failed pipe
 reports must not calibrate duration weights.
 The rollback passed the exact four-worker browser shard5 locally: all eight
 files PASS without retries. Worker lifecycle tests, docs lint and selected-source
-Semgrep also passed; hosted validation is still required.
+Semgrep also passed. The hosted rollback run
+[42081325514](https://github.com/Manacost-Labs/HeartPulse/actions/runs/42081325514)
+passed `CI required`: 537 blocking files PASS and one FLAKY, out of538. Creation
+to required completion was517s. Many jobs waited well after build completion;
+browser shard1 started at+399s and took112s including setup and cleanup.
+The sampled browser runners (shards1 and5) had4 CPUs and about16GiB total RAM,
+with at least12GiB available in the recorded samples. Initial Chrome launches
+still took roughly9–16s, while subsequent launches usually took under1s.
+These samples do not demonstrate memory exhaustion, and do not establish the
+cause of the first-launch delay. Queueing and scenario execution remain
+separate contributors; the two-minute acceptance target is not met.
+
+The bfcache file took95.717s in that run. Its five tests already start their
+own servers/browsers and clean them up independently. They now register in
+three files: headers/navigation, subscription confirmation, and account
+switch/offline/client navigation. A shared registration helper retains all
+five original test bodies,47 assertion sites, delayed responses, sampling
+windows, offline cases and cleanup. The three files can be assigned to
+independent workers; no browser or session is shared between them. Their
+initial weights divide the old median by the observed scenario durations
+in42081325514 and are explicitly estimates until two full successful runs
+supply PASS samples for each part. A source reconstruction check preserved
+the original scenario text exactly after removing registration wrappers and
+adjusting moved import paths. All five tests passed together on four local
+CPUs; hosted duration improvement remains to be verified.
 
 A disposable Turbopack probe failed after 5.8 seconds: four explicit `.js`
 TypeScript import-resolution errors, invalid generated CSS at

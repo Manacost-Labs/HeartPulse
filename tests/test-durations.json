@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "source": "Median PASS seconds from full CI runs 42043123385/1, 42054746478/1; at least two distinct runs per updated file. Other existing weights retained. PR opt-in requires complete registry coverage. Archetype geometry split estimates allocate its prior median by viewport count until two complete PASS samples exist for each part.",
+  "source": "Median PASS seconds from full CI runs 42043123385/1, 42054746478/1; at least two distinct runs per updated file. Other existing weights retained. PR opt-in requires complete registry coverage. Bfcache split estimates allocate its prior median by scenario durations in run 42081325514 until two complete PASS samples exist for each part. Archetype geometry split estimates allocate its prior median by viewport count until two complete PASS samples exist for each part.",
   "defaultSeconds": 15,
   "seconds": {
     "tests/account-avatar-integration.test.mjs": 4.829,
@@ -280,7 +280,9 @@
     "tests/next-archetypes-catalog-rendering-browser.test.mjs": 30.435,
     "tests/next-arena-guest-paywall-browser.test.mjs": 49.587,
     "tests/next-article-covers-browser.test.mjs": 24.166,
-    "tests/next-bfcache-browser.test.mjs": 118.927,
+    "tests/next-bfcache-browser.test.mjs": 47.962,
+    "tests/next-bfcache-subscription-browser.test.mjs": 31.377,
+    "tests/next-bfcache-session-browser.test.mjs": 39.588,
     "tests/next-bg-builders-browser.test.mjs": 38.657,
     "tests/next-bg-hero-detail-browser.test.mjs": 9.814,
     "tests/next-bg-library-card-data.test.ts": 0.216,

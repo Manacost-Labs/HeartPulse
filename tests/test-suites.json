@@ -526,6 +526,8 @@
         "tests/next-page-transitions-browser.test.mjs",
         "tests/next-canonical-links-browser.test.mjs",
         "tests/next-bfcache-browser.test.mjs",
+        "tests/next-bfcache-subscription-browser.test.mjs",
+        "tests/next-bfcache-session-browser.test.mjs",
         "tests/next-mobile-menu-browser.test.mjs",
         "tests/next-bg-hero-detail-browser.test.mjs",
         "tests/next-bg-library-listings-browser.test.mjs",
