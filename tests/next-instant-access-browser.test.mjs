@@ -53,7 +53,12 @@ function startGateway(nextOrigin) {
   // body only when the test calls `releaseBody(id)`, so the test decides what
   // happens while the body is on its way.
   const heldBodies = new Map();
+  // The remembered-viewer scenario releases its session response only after
+  // observing the cached viewer. Keep the ordinary minimum delay as well.
+  const heldSessions = new Map();
   const gateway = {
+    releaseSession: id => { heldSessions.get(id)?.(); heldSessions.delete(id); },
+    holdsSession: id => heldSessions.has(id),
     releaseBody: id => { heldBodies.get(id)?.(); heldBodies.delete(id); },
     holdsBody: id => heldBodies.has(id),
   };
@@ -78,7 +83,15 @@ function startGateway(nextOrigin) {
       const tagCookie = {};
       // `guestdelay`: a guest answer that arrives late.
       const delay = account === OTHER_READER ? 0 : !account && cookies.guestdelay === '1' ? 3000 : account ? SESSION_DELAY_MS : 0;
-      setTimeout(() => json({ user: account, viewerSession }, 200, tagCookie), delay);
+      if (cookies.sessionhold) {
+        const released = new Promise(resolve => {
+          const earlier = heldSessions.get(cookies.sessionhold);
+          heldSessions.set(cookies.sessionhold, () => { earlier?.(); resolve(); });
+        });
+        setTimeout(() => { void released.then(() => json({ user: account, viewerSession }, 200, tagCookie)); }, delay);
+      } else {
+        setTimeout(() => json({ user: account, viewerSession }, 200, tagCookie), delay);
+      }
       return;
     }
     if (request.url === '/api/auth/login' && request.method === 'POST') {
@@ -255,9 +268,18 @@ test('a remembered subscriber sees the account and the paid pages without a gate
           if (message.type() === 'error' && /hydrat|recoverable|Minified React error/i.test(message.text())) reactErrors.push(message.text());
         });
         page.on('pageerror', error => reactErrors.push(error.message));
+        const heldSession = `remembered-${viewport.width}${route.replaceAll('/', '_')}`;
+        await setCookies(page, gateway.origin, { sessionhold: heldSession });
         const stop = await filmstrip(page, `subscriber-${viewport.width}${route.replaceAll('/', '_')}`);
-        await page.goto(`${gateway.origin}${route}`, { waitUntil: 'domcontentloaded' });
-        await page.waitForSelector(root, { timeout: READY_MS });
+        try {
+          await page.goto(`${gateway.origin}${route}`, { waitUntil: 'domcontentloaded' });
+          await page.waitForSelector(root, { timeout: READY_MS });
+          await page.waitForFunction(() => window.__frames.some(frame => frame.viewer), { timeout: READY_MS });
+          assert.ok(gateway.holdsSession(heldSession), 'the remembered viewer appears while its session answer is held');
+        } finally {
+          gateway.releaseSession(heldSession);
+        }
+        await page.deleteCookie({ name: 'sessionhold', url: gateway.origin });
         // Wait for the late session check and the subscription answer to settle.
         await page.waitForFunction(() => performance.getEntriesByType('resource')
           .some(entry => entry.name.endsWith('/api/subscription/status')), { timeout: READY_MS });

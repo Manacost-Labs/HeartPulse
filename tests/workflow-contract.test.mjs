@@ -96,7 +96,7 @@ for (const event of ['merge_group', 'push', 'workflow_dispatch']) {
     mode: 'all',
     reason: `${event} always runs every test`,
     registryShards: [1, 2, 3, 4],
-    browserShards: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+    browserShards: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     affectedTests: '',
   }, `${event} runs the full matrices`);
 }
@@ -242,8 +242,8 @@ assert.ok(ciJobs['test-suites'].includes(onlyFilesRun(
 assert.ok(suiteRun, 'the non-browser shards must run registry suites and derive the total from the matrix');
 assert.deepEqual([...suiteRun.split(','), 'browser'].sort(), [...TEST_SUITE_IDS].sort(),
   'every registry suite runs in exactly one job');
-assert.deepEqual(FULL_SHARDS, { registry: 4, browser: 12 },
-  'a full run has four registry jobs and twelve browser jobs, with bounded isolated workers');
+assert.deepEqual(FULL_SHARDS, { registry: 4, browser: 10 },
+  'a full run has four registry jobs and ten browser jobs, with bounded isolated workers');
 assert.ok(
   ciJobs['browser-tests'].includes(onlyFilesRun(
     'node scripts/run-test-workers.mjs --suite browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure --quarantine exclude --workers 4 --warmup-browser --report-dir "$RUNNER_TEMP/test-timings"',

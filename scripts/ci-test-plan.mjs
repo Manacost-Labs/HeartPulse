@@ -29,7 +29,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { singleLineErrorMessage } from './lib/diagnostic-text-policy.mjs';
 
 /** Shards of a full run; ci.yml takes its matrices from this plan. */
-export const FULL_SHARDS = Object.freeze({ registry: 4, browser: 12 });
+export const FULL_SHARDS = Object.freeze({ registry: 4, browser: 10 });
 const ENGINE_TIMEOUT_MS = 120_000;
 const USAGE = 'usage: node scripts/ci-test-plan.mjs --event <name> [--base <sha> --head <sha>]';
 

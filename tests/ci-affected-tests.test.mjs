@@ -541,7 +541,7 @@ const planRegistry = {
   ],
   quarantine: [{ file: 'tests/b18-browser.test.mjs', issue: 'x', reason: 'flaky' }],
 };
-const FULL_PLAN_SHARDS = { registryShards: [1, 2, 3, 4], browserShards: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], affectedTests: '' };
+const FULL_PLAN_SHARDS = { registryShards: [1, 2, 3, 4], browserShards: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], affectedTests: '' };
 
 function engineOutput(mode, files = {}) {
   return `${JSON.stringify({ mode, reason: 'engine reason', files: { unit: [], integration: [], browser: [], ...files }, affectedModules: [] }, null, 2)}\n`;
@@ -551,8 +551,8 @@ function plan(event, status, output) {
   return planTestShards({ event, status, output, registry: planRegistry });
 }
 
-test('a full run uses four registry and twelve browser jobs', () => {
-  assert.deepEqual(FULL_SHARDS, { registry: 4, browser: 12 });
+test('a full run uses four registry and ten browser jobs', () => {
+  assert.deepEqual(FULL_SHARDS, { registry: 4, browser: 10 });
 });
 
 test('the merge queue, a push and a manual run test everything whatever the selection says', () => {
@@ -579,7 +579,7 @@ test('a narrowed pull request passes the engine output unchanged and sizes the s
     browser: planRegistry.suites[2].files,
   });
   assert.deepEqual(plan('pull_request', 0, wide).registryShards, [1, 2, 3]);
-  assert.deepEqual(plan('pull_request', 0, wide).browserShards, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  assert.deepEqual(plan('pull_request', 0, wide).browserShards, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
 });
 
 test('a selection of only quarantined browser tests starts no browser shard', () => {
@@ -639,7 +639,7 @@ test('the plan command writes GitHub outputs for a real pull request', () => {
 
     const unknownBase = runPlan(directory, '--event', 'pull_request', '--base', 'no-such-revision', '--head', 'HEAD');
     assert.ok(unknownBase.startsWith('mode=all\nreason=affected-test selection failed (exit 1); running everything\n'
-      + 'registry-shards=[1,2,3,4]\nbrowser-shards=[1,2,3,4,5,6,7,8,9,10,11,12]\n'), unknownBase);
+      + 'registry-shards=[1,2,3,4]\nbrowser-shards=[1,2,3,4,5,6,7,8,9,10]\n'), unknownBase);
     const noBase = runPlan(directory, '--event', 'pull_request', '--base', '', '--head', 'HEAD');
     assert.ok(noBase.startsWith('mode=all\nreason=affected-test selection failed (exit 2)'), noBase);
   });

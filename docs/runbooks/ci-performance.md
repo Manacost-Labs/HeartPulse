@@ -92,7 +92,7 @@ START/PASS/FLAKY timestamps in those two runs' complete shard logs.
 
 All shards use the same checked `tests/test-durations.json`. Calibration is
 reproducible but is not automatically committed by CI. The worker wrapper
-runs four browser workers in each of twelve jobs and two registry workers in
+runs four browser workers in each of ten jobs and two registry workers in
 each of four jobs. More workers are rejected above four per job. Reports and
 process groups are separate; the aggregate waits for every worker and retains
 failure and cancellation behavior. These are CI processes, not agent sessions.
@@ -128,7 +128,7 @@ the one-second delayed response, observation windows, viewport matrix and
 security assertions are retained in a shared helper. Knip's project includes
 authored test helpers so their dependency use remains visible to the static gate.
 
-## Account scenarios and twelve browser shards
+## Account scenarios and rejected twelve-shard trial
 
 Run `42114399124` (`e24c8fa9`) passed all 36 checks and all 545 blocking
 files without retries. The required gate finished at +193s. Browser shard 10
@@ -143,7 +143,7 @@ scenario already owned its backend, Next and browser lifetime. The old
 52.646s median is allocated into 9.505/17.628/14.941/10.572s seeds using
 successful parent scenario durations, not new measured per-file medians.
 
-The full browser matrix grows from ten to twelve jobs with four workers each.
+The trial grew the browser matrix from ten to twelve jobs with four workers each.
 Together with four registry and four observatory jobs this makes twenty test
 jobs; GitHub can still queue them. Worker bounds, disjoint striped partitions,
 PR subset scaling, failure handling and all required dependencies remain.
@@ -163,7 +163,41 @@ original test blocks exactly. Registry validation with 48 checks, 53 planner/
 worker/calibration checks, workflow contracts, documentation lint and focused
 Semgrep passed. The updated worker test covers all 48 global shards and
 separate reports. All 548 blocking files occur exactly once in the partitions.
-Fresh full runs must verify the new assignment and hosted duration.
+The hosted trial `42116391624` (`0ee6273b`) finished the required gate at
++232s: 547 files passed first attempt, while `next-instant-access` passed on
+retry. All four extracted account scenarios passed first attempt. Browser
+jobs 5 and 9 started at +137/+138s, whereas the other browser jobs started
+at +71/+72s. The final job was the delayed shard 5, ending at +227s.
+The replay did not account for this queue. Restore ten browser jobs, retaining
+the four independent account files and their assertions. The worker contract
+still tests both historical and twelve-job stripe arithmetic.
+
+## Deterministic remembered-viewer response ordering
+
+The retry in `42116391624` was an ordering assertion in `next-instant-access`:
+the first recorded viewer appeared at 3396.4ms, after the session response
+ended at 3372.1ms. A local probe delaying script requests by 4.5s reproduced
+the same assertion on the unchanged test (viewer 4670.8ms, response 3023.8ms).
+The fixed three-second fixture delay did not guarantee a response after the
+first client render on a loaded runner.
+
+Only the remembered-subscriber scenario now selects a per-context response
+hold. It waits for the paid root and the recorded viewer while the session
+answer is still held, then releases the answer in `finally`. The ordinary
+three-second minimum delay also remains in force. The hold cookie is removed
+after release; other scenarios retain their existing server behavior.
+All original assertions remain, including the strict viewer-before-response
+comparison, first-frame remembered marker, no gate/preview/checking frames,
+and hydration checks across all three paid routes and both viewports.
+Existing readiness and product session deadlines are unchanged. A page that
+needs the held response to show the viewer fails the existing readiness wait.
+
+The delayed-JavaScript probe failed before the change and passed after it.
+All 17 instant-access scenarios then passed together on four local CPUs.
+The restored plan passed 53 planner/worker/calibration checks and the workflow
+contract; all 548 blocking files remain covered exactly once. Documentation
+lint and focused Semgrep passed. The full hosted run must confirm stability
+and queue behavior with the restored matrix.
 
 ## Verification status
 
