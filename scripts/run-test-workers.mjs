@@ -11,7 +11,10 @@ export function planTestWorkers(args) {
   const options = new Map();
   for (let index = 0; index < args.length; index += 1) {
     const flag = args[index];
-    if (['--workers', '--report-dir'].includes(flag)) {
+    if (flag === '--warmup-browser') {
+      if (options.has(flag)) throw new Error(`duplicate ${flag}`);
+      options.set(flag, true);
+    } else if (['--workers', '--report-dir'].includes(flag)) {
       if (options.has(flag) || !args[index + 1] || args[index + 1].startsWith('--')) throw new Error(`invalid ${flag}`);
       options.set(flag, args[++index]);
     } else forwarded.push(flag);
@@ -20,6 +23,9 @@ export function planTestWorkers(args) {
   const directory = options.get('--report-dir');
   if (!Number.isInteger(workers) || workers < 1 || workers > 4 || !directory) throw new Error('--workers must be 1–4 and --report-dir is required');
   const parsed = parseRunnerArguments(forwarded);
+  if (options.has('--warmup-browser') && (parsed.suiteIds.length !== 1 || parsed.suiteIds[0] !== 'browser')) {
+    throw new Error('--warmup-browser requires --suite browser');
+  }
   if (!parsed.shard || parsed.reportPath) throw new Error('--shard is required; use --report-dir instead of --report');
   const offset = forwarded.indexOf('--shard');
   return Array.from({ length: workers }, (_, worker) => {
@@ -29,7 +35,19 @@ export function planTestWorkers(args) {
   });
 }
 
-export async function runTestWorkers(args, { repositoryRoot = process.cwd(), environment = process.env, execute = runProcess } = {}) {
+async function warmBrowser(environment) {
+  if (!environment.CHROMIUM_PATH) throw new Error('--warmup-browser requires CHROMIUM_PATH');
+  const { launchBrowser } = await import('./lib/browser-launch.mjs');
+  const browser = await launchBrowser({
+    executablePath: environment.CHROMIUM_PATH, headless: true, args: ['--no-sandbox'],
+  });
+  await browser.close();
+}
+
+export async function runTestWorkers(args, {
+  repositoryRoot = process.cwd(), environment = process.env, execute = runProcess,
+  warmBrowser: prepareBrowser = warmBrowser,
+} = {}) {
   const workers = planTestWorkers(args);
   const reportResources = () => {
     const available = typeof process.availableMemory === 'function' ? process.availableMemory() : freemem();
@@ -42,6 +60,8 @@ export async function runTestWorkers(args, { repositoryRoot = process.cwd(), env
     resourceTimer.unref();
   }
   try {
+    // Keep cold-start work outside individual cases, but inside the measured CI job.
+    if (args.includes('--warmup-browser')) await prepareBrowser(environment);
     const outcomes = await Promise.allSettled(workers.map((flags, index) => execute(process.execPath,
       ['scripts/test-suite-runner.mjs', ...flags], {
         label: `test worker ${index + 1}`, repositoryRoot,

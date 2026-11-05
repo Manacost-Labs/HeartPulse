@@ -350,7 +350,7 @@ jobs:
             printf '%s\n' "$AFFECTED_TESTS" > "$RUNNER_TEMP/affected-tests.json"
             only_files=(--only-files "$RUNNER_TEMP/affected-tests.json")
           fi
-          node scripts/run-test-workers.mjs --suite browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure --quarantine exclude --workers 4 --report-dir "$RUNNER_TEMP/test-timings" "${only_files[@]}"
+          node scripts/run-test-workers.mjs --suite browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure --quarantine exclude --workers 4 --warmup-browser --report-dir "$RUNNER_TEMP/test-timings" "${only_files[@]}"
 
       - name: Upload test timings
         if: always()

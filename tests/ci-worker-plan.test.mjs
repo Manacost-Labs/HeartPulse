@@ -54,3 +54,45 @@ test('a failed worker cannot hide the result or leave its sibling running', asyn
   release();
   await assert.rejects(run, /worker failed/);
 });
+
+test('browser warmup finishes before workers start and is never forwarded to test files', async () => {
+  const args = ['--suite', 'browser', '--shard', '1/10', '--workers', '4', '--report-dir', '/tmp/timings', '--warmup-browser'];
+  const events = [];
+  let release;
+  const run = runTestWorkers(args, {
+    environment: { CHROMIUM_PATH: '/test/chrome' },
+    warmBrowser: async environment => {
+      assert.equal(environment.CHROMIUM_PATH, '/test/chrome');
+      events.push('warmup');
+      await new Promise(resolve => { release = resolve; });
+      events.push('closed');
+    },
+    execute: async (_command, flags) => {
+      assert.ok(!flags.includes('--warmup-browser'));
+      events.push('worker');
+    },
+  });
+  // Observe an early failure too, without turning it into an unhandled rejection.
+  run.catch(() => {});
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(events, ['warmup']);
+  release();
+  await run;
+  assert.deepEqual(events, ['warmup', 'closed', 'worker', 'worker', 'worker', 'worker']);
+});
+
+test('warmup failure prevents worker execution; default runs do not warm a browser', async () => {
+  const args = ['--suite', 'browser', '--shard', '1/1', '--workers', '2', '--report-dir', '/tmp/timings'];
+  let calls = 0;
+  const hooks = {
+    environment: {},
+    warmBrowser: async () => { throw new Error('browser unavailable'); },
+    execute: async () => { calls += 1; },
+  };
+  await assert.rejects(runTestWorkers([...args, '--warmup-browser'], hooks), /browser unavailable/);
+  assert.equal(calls, 0);
+  await runTestWorkers(args, hooks);
+  assert.equal(calls, 2);
+  assert.throws(() => planTestWorkers([...args, '--warmup-browser', '--warmup-browser']));
+  assert.throws(() => planTestWorkers(['--suite', 'unit', ...args.slice(2), '--warmup-browser']));
+});

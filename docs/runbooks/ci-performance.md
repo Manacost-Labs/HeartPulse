@@ -454,7 +454,31 @@ checks both binaries first and only runs the existing apt installation if one
 cannot execute. It prints both versions afterward; missing/broken binaries or
 failed installation still fail the step. Real nginx/TLS regressions passed;
 five shell-path probes covered preinstalled tools, each missing tool, install
-failure and tools still absent after installation. Hosted savings are pending.
+failure and tools still absent after installation. Hosted run
+[42096751424](https://github.com/Manacost-Labs/HeartPulse/actions/runs/42096751424)
+passed the required gate in200s; all four TLS-tool steps took0–1s. There were
+540 PASS and one FLAKY among541 blocking files. This is an observed run, not a
+controlled end-to-end speedup or a stable two-minute result.
+
+Its critical browser1 job spent32–34s in each initial Chrome launch. The
+account-surface test then hit its existing45s whole-case timeout and passed
+on retry; later launches took below one second. The browser worker wrapper
+now offers explicit `--warmup-browser`, enabled only for required browser CI
+jobs. It starts and closes the same configured Chrome once before starting
+workers, using the existing60s launch bound and WS-timeout retry policy. Its
+elapsed time remains inside the CI job; per-case deadlines, geometry/timing
+assertions and retries stay unchanged. Missing Chrome or warmup/close failure
+fails the job before any worker starts. Standalone and registry runs retain
+their previous default. The launch logs identify the wrapper separately, so
+hosted evaluation must include warmup cost and subsequent initial launches.
+This experiment does not establish the internal cause of cold-start delays.
+Six worker-plan/lifecycle checks and seven calibration checks passed, as did
+an actual missing-executable failure probe. The exact four-worker browser1
+shard on four local CPUs completed with6 PASS/1 FLAKY: account-surface hit an
+SMTP-delivery assertion once, a different failure from the hosted launch-time
+case. Its isolated four-case control passed. Local Chrome was already warm;
+these results do not establish a hosted speedup. Semgrep,actionlint and docs
+checks passed; the next full hosted run must include all warmup time.
 
 A disposable Turbopack probe failed after 5.8 seconds: four explicit `.js`
 TypeScript import-resolution errors, invalid generated CSS at
