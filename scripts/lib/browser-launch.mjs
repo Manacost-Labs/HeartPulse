@@ -1,4 +1,5 @@
 import puppeteer, { TimeoutError } from 'puppeteer';
+import { basename } from 'node:path';
 
 // A busy GitHub-hosted runner sometimes needs more than Puppeteer's default
 // 30 s before Chrome prints its DevTools endpoint; a second start succeeds.
@@ -11,12 +12,38 @@ const LAUNCH_TIMEOUT_MS = 60_000;
  */
 export async function launchBrowser(options = {}) {
   const launchOptions = { timeout: LAUNCH_TIMEOUT_MS, ...options };
+  const reportTiming = process.env.GITHUB_ACTIONS === 'true' || process.env.HP_BROWSER_TIMINGS === '1';
+  const entry = basename(process.argv[1] || 'unknown');
+  const launch = async attempt => {
+    const started = performance.now();
+    let outcome = 'failed';
+    if (reportTiming) console.log(`[browser] launch-start entry=${entry} pid=${process.pid} attempt=${attempt}`);
+    try {
+      const browser = await puppeteer.launch(launchOptions);
+      if (reportTiming) {
+        const close = browser.close.bind(browser);
+        browser.close = async (...args) => {
+          const closing = performance.now();
+          console.log(`[browser] close-start entry=${entry} pid=${process.pid} attempt=${attempt}`);
+          try {
+            return await close(...args);
+          } finally {
+            console.log(`[browser] close-end entry=${entry} pid=${process.pid} attempt=${attempt} milliseconds=${Math.round(performance.now() - closing)}`);
+          }
+        };
+      }
+      outcome = 'ready';
+      return browser;
+    } finally {
+      if (reportTiming) console.log(`[browser] launch-end entry=${entry} pid=${process.pid} attempt=${attempt} outcome=${outcome} milliseconds=${Math.round(performance.now() - started)}`);
+    }
+  };
   try {
-    return await puppeteer.launch(launchOptions);
+    return await launch(1);
   } catch (error) {
     if (!(error instanceof TimeoutError) || !/WS endpoint/.test(error.message)) throw error;
     console.warn(`[browser] ${error.message}; starting the browser once more`);
-    return puppeteer.launch(launchOptions);
+    return launch(2);
   }
 }
 

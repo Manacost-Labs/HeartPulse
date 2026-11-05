@@ -231,6 +231,29 @@ allocate the measured original file median in proportion to viewport counts;
 they are estimates until two complete PASS observations per part exist.
 A fresh hosted run must verify the runtime effect of both changes.
 
+Run [42058487409](https://github.com/Manacost-Labs/HeartPulse/actions/runs/42058487409)
+passed the required gate in264 seconds. All blocking jobs started at+67–70s;
+quarantine started after the gate as intended. The three archetype geometry
+parts passed in35.12/14.79/18.98 seconds. Two other browser files needed retries:
+desktop route skeleton (146.5s total) and leaderboard state (94.3s total), so
+this is not a clean first-attempt benchmark. The longest browser job's setup
+also took longer; these measurements do not show an overall speedup.
+
+A controlled local four-file probe on four CPU cores compared the same desktop
+skeleton, mobile layout diagnostics, HSReplay deck and runtime-config files.
+Two workers completed in53.010s; four in33.082s; both passed without retries.
+The four-worker setting remains. Local timings do not establish hosted capacity.
+The diagnostic-only mobile layout file took61.9s on the slow hosted job but
+1.11s in the local four-worker probe. Other first files also showed large
+hosted overhead. The next run logs `launch-start` and `launch-end` for each
+Chrome attempt with entry basename, PID, outcome and elapsed milliseconds,
+plus close-start/close-end timings around native browser shutdown.
+This separates browser startup, scenario time and shutdown; the cause of the overhead
+is still unknown. Logging is enabled in GitHub Actions, or locally with
+`HP_BROWSER_TIMINGS=1`; browser flags, launch limits, retries and assertions
+are unchanged. No URLs, browser options or arbitrary environment values are
+logged.
+
 A disposable Turbopack probe failed after 5.8 seconds: four explicit `.js`
 TypeScript import-resolution errors, invalid generated CSS at
 `section::after::after`, and a UMD/CommonJS-format warning. The probe config and
