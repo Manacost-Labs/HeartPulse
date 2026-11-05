@@ -199,6 +199,48 @@ contract; all 548 blocking files remain covered exactly once. Documentation
 lint and focused Semgrep passed. The full hosted run must confirm stability
 and queue behavior with the restored matrix.
 
+## Pending paywall fixture and current-registry calibration
+
+Run `42117968384` (`d92b1259`) passed all 36 checks. Its required gate took
+290s from workflow creation: 547 files passed first attempt and
+`next-paywall-access-check` passed on retry. Instant access passed first
+attempt after its fixture fix. The release build started at +57s, and several
+test jobs started late. Merge-queue run `42117621102` for PR350 overlapped
+this run, so the wall time is not a controlled comparison of code changes.
+The branch subsequently merged main `d2872835` without conflicts and rebuilt
+static/server, Next and Storybook artifacts for the profile styling changes.
+
+The paywall file failed two assertions: a gate appeared before the pending
+assertions finished, and a paid view appeared 346ms after status response
+completion. The first was reproduced by delaying the test reader for 1.5s:
+the original 1.2s session timer expired between two assertions. The fixture
+now holds session responses while the pending assertions run and releases
+them in `finally`, retaining the 1.2s minimum delay. It also releases the hold
+if assertions finish before the request arrives. All seven routes at both
+viewports, pending checks and the CLS limit remain unchanged.
+
+The delayed-reader probe failed before and passed after the fix. Both paywall
+scenarios passed together on four local CPUs. The subscriber speed scenario
+is byte-identical, including the strict 200ms bound and no-loading/CSS checks.
+Its separate hosted timing failure was not reproduced in this isolated run;
+the new full CI must verify behavior under the worker load. No timing limit
+was relaxed and no scenario was quarantined.
+
+The two successful full 552-file runs `42116391624/1` and `42117968384/1`
+provide complete current-registry reports. The explicit full-PR calibration
+produced 546 eligible medians and changed 540 weights. FLAKY observations
+were excluded: instant-access and paywall-access-check retained their previous
+weights because each has only one new PASS sample. Split-file seeds now have
+measured medians; the default remains 15s. The output is reproducible from
+the previous manifest and the selected reports. The runs include different
+matrix sizes and shared-runner load; these medians guide balancing and do
+not establish a hosted speedup.
+
+After the main merge, all four account browser scenarios and 25 account UI
+checks passed against rebuilt artifacts. Registry validation with 48 checks,
+13 worker/calibration checks, workflow contracts, docs and focused Semgrep
+passed. The calibrated partitions cover all 548 blocking files exactly once.
+
 ## Verification status
 
 The first hosted PR run
