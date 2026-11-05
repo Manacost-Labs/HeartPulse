@@ -208,6 +208,29 @@ mapping test fails under the old assignment and passes under the new one.
 A new hosted run must measure the effect; median estimates do not establish
 the two-minute objective.
 
+Run [42056699065](https://github.com/Manacost-Labs/HeartPulse/actions/runs/42056699065)
+verified the striped mapping with a green required gate in 215 seconds from
+creation (one second before the first job, 214 seconds active). Its blocking
+reports contain 533 PASS and three FLAKY files, so this is not a clean
+first-attempt benchmark. Build/Storybook completed in 63/61 seconds. One
+browser job started at +95 seconds instead of +68 seconds and completed last;
+its test step took 98 seconds. Archetype geometry remained a 106-second file.
+
+The next slice makes quarantine depend on `required`, leaving that optional
+job's runner slot available for blocking checks. Its existing explicit
+`!cancelled()` condition still permits execution after a failed required gate
+when both builds succeeded; it remains non-blocking and PR/manual-only.
+The browser registry and required gate never depend on quarantine.
+
+Archetype/Vicious geometry now runs as three viewport files against one shared
+assertion helper: desktop1350/1024, tablet768 and mobile412/360. All five public
+widths, all four ready/loading pairs, selector lists, counts, two-frame layout
+settling, readiness retries and 2px/4px tolerances are retained. Registry count
+is now542, including four existing quarantined files. Initial part weights
+allocate the measured original file median in proportion to viewport counts;
+they are estimates until two complete PASS observations per part exist.
+A fresh hosted run must verify the runtime effect of both changes.
+
 A disposable Turbopack probe failed after 5.8 seconds: four explicit `.js`
 TypeScript import-resolution errors, invalid generated CSS at
 `section::after::after`, and a UMD/CommonJS-format warning. The probe config and

@@ -362,7 +362,8 @@ jobs:
   # deployment do not need it.
   browser-quarantine:
     name: Browser quarantine (non-blocking)
-    needs: [build, storybook]
+    needs: [build, storybook, required]
+    # Start after required validation so optional work cannot take its runner slots.
     # Flake data comes from pull requests; the merge queue and main do not wait for or pay for it.
     # Explicit: the implicit success() also fails on the skipped reuse job upstream.
     if: ${{ !cancelled() && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && needs.build.result == 'success' && needs.storybook.result == 'success' }}

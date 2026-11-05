@@ -247,7 +247,7 @@ assert.ok(
 // CI required or the deployment (both need lists are asserted exactly above).
 const quarantineJob = ciJobs['browser-quarantine'];
 assert.match(quarantineJob, /^ {4}name: Browser quarantine \(non-blocking\)$/m);
-assert.match(quarantineJob, /^ {4}needs: \[build, storybook\]$/m, 'the quarantine job tests the built outputs');
+assert.match(quarantineJob, /^ {4}needs: \[build, storybook, required\]$/m, 'quarantine uses built outputs after the blocking gate to leave runner slots for validation');
 assert.match(quarantineJob, /^ {4}continue-on-error: true$/m, 'a quarantine failure never fails the run');
 const quarantineIf = quarantineJob.match(/^ {4}if: (.+)$/m)?.[1];
 assert.ok(quarantineIf, 'the quarantine job needs an explicit if');

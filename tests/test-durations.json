@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "source": "Median PASS seconds from full CI runs 42043123385/1, 42054746478/1; at least two distinct runs per updated file. Other existing weights retained. PR opt-in requires complete registry coverage.",
+  "source": "Median PASS seconds from full CI runs 42043123385/1, 42054746478/1; at least two distinct runs per updated file. Other existing weights retained. PR opt-in requires complete registry coverage. Archetype geometry split estimates allocate its prior median by viewport count until two complete PASS samples exist for each part.",
   "defaultSeconds": 15,
   "seconds": {
     "tests/account-avatar-integration.test.mjs": 4.829,
@@ -61,7 +61,9 @@
     "tests/archetype-deck-codes-schema.test.ts": 0.234,
     "tests/archetype-deck-identity.test.ts": 0.504,
     "tests/archetype-detail-model.test.ts": 0.253,
-    "tests/archetype-vicious-skeleton-geometry-browser.test.mjs": 102.864,
+    "tests/archetype-vicious-skeleton-geometry-browser.test.mjs": 41.146,
+    "tests/archetype-vicious-skeleton-geometry-tablet-browser.test.mjs": 20.573,
+    "tests/archetype-vicious-skeleton-geometry-mobile-browser.test.mjs": 41.146,
     "tests/archetypes-detail-browser.test.mjs": 23,
     "tests/architecture-baseline.test.mjs": 0.543,
     "tests/architecture-catalog.test.mjs": 0.092,
