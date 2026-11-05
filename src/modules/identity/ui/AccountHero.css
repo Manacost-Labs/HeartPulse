@@ -31,7 +31,7 @@
   font-weight: 700;
   text-decoration: none;
   cursor: pointer;
-  transition: background-color 140ms ease, color 140ms ease;
+  transition: background-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
 }
 .account-hero__half + .account-hero__half { border-left: 1px solid rgba(239, 201, 111, 0.45); }
 .account-hero__half:hover { background: rgba(239, 201, 111, 0.14); color: #fff; }
@@ -57,7 +57,7 @@
   font-weight: 700;
   cursor: pointer;
   backdrop-filter: blur(6px);
-  transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease;
+  transition: background-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
 }
 .account-logout:hover { border-color: rgba(255, 240, 200, 0.5); background: rgba(24, 2, 6, 0.85); color: #fff; }
 

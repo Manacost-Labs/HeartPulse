@@ -6,8 +6,8 @@
 .account-public-profile__visibility legend { float: left; width: 100%; padding: 0; margin-bottom: 4px; font-weight: 700; }
 .account-switch { display: inline-flex; align-items: center; gap: 12px; align-self: flex-start; min-height: 44px; padding: 0 4px 0 0; border: 0; background: transparent; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
 .account-switch:disabled { cursor: progress; opacity: 0.7; }
-.account-switch__track { position: relative; flex: 0 0 auto; width: 44px; height: 24px; border-radius: 12px; background: #b9a07a; transition: background-color 160ms ease; }
-.account-switch__thumb { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff8e6; box-shadow: 0 1px 3px rgba(58, 36, 18, 0.35); transition: transform 160ms ease; }
+.account-switch__track { position: relative; flex: 0 0 auto; width: 44px; height: 24px; border-radius: 12px; background: #b9a07a; transition: background-color var(--motion-fast) var(--motion-ease); }
+.account-switch__thumb { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff8e6; box-shadow: 0 1px 3px rgba(58, 36, 18, 0.35); transition: transform var(--motion-fast) var(--motion-ease); }
 .account-switch[aria-checked="true"] .account-switch__track { background: var(--account-ok, #235a2f); }
 .account-switch[aria-checked="true"] .account-switch__thumb { transform: translateX(20px); }
 @media (prefers-reduced-motion: reduce) { .account-switch__track, .account-switch__thumb { transition: none; } }
