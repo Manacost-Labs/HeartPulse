@@ -639,6 +639,45 @@ checks, workflow contracts, documentation lint and focused Semgrep passed.
 Partition checks cover all 544 blocking files exactly once. No local timing
 is treated as a hosted improvement; the new full CI run decides that.
 
+## Observatory pairing experiment
+
+Run `42110452495` (`8265f211`) passed all 36 checks and all 544 blocking
+files without retries, finishing the required gate at +187s. Observatory
+batches 3 and 4 and browser shard 1 were the last jobs.
+
+Separating the heavy admin and responsive groups into different pairs did
+not establish a local improvement. On four CPUs, the old final pair took
+67.250s initially and 61.602s in the reverse control. All four candidate
+pairs passed, with a maximum of 62.530s. The reverse control overlaps that
+result, so the original pairing is retained. These local measurements are
+not evidence of a hosted improvement.
+
+## Split library listings by viewport
+
+The same successful hosted run spent 80.555s on
+`next-bg-library-listings-browser.test.mjs`, which visited 17 routes at
+1440px and then 390px. Desktop and mobile now register separately through
+`tests/helpers/bgLibraryListings.mjs`, allowing existing workers to schedule
+the two viewport matrices independently.
+
+All 34 route/viewport combinations retain the same status, canonical, heading,
+main landmark, overflow, paywall and axe assertions. Console errors, failed
+requests and private API requests still fail each viewport test. The three
+404 checks now run at both viewports. Navigation readiness and timeouts are
+unchanged. Each file owns and closes its backend, Next and browser runtime.
+The extracted scenario body matches the original after normalizing indentation
+and substituting the supplied width list.
+
+The previous 83.831s median is divided into 41.916s and 41.915s scheduling
+seeds. These are not measured per-file medians. The current registry contains
+549 files, four quarantined, 545 blocking, 455 non-browser and 90 blocking
+browser files. Recalibration requires two complete fresh successful runs.
+Both viewport tests passed concurrently on four local CPUs. Registry checks,
+13 worker/calibration checks, the workflow contract, documentation lint and
+focused Semgrep passed. All 545 blocking files appear exactly once across
+the existing partitions; desktop and mobile land in different browser jobs.
+The next full GitHub Actions run will measure the split's hosted effect.
+
 ## Verification
 
 Focused runner and workflow tests must prove deterministic complete sharding,

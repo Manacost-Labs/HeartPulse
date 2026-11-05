@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "source": "Median PASS seconds from full CI runs 42094463512/1, 42096751424/1, 42100456266/1; at least two distinct runs per updated file. Other existing weights retained. PR opt-in requires complete registry coverage. Before main sync and builder split: registry545. Builder guest/runes/sideboards seeds allocate its existing median by parent scenario durations in 42107088754; current registry548 requires two complete fresh runs for measured per-file medians.",
+  "source": "Median PASS seconds from full CI runs 42094463512/1, 42096751424/1, 42100456266/1; at least two distinct runs per updated file. Other existing weights retained. PR opt-in requires complete registry coverage. Before main sync and builder split: registry545. Builder guest/runes/sideboards seeds allocate its existing median by parent scenario durations in 42107088754; Library desktop/mobile seeds divide the prior library median equally, preserving its total. Current registry549 requires two complete fresh runs for measured per-file medians.",
   "defaultSeconds": 15,
   "seconds": {
     "tests/account-avatar-integration.test.mjs": 3.365,
@@ -287,7 +287,8 @@
     "tests/next-bg-hero-detail-browser.test.mjs": 12.36,
     "tests/next-bg-library-card-data.test.ts": 0.189,
     "tests/next-bg-library-details-browser.test.mjs": 26.249,
-    "tests/next-bg-library-listings-browser.test.mjs": 83.831,
+    "tests/next-bg-library-listings-browser.test.mjs": 41.916,
+    "tests/next-bg-library-listings-mobile-browser.test.mjs": 41.915,
     "tests/next-bg-tier-list-browser.test.mjs": 16.907,
     "tests/next-bundle-budget-policy.test.mjs": 0.064,
     "tests/next-bundle-budgets.test.mjs": 4.858,
