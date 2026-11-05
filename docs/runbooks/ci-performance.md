@@ -432,7 +432,29 @@ owner check also waits for support-prompt and footer styles within its existing
 10s bound instead of sampling them while their lazy chunks are still loading.
 Batch1 passed with both isolated runtimes on four local CPUs; the final home
 scenario, docs lint and selected-source Semgrep also passed. Hosted validation
-of this correction remains pending.
+passed in [42094463512](https://github.com/Manacost-Labs/HeartPulse/actions/runs/42094463512).
+
+That run reached the required gate in231s, with540 PASS and one FLAKY
+(`battleground-hero-motion-browser`) among541 blocking files. Browser shard7
+started137s after creation, versus77–78s for most browser jobs, and finished
+last at225s. Runner queuing remains variable, not a proven repository quota.
+
+A local experiment combined the eight registry workers into two jobs of four
+instead of four jobs of two. The first group passed, but the second failed
+auth-persistence and newsletter-consent backend startup. Overall452/454 files
+passed; both failing files then passed all13 cases in an isolated control.
+The layouts ran on four pinned local CPUs, with host RAM still64GiB rather
+than the hosted16GiB. The failed experiment is not adopted; keep two registry
+workers per job and do not raise backend deadlines to accommodate it.
+
+The same hosted run spent26s in the registry4 TLS-tools setup. Its log shows
+OpenSSL already current and nginx already installed: apt upgraded nginx from
+Ubuntu package7.18 to7.19 rather than supplying a missing executable. CI now
+checks both binaries first and only runs the existing apt installation if one
+cannot execute. It prints both versions afterward; missing/broken binaries or
+failed installation still fail the step. Real nginx/TLS regressions passed;
+five shell-path probes covered preinstalled tools, each missing tool, install
+failure and tools still absent after installation. Hosted savings are pending.
 
 A disposable Turbopack probe failed after 5.8 seconds: four explicit `.js`
 TypeScript import-resolution errors, invalid generated CSS at

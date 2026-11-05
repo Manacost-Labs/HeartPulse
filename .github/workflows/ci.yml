@@ -249,10 +249,15 @@ jobs:
       - name: Install locked dependencies
         uses: ./.github/actions/install-dependencies
 
-      - name: Install identity TLS regression tools
+      - name: Ensure identity TLS regression tools
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends nginx openssl
+          # Hosted images normally provide both; avoid updating packages per shard.
+          if ! nginx -v 2>/dev/null || ! openssl version >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends nginx openssl
+          fi
+          nginx -v
+          openssl version
 
       - name: Download validated build outputs
         uses: actions/download-artifact@v8
