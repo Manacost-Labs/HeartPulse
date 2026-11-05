@@ -805,6 +805,9 @@ signal exits during readiness/cleanup. A premature health response from another
 listener cannot make it return a newly created empty database. The HTTP probe
 has a bounded timeout. Card fixture setup now closes all acquired servers and
 the backend on failure, including failures while seeding a session.
+The immutable legacy HTML shell is read once during fixture setup and served
+from memory. This removes per-request file access flagged by CodeQL
+`js/missing-rate-limiting` without adding artificial throttling to local tests.
 
 Two subprocess regressions inject an early health response and a seed failure.
 Both failed before the change and passed afterward, including natural process

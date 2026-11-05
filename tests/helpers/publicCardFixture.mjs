@@ -92,11 +92,12 @@ export async function publicCardFixture({ backendEnv, externalRoutes = {} } = {}
   };
   try {
     backend = await startCredentialBackend({ externalOrigin, frontend: true, cardImages: true, env: backendEnv });
+    const legacyIndex = readFileSync(resolve('dist/index.html'));
     const app = express();
     app.use(express.static(resolve('dist')));
     app.use((request, response) => {
       if (!request.path.startsWith('/api/') && !request.path.includes('sitemap') && request.path !== '/robots.txt' && !/^\/standard\/cards\/(standard|wild)\/[^/]+\/?$/.test(request.path)) {
-        return response.sendFile(resolve('dist/index.html'));
+        return response.type('html').send(legacyIndex);
       }
       const upstream = http.request(backend.origin + request.originalUrl, { method: request.method, headers: request.headers }, incoming => {
         response.writeHead(incoming.statusCode, incoming.headers); incoming.pipe(response);
