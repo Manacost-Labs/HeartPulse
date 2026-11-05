@@ -208,8 +208,8 @@ test('the account offers section navigation and help with clear contact groups',
       countries={[]} saving={false} onChange={noop} onSubmit={noop} />,
   );
   assert.match(markup, /<fieldset/);
-  assert.match(markup, /<legend>Контакты для призов<\/legend>/);
-  assert.match(markup, /<legend>Рассылка<\/legend>/);
+  assert.match(markup, /<legend class="account-row__label">Контакты для призов<\/legend>/);
+  assert.match(markup, /<legend class="account-row__label">Рассылка<\/legend>/);
   assert.match(markup, /href="\/faq\/#faq-newsletter"/);
 });
 
@@ -358,10 +358,10 @@ test('the public profile section switches the statistics and decks on and off, s
     <AccountPublicProfile identity={{ publicProfileId: '7', nickname: null, nicknameChangeAvailableAt: null, statsVisible }}
       failed={false} saving={false} saveNickname={noop} saveStatsVisible={withSwitch ? noop : undefined} origin="https://hearthpulse.net" />,
   );
-  assert.match(section(false), /role="switch"[^>]*aria-checked="false"[^>]*>.*Моя статистика и колоды/);
-  assert.match(section(true), /role="switch"[^>]*aria-checked="true"[^>]*>.*Моя статистика и колоды/);
+  assert.match(section(false), /role="switch"[^>]*aria-checked="false"[^>]*>.*Показывать мою статистику и колоды/);
+  assert.match(section(true), /role="switch"[^>]*aria-checked="true"[^>]*>.*Показывать мою статистику и колоды/);
   assert.match(section(false), /без времени партий/);
-  assert.doesNotMatch(section(false, false), /Моя статистика и колоды/);
+  assert.doesNotMatch(section(false, false), /Показывать мою статистику/);
 });
 
 test('saved decks show only images the site serves itself', () => {

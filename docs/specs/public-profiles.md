@@ -21,7 +21,7 @@ keys (`PUBLIC_PROFILE_FIELDS` in `server/modules/publicProfile/model.ts`):
 | `avatarInitials` | The first two characters of the nickname in upper case, or `#`. |
 | `memberSince` | Registration month, `YYYY-MM`. |
 | `isSubscriber` | `true` while the cached subscription grants access. |
-| `showsStats` | `true` once the owner switched on «Моя статистика и колоды»; `false` by default. |
+| `showsStats` | `true` once the owner switched on «Показывать мою статистику и колоды»; `false` by default. |
 
 Never public: the account name (`users.name`), mail addresses, contacts for
 prizes, Telegram/Discord/Yandex/Google/Patreon/Boosty identities, avatars from
@@ -134,9 +134,9 @@ payload with `success: true`.
 - Nginx sends `/u/` to Next together with the rest of the profile namespace.
 - The account page (`/?login`) has a «Публичный профиль» section
   (`AccountPublicProfile`): the short link and, once chosen, the nickname link,
-  each with «Скопировать ссылку», the nickname form with the rules and the
-  date of the next allowed change, and the switch «Моя статистика и колоды»
-  (off by default). The account header has «Поделиться»: the device's share
+  each with «Скопировать», the nickname form with the rules or the date of
+  the next allowed change, and the switch «Показывать мою статистику и
+  колоды» (off by default). The account header has «Поделиться»: the device's share
   sheet where there is one, otherwise it copies the short link.
 
 ## Limits

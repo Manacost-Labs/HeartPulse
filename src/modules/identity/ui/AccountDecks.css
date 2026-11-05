@@ -5,26 +5,16 @@
   flex-direction: column;
   gap: 14px;
   padding: 18px;
-  border: 1.5px solid var(--account-line);
+  border: 1px solid var(--account-surface-line);
   border-radius: 12px;
   background: var(--account-card-strong);
+  box-shadow: inset 0 0 0 1px rgba(255, 249, 226, 0.35);
 }
 .saved-decks__form h3 { margin: 0; font-family: var(--font-hs); font-size: 1.2rem; }
 .saved-decks__field { display: flex; flex-direction: column; gap: 6px; }
 .saved-decks__field label { font-weight: 700; }
 .saved-decks__field label .account-muted { font-weight: 500; }
-.saved-decks__field textarea {
-  box-sizing: border-box;
-  width: 100%;
-  min-height: 88px;
-  padding: 10px 12px;
-  border: 1.5px solid var(--account-line);
-  border-radius: 10px;
-  background: #fffdf6;
-  color: var(--account-ink);
-  font: inherit;
-  resize: vertical;
-}
+.saved-decks__field textarea { min-height: 88px; padding: 10px 12px; resize: vertical; }
 #saved-deck-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9rem; word-break: break-all; }
 .saved-decks__field p { font-size: 0.9rem; }
 .saved-decks__count { align-self: flex-end; font-variant-numeric: tabular-nums; }
@@ -42,7 +32,7 @@
   list-style: none;
 }
 
-.saved-deck { display: flex; flex-direction: column; min-width: 0; border-radius: 12px; background: var(--account-card-strong); box-shadow: 0 6px 16px rgba(70, 38, 15, 0.12); }
+.saved-deck { display: flex; flex-direction: column; min-width: 0; overflow: hidden; border: 1px solid var(--account-surface-line); border-radius: 12px; background: var(--account-card-strong); box-shadow: 0 6px 16px rgba(70, 38, 15, 0.12); }
 
 /* The deck picture wears the compact gold frame of assets.md, like deck images on the meta pages. */
 .saved-deck__image {
@@ -87,7 +77,7 @@ a.saved-deck__image:hover img { transform: scale(var(--motion-zoom)); }
 }
 .saved-deck__link:hover { color: var(--account-accent); }
 .saved-deck__edit { display: flex; flex-direction: column; gap: 8px; }
-.saved-deck__edit textarea { box-sizing: border-box; width: 100%; padding: 8px 10px; border: 1.5px solid var(--account-line); border-radius: 10px; background: #fffdf6; color: var(--account-ink); font: inherit; resize: vertical; }
+.saved-deck__edit textarea { resize: vertical; }
 .saved-deck__visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 
 @media (prefers-reduced-motion: reduce) {
