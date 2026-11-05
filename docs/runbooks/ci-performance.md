@@ -278,6 +278,28 @@ retaining this experiment as a performance improvement. If cold launches do
 not improve, revert the transport default rather than attribute queue or test
 variance to it.
 
+The pipe experiment in
+[42077962936](https://github.com/Manacost-Labs/HeartPulse/actions/runs/42077962936)
+failed browser shard5 and therefore `CI required`. That job took827s; six files
+failed after their normal retries and one was FLAKY. Failures included empty
+backend-readiness timeouts, navigation timeouts and skeleton readiness. The
+other nine browser jobs and four observatory batches passed. Its first Chrome
+launches were slow too; the failed run is not a valid performance benchmark,
+and neither transport causality nor resource exhaustion is proven.
+
+The CI pipe default is reverted. The phase logs and explicit caller options
+remain available. Required checks, timeout values, retries and worker counts
+are unchanged. CI worker parents now log CPU availability, total/available
+memory and one-minute OS load initially and every20s while workers run. These
+numeric resource hints expose no process arguments, URLs or environment data.
+The timer is unrefed and cleared after all workers settle, including failures.
+Use future resource samples with the phase/file timings before changing
+concurrency or attributing a slow host to memory/CPU pressure. Failed pipe
+reports must not calibrate duration weights.
+The rollback passed the exact four-worker browser shard5 locally: all eight
+files PASS without retries. Worker lifecycle tests, docs lint and selected-source
+Semgrep also passed; hosted validation is still required.
+
 A disposable Turbopack probe failed after 5.8 seconds: four explicit `.js`
 TypeScript import-resolution errors, invalid generated CSS at
 `section::after::after`, and a UMD/CommonJS-format warning. The probe config and

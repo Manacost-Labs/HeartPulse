@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import path from 'node:path';
+import { availableParallelism, freemem, loadavg, totalmem } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { parseRunnerArguments } from './test-suite-runner.mjs';
 import { runProcess } from './lib/process-task.mjs';
@@ -30,13 +31,27 @@ export function planTestWorkers(args) {
 
 export async function runTestWorkers(args, { repositoryRoot = process.cwd(), environment = process.env, execute = runProcess } = {}) {
   const workers = planTestWorkers(args);
-  const outcomes = await Promise.allSettled(workers.map((flags, index) => execute(process.execPath,
-    ['scripts/test-suite-runner.mjs', ...flags], {
-      label: `test worker ${index + 1}`, repositoryRoot,
-      environment: { ...environment, HP_TEST_COMPILED_BACKEND: '1', PRODUCTION_SCRAPER_BUILD_READY: '1' },
-    })));
-  const failures = outcomes.filter(outcome => outcome.status === 'rejected');
-  if (failures.length) throw failures.find(outcome => outcome.reason.interrupted)?.reason ?? failures[0].reason;
+  const reportResources = () => {
+    const available = typeof process.availableMemory === 'function' ? process.availableMemory() : freemem();
+    console.log(`[test-workers] workers=${workers.length} cpus=${availableParallelism()} memoryTotalMiB=${Math.round(totalmem() / 1048576)} memoryAvailableMiB=${Math.round(available / 1048576)} load1=${loadavg()[0].toFixed(2)}`);
+  };
+  let resourceTimer;
+  if (environment.GITHUB_ACTIONS === 'true') {
+    reportResources();
+    resourceTimer = setInterval(reportResources, 20_000);
+    resourceTimer.unref();
+  }
+  try {
+    const outcomes = await Promise.allSettled(workers.map((flags, index) => execute(process.execPath,
+      ['scripts/test-suite-runner.mjs', ...flags], {
+        label: `test worker ${index + 1}`, repositoryRoot,
+        environment: { ...environment, HP_TEST_COMPILED_BACKEND: '1', PRODUCTION_SCRAPER_BUILD_READY: '1' },
+      })));
+    const failures = outcomes.filter(outcome => outcome.status === 'rejected');
+    if (failures.length) throw failures.find(outcome => outcome.reason.interrupted)?.reason ?? failures[0].reason;
+  } finally {
+    if (resourceTimer) clearInterval(resourceTimer);
+  }
 }
 
 if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) {
