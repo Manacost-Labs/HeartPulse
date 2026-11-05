@@ -512,6 +512,30 @@ browser errors and timing sensitivity on this shared host; failed files passed
 in isolation, and hosted required jobs all passed. Historical replays and one
 PR run do not establish the warm-cache, full-run two-minute SLO.
 
+## Full-registry recalibration after Chrome warmup
+
+Run `42100456266/1` (`631ad0bb`) passed all 36 checks. All 541 blocking
+files passed on their first attempt; the required gate finished 195 seconds
+after workflow creation. Browser job 8 finished last: it started at +86s,
+spent 83s in the test step and finished at +191s. Its Chrome warmup took
+0.839s; the longest worker executed three files totaling 81.978s.
+
+The new calibration uses successful full PR runs `42094463512/1`,
+`42096751424/1` and `42100456266/1`. Each covers the current 541 blocking
+files. Run IDs, attempts, repository provenance and successful workflow
+conclusions were verified before using `--allow-full-pr`. PASS medians
+update all 541 eligible files (538 values changed), including both parts of
+the card-loading split; flaky observations are excluded. Quarantine weights
+and membership remain unchanged. The first two runs predate Chrome warmup,
+so this mixed window is a scheduling estimate, not a controlled comparison.
+
+Replaying the latest run's file times with the old and new partitions gives
+81.978s and 65.970s respectively for the longest browser worker. Both
+partitions cover all 87 blocking browser files exactly once across 40 workers.
+This in-sample replay excludes queues, setup and changed contention; only a
+new full hosted run can establish the actual effect. It does not establish
+the two-minute SLO or justify changing test deadlines or failure handling.
+
 ## Verification
 
 Focused runner and workflow tests must prove deterministic complete sharding,
