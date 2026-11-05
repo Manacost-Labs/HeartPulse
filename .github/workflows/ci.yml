@@ -21,13 +21,14 @@ concurrency:
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
+  # Keep build and test runtimes on one supported OS while ubuntu-latest migrates.
   # The merge queue fast-forwards main to the exact commit it validated. A push
   # of such a commit deploys the release that queue run packaged instead of
   # validating and building the same tree twice; anything else validates here.
   reuse:
     name: Reuse merge-queue validation
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       actions: read
@@ -51,7 +52,7 @@ jobs:
   # always test everything, and so does a pull request whose selection failed.
   plan:
     name: Plan test shards
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
@@ -89,7 +90,7 @@ jobs:
     name: Build release artifacts
     needs: reuse
     if: ${{ !cancelled() && needs.reuse.outputs.run-id == '' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
@@ -167,7 +168,7 @@ jobs:
     name: Build Storybook
     needs: reuse
     if: ${{ !cancelled() && needs.reuse.outputs.run-id == '' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
@@ -195,7 +196,7 @@ jobs:
     name: Typecheck, lint and static gates
     needs: reuse
     if: ${{ !cancelled() && needs.reuse.outputs.run-id == '' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
@@ -228,7 +229,7 @@ jobs:
     # Explicit: the implicit success() also fails on the skipped reuse job upstream.
     # A plan without registry shards (a documentation-only pull request) skips the job.
     if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.registry-shards != '[]' && needs.build.result == 'success' && needs.storybook.result == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
@@ -304,7 +305,7 @@ jobs:
     # Explicit: the implicit success() also fails on the skipped reuse job upstream.
     # A plan without browser shards (a documentation-only pull request) skips the job.
     if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.browser-shards != '[]' && needs.build.result == 'success' && needs.storybook.result == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
@@ -366,7 +367,7 @@ jobs:
     # Explicit: the implicit success() also fails on the skipped reuse job upstream.
     if: ${{ !cancelled() && (github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch') && needs.build.result == 'success' && needs.storybook.result == 'success' }}
     continue-on-error: true
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
@@ -409,7 +410,7 @@ jobs:
     name: Full browser observatory (batch ${{ matrix.batch }})
     needs: [reuse, build]
     if: ${{ !cancelled() && needs.reuse.outputs.run-id == '' && needs.build.result == 'success' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
@@ -442,7 +443,7 @@ jobs:
     name: CI required
     if: always()
     needs: [reuse, plan, build, storybook, validate, test-suites, browser-tests, browser-observatory]
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
       - name: Require every validation job to pass
@@ -459,7 +460,7 @@ jobs:
     name: Refresh main build caches
     needs: reuse
     if: needs.reuse.outputs.run-id != ''
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'

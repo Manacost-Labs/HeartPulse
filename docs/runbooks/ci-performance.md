@@ -163,6 +163,26 @@ after backend-startup failures on this shared host; the landing assertion
 passed. All nine lightbox tests also passed in an isolated run without retries.
 This failed hosted run cannot calibrate weights.
 
+Run [42051834709](https://github.com/Manacost-Labs/HeartPulse/actions/runs/42051834709)
+passed all browser suites after the lightbox fix, but its first attempt failed
+when the production scraper could not launch system Chrome. The isolated smoke
+and exact two-worker registry shard (104 files, four CPU cores) then passed
+locally without retries. A full same-SHA rerun failed observatory batches 2/3
+before any scenarios: both browsers in each batch missed the DevTools endpoint
+on both existing 60-second launch attempts, with no Chrome output despite
+`dumpio`. These are startup failures, not scenario assertion failures.
+
+Affected jobs used `ubuntu-latest`, resolved to Ubuntu 26.04 image
+`20261101.186.1`. The same image also passed an earlier full run, so an OS-image
+root cause is not proven. The workflow now pins every hosted job to
+`ubuntu-24.04` to remove the moving OS target and test that mitigation; the
+self-hosted deployment label is unchanged. The dependency cache already keys
+on the actual OS version, preventing reuse of native modules from 26.04.
+Launch limits, retries and all scenario assertions are unchanged. Verify this
+mitigation in a fresh full hosted run before calling the startup issue fixed.
+Neither failed attempt may calibrate duration weights. GitHub documents the
+[gradual latest-image migration and explicit OS labels](https://github.com/actions/runner-images#latest-migration-process).
+
 A disposable Turbopack probe failed after 5.8 seconds: four explicit `.js`
 TypeScript import-resolution errors, invalid generated CSS at
 `section::after::after`, and a UMD/CommonJS-format warning. The probe config and
