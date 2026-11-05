@@ -591,6 +591,18 @@ documentation lint and focused Semgrep passed. Every other workflow job,
 including required and deployment gates, is byte-identical to the prior head.
 A fresh hosted run is still needed to measure the scheduling effect.
 
+Before publishing, integration preflight required synchronizing main
+`8ea1faaf` (profile workspace PR349). The merge was conflict-free; the three
+overlapping files were package scripts, observatory account assertions and
+the test registry. The updated account checks from main are preserved.
+Main adds one saved-decks test: the registry is now 546 files, with 542
+blocking files and 455 non-browser files. The six added/changed non-browser
+test files passed all 30 checks with Storybook absent. The merged workflow
+contract, registry validation and actionlint passed. Existing calibration
+samples describe the earlier 545-file registry; the new test uses its default
+weight until two complete current-registry hosted runs are available. Local
+compiled browser artifacts predate the merge; fresh hosted CI rebuilds them.
+
 ## Verification
 
 Focused runner and workflow tests must prove deterministic complete sharding,

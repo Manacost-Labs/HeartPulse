@@ -11,6 +11,8 @@ export type AccountPublicProfileProps = {
   failed: boolean;
   saving: boolean;
   saveNickname: (nickname: string) => void;
+  /** Shows or hides the statistics and decks on the public page; without it there is no switch. */
+  saveStatsVisible?: (visible: boolean) => void;
   /** Site origin for the shown links; the browser's own origin by default. */
   origin?: string;
 };
@@ -44,11 +46,12 @@ function ProfileLink({ label, href, copyLabel }: { label: string; href: string; 
 }
 
 /**
- * The account's public page: its links, with copy buttons, and the nickname
- * form. The page is public for everyone without a switch; this section says
- * what is on it so nobody is surprised.
+ * The account's public page: its links, with copy buttons, the nickname form
+ * and the switch that adds the statistics and decks to it. The card itself is
+ * public for everyone; the games are shown only after the owner switches them
+ * on, and this section says exactly what is on the page.
  */
-export default function AccountPublicProfile({ identity, failed, saving, saveNickname, origin }: AccountPublicProfileProps) {
+export default function AccountPublicProfile({ identity, failed, saving, saveNickname, saveStatsVisible, origin }: AccountPublicProfileProps) {
   const [nickname, setNickname] = useState(identity?.nickname ?? '');
   useEffect(() => { setNickname(identity?.nickname ?? ''); }, [identity?.nickname]);
   const siteOrigin = origin ?? (typeof window === 'undefined' ? 'https://hearthpulse.net' : window.location.origin);
@@ -65,7 +68,7 @@ export default function AccountPublicProfile({ identity, failed, saving, saveNic
         icon={<Globe size={15} aria-hidden="true" />}
         eyebrow="Профиль"
         title="Публичный профиль"
-        description="Видна всем по ссылке: ник, месяц регистрации и значок «Подписчик». Почта, контакты, способы входа и детали подписки не показываются."
+        description="Видна всем по ссылке: ник, месяц регистрации и значок «Подписчик», а статистика и колоды — если вы их включите. Почта, контакты, способы входа и детали подписки не показываются."
       />
       {!identity && <p className="account-muted">{failed ? 'Не удалось загрузить ссылку на профиль. Обновите страницу.' : 'Загружаем ссылку…'}</p>}
       {identity && (
@@ -101,6 +104,27 @@ export default function AccountPublicProfile({ identity, failed, saving, saveNic
                 : 'От 3 до 24 символов: латиница или кириллица, цифры, «_» и «-». Менять ник можно раз в 30 дней; старая ссылка по нику работает ещё 90 дней.'}
             </p>
           </form>
+          {saveStatsVisible && (
+            <fieldset className="account-public-profile__visibility" data-tour-id="profile-public-stats">
+              <legend>Что ещё показать</legend>
+              {/* A switch, not a checkbox: the choice is saved at once, without a «Сохранить». */}
+              <button
+                type="button"
+                role="switch"
+                className="account-switch"
+                aria-checked={identity.statsVisible}
+                aria-describedby="account-public-stats-hint"
+                disabled={saving}
+                onClick={() => saveStatsVisible(!identity.statsVisible)}
+              >
+                <span className="account-switch__track" aria-hidden="true"><span className="account-switch__thumb" /></span>
+                Моя статистика и колоды
+              </button>
+              <p id="account-public-stats-hint" className="account-muted">
+                Игры из приложения Hearthpulse: рейтинг, колоды с кодами и винрейтом, герои и забеги Арены — с датами по дням, без времени партий.
+              </p>
+            </fieldset>
+          )}
         </div>
       )}
     </section>

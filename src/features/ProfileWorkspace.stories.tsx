@@ -28,19 +28,21 @@ type Story = StoryObj<typeof meta>;
 export const ActiveSubscription: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await canvas.findByRole('heading', { name: 'Ваш план' });
-    await expect(canvas.getByRole('heading', { level: 1, name: 'Александр' })).toBeVisible();
-    await expect(canvas.getByText('Подписка активна')).toBeVisible();
-    await expect(canvas.getAllByText(/12 ноября 2099/)).toHaveLength(1);
-    await expect(await canvas.findByRole('link', { name: /^Арена/ })).toHaveAttribute('href', '/tierlist/');
+    await expect(await canvas.findByRole('heading', { level: 1, name: 'Александр' })).toBeVisible();
+    await expect(await canvas.findByText('Подписка активна')).toBeVisible();
     await expect(await canvas.findByRole('link', { name: 'Привязать' })).toHaveAttribute('href', expect.stringContaining('/api/auth/google/start'));
     await expect(canvas.getByRole('textbox', { name: 'Почта для связи' })).toBeVisible();
+    await userEvent.click(canvas.getByRole('tab', { name: 'Подписка' }));
+    await canvas.findByRole('heading', { name: 'Ваш план' });
+    await expect(canvas.getAllByText(/12 ноября 2099/)).toHaveLength(1);
+    await expect(await canvas.findByRole('link', { name: /^Арена/ })).toHaveAttribute('href', '/tierlist/');
   },
 };
 export const NoSubscription: Story = {
   beforeEach: () => mockProfileRequests(false),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole('tab', { name: 'Подписка' }));
     await canvas.findByRole('heading', { name: 'Откройте полный доступ' });
     await expect(canvas.getByRole('textbox', { name: 'Почта, на которую оформлена подписка' })).toBeVisible();
     await expect(canvas.getByRole('button', { name: 'Прислать код' })).toBeEnabled();
@@ -50,6 +52,7 @@ export const RefreshFailure: Story = {
   beforeEach: () => mockProfileRequests(true, true),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole('tab', { name: 'Подписка' }));
     await canvas.findByRole('heading', { name: 'Ваш план' });
     await userEvent.click(await canvas.findByRole('button', { name: 'Проверить снова' }));
     // Messages float in document.body, outside the story canvas.

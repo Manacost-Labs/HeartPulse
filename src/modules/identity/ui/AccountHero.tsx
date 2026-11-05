@@ -5,6 +5,7 @@ import { isNumericPublicProfileId, publicProfilePath } from '../model/publicProf
 import AuthAvatar from './AuthAvatar';
 import './IdentityPlate.css';
 import './AccountHero.css';
+import ShareProfileButton from './ShareProfileButton';
 
 export type AccountHeroProps = {
   user: AuthUser;
@@ -36,12 +37,21 @@ export default function AccountHero({ user, name, contact, plan, onLogout }: Acc
           {contact && <li className="account-hero__contact">{contact}</li>}
         </ul>
       </div>
-      <div className="identity-plate__actions account-hero__actions" data-tour-id="profile-account-actions">
-        {profileId && isNumericPublicProfileId(profileId) && (
-          <a className="identity-plate__action account-hero__action" href={publicProfilePath(profileId)}><Globe size={17} aria-hidden="true" />Мой профиль</a>
-        )}
-        <button type="button" className="identity-plate__action identity-plate__action--quiet account-hero__action account-logout" onClick={onLogout}><LogOut size={17} aria-hidden="true" />Выйти</button>
-      </div>
+      {/* Leaving the account is not one of the page's actions: it waits in the frame's corner. */}
+      <button type="button" className="account-hero__action account-logout" onClick={onLogout}><LogOut size={16} aria-hidden="true" /><span className="account-logout__label">Выйти</span></button>
+      {profileId && isNumericPublicProfileId(profileId) && (
+        <div className="identity-plate__actions account-hero__actions" data-tour-id="profile-account-actions">
+          {/* Both act on the public page, so they are one plaque with two halves. */}
+          <div className="account-hero__plaque" role="group" aria-label="Публичный профиль">
+            <a className="account-hero__action account-hero__half" href={publicProfilePath(profileId)}><Globe size={17} aria-hidden="true" />Мой профиль</a>
+            <ShareProfileButton
+              className="account-hero__action account-hero__half"
+              url={typeof window === 'undefined' ? publicProfilePath(profileId) : new URL(publicProfilePath(profileId), window.location.origin).href}
+              title={`${name} на HearthPulse`}
+            />
+          </div>
+        </div>
+      )}
     </header>
   );
 }

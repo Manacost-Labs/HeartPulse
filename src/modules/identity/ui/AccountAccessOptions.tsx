@@ -1,10 +1,12 @@
 import type { FormEvent } from 'react';
-import { Check, ExternalLink, Lock } from 'lucide-react';
+import { ArrowRight, Check, ExternalLink, Lock } from 'lucide-react';
 import type { SubscriptionStatus } from '../../subscriptions/public';
 import AccountBrandIcon from './AccountBrandIcon';
 import { accountAccessTiles, type AccountAccessTile } from '../model/accountDashboard';
 
 export const BOOSTY_SUBSCRIBE_URL = 'https://boosty.to/kolodahearthstone';
+/** The Telegram VIP channel is sold through Tribute; the paywall links the same page. */
+export const TRIBUTE_SUBSCRIBE_URL = 'https://web.tribute.tg/s/xz9';
 
 export type BoostyConfirmation = {
   email: string;
@@ -75,8 +77,20 @@ export function BoostyForm({ boosty }: { boosty: BoostyConfirmation }) {
   );
 }
 
-export function NoAccess({ subscription, boosty, patreonLinkUrl }: { subscription: SubscriptionStatus | null; boosty: BoostyConfirmation; patreonLinkUrl: string }) {
+/**
+ * Without access: one card per way a reader may already have paid (Boosty,
+ * the Telegram VIP channel bought through Tribute, Patreon when configured),
+ * then where to subscribe and what it opens.
+ */
+export function NoAccess({ subscription, boosty, patreonLinkUrl, telegramLinked = false }: {
+  subscription: SubscriptionStatus | null;
+  boosty: BoostyConfirmation;
+  patreonLinkUrl: string;
+  /** The account has a Telegram identity, so the VIP channel can be checked. */
+  telegramLinked?: boolean;
+}) {
   const patreon = subscription?.patreon;
+  const telegramMessage = subscription?.telegram?.message;
   return (
     <>
       <div className="account-access__options">
@@ -90,16 +104,33 @@ export function NoAccess({ subscription, boosty, patreonLinkUrl }: { subscriptio
             </a>
           </div>
         )}
+        <div className="account-access__option">
+          <strong className="account-access__option-title"><AccountBrandIcon brand="telegram" />Подписаны в Telegram</strong>
+          {telegramLinked ? (
+            <p>{telegramMessage || 'Telegram привязан. Если вы оплатили VIP-канал через Tribute, нажмите «Проверить снова».'}</p>
+          ) : (
+            <>
+              <p>VIP-канал через Tribute: привяжите Telegram, и мы сами увидим, что вы в канале.</p>
+              <a className="account-button account-button--secondary" href="#account-links">Привязать Telegram</a>
+            </>
+          )}
+        </div>
         <div className="account-access__option account-access__option--subscribe">
           <strong className="account-access__option-title">Ещё не подписаны</strong>
           <p>Оформите подписку и вернитесь сюда: доступ откроется после подтверждения.</p>
-          <a className="account-button" href={BOOSTY_SUBSCRIBE_URL} target="_blank" rel="noreferrer">
-            Оформить на Boosty <ExternalLink size={16} aria-hidden="true" />
-          </a>
+          <div className="account-access__actions">
+            <a className="account-button" href={BOOSTY_SUBSCRIBE_URL} target="_blank" rel="noreferrer">
+              Оформить на Boosty <ExternalLink size={16} aria-hidden="true" />
+            </a>
+            <a className="account-button account-button--secondary" href={TRIBUTE_SUBSCRIBE_URL} target="_blank" rel="noreferrer">
+              Через Telegram (Tribute) <ExternalLink size={16} aria-hidden="true" />
+            </a>
+          </div>
         </div>
       </div>
       <h3 className="account-access__subheading">Что откроется</h3>
       <AccessTiles tiles={accountAccessTiles(null)} />
+      <a className="account-section__help" href="/faq/#faq-access-missing">Оплатили, а доступ закрыт<ArrowRight size={15} aria-hidden="true" /></a>
     </>
   );
 }

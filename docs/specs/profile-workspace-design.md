@@ -2,12 +2,12 @@
 
 ## Objective
 
-The personal account opened with `/?login` answers, in this order: who is
-signed in and what plan they have until when; what the plan includes or how
-to get one; the player's own game statistics; which ways into the account
-are linked; the newsletter and prize contacts; contests. Only sections
-backed by real data are shown: there is no payment history, device list,
-theme or saved-deck section because the server has no such data for readers.
+The personal account opened with `/?login` shows who is signed in and their
+plan status above four tabs: «Персональные данные» (public profile, ways into
+the account, newsletter and prize contacts, contests), «Подписка» (what the
+plan includes or how to get one), «Моя статистика» (the player's own games
+from the desktop tracker) and «Мои колоды». Sections show only real data:
+there is no payment history or theme section.
 
 ## Layout
 
@@ -16,10 +16,22 @@ theme or saved-deck section because the server has no such data for readers.
   border, the avatar, the owner name as the page's only `h1`
   (`#account-title`), one status pill «Подписка активна / Без подписки /
   Проверяем подписку / Не удалось проверить» and the main contact. The plan's
-  name, dates and renewal live only in the plan section right below. Actions:
-  «Мой профиль» (the public page `/id/<n>/`, only for a numeric ID) and
-  «Выйти» (the only sign-out on the page).
-- «Подписка» (`#account-access`). With Boosty access the vendored Valyro
+  name, dates and renewal live only in the plan section. «Мой профиль» (the
+  public page `/id/<n>/`) and «Поделиться» (the share sheet, or a copied link)
+  are one brass-trimmed plaque with two halves, only for a numeric ID; it
+  spans the plate below 820 px and drops its icons below 360 px. «Выйти», the
+  only sign-out on the page, is a small dark tag pinned to the plate's top
+  corner, a round icon with a hidden label below 820 px. A long name breaks
+  by syllable (`hyphens: auto`).
+- Tabs (`AccountTabs`, `model/accountTabs.ts`) right under the plate: an
+  ARIA tablist with arrow, Home and End keys, four equal buttons in one row
+  and two rows below 640 px. Every panel stays mounted and inactive panels
+  are `hidden`, so an unsaved contact form survives switching. The open tab
+  is the address hash (`#personal`, `#subscription`, `#stats`, `#decks`),
+  written with `replaceState`; the section anchors from before the tabs
+  (`#account-access`, `#account-settings`, …) open their tab and scroll to the
+  section.
+- «Подписка» tab (`#account-access`). With Boosty access the vendored Valyro
   `BillingPlanCard` shows the level, the price per month, «Следующий платёж»,
   «Доступ до» (no renewal) or «Оплачено до» (renewal unknown) with the date,
   and «Управлять на Boosty» beside the date, which opens boosty.to in a new
@@ -27,25 +39,40 @@ theme or saved-deck section because the server has no such data for readers.
   channel and an administrator grant show a plain plate without invented
   prices or dates. «Что входит» lists the paid sections as one row of compact
   links; closed sections are dashed and not links. Without access the section
-  offers the Boosty e-mail confirmation, Patreon (when configured) and a
-  Boosty subscription link, then lists what a subscription opens.
+  offers the Boosty e-mail confirmation, the Telegram VIP channel bought
+  through Tribute («Привязать Telegram» to `#account-links` until Telegram is
+  linked, then the server's check message), Patreon (when configured), and
+  subscribing on Boosty or through Telegram (Tribute), then lists what a
+  subscription opens and links «Оплатили, а доступ закрыт».
   «Проверить снова» and the last check time sit in the section head.
-- «Моя статистика» (`#account-game-stats`): the games the Hearthpulse
+- «Моя статистика» tab (`#account-game-stats`): the games the Hearthpulse
   desktop tracker uploaded, in the tabs «Поля сражений», «Стандарт»,
   «Вольный» and «Арена», like HSReplay «My Stats»
   ([player game statistics](player-game-stats.md)). The account owns the
   section head; the body comes through `AccountGameStatsSlot` from the composition
   `src/features/playerStats`. It is shown only with `PLAYER_STATS_ENABLED=1`
   and only to an account with version 2 tracker events, a tab per mode with
-  events; there is no empty section and no call to install the application.
-- «Данные приложения» (`#account-tracker-data`), only while the desktop
-  tracker has stored events: how many and over which dates, «Скачать мои
-  данные» (a JSON export) and «Удалить данные» behind an inline
-  confirmation, independent of the statistics switch.
-- «Публичный профиль» (`#account-public-profile`): the short link and, once
-  chosen, the nickname link with «Скопировать ссылку» beside the nickname
-  form (stacked below 900 px); see [public profiles](public-profiles.md).
-- «Вход и привязки»: e-mail, Telegram, Google, Discord and Yandex (each only
+  events. Otherwise the slot renders its `empty` note: «Пока игр нет» and what
+  will appear, never a call to install the application. While the check runs
+  the tab shows nothing.
+- «Данные приложения» (`#account-tracker-data`), in the statistics tab, only
+  while the desktop tracker has stored events: how many and over which
+  dates, «Скачать мои данные» (a JSON export) and «Удалить данные» behind an
+  inline confirmation, independent of the statistics switch.
+- «Моя статистика» without games shows what will appear as three dashed
+  outline cards (`AccountEmptyPreview`), never invented entries.
+- «Мои колоды» tab (`#account-decks`): decks saved by code with a comment,
+  shown as a gallery with «Скопировать код»; see
+  [saved decks](saved-decks.md). A line points to the played decks in
+  «Моя статистика» (`#stats`).
+- «Персональные данные» tab: «Публичный профиль»
+  (`#account-public-profile`): the short link and, once chosen, the
+  nickname link with «Скопировать ссылку» beside the nickname form (stacked
+  below 900 px), then the switch «Моя статистика и колоды», off by default,
+  which shows the statistics and decks on the public page; see
+  [public profiles](public-profiles.md).
+- «Вход и привязки» (two columns of providers from 1000 px, «Как привязать
+  Telegram» in the head): e-mail, Telegram, Google, Discord and Yandex (each only
   when the server offers it and the account's linked providers are known),
   Boosty and Patreon, each with «Привязан» or the action that links it. Without
   any access the Boosty row keeps a short state («Почта подписки не
@@ -60,12 +87,18 @@ theme or saved-deck section because the server has no such data for readers.
   browsers ([account sessions](account-sessions.md)): this browser first,
   marked «Этот браузер», each other one with «Завершить», and «Выйти на всех
   других устройствах» behind an inline confirmation.
-- Sections are stacked at full width, one parchment frame each.
+- Inside a tab, sections are stacked at full width, each a parchment panel in
+  the wooden frame of `assets.md` («Главная деревянная рама»,
+  `/wallpaper/main-page-rail-border.png`, 8 px `border-image`); the tab bar
+  wears the same frame.
 - «Рассылка и контакты»: the newsletter switch first, then the prize contacts
   (four in one row from 1100 px).
   Contact fields do not link Telegram, change the login e-mail or confirm a
   subscription.
-- «Мои конкурсы», then one line of help links to specific FAQ answers.
+- «Мои конкурсы», only once the reader has entries; an empty history shows no
+  section. Help and «see all» links sit inside the section they belong to,
+  with the site's arrow; there is no separate help line.
+- Below 600 px the wooden frames are 6 px and the sections' padding shrinks.
 - Every section has the site's three-part head: an eyebrow with an icon, a
   display title and one line of description.
 - Results of saving, linking and checking float at the bottom of the
@@ -132,17 +165,21 @@ not sending.
   at least 40 px high; buttons and inputs are 44 px. Focus is a 3 px outline.
 - `/?login` has the tab title «Личный кабинет — HearthPulse» and stays
   `noindex` through the public URL policy.
-- The page tour targets the header, status pill, Telegram row, Boosty form,
-  contests, contacts and header actions by their `data-tour-id` values.
+- The page tour (version 2) targets the header, status pill, tab list,
+  Telegram row, contacts, contests and header actions by their `data-tour-id`
+  values; it skips targets in hidden tabs, so it names only the default tab's
+  sections.
+- A section anchor from before the tabs opens the tab that holds it.
 
 ## Files
 
 `src/modules/identity/ui/LoginPanel.tsx` keeps the account state, requests
 and the signed-out login view and passes the signed-in state to
-`AccountDashboard.tsx`, which composes `AccountHero`, `AccountPlanSection`
-(with `AccountAccessOptions`), `AccountPublicProfile`, `AccountLinks`,
-`AccountSettings` and `AccountContests`; each section head is
-`AccountSectionHead`.
+`AccountDashboard.tsx`, which composes `AccountHero` and `AccountTabs` with
+`AccountPlanSection` (with `AccountAccessOptions`), `AccountPublicProfile`,
+`AccountLinks`, `AccountSettings`, `AccountContests`, `AccountTrackerData` and
+`AccountDecks`; each section head is `AccountSectionHead`.
+`model/accountTabs.ts` names the tabs and maps hashes to them.
 `model/accountPlan.ts` derives the plan, its date and renewal line;
 `model/accountDashboard.ts` derives the section links, the linked sign-in rows
 and the link-return message. The plan card is

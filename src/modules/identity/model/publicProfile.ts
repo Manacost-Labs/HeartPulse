@@ -7,6 +7,8 @@ export type PublicProfile = {
   /** Registration month, `YYYY-MM`. */
   memberSince: string;
   isSubscriber: boolean;
+  /** The owner shows their tracker statistics and decks here. */
+  showsStats: boolean;
 };
 
 /** The signed-in person's own public link and nickname state. */
@@ -15,6 +17,8 @@ export type OwnPublicProfile = {
   nickname: string | null;
   /** ISO time when the nickname may change again; null when it may change now. */
   nicknameChangeAvailableAt: string | null;
+  /** The statistics and decks are shown on the public page. */
+  statsVisible: boolean;
 };
 
 const NUMERIC_PUBLIC_PROFILE_ID = /^[1-9]\d{0,9}$/;
@@ -50,6 +54,8 @@ export function publicProfileFromPayload(payload: unknown): PublicProfile | null
     avatarInitials: profile.avatarInitials,
     memberSince: profile.memberSince,
     isSubscriber: profile.isSubscriber,
+    // Absent before the server knows the setting: hidden, never shown by default.
+    showsStats: profile.showsStats === true,
   };
 }
 
@@ -60,6 +66,7 @@ export function ownPublicProfileFromPayload(payload: unknown): OwnPublicProfile 
     nickname: typeof payload.nickname === 'string' ? payload.nickname : null,
     nicknameChangeAvailableAt: typeof payload.nicknameChangeAvailableAt === 'string'
       ? payload.nicknameChangeAvailableAt : null,
+    statsVisible: payload.statsVisible === true,
   };
 }
 

@@ -246,10 +246,17 @@ The account statistics are off unless `PLAYER_STATS_ENABLED=1`: then the
 routes below exist and `GET /api/account/game-stats/modes` answers
 `{ "modes": { "battlegrounds": 0, "standard": 0, "wild": 0, "arena": 0 } }`,
 the version 2 game and run events per tab (Standard and Wild share
-`constructed_match`), counted without reading payloads. The account page
-shows «Моя статистика» only when a count is above zero, and a tab only for
-such a mode; while off (404) or without events it shows nothing, never a call
-to install the application. Version 2 events are accepted in both states.
+`constructed_match`), counted without reading payloads. The account's
+«Моя статистика» tab shows the statistics when a count is above zero, with a
+mode tab only for such a mode; while off (404) or without events it shows
+«Пока игр нет» and what will appear, never a call to install the application.
+Version 2 events are accepted in both states.
+
+An owner may show the same statistics on their public profile; the public
+copy, its routes and its limits are in
+[public profiles](public-profiles.md#public-statistics). The views read the
+public copy through `GameStatsSourceContext` and show its dates without a
+time (`useGameDateFormat`).
 In production the variable lives in `/etc/hs-arena/hs-arena.env` (the
 `EnvironmentFile` of `deploy/hs-arena.service`); a release does not set it, so
 switching on is adding the line there and restarting `hs-arena.service`.

@@ -2738,8 +2738,10 @@ for (const [device, viewport] of [
         headings: [...document.querySelectorAll('h1')].map(heading => heading.id),
         headerBackground: header ? getComputedStyle(header).backgroundColor : '',
         openSections: document.querySelectorAll('a.account-access__tile').length,
-        publicProfileActions: [...document.querySelectorAll('.account-hero__actions > :is(a, button)')]
+        // «Мой профиль» and «Поделиться» are one plaque; the sign-out is its own tag in the plate's corner.
+        publicProfileActions: [...document.querySelectorAll('.account-hero__plaque > :is(a, button)')]
           .map(action => action.textContent.trim()),
+        signOut: [...document.querySelectorAll('.account-hero .account-logout')].map(action => action.textContent.trim()),
         contactsVisible: Boolean(document.querySelector('#account-settings input#account-telegram')?.getClientRects().length),
         smallControls: controls.filter(control => control.getBoundingClientRect().height < 40)
           .map(control => (control.textContent || control.getAttribute('aria-label') || control.tagName).trim().slice(0, 40)),
@@ -2758,7 +2760,8 @@ for (const [device, viewport] of [
       || profileState.headings.join() !== 'account-title'
       || profileState.headerBackground !== 'rgb(58, 6, 16)'
       || profileState.openSections < 1
-      || profileState.publicProfileActions.join('|') !== 'Мой профиль|Выйти'
+      || profileState.publicProfileActions.join('|') !== 'Мой профиль|Поделиться'
+      || profileState.signOut.join('|') !== 'Выйти'
       || profileState.contactsVisible !== true
       || profileState.smallControls.length > 0
       || profileState.scrollWidth > profileState.clientWidth + 1) {

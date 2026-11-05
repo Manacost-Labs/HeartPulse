@@ -73,6 +73,8 @@
 .account-message button { display: inline-grid; place-items: center; flex: 0 0 44px; height: 44px; border: 0; border-radius: 10px; background: transparent; color: inherit; cursor: pointer; }
 .account-message button:hover { background: rgba(58, 36, 18, 0.08); }
 .account-message button:focus-visible { outline: 3px solid currentColor; outline-offset: 2px; box-shadow: none; }
+/* Room at the end of the page while a message floats, so the last control can scroll above it. */
+.account-message-room { height: 96px; flex: 0 0 auto; }
 .account-message--ok { border-color: #9cc49f; background: #ddebd3; color: #235a2f; }
 .account-message--err { border-color: #e0a39b; background: #f8d7d3; color: #7a1414; }
 
@@ -143,6 +145,10 @@
 
 .account-links__list { display: flex; flex-direction: column; margin: 8px 0 0; padding: 0; list-style: none; }
 .account-links__row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 12px; padding: 10px 0; border-top: 1px solid #e6d3a8; }
+/* Providers sit in two columns on wide screens, so the list is half as long. */
+@media (min-width: 1000px) {
+  .account-links__list.account-links__list--providers { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 2rem; }
+}
 .account-links__text { display: flex; flex-direction: column; flex: 1 1 140px; min-width: 0; }
 .account-links__text small { color: var(--account-muted); font-size: 0.9rem; overflow-wrap: anywhere; }
 .account-links__ok { flex: 0 0 auto; color: #2e6b3b; }

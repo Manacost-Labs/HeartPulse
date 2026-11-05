@@ -594,6 +594,22 @@
       ]
     },
     {
+      "id": "server.savedDecks",
+      "runtime": "server",
+      "root": "server/modules/savedDecks",
+      "purpose": "Owns the account's own saved decks: deck code, the owner's comment, the deckview image state and their private HTTP routes.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/savedDecks/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:saved-decks"
+      ],
+      "docs": [
+        "docs/specs/saved-decks.md",
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
       "id": "server.coverAdminSso",
       "runtime": "server",
       "root": "server/modules/coverAdminSso",

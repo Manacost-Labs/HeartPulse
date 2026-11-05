@@ -72,10 +72,12 @@ export type OwnPublicIdentity = {
   nickname: string | null;
   /** When the nickname may change again; null when it may change now. */
   nicknameChangeAvailableAt: string | null;
+  /** The statistics and decks are shown on the public page. */
+  statsVisible: boolean;
 };
 
 function ownIdentityFromRow(
-  row: { public_numeric_id?: unknown; nickname?: unknown; nickname_changed_at?: unknown },
+  row: { public_numeric_id?: unknown; nickname?: unknown; nickname_changed_at?: unknown; public_stats_visible?: unknown },
   now: Date,
 ): OwnPublicIdentity | null {
   const publicProfileId = normalizeStoredPublicId(row.public_numeric_id);
@@ -86,6 +88,7 @@ function ownIdentityFromRow(
     publicProfileId: String(publicProfileId),
     nickname: row.nickname ? String(row.nickname) : null,
     nicknameChangeAvailableAt: availableAt > now.getTime() ? new Date(availableAt).toISOString() : null,
+    statsVisible: Number(row.public_stats_visible) === 1,
   };
 }
 
@@ -96,7 +99,7 @@ export function readOwnPublicIdentity(
   now: Date,
 ): OwnPublicIdentity | null {
   const row = database.prepare(
-    'SELECT public_numeric_id, nickname, nickname_changed_at FROM users WHERE id = ?',
+    'SELECT public_numeric_id, nickname, nickname_changed_at, public_stats_visible FROM users WHERE id = ?',
   ).get(userId) as Parameters<typeof ownIdentityFromRow>[0] | undefined;
   return row ? ownIdentityFromRow(row, now) : null;
 }
@@ -124,7 +127,7 @@ export function claimNickname(
   database.exec('BEGIN IMMEDIATE');
   try {
     const user = database.prepare(
-      'SELECT public_numeric_id, nickname, nickname_key, nickname_changed_at FROM users WHERE id = ?',
+      'SELECT public_numeric_id, nickname, nickname_key, nickname_changed_at, public_stats_visible FROM users WHERE id = ?',
     ).get(userId) as { nickname_key?: unknown; nickname_changed_at?: unknown } | undefined;
     if (!user) {
       database.exec('ROLLBACK');

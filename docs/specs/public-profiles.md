@@ -5,6 +5,8 @@
 Every account has a public profile. There is no switch: the profile exists as
 soon as the account has its numeric ID. Decision and threat model:
 [Restore public profiles with nicknames](../decisions/2026-10-23-restore-public-profiles.md).
+The tracker statistics and decks are added only by the owner's switch:
+[Public player statistics by opt-in](../decisions/2026-11-05-public-player-stats.md).
 
 ## Public fields
 
@@ -19,12 +21,35 @@ keys (`PUBLIC_PROFILE_FIELDS` in `server/modules/publicProfile/model.ts`):
 | `avatarInitials` | The first two characters of the nickname in upper case, or `#`. |
 | `memberSince` | Registration month, `YYYY-MM`. |
 | `isSubscriber` | `true` while the cached subscription grants access. |
+| `showsStats` | `true` once the owner switched on «Моя статистика и колоды»; `false` by default. |
 
 Never public: the account name (`users.name`), mail addresses, contacts for
 prizes, Telegram/Discord/Yandex/Google/Patreon/Boosty identities, avatars from
 those providers, subscription level/price/source/dates, role and admin flags,
 the internal account ID, sessions, IP addresses, newsletter and consent state,
-contest entries and wins.
+contest entries and wins. The tracker games are public only while
+`showsStats` is `true`, and then only in the public copy below.
+
+## Public statistics
+
+`GET /api/profiles/:publicProfileId/game-stats/modes` → `{ modes }` (each
+mode `1` or `0`, counted up to the same day bound as below: presence only,
+since a growing count would time each new game) and
+`GET /api/profiles/:publicProfileId/game-stats?mode=…&period=…` → the same
+statistics as the owner's `/api/account/game-stats`
+([player game statistics](player-game-stats.md)), mounted only with
+`PLAYER_STATS_ENABLED=1`. A hidden, blocked, missing or malformed profile
+answers `404` with `{ "error": "Статистика не найдена" }`. The answer is the
+public copy (`loadPublic`, `publicPlayerStats`): only games before the start
+of the current UTC day, with period windows ending there, so a visitor who
+polls cannot time a new game or watch an old one leave a window; game and run
+identifiers replaced by positions (`"1"`, `"2"`, …); every time rounded to the
+UTC start of its day; no global comparison (`availability: "none"`, so no
+subscription offer either) and fixed `mmr`, so the answer is the same for
+every viewer and carries `Cache-Control: public, max-age=60`. A visitor sees
+today's games from tomorrow on. Deck codes, deck names,
+results, ranks and ratings are shown: they are what the owner chose to share.
+Each client may read these routes 60 times per minute.
 
 Missing, blocked, malformed and out-of-range IDs all answer `404` with
 `{ "error": "Профиль не найден" }`. Successful and `404` answers carry
@@ -52,10 +77,10 @@ Rules for a new nickname (`server/modules/publicProfile/nickname.ts`):
 
 ## Owner endpoints
 
-Both need a signed-in session and answer `Cache-Control: private, no-store`.
+They need a signed-in session and answer `Cache-Control: private, no-store`.
 
 `GET /api/account/public-profile` →
-`{ publicProfileId, nickname, nicknameChangeAvailableAt, profilePath }`.
+`{ publicProfileId, nickname, nicknameChangeAvailableAt, statsVisible, profilePath }`.
 `nicknameChangeAvailableAt` is an ISO time or `null` when a change is possible
 now; `profilePath` is `/id/<n>/`.
 
@@ -76,6 +101,11 @@ Deleting an account also moves its nickname there (trigger
 `trg_users_release_nickname_on_delete`), so it stays unavailable for 90 days;
 the old link answers `404` meanwhile.
 
+`PUT /api/account/public-profile/visibility` with `{ "stats": true | false }`
+shows or hides the statistics and decks. It needs the same CSRF proof as the
+nickname change; anything but a boolean answers `400`. `200` returns the owner
+payload with `success: true`.
+
 ## Pages
 
 - `/id/<n>/` (`apps/public-web/app/id/[publicProfileId]/page.tsx`) renders
@@ -85,8 +115,13 @@ the old link answers `404` meanwhile.
   The page (`PublicProfileCard`) is one identity plate — portrait (the
   initials, or the site mark before a nickname exists), «Профиль игрока»,
   the display name, the member-since month, the «Подписчик» badge and
-  «Скопировать ссылку» — and one section about HearthPulse that invites the
-  visitor to create a profile («Мой кабинет» for a signed-in viewer).
+  «Скопировать ссылку» — then, when `showsStats` is true, «Статистика и
+  колоды» (`src/features/playerStats/PublicPlayerStats.tsx`: the account's
+  statistics views in a wooden frame, fed from the public copy, dates without
+  times, each deck with «Код» to copy its deck code, or «Игрок ещё не прислал
+  ни одной партии» without games), and one section about HearthPulse that
+  invites the visitor to create a profile («Мой кабинет» for a signed-in
+  viewer).
   Metadata: title `<displayName> — профиль игрока | HearthPulse`, a
   description built only from the display name and the subscriber flag,
   `robots: noindex, follow`, `rel=canonical` to `https://hearthpulse.net/id/<n>/`,
@@ -99,8 +134,10 @@ the old link answers `404` meanwhile.
 - Nginx sends `/u/` to Next together with the rest of the profile namespace.
 - The account page (`/?login`) has a «Публичный профиль» section
   (`AccountPublicProfile`): the short link and, once chosen, the nickname link,
-  each with «Скопировать ссылку», and the nickname form with the rules and the
-  date of the next allowed change.
+  each with «Скопировать ссылку», the nickname form with the rules and the
+  date of the next allowed change, and the switch «Моя статистика и колоды»
+  (off by default). The account header has «Поделиться»: the device's share
+  sheet where there is one, otherwise it copies the short link.
 
 ## Limits
 
@@ -118,8 +155,8 @@ cache profile documents.
 ## Data
 
 `users.nickname`, `users.nickname_key` (unique index) and
-`users.nickname_changed_at`, plus `public_nickname_history(nickname_key,
-user_id, released_at)`. `ensurePublicProfileSchema()` adds them idempotently at
+`users.nickname_changed_at`, `users.public_stats_visible` (`0` by default),
+plus `public_nickname_history(nickname_key, user_id, released_at)`. `ensurePublicProfileSchema()` adds them idempotently at
 start; nothing existing is rewritten.
 
 ## Tests
@@ -127,7 +164,10 @@ start; nothing existing is rewritten.
 `npm run test:public-profiles`: numeric ID migration, nickname rules and
 projection allow-list (`tests/public-profile-nickname.test.ts`), and the routes
 on a real SQLite database (`tests/public-profile-routes.test.ts`: allow-list,
-`404` parity, CSRF, validation, uniqueness, cooldown, hold, race, rate limit).
+`404` parity, CSRF, validation, uniqueness, cooldown, hold, race, rate limit,
+the statistics switch). `tests/player-games-routes.test.ts` covers the public
+statistics: hidden and missing alike, the cache header, no global comparison,
+no tracker identifiers and day-only times.
 `tests/next-public-profiles-browser.test.mjs` runs Express and Next together:
 the account section sets a nickname, copies the link and refuses a change
 without the CSRF header; `/u/` redirects, `/id/` shows only public fields with

@@ -22,6 +22,7 @@ export const TRACKER_EVENT_TABLES_SQL = `
 export type TrackerEventQuery = {
   types: readonly TrackerEventType[];
   since: string | null;
+  until?: string | null;
   limit: number;
   /** Only events of this schema version or newer; older ones are not even read. */
   minSchemaVersion?: number;
@@ -46,7 +47,7 @@ export type TrackerEventRepository = {
   /** The account's newest events of the given types, newest first; payloads come back parsed. */
   listEvents: (userId: string, query: TrackerEventQuery) => TrackerProfileEvent[];
   /** Stored events per type from `minSchemaVersion` on, without reading any payload. */
-  countEvents: (userId: string, types: readonly TrackerEventType[], minSchemaVersion: number) => Partial<Record<TrackerEventType, number>>;
+  countEvents: (userId: string, types: readonly TrackerEventType[], minSchemaVersion: number, until?: string) => Partial<Record<TrackerEventType, number>>;
   /** What the account page tells the player about the stored events. */
   summarize: (userId: string) => { events: number; firstOccurredAt: string | null; lastOccurredAt: string | null };
   /**
@@ -135,11 +136,12 @@ export function createSqliteTrackerEventRepository(
     deleteAll(userId) {
       return Number(getDatabase().prepare('DELETE FROM tracker_profile_events WHERE user_id = ?').run(userId).changes);
     },
-    countEvents(userId, types, minSchemaVersion) {
+    countEvents(userId, types, minSchemaVersion, until?: string) {
       if (!types.length) return {};
       const rows = getDatabase().prepare(`SELECT event_type, COUNT(*) AS count FROM tracker_profile_events
         WHERE user_id = ? AND event_type IN (${types.map(() => '?').join(', ')}) AND schema_version >= ?
-        GROUP BY event_type`).all(userId, ...types, minSchemaVersion);
+          AND occurred_at < ?
+        GROUP BY event_type`).all(userId, ...types, minSchemaVersion, until ?? '9999-12-31T23:59:59.999Z');
       return Object.fromEntries(rows.map(row => [String(row.event_type), Number(row.count)]));
     },
     listEvents(userId, query) {
@@ -147,8 +149,9 @@ export function createSqliteTrackerEventRepository(
       const rows = getDatabase().prepare(`SELECT event_id, event_type, schema_version, occurred_at, payload_json
         FROM tracker_profile_events
         WHERE user_id = ? AND event_type IN (${query.types.map(() => '?').join(', ')}) AND occurred_at >= ?
-          AND schema_version >= ?
-        ORDER BY occurred_at DESC LIMIT ?`).all(userId, ...query.types, query.since ?? '', query.minSchemaVersion ?? 1, query.limit);
+          AND occurred_at < ? AND schema_version >= ?
+        ORDER BY occurred_at DESC LIMIT ?`).all(userId, ...query.types, query.since ?? '', query.until ?? '9999-12-31T23:59:59.999Z',
+        query.minSchemaVersion ?? 1, query.limit);
       return rows.map(row => ({
         eventId: String(row.event_id),
         type: String(row.event_type) as TrackerEventType,
