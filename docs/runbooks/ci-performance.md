@@ -371,6 +371,33 @@ unchanged.
 The exact four-worker browser shard3 passed on four local CPUs: all8 files PASS,
 without retries. Docs lint and selected-source Semgrep also passed.
 
+The home-observer run
+[42088343280](https://github.com/Manacost-Labs/HeartPulse/actions/runs/42088343280)
+passed required validation in247s:539 PASS and one FLAKY out of540 blocking
+files. Home hydration passed without retry. Browser shard6 started at+132s,
+while most test jobs started at+68s; queue time still affects the target.
+
+A fresh calibration window contains only successful full runs42085901962/1
+and42088343280/1, both with registry544 and explicit system Chrome. The updater
+validated complete coverage before this next split;536 files had two PASS
+samples and535 weights changed. FLAKY samples were excluded and unmeasured
+weights retained. This replaces earlier split estimates with measurements for
+eligible bfcache and geometry files. The manifest states the run identities
+and the coverage at calibration time.
+
+The card-loading file took76.247s in42088343280. Its independent catalog and
+card-detail tests now register from a shared helper in two files. The six
+pre-hydration catalog widths640/641/900/901/1240/1241, hydrated mobile390→1440,
+and glow widths600/1000/1440 remain intact. Both top-level cases, eight nested
+cases,29 assertion sites, delays, network-idle waits and runtime cleanup are
+preserved by an exact source reconstruction check. New seeds35.695/25.879s
+allocate the fresh median by observed scenario durations; they are not yet
+individually calibrated. The registry now has545 files (four quarantined), so
+future calibration must use two new complete541-file blocking datasets.
+All10 card checks passed concurrently on four local CPUs; registry,calibration,
+worker-plan,docs and selected-source Semgrep checks also passed. The two parts
+map to separate CI jobs. Hosted improvement remains to be verified.
+
 A disposable Turbopack probe failed after 5.8 seconds: four explicit `.js`
 TypeScript import-resolution errors, invalid generated CSS at
 `section::after::after`, and a UMD/CommonJS-format warning. The probe config and

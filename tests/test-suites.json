@@ -510,6 +510,7 @@
         "tests/next-article-covers-browser.test.mjs",
         "tests/next-card-scroll-position-browser.test.mjs",
         "tests/next-cards-browser.test.mjs",
+        "tests/next-cards-catalog-browser.test.mjs",
         "tests/next-font-swap-browser.test.mjs",
         "tests/next-archetypes-catalog-rendering-browser.test.mjs",
         "tests/next-account-surface-browser.test.mjs",
