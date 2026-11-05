@@ -895,7 +895,8 @@ only about 288 ms of main-thread CPU and 2 ms in its run queue. This points to
 file-page I/O waits during cold loading; it does not identify the underlying
 GitHub storage mechanism.
 
-The next full run enables `HP_BROWSER_PRELOAD=1` only in the browser matrix.
+The experiment enables `HP_BROWSER_PRELOAD=1` in the browser matrix and
+observatory batches.
 Before the usual blank-browser warmup, it sequentially reads the Chrome ELF
 through one open descriptor in 1 MiB chunks. Google's resolved `google-chrome`
 wrapper selects its sibling `chrome`; other executable paths are checked
@@ -919,6 +920,29 @@ It checks exact bytes through a symlinked wrapper, unchanged contents, abort,
 size/type limits and missing files. All nine worker/workflow checks pass, and
 a real-Chrome probe confirms preload precedes normal launch/close and all four
 workers. Launch flags, deadlines, retry limits and assertions are unchanged.
+
+## Observatory preload follow-up
+
+Run `42131145215` on `db57eda9` passed all 549 blocking files without retries;
+required validation took 183 seconds. All ten browser preloads completed. For
+these observed runs, median combined preload/launch/close was 5.586 seconds
+against 8.911 seconds in the preceding no-preload run; maximum was 10.665
+against 14.494 seconds. These are unpaired runner samples, not a controlled
+estimate of savings. The full required gate did not get faster.
+
+The final job was observatory batch 3, which had not enabled preload. Both
+browsers began together and each spent about 26.985 seconds launching before
+its scenarios. The next trial applies the same bounded preloader once in the
+batch parent, before starting either isolated runtime. The four batch pairs,
+all eight QA groups, screenshots, assertions and sibling-failure handling are
+unchanged. Preload time remains part of the complete job even though per-group
+runtime logs begin afterward. Judge the next result by full setup and required
+completion time, not those per-group logs alone.
+
+The workflow regression fails before enabling the observatory environment and
+passes afterward. Worker, workflow and QA-group contracts verify the retained
+coverage and concurrency. A real batch-3 run on four local CPUs checks both
+`public` and `admin-mobile`; its timing is not a GitHub SLO measurement.
 
 ## Verification
 

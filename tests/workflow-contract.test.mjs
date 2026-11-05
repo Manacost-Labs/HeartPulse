@@ -244,8 +244,10 @@ assert.deepEqual([...suiteRun.split(','), 'browser'].sort(), [...TEST_SUITE_IDS]
   'every registry suite runs in exactly one job');
 assert.deepEqual(FULL_SHARDS, { registry: 4, browser: 10 },
   'a full run has four registry jobs and ten browser jobs, with bounded isolated workers');
-assert.ok(ciJobs['browser-tests'].includes("HP_BROWSER_PRELOAD: '1'"),
-  'the browser matrix measures the bounded executable preload experiment');
+for (const job of ['browser-tests', 'browser-observatory']) {
+  assert.ok(ciJobs[job].includes("HP_BROWSER_PRELOAD: '1'"),
+    `${job} measures the bounded executable preload experiment`);
+}
 assert.ok(
   ciJobs['browser-tests'].includes(onlyFilesRun(
     'node scripts/run-test-workers.mjs --suite browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure --quarantine exclude --workers 4 --warmup-browser --report-dir "$RUNNER_TEMP/test-timings"',

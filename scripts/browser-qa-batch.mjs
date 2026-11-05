@@ -1,8 +1,12 @@
 #!/usr/bin/env node
 import { runProcess } from './lib/process-task.mjs';
 import { qaBatch } from './qa/groups.mjs';
+import { preloadBrowserExecutable } from './lib/browser-preload.mjs';
 
 const groups = qaBatch(process.argv[2]);
+if (process.platform === 'linux' && process.env.GITHUB_ACTIONS === 'true' && process.env.HP_BROWSER_PRELOAD === '1') {
+  console.log(`[browser-preload] ${JSON.stringify(await preloadBrowserExecutable(process.env.CHROMIUM_PATH))}`);
+}
 const outcomes = await Promise.allSettled(groups.map(async group => {
   const started = performance.now();
   try {
