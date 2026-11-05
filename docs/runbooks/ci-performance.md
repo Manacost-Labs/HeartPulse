@@ -183,6 +183,31 @@ mitigation in a fresh full hosted run before calling the startup issue fixed.
 Neither failed attempt may calibrate duration weights. GitHub documents the
 [gradual latest-image migration and explicit OS labels](https://github.com/actions/runner-images#latest-migration-process).
 
+The first full run after the OS pin,
+[42054746478](https://github.com/Manacost-Labs/HeartPulse/actions/runs/42054746478),
+passed all required validation in 299 seconds from creation (one second before
+the first job, 298 seconds active). All 536 unquarantined files passed without
+file retries. This is one successful observation, not proof that Chrome startup
+is fixed. The build and Storybook jobs took 82/84 seconds; the slowest browser
+job took 163 seconds, including a 142-second test step.
+
+Complete artifacts from that run and successful full run `42043123385/1`
+calibrated 535 eligible file medians; 534 values changed. The earlier run's one
+FLAKY file and quarantine-only reports did not contribute samples. The
+identity guest/context/layout weights are now 50.692/43.953/26.519 seconds,
+replacing the initial split estimates. Failed runs are not in the input set.
+
+The hosted logs also showed the four slowest browser files starting together
+in job 1. Consecutive global shard numbers grouped the largest individual
+files on one runner, causing contention despite an otherwise balanced LPT
+partition. Worker assignment now stripes across jobs: job 1 of ten owns
+`1/40, 11/40, 21/40, 31/40`, while job 2 owns
+`2/40, 12/40, 22/40, 32/40`. Every global shard still executes exactly once,
+with the same worker count, test selection and failure propagation. A focused
+mapping test fails under the old assignment and passes under the new one.
+A new hosted run must measure the effect; median estimates do not establish
+the two-minute objective.
+
 A disposable Turbopack probe failed after 5.8 seconds: four explicit `.js`
 TypeScript import-resolution errors, invalid generated CSS at
 `section::after::after`, and a UMD/CommonJS-format warning. The probe config and

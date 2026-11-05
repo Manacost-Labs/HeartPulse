@@ -4,7 +4,7 @@ import { pathToFileURL } from 'node:url';
 import { parseRunnerArguments } from './test-suite-runner.mjs';
 import { runProcess } from './lib/process-task.mjs';
 
-/** Every job splits into disjoint global shards; workers never share a timing report. */
+/** Stripe global shards across jobs so the longest shards do not compete on one runner. */
 export function planTestWorkers(args) {
   const forwarded = [];
   const options = new Map();
@@ -23,7 +23,7 @@ export function planTestWorkers(args) {
   const offset = forwarded.indexOf('--shard');
   return Array.from({ length: workers }, (_, worker) => {
     const next = [...forwarded];
-    next[offset + 1] = `${(parsed.shard.index - 1) * workers + worker + 1}/${parsed.shard.total * workers}`;
+    next[offset + 1] = `${parsed.shard.index + worker * parsed.shard.total}/${parsed.shard.total * workers}`;
     return [...next, '--report', path.join(directory, `worker-${worker + 1}.json`)];
   });
 }

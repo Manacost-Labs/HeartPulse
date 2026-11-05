@@ -14,7 +14,10 @@ test('workers partition the full matrix into disjoint global shards and separate
     }
     assert.notEqual(plans[0].at(-1), plans[1].at(-1));
   }
-  assert.deepEqual(all, Array.from({ length: 20 }, (_, i) => `${i + 1}/20`));
+  assert.deepEqual(all.toSorted((a, b) => parseInt(a) - parseInt(b)), Array.from({ length: 20 }, (_, i) => `${i + 1}/20`));
+  const striped = planTestWorkers(['--suite', 'browser', '--shard', '1/10', '--workers', '4', '--report-dir', '/tmp/timings']);
+  assert.deepEqual(striped.map(args => args[args.indexOf('--shard') + 1]), ['1/40', '11/40', '21/40', '31/40'],
+    'the longest global shards must start in different physical jobs');
 });
 
 test('worker CLI rejects missing, duplicate or unsafe limits before spawning', () => {
