@@ -159,8 +159,8 @@ function listen() {
   });
 }
 
-const chromiumPath = ['/usr/bin/chromium', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable']
-  .find(existsSync);
+const chromiumPath = [process.env.CHROMIUM_PATH, '/usr/bin/chromium', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable']
+  .find(candidate => candidate && existsSync(candidate));
 assert.ok(chromiumPath, 'Chromium/Chrome executable is required');
 const browserLaunchOptions = {
   executablePath: chromiumPath,

@@ -17,7 +17,7 @@ export async function launchBrowser(options = {}) {
   const launch = async attempt => {
     const started = performance.now();
     let outcome = 'failed';
-    if (reportTiming) console.log(`[browser] launch-start entry=${entry} pid=${process.pid} attempt=${attempt} transport=${launchOptions.pipe ? 'pipe' : 'websocket'}`);
+    if (reportTiming) console.log(`[browser] launch-start entry=${entry} pid=${process.pid} attempt=${attempt} transport=${launchOptions.pipe ? 'pipe' : 'websocket'} executable=${basename(launchOptions.executablePath || 'puppeteer-default')}`);
     try {
       const browser = await puppeteer.launch(launchOptions);
       if (reportTiming) {

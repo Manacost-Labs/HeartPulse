@@ -233,6 +233,7 @@ jobs:
     timeout-minutes: 15
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
+      CHROMIUM_PATH: '/usr/bin/google-chrome'
     strategy:
       # Every shard reports its own result; one failure must not hide the others.
       fail-fast: false
@@ -309,6 +310,7 @@ jobs:
     timeout-minutes: 15
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
+      CHROMIUM_PATH: '/usr/bin/google-chrome'
     strategy:
       # Every shard reports its own result; one failure must not hide the others.
       fail-fast: false
@@ -372,6 +374,7 @@ jobs:
     timeout-minutes: 20
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
+      CHROMIUM_PATH: '/usr/bin/google-chrome'
 
     steps:
       - name: Checkout repository

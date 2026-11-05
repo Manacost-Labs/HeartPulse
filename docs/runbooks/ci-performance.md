@@ -322,7 +322,31 @@ in42081325514 and are explicitly estimates until two full successful runs
 supply PASS samples for each part. A source reconstruction check preserved
 the original scenario text exactly after removing registration wrappers and
 adjusting moved import paths. All five tests passed together on four local
-CPUs; hosted duration improvement remains to be verified.
+CPUs. The hosted split run
+[42084172679](https://github.com/Manacost-Labs/HeartPulse/actions/runs/42084172679)
+passed `CI required` in223s:538 blocking files PASS and two FLAKY, out of540.
+All three bfcache files passed. Their navigation/subscription/session durations
+were83.311/21.833/74.984s; the split alone does not establish a stable speedup.
+
+Browser shard1 exposed a more specific startup difference. Its embed and
+bfcache launches waited56.870s and55.106s while archetype detail launched in
+1.074s on the same runner. Available memory stayed above13GiB during the wait,
+and recorded load was low. Source fallbacks select `/usr/bin/chromium` for
+the former tests and `/usr/bin/google-chrome` for archetype detail. Only the
+observatory job had explicitly set `CHROMIUM_PATH`. The hosted image installs
+[Chrome and a separate Chromium snapshot](https://github.com/actions/runner-images/blob/main/images/ubuntu/scripts/build/install-google-chrome.sh);
+these are different executables, not interchangeable path aliases.
+
+Registry, browser and quarantine jobs now explicitly set
+`CHROMIUM_PATH=/usr/bin/google-chrome`, matching observatory. The embed and
+identity fixtures also honor this existing override before their standalone
+fallback list. Launch diagnostics record the executable basename so the next
+run can confirm the chosen binary alongside timings. This is a controlled
+CI browser selection change, not proof of Chromium's internal startup cause.
+Browser flags, profiles, assertions, deadlines and retry rules stay intact.
+Verify all540 blocking results and compare launch/scenario durations separately
+before claiming an improvement; use successful runs with the new browser
+selection for the next calibration window.
 
 A disposable Turbopack probe failed after 5.8 seconds: four explicit `.js`
 TypeScript import-resolution errors, invalid generated CSS at
