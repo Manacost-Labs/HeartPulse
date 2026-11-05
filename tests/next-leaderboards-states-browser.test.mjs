@@ -126,21 +126,32 @@ test('leaderboards: returning to a loaded table while another is pending shows i
         .filter(entry => entry.name.includes('/api/leaderboards/table')).map(entry => `requested ${entry.name}`)));
 
       // Ссылка открывает текущий сезон; скелетон сводки той же высоты, что и сводка, и не сдвигает таблицу.
+      const widths = [1440, 1100, 1024, 720, 412];
+      const loadedHeights = new Map();
+      // Свежие эталонные страницы готовим до hold: их загрузка не должна расходовать
+      // двадцатисекундный таймаут запроса статистики на проверяемой странице.
+      for (const width of widths) {
+        const real = await browser.newPage();
+        try {
+          await real.setViewport({ width, height: 900 });
+          await real.goto(`${pilot.origin}/leaderboards/${current}`, { waitUntil: 'networkidle2' });
+          const loaded = await real.$eval('.leaderboards-board > .data-surface', node => Math.round(node.getBoundingClientRect().height * 2) / 2);
+          loadedHeights.set(width, loaded);
+        } finally {
+          await real.close();
+        }
+      }
       const stats = hold(url => url.includes('/api/leaderboards/stats?'));
       await page.click('.leaderboards-message a');
       await stats.seen();
       await settledOn(page, first, `${mode}: the current season after an unknown one`);
       assert.equal(new URL(page.url()).search, current, 'the unknown season leaves the URL');
       // Без isMobile: его смена перезагружает страницу и сбрасывает скелетон; раскладку задают медиазапросы по ширине.
-      for (const width of [1440, 1100, 1024, 720, 412]) {
+      for (const width of widths) {
         await page.setViewport({ width, height: 900 });
         await pause(100);
         const skeleton = await page.$eval('.leaderboards-board > .loading-surface', node => Math.round(node.getBoundingClientRect().height * 2) / 2);
-        const real = await browser.newPage();
-        await real.setViewport({ width, height: 900 });
-        await real.goto(`${pilot.origin}/leaderboards/${current}`, { waitUntil: 'networkidle2' });
-        const loaded = await real.$eval('.leaderboards-board > .data-surface', node => Math.round(node.getBoundingClientRect().height * 2) / 2);
-        await real.close();
+        const loaded = loadedHeights.get(width);
         assert.ok(Math.abs(skeleton - loaded) <= 1, `${mode} at ${width}px: the summary skeleton is ${skeleton}px, the summary ${loaded}px`);
       }
       await page.setViewport({ width: 1440, height: 900 });

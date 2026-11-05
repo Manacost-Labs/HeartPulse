@@ -827,6 +827,30 @@ the original SEO file passes all 17 tests on four local CPUs. Registry shard
 These tests join the required integration registry. No application behavior,
 existing assertion, quarantine membership or CI job deadline changes.
 
+## Leaderboard geometry fixture ordering
+
+Run `42126696282` passed the required gate in230s, but browser shard3
+retried `next-leaderboards-states-browser.test.mjs`. Its first attempt spent
+92s before timing out on the loaded statistics selector. Warmup on that shard
+was897ms. Across ten shards, the slowest warmup took16.214s, with its endpoint
+at11.485s; identical D-Bus errors also appeared on subsecond starts, so those
+errors alone do not identify the cold-start cause.
+
+The leaderboard test held the statistics request while opening five separate
+baseline pages. Those unrelated navigations consumed the application's
+20-second `fetchWithDeadline` budget. A22s delay in baseline preparation
+reproduced expiry: the loading surface disappeared before release. Preparing
+all fresh baseline pages before holding the request makes that probe pass.
+The same eight assertion lines, two modes, five widths, ten fresh baseline
+pages, network-idle waits, geometry tolerance and timing limits are retained.
+Only measurements and viewport changes now occur while the request is held.
+Baseline pages close in `finally`, including on a failed measurement. The
+probe delay is not committed; application request deadlines remain unchanged.
+The full browser shard3/10 passes all nine files on four local CPUs without
+retries after the fix. The hosted run also retried the separate lightbox-close
+fixture because its recorded CSS transition fields were null; that observation
+remains unresolved and is not covered by the leaderboard ordering change.
+
 ## Verification
 
 Focused runner and workflow tests must prove deterministic complete sharding,
