@@ -11,9 +11,12 @@ import {
   claimNickname,
   createPublicProfileRouter,
   ensurePublicNicknameSchema,
+  ensurePublicStatsVisibilitySchema,
   findPublicProfile,
+  findPublicStatsOwner,
   findPublicProfileIdByNickname,
   readOwnPublicIdentity,
+  setPublicStatsVisible,
 } from '../server/modules/publicProfile/public.js';
 
 const boundaries = JSON.parse(readFileSync(new URL('../config/module-boundaries.json', import.meta.url), 'utf8')) as {
@@ -44,6 +47,8 @@ database.exec(`
 `);
 ensurePublicNicknameSchema(database);
 ensurePublicNicknameSchema(database);
+ensurePublicStatsVisibilitySchema(database);
+ensurePublicStatsVisibilitySchema(database);
 assert.ok((database.prepare('PRAGMA table_info(users)').all() as Array<{ name: string }>).some(column => column.name === 'nickname_key'),
   'the migration adds the nickname columns once and is idempotent');
 
@@ -64,6 +69,7 @@ app.use('/api', createPublicProfileRouter({
   findPublicProfileIdByNickname: (key, now) => findPublicProfileIdByNickname(database, key, now),
   readOwnIdentity: (userId, now) => readOwnPublicIdentity(database, userId, now),
   claimNickname: (userId, nickname, now) => claimNickname(database, userId, nickname, now),
+  setStatsVisible: (userId, visible) => setPublicStatsVisible(database, userId, visible),
   userAuth: sessionUser,
   csrfAllowed: request => csrfRequestAllowed({
     method: request.method,
@@ -122,7 +128,7 @@ try {
   assert.deepEqual(Object.keys(profile).sort(), [...PUBLIC_PROFILE_FIELDS].sort());
   assert.deepEqual(profile, {
     publicProfileId: '1', nickname: null, displayName: 'Игрок #1', avatarInitials: '#',
-    memberSince: '2026-02', isSubscriber: true,
+    memberSince: '2026-02', isSubscriber: true, showsStats: false,
   });
   const alphaWire = JSON.stringify(alpha.body);
   for (const secret of ['user_alpha', 'alpha@example.com', 'alpha.discord', 'admin', 'alpha_tg', 'boosty', '300', 'Мастер', '04:05']) {
@@ -198,6 +204,7 @@ try {
   racer.exec(`CREATE TABLE users (id TEXT PRIMARY KEY, public_numeric_id INTEGER, created_at TEXT, blocked_at TEXT);
     INSERT INTO users VALUES ('a', 10, '2026-01-01', NULL), ('b', 11, '2026-01-01', NULL);`);
   ensurePublicNicknameSchema(racer);
+  ensurePublicStatsVisibilitySchema(racer);
   racer.exec(`CREATE TRIGGER sneak_in BEFORE UPDATE OF nickname_key ON users WHEN NEW.id = 'b'
     BEGIN UPDATE users SET nickname = 'Racer', nickname_key = 'racer' WHERE id = 'a'; END;`);
   assert.deepEqual(claimNickname(racer, 'b', { display: 'Racer', key: 'racer' }, clock), { status: 'taken' });
@@ -209,6 +216,30 @@ try {
   for (let id = 1; id <= 10; id += 1) statuses.push((await read(`/api/profiles/${id}`, 'scraper')).status);
   assert.deepEqual(statuses.slice(-2), [429, 429], 'the read budget must stop a sequential scan');
   assert.equal((await read('/api/profiles/1', 'someone-else')).status, 200, 'the budget is per client');
+
+  // Statistics are private until the owner shows them: CSRF and a session are required, only a boolean is accepted.
+  const setVisibility = (userId: string, body: unknown, headers: Record<string, string> = {}) => fetch(`${base}/api/account/public-profile/visibility`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json', cookie: `hp_session=${userId}`, 'sec-fetch-site': 'same-origin', 'x-csrf-request': '1', ...headers },
+    body: JSON.stringify(body),
+  });
+  assert.equal(findPublicStatsOwner(database, '2'), null, 'statistics start hidden');
+  assert.equal((await setVisibility('user_beta', { stats: true }, { 'sec-fetch-site': 'cross-site' })).status, 403);
+  assert.equal((await setVisibility('user_beta', { stats: true }, { 'x-csrf-request': '' })).status, 403);
+  assert.equal((await setVisibility('user_beta', { stats: 'yes' })).status, 400);
+  assert.equal((await fetch(`${base}/api/account/public-profile/visibility`, {
+    method: 'PUT', headers: { 'content-type': 'application/json' }, body: '{"stats":true}' })).status, 401);
+  const shown = await setVisibility('user_beta', { stats: true });
+  assert.equal(shown.status, 200);
+  assert.equal(shown.headers.get('cache-control'), 'private, no-store');
+  assert.equal(((await shown.json()) as Record<string, unknown>).statsVisible, true);
+  assert.equal(findPublicStatsOwner(database, '2'), 'user_beta');
+  assert.equal(((await read('/api/profiles/2', 'visibility-reader')).body.profile as Record<string, unknown>).showsStats, true);
+  database.exec("UPDATE users SET public_stats_visible = 1 WHERE id = 'user_blocked'");
+  assert.equal(findPublicStatsOwner(database, '3'), null, 'a blocked account shows nothing');
+  assert.equal(findPublicStatsOwner(database, '02'), null);
+  assert.equal(((await (await setVisibility('user_beta', { stats: false })).json()) as Record<string, unknown>).statsVisible, false);
+  assert.equal(findPublicStatsOwner(database, '2'), null, 'switching off hides the statistics again');
 } finally {
   server.close();
 }

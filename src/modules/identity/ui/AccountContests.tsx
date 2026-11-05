@@ -1,4 +1,4 @@
-import { Trophy } from 'lucide-react';
+import { ArrowRight, Trophy } from 'lucide-react';
 import AccountSectionHead from './AccountSectionHead';
 export type AccountContestEntry = {
   id: string;
@@ -25,8 +25,9 @@ function joinedLabel(value: string): string {
   return new Date(value).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-/** Contest entries of the viewer; one quiet line until there are any. */
+/** Contest entries of the viewer; no section at all until there are any. */
 export default function AccountContests({ entries, loading }: { entries: AccountContestEntry[]; loading: boolean }) {
+  if (loading || entries.length === 0) return null;
   return (
     <section id="account-contests" className="account-section account-contests" aria-labelledby="account-contests-title" data-tour-id="profile-contests">
       <AccountSectionHead
@@ -35,33 +36,27 @@ export default function AccountContests({ entries, loading }: { entries: Account
         eyebrow="Конкурсы"
         title="Мои конкурсы"
         description="Заявки, результаты и призы."
-        aside={<a className="account-contests__all" href="/contests/">Текущие конкурсы</a>}
+        aside={<a className="account-section__help" href="/contests/">Текущие конкурсы<ArrowRight size={15} aria-hidden="true" /></a>}
       />
-      {loading ? (
-        <p className="account-muted">Загружаем историю…</p>
-      ) : entries.length === 0 ? (
-        <p className="account-muted">Вы ещё не участвовали в конкурсах. Здесь появятся заявки, результаты и призы.</p>
-      ) : (
-        <ul className="account-contests__list">
-          {entries.map(entry => (
-            <li key={entry.id || entry.contestId} className="account-contests__entry">
-              {entry.imageUrl && <img src={entry.imageUrl} alt="" loading="lazy" decoding="async" width={56} height={56} />}
-              <span className="account-contests__text">
-                <strong>{entry.title}</strong>
-                <small>
-                  {CONTEST_STATUS_TEXT[entry.status] || entry.status}
-                  {' · '}
-                  {entry.entryStatus === 'approved' ? 'участие одобрено' : entry.entryStatus || 'заявка'}
-                  {' · '}
-                  заявка от {joinedLabel(entry.joinedAt)}
-                </small>
-                {entry.prize && <small>Приз: {entry.prize}</small>}
-              </span>
-              {entry.isWinner && <span className="account-pill account-pill--winner">Победа</span>}
-            </li>
-          ))}
-        </ul>
-      )}
+      <ul className="account-contests__list">
+        {entries.map(entry => (
+          <li key={entry.id || entry.contestId} className="account-contests__entry">
+            {entry.imageUrl && <img src={entry.imageUrl} alt="" loading="lazy" decoding="async" width={56} height={56} />}
+            <span className="account-contests__text">
+              <strong>{entry.title}</strong>
+              <small>
+                {CONTEST_STATUS_TEXT[entry.status] || entry.status}
+                {' · '}
+                {entry.entryStatus === 'approved' ? 'участие одобрено' : entry.entryStatus || 'заявка'}
+                {' · '}
+                заявка от {joinedLabel(entry.joinedAt)}
+              </small>
+              {entry.prize && <small>Приз: {entry.prize}</small>}
+            </span>
+            {entry.isWinner && <span className="account-pill account-pill--winner">Победа</span>}
+          </li>
+        ))}
+      </ul>
     </section>
   );
 }

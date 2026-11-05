@@ -14,10 +14,12 @@ export type PublicProfileRecord = {
   memberSince: string;
   /** Only whether a subscription is active: no level, price or source. */
   isSubscriber: boolean;
+  /** The owner chose to show their tracker statistics and decks; off by default. */
+  showsStats: boolean;
 };
 
 export const PUBLIC_PROFILE_FIELDS: readonly (keyof PublicProfileRecord)[] = [
-  'publicProfileId', 'nickname', 'displayName', 'avatarInitials', 'memberSince', 'isSubscriber',
+  'publicProfileId', 'nickname', 'displayName', 'avatarInitials', 'memberSince', 'isSubscriber', 'showsStats',
 ];
 
 /**
@@ -29,6 +31,7 @@ export type PublicProfileCandidate = {
   nickname: unknown;
   createdAt: unknown;
   hasSubscription: unknown;
+  statsVisible?: unknown;
 } & Record<string, unknown>;
 
 const NUMERIC_ID = /^[1-9][0-9]{0,9}$/;
@@ -59,5 +62,6 @@ export function serializePublicProfile(source: PublicProfileCandidate): PublicPr
     avatarInitials: nickname ? [...nickname].slice(0, 2).join('').toUpperCase() : '#',
     memberSince: month ? `${month[1]}-${month[2]}` : '',
     isSubscriber: Number(source.hasSubscription) === 1,
+    showsStats: Number(source.statsVisible) === 1,
   };
 }

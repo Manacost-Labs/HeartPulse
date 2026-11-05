@@ -119,6 +119,7 @@ assert.deepEqual(projected, {
   avatarInitials: 'VA',
   memberSince: '2026-03',
   isSubscriber: true,
+  showsStats: false,
 });
 const wire = JSON.stringify(projected);
 for (const secret of ['user_42368c85b8de', 'example.com', 'vasya.discord', 'admin', 'vasya_tg', '123456789',
@@ -134,7 +135,12 @@ assert.deepEqual(serializePublicProfile({ ...secretRow, nickname: null, hasSubsc
   avatarInitials: '#',
   memberSince: '2026-03',
   isSubscriber: false,
+  showsStats: false,
 });
+// Only the owner's explicit choice makes the statistics public.
+assert.equal(serializePublicProfile({ ...secretRow, statsVisible: 1 })?.showsStats, true);
+assert.equal(serializePublicProfile({ ...secretRow, statsVisible: '1' })?.showsStats, true);
+assert.equal(serializePublicProfile({ ...secretRow, statsVisible: 'yes' })?.showsStats, false);
 assert.equal(serializePublicProfile({ ...secretRow, publicNumericId: null }), null);
 assert.equal(serializePublicProfile({ ...secretRow, publicNumericId: '0' }), null);
 

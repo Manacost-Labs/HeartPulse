@@ -33,6 +33,11 @@ export {
   type OwnPublicIdentity,
 } from './nicknameRepository.js';
 export {
+  ensurePublicStatsVisibilitySchema,
+  findPublicStatsOwner,
+  setPublicStatsVisible,
+} from './statsVisibility.js';
+export {
   createPublicProfileRouter,
   type PublicProfileRouterDependencies,
 } from './routes.js';

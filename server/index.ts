@@ -192,7 +192,9 @@ import {
   type UntranslatedArchetype,
 } from './adminArchetypeTranslationRoutes.js';
 import { createAdminArchetypesRouter } from './adminArchetypesRoutes.js';
-import { createDeckBuilderRouter } from './deckBuilderRoutes.js';
+import { createDeckBuilderRouter, resolveDeckPayload } from './deckBuilderRoutes.js';
+import { decodeDeckDefinition } from './deckBuilderResolve.js';
+import { registerSavedDecks } from './app/registerSavedDecks.js';
 import {
   loadArchetypeDeckCandidates,
   resolveArchetypeDeckIdentity,
@@ -302,7 +304,9 @@ import {
   ensurePublicProfileSchema,
   findPublicProfile,
   findPublicProfileIdByNickname,
+  findPublicStatsOwner,
   readOwnPublicIdentity,
+  setPublicStatsVisible,
   resolveUserPublicProfileId,
 } from './modules/publicProfile/public.js';
 import { completePasswordReset, createPasswordResetRouter } from './passwordResetRoutes.js';
@@ -7159,8 +7163,9 @@ const applicationAuth = registerApplicationAuth({
 });
 // The statistics read the tracker events through closures: the repository exists once the tracker is registered below.
 const playerStats = registerPlayerGames({ app, userAuth, setPrivateNoStore,
+  resolvePublicStatsOwner: publicProfileId => findPublicStatsOwner(db(), publicProfileId),
   loadEvents: (userId, query) => trackerEvents.listEvents(userId, query),
-  countEvents: (userId, types, minSchemaVersion) => trackerEvents.countEvents(userId, types, minSchemaVersion),
+  countEvents: (userId, types, minSchemaVersion, until) => trackerEvents.countEvents(userId, types, minSchemaVersion, until),
   hasEntitlement: requestHasEntitlementAccess, resolveCardNames: createCardNameLookup({ url: HEARTHSTONE_RU_CARDS_URL }),
   global: createPlayerGamesGlobalSources({
     loadConstructedMeta: format => loadStandardMeta(format, 'all', 'past_week', 'any_player', 100) }) });
@@ -8688,6 +8693,7 @@ app.use('/api', createPublicProfileRouter({
   findPublicProfileIdByNickname: (nicknameKey, now) => findPublicProfileIdByNickname(db(), nicknameKey, now),
   readOwnIdentity: (userId, now) => readOwnPublicIdentity(db(), userId, now),
   claimNickname: (userId, nickname, now) => claimNickname(db(), userId, nickname, now),
+  setStatsVisible: (userId, visible) => setPublicStatsVisible(db(), userId, visible),
   userAuth,
   csrfAllowed: cookieMutationCsrfAllowed,
   setPrivateNoStore,
@@ -9348,11 +9354,11 @@ app.use('/api', createAdminArchetypesRouter({
   loadCanonicalMatchups: loadHsguruMatchupRow,
 }));
 
-app.use('/api', createDeckBuilderRouter({
+const deckBuilderDependencies = {
   adminGuard: adminIdGuard,
   setPrivateNoStore,
   getDatabase: db,
-  loadCatalogCards: async format => {
+  loadCatalogCards: async (format: 'standard' | 'wild') => {
     const collection = await constructedCardDataService.loadCards(format);
     return collection.cards as any[];
   },
@@ -9361,7 +9367,21 @@ app.use('/api', createDeckBuilderRouter({
     const translations = await getStandardArchetypeTranslations();
     return translations.map;
   },
-}));
+};
+app.use('/api', createDeckBuilderRouter(deckBuilderDependencies));
+registerSavedDecks({ app, getDatabase: db, userAuth, csrfAllowed: cookieMutationCsrfAllowed, setPrivateNoStore,
+  isDeckCode: deckCode => decodeDeckDefinition(deckCode) !== null,
+  resolveDeck: async deckCode => {
+    try {
+      const resolved = await resolveDeckPayload(deckBuilderDependencies, deckCode, 'standard');
+      return { deckCode: resolved.deckCode, format: resolved.format, archetypeLabel: resolved.archetype?.archetypeLabel ?? null };
+    } catch (error) {
+      // The resolver marks a code it cannot play with status 400; any other failure is the check's, not the code's.
+      if ((error as { status?: number }).status === 400) return null;
+      throw error;
+    }
+  },
+  renderDeck: (deckCode, deckName) => createStandardMetaPreview({ deckCode, archetypeLabel: deckName }) });
 
 app.use('/api', createAdminMechanicTranslationRouter({
   adminGuard: adminIdGuard,

@@ -21,6 +21,8 @@ export type AccountPlanSectionProps = {
   onRefresh: () => void;
   boosty: BoostyConfirmation;
   patreonLinkUrl: string;
+  /** The account has a Telegram identity, so the VIP channel (Tribute) can be checked. */
+  telegramLinked?: boolean;
 };
 
 const HEAD: Record<AccountPlanSummary['state'], { title: string; description: string }> = {
@@ -72,7 +74,7 @@ function PendingPlan() {
 }
 
 /** Section two of the account: the plan and what it opens, or the ways to get one. */
-export default function AccountPlanSection({ plan, subscription, loading, checkedAt, onRefresh, boosty, patreonLinkUrl }: AccountPlanSectionProps) {
+export default function AccountPlanSection({ plan, subscription, loading, checkedAt, onRefresh, boosty, patreonLinkUrl, telegramLinked }: AccountPlanSectionProps) {
   const head = HEAD[plan.state];
   const description = plan.state === 'none' && subscription?.message ? subscription.message : head.description;
   return (
@@ -94,7 +96,7 @@ export default function AccountPlanSection({ plan, subscription, loading, checke
       />
       {plan.state === 'pending' && <PendingPlan />}
       {plan.state === 'active' && <ActivePlan plan={plan} subscription={subscription} />}
-      {plan.state === 'none' && <NoAccess subscription={subscription} boosty={boosty} patreonLinkUrl={patreonLinkUrl} />}
+      {plan.state === 'none' && <NoAccess subscription={subscription} boosty={boosty} patreonLinkUrl={patreonLinkUrl} telegramLinked={telegramLinked} />}
       {/* The status check failed, but the Boosty confirmation is a separate request. */}
       {plan.state === 'unknown' && <div className="account-access__options"><BoostyForm boosty={boosty} /></div>}
     </section>

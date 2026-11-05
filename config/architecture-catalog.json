@@ -330,6 +330,14 @@
         {
           "method": "GET",
           "path": "/api/account/game-stats/modes"
+        },
+        {
+          "method": "GET",
+          "path": "/api/profiles/:publicProfileId/game-stats"
+        },
+        {
+          "method": "GET",
+          "path": "/api/profiles/:publicProfileId/game-stats/modes"
         }
       ],
       "contracts": [
@@ -348,6 +356,64 @@
       "tests": [
         "tests/player-games-routes.test.ts",
         "tests/player-games-schema.test.ts"
+      ],
+      "allowedDependencies": [
+        "Node.js crypto/sqlite",
+        "Express at the routes boundary"
+      ],
+      "forbiddenImports": [
+        "src/**",
+        "other server module internals"
+      ]
+    },
+    {
+      "name": "backend-saved-decks",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Own the account's own saved decks: deck code, the owner's comment, the deckview image state and their private HTTP routes.",
+      "paths": [
+        "server/modules/savedDecks"
+      ],
+      "publicEntrypoints": [
+        "server/modules/savedDecks/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [
+        {
+          "method": "GET",
+          "path": "/api/account/decks"
+        },
+        {
+          "method": "POST",
+          "path": "/api/account/decks"
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/account/decks/:id"
+        },
+        {
+          "method": "POST",
+          "path": "/api/account/decks/:id/render"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/account/decks/:id"
+        }
+      ],
+      "contracts": [
+        "server/modules/savedDecks/public.ts",
+        "docs/specs/saved-decks.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": [
+        "sqlite:saved_decks"
+      ],
+      "externalServices": [
+        "deckview image render and the deck builder's card resolver, injected by composition"
+      ],
+      "tests": [
+        "tests/saved-decks-routes.test.ts"
       ],
       "allowedDependencies": [
         "Node.js crypto/sqlite",

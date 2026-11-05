@@ -7,6 +7,8 @@ import { usePublicAccess } from './usePublicAccess';
 import { navigate } from './navigation';
 
 const PublicProfileCard = dynamic(loadPublicProfileCard);
+// Only profiles that show their games load the statistics views and their UI kits.
+const PublicPlayerStats = dynamic(() => import('@/src/features/playerStats/PublicPlayerStats'));
 
 export function PublicProfilePageClient({ profile, pathname }: { profile: PublicProfile; pathname: string }) {
   const access = usePublicAccess();
@@ -14,6 +16,8 @@ export function PublicProfilePageClient({ profile, pathname }: { profile: Public
     {/* The server validated the numeric ID; the shared link is the canonical page. */}
     <PublicProfileCard profile={profile} signedIn={Boolean(access.user)} onCopyLink={() => navigator.clipboard.writeText(
       new URL(`/id/${profile.publicProfileId}/`, window.location.origin).href,
-    )} />
+    )}>
+      {profile.showsStats ? <PublicPlayerStats publicProfileId={profile.publicProfileId} /> : null}
+    </PublicProfileCard>
   </PublicPageShell>;
 }

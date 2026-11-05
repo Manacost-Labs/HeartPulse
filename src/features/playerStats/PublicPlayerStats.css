@@ -1,0 +1,22 @@
+.public-player-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  min-width: 0;
+  padding: clamp(1rem, 2.2vw, 1.5rem);
+  /* The wooden frame of assets.md («Главная деревянная рама»), as in the account. */
+  border: 8px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 / 8px stretch;
+  background: var(--arena-parchment-texture), var(--arena-parchment-light);
+  background-clip: padding-box;
+  box-shadow: 0 10px 24px rgba(70, 38, 15, 0.16);
+  color: #3d2a1e;
+}
+
+.public-player-stats__head { display: flex; flex-direction: column; gap: 4px; padding-bottom: 0.85rem; border-bottom: 1px solid var(--arena-paper-line); }
+.public-player-stats__head h2 { margin: 0; font-family: var(--font-hs); font-size: 1.5rem; line-height: 1.15; color: #3d2a1e; }
+.public-player-stats__eyebrow { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: #7a1e22; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+.public-player-stats__description,
+.public-player-stats__empty { margin: 0; color: #6a513a; }
+/* Flex children default to their content's width; the period switch and tables must scroll inside, not widen the page. */
+.public-player-stats > * { min-width: 0; max-width: 100%; }

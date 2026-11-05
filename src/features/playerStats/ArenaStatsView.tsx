@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { DataTable, type DataTableColumn } from '../../vendor/varylo-ui/data-display/DataTable';
 import type { SortState } from '../../vendor/varylo-ui/data-display/data-table';
 import { SegmentedControl } from '../../vendor/varylo-ui/navigation/SegmentedControl';
@@ -6,9 +6,9 @@ import { KpiGroup } from '../../vendor/varylo-ui/data-display/KpiGroup';
 import {
   CLASS_LABELS,
   classIconUrl,
-  formatGameDate,
   formatNumber,
   formatPercent,
+  useGameDateFormat,
   winrate,
   type ArenaStats,
 } from '../../modules/playerStats/public';
@@ -29,7 +29,7 @@ function ClassCell({ playerClass }: { playerClass: Run['playerClass'] }) {
 
 const score = (run: Pick<Run, 'wins' | 'losses'>) => `${run.wins}–${run.losses}`;
 
-const RUN_COLUMNS: DataTableColumn<Run>[] = [
+const runColumns = (formatGameDate: (timestamp: number) => string): DataTableColumn<Run>[] => [
   { key: 'playerClass', header: 'Класс', sortable: true, accessor: run => CLASS_LABELS[run.playerClass],
     cell: run => <ClassCell playerClass={run.playerClass} /> },
   { key: 'wins', header: 'Счёт', align: 'right', sortable: true, cell: run => (
@@ -59,6 +59,8 @@ const RUN_ORDER: Record<string, SortState> = {
 export function ArenaStatsView({ stats }: { stats: ArenaStats }) {
   const { summary } = stats;
   const [sort, setSort] = useState<SortState | null>(RUN_ORDER.recent);
+  const formatGameDate = useGameDateFormat();
+  const runTableColumns = useMemo(() => runColumns(formatGameDate), [formatGameDate]);
   const table = { density: 'compact' as const, locale: 'ru-RU', labels: DATA_TABLE_LABELS };
   return (
     <>
@@ -79,7 +81,7 @@ export function ArenaStatsView({ stats }: { stats: ArenaStats }) {
           onValueChange={value => setSort(RUN_ORDER[value])}
           options={[{ value: 'recent', label: 'Последние' }, { value: 'best', label: 'Лучшие' }]} />
       )}>
-        <DataTable label="Забеги" data={stats.runs} columns={RUN_COLUMNS} getRowId={run => run.runId} pageSize={10}
+        <DataTable label="Забеги" data={stats.runs} columns={runTableColumns} getRowId={run => run.runId} pageSize={10}
           sort={sort} onSortChange={setSort} {...table} />
       </StatsBlock>
       <StatsBlock title="Классы">

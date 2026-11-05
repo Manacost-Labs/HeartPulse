@@ -2,6 +2,15 @@
    between them; stacked on narrow screens. */
 .account-public-profile__body { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 1rem 2rem; align-items: start; }
 .account-public-profile__links { margin: 0; }
+.account-public-profile__visibility { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px; min-width: 0; margin: 0; padding: 1rem 0 0; border: 0; border-top: 1px solid var(--arena-paper-line); }
+.account-public-profile__visibility legend { float: left; width: 100%; padding: 0; margin-bottom: 4px; font-weight: 700; }
+.account-switch { display: inline-flex; align-items: center; gap: 12px; align-self: flex-start; min-height: 44px; padding: 0 4px 0 0; border: 0; background: transparent; color: inherit; font: inherit; font-weight: 600; cursor: pointer; }
+.account-switch:disabled { cursor: progress; opacity: 0.7; }
+.account-switch__track { position: relative; flex: 0 0 auto; width: 44px; height: 24px; border-radius: 12px; background: #b9a07a; transition: background-color 160ms ease; }
+.account-switch__thumb { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff8e6; box-shadow: 0 1px 3px rgba(58, 36, 18, 0.35); transition: transform 160ms ease; }
+.account-switch[aria-checked="true"] .account-switch__track { background: var(--account-ok, #235a2f); }
+.account-switch[aria-checked="true"] .account-switch__thumb { transform: translateX(20px); }
+@media (prefers-reduced-motion: reduce) { .account-switch__track, .account-switch__thumb { transition: none; } }
 .account-public-profile__links .account-links__row:first-child { border-top: 0; padding-top: 0; }
 .account-public-profile__nickname { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding-left: 2rem; border-left: 1px solid var(--arena-paper-line); }
 .account-public-profile__nickname label { font-weight: 700; }

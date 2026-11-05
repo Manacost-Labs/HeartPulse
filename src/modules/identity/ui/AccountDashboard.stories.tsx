@@ -89,6 +89,14 @@ const args: AccountDashboardProps = {
     onChange: fn(),
     onSubmit: fn(),
   },
+  publicProfile: {
+    identity: { publicProfileId: '7', nickname: 'Arena_Fan', nicknameChangeAvailableAt: '2026-11-22T12:00:00.000Z', statsVisible: true },
+    failed: false,
+    saving: false,
+    saveNickname: fn(),
+    saveStatsVisible: fn(),
+    origin: 'https://hearthpulse.net',
+  },
   onLogout: fn(),
 };
 
@@ -105,7 +113,8 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Subscriber: Story = {
-  play: async ({ canvas }) => {
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole('tab', { name: 'Подписка' }));
     await expect(canvas.getByText(/Следующий платёж/)).toBeVisible();
     await expect(canvas.getByRole('link', { name: /Управлять на Boosty/ })).toHaveAttribute('href', 'https://boosty.to/kolodahearthstone');
   },
@@ -113,7 +122,8 @@ export const Subscriber: Story = {
 
 export const SubscriptionWillNotRenew: Story = {
   args: { subscription: { ...subscriber, boosty: { ...subscriber.boosty, willRenew: false } } },
-  play: async ({ canvas }) => {
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole('tab', { name: 'Подписка' }));
     await expect(canvas.getByText(/Доступ до/)).toBeVisible();
   },
 };
@@ -143,5 +153,16 @@ export const EndingOtherSessions: Story = {
     await expect(canvas.getByRole('alertdialog')).toBeVisible();
     await userEvent.click(canvas.getByRole('button', { name: 'Завершить' }));
     await expect(storyArgs.sessions?.revokeOthers).toHaveBeenCalled();
+  },
+};
+
+/** The statistics tab before the tracker sends games, then the decks tab; arrows move between tabs. */
+export const StatisticsAndDecksTabs: Story = {
+  play: async ({ canvas, userEvent }) => {
+    await userEvent.click(canvas.getByRole('tab', { name: 'Моя статистика' }));
+    await expect(canvas.getByText(/Пока игр нет/)).toBeVisible();
+    await userEvent.keyboard('{ArrowRight}');
+    await expect(canvas.getByRole('tab', { name: 'Мои колоды' })).toHaveAttribute('aria-selected', 'true');
+    await expect(canvas.getByRole('heading', { level: 2, name: 'Мои колоды' })).toBeVisible();
   },
 };

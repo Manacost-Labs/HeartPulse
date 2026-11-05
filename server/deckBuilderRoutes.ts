@@ -118,7 +118,8 @@ function readArchetype(value: unknown): string {
   return (fieldText(value) ?? '').trim().replace(/\s+/g, ' ').slice(0, 120);
 }
 
-async function resolveDeckPayload(
+/** Decodes a deck code against the card catalog and names its archetype; also used by «Мои колоды». */
+export async function resolveDeckPayload(
   dependencies: DeckBuilderRouterDependencies,
   deckCode: string,
   preferredFormat: DeckBuilderFormat,

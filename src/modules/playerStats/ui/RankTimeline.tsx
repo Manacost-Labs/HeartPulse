@@ -1,7 +1,8 @@
-import { CLASS_LABELS, classIconUrl, formatGameDate, rankLabel } from '../model/format';
+import { CLASS_LABELS, classIconUrl, rankLabel } from '../model/format';
 import type { ConstructedStats } from '../model/stats';
 import { GameTimeline } from './GameTimeline';
 import './PlayerStatsCharts.css';
+import { useGameDateFormat } from '../hooks/gameStatsSource';
 
 /** Every fifth star level from Bronze 10 to Legend: rank 10 and rank 5 of each league. */
 const TICK_LEVELS = Array.from({ length: 11 }, (_, index) => 1 + index * 5);
@@ -9,6 +10,7 @@ const RESULT_LABELS: Record<string, string> = { win: 'Победа', loss: 'По
 
 /** Ladder rank after each ranked game; the axis marks rank 10 and rank 5 of every league. */
 export function RankTimeline({ points }: { points: ConstructedStats['rankSeries'] }) {
+  const formatGameDate = useGameDateFormat();
   return (
     <GameTimeline
       points={points}

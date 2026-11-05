@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { fetchOwnPublicProfile, saveOwnNickname } from '../api/privateAccountApi';
+import { fetchOwnPublicProfile, saveOwnNickname, saveOwnStatsVisibility } from '../api/privateAccountApi';
 import type { OwnPublicProfile } from '../model/publicProfile';
 
 export type AccountPublicProfileControl = {
@@ -8,6 +8,8 @@ export type AccountPublicProfileControl = {
   failed: boolean;
   saving: boolean;
   saveNickname: (nickname: string) => void;
+  /** Shows or hides the statistics and decks on the public page. */
+  saveStatsVisible: (visible: boolean) => void;
 };
 
 /**
@@ -44,5 +46,16 @@ export function useAccountPublicProfile(
       .finally(() => setSaving(false));
   }, [onMessage]);
 
-  return { identity, failed, saving, saveNickname };
+  const saveStatsVisible = useCallback((visible: boolean) => {
+    setSaving(true);
+    void saveOwnStatsVisibility(visible)
+      .then(saved => {
+        setIdentity(saved);
+        onMessage({ type: 'ok', text: visible ? 'Статистика и колоды теперь видны в публичном профиле.' : 'Статистика и колоды скрыты из публичного профиля.' });
+      })
+      .catch((error: unknown) => onMessage({ type: 'err', text: error instanceof Error ? error.message : 'Не удалось сохранить настройку' }))
+      .finally(() => setSaving(false));
+  }, [onMessage]);
+
+  return { identity, failed, saving, saveNickname, saveStatsVisible };
 }
