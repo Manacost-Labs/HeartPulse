@@ -11,13 +11,19 @@ const LAUNCH_TIMEOUT_MS = 60_000;
  * error, and a second timeout, is thrown as is.
  */
 export async function launchBrowser(options = {}) {
-  const launchOptions = { timeout: LAUNCH_TIMEOUT_MS, ...options };
+  // CI uses the native DevTools pipe instead of waiting for a logged WS URL.
+  // Explicit transport/port options and standalone defaults remain available.
+  const launchOptions = {
+    timeout: LAUNCH_TIMEOUT_MS,
+    ...(process.env.GITHUB_ACTIONS === 'true' && options.debuggingPort === undefined ? { pipe: true } : {}),
+    ...options,
+  };
   const reportTiming = process.env.GITHUB_ACTIONS === 'true' || process.env.HP_BROWSER_TIMINGS === '1';
   const entry = basename(process.argv[1] || 'unknown');
   const launch = async attempt => {
     const started = performance.now();
     let outcome = 'failed';
-    if (reportTiming) console.log(`[browser] launch-start entry=${entry} pid=${process.pid} attempt=${attempt}`);
+    if (reportTiming) console.log(`[browser] launch-start entry=${entry} pid=${process.pid} attempt=${attempt} transport=${launchOptions.pipe ? 'pipe' : 'websocket'}`);
     try {
       const browser = await puppeteer.launch(launchOptions);
       if (reportTiming) {

@@ -254,6 +254,30 @@ is still unknown. Logging is enabled in GitHub Actions, or locally with
 are unchanged. No URLs, browser options or arbitrary environment values are
 logged.
 
+The diagnostic run on identical source,
+[42075959354](https://github.com/Manacost-Labs/HeartPulse/actions/runs/42075959354),
+passed the required gate in253 seconds. Browser shard8 started at+140s while
+most test jobs started at+67s; hosted queueing remains a separate contributor.
+Browser reports contain82 PASS and2 FLAKY files. In shard5, the first browser
+launches took8.6–14.3s; subsequent launches took0.5–0.9s, while shutdown took
+0.1–0.4s. Shard8's initial launches took11–20s; its next launches were generally
+below one second. The observatory's initial launches took10.9s. These measured
+phase differences do not prove why cold launch is slow; close is not the
+observed bottleneck.
+
+The next hosted experiment uses Puppeteer's supported DevTools `pipe` transport
+in GitHub Actions, avoiding WebSocket endpoint log discovery and its TCP
+connection. Explicit `pipe`/`debuggingPort` options remain authoritative, and
+standalone defaults are unchanged. Browser flags, profile isolation, worker
+count, scenario assertions, deadlines and the existing WS-timeout retry rule
+remain intact. Launch logs identify the requested transport. The installed
+Puppeteer `LaunchOptions` and `ChromeLauncher` define this option; see the
+[upstream launch contract](https://pptr.dev/api/puppeteer.launchoptions).
+Compare the next hosted launch distributions and total required time before
+retaining this experiment as a performance improvement. If cold launches do
+not improve, revert the transport default rather than attribute queue or test
+variance to it.
+
 A disposable Turbopack probe failed after 5.8 seconds: four explicit `.js`
 TypeScript import-resolution errors, invalid generated CSS at
 `section::after::after`, and a UMD/CommonJS-format warning. The probe config and
