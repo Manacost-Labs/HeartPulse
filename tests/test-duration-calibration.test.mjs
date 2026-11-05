@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -89,6 +89,15 @@ test('CLI updates a manifest from reports and leaves it intact on invalid input'
     assert.equal(result.status, 0, result.stderr);
     assert.equal(JSON.parse(readFileSync(manifestPath)).seconds[files[0]], 3);
     const accepted = readFileSync(manifestPath, 'utf8');
+    const reportsDirectory = path.join(directory, 'reports');
+    mkdirSync(path.join(reportsDirectory, 'nested'), { recursive: true });
+    writeFileSync(path.join(reportsDirectory, 'first.json'), JSON.stringify(observation('1', 2000)));
+    writeFileSync(path.join(reportsDirectory, 'nested/second.json'), JSON.stringify(observation('2', 4000)));
+    writeFileSync(path.join(reportsDirectory, 'ignored.txt'), 'not JSON');
+    const nested = spawnSync(process.execPath, [script, '--reports', reportsDirectory,
+      '--output', manifestPath, '--registry', registryPath], { encoding: 'utf8' });
+    assert.equal(nested.status, 0, nested.stderr);
+    assert.equal(readFileSync(manifestPath, 'utf8'), accepted);
     writeFileSync(reportPath, '{invalid');
     const failed = spawnSync(process.execPath, args, { encoding: 'utf8' });
     assert.notEqual(failed.status, 0);

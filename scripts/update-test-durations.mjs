@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
+import { closeSync, fstatSync, openSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { validateTestDurations } from './test-suite-runner.mjs';
@@ -87,14 +87,19 @@ export function calibrateTestDurations(previous, reports, registry) {
 }
 
 function readReports(input) {
-  if (statSync(input).isDirectory()) {
-    return readdirSync(input, { withFileTypes: true }).flatMap(entry => {
-      const child = path.join(input, entry.name);
-      return entry.isDirectory() || (entry.isFile() && entry.name.endsWith('.json')) ? readReports(child) : [];
-    });
+  const descriptor = openSync(input, 'r');
+  try {
+    if (fstatSync(descriptor).isDirectory()) {
+      return readdirSync(input, { withFileTypes: true }).flatMap(entry => {
+        const child = path.join(input, entry.name);
+        return entry.isDirectory() || (entry.isFile() && entry.name.endsWith('.json')) ? readReports(child) : [];
+      });
+    }
+    const parsed = JSON.parse(readFileSync(descriptor, 'utf8'));
+    return Array.isArray(parsed) ? parsed : [parsed];
+  } finally {
+    closeSync(descriptor);
   }
-  const parsed = JSON.parse(readFileSync(input, 'utf8'));
-  return Array.isArray(parsed) ? parsed : [parsed];
 }
 
 function main(args) {

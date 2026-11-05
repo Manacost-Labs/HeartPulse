@@ -73,6 +73,8 @@ shards do not calibrate weights. Duplicate observations, conflicting SHA values
 or malformed durations fail the command before it writes the manifest. The
 command does not query GitHub or attest provenance: the operator must choose
 successful full runs from this repository, not artifacts supplied by a PR.
+JSON files are checked and read through the same open descriptor; the fixture
+static server follows the same rule to avoid file-check/read races.
 The first calibration predates JSON artifacts and was bootstrapped from the
 START/PASS/FLAKY timestamps in those two runs' complete shard logs.
 

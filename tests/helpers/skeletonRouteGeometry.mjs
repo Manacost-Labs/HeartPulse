@@ -31,7 +31,7 @@ import assert from 'node:assert/strict';
 import http from 'node:http';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
+import { closeSync, existsSync, fstatSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs';
 import { extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -103,9 +103,20 @@ function createFixtureBackend() {
     }
     let file = null;
     try { file = resolve(publicRoot, `.${decodeURIComponent(url.pathname)}`); } catch { /* invalid escape */ }
-    if (file?.startsWith(publicRoot + sep) && existsSync(file) && statSync(file).isFile()) {
-      response.writeHead(200, { 'Content-Type': STATIC_TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream' });
-      response.end(readFileSync(file)); return;
+    if (file?.startsWith(publicRoot + sep)) {
+      let descriptor;
+      try {
+        descriptor = openSync(file, 'r');
+        if (fstatSync(descriptor).isFile()) {
+          const body = readFileSync(descriptor);
+          response.writeHead(200, { 'Content-Type': STATIC_TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream' });
+          response.end(body); return;
+        }
+      } catch (error) {
+        if (!['ENOENT', 'ENOTDIR'].includes(error.code)) throw error;
+      } finally {
+        if (descriptor !== undefined) closeSync(descriptor);
+      }
     }
     response.writeHead(404).end();
   });
