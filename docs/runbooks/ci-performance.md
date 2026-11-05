@@ -151,7 +151,17 @@ and Next config. GitHub scopes that cache to the PR merge ref, so it cannot
 replace main's cache. The bounded key avoids a new large cache on every push;
 Next still invalidates changed inputs. See the
 [GitHub cache scope rules](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching#restrictions-for-accessing-a-cache).
-Its hosted result is pending.
+Run [42047977667](https://github.com/Manacost-Labs/HeartPulse/actions/runs/42047977667)
+saved the PR cache successfully, but required validation failed in the media
+lightbox landing test on both attempts. Its RAF sampler could miss the final
+compositor frame before the flying copy was removed. The follow-up observes
+actual geometry in `Animation.finished` before removal, retains frame sampling
+and the existing 40 px tolerance, and explicitly asserts animation completion.
+A probe dropping late RAF observations reproduces the old failure and passes
+with the fix. The local parallel shard completed using its standard retries
+after backend-startup failures on this shared host; the landing assertion
+passed. All nine lightbox tests also passed in an isolated run without retries.
+This failed hosted run cannot calibrate weights.
 
 A disposable Turbopack probe failed after 5.8 seconds: four explicit `.js`
 TypeScript import-resolution errors, invalid generated CSS at
