@@ -791,6 +791,29 @@ focused Semgrep passed. All 545 blocking files appear exactly once across
 the existing partitions; desktop and mobile land in different browser jobs.
 The next full GitHub Actions run will measure the split's hosted effect.
 
+## Backend fixture startup and failure cleanup
+
+Run `42120524765` cancelled registry shard 3/4 after its job deadline.
+`next-seo-page-metadata.test.mjs` had already failed with `no such table: users`
+in `publicCardFixture`; its other worker finished, but setup leaked local
+servers and kept the failed process alive. No backend startup log was retained
+by the failing fixture, so a port collision in that run is not proven.
+
+The backend helper now requires its own child's listening message before the
+HTTP liveness probe, checks the existing database and users table, and handles
+signal exits during readiness/cleanup. A premature health response from another
+listener cannot make it return a newly created empty database. The HTTP probe
+has a bounded timeout. Card fixture setup now closes all acquired servers and
+the backend on failure, including failures while seeding a session.
+
+Two subprocess regressions inject an early health response and a seed failure.
+Both failed before the change and passed afterward, including natural process
+exit after the rejected setup. The source and compiled backend paths pass;
+the original SEO file passes all 17 tests on four local CPUs. Registry shard
+3/4 also passes all 119 selected files with two workers on those four CPUs.
+These tests join the required integration registry. No application behavior,
+existing assertion, quarantine membership or CI job deadline changes.
+
 ## Verification
 
 Focused runner and workflow tests must prove deterministic complete sharding,

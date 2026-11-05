@@ -299,6 +299,7 @@
         "tests/auth-persistence-integration.test.mjs",
         "tests/account-sessions-integration.test.mjs",
         "tests/auth-session-cookies-integration.test.mjs",
+        "tests/credential-backend-lifecycle.test.mjs",
         "tests/newsletter-consent-integration.test.mjs",
         "tests/account-avatar-integration.test.mjs",
         "tests/auth-profile-routes.test.ts",

@@ -132,7 +132,7 @@ export async function startCredentialBackend(options = {}) {
   const close = async () => {
     database?.close();
     await smtp.close();
-    if (child.exitCode === null) {
+    if (child.exitCode === null && child.signalCode === null) {
       const stopped = once(child, 'exit');
       child.kill('SIGTERM');
       const deadline = setTimeout(() => child.kill('SIGKILL'), 3000);
@@ -145,12 +145,20 @@ export async function startCredentialBackend(options = {}) {
     let ready = false;
     for (let attempt = 0; attempt < 300; attempt += 1) {
       assert.equal(child.exitCode, null, `Backend exited before readiness: ${output}`);
-      ready = await fetch(`${origin}/health/live`).then(r => r.ok, () => false);
+      assert.equal(child.signalCode, null, `Backend stopped before readiness: ${output}`);
+      // A concurrent fixture can claim the released reservation before this child.
+      // Only the owned child's listening callback proves that it bound the port.
+      if (output.includes(`[Server] API server running on ${origin}\n`)) {
+        ready = await fetch(`${origin}/health/live`, { signal: AbortSignal.timeout(1000) })
+          .then(r => r.ok, () => false);
+      }
       if (ready) break;
       await delay(30);
     }
     assert.ok(ready, `Backend did not start: ${output}`);
+    assert.ok(existsSync(databasePath), `Backend database missing after readiness: ${output}`);
     database = new DatabaseSync(databasePath);
+    database.prepare('SELECT id FROM users LIMIT 0').all();
     return {
       database, dataDirectory, smtp, close, origin, output: () => output,
       request(path, body, headers = {}) {
