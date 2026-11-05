@@ -113,7 +113,8 @@ Soft-paywall coverage runs as three independent overview, filter and layout
 files with shared assertions in `tests/helpers/softPaywallBrowser.mjs`.
 Identity continuation is split into guest, context and delayed-layout files;
 the one-second delayed response, observation windows, viewport matrix and
-security assertions are retained in a shared helper.
+security assertions are retained in a shared helper. Knip's project includes
+authored test helpers so their dependency use remains visible to the static gate.
 
 ## Verification status
 
