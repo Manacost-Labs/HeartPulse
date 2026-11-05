@@ -27,7 +27,7 @@ function publicProfileFromPayload(value: unknown): PublicProfile | null {
     || typeof fields.memberSince !== 'string' || typeof fields.isSubscriber !== 'boolean') return null;
   return { publicProfileId: fields.publicProfileId, nickname: fields.nickname as string | null,
     displayName: fields.displayName, avatarInitials: fields.avatarInitials,
-    memberSince: fields.memberSince, isSubscriber: fields.isSubscriber };
+    memberSince: fields.memberSince, isSubscriber: fields.isSubscriber, showsStats: fields.showsStats === true };
 }
 
 async function readJson(response: Response, what: string): Promise<unknown> {

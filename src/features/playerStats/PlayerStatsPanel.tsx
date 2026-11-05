@@ -36,13 +36,14 @@ function PlayerStatsTabs({ modes }: { modes: PlayerStatsMode[] }) {
 /**
  * The account's «Моя статистика», like HSReplay's «My Stats». Until the
  * desktop tracker has sent version 2 events (or while the statistics are
- * switched off on the server) nothing is rendered: no empty section and no
- * call to install an application that does not send games yet. Only modes
+ * switched off on the server) only the account's `empty` note is rendered:
+ * never a call to install an application that does not send games yet. Only modes
  * with events get a tab.
  */
-export default function PlayerStatsPanel({ frame }: AccountGameStatsProps) {
+export default function PlayerStatsPanel({ frame, empty = null }: AccountGameStatsProps) {
   const counts = useGameStatsModes();
+  if (counts === undefined) return null;
   const modes = counts ? MODES.filter(mode => counts[mode] > 0) : [];
-  if (!modes.length) return null;
+  if (!modes.length) return <>{empty}</>;
   return <>{frame(<PlayerStatsTabs modes={modes} />)}</>;
 }

@@ -13,6 +13,7 @@ const meta = {
       avatarInitials: 'AR',
       memberSince: '2026-03',
       isSubscriber: true,
+    showsStats: false,
     },
     onCopyLink: fn(),
   },
@@ -26,7 +27,7 @@ export const Subscriber: Story = {};
 /** Before the player picks a nickname: a neutral label, never the account name. */
 export const WithoutNickname: Story = {
   args: {
-    profile: { publicProfileId: '128', nickname: null, displayName: 'Игрок #128', avatarInitials: '#', memberSince: '2026-10', isSubscriber: false },
+    profile: { publicProfileId: '128', nickname: null, displayName: 'Игрок #128', avatarInitials: '#', memberSince: '2026-10', isSubscriber: false, showsStats: false },
   },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('heading', { level: 1, name: 'Игрок #128' })).toBeVisible();

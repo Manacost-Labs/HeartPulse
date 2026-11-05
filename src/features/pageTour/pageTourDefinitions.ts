@@ -41,15 +41,15 @@ export function isTourStepEligible(step: PageTourStep, access: PageTourAccess): 
 
 export const PAGE_TOURS: readonly PageTourDefinition[] = [
   {
-    id: 'profile', version: 1, paths: ['/profile'], title: 'Как устроен ваш профиль',
+    id: 'profile', version: 2, paths: ['/profile'], title: 'Как устроен ваш профиль',
     steps: [
       { id: 'summary', target: 'profile-summary', title: 'Ваш профиль', description: 'Здесь имя, основной контакт и ссылка на публичный профиль, которой можно поделиться.', preferredPlacement: 'bottom' },
-      { id: 'contacts', target: 'profile-contacts', title: 'Контакты и рассылка', description: 'Контакты нужны, только чтобы передать приз победителю конкурса. Здесь же включается рассылка. Эти поля не подтверждают подписку.', preferredPlacement: 'bottom' },
-      { id: 'access', target: 'profile-access-status', title: 'Доступ к разделам', description: 'Есть ли у вас подписка. Что она открывает и когда её проверяли — в разделе «Подписка» ниже; «Проверить снова» заново спрашивает Boosty, Patreon и Telegram.', audience: 'authenticated', preferredPlacement: 'bottom' },
+      { id: 'access', target: 'profile-access-status', title: 'Доступ к разделам', description: 'Есть ли у вас подписка. Что она открывает, когда её проверяли и как подтвердить Boosty — во вкладке «Подписка».', audience: 'authenticated', preferredPlacement: 'bottom' },
+      { id: 'tabs', target: 'profile-tabs', title: 'Разделы кабинета', description: 'Персональные данные, подписка, статистика ваших игр из приложения Hearthpulse и сохранённые колоды. Открытая вкладка остаётся в адресе страницы.', preferredPlacement: 'bottom' },
       { id: 'telegram', target: 'profile-telegram-access', title: 'Привязка Telegram', description: 'Привяжите Telegram, чтобы входить через него и получать доступ по VIP-каналу. Поле @username в контактах привязкой не считается.', audience: 'non-admin', preferredPlacement: 'top' },
-      { id: 'boosty', target: 'profile-boosty-access', title: 'Подтверждение Boosty', description: 'Введите почту из Boosty-профиля и шестизначный код из письма: сайт откроет разделы вашего уровня.', audience: 'non-admin', preferredPlacement: 'top' },
+      { id: 'contacts', target: 'profile-contacts', title: 'Контакты и рассылка', description: 'Контакты нужны, только чтобы передать приз победителю конкурса. Здесь же включается рассылка. Эти поля не подтверждают подписку.', preferredPlacement: 'top' },
       { id: 'contests', target: 'profile-contests', title: 'Ваши конкурсы', description: 'Здесь появляются ваши заявки, их статус, призы и отметка победы.', preferredPlacement: 'top' },
-      { id: 'actions', target: 'profile-account-actions', title: 'Меню аккаунта', description: 'В меню «⋯» — контакты для призов и выход из аккаунта на этом устройстве.', audience: 'admin', preferredPlacement: 'top' },
+      { id: 'actions', target: 'profile-account-actions', title: 'Ваш публичный профиль', description: 'Откройте свою публичную страницу или поделитесь ссылкой на неё. Выход из аккаунта — в правом верхнем углу.', audience: 'admin', preferredPlacement: 'top' },
     ],
   },
   {

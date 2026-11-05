@@ -1,12 +1,14 @@
 import { useMemo } from 'react';
-import { cardImageUrl, formatGameDate, formatNumber, formatSigned } from '../model/format';
+import { cardImageUrl, formatNumber, formatSigned } from '../model/format';
 import type { RatingPoint } from '../model/stats';
 import { GameTimeline } from './GameTimeline';
 import { MinionBoard } from './MinionBoard';
 import './PlayerStatsCharts.css';
+import { useGameDateFormat } from '../hooks/gameStatsSource';
 
 /** Battlegrounds rating after each game; the card is HSReplay's: hero, place, rating change, final board. */
 export function RatingTimeline({ points, names }: { points: readonly RatingPoint[]; names: Record<string, string> }) {
+  const formatGameDate = useGameDateFormat();
   const timeline = useMemo(() => points.map(point => ({ ...point, value: point.rating })), [points]);
   const heroName = (cardId: string) => names[cardId] ?? cardId;
   return (

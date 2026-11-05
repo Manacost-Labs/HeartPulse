@@ -10,13 +10,18 @@ export class GameStatsSignedOutError extends Error {
   }
 }
 
-export function gameStatsUrl(query: PlayerStatsQuery): string {
+/** The statistics endpoint of the own account, or of a public profile when its ID is given. */
+function statsBase(publicProfileId?: string | null): string {
+  return publicProfileId ? `/api/profiles/${encodeURIComponent(publicProfileId)}/game-stats` : '/api/account/game-stats';
+}
+
+export function gameStatsUrl(query: PlayerStatsQuery, publicProfileId?: string | null): string {
   const params = new URLSearchParams({ mode: query.mode, period: query.period });
   if (query.mode === 'battlegrounds') {
     params.set('duos', query.duos ? '1' : '0');
     params.set('mmr', query.mmr);
   }
-  return `/api/account/game-stats?${params}`;
+  return `${statsBase(publicProfileId)}?${params}`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -36,8 +41,8 @@ export function gameStatsFromPayload(payload: unknown, mode: PlayerStatsQuery['m
   return payload as PlayerStats;
 }
 
-export async function fetchGameStats(query: PlayerStatsQuery, signal?: AbortSignal): Promise<PlayerStats> {
-  const response = await fetchWithDeadline(gameStatsUrl(query), { signal, headers: { Accept: 'application/json' } });
+export async function fetchGameStats(query: PlayerStatsQuery, signal?: AbortSignal, publicProfileId?: string | null): Promise<PlayerStats> {
+  const response = await fetchWithDeadline(gameStatsUrl(query, publicProfileId), { signal, headers: { Accept: 'application/json' } });
   if (response.status === 401) throw new GameStatsSignedOutError();
   const payload: unknown = await response.json().catch(() => null);
   const stats = response.ok ? gameStatsFromPayload(payload, query.mode) : null;
@@ -50,9 +55,9 @@ export async function fetchGameStats(query: PlayerStatsQuery, signal?: AbortSign
  * statistics are switched off on this deployment (404), the visitor is signed
  * out or the request failed. The page then shows no statistics section at all.
  */
-export async function fetchGameStatsModes(signal?: AbortSignal): Promise<Record<PlayerStatsMode, number> | null> {
+export async function fetchGameStatsModes(signal?: AbortSignal, publicProfileId?: string | null): Promise<Record<PlayerStatsMode, number> | null> {
   try {
-    const response = await fetchWithDeadline('/api/account/game-stats/modes', { signal, headers: { Accept: 'application/json' } });
+    const response = await fetchWithDeadline(`${statsBase(publicProfileId)}/modes`, { signal, headers: { Accept: 'application/json' } });
     if (!response.ok) return null;
     const payload: unknown = await response.json().catch(() => null);
     const modes = isRecord(payload) && isRecord(payload.modes) ? payload.modes : null;

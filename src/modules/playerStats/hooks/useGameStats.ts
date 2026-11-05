@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { fetchGameStats, gameStatsUrl } from '../api/gameStatsApi';
 import type { PlayerStats, PlayerStatsQuery } from '../model/stats';
+import { GameStatsSourceContext } from './gameStatsSource';
 
 export type GameStatsState =
   | { status: 'loading'; stats: PlayerStats | null }
@@ -17,20 +18,21 @@ type Loaded = { key: string; stats: PlayerStats } | null;
  */
 export function useGameStats(query: PlayerStatsQuery, attempt = 0): GameStatsState {
   const { mode, period, duos, mmr } = query;
-  const key = gameStatsUrl({ mode, period, duos, mmr });
+  const source = useContext(GameStatsSourceContext);
+  const key = gameStatsUrl({ mode, period, duos, mmr }, source);
   const [loaded, setLoaded] = useState<Loaded>(null);
   const [failure, setFailure] = useState<{ key: string; message: string } | null>(null);
   useEffect(() => {
     const controller = new AbortController();
     setFailure(null);
-    fetchGameStats({ mode, period, duos, mmr }, controller.signal)
+    fetchGameStats({ mode, period, duos, mmr }, controller.signal, source)
       .then(stats => setLoaded({ key, stats }))
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
         setFailure({ key, message: error instanceof Error ? error.message : 'Не удалось загрузить статистику' });
       });
     return () => controller.abort();
-  }, [key, mode, period, duos, mmr, attempt]);
+  }, [key, mode, period, duos, mmr, attempt, source]);
 
   if (failure?.key === key) return { status: 'error', stats: loaded?.key === key ? loaded.stats : null, message: failure.message };
   if (loaded?.key === key) return { status: 'ready', stats: loaded.stats };

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { BadgeCheck, CalendarDays, Check, Copy, Sparkles } from 'lucide-react';
 import type { PublicProfile } from '../model/publicProfile';
 import { memberSinceLabel } from '../model/publicProfile';
@@ -11,6 +11,8 @@ export type PublicProfileCardProps = {
   onCopyLink: () => Promise<void> | void;
   /** The viewer is signed in: the invitation leads to their own account instead of sign-up. */
   signedIn?: boolean;
+  /** The player's statistics and decks, composed by the page when the owner shows them. */
+  children?: ReactNode;
 };
 
 /** A player without a nickname has no initials of their own; the site's mark stands in. */
@@ -20,7 +22,7 @@ const NEUTRAL_PORTRAIT = '/arena-logo-icon-256.webp';
  * The public player card at `/id/<n>/`. It renders only the fields of the
  * public projection; everything here is visible to anyone with the link.
  */
-export default function PublicProfileCard({ profile, onCopyLink, signedIn = false }: PublicProfileCardProps) {
+export default function PublicProfileCard({ profile, onCopyLink, signedIn = false, children }: PublicProfileCardProps) {
   const [copied, setCopied] = useState(false);
   const copyLink = async () => {
     try {
@@ -65,13 +67,15 @@ export default function PublicProfileCard({ profile, onCopyLink, signedIn = fals
           </button>
         </div>
       </header>
+      {children}
       <section className="public-profile__about" aria-labelledby="public-profile-about">
         <div className="public-profile__about-text">
           <p className="public-profile__eyebrow"><Sparkles size={14} aria-hidden="true" />HearthPulse</p>
           <h2 id="public-profile-about">Статистика Hearthstone на русском</h2>
           <p>
             Мета, тир-листы и матчапы Стандарта, Арены и Полей сражений. Такая страница есть у каждого
-            аккаунта: ник, месяц регистрации и значок подписчика — без почты и контактов.
+            аккаунта: ник, месяц регистрации и значок подписчика, а статистика и колоды — если игрок их открыл.
+            Без почты и контактов.
           </p>
         </div>
         <a className="public-profile__cta" href="/?login">{signedIn ? 'Мой кабинет' : 'Создать свой профиль'}</a>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, KeyRound } from 'lucide-react';
+import { ArrowRight, Check, KeyRound } from 'lucide-react';
 import type { SubscriptionStatus } from '../../subscriptions/public';
 import type { AccountSessionsControl } from '../hooks/useAccountSessions';
 import { accountLinkRows, hasTelegramLinkActions, type AccountSocialLinks } from '../model/accountDashboard';
@@ -35,8 +35,9 @@ export default function AccountLinks({ user, subscription, telegram, patreonLink
         eyebrow="Входы"
         title="Вход и привязки"
         description="Привяжите все способы входа к одному аккаунту, чтобы подписка открывалась с любого из них."
+        aside={<a className="account-section__help" href="/faq/#faq-telegram-link">Как привязать Telegram<ArrowRight size={15} aria-hidden="true" /></a>}
       />
-      <ul className="account-links__list">
+      <ul className="account-links__list account-links__list--providers">
         {rows.map(row => (
           <li key={row.id} className="account-links__row" data-tour-id={row.id === 'telegram' ? 'profile-telegram-access' : undefined}>
             <AccountBrandIcon brand={row.id} />
