@@ -66,10 +66,11 @@ there is no payment history or theme section.
   [saved decks](saved-decks.md). A line points to the played decks in
   «Моя статистика» (`#stats`).
 - «Персональные данные» tab: «Публичный профиль»
-  (`#account-public-profile`): the short link and, once chosen, the
-  nickname link with «Скопировать ссылку» beside the nickname form (stacked
-  below 900 px), then the switch «Моя статистика и колоды», off by default,
-  which shows the statistics and decks on the public page; see
+  (`#account-public-profile`) as rows of settings: «Ссылки» (the short link
+  and, once chosen, the nickname link, each a dashed parchment field with
+  «Скопировать»), «Ник» (field, «Сохранить ник» and one line of rules or the
+  next allowed change) and «Статистика» (the switch «Показывать мою
+  статистику и колоды», off by default); see
   [public profiles](public-profiles.md).
 - «Вход и привязки» (two columns of providers from 1000 px, «Как привязать
   Telegram» in the head): e-mail, Telegram, Google, Discord and Yandex (each only
@@ -91,10 +92,15 @@ there is no payment history or theme section.
   the wooden frame of `assets.md` («Главная деревянная рама»,
   `/wallpaper/main-page-rail-border.png`, 8 px `border-image`); the tab bar
   wears the same frame.
-- «Рассылка и контакты»: the newsletter switch first, then the prize contacts
-  (four in one row from 1100 px).
-  Contact fields do not link Telegram, change the login e-mail or confirm a
-  subscription.
+- «Рассылка и контакты» as rows of settings: «Рассылка» (the newsletter
+  checkbox and the FAQ link), then «Контакты для призов» (one line saying the
+  fields only hand over prizes, the four fields two by two, one column below
+  600 px), then «Сохранить» under the fields. Contact fields do not link
+  Telegram, change the login e-mail or confirm a subscription.
+- Rows of settings (`.account-rows`): the row's name on the left (11 rem)
+  and its controls on the right from 900 px, stacked below; one hairline
+  between rows. Fields and inner cards are light parchment
+  (`--account-field`, `--account-card-strong`), never white.
 - «Мои конкурсы», only once the reader has entries; an empty history shows no
   section. Help and «see all» links sit inside the section they belong to,
   with the site's arrow; there is no separate help line.

@@ -33,23 +33,20 @@ function ProfileLink({ label, href, copyLabel }: { label: string; href: string; 
     }, () => setCopied(false));
   };
   return (
-    <li className="account-links__row">
-      <span className="account-links__text">
-        <strong>{label}</strong>
-        <small><a href={href}>{href}</a></small>
-      </span>
+    <li className="account-links__row account-public-profile__link">
+      <span className="account-public-profile__link-label">{label}</span>
+      <a className="account-public-profile__url" href={href}>{href}</a>
       <button type="button" className="account-button account-button--secondary account-button--small" aria-label={copyLabel} onClick={copy}>
-        <Copy size={15} aria-hidden="true" />{copied ? 'Ссылка скопирована' : 'Скопировать ссылку'}
+        <Copy size={15} aria-hidden="true" />{copied ? 'Скопировано' : 'Скопировать'}
       </button>
     </li>
   );
 }
 
 /**
- * The account's public page: its links, with copy buttons, the nickname form
- * and the switch that adds the statistics and decks to it. The card itself is
- * public for everyone; the games are shown only after the owner switches them
- * on, and this section says exactly what is on the page.
+ * The account's public page as rows of settings: its links with copy
+ * buttons, the nickname, and the switch that adds the statistics and decks.
+ * The card itself is public for everyone; the games only after the switch.
  */
 export default function AccountPublicProfile({ identity, failed, saving, saveNickname, saveStatsVisible, origin }: AccountPublicProfileProps) {
   const [nickname, setNickname] = useState(identity?.nickname ?? '');
@@ -68,62 +65,67 @@ export default function AccountPublicProfile({ identity, failed, saving, saveNic
         icon={<Globe size={15} aria-hidden="true" />}
         eyebrow="Профиль"
         title="Публичный профиль"
-        description="Видна всем по ссылке: ник, месяц регистрации и значок «Подписчик», а статистика и колоды — если вы их включите. Почта, контакты, способы входа и детали подписки не показываются."
+        description="По ссылке видны ник, месяц регистрации и значок «Подписчик». Почта, контакты и подписка скрыты."
       />
       {!identity && <p className="account-muted">{failed ? 'Не удалось загрузить ссылку на профиль. Обновите страницу.' : 'Загружаем ссылку…'}</p>}
       {identity && (
-        <div className="account-public-profile__body">
-          <ul className="account-links__list account-public-profile__links">
-            <ProfileLink label="Короткая ссылка" href={new URL(publicProfilePath(identity.publicProfileId), siteOrigin).href} copyLabel="Скопировать короткую ссылку" />
-            {identity.nickname && (
-              <ProfileLink label="Ссылка по нику" href={new URL(`/u/${encodeURIComponent(identity.nickname)}/`, siteOrigin).href} copyLabel="Скопировать ссылку по нику" />
-            )}
-          </ul>
-          <form className="account-public-profile__nickname" onSubmit={onSubmit}>
-            <label htmlFor="account-nickname">Ник</label>
-            <div className="account-public-profile__field">
-              <input
-                id="account-nickname"
-                value={nickname}
-                onChange={event => setNickname(event.target.value)}
-                minLength={3}
-                maxLength={24}
-                autoComplete="nickname"
-                spellCheck={false}
-                disabled={Boolean(lockedUntil)}
-                aria-describedby="account-nickname-hint"
-                placeholder="Например, Arena_Master"
-              />
-              <button type="submit" className="account-button" disabled={saving || Boolean(lockedUntil) || nickname.trim() === (identity.nickname ?? '')}>
-                {saving ? 'Сохраняем…' : 'Сохранить ник'}
-              </button>
+        <div className="account-rows">
+          <div className="account-row">
+            <h3 className="account-row__label">Ссылки</h3>
+            <ul className="account-row__body account-links__list account-public-profile__links">
+              <ProfileLink label="Короткая" href={new URL(publicProfilePath(identity.publicProfileId), siteOrigin).href} copyLabel="Скопировать короткую ссылку" />
+              {identity.nickname && (
+                <ProfileLink label="По нику" href={new URL(`/u/${encodeURIComponent(identity.nickname)}/`, siteOrigin).href} copyLabel="Скопировать ссылку по нику" />
+              )}
+            </ul>
+          </div>
+          <form className="account-row account-public-profile__nickname" onSubmit={onSubmit}>
+            <label className="account-row__label" htmlFor="account-nickname">Ник</label>
+            <div className="account-row__body">
+              <div className="account-public-profile__field">
+                <input
+                  id="account-nickname"
+                  value={nickname}
+                  onChange={event => setNickname(event.target.value)}
+                  minLength={3}
+                  maxLength={24}
+                  autoComplete="nickname"
+                  spellCheck={false}
+                  disabled={Boolean(lockedUntil)}
+                  aria-describedby="account-nickname-hint"
+                  placeholder="Например, Arena_Master"
+                />
+                <button type="submit" className="account-button" disabled={saving || Boolean(lockedUntil) || nickname.trim() === (identity.nickname ?? '')}>
+                  {saving ? 'Сохраняем…' : 'Сохранить ник'}
+                </button>
+              </div>
+              <p id="account-nickname-hint" className="account-row__hint">
+                {lockedUntil
+                  ? `Ник меняется раз в 30 дней. Следующая смена — ${lockedUntil}.`
+                  : '3–24 символа: буквы, цифры, «_» и «-». Менять можно раз в 30 дней.'}
+              </p>
             </div>
-            <p id="account-nickname-hint" className="account-muted">
-              {lockedUntil
-                ? `Ник можно менять раз в 30 дней. Следующая смена — ${lockedUntil}.`
-                : 'От 3 до 24 символов: латиница или кириллица, цифры, «_» и «-». Менять ник можно раз в 30 дней; старая ссылка по нику работает ещё 90 дней.'}
-            </p>
           </form>
           {saveStatsVisible && (
-            <fieldset className="account-public-profile__visibility" data-tour-id="profile-public-stats">
-              <legend>Что ещё показать</legend>
-              {/* A switch, not a checkbox: the choice is saved at once, without a «Сохранить». */}
-              <button
-                type="button"
-                role="switch"
-                className="account-switch"
-                aria-checked={identity.statsVisible}
-                aria-describedby="account-public-stats-hint"
-                disabled={saving}
-                onClick={() => saveStatsVisible(!identity.statsVisible)}
-              >
-                <span className="account-switch__track" aria-hidden="true"><span className="account-switch__thumb" /></span>
-                Моя статистика и колоды
-              </button>
-              <p id="account-public-stats-hint" className="account-muted">
-                Игры из приложения Hearthpulse: рейтинг, колоды с кодами и винрейтом, герои и забеги Арены — с датами по дням, без времени партий.
-              </p>
-            </fieldset>
+            <div className="account-row account-public-profile__visibility" data-tour-id="profile-public-stats">
+              <span className="account-row__label">Статистика</span>
+              <div className="account-row__body">
+                {/* A switch, not a checkbox: the choice is saved at once, without a «Сохранить». */}
+                <button
+                  type="button"
+                  role="switch"
+                  className="account-switch"
+                  aria-checked={identity.statsVisible}
+                  aria-describedby="account-public-stats-hint"
+                  disabled={saving}
+                  onClick={() => saveStatsVisible(!identity.statsVisible)}
+                >
+                  <span className="account-switch__track" aria-hidden="true"><span className="account-switch__thumb" /></span>
+                  Показывать мою статистику и колоды
+                </button>
+                <p id="account-public-stats-hint" className="account-row__hint">Игры из приложения Hearthpulse; даты — по дням, без времени партий.</p>
+              </div>
+            </div>
           )}
         </div>
       )}

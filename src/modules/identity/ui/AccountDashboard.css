@@ -7,7 +7,11 @@
   --account-muted: #6a513a;
   --account-line: #d2b67e;
   --account-card: #fbf3dc;
-  --account-card-strong: #fff8e6;
+  /* Surfaces inside a section are lighter parchment, never white: the texture shows through. */
+  --account-card-strong: rgba(255, 243, 212, 0.5);
+  --account-surface-line: rgba(95, 55, 29, 0.22);
+  --account-field: rgba(255, 247, 226, 0.66);
+  --account-field-line: #c2a06a;
   --account-accent: #7a1e22;
   --account-accent-ink: #fbf3dc;
   --account-ok: #235a2f;
@@ -31,6 +35,8 @@
 }
 
 .account-dashboard h2 { font-size: 1.5rem; color: var(--account-ink); }
+/* The shell colours headings of `.arena-content`; inside the account they keep its ink. */
+.account-dashboard h3 { color: var(--account-ink); }
 .account-dashboard p { margin: 0; }
 /* The shell colours every `li` and `p` of `.arena-content`; the account keeps its own ink. */
 .account-dashboard :where(li, p) { color: inherit; }
@@ -105,19 +111,49 @@
 
 .account-brand { display: inline-grid; place-items: center; flex: 0 0 34px; width: 34px; height: 34px; box-sizing: border-box; border-radius: 9px; }
 .account-brand--mail { background: #f1e2bc; color: #5a3a1e; }
-.account-brand--logo { padding: 5px; border: 1px solid #e6d3a8; background: #fffbf0; object-fit: contain; }
+.account-brand--logo { padding: 5px; border: 1px solid #e6d3a8; background: var(--account-field); object-fit: contain; }
 
 .account-dashboard input:not([type="checkbox"]),
-.account-dashboard select {
+.account-dashboard select,
+.account-dashboard textarea {
   width: 100%;
   min-height: 44px;
   box-sizing: border-box;
   padding: 8px 12px;
-  border: 1.5px solid #b9996a;
+  border: 1.5px solid var(--account-field-line);
   border-radius: 10px;
-  background: #fffbf0;
+  background: var(--account-field);
+  box-shadow: inset 0 1px 2px rgba(70, 38, 15, 0.12);
   color: var(--account-ink);
   font: inherit;
+}
+.account-dashboard :where(input, textarea)::placeholder { color: rgba(106, 81, 58, 0.75); }
+.account-dashboard :where(input, select, textarea):hover { border-color: #a9824a; }
+
+/*
+ * A list of settings: each row names what it sets on the left and holds the
+ * controls on the right, one hairline between rows; stacked on phones. Used by
+ * «Публичный профиль» and «Рассылка и контакты».
+ */
+.account-rows { display: flex; flex-direction: column; }
+.account-row { min-width: 0; margin: 0; padding: 14px 0; border: 0; border-top: 1px solid var(--arena-paper-line); }
+.account-row:first-child { padding-top: 2px; border-top: 0; }
+.account-row__label { display: block; margin: 0 0 8px; padding: 0; color: var(--account-ink); font-family: var(--font-body); font-size: 0.95rem; font-weight: 800; }
+.account-row__body { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.account-row__hint { color: var(--account-muted); font-size: 0.9rem; }
+.account-row__body > .account-button { align-self: flex-start; }
+@media (max-width: 899px) {
+  /* A legend left in place sits on the row's top border; floated, it is an ordinary label. */
+  legend.account-row__label { float: left; width: 100%; }
+  .account-row__body { clear: both; }
+}
+@media (max-width: 600px) {
+  .account-row__body > .account-button { align-self: stretch; }
+}
+@media (min-width: 900px) {
+  /* The label floats beside the controls; a legend may float too, so fieldsets work as rows. */
+  .account-row__label { float: left; width: 11rem; margin: 0; padding-top: 11px; }
+  .account-row__body { margin-left: 12.5rem; }
 }
 
 .account-button {
@@ -138,7 +174,9 @@
 }
 
 .account-button:hover { background: #5d1418; color: #fff; }
-.account-button:disabled { cursor: wait; opacity: 0.7; }
+.account-button:disabled { cursor: not-allowed; opacity: 0.55; }
+/* A disabled main button turns muted leather, not a faded pink. */
+.account-button:not(.account-button--secondary):disabled { border-color: #9c7f60; background: #9c7f60; color: #f3e6c8; opacity: 1; }
 .account-button--secondary { background: transparent; color: var(--account-accent); }
 .account-button--secondary:hover { background: #f1e2bc; color: var(--account-accent); }
 .account-button--small { min-height: 40px; padding: 6px 12px; }
@@ -183,30 +221,18 @@
 .account-contests__text { display: flex; flex-direction: column; flex: 1 1 auto; min-width: 0; }
 .account-contests__text small { color: var(--account-muted); font-size: 0.9rem; }
 
-.account-settings { padding-block: 6px; }
-.account-settings__form { display: flex; flex-direction: column; gap: 10px; padding-bottom: 14px; }
-.account-settings__form label { font-weight: 700; }
-.account-settings__form .account-settings__check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 500; }
-.account-settings__check input { width: 20px; height: 20px; accent-color: var(--account-accent); }
-
-
-.account-dashboard :where(section, details)[id] { scroll-margin-top: 100px; }
-.account-settings__form fieldset { min-width: 0; margin: 0; padding: 18px 0 0; border: 0; }
-.account-settings__form legend { padding: 0; font-weight: 700; }
-.account-settings__contacts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
-.account-settings__contacts > p { grid-column: 1 / -1; }
+.account-settings__form { gap: 0; }
+.account-settings__check { display: flex; align-items: center; gap: 10px; min-height: 44px; font-weight: 600; cursor: pointer; }
+.account-settings__check input { flex: 0 0 auto; width: 20px; height: 20px; margin: 0; accent-color: var(--account-accent); }
+.account-settings__faq { align-self: flex-start; color: var(--account-accent); font-size: 0.9rem; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+.account-settings__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 16px; max-width: 44rem; }
 .account-settings__field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.account-settings__form .account-settings__newsletter { border-top: 1px solid var(--account-line); margin-top: 8px; }
-.account-settings__newsletter a { display: inline-flex; align-items: center; min-height: 44px; color: var(--account-accent); text-decoration: underline; }
-.account-settings__form > .account-button { align-self: flex-start; margin-top: 12px; }
-
-/* The settings span the page: the four contact fields fit one row on a wide screen. */
-@media (min-width: 1100px) {
-  .account-settings__contacts { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-}
+.account-settings__field label { color: var(--account-muted); font-size: 0.9rem; font-weight: 700; }
+.account-settings__actions { padding: 4px 0 0; border-top: 0; }
+.account-dashboard :where(section, details)[id] { scroll-margin-top: 100px; }
 
 @media (max-width: 600px) {
-  .account-settings__contacts { grid-template-columns: minmax(0, 1fr); }
+  .account-settings__grid { grid-template-columns: minmax(0, 1fr); }
 }
 
 .account-sessions { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--arena-paper-line); }

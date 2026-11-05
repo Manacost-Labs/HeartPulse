@@ -49,7 +49,7 @@ export const Unavailable: Story = { args: { identity: null, failed: true } };
 /** The statistics and decks start hidden; the switch shows them on the public page. */
 export const ShowStatistics: Story = {
   play: async ({ args, canvas }) => {
-    const toggle = canvas.getByRole('switch', { name: 'Моя статистика и колоды' });
+    const toggle = canvas.getByRole('switch', { name: 'Показывать мою статистику и колоды' });
     await expect(toggle).toHaveAttribute('aria-checked', 'false');
     await userEvent.click(toggle);
     await expect(args.saveStatsVisible).toHaveBeenCalledWith(true);
