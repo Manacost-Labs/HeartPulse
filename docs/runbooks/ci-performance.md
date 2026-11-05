@@ -559,6 +559,38 @@ all hero scenarios but timed out in the unchanged library test; that file
 passed in the failed hosted run. These local failures remain limitations,
 not evidence of a successful full-shard run. Semgrep found no issues.
 
+## Registry jobs start after their actual build inputs
+
+Run `42104437021` (`09a86654`) passed all 36 checks and all 541 blocking
+files without retries, including the hero-filter correction. The required
+gate finished at +226s. Release artifacts were ready at +46s, Storybook at
++67s, and registry jobs started at +69–70s. Browser job 3 started at +139s
+and finished last at +205s; the final gate started at +223s. Queue delay is
+part of the result and cannot be predicted from test-duration weights.
+
+The 454 non-browser registry files and their local import dependencies do
+not consume the Storybook build. References to `storybook-static` are
+source-scan exclusions, contract assertions or temporary runner fixtures.
+Registry jobs now depend on `plan` and `build` and download only validated
+release outputs. Browser jobs retain both build dependencies and artifacts.
+Storybook still blocks `CI required` and deployment, even if registry tests
+finish first; cancellation, empty affected-test plans and failures retain
+their existing behavior. Four registry jobs with two workers each remain.
+
+This removes an unnecessary prerequisite and artifact download and permits
+registry work while Storybook is still building. It does not guarantee a
+shorter runner queue or establish the two-minute target. The workflow
+contract explicitly rejects a Storybook dependency in registry jobs while
+retaining required-gate and browser-input checks.
+
+All 454 non-browser files passed locally with `storybook-static` temporarily
+absent, using two workers on four CPUs and the existing compiled artifacts.
+The directory was restored after all workers exited. The new dependency
+contract failed before the workflow edit and passed after it. Actionlint,
+documentation lint and focused Semgrep passed. Every other workflow job,
+including required and deployment gates, is byte-identical to the prior head.
+A fresh hosted run is still needed to measure the scheduling effect.
+
 ## Verification
 
 Focused runner and workflow tests must prove deterministic complete sharding,

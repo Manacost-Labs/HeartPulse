@@ -225,10 +225,10 @@ jobs:
 
   test-suites:
     name: Registry suites (shard ${{ matrix.shard }}/${{ strategy.job-total }})
-    needs: [plan, build, storybook]
+    needs: [plan, build]
     # Explicit: the implicit success() also fails on the skipped reuse job upstream.
     # A plan without registry shards (a documentation-only pull request) skips the job.
-    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.registry-shards != '[]' && needs.build.result == 'success' && needs.storybook.result == 'success' }}
+    if: ${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.registry-shards != '[]' && needs.build.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     env:
@@ -263,12 +263,6 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: build-outputs-${{ github.sha }}
-
-      - name: Download Storybook build
-        uses: actions/download-artifact@v8
-        with:
-          name: storybook-static-${{ github.sha }}
-          path: storybook-static
 
       - name: Run registered non-browser shard
         env:

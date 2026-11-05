@@ -182,13 +182,20 @@ for (const step of ['Create immutable production release', 'Upload immutable pro
 }
 assert.match(ciJobs.storybook, /name: storybook-static-\$\{\{ github\.sha \}\}\n {10}path: storybook-static\n/);
 for (const [job, shards] of [['test-suites', 'registry-shards'], ['browser-tests', 'browser-shards']]) {
-  assert.match(ciJobs[job], /^ {4}needs: \[plan, build, storybook\]$/m, `${job} must test the built outputs as planned`);
-  assert.ok(ciJobs[job].includes(`    if: \${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.${shards} != '[]' && needs.build.result == 'success' && needs.storybook.result == 'success' }}\n`),
-    `${job} must run after both builds even though the reuse job upstream was skipped, unless the plan gave it no shard`);
+  const storybookDependency = job === 'browser-tests' ? ', storybook' : '';
+  const storybookCondition = job === 'browser-tests' ? " && needs.storybook.result == 'success'" : '';
+  assert.ok(ciJobs[job].includes(`    needs: [plan, build${storybookDependency}]\n`),
+    `${job} waits only for the artifacts it consumes`);
+  assert.ok(ciJobs[job].includes(`    if: \${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.${shards} != '[]' && needs.build.result == 'success'${storybookCondition} }}\n`),
+    `${job} runs after its required inputs, even with skipped reuse, unless its plan is empty`);
   assert.ok(ciJobs[job].includes(buildOutputsName), `${job} must download the validated build outputs`);
   assert.match(ciJobs[job], /uses: actions\/download-artifact@v8\n {8}with:\n {10}name: build-outputs-\$\{\{ github\.sha \}\}\n\n/,
     'outputs restore at their repository paths (no custom download path)');
-  assert.match(ciJobs[job], /name: storybook-static-\$\{\{ github\.sha \}\}\n {10}path: storybook-static\n/);
+  if (job === 'browser-tests') {
+    assert.match(ciJobs[job], /name: storybook-static-\$\{\{ github\.sha \}\}\n {10}path: storybook-static\n/);
+  } else {
+    assert.doesNotMatch(ciJobs[job], /storybook/, 'registry jobs neither wait for nor download unused Storybook outputs');
+  }
   for (const step of ciJobs[job].split(/^ {6}- name: /m)) {
     if (!step.startsWith('Upload test timings\n')) {
       assert.doesNotMatch(step, /continue-on-error/, `${job} failures must block production`);
