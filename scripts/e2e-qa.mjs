@@ -6,6 +6,7 @@
 //   npm run qa:ci                                   builds, starts the Next.js runtime and runs this suite
 //   npm run qa:e2e -- --url=http://127.0.0.1:3000   against an already running site
 import { qaGroupFilter } from './qa/groups.mjs';
+import { screenshotCapture } from './qa/screenshots.mjs';
 import { launchBrowser } from './lib/browser-launch.mjs';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
@@ -38,6 +39,7 @@ const BASE = (process.argv.find(arg => arg.startsWith('--url=')) || '--url=https
   .slice(6)
   .replace(/\/$/, '');
 const BASE_ORIGIN = new URL(BASE).origin;
+const captureScreenshot = screenshotCapture(process.env.QA_SCREENSHOTS || 'all');
 // Without an explicit directory each run gets a private temporary one.
 const OUT = process.env.QA_SCREENSHOT_DIR || mkdtempSync(join(tmpdir(), 'hs-arena-qa-'));
 const responsiveScope = (process.env.QA_RESPONSIVE_SCOPE || 'representative').trim();
@@ -1203,9 +1205,8 @@ async function assertArenaDataRoutePresentation(page, path, device) {
   }
 }
 
-// CI runs two parts of about equal length in parallel jobs: `routes` is this
-// route, shell and responsive pass, `interactions` everything after it. The
-// default `all` runs both in one browser.
+// QA_PART retains the standalone route/interaction modes; CI selects narrower
+// independent groups. The default runs every scenario in one browser.
 if (qaPart !== 'interactions') {
   for (const route of authenticatedRoutes) {
     for (const [device, viewport] of [
@@ -1261,7 +1262,7 @@ if (qaPart !== 'interactions') {
             const image = document.querySelector('.placed-card-art');
             return Boolean(image?.complete && image.naturalWidth >= 300 && image.naturalHeight >= 400);
           }, { timeout: 10_000 });
-          await page.screenshot({ path: `${OUT}/battlegrounds-strategies-live-hero-desktop.png`, fullPage: false });
+          await captureScreenshot(page, { path: `${OUT}/battlegrounds-strategies-live-hero-desktop.png`, fullPage: false });
           await page.click('#builder-clear');
           await page.$eval('#builder-search', input => {
             input.value = '';
@@ -1318,7 +1319,7 @@ if (qaPart !== 'interactions') {
             !document.querySelector(selector)
             && document.querySelector('#tier-builder-counter')?.textContent?.startsWith('1 ')
           ), { timeout: 10_000 }, poolHero);
-          await page.screenshot({ path: `${OUT}/battlegrounds-tier-builder-live-hero-desktop.png`, fullPage: false });
+          await captureScreenshot(page, { path: `${OUT}/battlegrounds-tier-builder-live-hero-desktop.png`, fullPage: false });
           await page.click('#tier-builder-unassigned');
           await page.click('#tier-builder-reset');
           await page.waitForFunction(selector => (
@@ -1366,7 +1367,7 @@ if (qaPart !== 'interactions') {
           if (hoverContainment.main.length || hoverContainment.related.length) {
             failures.push(`/heroes [desktop]: hover cards are clipped (${JSON.stringify(hoverContainment)})`);
           }
-          await page.screenshot({ path: `${OUT}/heroes-hover-desktop.png`, fullPage: false });
+          await captureScreenshot(page, { path: `${OUT}/heroes-hover-desktop.png`, fullPage: false });
           await page.mouse.move(1, 1);
         }
         if (route.path === '/tierlist' && device === 'desktop') {
@@ -1431,7 +1432,7 @@ if (qaPart !== 'interactions') {
         }
         if (route.path === '/tierlist') {
           const firstTier = await page.$('.tierlist-group');
-          await firstTier?.screenshot({ path: `${OUT}/tierlist-cards-${device}.png` });
+          await captureScreenshot(firstTier, { path: `${OUT}/tierlist-cards-${device}.png` });
         }
         if (route.path === '/faq') {
           await page.click('.global-faq-button');
@@ -1496,7 +1497,7 @@ if (qaPart !== 'interactions') {
         const layout = await inspectLayout(page, { mobile: device === 'mobile' });
         assertLayout(`${route.path} [${device}]`, layout);
         const screenshotName = route.path.replace(/^\//, '').replace(/[^a-z0-9-]+/gi, '-');
-        await page.screenshot({ path: `${OUT}/${screenshotName}-${device}.png`, fullPage: false });
+        await captureScreenshot(page, { path: `${OUT}/${screenshotName}-${device}.png`, fullPage: false });
         if (runtimeErrors.length) failures.push(`${route.path} [${device}]: ${runtimeErrors.join(' | ')}`);
         console.log(`✓ ${route.path} [${device}] subscriber layout + axe (${violationCount + tourViolationCount} violations)`);
       } catch (error) {
@@ -1964,7 +1965,7 @@ for (const [device, viewport] of [
     await page.goto(`${BASE}/admin?section=translations`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 2);
     await page.waitForFunction(() => document.querySelectorAll('.admin-untranslated-list li').length === 10);
-    await page.screenshot({ path: `${OUT}/admin-translations-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/admin-translations-${device}.png`, fullPage: false });
     const translationEditorLayout = await page.evaluate(() => {
       const editor = document.querySelector('.admin-translation-editor');
       const coverage = document.querySelector('.admin-translation-coverage');
@@ -2002,7 +2003,7 @@ for (const [device, viewport] of [
       || Math.abs(copiedTranslationDeck.scrollY - translationScrollBeforeCopy) > 2) {
       failures.push(`admin translations [${device}]: exact deck code copy failed or shifted the page (${JSON.stringify(copiedTranslationDeck)})`);
     }
-    await page.screenshot({ path: `${OUT}/admin-translations-deck-code-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/admin-translations-deck-code-${device}.png`, fullPage: false });
     await page.click('.admin-untranslated-list .contest-primary-button');
     const translationInputs = await page.$$('.admin-translation-form input');
     if (translationInputs.length !== 2) throw new Error('Translation editor fields are missing');
@@ -2062,7 +2063,7 @@ for (const [device, viewport] of [
       || translationPositionAfterSave.englishValue || translationPositionAfterSave.russianValue) {
       failures.push(`admin translations [${device}]: save overrode active search or left stale editor values (${JSON.stringify(translationPositionAfterSave)})`);
     }
-    await page.screenshot({ path: `${OUT}/admin-translations-after-add-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/admin-translations-after-add-${device}.png`, fullPage: false });
     await page.click('.admin-toast button[aria-label="Закрыть уведомление"]');
     await page.click('.admin-translation-search-control button[aria-label="Очистить поиск"]');
     await page.waitForFunction(() => document.querySelectorAll('.admin-translation-table tbody tr').length === 3);
@@ -2185,7 +2186,7 @@ for (const [device, viewport] of [
     await page.waitForFunction(() => [...document.querySelectorAll('.admin-mechanic-table tbody tr')]
       .some(element => element.textContent?.includes('New Mechanic') && element.textContent?.includes('Ручной')));
     const mechanicTranslationsViolationCount = await auditAccessibility(page, `admin mechanic translations [${device}]`, '.admin-workspace-content');
-    await page.screenshot({ path: `${OUT}/admin-mechanic-translations-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/admin-mechanic-translations-${device}.png`, fullPage: false });
 
     await page.goto(`${BASE}/admin?section=standard-data`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-standard-operations__routes a').length === 4);
@@ -2375,7 +2376,7 @@ for (const [device, viewport] of [
     await page.goto(`${BASE}/admin?section=mailing`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-mailing-template-grid button').length === 1);
     await page.waitForFunction(() => document.querySelector('.admin-mailing-preview-stage iframe'));
-    await page.screenshot({ path: `${OUT}/admin-mailing-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/admin-mailing-${device}.png`, fullPage: false });
     const mailingInitial = await page.evaluate(() => ({
       stats: [...document.querySelectorAll('.admin-operations-metric-value')].map(element => element.textContent?.trim() || ''),
       campaigns: document.querySelectorAll('.admin-mailing-history > div').length,
@@ -2405,7 +2406,7 @@ for (const [device, viewport] of [
 
     await page.goto(`${BASE}/admin?section=contests`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.contest-entry-row').length === 2);
-    await page.screenshot({ path: `${OUT}/admin-contests-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/admin-contests-${device}.png`, fullPage: false });
     const contestsState = await page.evaluate(() => ({
       summaryButtons: document.querySelectorAll('.admin-contest-summary-grid button').length,
       selectedTitle: document.querySelector('.admin-selected-contest h3')?.textContent?.trim() || '',
@@ -2523,7 +2524,7 @@ for (const [device, viewport] of [
 
     await page.goto(`${BASE}/admin?section=users`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => document.querySelectorAll('.admin-people-row').length === 2);
-    await page.screenshot({ path: `${OUT}/admin-users-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/admin-users-${device}.png`, fullPage: false });
     const usersState = await page.evaluate(() => {
       const text = element => element?.textContent?.replace(/\s+/g, ' ').trim() || '';
       const rows = [...document.querySelectorAll('.admin-people-row')];
@@ -2687,7 +2688,7 @@ for (const [device, viewport] of [
         return ready?.textContent?.includes(expectedText)
           && !workspace?.querySelector('[aria-busy="true"]');
       }, { timeout: 20_000 }, loadedSelector, loadedText);
-      if (section === 'referrals') await page.screenshot({ path: `${OUT}/admin-referrals-${device}.png`, fullPage: false });
+      if (section === 'referrals') await captureScreenshot(page, { path: `${OUT}/admin-referrals-${device}.png`, fullPage: false });
       const sectionState = await page.evaluate(expectedSection => ({
         section: new URL(window.location.href).searchParams.get('section'),
         content: document.querySelector('.admin-workspace-content')?.textContent?.trim() || '',
@@ -2801,7 +2802,7 @@ for (const [device, viewport] of [
     // The error stays until closed, so the floating message is audited too.
     const profileViolationCount = await auditAccessibility(page, `profile [${device}]`, '.account-dashboard')
       + await auditAccessibility(page, `profile message [${device}]`, '.account-message');
-    await page.screenshot({ path: `${OUT}/profile-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/profile-${device}.png`, fullPage: false });
 
     await page.goto(`${BASE}/standard/archetypes`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => window.location.pathname.replace(/\/+$/, '') === '/standard/archetypes');
@@ -2869,7 +2870,7 @@ for (const [device, viewport] of [
       mobile: device === 'mobile',
     });
     const archetypeViolationCount = await auditArchetypeCatalog(page, `archetype catalog [${device}]`);
-    await page.screenshot({ path: `${OUT}/archetype-catalog-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/archetype-catalog-${device}.png`, fullPage: false });
 
     await tapFirstArchetypeRow(page);
     await page.waitForSelector('.archetype-detail-page .archetype-history .analytics-chart', { timeout: 20_000 });
@@ -2918,7 +2919,7 @@ for (const [device, viewport] of [
     await page.click('.archetype-builds__more');
     await page.waitForFunction(() => document.querySelectorAll('.archetype-deck-card').length === 12);
     await auditAccessibility(page, `archetype detail [${device}]`, '.archetype-detail-page');
-    await page.screenshot({ path: `${OUT}/archetype-detail-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/archetype-detail-${device}.png`, fullPage: false });
     await page.click('.archetype-breadcrumb a');
     await page.waitForSelector('.archetype-row', { timeout: 20_000 });
 
@@ -3118,7 +3119,7 @@ for (const [device, viewport] of [
       mobile: device === 'mobile',
     });
     const standardMetaViolationCount = await auditAccessibility(page, `standard meta [${device}]`, '.standard-meta');
-    await page.screenshot({ path: `${OUT}/standard-meta-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/standard-meta-${device}.png`, fullPage: false });
     await page.click('[data-meta-view="table"]');
     await page.waitForSelector('.standard-meta-table tbody tr');
     await page.waitForSelector('.standard-meta-table .ui-sparkline');
@@ -3177,7 +3178,7 @@ for (const [device, viewport] of [
       failures.push(`standard meta table [${device}]: sorting direction or order regressed (${JSON.stringify({ popularityDescendingState, popularityAscendingState })})`);
     }
     await auditAccessibility(page, `standard meta table [${device}]`, '.standard-meta');
-    await page.screenshot({ path: `${OUT}/standard-meta-table-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/standard-meta-table-${device}.png`, fullPage: false });
     await page.click('[data-meta-view="tiers"]');
     await page.waitForSelector('.standard-meta-tier-groups__chip');
     const standardMetaTiersState = await page.evaluate(() => {
@@ -3202,7 +3203,7 @@ for (const [device, viewport] of [
       failures.push(`standard meta tiers [${device}]: tier groups or containment regressed (${JSON.stringify(standardMetaTiersState)})`);
     }
     await auditAccessibility(page, `standard meta tiers [${device}]`, '.standard-meta');
-    await page.screenshot({ path: `${OUT}/standard-meta-tiers-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/standard-meta-tiers-${device}.png`, fullPage: false });
     await page.click('[data-meta-view="cards"]');
     await page.waitForSelector('.standard-meta-card__deck-button');
     const metaArchetypeLinkState = await page.evaluate(() => {
@@ -3355,7 +3356,7 @@ for (const [device, viewport] of [
       failures.push(`standard meta modal [${device}]: graphical copy control did not expose success state (${JSON.stringify(copyState)})`);
     }
     await auditAccessibility(page, `standard meta modal [${device}]`, '.standard-meta-modal__panel');
-    await page.screenshot({ path: `${OUT}/standard-meta-modal-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/standard-meta-modal-${device}.png`, fullPage: false });
     await page.click('.standard-meta-modal__close');
     if (device === 'mobile') {
       await page.setViewport({ width: 320, height: 700, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
@@ -3427,7 +3428,7 @@ for (const [device, viewport] of [
       || focusedMatchupsState.innerScroll || focusedMatchupsState.pageOverflow) {
       failures.push(`standard matchups overview list [${device}]: grouped bar list regressed (${JSON.stringify(focusedMatchupsState)})`);
     }
-    await page.screenshot({ path: `${OUT}/standard-matchups-focused-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/standard-matchups-focused-${device}.png`, fullPage: false });
     await page.click('button[aria-label="Показать матчапы: Вольный"]');
     await page.waitForFunction(() => (
       document.querySelector('button[aria-label="Показать матчапы: Вольный"]')?.getAttribute('aria-pressed') === 'true'
@@ -3451,7 +3452,7 @@ for (const [device, viewport] of [
       || !adminState.matchupFormats?.includes('wild')) {
       failures.push(`standard matchups format switch [${device}]: Wild data or responsive overview did not replace Standard (${JSON.stringify(wildMatchupsState)})`);
     }
-    await page.screenshot({ path: `${OUT}/standard-matchups-wild-overview-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/standard-matchups-wild-overview-${device}.png`, fullPage: false });
     await page.click('.standard-matchups__view-switcher button[aria-pressed="false"]');
     await page.waitForSelector('#matchups-matrix .ui-matchup-matrix');
     const matrixState = await page.evaluate(() => {
@@ -3497,7 +3498,7 @@ for (const [device, viewport] of [
         || !matchupTooltipState.text.includes('надёжно')) {
         failures.push(`standard matchups tooltip [${device}]: content or geometry regressed (${JSON.stringify(matchupTooltipState)})`);
       }
-      await page.screenshot({ path: `${OUT}/standard-matchups-tooltip-${device}.png`, fullPage: false });
+      await captureScreenshot(page, { path: `${OUT}/standard-matchups-tooltip-${device}.png`, fullPage: false });
       await page.focus('#matchups-matrix tbody tr:nth-child(1) [role="gridcell"]');
       await page.keyboard.press('ArrowRight');
       const keyboardState = await page.evaluate(() => ({
@@ -3509,7 +3510,7 @@ for (const [device, viewport] of [
       }
     }
     await auditAccessibility(page, `standard matchups Wild matrix [${device}]`, '.standard-matchups');
-    await page.screenshot({ path: `${OUT}/standard-matchups-wild-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/standard-matchups-wild-${device}.png`, fullPage: false });
     await page.goto(`${BASE}/standard/vicious-gold`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.vsgold-tier .arena-tier-badge', { timeout: 20_000 });
     await page.waitForFunction(() => {
@@ -3591,7 +3592,7 @@ for (const [device, viewport] of [
     if (viciousCopyState.label !== 'Код колоды скопирован' || !viciousCopyState.value.startsWith('AAECAf0G')) {
       failures.push(`vicious gold [${device}]: graphical copy control failed (${JSON.stringify(viciousCopyState)})`);
     }
-    await page.screenshot({ path: `${OUT}/vicious-gold-copy-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/vicious-gold-copy-${device}.png`, fullPage: false });
     if (device === 'mobile') {
       await page.$eval('.vsgold-classbars button', button => {
         const rect = button.getBoundingClientRect();
@@ -3616,10 +3617,10 @@ for (const [device, viewport] of [
       }
       await page.click('.vsgold-report__contents a[href="#vsgold-power"]');
       await new Promise(resolve => setTimeout(resolve, 250));
-      await page.screenshot({ path: `${OUT}/vicious-gold-power-${device}.png`, fullPage: false });
+      await captureScreenshot(page, { path: `${OUT}/vicious-gold-power-${device}.png`, fullPage: false });
     }
     const viciousGoldViolationCount = await auditAccessibility(page, `vicious gold [${device}]`, '.vsgold');
-    await page.screenshot({ path: `${OUT}/vicious-gold-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/vicious-gold-${device}.png`, fullPage: false });
 
     await page.goto(`${BASE}/standard/cards`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.constructed-cards__gallery-card', { timeout: 20_000 });
@@ -3724,11 +3725,11 @@ for (const [device, viewport] of [
         || !tooltipState.borderImage.includes('main-page-rail-border') || !tooltipState.velvetBackground.includes('arena-rail-red')) {
         failures.push(`constructed cards tooltip [${device}]: Legend hover statistics regressed (${JSON.stringify(tooltipState)})`);
       }
-      await page.screenshot({ path: `${OUT}/constructed-cards-hover-${device}.png`, fullPage: false });
+      await captureScreenshot(page, { path: `${OUT}/constructed-cards-hover-${device}.png`, fullPage: false });
       await page.mouse.move(1, 1);
     }
     const constructedCardsViolationCount = await auditAccessibility(page, `constructed cards [${device}]`, '.constructed-cards');
-    await page.screenshot({ path: `${OUT}/constructed-cards-gallery-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/constructed-cards-gallery-${device}.png`, fullPage: false });
     await page.click('.constructed-cards__view button:nth-child(2)');
     await page.waitForSelector('.constructed-cards__table');
     const constructedTableState = await page.evaluate(() => {
@@ -3771,7 +3772,7 @@ for (const [device, viewport] of [
     if (device === 'mobile') {
       await page.$eval('.constructed-cards__table-wrap', element => element.scrollIntoView({ block: 'start' }));
     }
-    await page.screenshot({ path: `${OUT}/constructed-cards-table-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/constructed-cards-table-${device}.png`, fullPage: false });
     await page.click('.constructed-cards__view button:first-child');
     // The gallery renders from a deferred value, a moment after the toggle.
     await page.waitForSelector('.constructed-cards__gallery-card-link');
@@ -3842,9 +3843,9 @@ for (const [device, viewport] of [
       mobile: device === 'mobile',
     });
     await page.$eval('.constructed-card-detail__lower-grid', element => element.scrollIntoView({ block: 'start' }));
-    await page.screenshot({ path: `${OUT}/constructed-card-detail-sections-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/constructed-card-detail-sections-${device}.png`, fullPage: false });
     await page.$eval('.constructed-card-detail__pools', element => element.scrollIntoView({ block: 'start' }));
-    await page.screenshot({ path: `${OUT}/constructed-card-pool-collapsed-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/constructed-card-pool-collapsed-${device}.png`, fullPage: false });
     await page.click('.constructed-card-detail__pool-toggle');
     await page.waitForFunction(() => document.querySelectorAll('.constructed-card-detail__pool-cards > *').length === 12);
     const expandedPoolState = await page.evaluate(() => ({
@@ -3855,7 +3856,7 @@ for (const [device, viewport] of [
     if (expandedPoolState.cards !== 12 || expandedPoolState.expanded !== 'true' || expandedPoolState.overflow) {
       failures.push(`constructed card pool [${device}]: Show all flow regressed (${JSON.stringify(expandedPoolState)})`);
     }
-    await page.screenshot({ path: `${OUT}/constructed-card-pool-expanded-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/constructed-card-pool-expanded-${device}.png`, fullPage: false });
     await page.$eval('.constructed-card-detail__decks', element => element.scrollIntoView({ block: 'start' }));
     await page.waitForSelector('.constructed-card-detail__deck-grid .deck-render-preview[data-render-state="ready"]', { timeout: 20_000 });
     await page.click('.constructed-card-detail__decks .constructed-card-detail__pool-toggle');
@@ -3874,7 +3875,7 @@ for (const [device, viewport] of [
       || expandedDeckState.errors !== 0 || !expandedDeckState.copied?.includes('Код скопирован') || expandedDeckState.overflow) {
       failures.push(`constructed card decks [${device}]: rendered deck grid, pagination or copy flow regressed (${JSON.stringify(expandedDeckState)})`);
     }
-    await page.screenshot({ path: `${OUT}/constructed-card-decks-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/constructed-card-decks-${device}.png`, fullPage: false });
     await page.click('.constructed-card-detail__visual-button');
     await page.waitForSelector('[role="dialog"]');
     const constructedLightboxState = await page.evaluate(() => ({
@@ -3894,7 +3895,7 @@ for (const [device, viewport] of [
       || constructedLightboxState.documentOverflow) {
       failures.push(`constructed card lightbox [${device}]: media dialog regressed (${JSON.stringify(constructedLightboxState)})`);
     }
-    await page.screenshot({ path: `${OUT}/constructed-card-lightbox-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/constructed-card-lightbox-${device}.png`, fullPage: false });
     await page.keyboard.press('ArrowRight');
     await page.waitForFunction(() => [...document.querySelectorAll('[role="dialog"] span')].some(counter => counter.textContent?.startsWith('2 из ')));
     await page.keyboard.press('Escape');
@@ -3930,9 +3931,9 @@ for (const [device, viewport] of [
     await page.waitForFunction(() => document.activeElement?.closest('.constructed-card-detail__gallery'));
     const constructedDetailViolationCount = await auditAccessibility(page, `constructed card detail [${device}]`, '.constructed-card-detail');
     await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'auto' }));
-    await page.screenshot({ path: `${OUT}/constructed-card-detail-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/constructed-card-detail-${device}.png`, fullPage: false });
     if (runtimeErrors.length) failures.push(`admin dashboard [${device}]: ${runtimeErrors.join(' | ')}`);
-    await page.screenshot({ path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/admin-dashboard-${device}.png`, fullPage: false });
     console.log(`✓ all 16 admin sections plus profile/standard panels [${device}] interactions + axe (${violationCount + articlesViolationCount + translationsViolationCount + mechanicTranslationsViolationCount + standardOpsViolationCount + galleryViolationCount + boostyViolationCount + telegramViolationCount + mailingViolationCount + contestsViolationCount + usersViolationCount + previouslyUncoveredViolationCount + profileViolationCount + profileTourViolationCount + archetypeViolationCount + archetypeTourViolationCount + standardMetaViolationCount + standardMetaTourViolationCount + standardMatchupsTourViolationCount + viciousGoldViolationCount + viciousGoldTourViolationCount + constructedCardsViolationCount + constructedTourViolationCount + constructedDetailViolationCount + constructedDetailTourViolationCount} violations)`);
   } catch (error) {
     const diagnostic = await page.evaluate(() => ({
@@ -3988,7 +3989,7 @@ if (runsQaGroup('public')) {
       || wideDeckState.errors || wideDeckState.overflow || runtimeErrors.length) {
       failures.push(`constructed card decks [2048px]: wide alignment, translation or stability regressed (${JSON.stringify(wideDeckState)}; ${runtimeErrors.join(' | ')})`);
     }
-    await page.screenshot({ path: `${OUT}/constructed-card-decks-wide.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/constructed-card-decks-wide.png`, fullPage: false });
     console.log('✓ constructed card rendered deck grid [2048px] alignment + translations');
   } catch (error) {
     failures.push(`constructed card decks [2048px]: ${error.message}`);
@@ -4032,7 +4033,7 @@ for (const width of [320, 430]) {
       failures.push(`archetype catalog [${width}px]: narrow mobile layout regressed (${JSON.stringify(metaNarrowState)})`);
     }
     await auditArchetypeCatalog(page, `archetype catalog narrow ${width}px`);
-    await page.screenshot({ path: `${OUT}/archetype-catalog-${width}px.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/archetype-catalog-${width}px.png`, fullPage: false });
 
     await page.goto(`${BASE}/standard/vicious-gold`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.vsgold-tier .arena-tier-badge', { timeout: 20_000 });
@@ -4060,7 +4061,7 @@ for (const width of [320, 430]) {
     await page.click('.vsgold-report__contents a[href="#vsgold-power"]');
     await new Promise(resolve => setTimeout(resolve, 300));
     await auditAccessibility(page, `vicious gold narrow ${width}px`, '.vsgold');
-    await page.screenshot({ path: `${OUT}/vicious-gold-power-${width}px.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/vicious-gold-power-${width}px.png`, fullPage: false });
 
     await page.goto(`${BASE}/admin?section=standard-data`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.admin-parser-control', { timeout: 20_000 });
@@ -4090,7 +4091,7 @@ for (const width of [320, 430]) {
       failures.push(`admin parser control [${width}px]: mobile containment or touch inputs regressed (${JSON.stringify(parserControlNarrowState)})`);
     }
     await auditAccessibility(page, `admin parser control narrow ${width}px`, '.admin-parser-control');
-    await page.screenshot({ path: `${OUT}/admin-parser-control-${width}px.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/admin-parser-control-${width}px.png`, fullPage: false });
     if (runtimeErrors.length) failures.push(`standard mobile analytics [${width}px]: ${runtimeErrors.join(' | ')}`);
     console.log(`✓ Standard analytics and parser control mobile adaptation [${width}px] interactions + axe`);
   } catch (error) {
@@ -4234,7 +4235,7 @@ for (const path of ['/standard/meta', '/standard/vicious-gold']) {
       failures.push(`${path} [mobile guest]: Diamond paywall regressed (${JSON.stringify(state)})`);
     }
     await auditAccessibility(page, `${path} [mobile guest]`);
-    await page.screenshot({ path: `${OUT}/${path.includes('vicious') ? 'vicious-gold' : 'standard-meta'}-diamond-paywall-mobile.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/${path.includes('vicious') ? 'vicious-gold' : 'standard-meta'}-diamond-paywall-mobile.png`, fullPage: false });
     console.log(`✓ ${path} [mobile guest] Diamond paywall + axe`);
   } catch (error) {
     failures.push(`${path} [mobile guest]: ${error.message}`);
@@ -4277,7 +4278,7 @@ if (runsQaGroup('public')) {
       failures.push(`/standard/cards [mobile guest]: global search paywall regressed (${JSON.stringify(globalPaywallState)})`);
     }
     await auditAccessibility(page, '/standard/cards [mobile guest]');
-    await page.screenshot({ path: `${OUT}/constructed-cards-guest-stat-lock-mobile.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/constructed-cards-guest-stat-lock-mobile.png`, fullPage: false });
     console.log('✓ /standard/cards [mobile guest] public catalog + locked statistics + axe');
   } catch (error) {
     failures.push(`/standard/cards [mobile guest]: ${error.message}`);
@@ -4333,10 +4334,10 @@ for (const [device, viewport] of [
       if (!focus.inSwitch || !focus.visible || focus.outline === 'none' || parseFloat(focus.outlineWidth) < 2 || focus.ring === 'none') {
         failures.push(`${label}: the format switch shows no keyboard focus ring (${JSON.stringify(focus)})`);
       }
-      await page.screenshot({ path: `${OUT}/constructed-card-statistics-focus-${device}.png`, fullPage: false });
+      await captureScreenshot(page, { path: `${OUT}/constructed-card-statistics-focus-${device}.png`, fullPage: false });
     }
     await page.evaluate(() => document.querySelector('.constructed-card-detail__statistics')?.scrollIntoView({ block: 'center' }));
-    await page.screenshot({ path: `${OUT}/constructed-card-statistics-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/constructed-card-statistics-${device}.png`, fullPage: false });
     await auditAccessibility(page, label, '.constructed-card-detail__statistics');
     if (runtimeErrors.length) failures.push(`${label}: ${runtimeErrors.join('; ')}`);
     console.log(`✓ ${label}: fit, level controls, names, digits, focus + axe`);
@@ -4370,7 +4371,7 @@ for (const [device, viewport] of [
       failures.push(`${label} without access: the locked preview regressed (${JSON.stringify(locked)})`);
     }
     await guest.evaluate(() => document.querySelector('.constructed-card-detail__statistics')?.scrollIntoView({ block: 'center' }));
-    await guest.screenshot({ path: `${OUT}/constructed-card-statistics-locked-${device}.png`, fullPage: false });
+    await captureScreenshot(guest, { path: `${OUT}/constructed-card-statistics-locked-${device}.png`, fullPage: false });
   } catch (error) {
     failures.push(`${label} without access: ${error.message}`);
   } finally {
@@ -4414,7 +4415,7 @@ for (const [device, viewport] of [
     if (surface.workspaceBackground !== 'rgba(0, 0, 0, 0)' || surface.workspaceImage !== 'none') failures.push(`${prefix}: workspace paints a white frame`);
     if (surface.mainBackground !== 'rgba(0, 0, 0, 0)' || surface.mainImage !== 'none') failures.push(`${prefix}: main canvas paints a white frame`);
     if (!hasParchmentTexture(surface.contentBackground)) failures.push(`${prefix}: content parchment does not cover the locked route`);
-    await page.screenshot({ path: `${OUT}/library-guest-${device}.png`, fullPage: true });
+    await captureScreenshot(page, { path: `${OUT}/library-guest-${device}.png`, fullPage: true });
     const violationCount = await auditAccessibility(page, prefix);
     console.log(`✓ ${prefix} continuous parchment + axe (${violationCount} violations)`);
   } catch (error) {
@@ -4530,7 +4531,7 @@ for (const [device, viewport] of [
     }
     const violationCount = await auditAccessibility(page, `public auth [${device}]`, '.login-page');
     if (runtimeErrors.length) failures.push(`public auth [${device}]: ${runtimeErrors.join(' | ')}`);
-    await page.screenshot({ path: `${OUT}/public-auth-${device}.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/public-auth-${device}.png`, fullPage: false });
     console.log(`✓ public auth login/register/reset [${device}] + axe (${violationCount} violations)`);
   } catch (error) {
     failures.push(`public auth [${device}]: ${error.message}`);
@@ -5759,7 +5760,7 @@ if (runsQaGroup('navigation')) {
     if (keyboardGroup.expanded !== 'true' || keyboardGroup.hidden !== false) failures.push('desktop sidebar: misc group did not expand from the keyboard');
     await page.keyboard.press('Enter');
     await auditAccessibility(page, 'desktop sidebar');
-    await page.screenshot({ path: `${OUT}/desktop-sidebar.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/desktop-sidebar.png`, fullPage: false });
     console.log('✓ desktop sidebar frame, click-only expandable navigation');
   } catch (error) {
     failures.push(`desktop sidebar: ${error.message}`);
@@ -5968,7 +5969,7 @@ if (runsQaGroup('navigation')) {
       failures.push(`mobile menu: parchment visual contract changed (${JSON.stringify(openState)})`);
     }
     await auditAccessibility(page, 'mobile menu open');
-    await page.screenshot({ path: `${OUT}/mobile-menu-open.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/mobile-menu-open.png`, fullPage: false });
 
     stage = 'forward focus trap';
     await page.evaluate(() => {
@@ -6001,7 +6002,7 @@ if (runsQaGroup('navigation')) {
     await page.waitForSelector('.arena-mobile-menu', { hidden: true });
     const closedPosition = await page.evaluate(() => getComputedStyle(document.body).position);
     if (closedPosition === 'fixed') failures.push('mobile menu: scroll lock was not released');
-    await page.screenshot({ path: `${OUT}/mobile-menu-closed.png`, fullPage: false });
+    await captureScreenshot(page, { path: `${OUT}/mobile-menu-closed.png`, fullPage: false });
     console.log('✓ mobile menu interaction and scroll lock');
   } catch (error) {
     const active = await page.evaluate(() => ({

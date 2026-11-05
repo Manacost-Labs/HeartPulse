@@ -3,11 +3,18 @@ import { runProcess } from './lib/process-task.mjs';
 import { qaBatch } from './qa/groups.mjs';
 
 const groups = qaBatch(process.argv[2]);
-const outcomes = await Promise.allSettled(groups.map(group => runProcess(process.execPath,
-  ['scripts/browser-qa-next.mjs'], {
-    label: `browser QA ${group}`, repositoryRoot: process.cwd(),
-    environment: { ...process.env, QA_GROUP: group, QA_PART: 'all' },
-  })));
+const outcomes = await Promise.allSettled(groups.map(async group => {
+  const started = performance.now();
+  try {
+    await runProcess(process.execPath,
+      ['scripts/browser-qa-next.mjs'], {
+        label: `browser QA ${group}`, repositoryRoot: process.cwd(),
+        environment: { ...process.env, QA_GROUP: group, QA_PART: 'all' },
+      });
+  } finally {
+    console.log(`[browser-qa] group=${group} seconds=${((performance.now() - started) / 1000).toFixed(3)}`);
+  }
+}));
 for (const outcome of outcomes) {
   if (outcome.status === 'rejected') {
     console.error(outcome.reason.message);

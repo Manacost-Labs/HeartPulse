@@ -1,6 +1,17 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { QA_BATCHES, QA_GROUPS, qaBatch, qaGroupFilter } from '../scripts/qa/groups.mjs';
+import { screenshotCapture } from '../scripts/qa/screenshots.mjs';
+
+test('standalone screenshots remain enabled and CI can omit optional diagnostics', async () => {
+  const calls = [];
+  const target = { screenshot: async options => { calls.push(options); return 'png'; } };
+  assert.equal(await screenshotCapture()(target, { path: 'optional.png' }), 'png');
+  assert.equal(await screenshotCapture('responsive')(target, { path: 'unused.png' }), undefined);
+  assert.deepEqual(calls, [{ path: 'optional.png' }]);
+  assert.equal(await screenshotCapture()(null, {}), undefined);
+  assert.throws(() => screenshotCapture('typo'));
+});
 
 test('four batches cover all eight groups exactly once and keep paired groups isolated', () => {
   assert.equal(QA_BATCHES.length, 4);

@@ -68,8 +68,8 @@ when enabled) and preserves the failing exit code or termination signal.
 
 ## CI sharding and flaky retries
 
-CI runs browser tests in ten jobs with four isolated worker processes each;
-the other four suites run in six jobs with two workers each. Each job calls
+CI runs browser tests in eight jobs with four isolated worker processes each;
+the other four suites run in four jobs with two workers each. Each job calls
 `scripts/run-test-workers.mjs --suite ... --shard i/N --workers W
 --report-dir <directory>`. It maps worker j to global shard
 `((i - 1) * W + j)/(N * W)`, so every selected file belongs to exactly one

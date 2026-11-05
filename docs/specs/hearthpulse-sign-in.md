@@ -410,8 +410,11 @@ CORS и SRI для скрипта кнопки; выход через `end_sessi
   `tests/browser-identity-runtime.test.ts` и
   `tests/browser-identity-provider.test.ts`; карточка входа —
   `src/modules/browserIdentity/ReaderAccountRoute.tsx`,
-  `src/modules/identity/ui/LoginCard.tsx` и браузерный тест
-  `tests/browser-identity-continuation-browser.test.mjs`.
+  `src/modules/identity/ui/LoginCard.tsx` и браузерные тесты
+  `tests/browser-identity-continuation-browser.test.mjs`,
+  `tests/browser-identity-continuation-context-browser.test.mjs`,
+  `tests/browser-identity-continuation-layout-browser.test.mjs` с общим helper
+  `tests/helpers/browserIdentityContinuation.mjs`.
 - Живой discovery: `curl -s
   https://hearthpulse.net/identity/.well-known/openid-configuration`.
 - Живой `GET /identity/auth` с точным клиентом Манакоста и корректным PKCE

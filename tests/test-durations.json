@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "source": "Median PASS seconds from full CI runs 41796198528/1, 41827672747/1; at least two distinct runs per updated file. Other existing weights retained. Initial viewport-split weights divide the former skeleton-route file weight equally; refresh from CI reports. Initial soft-paywall group weights divide the former total 20/50/30%; refresh from CI reports.",
+  "source": "Median PASS seconds from full CI runs 41796198528/1, 41827672747/1; at least two distinct runs per updated file. Other existing weights retained. Initial viewport-split weights divide the former skeleton-route file weight equally; refresh from CI reports. Initial soft-paywall group weights divide the former total 20/50/30%; refresh from CI reports. Initial identity continuation weights divide the former total 34/34/32%; refresh from CI reports.",
   "defaultSeconds": 15,
   "seconds": {
     "tests/account-avatar-integration.test.mjs": 5.518,
@@ -122,7 +122,9 @@
     "tests/blizzard-card-images.test.ts": 0.167,
     "tests/browser-identity-binding.test.ts": 0.206,
     "tests/browser-identity-cleanup.test.ts": 0.469,
-    "tests/browser-identity-continuation-browser.test.mjs": 42.187,
+    "tests/browser-identity-continuation-browser.test.mjs": 14.344,
+    "tests/browser-identity-continuation-context-browser.test.mjs": 14.344,
+    "tests/browser-identity-continuation-layout-browser.test.mjs": 13.5,
     "tests/browser-identity-lifecycle.test.ts": 0.469,
     "tests/browser-identity-live-bridge.test.ts": 0.166,
     "tests/browser-identity-nginx.test.mjs": 0.074,

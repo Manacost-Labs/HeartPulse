@@ -80,8 +80,8 @@ START/PASS/FLAKY timestamps in those two runs' complete shard logs.
 
 All shards use the same checked `tests/test-durations.json`. Calibration is
 reproducible but is not automatically committed by CI. The worker wrapper
-runs four browser workers in each of ten jobs and two registry workers in
-each of six jobs. More workers are rejected above four per job. Reports and
+runs four browser workers in each of eight jobs and two registry workers in
+each of four jobs. More workers are rejected above four per job. Reports and
 process groups are separate; the aggregate waits for every worker and retains
 failure and cancellation behavior. These are CI processes, not agent sessions.
 
@@ -91,7 +91,10 @@ assigns all eight groups exactly once: desktop/mobile authenticated routes,
 desktop/mobile admin, public pages, home, navigation, and shell/responsive.
 The full responsive cross product and its aggregate ratchets stay in one
 group. `QA_PART` standalone modes remain available; disjoint part/group
-selections fail. Every scenario assertion is preserved.
+selections fail. Every scenario assertion is preserved. CI sets
+`QA_SCREENSHOTS=responsive`: the responsive inventory still captures every
+required PNG and hash, while other screenshots are optional diagnostics.
+Standalone QA retains all screenshots. Per-group wall times are logged.
 
 The release build alone sets `HP_CI_SEPARATE_NEXT_TYPES=1`. The required
 static gate runs `next typegen` and the same TypeScript compiler on the Next
@@ -108,15 +111,27 @@ transpilation; standalone source fixtures are unchanged. The production scraper
 smoke test also uses that build, avoiding a rebuild of files used by siblings.
 Soft-paywall coverage runs as three independent overview, filter and layout
 files with shared assertions in `tests/helpers/softPaywallBrowser.mjs`.
+Identity continuation is split into guest, context and delayed-layout files;
+the one-second delayed response, observation windows, viewport matrix and
+security assertions are retained in a shared helper.
 
 ## Verification status
 
-All eight observatory groups and both skeleton viewport suites passed locally.
-The first full parallel run exposed backend source-transpilation readiness
-failures; CI fixtures now require the compiled backend instead. Full-suite and
-GitHub verification must pass before calling this rollout complete. Local
-batch durations and historical replays are not proof of the hosted two-minute
-SLO.
+The first hosted PR run
+[42039456378](https://github.com/Manacost-Labs/HeartPulse/actions/runs/42039456378)
+passed `CI required` in 251 seconds from workflow creation (raw Actions API
+timestamps). The initial matrix was six registry and ten browser jobs. Build
+and smoke took 57 seconds, registry identity continuation 107 seconds, the
+slowest observatory batch 106 seconds, and one browser job started 66 seconds
+after its siblings. This PR observation does not calibrate checked weights.
+
+The follow-up reduces the matrices to four/eight to leave runner headroom,
+splits identity continuation and omits only optional screenshots. Its hosted
+result is pending. All original eight observatory groups, skeleton viewports
+and paywall groups passed locally. Local full parallel runs saw network-change
+browser errors and timing sensitivity on this shared host; failed files passed
+in isolation, and hosted required jobs all passed. Historical replays and one
+PR run do not establish the warm-cache, full-run two-minute SLO.
 
 ## Verification
 

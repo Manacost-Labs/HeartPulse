@@ -311,6 +311,8 @@
         "tests/browser-identity-binding.test.ts",
         "tests/browser-identity-cleanup.test.ts",
         "tests/browser-identity-continuation-browser.test.mjs",
+        "tests/browser-identity-continuation-context-browser.test.mjs",
+        "tests/browser-identity-continuation-layout-browser.test.mjs",
         "tests/browser-identity-lifecycle.test.ts",
         "tests/browser-identity-live-bridge.test.ts",
         "tests/browser-identity-nginx.test.mjs",

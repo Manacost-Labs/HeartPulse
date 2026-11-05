@@ -413,6 +413,7 @@ jobs:
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
       CHROMIUM_PATH: '/usr/bin/google-chrome'
+      QA_SCREENSHOTS: responsive
     strategy:
       fail-fast: false
       matrix:
