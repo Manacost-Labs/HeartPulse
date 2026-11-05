@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "source": "Median PASS seconds from full CI runs 42094463512/1, 42096751424/1, 42100456266/1; at least two distinct runs per updated file. Other existing weights retained. PR opt-in requires complete registry coverage.",
+  "source": "Median PASS seconds from full CI runs 42094463512/1, 42096751424/1, 42100456266/1; at least two distinct runs per updated file. Other existing weights retained. PR opt-in requires complete registry coverage. Before main sync and builder split: registry545. Builder guest/runes/sideboards seeds allocate its existing median by parent scenario durations in 42107088754; current registry548 requires two complete fresh runs for measured per-file medians.",
   "defaultSeconds": 15,
   "seconds": {
     "tests/account-avatar-integration.test.mjs": 3.365,
@@ -323,7 +323,9 @@
     "tests/next-public-archetype-teaser.test.ts": 0.198,
     "tests/next-public-card-pilot.test.mjs": 5.638,
     "tests/next-public-card-seed.test.ts": 0.297,
-    "tests/next-public-deck-builder-browser.test.mjs": 47.056,
+    "tests/next-public-deck-builder-browser.test.mjs": 29.335,
+    "tests/next-public-deck-builder-runes-browser.test.mjs": 8.487,
+    "tests/next-public-deck-builder-sideboards-browser.test.mjs": 9.234,
     "tests/next-public-first-paint-loaders.test.ts": 0.461,
     "tests/next-public-guide-teaser.test.ts": 0.213,
     "tests/next-public-profiles-browser.test.mjs": 13.522,

@@ -603,6 +603,42 @@ samples describe the earlier 545-file registry; the new test uses its default
 weight until two complete current-registry hosted runs are available. Local
 compiled browser artifacts predate the merge; fresh hosted CI rebuilds them.
 
+## Independent public deck-builder scenarios
+
+Run `42107088754` (`1b849a44`) passed all 36 checks and all 542 blocking
+files without retries. Its required gate finished at +206s. Browser job 5
+finished last at +201s; Chrome warmup took 7.354s, followed by sub-second or
+near-one-second initial launches. The builder file occupied one worker for
+74.770s across three independently initialized scenarios.
+
+A local attempt to reduce instant-access internal concurrency from four to
+two did not establish a clean speed comparison: both four-way controls
+needed unrelated retries (loader deadline and backend startup). The two-way
+trial passed, but that alone does not prove a speed benefit. Its change was
+reverted; the existing internal concurrency is retained.
+
+The public builder's guest flow, rune/tourist restrictions and sideboard
+editing now register in three files. All three test bodies are byte-identical
+to the original blocks, preserving 77 assertion sites, viewports, network
+fixtures, waits, downloads, accessibility checks and cleanup. Shared card,
+image and axe fixture data moved into `tests/helpers/publicDeckBuilderData.mjs`.
+Each scenario already owned its backend/Next/browser lifetime; the split
+lets the existing shard planner distribute those independent lifetimes.
+
+The old 47.056s median is allocated into labeled seeds of 29.335s, 8.487s
+and 9.234s using parent scenario durations from the successful hosted run.
+Their sum preserves the previous total estimate. These are scheduling seeds,
+not measured per-file medians. Registry coverage is now 548 files with four
+quarantined, 544 blocking, 455 non-browser and 89 blocking browser files.
+Two complete current-registry successful runs are needed for recalibration.
+
+All three extracted scenarios passed concurrently on four local CPUs after
+restoring the guest scenario's required file-read import. Body hashes prove
+the scenario code did not change. Registry validation, 13 worker/calibration
+checks, workflow contracts, documentation lint and focused Semgrep passed.
+Partition checks cover all 544 blocking files exactly once. No local timing
+is treated as a hosted improvement; the new full CI run decides that.
+
 ## Verification
 
 Focused runner and workflow tests must prove deterministic complete sharding,
