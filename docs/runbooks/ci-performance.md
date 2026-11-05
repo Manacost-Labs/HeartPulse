@@ -92,7 +92,7 @@ START/PASS/FLAKY timestamps in those two runs' complete shard logs.
 
 All shards use the same checked `tests/test-durations.json`. Calibration is
 reproducible but is not automatically committed by CI. The worker wrapper
-runs four browser workers in each of ten jobs and two registry workers in
+runs four browser workers in each of twelve jobs and two registry workers in
 each of four jobs. More workers are rejected above four per job. Reports and
 process groups are separate; the aggregate waits for every worker and retains
 failure and cancellation behavior. These are CI processes, not agent sessions.
@@ -127,6 +127,43 @@ Identity continuation is split into guest, context and delayed-layout files;
 the one-second delayed response, observation windows, viewport matrix and
 security assertions are retained in a shared helper. Knip's project includes
 authored test helpers so their dependency use remains visible to the static gate.
+
+## Account scenarios and twelve browser shards
+
+Run `42114399124` (`e24c8fa9`) passed all 36 checks and all 545 blocking
+files without retries. The required gate finished at +193s. Browser shard 10
+was last: Chrome warmup took 30.624s and its longest worker ran about 77s.
+Both library viewport files passed. The two-minute target remains unmet.
+
+The four account scenarios now register separately: delayed chunk loading,
+shell surfaces, subscription/settings layout, and sign-in/linking/sign-out.
+Their bodies are byte-identical to the original, preserving 35 assertion
+sites, viewport lists, 45s/60s scenario timeouts, waits and cleanup. Each
+scenario already owned its backend, Next and browser lifetime. The old
+52.646s median is allocated into 9.505/17.628/14.941/10.572s seeds using
+successful parent scenario durations, not new measured per-file medians.
+
+The full browser matrix grows from ten to twelve jobs with four workers each.
+Together with four registry and four observatory jobs this makes twenty test
+jobs; GitHub can still queue them. Worker bounds, disjoint striped partitions,
+PR subset scaling, failure handling and all required dependencies remain.
+The dynamic workflow matrix already consumes this plan, so only its full-run
+constant and the corresponding contract expectations change.
+
+An in-sample replay using the latest successful file timings and parent
+account scenario timings estimates the slowest worker at 80.329s with forty
+workers and 67.248s with forty-eight. It excludes queues, setup and changed
+contention, and does not establish a hosted speedup. Cold Chrome startup
+remains an unresolved source of variation; no launch flags or timeouts change.
+
+Current registry: 552 files, four quarantined, 548 blocking, 455 non-browser
+and 93 blocking browser files. All four account scenarios passed concurrently
+on four local CPUs in a clean run. The body comparison preserves all four
+original test blocks exactly. Registry validation with 48 checks, 53 planner/
+worker/calibration checks, workflow contracts, documentation lint and focused
+Semgrep passed. The updated worker test covers all 48 global shards and
+separate reports. All 548 blocking files occur exactly once in the partitions.
+Fresh full runs must verify the new assignment and hosted duration.
 
 ## Verification status
 

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "source": "Median PASS seconds from full CI runs 42094463512/1, 42096751424/1, 42100456266/1; at least two distinct runs per updated file. Other existing weights retained. PR opt-in requires complete registry coverage. Before main sync and builder split: registry545. Builder guest/runes/sideboards seeds allocate its existing median by parent scenario durations in 42107088754; Library desktop/mobile seeds divide the prior library median equally, preserving its total. Current registry549 requires two complete fresh runs for measured per-file medians.",
+  "source": "Median PASS seconds from full CI runs 42094463512/1, 42096751424/1, 42100456266/1; at least two distinct runs per updated file. Other existing weights retained. PR opt-in requires complete registry coverage. Before main sync and builder split: registry545. Builder guest/runes/sideboards seeds allocate its existing median by parent scenario durations in 42107088754; Library desktop/mobile seeds divide the prior library median equally, preserving its total. Account loading/surface/plan/auth seeds allocate its prior median by successful e24c8fa9 parent scenario durations. Current registry552 requires two complete fresh runs for measured per-file medians.",
   "defaultSeconds": 15,
   "seconds": {
     "tests/account-avatar-integration.test.mjs": 3.365,
@@ -271,7 +271,10 @@
     "tests/newsletter-consent-integration.test.mjs": 8.108,
     "tests/newsletter-template-design-contract.test.ts": 0.181,
     "tests/newsletter-unsubscribe-routes.test.ts": 0.538,
-    "tests/next-account-surface-browser.test.mjs": 52.646,
+    "tests/next-account-loading-browser.test.mjs": 9.505,
+    "tests/next-account-surface-browser.test.mjs": 17.628,
+    "tests/next-account-plan-browser.test.mjs": 14.941,
+    "tests/next-account-auth-browser.test.mjs": 10.572,
     "tests/next-admin-archetypes-browser.test.mjs": 21.188,
     "tests/next-admin-browser.test.mjs": 14.34,
     "tests/next-admin-entitlements-browser.test.mjs": 59.059,

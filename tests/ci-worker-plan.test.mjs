@@ -4,19 +4,22 @@ import { planTestWorkers, runTestWorkers } from '../scripts/run-test-workers.mjs
 import { credentialBackendArguments } from './helpers/credentialBackend.mjs';
 
 test('workers partition the full matrix into disjoint global shards and separate reports', () => {
-  const all = [];
-  for (let shard = 1; shard <= 10; shard += 1) {
-    const plans = planTestWorkers(['--suite', 'browser', '--shard', `${shard}/10`, '--workers', '2', '--report-dir', '/tmp/timings', '--continue-on-failure', '--only-files', 'selected.json']);
-    for (const args of plans) {
-      all.push(args[args.indexOf('--shard') + 1]);
-      assert.ok(args.includes('--continue-on-failure'));
-      assert.equal(args[args.indexOf('--only-files') + 1], 'selected.json');
+  for (const [jobs, workers] of [[10, 2], [12, 4]]) {
+    const all = [];
+    for (let shard = 1; shard <= jobs; shard += 1) {
+      const plans = planTestWorkers(['--suite', 'browser', '--shard', `${shard}/${jobs}`, '--workers', String(workers), '--report-dir', '/tmp/timings', '--continue-on-failure', '--only-files', 'selected.json']);
+      for (const args of plans) {
+        all.push(args[args.indexOf('--shard') + 1]);
+        assert.ok(args.includes('--continue-on-failure'));
+        assert.equal(args[args.indexOf('--only-files') + 1], 'selected.json');
+      }
+      assert.equal(new Set(plans.map(args => args.at(-1))).size, workers);
     }
-    assert.notEqual(plans[0].at(-1), plans[1].at(-1));
+    const total = jobs * workers;
+    assert.deepEqual(all.toSorted((a, b) => parseInt(a) - parseInt(b)), Array.from({ length: total }, (_, i) => `${i + 1}/${total}`));
   }
-  assert.deepEqual(all.toSorted((a, b) => parseInt(a) - parseInt(b)), Array.from({ length: 20 }, (_, i) => `${i + 1}/20`));
-  const striped = planTestWorkers(['--suite', 'browser', '--shard', '1/10', '--workers', '4', '--report-dir', '/tmp/timings']);
-  assert.deepEqual(striped.map(args => args[args.indexOf('--shard') + 1]), ['1/40', '11/40', '21/40', '31/40'],
+  const striped = planTestWorkers(['--suite', 'browser', '--shard', '1/12', '--workers', '4', '--report-dir', '/tmp/timings']);
+  assert.deepEqual(striped.map(args => args[args.indexOf('--shard') + 1]), ['1/48', '13/48', '25/48', '37/48'],
     'the longest global shards must start in different physical jobs');
 });
 
