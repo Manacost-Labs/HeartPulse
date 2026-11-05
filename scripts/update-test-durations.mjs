@@ -22,25 +22,40 @@ function validateReport(report) {
   }
 }
 
-function fullRun(report) {
+function fullRun(report, allowFullPullRequests = false) {
   return report.quarantine !== 'only' && (report.run.event === 'merge_group'
-    || (report.run.event === 'push' && report.run.ref === 'refs/heads/main'));
+    || (report.run.event === 'push' && report.run.ref === 'refs/heads/main')
+    || (allowFullPullRequests && report.run.event === 'pull_request'));
 }
 
-function latestReports(reports) {
+function latestReports(reports, allowFullPullRequests) {
   const attempts = new Map();
   for (const report of reports) {
     validateReport(report);
-    if (fullRun(report)) attempts.set(report.run.id, Math.max(attempts.get(report.run.id) ?? 0, Number(report.run.attempt)));
+    if (fullRun(report, allowFullPullRequests)) attempts.set(report.run.id, Math.max(attempts.get(report.run.id) ?? 0, Number(report.run.attempt)));
   }
-  return reports.filter(report => fullRun(report) && Number(report.run.attempt) === attempts.get(report.run.id));
+  return reports.filter(report => fullRun(report, allowFullPullRequests) && Number(report.run.attempt) === attempts.get(report.run.id));
 }
 
-function collectSamples(reports, registered) {
+function verifyPullRequestCoverage(reports, registered, quarantined) {
+  const runs = Map.groupBy(reports.filter(report => report.run.event === 'pull_request'), report => report.run.id);
+  for (const [id, shards] of runs) {
+    const results = shards.flatMap(report => report.results);
+    const files = new Set(results.map(result => result.testFile));
+    if (results.some(result => !['PASS', 'FLAKY'].includes(result.status))
+      || [...registered].some(file => !quarantined.has(file) && !files.has(file))) {
+      throw new Error(`PR run ${id} must cover every unquarantined registered test with complete results`);
+    }
+  }
+}
+
+function collectSamples(reports, registered, { allowFullPullRequests, quarantined }) {
   const samples = new Map();
   const seen = new Set();
   const runs = new Map();
-  for (const report of latestReports(reports)) {
+  const latest = latestReports(reports, allowFullPullRequests);
+  if (allowFullPullRequests) verifyPullRequestCoverage(latest, registered, quarantined);
+  for (const report of latest) {
     const key = `${report.run.id}/${report.run.attempt}`;
     if (runs.has(key) && runs.get(key) !== report.run.sha) throw new Error(`conflicting SHA for run ${key}`);
     runs.set(key, report.run.sha);
@@ -65,10 +80,12 @@ function median(values) {
 }
 
 /** Distinct latest CI attempts get one vote per file; failed/retried samples never calibrate weights. */
-export function calibrateTestDurations(previous, reports, registry) {
+export function calibrateTestDurations(previous, reports, registry, { allowFullPullRequests = false } = {}) {
   validateTestDurations(previous);
   const registered = new Set(registry.suites.flatMap(suite => suite.files));
-  const { samples, runs } = collectSamples(reports, registered);
+  const { samples, runs } = collectSamples(reports, registered, {
+    allowFullPullRequests, quarantined: new Set((registry.quarantine ?? []).map(entry => entry.file)),
+  });
   const seconds = Object.fromEntries(Object.entries(previous.seconds).filter(([file]) => registered.has(file)));
   let updated = 0;
   for (const [file, values] of [...samples].sort(([left], [right]) => left.localeCompare(right, 'en'))) {
@@ -80,7 +97,7 @@ export function calibrateTestDurations(previous, reports, registry) {
   const identities = [...runs.keys()].sort();
   return validateTestDurations({
     version: 1,
-    source: `Median PASS seconds from full CI runs ${identities.join(', ')}; at least two distinct runs per updated file. Other existing weights retained.`,
+    source: `Median PASS seconds from full CI runs ${identities.join(', ')}; at least two distinct runs per updated file. Other existing weights retained.${allowFullPullRequests ? ' PR opt-in requires complete registry coverage.' : ''}`,
     defaultSeconds: previous.defaultSeconds,
     seconds,
   });
@@ -106,17 +123,23 @@ function main(args) {
   const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
   const options = { '--output': path.join(root, 'tests/test-durations.json'), '--registry': path.join(root, 'tests/test-suites.json') };
   const seen = new Set();
-  for (let index = 0; index < args.length; index += 2) {
+  let allowFullPullRequests = false;
+  for (let index = 0; index < args.length; index += 1) {
     const flag = args[index];
+    if (flag === '--allow-full-pr' && !seen.has(flag)) {
+      seen.add(flag);
+      allowFullPullRequests = true;
+      continue;
+    }
     if (!['--reports', '--output', '--registry'].includes(flag) || seen.has(flag)
-      || !args[index + 1] || args[index + 1].startsWith('--')) throw new Error('usage: node scripts/update-test-durations.mjs --reports <file-or-directory> [--output <manifest>] [--registry <registry>]');
+      || !args[index + 1] || args[index + 1].startsWith('--')) throw new Error('usage: node scripts/update-test-durations.mjs --reports <file-or-directory> [--output <manifest>] [--registry <registry>] [--allow-full-pr]');
     seen.add(flag);
-    options[flag] = args[index + 1];
+    options[flag] = args[++index];
   }
   if (!options['--reports']) throw new Error('--reports is required');
   const previous = JSON.parse(readFileSync(options['--output'], 'utf8'));
   const registry = JSON.parse(readFileSync(options['--registry'], 'utf8'));
-  const updated = calibrateTestDurations(previous, readReports(options['--reports']), registry);
+  const updated = calibrateTestDurations(previous, readReports(options['--reports']), registry, { allowFullPullRequests });
   writeFileSync(options['--output'], `${JSON.stringify(updated, null, 2)}\n`);
   console.log(updated.source);
 }

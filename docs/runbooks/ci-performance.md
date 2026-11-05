@@ -67,14 +67,24 @@ the default weight remain unchanged; removed tests are pruned. Review the diff
 and normal CI checks before integrating the manifest. No commit or push is
 performed by this command.
 
-Only the latest supplied attempt of each run is considered. PR observations,
-pushes outside main, quarantine-only reports, flaky files and failed/incomplete
-shards do not calibrate weights. Duplicate observations, conflicting SHA values
-or malformed durations fail the command before it writes the manifest. The
+Only the latest supplied attempt of each run is considered. By default PR
+observations, pushes outside main, quarantine-only reports, flaky files and
+failed/incomplete shards do not calibrate weights. Duplicate observations,
+conflicting SHA values or malformed durations fail the command before it
+writes the manifest. The
 command does not query GitHub or attest provenance: the operator must choose
 successful full runs from this repository, not artifacts supplied by a PR.
 JSON files are checked and read through the same open descriptor; the fixture
 static server follows the same rule to avoid file-check/read races.
+
+For full-repository benchmark PRs, an operator may pass `--allow-full-pr` after
+checking the provenance and successful workflow result. Every supplied PR run
+must then contain complete PASS/FLAKY results covering the entire current
+unquarantined registry; narrowed, incomplete or failed runs are rejected.
+Duplicate protection, latest-attempt selection, the two-distinct-run minimum
+and exclusion of FLAKY samples remain in force. This explicit option lets a
+benchmark PR replace split-file estimates after two full measurements without
+weakening the default main/merge-queue calibration policy.
 The first calibration predates JSON artifacts and was bootstrapped from the
 START/PASS/FLAKY timestamps in those two runs' complete shard logs.
 
@@ -82,7 +92,7 @@ START/PASS/FLAKY timestamps in those two runs' complete shard logs.
 
 All shards use the same checked `tests/test-durations.json`. Calibration is
 reproducible but is not automatically committed by CI. The worker wrapper
-runs four browser workers in each of eight jobs and two registry workers in
+runs four browser workers in each of ten jobs and two registry workers in
 each of four jobs. More workers are rejected above four per job. Reports and
 process groups are separate; the aggregate waits for every worker and retains
 failure and cancellation behavior. These are CI processes, not agent sessions.
@@ -130,7 +140,25 @@ after its siblings. This PR observation does not calibrate checked weights.
 
 The follow-up reduces the matrices to four/eight to leave runner headroom,
 splits identity continuation and omits only optional screenshots. Its hosted
-result is pending. All original eight observatory groups, skeleton viewports
+run [42043123385](https://github.com/Manacost-Labs/HeartPulse/actions/runs/42043123385)
+passed the required gate in 314 seconds, including 89 seconds before any job
+started (225 seconds after first start). Browser jobs started together. Registry
+guest/context timings were 54/47 seconds against initial 14-second weights,
+leaving a 108-second shard; the longest browser shard took 115 seconds.
+
+The next pass uses four/ten jobs and retains one Webpack cache per PR, lockfile
+and Next config. GitHub scopes that cache to the PR merge ref, so it cannot
+replace main's cache. The bounded key avoids a new large cache on every push;
+Next still invalidates changed inputs. See the
+[GitHub cache scope rules](https://docs.github.com/en/actions/reference/workflows-and-actions/dependency-caching#restrictions-for-accessing-a-cache).
+Its hosted result is pending.
+
+A disposable Turbopack probe failed after 5.8 seconds: four explicit `.js`
+TypeScript import-resolution errors, invalid generated CSS at
+`section::after::after`, and a UMD/CommonJS-format warning. The probe config and
+tsconfig were restored. No compiler or product behavior change is included.
+
+All original eight observatory groups, skeleton viewports
 and paywall groups passed locally. Local full parallel runs saw network-change
 browser errors and timing sensitivity on this shared host; failed files passed
 in isolation, and hosted required jobs all passed. Historical replays and one

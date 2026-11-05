@@ -96,7 +96,7 @@ for (const event of ['merge_group', 'push', 'workflow_dispatch']) {
     mode: 'all',
     reason: `${event} always runs every test`,
     registryShards: [1, 2, 3, 4],
-    browserShards: [1, 2, 3, 4, 5, 6, 7, 8],
+    browserShards: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     affectedTests: '',
   }, `${event} runs the full matrices`);
 }
@@ -197,11 +197,15 @@ for (const [job, shards] of [['test-suites', 'registry-shards'], ['browser-tests
   assert.match(ciJobs[job], /strategy:\n(?: {6}#[^\n]*\n)? {6}fail-fast: false\n/,
     'a failing shard must not cancel and hide the other shards');
 }
-// Only main and manual runs save the Next.js cache; every other ref only reads it.
+// PRs retain one isolated cache per lockfile/config; immutable hits are not saved again.
 for (const job of ['build', 'refresh-caches']) {
   assert.match(ciJobs[job], /uses: actions\/cache\/restore@v6\n {8}with:\n {10}path: apps\/public-web\/\.next\/cache\n/);
 }
-assert.match(ciJobs.build, /- name: Save Next\.js build cache\n {8}if: github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'\n/);
+assert.ok(ciJobs.build.includes("if: steps.next-cache.outputs.cache-hit != 'true' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request')"));
+assert.ok(ciJobs.build.includes("format('pr-{0}-{1}', github.event.pull_request.number, hashFiles('apps/public-web/next.config.mjs'))"),
+  'a PR does not create a large cache for every commit');
+assert.ok(ciJobs.build.includes('key: ${{ steps.next-cache.outputs.cache-primary-key }}'),
+  'the save uses the exact key computed by restore');
 assert.doesNotMatch(ciJobs['browser-observatory'], /actions\/cache\/save/);
 const releaseCreateIndex = ciJobs.build.indexOf('- name: Create immutable production release');
 assert.ok(ciJobs.build.indexOf('- name: Build and smoke-test release inputs') < ciJobs.build.indexOf('- name: Upload validated build outputs'));
@@ -231,8 +235,8 @@ assert.ok(ciJobs['test-suites'].includes(onlyFilesRun(
 assert.ok(suiteRun, 'the non-browser shards must run registry suites and derive the total from the matrix');
 assert.deepEqual([...suiteRun.split(','), 'browser'].sort(), [...TEST_SUITE_IDS].sort(),
   'every registry suite runs in exactly one job');
-assert.deepEqual(FULL_SHARDS, { registry: 4, browser: 8 },
-  'a full run has four registry jobs and eight browser jobs, with bounded isolated workers');
+assert.deepEqual(FULL_SHARDS, { registry: 4, browser: 10 },
+  'a full run has four registry jobs and ten browser jobs, with bounded isolated workers');
 assert.ok(
   ciJobs['browser-tests'].includes(onlyFilesRun(
     'node scripts/run-test-workers.mjs --suite browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure --quarantine exclude --workers 4 --report-dir "$RUNNER_TEMP/test-timings"',

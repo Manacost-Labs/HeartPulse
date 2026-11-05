@@ -106,7 +106,7 @@ can affect. The `plan` job of `ci.yml` (`scripts/ci-test-plan.mjs`) uses it on
   An empty diff is the engine's `none`; a list that was never written is `all`.
 
 `merge_group`, a push to `main` and `workflow_dispatch` always run every shard
-(4 registry, 8 browser) without asking the engine, so a test a narrowed pull
+(4 registry, 10 browser) without asking the engine, so a test a narrowed pull
 request skipped still runs before `main`. `CI required` accepts a skipped test
 job only on `pull_request` and only when the plan gave that job no shard; a
 failed `plan` job fails it. To run everything for a pull request, start the

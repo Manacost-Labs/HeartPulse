@@ -57,6 +57,25 @@ test('rejects duplicate observations and malformed timings instead of biasing th
   })], registry), /conflicting SHA/);
 });
 
+test('PR calibration requires explicit opt-in and complete current registry coverage', () => {
+  const reports = ['1', '2'].map((id, index) => observation(id, 2000 + index * 2000, {
+    run: { ...observation(id).run, event: 'pull_request' },
+    results: files.map((testFile, fileIndex) => ({ testFile, status: 'PASS', milliseconds: (index + 1) * (fileIndex + 1) * 2000 })),
+  }));
+  assert.throws(() => calibrateTestDurations(previous, reports, registry), /at least two/);
+  const options = { allowFullPullRequests: true };
+  assert.equal(calibrateTestDurations(previous, reports, registry, options).seconds[files[0]], 3);
+  assert.throws(() => calibrateTestDurations(previous, [reports[0]], registry, options), /at least two/);
+  const partial = structuredClone(reports);
+  partial[0].results.pop();
+  assert.throws(() => calibrateTestDurations(previous, partial, registry, options), /every unquarantined/);
+  const quarantined = { ...registry, quarantine: [{ file: files[2] }] };
+  assert.equal(calibrateTestDurations(previous, partial, quarantined, options).seconds[files[0]], 3);
+  const failed = structuredClone(reports);
+  failed[0].results[1].status = 'FAIL';
+  assert.throws(() => calibrateTestDurations(previous, failed, registry, options), /complete results/);
+});
+
 test('combines separate shards without counting a run twice and rejects insufficient evidence', () => {
   const reports = ['1', '2'].flatMap(id => [observation(id, 2000), observation(id, 4000, {
     results: [{ testFile: files[1], status: 'PASS', milliseconds: 4000 }],
@@ -88,7 +107,7 @@ test('CLI updates a manifest from reports and leaves it intact on invalid input'
     const result = spawnSync(process.execPath, args, { encoding: 'utf8' });
     assert.equal(result.status, 0, result.stderr);
     assert.equal(JSON.parse(readFileSync(manifestPath)).seconds[files[0]], 3);
-    const accepted = readFileSync(manifestPath, 'utf8');
+    let accepted = readFileSync(manifestPath, 'utf8');
     const reportsDirectory = path.join(directory, 'reports');
     mkdirSync(path.join(reportsDirectory, 'nested'), { recursive: true });
     writeFileSync(path.join(reportsDirectory, 'first.json'), JSON.stringify(observation('1', 2000)));
@@ -97,6 +116,20 @@ test('CLI updates a manifest from reports and leaves it intact on invalid input'
     const nested = spawnSync(process.execPath, [script, '--reports', reportsDirectory,
       '--output', manifestPath, '--registry', registryPath], { encoding: 'utf8' });
     assert.equal(nested.status, 0, nested.stderr);
+    assert.equal(readFileSync(manifestPath, 'utf8'), accepted);
+    const prReports = ['1', '2'].map(id => observation(id, Number(id) * 2000, {
+      run: { ...observation(id).run, event: 'pull_request' },
+      results: files.map((testFile, index) => ({ testFile, status: 'PASS', milliseconds: Number(id) * (index + 1) * 2000 })),
+    }));
+    writeFileSync(reportPath, JSON.stringify(prReports));
+    const fullPr = spawnSync(process.execPath, [...args, '--allow-full-pr'], { encoding: 'utf8' });
+    assert.equal(fullPr.status, 0, fullPr.stderr);
+    accepted = readFileSync(manifestPath, 'utf8');
+    assert.match(JSON.parse(accepted).source, /PR opt-in requires complete registry coverage/);
+    prReports[0].results.pop();
+    writeFileSync(reportPath, JSON.stringify(prReports));
+    const partialPr = spawnSync(process.execPath, [...args, '--allow-full-pr'], { encoding: 'utf8' });
+    assert.notEqual(partialPr.status, 0);
     assert.equal(readFileSync(manifestPath, 'utf8'), accepted);
     writeFileSync(reportPath, '{invalid');
     const failed = spawnSync(process.execPath, args, { encoding: 'utf8' });

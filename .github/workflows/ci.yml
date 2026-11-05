@@ -106,23 +106,24 @@ jobs:
 
       # Webpack's persistent cache; Next.js invalidates stale entries itself.
       - name: Restore Next.js build cache
+        id: next-cache
         uses: actions/cache/restore@v6
         with:
           path: apps/public-web/.next/cache
-          key: next-build-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          key: next-build-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.event_name == 'pull_request' && format('pr-{0}-{1}', github.event.pull_request.number, hashFiles('apps/public-web/next.config.mjs')) || github.sha }}
           restore-keys: next-build-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
 
       - name: Build and smoke-test release inputs
         run: npm run verify:release:build
 
-      # Only main (and manual runs) save: other refs' caches are invisible to
-      # every other branch and would just evict main's.
+      # One cache per PR/config/lockfile, isolated by GitHub's merge-ref scope.
+      # Later pushes reuse it without creating one large cache per commit.
       - name: Save Next.js build cache
-        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+        if: steps.next-cache.outputs.cache-hit != 'true' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request')
         uses: actions/cache/save@v6
         with:
           path: apps/public-web/.next/cache
-          key: next-build-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
+          key: ${{ steps.next-cache.outputs.cache-primary-key }}
 
       - name: Upload validated build outputs
         uses: actions/upload-artifact@v7
