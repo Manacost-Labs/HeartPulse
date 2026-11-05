@@ -851,6 +851,40 @@ retries after the fix. The hosted run also retried the separate lightbox-close
 fixture because its recorded CSS transition fields were null; that observation
 remains unresolved and is not covered by the leaderboard ordering change.
 
+## Blank-browser startup process sampling
+
+Run `42128153215` on `b7f92290` passed all 36 checks. Required validation
+completed in 176 seconds including queue time; all 549 blocking files passed
+without retries. Both leaderboard states and lightbox close passed on their
+first attempt. This is still above the 120-second target.
+
+Browser shard 2 ended last. Its blank-browser launch took 27.720 seconds,
+including 17 seconds before the first Chrome stderr message. Closing added
+1.067 seconds. Artifact downloads occupied only three seconds after dependency
+installation, so overlapping them with warmup would hide little of this delay.
+D-Bus messages alone do not establish the cause.
+
+Linux GitHub warmup now samples only the launcher's direct children once per
+second, capped at eight children per sample. The allowlisted fields are PID,
+process state, main-thread CPU and run-queue milliseconds, storage read bytes,
+and kernel wait channel. These are cumulative counters, so compare consecutive
+samples for the same PID. Scheduler values describe the main thread, not all
+Chrome threads; unavailable counters are null, and kernel configuration can
+limit scheduler accounting. Missing processes or proc files are tolerated.
+The field meanings follow the Linux kernel's [proc documentation][proc-docs]
+and [scheduler statistics][sched-docs].
+
+No command arguments, environment values, open-file paths or raw proc files
+are logged. Sampling stops in `finally` after warmup success or failure, before
+any test worker starts. Only the disposable blank browser is observed; launch
+flags, deadlines, retries, assertions and matrix sizes are unchanged. This is
+a diagnostic change, not evidence of faster CI. A controlled child test checks
+counter-only output and sampler shutdown; a delayed real-Chrome launch probe
+checks worker ordering and cleanup after both success and launch failure.
+
+[proc-docs]: https://docs.kernel.org/filesystems/proc.html
+[sched-docs]: https://docs.kernel.org/scheduler/sched-stats.html
+
 ## Verification
 
 Focused runner and workflow tests must prove deterministic complete sharding,

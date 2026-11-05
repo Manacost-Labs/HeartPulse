@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { fork } from 'node:child_process';
+import { once } from 'node:events';
 import { planTestWorkers, runTestWorkers } from '../scripts/run-test-workers.mjs';
+import { startWarmupDiagnostics } from '../scripts/lib/browser-warmup-diagnostics.mjs';
 import { credentialBackendArguments } from './helpers/credentialBackend.mjs';
 
 test('workers partition the full matrix into disjoint global shards and separate reports', () => {
@@ -98,4 +101,41 @@ test('warmup failure prevents worker execution; default runs do not warm a brows
   assert.equal(calls, 2);
   assert.throws(() => planTestWorkers([...args, '--warmup-browser', '--warmup-browser']));
   assert.throws(() => planTestWorkers(['--suite', 'unit', ...args.slice(2), '--warmup-browser']));
+});
+
+test('warmup diagnostics expose only counters and stop without touching the child', { skip: process.platform !== 'linux' }, async () => {
+  const secret = 'warmup-private-sentinel';
+  const child = fork('-e', ['process.send("ready"); setInterval(() => {}, 1000)', secret], {
+    env: { ...process.env, WARMUP_PRIVATE_SENTINEL: secret }, silent: true,
+  });
+  let stop = () => {};
+  const messages = [];
+  try {
+    await once(child, 'message', { signal: AbortSignal.timeout(5000) });
+    const snapshot = await new Promise((resolve, reject) => {
+      const timeout = setTimeout(() => reject(new Error('warmup child snapshot missing')), 2000);
+      stop = startWarmupDiagnostics({ intervalMs: 10, emit: line => {
+        messages.push(line);
+        const record = JSON.parse(line.slice('[browser-warmup] '.length));
+        const ownChild = record.children.find(entry => entry.pid === child.pid);
+        if (ownChild) { clearTimeout(timeout); resolve(ownChild); }
+      } });
+    });
+    stop();
+    const count = messages.length;
+    await new Promise(resolve => setTimeout(resolve, 50));
+    assert.equal(messages.length, count, 'sampling cannot leak into later test workers');
+    assert.ok(!messages.join('\n').includes(secret), 'arguments and environment stay private');
+    assert.deepEqual(Object.keys(snapshot).sort(), ['mainThreadCpuMs', 'mainThreadRunQueueMs', 'pid', 'readBytes', 'state', 'waitChannel']);
+    assert.ok(Number.isFinite(snapshot.mainThreadCpuMs) && snapshot.mainThreadCpuMs >= 0);
+    assert.ok(Number.isFinite(snapshot.readBytes) && snapshot.readBytes >= 0);
+    assert.equal(child.exitCode, null, 'observing a child does not stop it');
+  } finally {
+    stop();
+    if (child.exitCode === null && child.signalCode === null) {
+      const closed = once(child, 'close');
+      child.kill('SIGKILL');
+      await closed;
+    }
+  }
 });

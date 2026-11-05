@@ -4,6 +4,7 @@ import { availableParallelism, freemem, loadavg, totalmem } from 'node:os';
 import { pathToFileURL } from 'node:url';
 import { parseRunnerArguments } from './test-suite-runner.mjs';
 import { runProcess } from './lib/process-task.mjs';
+import { startWarmupDiagnostics } from './lib/browser-warmup-diagnostics.mjs';
 
 /** Stripe global shards across jobs so the longest shards do not compete on one runner. */
 export function planTestWorkers(args) {
@@ -38,12 +39,17 @@ export function planTestWorkers(args) {
 async function warmBrowser(environment) {
   if (!environment.CHROMIUM_PATH) throw new Error('--warmup-browser requires CHROMIUM_PATH');
   const { launchBrowser } = await import('./lib/browser-launch.mjs');
-  const browser = await launchBrowser({
-    executablePath: environment.CHROMIUM_PATH, headless: true, args: ['--no-sandbox'],
-    // This browser opens only about:blank; expose cold-start stderr, never test pages.
-    dumpio: environment.GITHUB_ACTIONS === 'true',
-  });
-  await browser.close();
+  const stopDiagnostics = environment.GITHUB_ACTIONS === 'true' ? startWarmupDiagnostics() : () => {};
+  try {
+    const browser = await launchBrowser({
+      executablePath: environment.CHROMIUM_PATH, headless: true, args: ['--no-sandbox'],
+      // This browser opens only about:blank; expose cold-start stderr, never test pages.
+      dumpio: environment.GITHUB_ACTIONS === 'true',
+    });
+    await browser.close();
+  } finally {
+    stopDiagnostics();
+  }
 }
 
 export async function runTestWorkers(args, {
