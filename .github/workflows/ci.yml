@@ -93,6 +93,7 @@ jobs:
     timeout-minutes: 15
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
+      HP_CI_SEPARATE_NEXT_TYPES: '1'
 
     steps:
       - name: Checkout repository
@@ -271,7 +272,19 @@ jobs:
             printf '%s\n' "$AFFECTED_TESTS" > "$RUNNER_TEMP/affected-tests.json"
             only_files=(--only-files "$RUNNER_TEMP/affected-tests.json")
           fi
-          npm run test:suite -- unit,integration,contract,production-smoke --shard ${{ matrix.shard }}/${{ strategy.job-total }} --continue-on-failure "${only_files[@]}"
+          node scripts/run-test-workers.mjs --suite unit,integration,contract,production-smoke --shard ${{ matrix.shard }}/${{ strategy.job-total }} --continue-on-failure --workers 2 --report-dir "$RUNNER_TEMP/test-timings" "${only_files[@]}"
+
+      - name: Upload test timings
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-timings-registry-${{ matrix.shard }}
+          path: ${{ runner.temp }}/test-timings
+          if-no-files-found: ignore
+          retention-days: 14
+          compression-level: 0
+          overwrite: true
 
       # The Next bundle budget test writes this; main's copy is the baseline source.
       # Exactly one shard runs that test, so only that shard has a file to upload.
@@ -328,7 +341,19 @@ jobs:
             printf '%s\n' "$AFFECTED_TESTS" > "$RUNNER_TEMP/affected-tests.json"
             only_files=(--only-files "$RUNNER_TEMP/affected-tests.json")
           fi
-          npm run test:suite -- browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure --quarantine exclude "${only_files[@]}"
+          node scripts/run-test-workers.mjs --suite browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure --quarantine exclude --workers 4 --report-dir "$RUNNER_TEMP/test-timings" "${only_files[@]}"
+
+      - name: Upload test timings
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-timings-browser-${{ matrix.shard }}
+          path: ${{ runner.temp }}/test-timings
+          if-no-files-found: ignore
+          retention-days: 14
+          compression-level: 0
+          overwrite: true
 
   # The registry's quarantined flaky tests, each with an open issue. Reported on
   # pull requests and manual runs but never gating: CI required and the
@@ -364,24 +389,34 @@ jobs:
           path: storybook-static
 
       - name: Run quarantined browser tests
-        run: npm run test:suite -- browser --retry-failed-once --continue-on-failure --quarantine only
+        run: npm run test:suite -- browser --retry-failed-once --continue-on-failure --quarantine only --report "$RUNNER_TEMP/test-timings.json"
 
-  # Builds its own Next runtime so it starts with the build instead of after it;
-  # the two halves of scripts/e2e-qa.mjs run in parallel.
+      - name: Upload test timings
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-timings-quarantine
+          path: ${{ runner.temp }}/test-timings.json
+          if-no-files-found: ignore
+          retention-days: 14
+          compression-level: 0
+          overwrite: true
+
+  # Two isolated QA runtimes per job; all groups test the release build above.
   browser-observatory:
-    name: Full browser observatory (${{ matrix.part }})
-    needs: reuse
-    if: ${{ !cancelled() && needs.reuse.outputs.run-id == '' }}
+    name: Full browser observatory (batch ${{ matrix.batch }})
+    needs: [reuse, build]
+    if: ${{ !cancelled() && needs.reuse.outputs.run-id == '' && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     env:
       PUPPETEER_SKIP_DOWNLOAD: 'true'
       CHROMIUM_PATH: '/usr/bin/google-chrome'
-      QA_PART: ${{ matrix.part }}
     strategy:
       fail-fast: false
       matrix:
-        part: [routes, interactions]
+        batch: [1, 2, 3, 4]
 
     steps:
       - name: Checkout repository
@@ -390,15 +425,13 @@ jobs:
       - name: Install locked dependencies
         uses: ./.github/actions/install-dependencies
 
-      - name: Restore Next.js build cache
-        uses: actions/cache/restore@v6
+      - name: Download validated build outputs
+        uses: actions/download-artifact@v8
         with:
-          path: apps/public-web/.next/cache
-          key: next-build-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ github.sha }}
-          restore-keys: next-build-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+          name: build-outputs-${{ github.sha }}
 
       - name: Run full browser observatory
-        run: npm run qa:ci
+        run: node scripts/browser-qa-batch.mjs ${{ matrix.batch }}
 
   # The one stable required check for the merge queue ruleset; shard names may change.
   # A test job may be skipped only on a pull request, and only when the plan

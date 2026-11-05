@@ -5,6 +5,7 @@
 // Usage:
 //   npm run qa:ci                                   builds, starts the Next.js runtime and runs this suite
 //   npm run qa:e2e -- --url=http://127.0.0.1:3000   against an already running site
+import { qaGroupFilter } from './qa/groups.mjs';
 import { launchBrowser } from './lib/browser-launch.mjs';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
@@ -41,6 +42,7 @@ const BASE_ORIGIN = new URL(BASE).origin;
 const OUT = process.env.QA_SCREENSHOT_DIR || mkdtempSync(join(tmpdir(), 'hs-arena-qa-'));
 const responsiveScope = (process.env.QA_RESPONSIVE_SCOPE || 'representative').trim();
 const qaPart = (process.env.QA_PART || 'all').trim();
+const runsQaGroup = qaGroupFilter(process.env.QA_GROUP || 'all', qaPart);
 if (!['all', 'routes', 'interactions'].includes(qaPart)) {
   throw new Error(`QA_PART must be all, routes or interactions; received ${qaPart}`);
 }
@@ -1210,6 +1212,7 @@ if (qaPart !== 'interactions') {
       ['desktop', { width: 1440, height: 900 }],
       ['mobile', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
     ]) {
+      if (!runsQaGroup(`routes-${device}`)) continue;
       const page = await createQaPage();
       const runtimeErrors = collectRuntimeErrors(page);
       await page.setViewport(viewport);
@@ -1509,6 +1512,7 @@ if (qaPart !== 'interactions') {
   // one desktop and one phone. Verify portrait, landscape and breakpoint edges;
   // include a post-scroll pass so nested overflow cannot silently disable sticky.
   for (const [label, viewport] of shellViewportMatrix) {
+    if (!runsQaGroup('shell-responsive')) continue;
     const page = await createQaPage();
     const runtimeErrors = collectRuntimeErrors(page);
     await page.setViewport(viewport);
@@ -1550,10 +1554,11 @@ if (qaPart !== 'interactions') {
   }
 
   const responsiveScreenshotManifest = [];
-  if (responsiveFixtures.length) {
+  if (responsiveFixtures.length && runsQaGroup('shell-responsive')) {
     console.log(`\nResponsive screenshot matrix: ${responsiveScope} (${responsiveFixtures.length} fixtures × ${responsiveProfiles.length} profiles)`);
   }
   for (const fixture of responsiveFixtures) {
+    if (!runsQaGroup('shell-responsive')) continue;
     for (const profile of responsiveProfiles) {
       const page = await createQaPage();
       const runtimeErrors = collectRuntimeErrors(page, { sameOriginNetwork: true });
@@ -1677,7 +1682,7 @@ if (qaPart !== 'interactions') {
       }
     }
   }
-  if (responsiveScope !== 'off') {
+  if (responsiveScope !== 'off' && runsQaGroup('shell-responsive')) {
     const responsiveManifestPath = `${OUT}/responsive-manifest.json`;
     const responsiveManifestTemporaryPath = `${responsiveManifestPath}.tmp-${process.pid}`;
     const responsiveSummary = responsiveScreenshotManifest.reduce((summary, entry) => {
@@ -1738,6 +1743,7 @@ for (const [device, viewport] of [
   ['desktop', { width: 1440, height: 900 }],
   ['mobile', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
 ]) {
+  if (!runsQaGroup(`admin-${device}`)) continue;
   const page = await createQaPage();
   const runtimeErrors = collectRuntimeErrors(page);
   const adminState = {
@@ -3945,6 +3951,7 @@ for (const [device, viewport] of [
 
 // The card dossier also needs a wide-screen check because rendered deck images
 // must not float inside oversized 600px columns.
+if (runsQaGroup('public')) {
 {
   const page = await createQaPage();
   const runtimeErrors = collectRuntimeErrors(page);
@@ -3989,9 +3996,11 @@ for (const [device, viewport] of [
     await page.close();
   }
 }
+}
 
 // The two Standard analytics workspaces must remain fully usable on both the
 // narrowest supported phone and a larger modern handset, not only at 390px.
+if (runsQaGroup('public')) {
 for (const width of [320, 430]) {
   const page = await createQaPage();
   const runtimeErrors = collectRuntimeErrors(page);
@@ -4090,9 +4099,11 @@ for (const width of [320, 430]) {
     await page.close();
   }
 }
+}
 
 // Reflow and operating-system accessibility modes. A 640 CSS-pixel viewport
 // is the layout width of a 1280-pixel desktop viewport at 200% zoom.
+if (runsQaGroup('public')) {
 {
   const page = await createQaPage();
   await page.setViewport({ width: 640, height: 900, deviceScaleFactor: 2 });
@@ -4163,8 +4174,10 @@ for (const width of [320, 430]) {
     await page.close();
   }
 }
+}
 
 // Guest access must render the themed paywall instead of leaking private data.
+if (runsQaGroup('public')) {
 {
   const page = await createQaPage();
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
@@ -4195,9 +4208,11 @@ for (const width of [320, 430]) {
     await page.close();
   }
 }
+}
 
 // Traditional analytics require Diamond, while the card catalog stays public
 // and locks only its statistical fields.
+if (runsQaGroup('public')) {
 for (const path of ['/standard/meta', '/standard/vicious-gold']) {
   const page = await createQaPage();
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
@@ -4227,7 +4242,9 @@ for (const path of ['/standard/meta', '/standard/vicious-gold']) {
     await page.close();
   }
 }
+}
 
+if (runsQaGroup('public')) {
 {
   const page = await createQaPage();
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
@@ -4268,9 +4285,11 @@ for (const path of ['/standard/meta', '/standard/vicious-gold']) {
     await page.close();
   }
 }
+}
 
 // The card page's statistics block: no overflow at any width, controls stacked on a phone and level on a
 // desktop, plain metric names with printed explanations, digits in the body face, and a visible focus ring.
+if (runsQaGroup('public')) {
 for (const [device, viewport] of [
   ['desktop', { width: 1440, height: 900, deviceScaleFactor: 1 }],
   ['laptop', { width: 1280, height: 800, deviceScaleFactor: 1 }],
@@ -4358,9 +4377,11 @@ for (const [device, viewport] of [
     await guest.close();
   }
 }
+}
 
 // Locked Battlegrounds routes must load their route shell skin even though the
 // paywall deliberately prevents the heavy data component from mounting.
+if (runsQaGroup('public')) {
 for (const [device, viewport] of [
   ['desktop', { width: 1280, height: 800, deviceScaleFactor: 1 }],
   ['mobile', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
@@ -4402,8 +4423,10 @@ for (const [device, viewport] of [
     await page.close();
   }
 }
+}
 
 // Public auth keeps one material owner across login, registration and reset.
+if (runsQaGroup('public')) {
 for (const [device, viewport] of [
   ['desktop', { width: 1280, height: 800, deviceScaleFactor: 1 }],
   ['mobile', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }],
@@ -4515,10 +4538,12 @@ for (const [device, viewport] of [
     await page.close();
   }
 }
+}
 
 // The directories are in the document, so the page index works on
 // the first click, before any section script loads. Its own page: a pointer
 // click would change which focus the next block's keyboard checks see.
+if (runsQaGroup('public')) {
 {
   const page = await createQaPage();
   await page.setViewport({ width: 1440, height: 900 });
@@ -4540,8 +4565,10 @@ for (const [device, viewport] of [
     await page.close();
   }
 }
+}
 
 // Below-fold home chunks and the delayed prompt must remain independently usable.
+if (runsQaGroup('home')) {
 {
   const page = await createQaPage();
   const runtimeErrors = collectRuntimeErrors(page);
@@ -5295,10 +5322,12 @@ for (const [device, viewport] of [
     await page.close();
   }
 }
+}
 
 // Admin resilience: a section whose code cannot be downloaded shows its own error while the menu
 // and the other sections keep working, and a request refused because the session ended tells the
 // administrator to sign in again without dropping what is on the page.
+if (runsQaGroup('home')) {
 {
   const page = await createQaPage();
   const adminState = {
@@ -5358,9 +5387,11 @@ for (const [device, viewport] of [
     await page.close();
   }
 }
+}
 
 // A failed below-fold chunk must not remove the rest of Home. The section
 // degrades inside its own frame and offers an explicit page refresh.
+if (runsQaGroup('home')) {
 {
   const page = await createQaPage();
   await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
@@ -5403,9 +5434,11 @@ for (const [device, viewport] of [
     await page.close();
   }
 }
+}
 
 // Keyboard entry: the skip link must be the first application control, become
 // visible on focus and move focus to the main landmark without a pointer.
+if (runsQaGroup('navigation')) {
 {
   const page = await createQaPage();
   await page.setViewport({ width: 1440, height: 900 });
@@ -5445,8 +5478,10 @@ for (const [device, viewport] of [
     await page.close();
   }
 }
+}
 
 // Desktop sidebar: stable tavern frame, active/hover navigation and expandable groups.
+if (runsQaGroup('navigation')) {
 {
   const page = await createQaPage();
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
@@ -5732,8 +5767,10 @@ for (const [device, viewport] of [
     await page.close();
   }
 }
+}
 
 // Mobile drawer: visible controls, grouped navigation and background scroll lock.
+if (runsQaGroup('navigation')) {
 {
   const page = await createQaPage();
   let stage = 'load';
@@ -5977,6 +6014,7 @@ for (const [device, viewport] of [
     await page.close();
   }
 }
+}
 
 async function assertCardLightboxPresentation(page, label, expectedColumns) {
   await page.waitForFunction(() => getComputedStyle(document.querySelector('.card-modal-lightbox')).opacity === '1');
@@ -6064,6 +6102,7 @@ async function assertCardTooltipPresentation(page, label) {
   }
 }
 
+if (runsQaGroup('navigation')) {
 for (const [label, viewport] of [
   ['desktop', { width: 1280, height: 720 }],
   ['compact desktop', { width: 1024, height: 640 }],
@@ -6088,9 +6127,11 @@ for (const [label, viewport] of [
     await page.close();
   }
 }
+}
 
 // Card lightbox: opening it must freeze the underlying mobile document and
 // closing it must restore both the scroll position and inline styles.
+if (runsQaGroup('navigation')) {
 {
   const page = await createQaPage();
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
@@ -6127,6 +6168,7 @@ for (const [label, viewport] of [
   } finally {
     await page.close();
   }
+}
 }
 
 await browser.close();

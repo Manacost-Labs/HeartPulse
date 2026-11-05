@@ -34,7 +34,7 @@ test('archetype and Vicious Gold placeholders fit their loaded views at public w
     async function open(storyId, readySelector) {
       // One repeat under the same conditions: a story chunk can fail to load once on a busy host.
       for (let attempt = 1; ; attempt += 1) {
-        await page.goto(storybook.storyUrl(storyId), { waitUntil: 'networkidle0' });
+        await page.goto(storybook.storyUrl(storyId), { waitUntil: 'domcontentloaded' });
         const loaded = await page.waitForSelector(readySelector, { timeout: 15_000 }).then(() => true, () => false);
         if (loaded) break;
         if (attempt === 2) throw new Error(`${storyId} at ${page.viewport()?.width}px did not render: ${await page.evaluate(() => document.body.innerText.slice(0, 200))}`);

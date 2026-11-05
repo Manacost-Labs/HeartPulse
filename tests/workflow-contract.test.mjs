@@ -95,8 +95,8 @@ for (const event of ['merge_group', 'push', 'workflow_dispatch']) {
   assert.deepEqual(planTestShards({ event, status: 0, output: '{"mode":"none","files":{}}', registry: { suites: [] } }), {
     mode: 'all',
     reason: `${event} always runs every test`,
-    registryShards: [1, 2],
-    browserShards: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+    registryShards: [1, 2, 3, 4, 5, 6],
+    browserShards: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     affectedTests: '',
   }, `${event} runs the full matrices`);
 }
@@ -113,7 +113,7 @@ assert.match(ciJobs.reuse, /^ {4}if: github\.event_name == 'push' && github\.ref
 assert.match(ciJobs.reuse, /permissions:\n {6}actions: read\n {6}contents: read\n/);
 assert.match(ciJobs.reuse, /run-id: \$\{\{ steps\.find\.outputs\.run-id \}\}/);
 assert.match(ciJobs.reuse, /GITHUB_TOKEN: \$\{\{ github\.token \}\}\n {8}run: node scripts\/find-validated-release\.mjs$/m);
-for (const job of ['build', 'storybook', 'validate', 'browser-observatory']) {
+for (const job of ['build', 'storybook', 'validate']) {
   assert.ok(ciJobs[job].includes("    needs: reuse\n    if: ${{ !cancelled() && needs.reuse.outputs.run-id == '' }}\n"),
     `${job} validates whenever no merge-queue run is reused, including when the lookup itself failed`);
 }
@@ -153,13 +153,19 @@ assert.match(ciJobs.validate, /- name: Run release-blocking static checks\s+run:
 assert.match(ciJobs.validate, /fetch-depth: 0/, 'the clean-code gate needs the diff base history');
 assert.match(ciJobs.validate, /run: npm audit --omit=dev --audit-level=critical/);
 assert.match(ciJobs.build, /- name: Build and smoke-test release inputs\s+run: npm run verify:release:build$/m);
+assert.ok(ciJobs.build.includes("HP_CI_SEPARATE_NEXT_TYPES: '1'"));
+assert.ok(packageScripts['verify:release:checks'].includes('npm run lint:next:authoritative'),
+  'skipping the duplicate build check requires the same compiler in the required static gate');
 for (const [id, body] of Object.entries(ciJobs)) {
   if (id === 'build') continue;
   assert.doesNotMatch(body, /npm run (?:verify:release:build|release:create)\b/, `${id} must not package a second release`);
   if (id === 'refresh-caches') continue;
   assert.doesNotMatch(body, /npm run build(?![\w:-])/, `${id} must not build a second release`);
 }
-assert.match(ciJobs['browser-observatory'], /run: npm run qa:ci/);
+assert.match(ciJobs['browser-observatory'], /run: node scripts\/browser-qa-batch.mjs \$\{\{ matrix\.batch \}\}/);
+assert.match(ciJobs['browser-observatory'], /^ {4}needs: \[reuse, build\]$/m);
+assert.ok(ciJobs['browser-observatory'].includes("needs.build.result == 'success'"));
+assert.ok(ciJobs['browser-observatory'].includes('name: build-outputs-${{ github.sha }}'));
 
 const buildOutputsName = 'name: build-outputs-${{ github.sha }}';
 assert.match(ciJobs.build, /- name: Upload validated build outputs\s+uses: actions\/upload-artifact@v7/);
@@ -183,12 +189,16 @@ for (const [job, shards] of [['test-suites', 'registry-shards'], ['browser-tests
   assert.match(ciJobs[job], /uses: actions\/download-artifact@v8\n {8}with:\n {10}name: build-outputs-\$\{\{ github\.sha \}\}\n\n/,
     'outputs restore at their repository paths (no custom download path)');
   assert.match(ciJobs[job], /name: storybook-static-\$\{\{ github\.sha \}\}\n {10}path: storybook-static\n/);
-  assert.doesNotMatch(ciJobs[job], /continue-on-error/, `${job} failures must block production`);
+  for (const step of ciJobs[job].split(/^ {6}- name: /m)) {
+    if (!step.startsWith('Upload test timings\n')) {
+      assert.doesNotMatch(step, /continue-on-error/, `${job} failures must block production`);
+    }
+  }
   assert.match(ciJobs[job], /strategy:\n(?: {6}#[^\n]*\n)? {6}fail-fast: false\n/,
     'a failing shard must not cancel and hide the other shards');
 }
 // Only main and manual runs save the Next.js cache; every other ref only reads it.
-for (const job of ['build', 'browser-observatory', 'refresh-caches']) {
+for (const job of ['build', 'refresh-caches']) {
   assert.match(ciJobs[job], /uses: actions\/cache\/restore@v6\n {8}with:\n {10}path: apps\/public-web\/\.next\/cache\n/);
 }
 assert.match(ciJobs.build, /- name: Save Next\.js build cache\n {8}if: github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'\n/);
@@ -213,19 +223,19 @@ const onlyFilesRun = command => [
   `          ${command} "\${only_files[@]}"`,
   '',
 ].join('\n');
-const suiteRun = ciJobs['test-suites'].match(/^ {10}npm run test:suite -- ([a-z,-]+) --shard /m)?.[1];
+const suiteRun = ciJobs['test-suites'].match(/^ {10}node scripts\/run-test-workers.mjs --suite ([a-z,-]+) --shard /m)?.[1];
 assert.ok(suiteRun, 'the non-browser shards must run registry suites');
 assert.ok(ciJobs['test-suites'].includes(onlyFilesRun(
-  `npm run test:suite -- ${suiteRun} --shard \${{ matrix.shard }}/\${{ strategy.job-total }} --continue-on-failure`,
+  `node scripts/run-test-workers.mjs --suite ${suiteRun} --shard \${{ matrix.shard }}/\${{ strategy.job-total }} --continue-on-failure --workers 2 --report-dir "$RUNNER_TEMP/test-timings"`,
 )), 'the non-browser shards derive the total from the matrix and run only the planned files');
 assert.ok(suiteRun, 'the non-browser shards must run registry suites and derive the total from the matrix');
 assert.deepEqual([...suiteRun.split(','), 'browser'].sort(), [...TEST_SUITE_IDS].sort(),
   'every registry suite runs in exactly one job');
-assert.deepEqual(FULL_SHARDS, { registry: 2, browser: 9 },
-  'a full run has two registry shards (a third only added runner minutes outside the critical path) and nine browser shards');
+assert.deepEqual(FULL_SHARDS, { registry: 6, browser: 10 },
+  'a full run has six registry jobs and ten browser jobs, with bounded isolated workers');
 assert.ok(
   ciJobs['browser-tests'].includes(onlyFilesRun(
-    'npm run test:suite -- browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure --quarantine exclude',
+    'node scripts/run-test-workers.mjs --suite browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure --quarantine exclude --workers 4 --report-dir "$RUNNER_TEMP/test-timings"',
   )),
   'shards derive the total from the matrix, retry a failing file exactly once, report every failure and skip the quarantine',
 );
@@ -246,7 +256,13 @@ assert.ok(!/merge_group|github\.event_name == 'push'/.test(quarantineIf), 'the q
 assert.ok(quarantineJob.includes(buildOutputsName), 'the quarantine job must download the validated build outputs');
 assert.match(quarantineJob, /name: storybook-static-\$\{\{ github\.sha \}\}\n {10}path: storybook-static\n/,
   'quarantined archetype and skeleton tests serve the Storybook build');
-assert.match(quarantineJob, /- name: Run quarantined browser tests\n {8}run: npm run test:suite -- browser --retry-failed-once --continue-on-failure --quarantine only$/m);
+assert.match(quarantineJob, /- name: Run quarantined browser tests\n {8}run: npm run test:suite -- browser --retry-failed-once --continue-on-failure --quarantine only --report "\$RUNNER_TEMP\/test-timings.json"$/m);
+for (const [job, artifact] of [['test-suites', 'registry-${{ matrix.shard }}'], ['browser-tests', 'browser-${{ matrix.shard }}'], ['browser-quarantine', 'quarantine']]) {
+  assert.match(ciJobs[job], /- name: Upload test timings\n {8}if: always\(\)\n {8}continue-on-error: true/,
+    'timings survive test failures and their upload never changes the test outcome');
+  assert.ok(ciJobs[job].includes(`name: test-timings-${artifact}`));
+  assert.ok(ciJobs[job].includes(`path: \${{ runner.temp }}/test-timings${job === 'browser-quarantine' ? '.json' : ''}`));
+}
 assert.ok(!validationJobs.includes('browser-quarantine'));
 assert.equal(packageScripts['test:suite'], 'node scripts/test-suite-runner.mjs --suite');
 const testRegistry = JSON.parse(readFileSync('tests/test-suites.json', 'utf8'));
@@ -264,14 +280,11 @@ assert.match(ciWorkflow, /CLEAN_CODE_EVENT:\s*\$\{\{ github\.event_name \}\}/);
 assert.match(ciWorkflow, /CLEAN_CODE_PUSH_BEFORE:\s*\$\{\{ github\.event\.before \}\}/);
 assert.match(ciWorkflow, /CLEAN_CODE_PR_BASE_SHA:\s*\$\{\{ github\.event\.pull_request\.base\.sha \}\}/);
 assert.match(ciWorkflow, /CLEAN_CODE_DISPATCH_BASE:\s*\$\{\{ inputs\.clean_code_base \}\}/);
-assert.match(ciJobs['browser-observatory'], /^ {4}name: Full browser observatory \(\$\{\{ matrix\.part \}\}\)$/m);
-assert.match(ciJobs['browser-observatory'], /^ {4}timeout-minutes: 25$/m);
-assert.match(ciJobs['browser-observatory'], /^ {6}QA_PART: \$\{\{ matrix\.part \}\}$/m);
-// Every part the QA script accepts besides `all` runs in exactly one job.
-const qaParts = readFileSync('scripts/e2e-qa.mjs', 'utf8').match(/\[('all'(?:, '[a-z]+')+)\]\.includes\(qaPart\)/)?.[1]
-  .split(', ').map(part => part.replaceAll("'", '')).filter(part => part !== 'all');
-assert.deepEqual(ciJobs['browser-observatory'].match(/^ {8}part: \[([a-z, ]+)\]$/m)?.[1].split(', '), qaParts,
-  'the observatory matrix must cover every QA part');
+assert.match(ciJobs['browser-observatory'], /^ {4}name: Full browser observatory \(batch \$\{\{ matrix\.batch \}\}\)$/m);
+assert.match(ciJobs['browser-observatory'], /^ {4}timeout-minutes: 15$/m);
+assert.match(ciJobs['browser-observatory'], /^ {8}batch: \[1, 2, 3, 4\]$/m);
+assert.doesNotMatch(ciJobs['browser-observatory'], /npm run qa:ci|actions\/cache\/restore/,
+  'the observatory tests the validated artifact without rebuilding it');
 assert.match(
   ciWorkflow,
   /browser-observatory:[\s\S]*?env:\s+PUPPETEER_SKIP_DOWNLOAD:\s*'true'\s+CHROMIUM_PATH:\s*'\/usr\/bin\/google-chrome'/,
@@ -284,8 +297,8 @@ assert.doesNotMatch(
 );
 assert.match(
   ciWorkflow,
-  /- name:\s*Run full browser observatory\s+run:\s*npm run qa:ci/,
-  'the isolated browser job must build the current sources before testing the Next.js runtime',
+  /- name:\s*Run full browser observatory\s+run:\s*node scripts\/browser-qa-batch.mjs/,
+  'every observatory batch must run against the downloaded Next.js release',
 );
 assert.match(ciWorkflow, /npm run release:create -- --output="\$RUNNER_TEMP\/release-\$GITHUB_SHA" --sha="\$GITHUB_SHA"/);
 assert.match(ciWorkflow, /actions\/upload-artifact@v7/);

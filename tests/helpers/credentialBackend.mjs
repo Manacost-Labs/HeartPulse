@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdtempSync, mkdirSync, rmSync, symlinkSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, rmSync, symlinkSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -78,8 +78,18 @@ function controlledSmtp() {
   };
 }
 
-/** Runs the current backend entry point with only temporary state and local SMTP. */
+export function credentialBackendArguments({ compiled = false, externalOrigin = false } = {}) {
+  return [
+    ...(!compiled ? ['--import', 'tsx'] : []),
+    ...(externalOrigin ? ['--import', './tests/helpers/controlledExternalFetch.mjs'] : []),
+    compiled ? 'build/server/index.js' : 'server/index.ts',
+  ];
+}
+
+/** Source by default; CI explicitly tests the exact compiled release with temporary state and local SMTP. */
 export async function startCredentialBackend(options = {}) {
+  const compiled = process.env.HP_TEST_COMPILED_BACKEND === '1';
+  if (compiled) assert.ok(existsSync('build/server/index.js'), 'compiled backend missing; run npm run build first');
   const directory = mkdtempSync(join(tmpdir(), 'hearthpulse-auth-integration-'));
   const dataDirectory = join(directory, 'data');
   mkdirSync(dataDirectory);
@@ -91,7 +101,7 @@ export async function startCredentialBackend(options = {}) {
   await new Promise(resolve => reservation.close(resolve));
   const origin = `http://127.0.0.1:${port}`;
   const databasePath = join(directory, 'users.sqlite');
-  const child = spawn(process.execPath, ['--import', 'tsx', ...(options.externalOrigin ? ['--import', './tests/helpers/controlledExternalFetch.mjs'] : []), 'server/index.ts'], {
+  const child = spawn(process.execPath, credentialBackendArguments({ compiled, externalOrigin: options.externalOrigin }), {
     cwd: process.cwd(),
     env: {
       PATH: process.env.PATH,

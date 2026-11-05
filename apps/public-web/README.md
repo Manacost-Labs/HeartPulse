@@ -386,12 +386,19 @@ is a separate administrator workspace and retains its permission gate.
 | `npm run dev:next` | Only the Next dev server on `127.0.0.1:4320` |
 | `npm run build:next` | Production build (required before Next browser tests) |
 | `npm run lint:next` | TypeScript check of this app |
+| `npm run lint:next:authoritative` | Generate route validators and check with Next's TypeScript compiler; required static CI gate |
 | `npm run agent:context -- apps/public-web` | Owner, routes, focused tests, docs and debt of this app |
 | `npm run test:next-contracts` | Import, Express-client, search-param and navigation contracts |
 | `npm run budget:next` | Gzip budgets of the initial JS and CSS per public route (`config/next-bundle-budgets.json`) |
 | `node --test tests/next-<name>.test.mjs` | One Next test |
 | `npm run verify:release` | Full release gate |
 <!-- markdownlint-enable MD013 -->
+
+CI sets `HP_CI_SEPARATE_NEXT_TYPES=1` only for the release build, so it does not
+repeat TypeScript checking inside `next build`. The required static job runs
+`lint:next:authoritative` with generated route validators and the same `tsc`
+compiler; `lint:next` also checks the completed build through the configured
+checker. Standalone builds keep Next's built-in type check by default.
 
 `npm run dev` is the complete local site: open `http://localhost:3000`. The
 gateway (`npm run dev:web`, `scripts/public-web-gateway.mjs`) sends pages and

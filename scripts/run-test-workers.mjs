@@ -1,0 +1,47 @@
+#!/usr/bin/env node
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { parseRunnerArguments } from './test-suite-runner.mjs';
+import { runProcess } from './lib/process-task.mjs';
+
+/** Every job splits into disjoint global shards; workers never share a timing report. */
+export function planTestWorkers(args) {
+  const forwarded = [];
+  const options = new Map();
+  for (let index = 0; index < args.length; index += 1) {
+    const flag = args[index];
+    if (['--workers', '--report-dir'].includes(flag)) {
+      if (options.has(flag) || !args[index + 1] || args[index + 1].startsWith('--')) throw new Error(`invalid ${flag}`);
+      options.set(flag, args[++index]);
+    } else forwarded.push(flag);
+  }
+  const workers = Number(options.get('--workers'));
+  const directory = options.get('--report-dir');
+  if (!Number.isInteger(workers) || workers < 1 || workers > 4 || !directory) throw new Error('--workers must be 1–4 and --report-dir is required');
+  const parsed = parseRunnerArguments(forwarded);
+  if (!parsed.shard || parsed.reportPath) throw new Error('--shard is required; use --report-dir instead of --report');
+  const offset = forwarded.indexOf('--shard');
+  return Array.from({ length: workers }, (_, worker) => {
+    const next = [...forwarded];
+    next[offset + 1] = `${(parsed.shard.index - 1) * workers + worker + 1}/${parsed.shard.total * workers}`;
+    return [...next, '--report', path.join(directory, `worker-${worker + 1}.json`)];
+  });
+}
+
+export async function runTestWorkers(args, { repositoryRoot = process.cwd(), environment = process.env, execute = runProcess } = {}) {
+  const workers = planTestWorkers(args);
+  const outcomes = await Promise.allSettled(workers.map((flags, index) => execute(process.execPath,
+    ['scripts/test-suite-runner.mjs', ...flags], {
+      label: `test worker ${index + 1}`, repositoryRoot,
+      environment: { ...environment, HP_TEST_COMPILED_BACKEND: '1', PRODUCTION_SCRAPER_BUILD_READY: '1' },
+    })));
+  const failures = outcomes.filter(outcome => outcome.status === 'rejected');
+  if (failures.length) throw failures.find(outcome => outcome.reason.interrupted)?.reason ?? failures[0].reason;
+}
+
+if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) {
+  runTestWorkers(process.argv.slice(2)).catch(error => {
+    console.error(error.message);
+    process.exitCode = error.exitCode || 1;
+  });
+}

@@ -68,21 +68,31 @@ when enabled) and preserves the failing exit code or termination signal.
 
 ## CI sharding and flaky retries
 
-CI runs the `browser` suite as a matrix of shards
-(`npm run test:suite -- browser --shard i/N --retry-failed-once
---continue-on-failure --quarantine exclude`) and the other four suites as a
-second matrix
-(`npm run test:suite -- unit,integration,contract,production-smoke --shard
-i/N --continue-on-failure`, no retries). Each shard
-computes the same deterministic partition from the registry and
+CI runs browser tests in ten jobs with four isolated worker processes each;
+the other four suites run in six jobs with two workers each. Each job calls
+`scripts/run-test-workers.mjs --suite ... --shard i/N --workers W
+--report-dir <directory>`. It maps worker j to global shard
+`((i - 1) * W + j)/(N * W)`, so every selected file belongs to exactly one
+worker. Workers use independent child processes and reports; the job waits
+for all of them and fails if any fails. Signals propagate through process
+groups using the same lifecycle helper as the sequential runner.
+
+Each worker computes the same deterministic partition from the registry and
 `tests/test-durations.json`: files are assigned longest first to the lightest
 shard, a file without a recorded duration weighs `defaultSeconds`, and each
-shard keeps registry order. Every selected file lands in exactly one shard;
-`tests/test-suite-runner.test.mjs` and `tests/workflow-contract.test.mjs`
-prove it for the checked registry and the CI shard count. Durations only steer
-the balance, so a stale or missing entry never skips a test. To rebalance,
-copy the per-file durations from the shard job summaries into
-`tests/test-durations.json`.
+shard keeps registry order. Durations only steer balance; no stale or missing
+entry can skip a test. `--only-files` and quarantine filtering happen before
+partitioning. The standalone registry runner remains sequential by default.
+
+Worker jobs explicitly set `HP_TEST_COMPILED_BACKEND=1`, so credential-backed
+fixtures launch `build/server/index.js` from the validated release rather than
+transpiling the backend for every file. A missing build fails at once. Standalone
+fixtures retain source execution unless that flag is explicitly set. Every
+fixture keeps its own temporary database, SMTP and loopback ports.
+
+CI saves one machine-readable timing artifact per job, containing separate
+worker reports. Refresh the weights with `scripts/update-test-durations.mjs`
+as described in [CI performance](../runbooks/ci-performance.md#refreshing-test-weights).
 
 With `--retry-failed-once` a file that exits nonzero or crashes is rerun once
 in the same shard. A pass on the retry is logged as
@@ -100,6 +110,14 @@ runner (a cancelled or timed-out job) stops at once. Every run with
 `GITHUB_STEP_SUMMARY` set writes a per-file PASS/FLAKY/FAIL/NOT RUN table with
 durations. Local `npm test` keeps the original behavior: no shards, no
 retries, and a stop at the first failure.
+
+`--report <file>` additionally writes a versioned JSON report on success,
+failure or runner interruption, including `NOT RUN` entries after an early
+stop. Timings of FLAKY files include both attempts. The report contains only
+test paths, statuses, durations, selected suite/shard/quarantine and allowlisted
+GitHub run identity; child output, error text and other environment values are
+not persisted. CI uploads it with `always()`; an upload failure is advisory
+and cannot hide a failed test. A forced runner termination may prevent upload.
 
 ## Quarantine
 

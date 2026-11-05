@@ -59,7 +59,12 @@ for (const name of ['verify:release', 'verify:ci']) {
   for (const typecheck of ['npm run lint', 'npm run lint:next']) {
     assert.ok(steps.includes(typecheck), `${name} must keep ${typecheck}`);
   }
+  assert.ok(steps.includes('npm run lint:next:authoritative'), `${name} retains Next's authoritative TypeScript compiler`);
 }
+assert.equal(scripts['lint:next:authoritative'], 'next typegen apps/public-web --webpack && tsc --noEmit --project apps/public-web/tsconfig.json');
+assert.ok(scripts['verify:release:checks'].includes('npm run lint:next:authoritative'));
+const nextConfig = readFileSync(new URL('../apps/public-web/next.config.mjs', import.meta.url), 'utf8');
+assert.ok(nextConfig.includes("ignoreBuildErrors: process.env.HP_CI_SEPARATE_NEXT_TYPES === '1'"));
 
 for (const viewport of [
   'width: 320, height: 568',

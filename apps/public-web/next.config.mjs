@@ -24,6 +24,9 @@ function prerenderedQueryRobotsHeaders() {
 
 /** @type {import('next').NextConfig} */
 const config = {
+  // CI runs the same compiler on generated route types in its required static gate.
+  // Keeping it out of this build lets browser tests start while that gate runs.
+  typescript: { ignoreBuildErrors: process.env.HP_CI_SEPARATE_NEXT_TYPES === '1' },
   webpack(config, { webpack }) {
     // The vendored UMD library must receive its own CommonJS module wrapper.
     config.module.rules.push({ test: /[\\/]src[\\/]vendor[\\/]hsreplay-deck-view[\\/]hsreplay-deck-view\.js$/, type: 'javascript/auto' });

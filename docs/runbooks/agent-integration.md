@@ -98,7 +98,7 @@ can affect. The `plan` job of `ci.yml` (`scripts/ci-test-plan.mjs`) uses it on
 - `subset`: the registry and browser jobs run only the selected files
   (`--only-files` gets the engine's JSON unchanged), in as many shards as they
   need: a selection of k of n runnable files gets `ceil(k × full / n)` of the
-  full 2 registry and 9 browser shards. A job with no selected file is skipped.
+  full 6 registry and 10 browser jobs. A job with no selected file is skipped.
 - `none` (documentation only): neither test job runs; `build`, `storybook`,
   `validate` and the observatory still do.
 - `all`, a non-zero exit, a timeout, an output that was not written, does not
@@ -106,7 +106,7 @@ can affect. The `plan` job of `ci.yml` (`scripts/ci-test-plan.mjs`) uses it on
   An empty diff is the engine's `none`; a list that was never written is `all`.
 
 `merge_group`, a push to `main` and `workflow_dispatch` always run every shard
-(2 registry, 9 browser) without asking the engine, so a test a narrowed pull
+(6 registry, 10 browser) without asking the engine, so a test a narrowed pull
 request skipped still runs before `main`. `CI required` accepts a skipped test
 job only on `pull_request` and only when the plan gave that job no shard; a
 failed `plan` job fails it. To run everything for a pull request, start the
