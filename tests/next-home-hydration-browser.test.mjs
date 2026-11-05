@@ -111,6 +111,17 @@ test('a slow home feed cannot hold the document and only missing feeds load in t
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.setViewport({ width: 390, height: 844 });
+    // Keep the native animation after it leaves getAnimations(). A busy runner
+    // can read the page after the 220 ms arrival has already finished.
+    await page.evaluateOnNewDocument(() => {
+      window.__homeFeedAnimations = new WeakMap();
+      const animate = Element.prototype.animate;
+      Element.prototype.animate = function (...args) {
+        const animation = animate.apply(this, args);
+        if (this.matches('[data-home-feed="articles"]')) window.__homeFeedAnimations.set(this, animation);
+        return animation;
+      };
+    });
     const articlesChunk = homeArticlesChunk();
     let heldChunk; let didHold = false;
     await page.setRequestInterception(true);
@@ -131,8 +142,11 @@ test('a slow home feed cannot hold the document and only missing feeds load in t
     assert.ok(await page.$('[data-home-feed="articles"]'), 'a recovering section must survive a delayed lazy chunk');
     heldChunk.continue();
     await page.waitForFunction(() => document.querySelector('.home-latest-articles')?.textContent.includes('Статья после медленного API'));
-    const arrival = await page.$eval('[data-home-feed="articles"]', node => {
-      const effect = node.getAnimations()[0]?.effect;
+    const arrival = await page.$eval('[data-home-feed="articles"]', async node => {
+      const animation = window.__homeFeedAnimations.get(node);
+      if (!animation) return null;
+      await animation.finished;
+      const effect = animation.effect;
       return effect ? { duration: effect.getTiming().duration,
         frames: effect.getKeyframes().map(({ opacity, transform }) => ({ opacity, transform })) } : null;
     });

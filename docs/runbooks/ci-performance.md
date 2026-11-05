@@ -348,6 +348,29 @@ Verify all540 blocking results and compare launch/scenario durations separately
 before claiming an improvement; use successful runs with the new browser
 selection for the next calibration window.
 
+The Chrome-selection run
+[42085901962](https://github.com/Manacost-Labs/HeartPulse/actions/runs/42085901962)
+passed required validation in467s:537 PASS and three FLAKY files. The build job
+started at+121s; runner queueing again materially contributed to wall time.
+Sampled shards1/3/9 logged `executable=google-chrome`; first launch time still
+varied. This confirms selection, not elimination of startup delay. The three
+retries were instant-access ordering, home-feed arrival observation, and the
+paid-view arrival deadline. Their assertions and timing budgets remain intact.
+
+The home-feed test had queried `getAnimations()` only after checking recovered
+content. Its220ms native animation may already have finished by that read, so
+the API returns no active animation even though arrival ran. The test now
+retains the native animation from `Element.animate` in a page-local WeakMap,
+awaits its `finished` promise, and checks the same native effect duration and
+keyframes. Missing animations still return null and fail; cancellation rejects
+the promise. The observer returns the original animation and does not change
+playback. A deterministic probe delayed the reader by500ms: the prior observer
+failed with null, and the retained-animation observer passed under the same
+delay. Production motion, readiness deadlines and assertions are
+unchanged.
+The exact four-worker browser shard3 passed on four local CPUs: all8 files PASS,
+without retries. Docs lint and selected-source Semgrep also passed.
+
 A disposable Turbopack probe failed after 5.8 seconds: four explicit `.js`
 TypeScript import-resolution errors, invalid generated CSS at
 `section::after::after`, and a UMD/CommonJS-format warning. The probe config and
