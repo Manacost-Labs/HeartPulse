@@ -21,3 +21,5 @@ export function loadAdminOverviewPage() {
 }
 export { personAccess, personContacts, personInitial } from './ui/peopleListModel';
 export { AdminFilterChips } from './ui/AdminFilterChips';
+export { boostyChannelMembershipIndex } from './ui/boostyTelegramMembershipModel';
+export type { BoostyChannelMembership } from './ui/boostyTelegramMembershipModel';

@@ -861,16 +861,16 @@ export const adminFixtures = {
   },
   '/api/admin/telegram/accounts': {
     configured: true,
-    chatIds: ['-100123456'],
+    chatIds: ['-1002311131780'],
     summary: { total: 2, access: 1, checkable: 1, contactOnly: 1, stale: 1, blocked: 0 },
     accounts: [
       {
-        id: 'telegram-qa-1', profileId: 'TG-0001', name: 'Участник VIP', email: 'vip@example.test', role: 'user', blockedAt: '',
+        id: 'telegram-qa-1', profileId: 'TG-0001', name: 'Участник VIP', email: 'active@example.test', role: 'user', blockedAt: '',
         telegramId: '10001', telegramOidcId: 'oidc-10001', telegramUsername: 'vip_member', contactTelegram: 'vip_member', photoUrl: '',
         hasTelegramIdentity: true, hasContactOnly: false, canBeChecked: true, hasAccess: true, telegramHasAccess: true,
         accessState: 'access', source: 'telegram', message: 'Участник найден', checkedAt: '2026-07-11T00:00:00.000Z',
         updatedAt: '2026-07-11T00:00:00.000Z', stale: false, entitlements: { arena: true, battlegrounds: true },
-        chats: [{ chatId: '-100123456', status: 'member', isMember: true, hasAccess: true }], boostyHasAccess: false,
+        chats: [{ chatId: '-1002311131780', status: 'member', isMember: true, hasAccess: true }], boostyHasAccess: false,
         createdAt: '2026-07-01T00:00:00.000Z', userUpdatedAt: '2026-07-11T00:00:00.000Z',
       },
       {
@@ -956,7 +956,7 @@ export const adminFixtures = {
   },
   '/api/admin/crm/people/telegram-qa-1': {
     person: {
-      id: 'telegram-qa-1', name: 'Участник VIP', email: 'vip@example.test', role: 'user', country: '',
+      id: 'telegram-qa-1', name: 'Участник VIP', email: 'active@example.test', role: 'user', country: '',
       createdAt: '2026-07-01T00:00:00.000Z', updatedAt: '2026-07-11T00:00:00.000Z', blockedAt: null, newsletterOptIn: false,
       contacts: { telegram: '@vip_member', vk: '', email: '' },
     },

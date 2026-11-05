@@ -2271,13 +2271,14 @@ for (const [device, viewport] of [
     const galleryViolationCount = galleryUploadViolationCount + await auditAccessibility(page, `admin gallery [${device}]`, '.admin-workspace-content');
 
     await page.goto(`${BASE}/admin?section=boosty`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForFunction(() => document.querySelectorAll('.admin-boosty-row').length === 2);
+    await page.waitForFunction(() => document.querySelectorAll('.admin-boosty-row').length === 2
+      && !document.querySelector('.admin-boosty .admin-people-reload')?.disabled);
     const boostyState = await page.evaluate(listState, '.admin-boosty');
     if (boostyState.rows !== 2 || boostyState.chips.join(',') !== '2,1,1,1,1' || !boostyState.status.includes('работает') || !boostyState.summary.includes('Всего 2')) {
       failures.push(`admin Boosty [${device}]: deterministic status, filters or subscriber table did not render (${JSON.stringify(boostyState)})`);
     }
-    if (JSON.stringify(boostyState.headers) !== JSON.stringify(['Подписчик', 'Уровень', 'Подписка', 'Доступ на сайте', 'Подписан'])
-      || JSON.stringify(boostyState.pills) !== JSON.stringify([['Активна', 'Открывает сайт'], ['Не активна', 'Не открывает сайт']])) {
+    if (JSON.stringify(boostyState.headers) !== JSON.stringify(['Подписчик', 'Уровень', 'Подписка', 'Доступ на сайте', 'В Telegram-канале', 'Подписан'])
+      || JSON.stringify(boostyState.pills) !== JSON.stringify([['Активна', 'Открывает сайт', 'В канале'], ['Не активна', 'Не открывает сайт', 'Нет связки с сайтом']])) {
       failures.push(`admin Boosty [${device}]: table columns or statuses changed (${JSON.stringify(boostyState)})`);
     }
     if (boostyState.searchHeight < 44) failures.push(`admin Boosty [${device}]: search field is below the 44px target (${boostyState.searchHeight})`);
