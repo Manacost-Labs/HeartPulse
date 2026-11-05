@@ -480,6 +480,27 @@ case. Its isolated four-case control passed. Local Chrome was already warm;
 these results do not establish a hosted speedup. Semgrep,actionlint and docs
 checks passed; the next full hosted run must include all warmup time.
 
+The first warmup run
+[42098451709](https://github.com/Manacost-Labs/HeartPulse/actions/runs/42098451709)
+failed two files. The workflow contract still expected the exact command
+without the new warmup flag; its strict expectation is now updated, preserving
+all matrix,selection,retry/quarantine checks. Browser4 failed before launching
+the patch-notes browser: two server reads were not enough to fill the cold
+Next patch cache, so the selected-version assertion saw its allowed skeleton.
+A proxy delaying the initial patch API reads by2.5s reproduced this locally.
+The fixture now waits at most10s for the version-switcher markup, then runs
+the same version/content assertions. Wrong-version markup and HTTP errors are
+returned immediately and still fail; this is readiness, not assertion retry.
+The existing240s case limit and product600ms first-paint budget are unchanged.
+The delayed-reader probe and first-paint loader contracts passed afterward.
+The exact four-worker browser4 shard passed all9 files on four local CPUs,
+without retries; workflow contract,docs and selected-source Semgrep passed.
+
+Warmup itself completed: browser1 took8.146s to launch the warmup Chrome, then
+its four initial case launches took0.339–0.435s. Account-surface passed without
+retry. Browser4 warmup took0.997s. These samples support continuing the trial,
+but the failed full run is not a valid speed acceptance or calibration sample.
+
 A disposable Turbopack probe failed after 5.8 seconds: four explicit `.js`
 TypeScript import-resolution errors, invalid generated CSS at
 `section::after::after`, and a UMD/CommonJS-format warning. The probe config and

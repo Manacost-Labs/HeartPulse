@@ -13,6 +13,20 @@ const teaser = period => ({
       classKey: ['warlock', 'demonhunter', 'priest', 'rogue'][index], winrate: 60 - index, popularity: 1, games: 500 + index })),
 });
 
+// The first-paint budget intentionally allows a cold skeleton while the
+// background reader fills its cache. Wait for data, not a fixed request count.
+async function patchDocument(origin, path) {
+  const deadline = Date.now() + 10_000;
+  do {
+    const response = await fetch(`${origin}${path}`, { signal: AbortSignal.timeout(Math.max(1, deadline - Date.now())) });
+    const html = await response.text();
+    // Do not retry wrong content or HTTP errors: the assertions below own them.
+    if (response.status !== 200 || html.includes('class="hp-patch-versions"')) return { response, html };
+    await new Promise(resolve => setTimeout(resolve, 50));
+  } while (Date.now() < deadline);
+  assert.fail(`patch document did not finish its cold data read: ${path}`);
+}
+
 async function pageState(page) {
   await page.evaluate(axe);
   return page.evaluate(async () => ({
@@ -28,18 +42,13 @@ test('patch notes render the stored article as compact change cards, and the hom
   let browser;
   try {
     const latest = await (await fetch(`${pilot.origin}/api/patch-notes/latest`)).json();
-    // The first request to a fresh server loads the route's modules, which can
-    // outlast the 600 ms first-paint read budget on a busy runner.
-    await (await fetch(`${pilot.origin}/standard/patches/`)).text();
-    const latestHtml = await (await fetch(`${pilot.origin}/standard/patches/`)).text();
+    const { html: latestHtml } = await patchDocument(pilot.origin, '/standard/patches/');
     assert.ok(latestHtml.includes(`<option value="${latest.version}" selected="">`),
       'the default page selects the latest patch, including official supplements');
     // Reviewed official notes may be newer than the upstream fixture's article.
     const fixturePath = '/standard/patches/?version=36.6.3';
-    await (await fetch(`${pilot.origin}${fixturePath}`)).text();
-    const document = await fetch(`${pilot.origin}${fixturePath}`);
+    const { response: document, html } = await patchDocument(pilot.origin, fixturePath);
     assert.equal(document.status, 200);
-    const html = await document.text();
     assert.match(html, /Балансные изменения Стандарта и Полей сражений<\/h2>/, 'the selected article is in the server HTML, its title without the version prefix');
     assert.match(html, /<option value="36\.6\.3" selected="">Патч 36\.6\.3<\/option>/, 'the version is the switcher');
     assert.match(html, /Змей ветреных вершин/);

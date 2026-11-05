@@ -239,7 +239,7 @@ assert.deepEqual(FULL_SHARDS, { registry: 4, browser: 10 },
   'a full run has four registry jobs and ten browser jobs, with bounded isolated workers');
 assert.ok(
   ciJobs['browser-tests'].includes(onlyFilesRun(
-    'node scripts/run-test-workers.mjs --suite browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure --quarantine exclude --workers 4 --report-dir "$RUNNER_TEMP/test-timings"',
+    'node scripts/run-test-workers.mjs --suite browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure --quarantine exclude --workers 4 --warmup-browser --report-dir "$RUNNER_TEMP/test-timings"',
   )),
   'shards derive the total from the matrix, retry a failing file exactly once, report every failure and skip the quarantine',
 );
