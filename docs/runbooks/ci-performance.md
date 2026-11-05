@@ -398,6 +398,27 @@ All10 card checks passed concurrently on four local CPUs; registry,calibration,
 worker-plan,docs and selected-source Semgrep checks also passed. The two parts
 map to separate CI jobs. Hosted improvement remains to be verified.
 
+The refreshed-weight/card-split run
+[42090269778](https://github.com/Manacost-Labs/HeartPulse/actions/runs/42090269778)
+passed required validation in207s:540 PASS and one FLAKY out of541 blocking
+files. Both cards files and home hydration passed on the first attempt. The
+remaining retry was `next-bg-tier-list-browser`; its worker also ran page
+transitions and deck builder, making browser shard8 the final blocking job.
+
+The tier-list fixture sent one temporary subscription503, then allowed the
+automatic retry to succeed immediately. The test read the pending state after
+`networkidle2`; on a busy runner recovery could already have replaced it with
+the healthy page. Its failure showed the recovered toolbar, not a revoked
+entitlement. The fixture now holds successful subscription-recovery responses
+until the existing pending assertion runs, then releases them and keeps the
+same10s recovery assertion. Missing retries or incorrect pending/recovery UI
+still fail. No sleeps were added to the committed test. A disposable probe
+added a5s reader delay: the previous fixture failed with the recovered toolbar,
+while the controlled fixture passed. All auth-attempt counters, accessibility,
+viewport, network-error and final tier-data failure assertions stay intact.
+The exact four-worker browser shard8 passed on four local CPUs: all10 files
+PASS without retries. Docs lint and selected-source Semgrep also passed.
+
 A disposable Turbopack probe failed after 5.8 seconds: four explicit `.js`
 TypeScript import-resolution errors, invalid generated CSS at
 `section::after::after`, and a UMD/CommonJS-format warning. The probe config and
