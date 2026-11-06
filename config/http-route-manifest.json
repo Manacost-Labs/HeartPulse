@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 105,
+    "sourceFiles": 106,
     "routeRegistrations": 285,
-    "middlewareRegistrations": 145,
+    "middlewareRegistrations": 147,
     "explicitGuardRouteRegistrations": 73,
     "unresolvedPaths": 0
   },
@@ -1037,6 +1037,34 @@
       "guardSignals": [],
       "source": "server/app/registerBrowserIdentity.ts",
       "sourceOrder": 2
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/v1/chat"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "rateLimit(...)"
+      ],
+      "guardSignals": [
+        "rateLimit(...)"
+      ],
+      "source": "server/app/registerChatCommands.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createChatCommandsRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/app/registerChatCommands.ts",
+      "sourceOrder": 1
     },
     {
       "kind": "route",
