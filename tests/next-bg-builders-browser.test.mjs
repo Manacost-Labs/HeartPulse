@@ -89,9 +89,17 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
     for (const width of [3560, 1440, 390, 320]) {
       await page.setViewport({ width, height: 900 });
       for (const { path, heading } of pages) {
-        const response = await page.goto(`${origin}${path}`, { waitUntil: 'networkidle2' });
+        const response = await page.goto(`${origin}${path}`, { waitUntil: 'load' });
         assert.equal(response.status(), 200, path);
-        await page.waitForFunction(() => !document.body.textContent.includes('Проверяем доступ'));
+        await page.waitForFunction(() => document.body.textContent.includes('доступен подписчикам')
+          && !document.body.textContent.includes('Проверяем доступ'));
+        // Geometry and axe need the resolved guest gate and final font/animation layout.
+        await page.evaluate(async () => {
+          await document.fonts.ready;
+          await Promise.all(document.getAnimations()
+            .filter(animation => Number.isFinite(animation.effect?.getComputedTiming().endTime))
+            .map(animation => animation.finished.catch(() => {})));
+        });
         await page.evaluate(axe);
         const state = await page.evaluate(async () => ({
           h1: [...document.querySelectorAll('h1')].map(node => node.textContent?.trim()),

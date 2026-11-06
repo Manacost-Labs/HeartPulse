@@ -1535,3 +1535,36 @@ it showed no local elapsed-time improvement. Command-phase timing is now logged
 for server build (when needed), production install, scraper import and browser
 verification so hosted results can attribute the cost before adopting further
 optimizations. These timings do not alter the commands or their assertions.
+
+## Wait for resolved builder guest pages
+
+Full run `42162515954` on `1f088283` passed all 36 checks. Its 48 blocking
+reports contain 555 PASS, and the quarantine reports add four PASS: all 559
+files pass without retries, including lightbox. Required validation finishes
+at 173 seconds from run creation, including queue; the two-minute target is
+not met. Browser shard 7 finishes last among required validation jobs.
+
+The npm download cache hits in registry shard 4. Instrumented production
+smoke phases take 14.828 seconds for the clean install, 0.241 seconds for the
+scraper import and 1.584 seconds for browser verification. The dependency
+setup step takes 10 seconds, including both caches. This single hosted run
+does not isolate the cache's causal speedup; retain the phase measurements
+when evaluating subsequent full runs.
+
+`next-bg-builders-browser.test.mjs` takes 45.534 seconds in browser shard 7.
+Its eight guest navigations (two routes at four widths) now wait for document
+load, a resolved subscriber-only gate, loaded fonts and finite animations,
+instead of network idle. A positive gate condition also prevents an early
+pre-hydration snapshot from satisfying only the absence of pending text.
+All 23 assertion lines, route/viewport coverage and the entire subscriber
+scenario remain unchanged, including PNG exports, draft preservation and
+keyboard behavior. No production code or registry membership changes.
+
+On the same local build, the original full test passes in 15.975 seconds and
+the candidate passes in 9.441 seconds. This is a single local pair, not a
+hosted CI speedup claim. A temporary fixture delaying each guest auth reply
+by 1.5 seconds also passes. Injecting a protected data request before the
+guest network assertion fails specifically with `guests never request
+builder data`. The probes are not committed; the original end-to-end test
+remains the validation contract. The next full hosted run must verify the
+change under CI contention.
