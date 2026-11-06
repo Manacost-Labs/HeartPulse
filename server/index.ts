@@ -7189,7 +7189,8 @@ const trackerEvents = registerTrackerIngestion({ app, getDatabase: db, accessTok
   validatePayload: validateStatisticsPayload, onStored: playerStats.invalidate, userAuth, onDeleted: playerStats.invalidate,
   // The export reads the replays through a closure: their module is registered just below.
   exportReplays: userId => replayShares.exportRows(userId, Date.now()),
-  exportUsage: userId => appUsage.exportRows(userId) });
+  exportUsage: userId => appUsage.exportRows(userId),
+  exportTwitch: userId => twitchLinks.exportRows(userId) });
 const replayShares = registerReplayShares({ app, getDatabase: db, accessTokens: applicationAuth, setPrivateNoStore, userAuth,
   publicOrigin: APP_URL, resolveCardNames: ruCardNames, backgroundJobs: BACKGROUND_JOBS_ENABLED });
 registerCrashReports({ app, getDatabase: db, setPrivateNoStore, backgroundJobs: BACKGROUND_JOBS_ENABLED });
@@ -7198,7 +7199,7 @@ const appUsage = registerAppUsage({ app, getDatabase: db, accessTokens: applicat
     const status = readSubscriptionStatus(userId);
     return Boolean(status?.hasAccess && status.entitlements[section]);
   } });
-registerTwitchExtension({ app, getDatabase: db, config: twitchExtensionConfig, accessTokens: applicationAuth, userAuth, setPrivateNoStore, appUrl: APP_URL });
+const twitchLinks = registerTwitchExtension({ app, getDatabase: db, config: twitchExtensionConfig, accessTokens: applicationAuth, userAuth, setPrivateNoStore, appUrl: APP_URL });
 registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit, cardImageDependencies: cardImageRouterDependencies, accessTokens: applicationAuth, publicOrigin: APP_URL, ...createPublicApiCardSources(() => constructedCardDataService), metaStatistics: { loadMeta: loadStandardMeta, loadCatalog: loadConstructedArchetypeCatalog, loadHistory: loadConstructedArchetypeHistory, loadAnalysis: loadConstructedArchetypeAnalysis }, deckStatistics: { loadCatalog: loadConstructedArchetypeCatalog }, arenaStatistics: { loadClasses: source => source === 'firestone' ? fetchFirestoneClassWinratesData() : fetchFreshestClassWinratesData(), loadCards: source => getTierlistApiData(source, Date.now()).then(result => result.data), loadLegendaries: source => getLegendariesApiData(source, Date.now()).then(result => result.data), loadMatchups: source => source === 'firestone' ? fetchFirestoneClassWinratesData().then(firestoneArenaMatchupsDataset) : fetchClassMatchupsData() } });
 app.use('/_internal', createTierlistCacheBustRouter({
   resolveSource: source => Object.prototype.hasOwnProperty.call(TIERLIST_DATASET_BY_SOURCE, source ?? '')

@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { Router, type Request, type Response } from 'express';
 import type { TwitchExtensionConfig } from './config.js';
 import type { TwitchLiveState } from './liveState.js';
@@ -20,6 +20,7 @@ export type TwitchAccountRouterDependencies = {
 
 const STATE_COOKIE = 'hp_twitch_oauth';
 const STATE_TTL_MS = 10 * 60_000;
+const MAX_PENDING_STATES = 10_000;
 /** The Twitch block in the account; `/account/twitch` (the app's `linkUrl`) redirects here. */
 export const TWITCH_ACCOUNT_PAGE = '/profile/#account-twitch';
 const page = (result: string) => `/profile/?twitch=${result}#account-twitch`;
@@ -42,16 +43,25 @@ const safeEqual = (left: string, right: string) => {
 
 /**
  * Linking Twitch to the signed-in account by the OAuth code flow without a
- * scope. The `state` lives in an HttpOnly cookie, signed together with the
- * account id and expiry, so a callback completes only in the browser and for
- * the account that started it (CSRF and login-CSRF of another account).
+ * scope. The random `state` goes to Twitch and into an HttpOnly cookie; the
+ * server remembers which account started it and until when. A callback
+ * completes only in the browser that started it, for that account, once
+ * (CSRF and login-CSRF of another account). Pending states live in process
+ * memory: after a restart the streamer simply presses «Привязать» again.
  */
 export function createTwitchAccountRouter(dependencies: TwitchAccountRouterDependencies): Router {
   const router = Router();
   const now = dependencies.now ?? Date.now;
-  const signState = (secret: string, state: string, expiresAt: number, userId: string) => (
-    createHmac('sha256', secret).update(`${state}.${expiresAt}.${userId}`).digest('base64url')
-  );
+  const pending = new Map<string, { userId: string; expiresAt: number }>();
+  const remember = (state: string, userId: string) => {
+    if (pending.size >= MAX_PENDING_STATES) {
+      const current = now();
+      for (const [key, entry] of pending) if (entry.expiresAt <= current) pending.delete(key);
+      // Still full: the oldest start gives way, so a flood cannot block new links.
+      if (pending.size >= MAX_PENDING_STATES) pending.delete(pending.keys().next().value as string);
+    }
+    pending.set(state, { userId, expiresAt: now() + STATE_TTL_MS });
+  };
   const stateCookie = (value: string, maxAgeSeconds: number) => [
     `${STATE_COOKIE}=${value}`, 'Path=/api/account/twitch', `Max-Age=${maxAgeSeconds}`, 'HttpOnly', 'SameSite=Lax',
     ...(dependencies.secureCookies ? ['Secure'] : []),
@@ -78,11 +88,8 @@ export function createTwitchAccountRouter(dependencies: TwitchAccountRouterDepen
     const { config, twitch } = dependencies;
     if (!config || !twitch) return response.redirect(302, page('not_configured'));
     const state = randomBytes(24).toString('base64url');
-    const expiresAt = now() + STATE_TTL_MS;
-    response.append('Set-Cookie', stateCookie(
-      `${state}.${expiresAt}.${signState(config.oauthClientSecret, state, expiresAt, user.id)}`,
-      STATE_TTL_MS / 1000,
-    ));
+    remember(state, user.id);
+    response.append('Set-Cookie', stateCookie(state, STATE_TTL_MS / 1000));
     return response.redirect(302, twitch.authorizeUrl(state));
   });
 
@@ -94,13 +101,11 @@ export function createTwitchAccountRouter(dependencies: TwitchAccountRouterDepen
     if (!config || !twitch) return response.redirect(302, page('not_configured'));
     const user = dependencies.userAuth(request);
     if (!user) return response.redirect(302, page('error'));
-    const [state = '', expiresAtText = '', signature = ''] = cookie.split('.');
-    const expiresAt = Number(expiresAtText);
     const queryState = typeof request.query.state === 'string' ? request.query.state : '';
-    if (!state || !queryState || !safeEqual(state, queryState) || !Number.isFinite(expiresAt) || expiresAt <= now()
-      || !safeEqual(signature, signState(config.oauthClientSecret, state, expiresAt, user.id))) {
-      return response.redirect(302, page('error'));
-    }
+    if (!cookie || !queryState || !safeEqual(cookie, queryState)) return response.redirect(302, page('error'));
+    const started = pending.get(queryState);
+    pending.delete(queryState);
+    if (!started || started.expiresAt <= now() || started.userId !== user.id) return response.redirect(302, page('error'));
     if (typeof request.query.error === 'string') return response.redirect(302, page('cancelled'));
     const code = typeof request.query.code === 'string' ? request.query.code : '';
     if (!code || code.length > 512) return response.redirect(302, page('error'));

@@ -3,6 +3,20 @@ const error = (description: string) => ({
   content: { 'application/json': { schema: { $ref: '#/components/schemas/TwitchApiError' } } },
 });
 
+export const TWITCH_EXTENSION_OPENAPI_TAG = {
+  name: 'Twitch',
+  description: 'The remaining deck of the streamer relayed to the Hearthpulse Twitch extension.',
+} as const;
+
+export const TWITCH_EXTENSION_OPENAPI_SECURITY_SCHEMES = {
+  TwitchExtensionJwt: {
+    type: 'http',
+    scheme: 'bearer',
+    bearerFormat: 'JWT',
+    description: 'The viewer JWT from Twitch.ext.onAuthorized, signed by Twitch with the extension secret (HS256).',
+  },
+} as const;
+
 export const TWITCH_EXTENSION_OPENAPI_PATHS = {
   '/api/v1/twitch/state': {
     post: {

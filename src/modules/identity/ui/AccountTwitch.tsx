@@ -43,7 +43,7 @@ export default function AccountTwitch({ initial }: { initial?: TwitchLinkState |
     setStatus(null);
     unlinkTwitch()
       .then(() => {
-        setLink({ ...link, linked: false, login: null, displayName: null });
+        setLink(current => (current ? { ...current, linked: false, login: null, displayName: null } : current));
         setStatus({ type: 'ok', text: 'Twitch отвязан. Расширение больше не получает вашу колоду.' });
       })
       .catch((error: unknown) => setStatus({ type: 'err', text: error instanceof Error ? error.message : 'Не удалось отвязать Twitch' }))

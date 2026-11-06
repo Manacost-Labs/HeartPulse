@@ -217,8 +217,12 @@ try {
   assert.equal(response.headers.get('location'), '/profile/?twitch=error#account-twitch', 'no state cookie (CSRF)');
   response = await callback(`code=good-code&state=${flow.state}`, flow.cookie, 'user-2');
   assert.equal(response.headers.get('location'), '/profile/?twitch=error#account-twitch', 'started by another account');
+  flow = await start('user-1');
   response = await callback(`error=access_denied&state=${flow.state}`, flow.cookie, 'user-1');
   assert.equal(response.headers.get('location'), '/profile/?twitch=cancelled#account-twitch');
+  response = await callback(`code=good-code&state=${flow.state}`, flow.cookie, 'user-1');
+  assert.equal(response.headers.get('location'), '/profile/?twitch=error#account-twitch', 'a state is used once');
+  flow = await start('user-1');
   clock += 11 * 60_000;
   response = await callback(`code=good-code&state=${flow.state}`, flow.cookie, 'user-1');
   assert.equal(response.headers.get('location'), '/profile/?twitch=error#account-twitch', 'expired state');

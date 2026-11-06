@@ -59,6 +59,13 @@ export function createTwitchLinkRepository(getDatabase: () => DatabaseSync) {
         throw error;
       }
     },
+    /** The link for the account's data export: what is stored, nothing else. */
+    *exportRows(userId: string): Iterable<string> {
+      const link = this.find(userId);
+      if (link) {
+        yield JSON.stringify({ twitchUserId: link.twitchUserId, login: link.login, displayName: link.displayName, linkedAt: link.linkedAt });
+      }
+    },
     /** Returns the removed link, if there was one. */
     unlink(userId: string): TwitchLink | null {
       const existing = this.find(userId);

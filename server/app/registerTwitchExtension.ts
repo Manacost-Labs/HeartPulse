@@ -11,6 +11,7 @@ import {
   createTwitchLinkRepository,
   createTwitchLiveState,
   type TwitchExtensionConfig,
+  type TwitchLinkRepository,
 } from '../modules/twitchExtension/public.js';
 
 /**
@@ -39,7 +40,8 @@ type RegisterTwitchExtensionDependencies = {
   appUrl: string;
 };
 
-export function registerTwitchExtension(dependencies: RegisterTwitchExtensionDependencies): void {
+/** Returns the link repository so the account data export can include the link. */
+export function registerTwitchExtension(dependencies: RegisterTwitchExtensionDependencies): TwitchLinkRepository {
   const links = createTwitchLinkRepository(dependencies.getDatabase);
   const live = createTwitchLiveState();
   const twitch = dependencies.config ? createTwitchApi(dependencies.config, (url, init) => fetch(url, init)) : null;
@@ -69,4 +71,5 @@ export function registerTwitchExtension(dependencies: RegisterTwitchExtensionDep
     onError,
   }));
   dependencies.app.use(createTwitchLinkPageRouter());
+  return links;
 }

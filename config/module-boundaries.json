@@ -483,7 +483,8 @@
       "owner": "web-platform",
       "publicEntry": "server/modules/publicApi/public.ts",
       "dependencies": [
-        "server.trackerIngestion"
+        "server.trackerIngestion",
+        "server.twitchExtension"
       ],
       "focusedTests": [
         "npm run test:public-api"

@@ -53,6 +53,7 @@ app.use('/api', createTrackerAccountDataRouter({
   repository,
   setPrivateNoStore: response => response.set('Cache-Control', 'no-store'),
   onDeleted: userId => deleted.push(userId),
+  exportTwitch: userId => (userId === 'user-1' ? [JSON.stringify({ twitchUserId: '4242', login: 'streamer' })] : []),
   now: () => Date.parse('2026-10-23T12:00:00Z'),
 }));
 const server = app.listen(0, '127.0.0.1');
@@ -79,6 +80,7 @@ try {
   assert.equal(exported.headers.get('cache-control'), 'no-store');
   const body = await exported.json();
   assert.equal(body.exportedAt, '2026-10-23T12:00:00.000Z');
+  assert.deepEqual(body.twitch, [{ twitchUserId: '4242', login: 'streamer' }], 'the Twitch link is part of the export');
   assert.deepEqual(body.events.map((item: { eventId: string }) => item.eventId), [event(1), event(2), event(3)].map(item => item.eventId));
   assert.deepEqual(body.events[0].payload, event(1).payload);
   assert.equal(body.events[0].receivedAt, 1_000);
