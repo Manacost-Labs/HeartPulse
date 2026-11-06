@@ -336,7 +336,7 @@
 }
 
 .profile-heat__cell strong { display: block; font-size: 0.875rem; }
-.profile-heat__cell small { display: block; color: var(--arena-muted-ink); font-size: 0.68rem; }
+.profile-heat__cell small { display: block; color: var(--arena-muted-ink); font-size: 0.6875rem; }
 .profile-heat__cell[data-tone='1'] { --_mix: 18%; }
 .profile-heat__cell[data-tone='2'] { --_mix: 34%; }
 .profile-heat__cell[data-tone='3'] { --_mix: 52%; }
