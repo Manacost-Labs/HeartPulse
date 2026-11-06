@@ -311,6 +311,80 @@
       ]
     },
     {
+      "name": "backend-twitch-extension",
+      "status": "modular",
+      "owner": "identity-platform",
+      "purpose": "Own the Twitch extension backend (EBS): the account's Twitch link by OAuth, relaying the desktop app's deck state into Twitch Extension PubSub and the last envelope for viewers.",
+      "paths": [
+        "server/modules/twitchExtension"
+      ],
+      "publicEntrypoints": [
+        "server/modules/twitchExtension/public.ts"
+      ],
+      "frontendRoutes": [],
+      "backendRoutes": [
+        {
+          "method": "POST",
+          "path": "/api/v1/twitch/state"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/twitch/status"
+        },
+        {
+          "method": "GET",
+          "path": "/api/v1/twitch/ext/snapshot"
+        },
+        {
+          "method": "GET",
+          "path": "/api/account/twitch"
+        },
+        {
+          "method": "GET",
+          "path": "/api/account/twitch/connect"
+        },
+        {
+          "method": "GET",
+          "path": "/api/account/twitch/callback"
+        },
+        {
+          "method": "DELETE",
+          "path": "/api/account/twitch"
+        },
+        {
+          "method": "GET",
+          "path": "/account/twitch"
+        }
+      ],
+      "contracts": [
+        "server/modules/twitchExtension/public.ts",
+        "docs/specs/twitch-extension.md"
+      ],
+      "jobs": [],
+      "cacheNamespaces": [
+        "memory:twitch-extension-snapshots"
+      ],
+      "dataStores": [
+        "sqlite:twitch_links"
+      ],
+      "externalServices": [
+        "Twitch OAuth (id.twitch.tv)",
+        "Twitch Helix users and Extension PubSub (api.twitch.tv)"
+      ],
+      "tests": [
+        "tests/twitch-extension-routes.test.ts"
+      ],
+      "allowedDependencies": [
+        "backend-application-auth public contract",
+        "Node.js crypto/sqlite/zlib",
+        "Express at the routes boundary"
+      ],
+      "forbiddenImports": [
+        "src/**",
+        "other server module internals except applicationAuth/public.ts"
+      ]
+    },
+    {
       "name": "backend-player-games",
       "status": "modular",
       "owner": "identity-platform",

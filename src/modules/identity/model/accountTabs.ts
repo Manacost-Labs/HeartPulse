@@ -22,6 +22,7 @@ const SECTION_TABS: Readonly<Record<string, AccountTab>> = {
   'account-links': 'personal',
   'account-settings': 'personal',
   'account-contests': 'personal',
+  'account-twitch': 'personal',
 };
 
 /** The tab a location hash (`#stats`, `#account-access`) asks for, or null for any other hash. */

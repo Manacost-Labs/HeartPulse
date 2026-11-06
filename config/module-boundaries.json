@@ -681,6 +681,24 @@
       ]
     },
     {
+      "id": "server.twitchExtension",
+      "runtime": "server",
+      "root": "server/modules/twitchExtension",
+      "purpose": "Owns the Twitch extension backend (EBS): the account's Twitch link by OAuth, relaying the desktop app's deck state into Twitch Extension PubSub and the last envelope for viewers.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/twitchExtension/public.ts",
+      "dependencies": [
+        "server.applicationAuth"
+      ],
+      "focusedTests": [
+        "npm run test:twitch-extension"
+      ],
+      "docs": [
+        "docs/specs/twitch-extension.md",
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
       "id": "server.coverAdminSso",
       "runtime": "server",
       "root": "server/modules/coverAdminSso",

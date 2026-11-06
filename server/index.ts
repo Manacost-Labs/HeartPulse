@@ -170,6 +170,8 @@ import { registerReplayShares, registerReplaySharesRateLimit } from './app/regis
 import { registerAppUsage, registerAppUsageRateLimit } from './app/registerAppUsage.js';
 import { registerCrashReports, registerCrashReportsRateLimit } from './app/registerCrashReports.js';
 import { TRACKER_MAX_BATCH_BYTES } from './modules/trackerIngestion/public.js';
+import { readTwitchExtensionConfig } from './modules/twitchExtension/public.js';
+import { registerTwitchExtension, registerTwitchExtensionEdge, twitchStateStreamRequest } from './app/registerTwitchExtension.js';
 import { registerBrowserIdentity } from './app/registerBrowserIdentity.js';
 import { registerPlayerGames, registerPlayerGamesRateLimit } from './app/registerPlayerGames.js';
 import { createPlayerGamesGlobalSources } from './app/playerGamesGlobalSources.js';
@@ -6993,8 +6995,11 @@ const apiLimiter = rateLimit({
     // A cross-site cookie mutation is refused by the CSRF rule below without
     // touching data; counting it would let another site spend the visitor's budget.
     || !cookieMutationCsrfAllowed(req)
+    || twitchStateStreamRequest(req.method, req.path)
   ),
 });
+const twitchExtensionConfig = readTwitchExtensionConfig(process.env);
+registerTwitchExtensionEdge(app, twitchExtensionConfig);
 app.use('/api/', apiLimiter);
 
 const authCodeRequestLimiter = rateLimit({
@@ -7193,6 +7198,7 @@ const appUsage = registerAppUsage({ app, getDatabase: db, accessTokens: applicat
     const status = readSubscriptionStatus(userId);
     return Boolean(status?.hasAccess && status.entitlements[section]);
   } });
+registerTwitchExtension({ app, getDatabase: db, config: twitchExtensionConfig, accessTokens: applicationAuth, userAuth, setPrivateNoStore, appUrl: APP_URL });
 registerPublicApi({ app, getDatabase: db, adminAuth, adminId: admin => admin.id, setPrivateNoStore, recordAudit: recordAdminAudit, cardImageDependencies: cardImageRouterDependencies, accessTokens: applicationAuth, publicOrigin: APP_URL, ...createPublicApiCardSources(() => constructedCardDataService), metaStatistics: { loadMeta: loadStandardMeta, loadCatalog: loadConstructedArchetypeCatalog, loadHistory: loadConstructedArchetypeHistory, loadAnalysis: loadConstructedArchetypeAnalysis }, deckStatistics: { loadCatalog: loadConstructedArchetypeCatalog }, arenaStatistics: { loadClasses: source => source === 'firestone' ? fetchFirestoneClassWinratesData() : fetchFreshestClassWinratesData(), loadCards: source => getTierlistApiData(source, Date.now()).then(result => result.data), loadLegendaries: source => getLegendariesApiData(source, Date.now()).then(result => result.data), loadMatchups: source => source === 'firestone' ? fetchFirestoneClassWinratesData().then(firestoneArenaMatchupsDataset) : fetchClassMatchupsData() } });
 app.use('/_internal', createTierlistCacheBustRouter({
   resolveSource: source => Object.prototype.hasOwnProperty.call(TIERLIST_DATASET_BY_SOURCE, source ?? '')

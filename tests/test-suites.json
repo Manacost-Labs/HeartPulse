@@ -405,6 +405,7 @@
         "tests/saved-decks-routes.test.ts",
         "tests/tracker-account-data-routes.test.ts",
         "tests/tracker-ingestion-routes.test.ts",
+        "tests/twitch-extension-routes.test.ts",
         "tests/web-vitals-routes.test.ts",
         "tests/winrate-routes.test.ts"
       ]
