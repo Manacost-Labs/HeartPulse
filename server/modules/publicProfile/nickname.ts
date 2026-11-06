@@ -38,7 +38,7 @@ export const RESERVED_NICKNAMES: readonly string[] = [
   'guides-archive', 'health', 'help', 'heroes', 'home', 'id', 'identity', 'jobs',
   'leaderboards', 'legendaries', 'library', 'login', 'logout', 'mail', 'me', 'meta', 'mod',
   'news', 'nobody', 'null', 'owner', 'privacy', 'profile', 'profiles', 'r',
-  'register', 'root', 'security', 'settings', 'signin', 'signup', 'standard',
+  'register', 'replay', 'replays', 'root', 'security', 'settings', 'signin', 'signup', 'standard',
   'staff', 'static', 'stats', 'streamers', 'support', 'system', 'telegram', 'terms', 'tierlist',
   'u', 'undefined', 'uploads', 'user', 'users', 'wallpaper', 'webmaster', 'www',
   'анонимус', 'гость', 'профиль', 'система',
