@@ -105,6 +105,11 @@ jobs:
         with:
           save-cache: 'true'
 
+      - name: Seed installed browser cache
+        uses: ./.github/actions/browser-runtime
+        with:
+          save-cache: 'true'
+
       # Webpack's persistent cache; Next.js invalidates stale entries itself.
       - name: Restore Next.js build cache
         id: next-cache
@@ -250,6 +255,9 @@ jobs:
       - name: Install locked dependencies
         uses: ./.github/actions/install-dependencies
 
+      - name: Restore installed browser runtime
+        uses: ./.github/actions/browser-runtime
+
       - name: Ensure identity TLS regression tools
         run: |
           # Hosted images normally provide both; avoid updating packages per shard.
@@ -329,6 +337,9 @@ jobs:
       - name: Install locked dependencies
         uses: ./.github/actions/install-dependencies
 
+      - name: Restore installed browser runtime
+        uses: ./.github/actions/browser-runtime
+
       - name: Download validated build outputs
         uses: actions/download-artifact@v8
         with:
@@ -392,6 +403,9 @@ jobs:
       - name: Install locked dependencies
         uses: ./.github/actions/install-dependencies
 
+      - name: Restore installed browser runtime
+        uses: ./.github/actions/browser-runtime
+
       - name: Download validated build outputs
         uses: actions/download-artifact@v8
         with:
@@ -446,6 +460,9 @@ jobs:
       - name: Install locked dependencies
         uses: ./.github/actions/install-dependencies
 
+      - name: Restore installed browser runtime
+        uses: ./.github/actions/browser-runtime
+
       - name: Download validated build outputs
         uses: actions/download-artifact@v8
         with:
@@ -476,7 +493,7 @@ jobs:
           && (needs.browser-tests.result == 'success' || (github.event_name == 'pull_request' && needs.plan.outputs.browser-shards == '[]' && needs.browser-tests.result == 'skipped'))
           && needs.browser-observatory.result == 'success') }}" = true
 
-  # Keeps main's dependency and Next.js caches current when a reused merge-queue
+  # Keeps main's dependency, browser and Next.js caches current when a reused merge-queue
   # run made the build job unnecessary. Never gates the deployment.
   refresh-caches:
     name: Refresh main build caches
@@ -493,6 +510,11 @@ jobs:
 
       - name: Install locked dependencies
         uses: ./.github/actions/install-dependencies
+        with:
+          save-cache: 'true'
+
+      - name: Seed installed browser cache
+        uses: ./.github/actions/browser-runtime
         with:
           save-cache: 'true'
 

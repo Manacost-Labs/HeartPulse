@@ -1343,3 +1343,55 @@ focus-handler installation by 1.5 seconds passes all six cases; suppressing
 the pointer handler fails the readiness wait at its ten-second deadline.
 The probes are removed from the final source. Hosted timing remains pending;
 a shorter local test does not establish an end-to-end CI speedup.
+
+## Restored system-browser runtime trial
+
+Run `42151276697` on `09bb9ed8` passed all 36 checks (32 successful and four
+intentionally skipped) and all 559 files without retries. Required validation
+took 182 seconds including queue time. Browser shard 9 finished last: its
+executable preload reached the ten-second abort, followed by a 17.602-second
+blank-browser launch and 1.268-second close. Process samples again show file
+page I/O waits. The two-minute goal remains unmet.
+
+A four-CPU local Storybook profile attributes 45.931 seconds to synchronous
+public-file copying during render start. This does not explain the hosted
+36.214-second module-transform interval, so no Storybook configuration change
+is justified by that profile. Moving the existing browser warmup past artifact
+downloads would overlap only a short part of the measured delay.
+
+The next trial restores the runner's installed Chrome package into writable
+files through the [GitHub cache action](https://github.com/actions/cache).
+The build job seeds a missing cache from `/opt/google/chrome`; registry,
+browser, quarantine and observatory jobs consume it. When main reuses merge-queue
+validation, its existing cache-refresh job seeds the default-branch browser
+cache instead. These producers are mutually exclusive within a run. Keys include
+operating system, architecture, image name and version, and the installed package
+version. There are no restore-key fallbacks. Only an exact hit with matching
+package metadata and executable files changes `CHROMIUM_PATH`. Missing,
+incomplete or mismatched entries preserve the system browser. Cache service
+errors are optional; test and build failures remain blocking as before.
+
+Restoration writes the executable and resources into the filesystem before
+browser launch, which may avoid the cold image reads seen in diagnostics.
+The hypothesis still needs hosted measurements. Restored consumers skip the
+extra sequential executable preload but retain the ordinary blank-browser
+warmup. A cache miss retains existing behavior. No browser upgrade, additional
+runner, job matrix, product output, test assertion or quarantine change is
+included. The first producer miss pays copying and compression costs; assess
+cold and warm runs separately, including restore time in both.
+
+Local validation parses the workflow/action YAML and checks every action shell
+body. The workflow contract executes the actual selection script against
+missing, incomplete, mismatched and valid cache fixtures. Copying all 257
+installed package files preserves their hashes, modes and symlinks. A zstd
+archive round trip preserves all file bytes, ordinary permissions and symlinks;
+unprivileged extraction drops the `chrome-sandbox` setuid bit, which the
+existing `--no-sandbox` CI launches do not use. The local archive is about
+185 MB; its transfer and extraction costs must be counted in hosted results.
+
+The restored browser passes the Next field-focus and identity layout scenarios.
+The first concurrent Storybook probe failed after repeated
+`net::ERR_NETWORK_CHANGED` aborts; its isolated rerun passed without source
+changes. This is recorded as a local verification limitation, not a clean
+first-attempt result. Workflow/worker contracts and configured actionlint pass;
+the actionlint configuration recognizes the existing production runner label.

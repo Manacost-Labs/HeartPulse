@@ -53,6 +53,51 @@ assert.deepEqual(
   ['reuse', 'plan', 'build', 'storybook', 'validate', 'test-suites', 'browser-tests', 'browser-quarantine', 'browser-observatory', 'required',
     'refresh-caches', 'deploy-production'],
 );
+
+const browserRuntimeAction = readFileSync('.github/actions/browser-runtime/action.yml', 'utf8');
+assert.match(browserRuntimeAction, /chrome-runtime-v1-\$\{RUNNER_OS\}-\$\{RUNNER_ARCH\}-\$\{ImageOS\}-\$\{ImageVersion\}-\$\{version\}/,
+  'browser caches must match the exact runner image, architecture and installed package');
+assert.doesNotMatch(browserRuntimeAction, /restore-keys:/, 'an older browser package must not be selected');
+assert.match(browserRuntimeAction, /lookup-only: \$\{\{ inputs.save-cache == 'true' \}\}/);
+assert.match(browserRuntimeAction, /if: inputs.save-cache != 'true' && steps.cache.outcome == 'success' && steps.cache.outputs.cache-hit == 'true'/,
+  'only a consumer with an exact cache hit may select cached executables');
+assert.match(ciJobs.build, /name: Seed installed browser cache\n\s+uses: \.\/\.github\/actions\/browser-runtime\n\s+with:\n\s+save-cache: 'true'/);
+assert.match(ciJobs['refresh-caches'], /name: Seed installed browser cache\n\s+uses: \.\/\.github\/actions\/browser-runtime\n\s+with:\n\s+save-cache: 'true'/,
+  'main refresh seeds the default-branch cache when the build was reused');
+for (const job of ['test-suites', 'browser-tests', 'browser-quarantine', 'browser-observatory']) {
+  assert.match(ciJobs[job], /name: Restore installed browser runtime\n\s+uses: \.\/\.github\/actions\/browser-runtime/);
+}
+
+// Execute the action's selection step: absent or mismatched caches must leave
+// the system browser and its existing preload setting intact.
+const selectBrowserScript = browserRuntimeAction.split('    - name: Select restored Chrome\n')[1]
+  .split('      run: |\n')[1].split('\n').map(line => line.slice(8)).join('\n');
+const browserCacheRoot = mkdtempSync(join(tmpdir(), 'browser-cache-contract-'));
+try {
+  const browserDirectory = join(browserCacheRoot, 'hp-browser-runtime');
+  const githubEnvironment = join(browserCacheRoot, 'github-env');
+  const expectedVersion = '150.0.0.1-1';
+  const selectBrowser = () => {
+    writeFileSync(githubEnvironment, 'existing=preserved\n');
+    execFileSync('bash', ['-e', '-o', 'pipefail', '-c', selectBrowserScript], {
+      env: { ...process.env, RUNNER_TEMP: browserCacheRoot, GITHUB_ENV: githubEnvironment, PACKAGE_VERSION: expectedVersion },
+    });
+    return readFileSync(githubEnvironment, 'utf8');
+  };
+  assert.equal(selectBrowser(), 'existing=preserved\n', 'a missing cache preserves fallback');
+  mkdirSync(browserDirectory);
+  for (const executable of ['chrome', 'google-chrome']) {
+    writeFileSync(join(browserDirectory, executable), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
+  }
+  assert.equal(selectBrowser(), 'existing=preserved\n', 'an incomplete cache preserves fallback');
+  writeFileSync(join(browserDirectory, '.hp-package-version'), '149.0.0.1-1\n');
+  assert.equal(selectBrowser(), 'existing=preserved\n', 'a different package preserves fallback');
+  writeFileSync(join(browserDirectory, '.hp-package-version'), `${expectedVersion}\n`);
+  assert.equal(selectBrowser(), `existing=preserved\nCHROMIUM_PATH=${browserDirectory}/google-chrome\nHP_BROWSER_PRELOAD=0\n`);
+} finally {
+  rmSync(browserCacheRoot, { recursive: true, force: true });
+}
+
 const validationJobs = ['build', 'storybook', 'validate', 'test-suites', 'browser-tests', 'browser-observatory'];
 const allValidationSucceeded = validationJobs.map(job => `needs.${job}.result == 'success'`);
 assert.match(ciWorkflow, /^ {2}merge_group:\n {4}types: \[checks_requested\]$/m, 'the merge queue runs the same validation');
