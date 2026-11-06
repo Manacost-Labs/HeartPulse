@@ -1385,9 +1385,11 @@ body. The workflow contract executes the actual selection script against
 missing, incomplete, mismatched and valid cache fixtures. Copying all 257
 installed package files preserves their hashes, modes and symlinks. A zstd
 archive round trip preserves all file bytes, ordinary permissions and symlinks;
-unprivileged extraction drops the `chrome-sandbox` setuid bit, which the
-existing `--no-sandbox` CI launches do not use. The local archive is about
-185 MB; its transfer and extraction costs must be counted in hosted results.
+unprivileged extraction drops the `chrome-sandbox` setuid bit. The initial
+assumption that all CI launches used `--no-sandbox` was incorrect: the radar
+scenario retains sandboxing, as the next hosted run demonstrated. The local
+archive is about 185 MB; its transfer and extraction costs must be counted
+in hosted results.
 
 The restored browser passes the Next field-focus and identity layout scenarios.
 The first concurrent Storybook probe failed after repeated
@@ -1395,3 +1397,29 @@ The first concurrent Storybook probe failed after repeated
 changes. This is recorded as a local verification limitation, not a clean
 first-attempt result. Workflow/worker contracts and configured actionlint pass;
 the actionlint configuration recognizes the existing production runner label.
+
+## Preserve sandboxing when selecting restored Chrome
+
+Run `42154482246` on `392b7b8` failed browser shard 8 on both attempts of
+`next-radar-browser.test.mjs`. Chrome rejected the restored SUID helper because
+it was not root-owned with mode `4755`. The required gate correctly failed.
+This was a cache regression, not a radar assertion failure.
+
+Cache selection now links `chrome-sandbox` to the original helper installed
+under `/opt/google/chrome`, after checking that it is a regular executable,
+not a symlink, owned by root and mode `4755`. The existing exact package/image
+key and package marker remain required. No cached file is elevated and the
+system installation is untouched. A missing or unsuitable helper, or a failed
+link replacement, preserves the original system-browser fallback. Existing
+cache entries are repaired on selection; the cache key needs no invalidation.
+
+The action-shell regression checks cover missing, user-owned, non-setuid and
+symlink helpers, replacement failure, valid selection and repeated selection.
+A temporary local probe forcing Chrome's SUID path reproduces the same startup
+failure with the copied helper. With the installed-helper link it launches and
+reports SUID, PID/network namespaces and Seccomp-BPF sandboxing enabled. The
+unchanged radar scenario also passes with sandboxing. The first end-to-end
+selection check failed before browser launch because its backend did not start
+within the fixture deadline; an isolated rerun passed unchanged. These local
+checks verify the correction, with that local startup limitation recorded; the
+next full hosted run must verify compatibility and timing.

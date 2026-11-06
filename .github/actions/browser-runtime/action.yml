@@ -58,6 +58,12 @@ runs:
         browser_dir="$RUNNER_TEMP/hp-browser-runtime"
         [[ -f "$browser_dir/.hp-package-version" && -x "$browser_dir/google-chrome" && -x "$browser_dir/chrome" ]] || exit 0
         [[ "$(cat "$browser_dir/.hp-package-version")" == "$PACKAGE_VERSION" ]] || exit 0
+        # Cache extraction cannot preserve root ownership. Use the trusted
+        # helper from the same installed package without elevating cached files.
+        sandbox_helper=/opt/google/chrome/chrome-sandbox
+        [[ -f "$sandbox_helper" && -x "$sandbox_helper" && ! -L "$sandbox_helper" ]] || exit 0
+        [[ "$(stat -c '%u:%a' "$sandbox_helper")" == '0:4755' ]] || exit 0
+        ln -sfnT "$sandbox_helper" "$browser_dir/chrome-sandbox" || exit 0
         echo "CHROMIUM_PATH=$browser_dir/google-chrome" >> "$GITHUB_ENV"
         # Extraction has already read and written the executable; retain the
         # normal blank-browser warmup without a second sequential file preload.
