@@ -1470,3 +1470,34 @@ contract checks exact metadata, fallback and the separate cache environment
 variable. Existing radar and field-focus scenarios verify the system sandboxed
 and cached unsandboxed paths respectively. Hosted timing and full-suite
 compatibility still require the next run; the two-minute target remains unmet.
+
+## Capture fade timing when the transition becomes ready
+
+Full run `42158077701` on `60d0da25` passed all 36 checks, with required
+validation at 189 seconds including queue. Its 559 files contain 558 PASS and
+one FLAKY: lightbox close-stability. Cached launch routing is confirmed in
+hosted logs; radar still launches system Chrome and passes. Critical browser
+shard 2 warms cached Chrome in 533 ms and closes it in 81 ms, then its longest
+worker takes 94.372 seconds including the lightbox retry. This is not a
+retry-free acceptance run and does not establish a causal overall speedup.
+
+The failed hero fade records a 200 ms `transitionend`, followed by removal,
+while the test's stored start/duration are null. Its observation code retains
+a transition object but reads timing only from frame/event callbacks; removal
+can clear the start time before a delayed observer reads it. A local Chrome
+probe delaying only those observation callbacks reproduces that loss for a
+valid fade. This reproduces an observation failure mechanism, not the exact
+hosted scheduling sequence or every earlier lightbox failure.
+
+On first finding the transition, the test now also snapshots its actual
+start/duration/destination when `Animation.ready` resolves. It retains the
+frame/event reads and handles readiness rejection without inventing timing.
+The original assertions and frame sampler are byte-identical: minimum fade
+length, zero destination, removal after completion, monotonic frames, scroll
+unlock and reduced-motion behavior remain required. Product code is unchanged.
+
+In the controlled delayed-observer probe, a valid fade fails the old observer
+and passes the readiness capture; early removal and immediate removal still
+fail. All four original real-Storybook scenarios pass with the cached browser.
+The next hosted run must establish whether this prevents the observed retry;
+no claim of complete flake elimination is made from the local result.

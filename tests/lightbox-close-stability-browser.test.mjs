@@ -161,7 +161,13 @@ async function heroLightboxClose({ reducedMotion }) {
     }
     // Read while the transition runs: removing the lightbox cancels it.
     const readFade = () => {
-      transition ??= lightbox.getAnimations().find(animation => animation.transitionProperty === 'opacity') ?? null;
+      if (!transition) {
+        transition = lightbox.getAnimations().find(animation => animation.transitionProperty === 'opacity') ?? null;
+        // Snapshot the real start before removal clears it, even if frame and
+        // transition-event observers arrive late. If readiness rejects, the
+        // unchanged assertions still reject missing fade metadata.
+        if (transition) void transition.ready.then(readFade, () => {});
+      }
       if (!transition || fade.start !== null || transition.startTime === null) return;
       fade.start = transition.startTime;
       fade.duration = transition.effect.getComputedTiming().duration;
