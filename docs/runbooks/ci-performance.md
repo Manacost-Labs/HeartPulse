@@ -1695,3 +1695,35 @@ model estimates from the calibration inputs, not measured speedups. Changed
 runner contention, setup and queue time may offset them. The next full
 hosted run must validate the partition and elapsed CI time; the two-minute
 goal and ten-run acceptance rule remain unmet.
+
+## Measure login completion from browser observations
+
+Full run `42168062506` on `9f998b76` passes all 36 checks and all 559 files
+without retries. Required validation takes 185 seconds including queue, so
+this run does not demonstrate an overall benefit from rebalancing. Browser
+shard 1 starts at second 63, spends roughly 30 seconds preparing and 85
+seconds running tests, then finishes at second 180.
+
+A controlled local experiment runs its same nine files on four CPU cores
+with four and then two workers, without retries or intervening build changes.
+Both variants fail the login-site observation assertion; the four-worker
+variant also hits backend-start readiness failures. Their elapsed times are
+not valid speed comparisons, and no concurrency setting is changed. These
+local failures are not attributed to the successful hosted run.
+
+`login-site-steady-browser.test.mjs` waits a fixed 1.8 seconds before checking
+that the site's late name was observed and more than 20 settled form frames
+were collected. A temporary fixture adding 1.5 seconds to its delayed reply
+reproduces the observation failure. The test now waits for the existing
+name/frame observations, then two animation frames to flush layout-shift
+records before taking the verdict. Its original one-second fixture delay,
+600 ms entrance exclusion, every frame sample and all ten assertion lines
+are unchanged, including the 0.005 CLS and one-pixel form-movement limits.
+
+The full two-site/seven-width matrix passes normally and with the delayed
+reply. An injected 20-pixel form shift still fails the original final
+geometry assertion, reporting the movement and CLS 0.0058. The temporary
+probes are removed. Project/scoped Semgrep and Oxlint pass. The only test
+source change replaces the wall-clock pause; product behavior, registry,
+worker count and retry policy are unchanged. Hosted verification remains
+pending, and the two-minute target remains unmet.
