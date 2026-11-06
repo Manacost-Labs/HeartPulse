@@ -594,6 +594,58 @@
       ]
     },
     {
+      "id": "server.replayShares",
+      "runtime": "server",
+      "root": "server/modules/replayShares",
+      "purpose": "Owns the web replays the Hearthpulse app uploads: the server's repeat of the app's sanitizing, unlisted links, retention, the owner's list and deletion.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/replayShares/public.ts",
+      "dependencies": [
+        "server.applicationAuth"
+      ],
+      "focusedTests": [
+        "npm run test:replay-shares"
+      ],
+      "docs": [
+        "docs/specs/web-replays.md",
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
+      "id": "server.appUsage",
+      "runtime": "server",
+      "root": "server/modules/appUsage",
+      "purpose": "Owns the Hearthpulse app's daily free use of our own analytics: the limits switch, off by default, and the claims counted on the server.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/appUsage/public.ts",
+      "dependencies": [
+        "server.applicationAuth"
+      ],
+      "focusedTests": [
+        "npm run test:app-usage"
+      ],
+      "docs": [
+        "docs/specs/app-usage-limits.md",
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
+      "id": "server.crashReports",
+      "runtime": "server",
+      "root": "server/modules/crashReports",
+      "purpose": "Owns crash reports from the Hearthpulse app, sent on the player's consent: the repeat of the app's scrubbing, no IP, retention and a row cap.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/crashReports/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:crash-reports"
+      ],
+      "docs": [
+        "docs/specs/crash-reports.md",
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
       "id": "server.savedDecks",
       "runtime": "server",
       "root": "server/modules/savedDecks",
