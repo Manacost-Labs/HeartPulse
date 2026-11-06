@@ -43,6 +43,6 @@ favourite hero and top-4 rate, and a share image.
 - `/id/<publicProfileId>/year/<year>/` (Next, `noindex`): tiles, «Карты
   года», a link to the favourite deck's embed, the «Сделано в Hearthpulse»
   band.
-- `/og/year/<publicProfileId>/<year>/`: 1200 × 630 PNG with the numbers and
+- `/og/year/<publicProfileId>/<year>/`: 1200 × 630 JPEG with the numbers and
   the favourite Battlegrounds hero's card art; one image per profile, year
   and day in the Next process.

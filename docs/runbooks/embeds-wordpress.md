@@ -2,6 +2,9 @@
 
 Contract: [embeds and oEmbed](../specs/embeds-and-oembed.md).
 
+**Не ставьте встраивания Hearthpulse в материалы только для подписчиков
+(Boosty и т. п.):** арт и данные Hearthstone остаются бесплатными (ADR 0009).
+
 ## 1. Paste a link (no plugin)
 
 Replay pages announce their oEmbed endpoint, so in the block editor a

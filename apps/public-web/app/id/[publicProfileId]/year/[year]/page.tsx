@@ -4,6 +4,7 @@ import '@/src/route-parchment.css';
 import './year.css';
 import { loadPublicYearReview, monthName, percent, type PublicYearReview } from '@/apps/public-web/lib/publicYearReview';
 import { MadeWithHearthpulse } from '@/apps/public-web/ui/MadeWithHearthpulse';
+import { SharedPageShell } from '@/apps/public-web/ui/SharedPageShell';
 
 type Props = { params: Promise<{ publicProfileId: string; year: string }> };
 export const dynamic = 'force-dynamic';
@@ -51,7 +52,8 @@ export default async function Page({ params }: Props) {
   const bg = review.battlegrounds;
   const constructed = review.games - bg.games;
   return (
-    <main className="year-review">
+    <SharedPageShell pathname={`/id/${publicProfileId}/year/${review.year}/`}>
+    <div className="year-review">
       <header className="year-review__head">
         <p className="year-review__kicker">Hearthpulse</p>
         <h1>Итоги года {review.year}</h1>
@@ -91,6 +93,7 @@ export default async function Page({ params }: Props) {
       ) : null}
       <p className="year-review__back"><a href={`/id/${publicProfileId}/`}>Профиль игрока</a></p>
       <MadeWithHearthpulse />
-    </main>
+    </div>
+    </SharedPageShell>
   );
 }

@@ -6980,6 +6980,8 @@ const apiLimiter = rateLimit({
     || (req.method === 'POST' && req.path === '/auth/telegram/bot/webhook')
     || isPublicMediaApiRequest(req.method, req.path)
     || (req.method === 'GET' && req.originalUrl.startsWith('/api/gallery/'))
+    // Chat bots fetch every channel's commands from a few shared servers; registerChatCommands budgets them per channel.
+    || (req.method === 'GET' && req.path.startsWith('/v1/chat/'))
     // This auth_request runs for every Cover asset. Only a correctly keyed
     // internal GET bypasses the public API budget before the router checks it.
     || (req.method === 'GET'

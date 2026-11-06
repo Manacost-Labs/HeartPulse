@@ -2,7 +2,7 @@ import { Router, type RequestHandler, type Response } from 'express';
 import type { PlayerGame } from '../playerGames/public.js';
 import {
   CHAT_COMMANDS,
-  CHAT_MAX_DELAY_SECONDS,
+  CHAT_GAME_DELAY_SECONDS,
   CHAT_SESSION_MS,
   chatTexts,
   deckReply,
@@ -25,12 +25,14 @@ const LOGIN = /^[a-z0-9_]{1,25}$/;
 export type ChatChannel = {
   userId: string;
   twitchUserId: string;
-  /** Whether the account shows its statistics publicly (`/id/<n>/`): the streamer's consent for !winrate, !rank and !mmr. */
+  /** The streamer switched chat commands on (Twitch section of the profile; off by default). Off answers like unlinked. */
+  chatEnabled: boolean;
+  /** Whether the account shows its statistics publicly (`/id/<n>/`): the further consent for !winrate, !rank and !mmr. */
   statsPublic: boolean;
 };
 
 /** The channel's latest Twitch extension snapshot, already delayed by the app. */
-export type ChatSnapshot = { deck: ChatDeck | null; receivedAt: number; delaySeconds: number | null };
+export type ChatSnapshot = { deck: ChatDeck | null; receivedAt: number };
 
 export type ChatCommandsRouterDependencies = {
   /** The site account linked to a Twitch login; null when the channel is not linked. */
@@ -55,9 +57,10 @@ const sendText = (response: Response, status: number, text: string) => {
 };
 
 /**
- * Plain-text answers for chat bots (Nightbot `$(urlfetch)`, StreamElements `${customapi}`): `!deck` from the delayed
- * extension snapshot, `!winrate`, `!rank`, `!mmr` from the streamer's games that ended before now minus the stream
- * delay. An unlinked channel answers an empty 404. Contract: docs/specs/chat-commands.md.
+ * Plain-text answers for chat bots (Nightbot `$(urlfetch)`, StreamElements `${customapi}`), only while the app is live
+ * on the channel: `!deck` from the delayed extension snapshot, `!winrate`, `!rank`, `!mmr` from the streamer's games
+ * that ended ten minutes ago or earlier. A channel that is unlinked or has chat commands off answers an empty 404.
+ * Contract: docs/specs/chat-commands.md.
  */
 export function createChatCommandsRouter(dependencies: ChatCommandsRouterDependencies): Router {
   const router = Router();
@@ -68,16 +71,16 @@ export function createChatCommandsRouter(dependencies: ChatCommandsRouterDepende
   async function answer(channel: ChatChannel, command: ChatCommand, lang: ChatLanguage): Promise<string> {
     const texts = chatTexts(lang);
     const current = now();
+    // Every command answers only while the app is live on the channel: no polling of a streamer who is offline.
     const snapshot = dependencies.snapshot(channel.twitchUserId);
+    if (!snapshot) return texts.notSharing;
     if (command === 'deck') {
-      if (!snapshot) return texts.notSharing;
       const hero = snapshot.deck?.hero ? await dependencies.heroDbfId(snapshot.deck.hero).catch(() => null) : null;
       return deckReply(snapshot.deck, snapshot.deck ? deckstringOf(snapshot.deck, hero) : null, lang);
     }
     if (!channel.statsPublic) return texts.statsHidden;
-    const delay = Math.min(Math.max(snapshot?.delaySeconds ?? CHAT_MAX_DELAY_SECONDS, 0), CHAT_MAX_DELAY_SECONDS);
     const session = dependencies.readGames(channel.userId, { since: current - CHAT_SESSION_MS, until: current, limit: 500 });
-    const visible = visibleGames(session, current - delay * 1000);
+    const visible = visibleGames(session, current - CHAT_GAME_DELAY_SECONDS * 1000);
     if (command === 'winrate') return winrateReply(visible, lang);
     if (command === 'rank') return rankReply(visible, lang);
     return mmrReply(visible, lang);
@@ -92,7 +95,7 @@ export function createChatCommandsRouter(dependencies: ChatCommandsRouterDepende
     const cached = answers.get(key);
     if (cached && cached.expiresAt > now()) return sendText(response, 200, cached.text);
     const channel = dependencies.findChannel(login);
-    if (!channel) return sendText(response, 404, '');
+    if (!channel || !channel.chatEnabled) return sendText(response, 404, '');
     try {
       const text = await answer(channel, command, lang);
       answers.set(key, { expiresAt: now() + ANSWER_TTL_MS, text });

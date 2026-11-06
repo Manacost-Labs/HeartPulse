@@ -77,11 +77,12 @@ Limits: 512 KB gzip, 8 MB text, 100 000 lines, 512 characters a line.
 - Link previews (2026-11, growth): the page sends `og:*` and
   `twitter:card=summary_large_image` with a title and description built only
   from the sanitized summary (`apps/public-web/lib/replayShare.ts`) and the
-  image `/og/replay/<id>/` (1200 × 630 PNG drawn by `next/og`: heroes, result,
+  image `/og/replay/<id>/` (1200 × 630 JPEG drawn by `next/og`: heroes, result,
   Battlegrounds final board, the Hearthpulse brand). The image is kept in a
   64-entry memory cache of the Next process and sent with
-  `Cache-Control: public, max-age=86400`; a deleted replay answers 404 because
-  the replay is read before the cache. It also links its oEmbed endpoint
+  `Cache-Control: public, max-age=300`; a deleted replay answers 404 because
+  the replay is read before the cache. Copies that chat apps already made are
+  outside the site's control. It also links its oEmbed endpoint
   (`application/json+oembed`), see [embeds](embeds-and-oembed.md).
 - «Сделано в Hearthpulse — скачать»: a one-line band under the timeline for a
   guest (hidden by CSS when `html[data-hp-viewer]` marks a remembered viewer),

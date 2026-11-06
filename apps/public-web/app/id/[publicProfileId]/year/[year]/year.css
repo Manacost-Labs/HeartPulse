@@ -2,7 +2,7 @@
 .year-review {
   max-width: 920px;
   margin: 0 auto;
-  padding: 32px 16px 64px;
+  padding: 0 0 24px;
   color: var(--arena-ink);
 }
 
@@ -71,4 +71,16 @@
 
 .year-review__cards small {
   color: var(--arena-muted-ink);
+}
+
+.year-review__head h1 {
+  font-family: 'HSDisplay', serif;
+  font-size: clamp(2rem, 6vw, 3rem);
+  line-height: 1.1;
+}
+
+.year-review__cards h2 {
+  margin: 24px 0 10px;
+  font-family: 'HSDisplay', serif;
+  font-size: 1.5rem;
 }

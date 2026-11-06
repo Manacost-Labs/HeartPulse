@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import '@/src/route-parchment.css';
 import './download.css';
+import { SharedPageShell } from '@/apps/public-web/ui/SharedPageShell';
+import { INDEXABLE_ROBOTS } from '@/src/shared/seo/robots';
 import { APP_RELEASES_URL, loadAppDownloads, type AppDownload } from '@/apps/public-web/lib/appDownloads';
 
 // The release links refresh hourly; the page itself needs no request input.
@@ -13,7 +15,7 @@ export const metadata: Metadata = {
   title: TITLE,
   description: DESCRIPTION,
   alternates: { canonical: 'https://hearthpulse.net/download/' },
-  robots: { index: true, follow: true },
+  robots: INDEXABLE_ROBOTS,
   openGraph: {
     type: 'website', siteName: 'Hearthpulse', url: 'https://hearthpulse.net/download/', title: TITLE, description: DESCRIPTION,
     images: [{ url: 'https://hearthpulse.net/main_assets/app/app-battlegrounds.webp', width: 960, height: 533 }],
@@ -71,7 +73,8 @@ export default async function Page() {
   const { version, downloads } = await loadAppDownloads();
   const link = (platform: AppDownload['platform']) => downloads.find(item => item.platform === platform)?.url ?? APP_RELEASES_URL;
   return (
-    <main className="app-landing">
+    <SharedPageShell pathname="/download/">
+    <div className="app-landing">
       <input className="app-landing__lang-input" type="radio" name="app-landing-lang" id="app-landing-ru" defaultChecked />
       <input className="app-landing__lang-input" type="radio" name="app-landing-lang" id="app-landing-en" />
       <nav className="app-landing__langs" aria-label="Язык / Language">
@@ -108,6 +111,7 @@ export default async function Page() {
           </div>
         </section>
       ))}
-    </main>
+    </div>
+    </SharedPageShell>
   );
 }

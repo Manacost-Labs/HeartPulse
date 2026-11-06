@@ -62,11 +62,12 @@ async function render(element: ReactElement): Promise<Uint8Array> {
     ...OG_SIZE,
     fonts: [{ name: 'HSDisplay', data: await loadFont(), weight: 400, style: 'normal' }],
   });
-  return new Uint8Array(await response.arrayBuffer());
+  // JPEG: a card-art preview is 0.3–0.6 MB as PNG; some chats (WhatsApp, VK) drop previews above ~300 KB.
+  return new Uint8Array(await sharp(Buffer.from(await response.arrayBuffer())).jpeg({ quality: 84, mozjpeg: true }).toBuffer());
 }
 
 /**
- * The PNG for `key`, drawn once per process while it stays among the newest; `draw` returns null for an absent
+ * The image for `key`, drawn once per process while it stays among the newest; `draw` returns null for an absent
  * subject (the route answers 404). A failed draw is not kept.
  */
 export function cachedOgImage(key: string, draw: () => Promise<ReactElement | null>): Promise<Uint8Array | null> {
@@ -83,13 +84,16 @@ export function cachedOgImage(key: string, draw: () => Promise<ReactElement | nu
   return made;
 }
 
-/** The route's answer: the PNG with a day of public caching, or a bare 404 that no preview keeps. */
+/**
+ * The route's answer: the JPEG cached for five minutes (a deleted replay stops being served soon; chat apps keep their
+ * own copies), or a bare 404 that no preview keeps.
+ */
 export function ogImageResponse(png: Uint8Array | null): Response {
   if (!png) return new Response('Not found', { status: 404, headers: { 'Cache-Control': 'no-store', 'Content-Type': 'text/plain; charset=utf-8' } });
   return new Response(png as BodyInit, {
     headers: {
-      'Content-Type': 'image/png',
-      'Cache-Control': 'public, max-age=86400',
+      'Content-Type': 'image/jpeg',
+      'Cache-Control': 'public, max-age=300',
       'X-Robots-Tag': 'noindex',
     },
   });

@@ -14,7 +14,7 @@ async function draw(replay: PublicReplay) {
     loadLogo(),
     summary.heroCardId ? cardArt(summary.heroCardId, 'full', 300) : null,
     !bg && summary.opponentHeroCardId ? cardArt(summary.opponentHeroCardId, 'full', 300) : null,
-    ...(bg ? summary.finalBoard.slice(0, 7).map(minion => cardArt(minion.cardId, 'full', 150)) : []),
+    ...(bg ? summary.finalBoard.slice(0, 7).map(minion => cardArt(minion.cardId, 'full', 220)) : []),
   ]);
   const { title } = replayShareText(replay);
   const headline = bg ? (summary.placement ? `${summary.placement}-е место` : 'Поля сражений') : (summary.result || summary.mode);
@@ -30,12 +30,12 @@ async function draw(replay: PublicReplay) {
         {heroCard(hero)}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '0 24px' }}>
           <span style={{ fontSize: 76, color, textAlign: 'center' }}>{headline}</span>
-          <span style={{ fontSize: 34, marginTop: 12, textAlign: 'center', maxWidth: 520 }}>{bg ? summary.heroName : title.replace(/^[^:]*:\s*/, '')}</span>
+          <span style={{ fontSize: 34, marginTop: 12, textAlign: 'center', maxWidth: 780 }}>{bg ? summary.heroName : title.replace(/^[^:]*:\s*/, '')}</span>
           <span style={{ fontSize: 26, marginTop: 14, color: OG_COLORS.muted, textAlign: 'center', maxWidth: 520 }}>{facts}</span>
           {bg && board.some(Boolean) ? (
             <div style={{ display: 'flex', marginTop: 20 }}>
               {board.map((uri, index) => (uri
-                ? <img key={index} src={uri} width={92} height={127} alt="" style={{ objectFit: 'contain', margin: '0 2px' }} />
+                ? <img key={index} src={uri} width={104} height={144} alt="" style={{ objectFit: 'contain', margin: '0 1px' }} />
                 : null))}
             </div>
           ) : null}

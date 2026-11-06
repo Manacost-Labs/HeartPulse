@@ -15,6 +15,7 @@ const STYLE = `
 body{font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:var(--paper);display:flex;flex-direction:column}
 a{color:var(--red)}main{flex:1;overflow:auto;padding:12px 14px}
 .hp-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 12px;border-top:1px solid var(--line);font-size:12px}
+.hp-legal{margin:0;padding:0 12px 6px;color:var(--muted);font-size:10px}
 .hp-foot a{display:flex;align-items:center;gap:6px;text-decoration:none;font-weight:700}
 .hp-title{margin:0 0 4px;font-size:18px}.hp-meta{margin:0 0 10px;color:var(--muted)}
 .hp-badge{display:inline-block;padding:1px 8px;border-radius:999px;color:#fff;background:var(--muted);font-weight:700}
@@ -57,6 +58,7 @@ export function embedDocument({ title, body, back, script = false }: { title: st
     + `<main>${body}</main>`
     + `<footer class="hp-foot"><a href="https://hearthpulse.net/download/" target="_blank" rel="noopener"><img src="/hearthpulse-logo.webp" width="15" height="16" alt="">Сделано в Hearthpulse</a>`
     + `<a href="${escapeHtml(back)}" target="_blank" rel="noopener">Открыть на hearthpulse.net</a></footer>`
+    + '<p class="hp-legal">Hearthstone и арт карт © Blizzard Entertainment. Hearthpulse не связан с Blizzard.</p>'
     + (script ? `<script>${COPY_SCRIPT}</script>` : '')
     + '</body></html>';
 }

@@ -5,12 +5,16 @@
 ## По-русски
 
 1. В приложении Hearthpulse: Настройки → Стрим → Twitch — войдите и включите
-   передачу колоды. Задержку выставьте как в OBS: команды её соблюдают.
-2. На hearthpulse.net в профиле привяжите Twitch (раздел Twitch).
+   передачу колоды. Задержку выставьте как в OBS: `!deck` идёт с ней, другие
+   команды учитывают игру через 10 минут после её конца. Защита от
+   стрим-снайпинга — только эта задержка.
+2. На hearthpulse.net в профиле привяжите Twitch и включите «Чат-команды»
+   (раздел Twitch, по умолчанию выключено).
 3. Для `!winrate`, `!rank`, `!mmr` включите в профиле показ статистики
    (страница `/id/<номер>/`). Без этого бот ответит «стример не показывает
    статистику». `!deck` работает и без этого.
-4. Добавьте команды в чат-бота (канал подставится сам).
+4. Добавьте команды в чат-бота (канал подставится сам). Команды отвечают,
+   только пока приложение передаёт колоду (вы в эфире с Hearthpulse).
 
 **Nightbot** — в чате канала (или в панели Nightbot → Commands):
 
@@ -31,17 +35,23 @@
 ```
 
 Проверка: откройте `https://hearthpulse.net/api/v1/chat/<ваш_логин>/deck` в
-браузере. Пустая страница с ошибкой 404 — канал не привязан к аккаунту сайта.
+браузере. Пустая страница с ошибкой 404 — канал не привязан или чат-команды
+выключены.
 
 ## In English
 
 1. In the Hearthpulse app: Settings → Stream → Twitch — sign in and turn on
-   sending your deck. Set the delay to your OBS delay: the commands respect it.
-2. On hearthpulse.net, link Twitch in your profile (Twitch section).
+   sending your deck. Set the delay to your OBS delay: `!deck` follows it, the
+   other commands count a game 10 minutes after it ends. That delay is the only
+   protection against stream sniping.
+2. On hearthpulse.net, link Twitch in your profile and switch «Chat commands»
+   on (Twitch section, off by default).
 3. For `!winrate`, `!rank`, `!mmr`, make your profile statistics public
    (`/id/<number>/`). Without it the bot answers that you do not share stats.
    `!deck` works either way.
-4. Add the commands to your bot; `?lang=en` gives English answers.
+4. Add the commands to your bot; `?lang=en` gives English answers. They
+   answer only while the app is sending your deck (you are live with
+   Hearthpulse).
 
 **Nightbot:**
 
@@ -62,4 +72,4 @@
 ```
 
 Check: open `https://hearthpulse.net/api/v1/chat/<your_login>/deck`. An empty
-404 means the channel is not linked to a site account.
+404 means the channel is not linked or chat commands are off.

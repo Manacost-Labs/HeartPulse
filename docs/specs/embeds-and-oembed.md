@@ -10,8 +10,8 @@ forums) and a «Сделано в Hearthpulse» link back to the download landin
 
 | URL | Owner | Answer |
 | --- | --- | --- |
-| `/og/replay/<id>/` | Next route handler | 1200 × 630 PNG: heroes, result, Battlegrounds board, brand |
-| `/og/year/<publicProfileId>/<year>/` | Next route handler | PNG of the year in review ([spec](year-in-review.md)) |
+| `/og/replay/<id>/` | Next route handler | 1200 × 630 JPEG: heroes, result, Battlegrounds board, brand |
+| `/og/year/<publicProfileId>/<year>/` | Next route handler | JPEG of the year in review ([spec](year-in-review.md)) |
 | `/embed/replay/<id>/` | Next route handler | HTML for an iframe (600 × 360 suggested) |
 | `/embed/deck/<code>/` | Next route handler | HTML: deck list by cost, mana curve 0…7+, «Скопировать код» (380 × 760 suggested) |
 | `/embed/oembed/?url=…` | Next route handler | oEmbed 1.0 JSON |

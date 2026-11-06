@@ -9,8 +9,11 @@ export type ChatLanguage = 'ru' | 'en';
 
 /** The stream's games: those that started within this window before now. */
 export const CHAT_SESSION_MS = 12 * 60 * 60_000;
-/** The app's longest stream delay (`AppSettings.MaxTwitchDelaySeconds`): the delay assumed when the app sent none. */
-export const CHAT_MAX_DELAY_SECONDS = 600;
+/**
+ * Games count only this long after they end: the app's longest stream delay (`AppSettings.MaxTwitchDelaySeconds`).
+ * The app does not send its delay to the site, so the chat never runs ahead of any stream.
+ */
+export const CHAT_GAME_DELAY_SECONDS = 600;
 
 /** The deck part of the app's Twitch state (docs/specs/twitch-extension.md), as the chat reads it. */
 export type ChatDeck = {
@@ -62,35 +65,35 @@ export function rankText(rank: LadderRank, lang: ChatLanguage): string {
 
 const T = {
   ru: {
-    notSharing: 'Hearthpulse: стример сейчас не показывает колоду.',
+    notSharing: 'Hearthpulse: стример сейчас не в эфире с Hearthpulse.',
     noDeck: 'Hearthpulse: колода сейчас не выбрана.',
     deck: (name: string, code: string) => `${name ? `${name}: ` : 'Колода: '}${code}`,
     deckNoCode: (name: string) => `${name || 'Колода'} — код колоды пока недоступен.`,
     statsHidden: 'Hearthpulse: стример не показывает статистику.',
-    noGames: 'Hearthpulse: сегодня ещё нет игр.',
+    noGames: 'Hearthpulse: за 12 часов игр нет.',
     record: (wins: number, losses: number, rate: number) => `${wins}–${losses} (${rate}%)`,
-    constructed: 'Сегодня',
+    constructed: 'За 12 ч',
     bg: (games: number, place: string) => `Поля сражений: ${games} игр, среднее место ${place}`,
     noRank: 'Hearthpulse: ранга за последние игры нет.',
     rank: (rank: string, format: string) => `Ранг: ${rank} (${format})`,
     noMmr: 'Hearthpulse: рейтинга Полей сражений за последние игры нет.',
-    mmr: (rating: number, delta: string) => `MMR Полей сражений: ${rating}${delta ? ` (${delta} сегодня)` : ''}`,
+    mmr: (rating: number, delta: string) => `MMR Полей сражений: ${rating}${delta ? ` (${delta} за 12 ч)` : ''}`,
     standard: 'Стандарт', wild: 'Вольный',
   },
   en: {
-    notSharing: 'Hearthpulse: the streamer is not showing the deck right now.',
+    notSharing: 'Hearthpulse: the streamer is not live with Hearthpulse right now.',
     noDeck: 'Hearthpulse: no deck selected right now.',
     deck: (name: string, code: string) => `${name ? `${name}: ` : 'Deck: '}${code}`,
     deckNoCode: (name: string) => `${name || 'Deck'} — the deck code is not available yet.`,
     statsHidden: 'Hearthpulse: the streamer does not share stats.',
-    noGames: 'Hearthpulse: no games today yet.',
+    noGames: 'Hearthpulse: no games in the last 12 hours.',
     record: (wins: number, losses: number, rate: number) => `${wins}–${losses} (${rate}%)`,
-    constructed: 'Today',
+    constructed: 'Last 12 h',
     bg: (games: number, place: string) => `Battlegrounds: ${games} games, average place ${place}`,
     noRank: 'Hearthpulse: no rank in recent games.',
     rank: (rank: string, format: string) => `Rank: ${rank} (${format})`,
     noMmr: 'Hearthpulse: no Battlegrounds rating in recent games.',
-    mmr: (rating: number, delta: string) => `Battlegrounds MMR: ${rating}${delta ? ` (${delta} today)` : ''}`,
+    mmr: (rating: number, delta: string) => `Battlegrounds MMR: ${rating}${delta ? ` (${delta} in 12 h)` : ''}`,
     standard: 'Standard', wild: 'Wild',
   },
 } as const;

@@ -39,14 +39,15 @@ const bg = (endedMinutesAgo: number, placement: number, before: number, after: n
 const games = () => [ranked(120, 'win', 44), ranked(90, 'loss', 44), ranked(60, 'win', 45), bg(30, 2, 6500, 6560), bg(3, 8, 6560, 6480)]
   .sort((left, right) => left.startedAt - right.startedAt);
 
-let snapshot: ChatSnapshot | null = { deck, receivedAt: now, delaySeconds: 120 };
+let snapshot: ChatSnapshot | null = { deck, receivedAt: now };
 let statsPublic = true;
+let chatEnabled = true;
 let channelReads = 0;
 const app = express();
 app.use(createChatCommandsRouter({
   findChannel: login => {
     channelReads += 1;
-    return login === 'streamer' ? { userId: 'user-1', twitchUserId: '1001', statsPublic } : null;
+    return login === 'streamer' ? { userId: 'user-1', twitchUserId: '1001', chatEnabled, statsPublic } : null;
   },
   snapshot: id => (id === '1001' ? snapshot : null),
   readGames: (userId, window) => {
@@ -84,29 +85,35 @@ try {
   assert.equal((await ask('streamer/deck')).text, `Маг на секретах: ${code}`);
   assert.equal(channelReads, reads);
   tick();
-  assert.equal((await ask('streamer/deck')).text, 'Hearthpulse: стример сейчас не показывает колоду.');
-  assert.equal((await ask('streamer/deck?lang=en')).text, 'Hearthpulse: the streamer is not showing the deck right now.');
+  // Offline (no fresh snapshot): no command answers with data, stats included.
+  assert.equal((await ask('streamer/deck')).text, 'Hearthpulse: стример сейчас не в эфире с Hearthpulse.');
+  assert.equal((await ask('streamer/mmr')).text, 'Hearthpulse: стример сейчас не в эфире с Hearthpulse.');
+  assert.equal((await ask('streamer/deck?lang=en')).text, 'Hearthpulse: the streamer is not live with Hearthpulse right now.');
 
-  // Stats honour the stream delay: with 2 minutes, the game that ended 3 minutes ago is already on stream.
-  snapshot = { deck, receivedAt: now, delaySeconds: 120 };
-  assert.equal((await ask('streamer/winrate')).text, 'Сегодня: 2–1 (67%) · Поля сражений: 2 игр, среднее место 5.0');
-  assert.equal((await ask('streamer/mmr')).text, 'MMR Полей сражений: 6480 (−20 сегодня)');
+  // Live: games count ten minutes after they end, so the game that ended 3 minutes ago is not in the answers yet.
+  tick();
+  snapshot = { deck, receivedAt: now };
+  assert.equal((await ask('streamer/winrate')).text, 'За 12 ч: 2–1 (67%) · Поля сражений: 1 игр, среднее место 2.0');
+  assert.equal((await ask('streamer/mmr')).text, 'MMR Полей сражений: 6560 (+60 за 12 ч)');
   assert.equal((await ask('streamer/rank')).text, 'Ранг: Алмаз 6 (Стандарт)');
   assert.equal((await ask('streamer/rank?lang=en')).text, 'Rank: Diamond 6 (Standard)');
+  assert.equal((await ask('streamer/winrate?lang=en')).text, 'Last 12 h: 2–1 (67%) · Battlegrounds: 1 games, average place 2.0');
 
-  // A longer delay hides the newest game; without a snapshot the longest delay (10 min) is assumed.
-  tick();
-  snapshot = { deck, receivedAt: now, delaySeconds: 300 };
-  assert.equal((await ask('streamer/mmr')).text, 'MMR Полей сражений: 6560 (+60 сегодня)');
-  tick();
-  snapshot = null;
-  assert.equal((await ask('streamer/winrate')).text, 'Сегодня: 2–1 (67%) · Поля сражений: 1 игр, среднее место 2.0');
+  // Eight minutes later the newest game is past the delay.
+  now += 8 * minute;
+  assert.equal((await ask('streamer/mmr')).text, 'MMR Полей сражений: 6480 (−20 за 12 ч)');
+  assert.equal((await ask('streamer/winrate')).text, 'За 12 ч: 2–1 (67%) · Поля сражений: 2 игр, среднее место 5.0');
 
-  // The streamer's consent for stats is the public statistics switch of the profile.
+  // Consent: stats need the profile's public statistics; everything needs the chat switch of the Twitch section.
   tick();
   statsPublic = false;
   assert.equal((await ask('streamer/winrate')).text, 'Hearthpulse: стример не показывает статистику.');
   assert.equal((await ask('streamer/mmr?lang=en')).text, 'Hearthpulse: the streamer does not share stats.');
+  assert.equal((await ask('streamer/deck')).status, 200, '!deck needs no public statistics');
+  tick();
+  chatEnabled = false;
+  assert.deepEqual(await ask('streamer/rank'), { status: 404, type: 'text/plain; charset=utf-8', cache: 'no-store', text: '' },
+    'chat commands off: the channel answers like an unlinked one');
 } finally {
   server.close();
 }

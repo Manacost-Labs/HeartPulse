@@ -1,6 +1,7 @@
 /* The shared replay page (plan 2.2): a narrow reading column on the parchment theme. */
 .replay-page { max-width: 880px; margin: 0 auto; padding: 32px 16px 64px; }
-.replay-page__head h1 { margin: 0 0 8px; }
+.replay-page__head h1 { margin: 0 0 8px; font-family: 'HSDisplay', serif; font-size: clamp(1.6rem, 4vw, 2.2rem); line-height: 1.15; }
+.replay-page__board h2 { font-family: 'HSDisplay', serif; font-size: 1.3rem; }
 .replay-page__meta { margin: 0 0 8px; font-weight: 600; }
 .replay-page__note { margin: 0 0 24px; opacity: 0.75; font-size: 0.9rem; }
 .replay-page__board ul { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; list-style: none; }

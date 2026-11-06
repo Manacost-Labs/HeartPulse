@@ -5,6 +5,7 @@ import './replay.css';
 import { loadPublicReplay } from '@/apps/public-web/lib/publicReplay';
 import { replayShareText, replayUrls } from '@/apps/public-web/lib/replayShare';
 import { MadeWithHearthpulse } from '@/apps/public-web/ui/MadeWithHearthpulse';
+import { SharedPageShell } from '@/apps/public-web/ui/SharedPageShell';
 
 type Props = { params: Promise<{ id: string }> };
 export const dynamic = 'force-dynamic';
@@ -43,16 +44,19 @@ export default async function Page({ params }: Props) {
   const replay = await resolveReplay(params);
   if (replay === 'unavailable') {
     return (
-      <main className="replay-page">
-        <h1>Реплей временно недоступен</h1>
-        <p className="replay-page__note">Сайт сейчас перегружен. Обновите страницу через минуту.</p>
-      </main>
+      <SharedPageShell pathname="/replay/">
+        <div className="replay-page">
+          <h1>Реплей временно недоступен</h1>
+          <p className="replay-page__note">Сайт сейчас перегружен. Обновите страницу через минуту.</p>
+        </div>
+      </SharedPageShell>
     );
   }
   const { summary } = replay;
   const bg = replay.kind === 'battlegrounds';
   return (
-    <main className="replay-page">
+    <SharedPageShell pathname={`/replay/${replay.id}/`}>
+    <div className="replay-page">
       <header className="replay-page__head">
         <h1>{summary.mode} · {summary.heroName}</h1>
         <p className="replay-page__meta">
@@ -85,6 +89,7 @@ export default async function Page({ params }: Props) {
         ))}
       </section>
       <MadeWithHearthpulse />
-    </main>
+    </div>
+    </SharedPageShell>
   );
 }

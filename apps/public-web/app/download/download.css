@@ -2,7 +2,7 @@
 .app-landing {
   max-width: 980px;
   margin: 0 auto;
-  padding: 24px 16px 64px;
+  padding: 0 0 24px;
   color: var(--arena-ink);
 }
 
@@ -125,4 +125,11 @@
   margin-top: 6px;
   color: var(--arena-muted-ink);
   font-size: 0.9rem;
+}
+
+.app-landing__head h1,
+.app-landing__copy h1 {
+  font-family: 'HSDisplay', serif;
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  line-height: 1.1;
 }
