@@ -1259,3 +1259,31 @@ two complete eligible runs may the calibration command update PASS-only
 per-file medians. Preserve existing weights without sufficient samples, and
 verify the resulting schedule in a subsequent hosted run. A documentation-only
 measurement commit supplies the second sample without changing test behavior.
+
+## Calibration of the stable 559-file inventory
+
+Run `42147565370` on `3a600ba7` passed all 36 checks and all 559 files without
+retries. Required validation took 188 seconds. Its executable inputs and
+inventory match `c306c382`; only documentation changed between the two heads.
+The timing reports retain GitHub's original merge SHA identities and run IDs.
+
+The calibration command used all 48 blocking worker reports from each of runs
+`42146509165/1` and `42147565370/1`, with explicit full-PR coverage validation.
+Every one of the 555 blocking files has two distinct PASS observations. Their
+medians replace the scheduling estimates; 554 numeric values change, and one
+is unchanged. All four quarantine weights remain unchanged. No failed,
+retried, incomplete or synthetic observations contribute to this update.
+
+Replaying the recorded browser file times through the new 40-worker schedule
+predicts longest-worker totals of 63.237 and 66.043 seconds for the two runs;
+the original schedules recorded 73.693 and 73.063 seconds. For the eight
+registry workers, replay maxima are 47.970 and 57.667 seconds, compared with
+recorded maxima of 55.855 and 70.440 seconds. These calculations exclude
+setup and queue time and cannot model timing changes caused by new concurrent
+neighbours. They justify a hosted trial, not a claimed CI speedup or SLO.
+
+Validation checks every new median against the two original samples, retains
+quarantine weights, and verifies exact disjoint coverage of all 99 blocking
+browser and 456 non-browser files. Calibration, worker/workflow/QA-group and
+registry tests pass. The next full GitHub run measures the actual effect;
+job counts, worker counts, test code and required gates remain unchanged.
