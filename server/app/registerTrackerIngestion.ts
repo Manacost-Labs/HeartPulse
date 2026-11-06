@@ -24,6 +24,10 @@ type RegisterTrackerIngestionDependencies = {
   userAuth: (request: Request) => { id: string } | null;
   /** Called after the account deleted its tracker data. */
   onDeleted?: (userId: string) => void;
+  /** The account's web replays for the data export, one JSON object each. */
+  exportReplays?: (userId: string) => Iterable<string>;
+  /** The account's app usage claims for the data export. */
+  exportUsage?: (userId: string) => Iterable<string>;
 };
 
 export function registerTrackerIngestionRateLimit(app: Application): void {
@@ -53,6 +57,8 @@ export function registerTrackerIngestion(dependencies: RegisterTrackerIngestionD
     repository,
     setPrivateNoStore: dependencies.setPrivateNoStore,
     onDeleted: dependencies.onDeleted,
+    exportReplays: dependencies.exportReplays,
+    exportUsage: dependencies.exportUsage,
   }));
   return repository;
 }

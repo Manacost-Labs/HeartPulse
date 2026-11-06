@@ -49,7 +49,10 @@ test('a game date shows the day, short month and time', () => {
   const zone = process.env.TZ;
   process.env.TZ = 'Europe/Moscow';
   try {
-    assert.equal(formatGameDate(Date.UTC(2026, 9, 5, 11, 7)), '5 окт., 14:07');
+    const thisYear = Date.UTC(2026, 10, 2, 12);
+    assert.equal(formatGameDate(Date.UTC(2026, 9, 5, 11, 7), thisYear), '5 окт., 14:07');
+    // A game of another year names the year.
+    assert.match(formatGameDate(Date.UTC(2025, 9, 5, 11, 7), thisYear), /^5 окт\. 2025( г\.)?, 14:07$/);
   } finally {
     process.env.TZ = zone;
   }

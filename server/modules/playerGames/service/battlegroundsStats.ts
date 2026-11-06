@@ -1,5 +1,6 @@
 import type { PlayerGame } from '../model/game.js';
 import type { GlobalBattlegroundsHero } from '../model/globalSources.js';
+import { recentBattlegroundsGames } from './recentGames.js';
 import {
   MAX_SERIES_POINTS,
   average,
@@ -116,6 +117,7 @@ export function buildBattlegroundsStats(
     heroes: [...byHero.entries()]
       .map(([heroCardId, heroGames]) => heroStats(heroCardId, heroGames, slots, offeredByHero.get(heroCardId) ?? 0, global))
       .sort((left, right) => right.games - left.games || left.averagePlacement - right.averagePlacement),
+    recentGames: recentBattlegroundsGames(games),
     global: options.global,
   };
 }

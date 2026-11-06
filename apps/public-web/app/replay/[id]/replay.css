@@ -1,0 +1,13 @@
+/* The shared replay page (plan 2.2): a narrow reading column on the parchment theme. */
+.replay-page { max-width: 880px; margin: 0 auto; padding: 32px 16px 64px; }
+.replay-page__head h1 { margin: 0 0 8px; }
+.replay-page__meta { margin: 0 0 8px; font-weight: 600; }
+.replay-page__note { margin: 0 0 24px; opacity: 0.75; font-size: 0.9rem; }
+.replay-page__board ul { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; list-style: none; }
+.replay-page__board li { padding: 6px 10px; border-radius: 8px; background: rgba(0, 0, 0, 0.08); }
+.replay-page__board li.is-golden { outline: 1px solid #c9a227; }
+.replay-page__board li span { opacity: 0.7; margin-left: 4px; }
+.replay-page__timeline details { margin: 0 0 8px; padding: 8px 12px; border-radius: 8px; background: rgba(0, 0, 0, 0.05); }
+.replay-page__timeline summary { cursor: pointer; font-weight: 600; }
+.replay-page__timeline ol { margin: 8px 0 0; padding-left: 20px; }
+.replay-page__timeline li[data-side='opponent'] { opacity: 0.85; }

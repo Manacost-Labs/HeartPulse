@@ -19,6 +19,7 @@ export function publicPlayerStats(stats: PlayerStats): PlayerStats {
       return {
         ...stats,
         global: { ...stats.global, availability: 'none' },
+        recentGames: [],
         ratingSeries: stats.ratingSeries.map((game, index) => ({ ...game, id: String(index + 1), startedAt: day(game.startedAt) })),
       };
     case 'arena': {
@@ -31,6 +32,7 @@ export function publicPlayerStats(stats: PlayerStats): PlayerStats {
       return {
         ...stats,
         summary: { ...stats.summary, bestRun: bestRun ? project(bestRun) : null },
+        recentGames: [],
         runs: stats.runs.map(project),
       };
     }
@@ -38,6 +40,7 @@ export function publicPlayerStats(stats: PlayerStats): PlayerStats {
       return {
         ...stats,
         global: { availability: 'none' },
+        recentGames: [],
         rankSeries: stats.rankSeries.map((game, index) => ({ ...game, id: String(index + 1), startedAt: day(game.startedAt) })),
         decks: stats.decks.map(deck => ({ ...deck, lastPlayedAt: day(deck.lastPlayedAt) })),
       };

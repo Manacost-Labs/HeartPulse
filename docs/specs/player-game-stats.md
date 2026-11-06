@@ -291,6 +291,19 @@ account drops its cache.
 - Arena: `summary` (runs, average wins, best run, 12-win runs, game win
   rate, time played), `runs`, `classes`.
 
+Every mode also has `recentGames`: up to 50 newest games of the answer
+(Battlegrounds: of the chosen Solo or Duos), newest first, each with `id`
+(the tracker event id), `startedAt`, `durationSeconds`, `result`, `turns` and
+`replayId`, plus per mode: Standard and Wild `playerClass`, `opponentClass`,
+`deckName`, `archetype`, `opponentArchetype`, `ranked`, `rankAfter`;
+Battlegrounds `heroCardId`, `placement`, `ratingAfter`, `delta`; Arena
+`playerClass`, `opponentClass`, `gameNumber`, `underground`. `replayId` is the
+account's live web replay of that game ([web replays](web-replays.md): the
+app sends the game's event id with the upload), or null; it is looked up on
+every answer, outside the five-minute cache, so an upload or a delete shows at
+once. The page lists them as «Последние игры» (ten per page) with «Смотреть»
+for a replay.
+
 ### Global comparison
 
 The «vs Global» values use only data the site already publishes, read in

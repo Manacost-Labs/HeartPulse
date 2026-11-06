@@ -13,6 +13,15 @@ export type WinLoss = { games: number; wins: number };
 export type BoardMinion = { cardId: string; attack: number; health: number; golden: boolean };
 export type LadderRank = { starLevel: number; stars: number; legendRank: number | null };
 
+/** One game of «Последние игры», newest first; `replayId` links the account's web replay of it. */
+type RecentGameBase = { id: string; startedAt: number; durationSeconds: number; result: 'win' | 'loss' | 'tie'; turns: number | null;
+  replayId: string | null };
+export type RecentConstructedGame = RecentGameBase & { playerClass: HearthstoneClass; opponentClass: HearthstoneClass;
+  deckName: string | null; archetype: string | null; opponentArchetype: string | null; ranked: boolean; rankAfter: LadderRank | null };
+export type RecentBattlegroundsGame = RecentGameBase & { heroCardId: string; placement: number; ratingAfter: number | null; delta: number | null };
+export type RecentArenaGame = RecentGameBase & { playerClass: HearthstoneClass; opponentClass: HearthstoneClass; gameNumber: number;
+  underground: boolean };
+
 export type RatingPoint = {
   id: string;
   startedAt: number;
@@ -59,6 +68,7 @@ export type BattlegroundsStats = {
   };
   ratingSeries: RatingPoint[];
   heroes: HeroStats[];
+  recentGames: RecentBattlegroundsGame[];
   global: { availability: GlobalAvailability; mmr: GlobalMmrFilter };
   cards: Record<string, string>;
 };
@@ -88,6 +98,7 @@ export type ConstructedStats = {
   classes: Array<WinLoss & { playerClass: HearthstoneClass; globalWinrate: number | null }>;
   opponentClasses: Array<WinLoss & { opponentClass: HearthstoneClass }>;
   matchups: Array<WinLoss & { playerClass: HearthstoneClass; opponentClass: HearthstoneClass }>;
+  recentGames: RecentConstructedGame[];
   global: { availability: GlobalAvailability };
 };
 
@@ -119,6 +130,7 @@ export type ArenaStats = {
   };
   runs: ArenaRun[];
   classes: Array<{ playerClass: HearthstoneClass; runs: number; averageWins: number; games: number; wins: number; }>;
+  recentGames: RecentArenaGame[];
   global: { availability: GlobalAvailability };
 };
 

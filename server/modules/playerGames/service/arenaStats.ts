@@ -1,5 +1,6 @@
 import type { ArenaRunRecord, HearthstoneClass, PlayerGame } from '../model/game.js';
 import { average, rate, type ArenaRun, type ArenaStats } from '../model/stats.js';
+import { recentArenaGames } from './recentGames.js';
 
 type ArenaGame = Extract<PlayerGame, { mode: 'arena' }>;
 const MAX_WINS = 12;
@@ -113,6 +114,7 @@ export function buildArenaStats(
     classes: [...classes.values()]
       .map(({ totalWins, ...entry }) => ({ ...entry, averageWins: average(totalWins, entry.runs) ?? 0 }))
       .sort((left, right) => right.runs - left.runs || right.averageWins - left.averageWins),
+    recentGames: recentArenaGames(games),
     global: options.global,
   };
 }

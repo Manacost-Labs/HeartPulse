@@ -16,6 +16,8 @@ const SECTION_TABS: Readonly<Record<string, AccountTab>> = {
   'account-access': 'subscription',
   'account-game-stats': 'stats',
   'account-tracker-data': 'stats',
+  // The app's "My replays on the site" link (Settings → Account) opens the replay list.
+  'account-replays': 'stats',
   'account-public-profile': 'personal',
   'account-links': 'personal',
   'account-settings': 'personal',

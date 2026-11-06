@@ -6,6 +6,7 @@ import express from 'express';
 import type { ApplicationAuthManager, ApplicationToken } from '../server/modules/applicationAuth/public.js';
 import { createPlayerStatsRouter, createPlayerStatsService, validateStatisticsPayload } from '../server/modules/playerGames/public.js';
 import { registerPlayerGames } from '../server/app/registerPlayerGames.js';
+import { recentConstructedGames } from '../server/modules/playerGames/service/recentGames.js';
 import {
   createSqliteTrackerEventRepository,
   createTrackerIngestionRouter,
@@ -25,6 +26,8 @@ let entitled = false;
 // Public ID 7 is user-1; it shows its statistics only while this is true.
 let publicVisible = false;
 let globalCalls = 0;
+/** The account's web replays by game event id (plan 2.3); read on every answer. */
+const replayLinks: Record<string, Record<string, string>> = {};
 
 const service = createPlayerStatsService({
   loadEvents: repository.listEvents,
@@ -38,6 +41,7 @@ const service = createPlayerStatsService({
     battlegroundsHeroCombat: async () => [{ turn: 1, winrate: 48.2 }],
   },
   resolveCardNames: async ids => Object.fromEntries(ids.map(id => [id, `name:${id}`])),
+  replaysOfGames: (userId, ids) => Object.fromEntries(ids.flatMap(id => (replayLinks[userId]?.[id] ? [[id, replayLinks[userId][id]]] : []))),
   now: () => Date.parse('2026-10-23T12:00:00Z'),
 });
 const app = express();
@@ -134,6 +138,18 @@ try {
   await upload([bg(22, 3, 6420)]);
   assert.equal((await (await stats('mode=battlegrounds&duos=0')).json()).games, 3);
 
+  // «Последние игры»: newest first, and a link to the account's web replay of a game, as it is now (not from the cache).
+  const before = await (await stats('mode=battlegrounds&duos=0')).json();
+  assert.deepEqual(before.recentGames.map((game: { placement: number }) => game.placement), [3, 6, 1]);
+  assert.deepEqual(before.recentGames.map((game: { replayId: string | null }) => game.replayId), [null, null, null]);
+  assert.deepEqual([before.recentGames[0].heroCardId, before.recentGames[0].ratingAfter, before.recentGames[0].delta], ['BG20_HERO_242', 6420, 20]);
+  replayLinks['user-1'] = { [before.recentGames[1].id]: 'abcDEF1234' };
+  replayLinks['user-2'] = { [before.recentGames[0].id]: 'zzzZZZ9999' };
+  const linked = await (await stats('mode=battlegrounds&duos=0')).json();
+  assert.deepEqual(linked.recentGames.map((game: { replayId: string | null }) => game.replayId), [null, 'abcDEF1234', null]);
+  delete replayLinks['user-1'];
+  assert.equal((await (await stats('mode=battlegrounds&duos=0')).json()).recentGames[1].replayId, null, 'a deleted replay unlinks at once');
+
   const arenaStats = await (await stats('mode=arena')).json();
   assert.equal(arenaStats.summary.runs, 1);
   assert.deepEqual([arenaStats.runs[0].wins, arenaStats.runs[0].losses], [1, 1]);
@@ -143,9 +159,12 @@ try {
   await upload([event('arena_run', '2026-10-22T19:00:00Z', { runId: 'arena-run-0001', playerClass: 'PALADIN', wins: 5, losses: 3 })]);
   const recorded = await (await stats('mode=arena')).json();
   assert.deepEqual([recorded.runs[0].wins, recorded.runs[0].losses, recorded.runs[0].complete], [5, 3, true]);
+  assert.deepEqual(recorded.recentGames.map((game: { gameNumber: number; result: string }) => [game.gameNumber, game.result]),
+    [[2, 'loss'], [1, 'win']]);
 
   const standard = await (await stats('mode=standard')).json();
   assert.equal(standard.games, 0, 'an opaque v1 constructed event has no statistics');
+  assert.deepEqual(standard.recentGames, []);
 
   // A profile shows its statistics only after its owner switched them on; hidden and missing look alike.
   const hidden = await fetch(`${origin}/api/profiles/7/game-stats/modes`);
@@ -169,6 +188,7 @@ try {
   const shown = JSON.parse(publicBgWire);
   assert.equal(shown.games, own.games);
   assert.equal(shown.global.availability, 'none', 'no global comparison and no subscription offer on someone else\'s page');
+  assert.deepEqual(shown.recentGames, [], 'recent games (event ids, times, unlisted replay links) stay with the owner');
   assert.deepEqual(shown.ratingSeries.map((game: { id: string }) => game.id), ['1', '2', '3']);
   assert.deepEqual(shown.ratingSeries.map((game: { startedAt: number }) => new Date(game.startedAt).toISOString()),
     ['2026-10-20T00:00:00.000Z', '2026-10-21T00:00:00.000Z', '2026-10-22T00:00:00.000Z']);
@@ -209,5 +229,17 @@ const disabledAddress = disabledServer.address();
 assert.ok(disabledAddress && typeof disabledAddress === 'object');
 assert.equal((await fetch(`http://127.0.0.1:${disabledAddress.port}/api/account/game-stats/modes`)).status, 404);
 disabledServer.close();
+
+// A Constructed game in «Последние игры»: the deck, the opponent and the rank after it, newest first.
+const constructedGame = (id: string, startedAt: number) => ({
+  id, startedAt, durationSeconds: 540, result: 'win' as const, turns: 9, mode: 'standard' as const,
+  constructed: { ranked: true, playerClass: 'MAGE' as const, opponentClass: 'ROGUE' as const, heroCardId: null, opponentHeroCardId: null,
+    deckCode: null, deckName: 'Огненный маг', archetype: 'Spell Mage', opponentArchetype: 'Cycle Rogue', wentFirst: true,
+    rankBefore: null, rankAfter: { starLevel: 51, stars: 0, legendRank: 812 } },
+});
+const recent = recentConstructedGames([constructedGame('old', 1), constructedGame('new', 2)]);
+assert.deepEqual(recent.map(game => game.id), ['new', 'old']);
+assert.deepEqual([recent[0].deckName, recent[0].opponentArchetype, recent[0].rankAfter?.legendRank, recent[0].replayId],
+  ['Огненный маг', 'Cycle Rogue', 812, null]);
 
 console.log('player games routes: ok');

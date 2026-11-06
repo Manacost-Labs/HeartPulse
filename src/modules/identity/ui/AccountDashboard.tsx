@@ -15,6 +15,7 @@ import AccountHero from './AccountHero';
 import AccountLinks, { type AccountTelegramLink } from './AccountLinks';
 import AccountPlanSection from './AccountPlanSection';
 import AccountSectionHead from './AccountSectionHead';
+import AccountReplays from './AccountReplays';
 import AccountTrackerData from './AccountTrackerData';
 import AccountPublicProfile, { type AccountPublicProfileProps } from './AccountPublicProfile';
 import AccountSettings, { type AccountSettingsProps } from './AccountSettings';
@@ -183,6 +184,7 @@ export default function AccountDashboard(props: AccountDashboardProps) {
               </Suspense>
             ) : NO_STATS}
             <AccountTrackerData />
+            <AccountReplays />
           </>
         ),
         decks: <AccountDecks />,

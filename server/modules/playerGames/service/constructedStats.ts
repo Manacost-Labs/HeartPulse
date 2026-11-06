@@ -1,6 +1,7 @@
 import { ladderValue, type HearthstoneClass, type LadderRank, type PlayerGame } from '../model/game.js';
 import { archetypeKey, classKey, type GlobalArchetype } from '../model/globalSources.js';
 import { MAX_SERIES_POINTS, average, rate, type ConstructedStats, type WinLoss } from '../model/stats.js';
+import { recentConstructedGames } from './recentGames.js';
 
 type ConstructedGame = Extract<PlayerGame, { mode: 'standard' | 'wild' }>;
 const MAX_ROWS = 40;
@@ -129,6 +130,7 @@ export function buildConstructedStats(
     classes: byGames(classes),
     opponentClasses: byGames(opponents),
     matchups: [...matchups.values()],
+    recentGames: recentConstructedGames(games),
     global: options.global,
   };
 }

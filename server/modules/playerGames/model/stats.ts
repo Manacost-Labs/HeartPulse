@@ -1,4 +1,4 @@
-import type { BoardMinion, HearthstoneClass, LadderRank } from './game.js';
+import type { BoardMinion, GameResult, HearthstoneClass, LadderRank } from './game.js';
 
 export const STATS_PERIODS = ['all', '7', '30', '90', 'season'] as const;
 export type StatsPeriod = typeof STATS_PERIODS[number];
@@ -9,6 +9,8 @@ export type GlobalMmrFilter = typeof GLOBAL_MMR_FILTERS[number];
 /** Newest games a statistics request reads; keeps aggregation bounded for heavy players. */
 export const MAX_STATS_GAMES = 5_000;
 export const MAX_SERIES_POINTS = 500;
+/** Games listed one by one in «Последние игры». */
+export const MAX_RECENT_GAMES = 50;
 
 /**
  * `available`: the viewer may see paid global statistics and they loaded;
@@ -18,6 +20,33 @@ export const MAX_SERIES_POINTS = 500;
 export type GlobalAvailability = 'available' | 'subscription' | 'unavailable' | 'none';
 
 export type WinLoss = { games: number; wins: number };
+
+/**
+ * One game of «Последние игры», newest first. `replayId` is the account's web replay of this game (uploaded from the
+ * app with the game's event id), or null; it is filled on every answer, not cached with the statistics.
+ */
+type RecentGameBase = { id: string; startedAt: number; durationSeconds: number; result: GameResult; turns: number | null; replayId: string | null };
+export type RecentConstructedGame = RecentGameBase & {
+  playerClass: HearthstoneClass;
+  opponentClass: HearthstoneClass;
+  deckName: string | null;
+  archetype: string | null;
+  opponentArchetype: string | null;
+  ranked: boolean;
+  rankAfter: LadderRank | null;
+};
+export type RecentBattlegroundsGame = RecentGameBase & {
+  heroCardId: string;
+  placement: number;
+  ratingAfter: number | null;
+  delta: number | null;
+};
+export type RecentArenaGame = RecentGameBase & {
+  playerClass: HearthstoneClass;
+  opponentClass: HearthstoneClass;
+  gameNumber: number;
+  underground: boolean;
+};
 
 export type BattlegroundsHeroStats = {
   heroCardId: string;
@@ -63,6 +92,7 @@ export type BattlegroundsStats = {
     board: BoardMinion[];
   }>;
   heroes: BattlegroundsHeroStats[];
+  recentGames: RecentBattlegroundsGame[];
   global: { availability: GlobalAvailability; mmr: GlobalMmrFilter };
   cards: Record<string, string>;
 };
@@ -91,6 +121,7 @@ export type ConstructedStats = {
   classes: Array<WinLoss & { playerClass: HearthstoneClass; globalWinrate: number | null }>;
   opponentClasses: Array<WinLoss & { opponentClass: HearthstoneClass }>;
   matchups: Array<WinLoss & { playerClass: HearthstoneClass; opponentClass: HearthstoneClass }>;
+  recentGames: RecentConstructedGame[];
   global: { availability: GlobalAvailability };
 };
 
@@ -122,6 +153,7 @@ export type ArenaStats = {
   };
   runs: ArenaRun[];
   classes: Array<{ playerClass: HearthstoneClass; runs: number; averageWins: number; games: number; wins: number; }>;
+  recentGames: RecentArenaGame[];
   global: { availability: GlobalAvailability };
 };
 

@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 97,
-    "routeRegistrations": 272,
-    "middlewareRegistrations": 138,
-    "explicitGuardRouteRegistrations": 68,
+    "sourceFiles": 103,
+    "routeRegistrations": 283,
+    "middlewareRegistrations": 143,
+    "explicitGuardRouteRegistrations": 72,
     "unresolvedPaths": 0
   },
   "registrations": [
@@ -974,6 +974,34 @@
     {
       "kind": "middleware",
       "paths": [
+        "/api/v1/usage"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "rateLimit(...)"
+      ],
+      "guardSignals": [
+        "rateLimit(...)"
+      ],
+      "source": "server/app/registerAppUsage.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "createAppUsageRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/app/registerAppUsage.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "middleware",
+      "paths": [
         "/identity"
       ],
       "receiver": "app",
@@ -1009,6 +1037,31 @@
       "guardSignals": [],
       "source": "server/app/registerBrowserIdentity.ts",
       "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/api/v1/crash-reports",
+      "pathKind": "string",
+      "receiver": "app",
+      "middleware": [],
+      "handler": "rateLimit(...)",
+      "guardSignals": [],
+      "source": "server/app/registerCrashReports.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "createCrashReportRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/app/registerCrashReports.ts",
+      "sourceOrder": 1
     },
     {
       "kind": "middleware",
@@ -1078,6 +1131,46 @@
       "guardSignals": [],
       "source": "server/app/registerPublicApi.ts",
       "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/api/v1/tracker/replays",
+      "pathKind": "string",
+      "receiver": "app",
+      "middleware": [],
+      "handler": "uploads",
+      "guardSignals": [],
+      "source": "server/app/registerReplayShares.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/v1/replays"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "rateLimit(...)"
+      ],
+      "guardSignals": [
+        "rateLimit(...)"
+      ],
+      "source": "server/app/registerReplayShares.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "router"
+      ],
+      "guardSignals": [],
+      "source": "server/app/registerReplayShares.ts",
+      "sourceOrder": 2
     },
     {
       "kind": "middleware",
@@ -3934,6 +4027,42 @@
     {
       "kind": "route",
       "method": "GET",
+      "path": "/v1/usage/limits",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/appUsage/routes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/v1/usage",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/appUsage/routes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/v1/usage/claim",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/appUsage/routes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
       "path": "/api/bg/library/public/extra/:pool/:kind/:dbfId",
       "pathKind": "string",
       "receiver": "router",
@@ -4109,6 +4238,18 @@
       "guardSignals": [],
       "source": "server/modules/coverAdminSso/routes.ts",
       "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/v1/crash-reports",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/crashReports/routes.ts",
+      "sourceOrder": 0
     },
     {
       "kind": "route",
@@ -4803,6 +4944,82 @@
       "guardSignals": [],
       "source": "server/modules/readerPermissions/public.ts",
       "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/v1/tracker/replays",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "limiter"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "limiter"
+      ],
+      "source": "server/modules/replayShares/routes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "DELETE",
+      "path": "/v1/tracker/replays/:id",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "limiter"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "limiter"
+      ],
+      "source": "server/modules/replayShares/routes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/v1/replays/:id",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/replayShares/routes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/account/replays",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "limiter"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "limiter"
+      ],
+      "source": "server/modules/replayShares/routes.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "DELETE",
+      "path": "/account/replays/:id",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "limiter"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "limiter"
+      ],
+      "source": "server/modules/replayShares/routes.ts",
+      "sourceOrder": 4
     },
     {
       "kind": "route",

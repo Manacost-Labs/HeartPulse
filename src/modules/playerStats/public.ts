@@ -8,6 +8,9 @@ export type {
   PlayerStats,
   PlayerStatsMode,
   PlayerStatsQuery,
+  RecentArenaGame,
+  RecentBattlegroundsGame,
+  RecentConstructedGame,
   StatsPeriod,
 } from './model/stats';
 export {

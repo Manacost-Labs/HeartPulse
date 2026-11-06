@@ -97,6 +97,11 @@ export const battlegroundsFixture: BattlegroundsStats = {
   },
   ratingSeries: series,
   heroes: heroes(),
+  // Newest first; every third game has a web replay.
+  recentGames: [...series].reverse().slice(0, 12).map((point, index) => ({
+    id: point.id, startedAt: point.startedAt, durationSeconds: 1_500, result: point.placement <= 4 ? 'win' as const : 'loss' as const,
+    turns: 12, replayId: index % 3 === 0 ? `bgReplay0${index % 10}` : null, heroCardId: point.heroCardId, placement: point.placement,
+    ratingAfter: point.rating, delta: point.delta })),
   global: { availability: 'subscription', mmr: 'TOP_50_PERCENT' },
   cards: Object.fromEntries([...HEROES, ...MINIONS]),
 };
@@ -144,6 +149,11 @@ export const standardFixture: ConstructedStats = {
   opponentClasses: OPPONENTS.map((opponentClass, index) => ({ opponentClass, games: 24 - index * 2, wins: 13 - index })),
   matchups: DECKS.flatMap(deck => OPPONENTS.map((opponentClass, index) => ({
     playerClass: deck.playerClass, opponentClass, games: 6 + index % 3, wins: 2 + (index + deck.games) % 5 }))),
+  recentGames: [...ranks].reverse().slice(0, 12).map((point, index) => ({
+    id: point.id, startedAt: point.startedAt, durationSeconds: 540 + index * 20, result: point.result === 'win' ? 'win' as const : 'loss' as const,
+    turns: 9 + index % 4, replayId: index % 4 === 1 ? `stdReplay0${index % 10}` : null, playerClass: point.playerClass,
+    opponentClass: OPPONENTS[index % OPPONENTS.length], deckName: DECKS.find(deck => deck.playerClass === point.playerClass)?.deckName ?? null,
+    archetype: null, opponentArchetype: index % 2 ? 'Aggro Hunter' : null, ranked: true, rankAfter: point.rank })),
   global: { availability: 'subscription' },
 };
 
@@ -173,5 +183,9 @@ export const arenaFixture: ArenaStats = {
   runs,
   classes: RUN_CLASSES.map((playerClass, index) => ({ playerClass, runs: 2, averageWins: 6 - index * 0.7, games: 18 - index,
     wins: 11 - index })),
+  recentGames: Array.from({ length: 8 }, (_, index) => ({
+    id: `story-arena-${index}`, startedAt: START + 50 * DAY - index * 3_600_000, durationSeconds: 600, result: index % 3 ? 'win' as const : 'loss' as const,
+    turns: 10, replayId: index === 2 ? 'arenaRepl02' : null, playerClass: 'PALADIN' as const, opponentClass: OPPONENTS[index % OPPONENTS.length],
+    gameNumber: 8 - index, underground: false })),
   global: { availability: 'none' },
 };

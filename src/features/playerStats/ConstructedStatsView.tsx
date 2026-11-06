@@ -15,6 +15,7 @@ import {
   type ConstructedStats,
 } from '../../modules/playerStats/public';
 import { DATA_TABLE_LABELS, KPI_LABELS } from './playerStatsLabels';
+import { RecentConstructedGames } from './RecentGamesBlock';
 import { GlobalNote, StatsBlock } from './StatsBlock';
 
 type HearthstoneClass = ConstructedStats['classes'][number]['playerClass'];
@@ -171,6 +172,7 @@ export function ConstructedStatsView({ stats }: { stats: ConstructedStats }) {
         </StatsBlock>
       </div>
       <StatsBlock title="Матчапы"><MatchupGrid matchups={stats.matchups} /></StatsBlock>
+      <RecentConstructedGames games={stats.recentGames} />
     </>
   );
 }

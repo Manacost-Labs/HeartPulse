@@ -38,7 +38,8 @@ export function gameStatsFromPayload(payload: unknown, mode: PlayerStatsQuery['m
   if (mode === 'battlegrounds' && (!Array.isArray(payload.ratingSeries) || !Array.isArray(payload.heroes) || !isRecord(payload.cards))) return null;
   if ((mode === 'standard' || mode === 'wild') && (!Array.isArray(payload.decks) || !Array.isArray(payload.rankSeries))) return null;
   if (mode === 'arena' && (!Array.isArray(payload.runs) || !Array.isArray(payload.classes))) return null;
-  return payload as PlayerStats;
+  // «Последние игры» came later (plan 2.3): an older server answer simply has none.
+  return { ...payload, recentGames: Array.isArray(payload.recentGames) ? payload.recentGames : [] } as PlayerStats;
 }
 
 export async function fetchGameStats(query: PlayerStatsQuery, signal?: AbortSignal, publicProfileId?: string | null): Promise<PlayerStats> {

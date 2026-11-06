@@ -46,6 +46,7 @@ export const WEB_VITAL_ROUTE_TEMPLATES = [
   '/library/archive/[kind]/',
   '/library/archive/[kind]/[slugAndDbfId]/',
   '/privacy/',
+  '/replay/[id]/',
   '/standard/archetypes/',
   '/standard/archetypes/[format]/[archetypeSlug]/',
   '/standard/cards/',

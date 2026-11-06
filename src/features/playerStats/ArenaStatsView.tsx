@@ -13,6 +13,7 @@ import {
   type ArenaStats,
 } from '../../modules/playerStats/public';
 import { DATA_TABLE_LABELS, KPI_LABELS } from './playerStatsLabels';
+import { RecentArenaGames } from './RecentGamesBlock';
 import { StatsBlock } from './StatsBlock';
 
 type Run = ArenaStats['runs'][number];
@@ -87,6 +88,7 @@ export function ArenaStatsView({ stats }: { stats: ArenaStats }) {
       <StatsBlock title="Классы">
         <DataTable label="Классы" data={stats.classes} columns={CLASS_COLUMNS} getRowId={row => row.playerClass} {...table} />
       </StatsBlock>
+      <RecentArenaGames games={stats.recentGames} />
     </>
   );
 }
