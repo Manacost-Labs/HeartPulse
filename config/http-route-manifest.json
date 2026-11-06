@@ -1300,11 +1300,11 @@
     {
       "kind": "middleware",
       "paths": [
-        "/v1/twitch/ext"
+        "/api/v1/twitch/ext"
       ],
-      "receiver": "router",
+      "receiver": "dependencies.app",
       "handlers": [
-        "createTwitchExtensionCors(...)"
+        "createTwitchExtensionCors(config)"
       ],
       "guardSignals": [],
       "source": "server/app/registerTwitchExtension.ts",
@@ -1313,9 +1313,9 @@
     {
       "kind": "middleware",
       "paths": [
-        "/v1/twitch/state"
+        "/api/v1/twitch/state"
       ],
-      "receiver": "router",
+      "receiver": "dependencies.app",
       "handlers": [
         "rateLimit(...)"
       ],
@@ -1328,9 +1328,9 @@
     {
       "kind": "middleware",
       "paths": [
-        "/account/twitch/connect"
+        "/api/account/twitch/connect"
       ],
-      "receiver": "router",
+      "receiver": "dependencies.app",
       "handlers": [
         "rateLimit(...)"
       ],
@@ -2669,7 +2669,6 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createTwitchExtensionEdge(process.env)",
         "apiLimiter"
       ],
       "guardSignals": [

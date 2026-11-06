@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { Router, type Application, type Request, type Response } from 'express';
+import type { Application, Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import type { ApplicationAuthManager } from '../modules/applicationAuth/public.js';
 import {
@@ -16,19 +16,13 @@ import {
 type Environment = Record<string, string | undefined>;
 
 /**
- * Mounted on `/api/` before the site-wide CORS and API limiter: the extension
- * iframe has its own origin, and the app's state stream (about one request a
- * second) gets its own per-client budget instead of the 120-a-minute API one.
+ * The site-wide CORS middleware answers every preflight itself with the site's
+ * own origins; the extension iframe's preflight passes on to the extension's
+ * CORS, mounted by `registerTwitchExtension`.
  */
-export function createTwitchExtensionEdge(env: Environment): Router {
-  const router = Router();
-  router.use('/v1/twitch/ext', createTwitchExtensionCors(readTwitchExtensionConfig(env)));
-  router.use('/v1/twitch/state', rateLimit({ windowMs: 60_000, max: 240, standardHeaders: true, legacyHeaders: false }));
-  router.use('/account/twitch/connect', rateLimit({ windowMs: 10 * 60_000, max: 20, standardHeaders: true, legacyHeaders: false }));
-  return router;
-}
+export const twitchExtensionPreflight = (path: string) => path.startsWith('/api/v1/twitch/ext/');
 
-/** The global API limiter skips the state stream, which `createTwitchExtensionEdge` budgets itself. */
+/** The global API limiter skips the state stream: `registerTwitchExtension` budgets it per client. */
 export const twitchStateStreamRequest = (method: string, apiPath: string) => (
   method === 'POST' && apiPath === '/v1/twitch/state'
 );
@@ -50,6 +44,10 @@ export function registerTwitchExtension(dependencies: RegisterTwitchExtensionDep
 } {
   const config = readTwitchExtensionConfig(dependencies.env);
   const links = createTwitchLinkRepository(dependencies.getDatabase);
+  // The app's state stream is about one request a second: its own budget instead of the 120-a-minute API one.
+  dependencies.app.use('/api/v1/twitch/ext', createTwitchExtensionCors(config));
+  dependencies.app.use('/api/v1/twitch/state', rateLimit({ windowMs: 60_000, max: 240, standardHeaders: true, legacyHeaders: false }));
+  dependencies.app.use('/api/account/twitch/connect', rateLimit({ windowMs: 10 * 60_000, max: 20, standardHeaders: true, legacyHeaders: false }));
   const live = createTwitchLiveState();
   const twitch = config ? createTwitchApi(config, (url, init) => fetch(url, init)) : null;
   // Only the operation and Twitch's status reach the log, never a token or a body.

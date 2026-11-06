@@ -170,7 +170,7 @@ import { registerReplayShares, registerReplaySharesRateLimit } from './app/regis
 import { registerAppUsage, registerAppUsageRateLimit } from './app/registerAppUsage.js';
 import { registerCrashReports, registerCrashReportsRateLimit } from './app/registerCrashReports.js';
 import { TRACKER_MAX_BATCH_BYTES } from './modules/trackerIngestion/public.js';
-import { createTwitchExtensionEdge, registerTwitchExtension, twitchStateStreamRequest } from './app/registerTwitchExtension.js';
+import { registerTwitchExtension, twitchExtensionPreflight, twitchStateStreamRequest } from './app/registerTwitchExtension.js';
 import { registerBrowserIdentity } from './app/registerBrowserIdentity.js';
 import { registerPlayerGames, registerPlayerGamesRateLimit } from './app/registerPlayerGames.js';
 import { createPlayerGamesGlobalSources } from './app/playerGamesGlobalSources.js';
@@ -6996,7 +6996,7 @@ const apiLimiter = rateLimit({
     || !cookieMutationCsrfAllowed(req) || twitchStateStreamRequest(req.method, req.path)
   ),
 });
-app.use('/api/', createTwitchExtensionEdge(process.env), apiLimiter);
+app.use('/api/', apiLimiter);
 
 const authCodeRequestLimiter = rateLimit({
   windowMs: 15 * 60_000,
@@ -7113,7 +7113,7 @@ app.use((req, res, next) => {
   }
   res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, X-CSRF-Request');
-  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  if (req.method === 'OPTIONS' && !twitchExtensionPreflight(req.path)) return res.sendStatus(204);
   next();
 });
 
