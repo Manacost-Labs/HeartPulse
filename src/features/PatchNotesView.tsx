@@ -184,12 +184,13 @@ function SourceFooter({ patch, view, pictures }: {
 }) {
   const cards = view.groups.flatMap(group => group.entries);
   const unmatched = cards.filter(card => !card.cardId).length;
+  const sourceUrl = patch.sourceUrl ?? patch.officialUrl;
+  const sourceLabel = patch.sourceUrl ? 'статья hs-manacost.ru' : 'патчноут Blizzard';
   return (
     <footer className="hp-patch-notes__source">
       {pictures.map(item => <PictureNote key={item.mode} patch={patch} note={item.note} />)}
       <p>
-        Источник — статья{' '}
-        {patch.sourceUrl ? <a href={patch.sourceUrl} target="_blank" rel="noreferrer">hs-manacost.ru</a> : 'hs-manacost.ru'}.
+        Источник — {sourceUrl ? <a href={sourceUrl} target="_blank" rel="noreferrer">{sourceLabel}</a> : 'статья о патче'}.
         {' '}Усиление и ослабление — только по числам; текст и уровень таверны — «Переработка». Картинки — текущие версии карт,
         формат — сегодняшний{patch.meta ? ', архетипы — на день до выхода патча' : ''}.
       </p>

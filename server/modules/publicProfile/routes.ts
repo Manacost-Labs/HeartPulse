@@ -16,6 +16,8 @@ export type PublicProfileRouterDependencies = {
   findPublicProfileIdByNickname: (nicknameKey: string, now: Date) => string | null;
   readOwnIdentity: (userId: string, now: Date) => OwnPublicIdentity | null;
   claimNickname: (userId: string, nickname: { display: string; key: string }, now: Date) => NicknameClaimResult;
+  /** Saves whether the statistics and decks are public; false when the account is gone. */
+  setStatsVisible: (userId: string, visible: boolean) => boolean;
   userAuth: (request: Request) => { id: string } | null;
   csrfAllowed: (request: Request) => boolean;
   setPrivateNoStore: (response: Response) => void;
@@ -37,7 +39,7 @@ function ownIdentityPayload(identity: OwnPublicIdentity) {
 }
 
 /**
- * Public profile reads and the owner's nickname controls. Missing, blocked and
+ * Public profile reads and the owner's nickname and visibility controls. Missing, blocked and
  * malformed profiles share one `404` body, so a probe learns nothing beyond
  * "no public profile here".
  */
@@ -121,6 +123,27 @@ export function createPublicProfileRouter(
       }
     } catch {
       return response.status(503).json({ error: 'Не удалось сохранить ник' });
+    }
+  });
+
+  router.put('/account/public-profile/visibility', (request, response) => {
+    dependencies.setPrivateNoStore(response);
+    if (!dependencies.csrfAllowed(request)) {
+      return response.status(403).json({ error: 'Запрос отклонён: обновите страницу' });
+    }
+    const user = dependencies.userAuth(request);
+    if (!user) return response.status(401).json({ error: 'Требуется вход' });
+    const stats = (request.body as { stats?: unknown } | undefined)?.stats;
+    if (typeof stats !== 'boolean') return response.status(400).json({ error: 'Неверная настройка видимости' });
+    try {
+      // Nothing is stored for an account without a public profile: the switch has no page to act on.
+      if (!dependencies.readOwnIdentity(user.id, now())) return response.status(404).json({ error: 'Публичный профиль ещё не создан' });
+      if (!dependencies.setStatsVisible(user.id, stats)) return response.status(401).json({ error: 'Пользователь не найден' });
+      const identity = dependencies.readOwnIdentity(user.id, now());
+      if (!identity) return response.status(404).json({ error: 'Публичный профиль ещё не создан' });
+      return response.json({ success: true, ...ownIdentityPayload(identity) });
+    } catch {
+      return response.status(503).json({ error: 'Не удалось сохранить настройку' });
     }
   });
 

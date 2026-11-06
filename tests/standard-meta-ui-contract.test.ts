@@ -61,26 +61,28 @@ assert.equal(
     'black_empire',
     'patch_36.6.3',
   ),
-  'black_empire',
+  'patch_36.6.3',
 );
-// The current expansion's Bans window opens the page whenever the source offers it.
+// The current patch takes priority over the expansion and its Bans window.
 assert.equal(
   resolveStandardMetaDefaultPeriod(
     ['past_day', 'patch_36.6.3', 'black_empire', 'black_empire_ban'],
     'black_empire',
     'patch_36.6.3',
   ),
-  'black_empire_ban',
+  'patch_36.6.3',
 );
-// A previous expansion's Bans window is stale once a new expansion starts.
+// The patch also takes priority when a previous expansion's Bans window remains listed.
 assert.equal(
   resolveStandardMetaDefaultPeriod(
     ['past_day', 'patch_37.0.0', 'next_expansion', 'black_empire_ban'] as StandardMetaPeriod[],
     'next_expansion' as StandardMetaPeriod,
     'patch_37.0.0',
   ),
-  'next_expansion',
+  'patch_37.0.0',
 );
+assert.equal(resolveStandardMetaDefaultPeriod(['past_day', 'patch_37.0.2', 'black_empire', 'black_empire_ban'], 'black_empire', 'patch_37.0.2'), 'patch_37.0.2');
+assert.equal(resolveStandardMetaDefaultPeriod(['past_day', 'black_empire', 'black_empire_ban'], 'black_empire', null), 'black_empire_ban');
 // Without a known expansion window the last listed Bans window wins; without one, the patch.
 assert.equal(latestStandardMetaBanPeriod(['past_day', 'black_empire_ban'], null), 'black_empire_ban');
 assert.equal(resolveStandardMetaDefaultPeriod(['past_day', 'patch_36.6.3'], null, 'patch_36.6.3'), 'patch_36.6.3');

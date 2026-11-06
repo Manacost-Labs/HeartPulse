@@ -109,5 +109,46 @@ method other than GET. Headers are the shared private ones (no-store, CSP,
 noindex); there is no CORS, and the interaction cookie (`Path=/identity/interaction/<uid>`)
 is what scopes the answer to one browser.
 
+### Sign-in card names the site (E20 S2)
+
+A guest sent to `/?login#reader_interaction=<uid>` sees, above the form of the
+card "Вход в HearthPulse", the note "Вход через hearthpulse.net", "для сайта
+**`<name>`**", "(`<host>`)" (three rows) and the line "Пароль вводится только
+на hearthpulse.net". When the name equals the host it is shown once. The
+note appears in sign-in, registration, password recovery and the code step, and
+again after a social sign-in returns to `/?login`.
+
+Name and host come only from `GET /identity/interaction/<uid>/client`,
+requested with `credentials: 'same-origin'` and `cache: 'no-store'` when the
+handle in `sessionStorage` (`hp_reader_interaction`, ten minutes) is alive and
+nobody is signed in. They are rendered as text and never taken from the URL, so
+a forged link with an unknown uid never shows a name. A sign-in without a handle
+makes no `/identity/` request and reserves nothing. Reading the handle for the
+note (`incomingReaderInteraction`, `pendingReaderInteraction`) does not consume
+or extend it; the redirect to `/identity/interaction/<uid>` after sign-in and
+the removal of the handle are unchanged.
+
+The place for the note is held from the first frame (E20 S2 follow-up). As soon
+as a live handle is known (the fragment of `/?login`, or `sessionStorage`) and
+nobody is signed in, the card shows the neutral words "Вход через
+hearthpulse.net" and "Пароль вводится только на hearthpulse.net". The note is
+laid out in fixed rows, the same at every width: "Вход через hearthpulse.net",
+then "для сайта `<name>`" on one line, then "(`<host>`)" on its own line, then
+the password line. The two middle rows are empty but keep their line until the
+answer arrives (or when it never does), so the form below does not move. Only
+the name is ever cut, to its one line with an ellipsis (the full text stays in
+the page); the host is always shown whole and wraps only if it cannot fit a
+line, so a name that imitates another host cannot hide where the sign-in goes.
+When the name equals the host, the second row reads "для сайта" and the third
+shows the host. The handle is read once, on the first render, so the note stays
+even where `sessionStorage` cannot be read. A `404`, any other status, a
+network failure or an answer of an unexpected shape leaves the neutral words
+without a name: removing the note would move the form by the height of the
+note, and the neutral words are true for any handle and say nothing a forged
+link could choose.
+
+The measurement runs on the built page with its real stylesheet and Inter, at
+320 to 1280 px (`tests/login-site-steady-browser.test.mjs`).
+
 An expired or unknown interaction on the consent URL answers `400` with
 "Вход истёк. Вернитесь на сайт, с которого начали вход, и начните заново."

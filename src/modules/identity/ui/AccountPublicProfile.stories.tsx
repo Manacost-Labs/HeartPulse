@@ -8,10 +8,11 @@ const meta = {
   title: 'Identity/Account Public Profile',
   component: AccountPublicProfile,
   args: {
-    identity: { publicProfileId: '7', nickname: null, nicknameChangeAvailableAt: null },
+    identity: { publicProfileId: '7', nickname: null, nicknameChangeAvailableAt: null, statsVisible: false },
     failed: false,
     saving: false,
     saveNickname: fn(),
+    saveStatsVisible: fn(),
     origin: 'https://hearthpulse.net',
   },
   decorators: [Story => <div className="account-dashboard"><Story /></div>],
@@ -33,7 +34,7 @@ export const FirstNickname: Story = {
 /** Right after a change: both links, and the field waits out the 30 days. */
 export const RecentlyChanged: Story = {
   args: {
-    identity: { publicProfileId: '7', nickname: 'Arena_Master', nicknameChangeAvailableAt: '2026-11-22T12:00:00.000Z' },
+    identity: { publicProfileId: '7', nickname: 'Arena_Master', nicknameChangeAvailableAt: '2026-11-22T12:00:00.000Z', statsVisible: true },
   },
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('link', { name: 'https://hearthpulse.net/u/Arena_Master/' })).toBeVisible();
@@ -44,3 +45,13 @@ export const RecentlyChanged: Story = {
 export const Loading: Story = { args: { identity: null } };
 
 export const Unavailable: Story = { args: { identity: null, failed: true } };
+
+/** The statistics and decks start hidden; the switch shows them on the public page. */
+export const ShowStatistics: Story = {
+  play: async ({ args, canvas }) => {
+    const toggle = canvas.getByRole('switch', { name: 'Показывать мою статистику и колоды' });
+    await expect(toggle).toHaveAttribute('aria-checked', 'false');
+    await userEvent.click(toggle);
+    await expect(args.saveStatsVisible).toHaveBeenCalledWith(true);
+  },
+};

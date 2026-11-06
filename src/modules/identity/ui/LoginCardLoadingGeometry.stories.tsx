@@ -40,6 +40,26 @@ export const Ready: Story = {
   },
 };
 
+/** A guest sent from another site: the card names the site in fixed rows and says where the password goes. */
+export const ForExternalSite: Story = {
+  args: { signInFor: { name: 'Манакост', host: 'hs-manacost.ru' } },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByRole('heading', { name: 'Вход в HearthPulse' })).toBeVisible();
+    await expect(canvas.getByText('Вход через hearthpulse.net').closest('p')).toHaveTextContent('Вход через hearthpulse.net для сайта Манакост (hs-manacost.ru)');
+    await expect(canvas.getByText('Пароль вводится только на hearthpulse.net')).toBeVisible();
+  },
+};
+
+/** The same guest before the server has named the site (or when it cannot): the neutral words, the line's place held. */
+export const ForExternalSiteUnnamed: Story = {
+  args: { signInFor: 'unnamed' },
+  play: async ({ canvas }) => {
+    await expect(canvas.getByText(/Вход через hearthpulse\.net/)).toHaveTextContent(/^Вход через hearthpulse\.net$/);
+    await expect(canvas.queryByText(/для сайта/)).not.toBeInTheDocument();
+    await expect(canvas.getByText('Пароль вводится только на hearthpulse.net')).toBeVisible();
+  },
+};
+
 export const Loading: Story = {
   render: () => <LoginCardSkeleton />,
   play: async ({ canvas }) => {

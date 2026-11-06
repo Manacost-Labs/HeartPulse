@@ -64,6 +64,44 @@
 
 .login-card .login-card__intro { margin: 0; color: #6a513a; }
 
+/* Which site the guest is signing in for; names come from the server and wrap rather than widen the card. */
+.login-card .login-site {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 14px;
+  border: 1px solid #c9a96a;
+  border-left-width: 4px;
+  border-radius: 10px;
+  background: #f3e4b8;
+  overflow-wrap: anywhere;
+}
+
+/*
+ * Fixed rows, so the height of the notice is the same at every width and the form below never moves when the server
+ * names the site: the lead words (the same text before and after), "для сайта <name>" on one line (only the name is cut,
+ * with an ellipsis) and the host on its own line, always whole. The two rows hold their line before they have text.
+ */
+.login-card .login-site__line {
+  margin: 0;
+  color: #3d2a1e;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.login-card .login-site__line > span { display: block; }
+
+.login-card .login-site__for,
+.login-card .login-site__host { min-height: 1.4em; }
+
+.login-card .login-site__for {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.login-card .login-site__note { margin: 0; color: #6a513a; font-size: 0.9rem; }
+
 .login-message {
   padding: 10px 14px;
   border: 1px solid;

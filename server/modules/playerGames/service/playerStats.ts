@@ -125,8 +125,8 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
 
   return {
     /** Which tabs have data: version 2 game and run events per mode, counted without reading payloads. */
-    availableModes(userId: string): Record<PlayerGameMode, number> {
-      const counts = dependencies.countEvents(userId, GAME_EVENT_TYPES, 2);
+    availableModes(userId: string, until: number | null = null): Record<PlayerGameMode, number> {
+      const counts = dependencies.countEvents(userId, GAME_EVENT_TYPES, 2, until === null ? undefined : new Date(until).toISOString());
       const constructed = counts.constructed_match ?? 0;
       return { battlegrounds: counts.battlegrounds_match ?? 0, standard: constructed, wild: constructed,
         arena: (counts.arena_match ?? 0) + (counts.arena_run ?? 0) };
@@ -140,24 +140,29 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
     /**
      * Aggregates are cached per account and query for a few minutes, so a page
      * that reloads or switches tabs does not parse thousands of events again.
+     * `until` (exclusive) ends the games and the period windows there instead of now.
      */
-    async load(userId: string, query: PlayerStatsQuery, globalAllowed: boolean): Promise<PlayerStats> {
-      const key = `${userId}|${query.mode}:${query.period}:${query.duos}:${query.mmr}:${globalAllowed}`;
+    async load(userId: string, query: PlayerStatsQuery, globalAllowed: boolean, until: number | null = null): Promise<PlayerStats> {
+      const key = `${userId}|${query.mode}:${query.period}:${query.duos}:${query.mmr}:${globalAllowed}:${until}`;
       const hit = results.get(key);
       if (hit && hit.expiresAt > now()) return withReplays(userId, hit.value);
-      const value = await compute(userId, query, globalAllowed);
+      const value = await compute(userId, query, globalAllowed, until);
       results.set(key, { expiresAt: now() + RESULT_TTL_MS, value });
       if (results.size > MAX_RESULT_ENTRIES) results.delete(results.keys().next().value as string);
       return withReplays(userId, value);
     },
+
+    /** The service's clock, so readers built on it agree with its cache. */
+    now,
   };
 
-  async function compute(userId: string, query: PlayerStatsQuery, globalAllowed: boolean): Promise<PlayerStats> {
-      const since = periodStart(query.period, now());
+  async function compute(userId: string, query: PlayerStatsQuery, globalAllowed: boolean, until: number | null = null): Promise<PlayerStats> {
+      const since = periodStart(query.period, until ?? now());
       const games: PlayerGame[] = [];
       const runs: ArenaRunRecord[] = [];
       for (const event of dependencies.loadEvents(userId, { types: EVENT_TYPES[query.mode],
-        since: since === null ? null : new Date(since).toISOString(), limit: MAX_STATS_GAMES, minSchemaVersion: 2 })) {
+        since: since === null ? null : new Date(since).toISOString(), until: until === null ? null : new Date(until).toISOString(),
+        limit: MAX_STATS_GAMES, minSchemaVersion: 2 })) {
         const read = statisticsFromEvent(event, now());
         if (!read) continue;
         if (isGame(read)) games.push(read);

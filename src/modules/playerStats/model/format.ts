@@ -81,6 +81,15 @@ export function formatGameDate(timestamp: number, now = Date.now()): string {
   return date.toLocaleString('ru-RU', { day: 'numeric', month: 'short', ...year, hour: '2-digit', minute: '2-digit' });
 }
 
+/**
+ * The day only, in UTC: the public copy of someone's statistics rounds every
+ * time to the UTC start of the day, so the day must not shift with the
+ * viewer's time zone and no «03:00» may appear.
+ */
+export function formatGameDay(timestamp: number): string {
+  return new Date(timestamp).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+}
+
 export function pluralGames(count: number): string {
   return `${count.toLocaleString('ru-RU')} ${pluralRu(count, 'игра', 'игры', 'игр')}`;
 }

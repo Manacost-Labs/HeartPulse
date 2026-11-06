@@ -7,7 +7,8 @@ const PROTECTED_MUTATION_PATHS = [
   /^\/api\/v1\/oauth\/device\/approve\/?$/,
   /^\/api\/subscription\/refresh\/?$/,
   /^\/api\/account\/sessions\/(?:revoke-others|[^/]+\/revoke)\/?$/,
-  /^\/api\/account\/public-profile\/nickname\/?$/,
+  /^\/api\/account\/public-profile\/(?:nickname|visibility)\/?$/,
+  /^\/api\/account\/decks(?:\/[^/]+(?:\/render)?)?\/?$/,
   /^\/api\/contests\/[^/]+\/join\/?$/,
 ];
 

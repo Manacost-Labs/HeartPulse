@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { DataTable, type DataTableColumn } from '../../vendor/varylo-ui/data-display/DataTable';
 import { KpiGroup } from '../../vendor/varylo-ui/data-display/KpiGroup';
 import {
@@ -7,10 +7,10 @@ import {
   VsGlobal,
   classIconUrl,
   formatDuration,
-  formatGameDate,
   formatNumber,
   formatPercent,
   rankLabel,
+  useGameDateFormat,
   winrate,
   type ConstructedStats,
 } from '../../modules/playerStats/public';
@@ -49,10 +49,10 @@ function MatchupGrid({ matchups }: { matchups: ConstructedStats['matchups'] }) {
   return (
     <div className="player-stats-matchups">
       <table>
-        <caption className="player-stats-visually-hidden">Винрейт ваших классов против классов соперников</caption>
+        <caption className="player-stats-visually-hidden">Винрейт классов игрока против классов соперников</caption>
         <thead>
           <tr>
-            <th scope="col"><span className="player-stats-visually-hidden">Ваш класс</span></th>
+            <th scope="col"><span className="player-stats-visually-hidden">Класс игрока</span></th>
             {opponents.map(opponent => (
               <th key={opponent} scope="col">
                 <img src={classIconUrl(opponent)} alt={CLASS_LABELS[opponent]} title={CLASS_LABELS[opponent]} width="24" height="24" />
@@ -82,13 +82,31 @@ function MatchupGrid({ matchups }: { matchups: ConstructedStats['matchups'] }) {
   );
 }
 
+/** Copies a deck code for the game's «Import deck»; on a public profile this is how a visitor takes the deck. */
+function CopyDeckCode({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    void navigator.clipboard?.writeText(code).then(() => {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2_000);
+    }, () => setCopied(false));
+  };
+  return <button type="button" className="player-stats-copy-code" aria-label={copied ? 'Код колоды скопирован' : 'Скопировать код колоды'} onClick={copy}>{copied ? 'Скопирован' : 'Код'}</button>;
+}
+
 /** Standard or Wild: rank over time, decks, classes, opponents and matchups. */
 export function ConstructedStatsView({ stats }: { stats: ConstructedStats }) {
   const { summary } = stats;
+  const formatGameDate = useGameDateFormat();
   const columns = useMemo(() => ({
     decks: [
       { key: 'deck', header: 'Колода', sortable: true, accessor: (row: ConstructedStats['decks'][number]) => row.deckName ?? row.archetype ?? '',
-        cell: (row: ConstructedStats['decks'][number]) => <ClassName playerClass={row.playerClass} detail={row.deckName ?? row.archetype} /> },
+        cell: (row: ConstructedStats['decks'][number]) => (
+          <span className="player-stats-deck">
+            <ClassName playerClass={row.playerClass} detail={row.deckName ?? row.archetype} />
+            {row.deckCode ? <CopyDeckCode code={row.deckCode} /> : null}
+          </span>
+        ) },
       gamesColumn<ConstructedStats['decks'][number]>(),
       winrateColumn<ConstructedStats['decks'][number]>(),
       { key: 'lastPlayedAt', header: 'Последняя игра', align: 'right', sortable: true,
@@ -110,7 +128,7 @@ export function ConstructedStatsView({ stats }: { stats: ConstructedStats }) {
       gamesColumn<ConstructedStats['opponentClasses'][number]>(),
       winrateColumn<ConstructedStats['opponentClasses'][number]>(),
     ] satisfies DataTableColumn<ConstructedStats['opponentClasses'][number]>[],
-  }), []);
+  }), [formatGameDate]);
   const table = { density: 'compact' as const, locale: 'ru-RU', labels: DATA_TABLE_LABELS, pageSize: 10 };
   return (
     <>

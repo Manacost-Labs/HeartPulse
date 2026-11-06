@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { isPublicProfileId, MAX_PUBLIC_PROFILE_ID, normalizeStoredPublicId } from './identity.js';
 import { ensurePublicNicknameSchema } from './nicknameRepository.js';
+import { ensurePublicStatsVisibilitySchema } from './statsVisibility.js';
 import type { PublicProfileCandidate } from './model.js';
 
 export type PublicProfileIdentityOptions = {
@@ -115,6 +116,7 @@ export function ensurePublicProfileSchema(
 ): void {
   ensurePublicProfileIds(database, options);
   ensurePublicNicknameSchema(database);
+  ensurePublicStatsVisibilitySchema(database);
 }
 
 /**
@@ -131,7 +133,8 @@ export function findPublicProfile(
       u.public_numeric_id AS publicNumericId,
       u.nickname AS nickname,
       u.created_at AS createdAt,
-      COALESCE(s.has_access, 0) AS hasSubscription
+      COALESCE(s.has_access, 0) AS hasSubscription,
+      COALESCE(u.public_stats_visible, 0) AS statsVisible
     FROM users u
     LEFT JOIN subscriptions s ON s.user_id = u.id
     WHERE u.public_numeric_id = ? AND COALESCE(u.blocked_at, '') = ''

@@ -1,7 +1,7 @@
 import { TableSurface } from '../shared/ui/analytics/TableSurface';
 import { useEffect, useMemo, useState } from 'react';
-import { RefreshCw, Search } from 'lucide-react';
-import { AdminFilterChips } from '../modules/adminCrm/public';
+import { Check, RefreshCw, Search } from 'lucide-react';
+import { AdminFilterChips, boostyChannelMembershipIndex, type BoostyChannelMembership } from '../modules/adminCrm/public';
 import {
   BOOSTY_NO_LEVEL,
   boostyFilterOptions,
@@ -12,6 +12,7 @@ import {
   type BoostyAdminStatus,
   type BoostySubscriberRow,
   type BoostySubscribersPayload,
+  type TelegramAccountsPayload,
 } from './adminIntegrationListModel';
 import { AdminListPager } from './AdminListPager';
 import { adminListSummary } from './adminListText';
@@ -27,6 +28,8 @@ type ContestAdminBoostyProps = {
   statusLoading: boolean;
   subscribers: BoostySubscribersPayload | null;
   subscribersLoading: boolean;
+  telegramAccounts?: TelegramAccountsPayload | null;
+  telegramAccountsLoading?: boolean;
   onReload: () => void;
   formatDate: (value: string | null) => string;
   entitlementLabels: (subscriber: Pick<BoostySubscriberRow, 'siteAccess' | 'entitlements'>) => string[];
@@ -53,9 +56,13 @@ const priceText = (subscriber: BoostySubscriberRow) => {
 // Table cells show the day only; times stay in the status line where they matter.
 const day = (value: string) => new Date(value).toLocaleDateString('ru-RU');
 
-type RowProps = Pick<ContestAdminBoostyProps, 'entitlementLabels'> & { subscriber: BoostySubscriberRow };
+type RowProps = Pick<ContestAdminBoostyProps, 'entitlementLabels' | 'formatDate'> & {
+  subscriber: BoostySubscriberRow;
+  channelMembership: BoostyChannelMembership;
+  telegramLoading: boolean;
+};
 
-function BoostyRow({ subscriber, entitlementLabels }: RowProps) {
+function BoostyRow({ subscriber, entitlementLabels, channelMembership, telegramLoading, formatDate }: RowProps) {
   const subscription = boostySubscription(subscriber);
   const siteAccess = boostySiteAccess(subscriber);
   const opened = entitlementLabels(subscriber);
@@ -86,6 +93,15 @@ function BoostyRow({ subscriber, entitlementLabels }: RowProps) {
         <span className={`admin-crm-pill is-${siteAccess.tone}`}>{siteAccess.label}</span>
         <small>{siteAccess.detail || (opened.length ? `открыто: ${opened.join(', ')}` : 'разделы не открыты')}</small>
       </td>
+      <td data-label="В Telegram-канале">
+        <span className={`admin-crm-pill is-${telegramLoading ? 'muted' : channelMembership.tone}`}>
+          {!telegramLoading && channelMembership.state === 'member' && <Check size={14} aria-hidden="true" />}
+          {telegramLoading ? 'Проверяем…' : channelMembership.label}
+        </span>
+        {!telegramLoading && channelMembership.checkedAt && (
+          <small>Проверено <time dateTime={channelMembership.checkedAt}>{formatDate(channelMembership.checkedAt)}</time></small>
+        )}
+      </td>
       <td data-label="Подписан">
         <span>{subscriber.dates?.subscribedAt ? day(subscriber.dates.subscribedAt) : '—'}</span>
       </td>
@@ -108,7 +124,7 @@ function BoostyStatus({ status, statusLoading, formatDate, missingEmail }: Statu
   );
 }
 
-export function ContestAdminBoosty({ status, statusLoading, subscribers, subscribersLoading, onReload, formatDate, entitlementLabels }: ContestAdminBoostyProps) {
+export function ContestAdminBoosty({ status, statusLoading, subscribers, subscribersLoading, telegramAccounts = null, telegramAccountsLoading = false, onReload, formatDate, entitlementLabels }: ContestAdminBoostyProps) {
   const [search, setSearch] = useState('');
   const [levelFilter, setLevelFilter] = useState('all');
   const [accessFilter, setAccessFilter] = useState<BoostyAccessFilter>('all');
@@ -122,7 +138,12 @@ export function ContestAdminBoosty({ status, statusLoading, subscribers, subscri
   const filtered = useMemo(() => filterBoostySubscribers(rows, { search, level: levelFilter, access: accessFilter }), [accessFilter, levelFilter, rows, search]);
   const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const visible = useMemo(() => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE), [filtered, page]);
-  const loading = statusLoading || subscribersLoading;
+  const memberships = useMemo(() => boostyChannelMembershipIndex(telegramAccounts?.accounts ?? []), [telegramAccounts]);
+  const unknownMembership: BoostyChannelMembership = {
+    state: 'unknown', tone: 'warn', checkedAt: '',
+    label: telegramAccounts?.error || !telegramAccounts?.configured ? 'Данные недоступны' : 'Нет связки с сайтом',
+  };
+  const loading = statusLoading || subscribersLoading || telegramAccountsLoading;
   const summary = subscribersLoading && !rows.length
     ? 'Загружаем подписчиков Boosty…'
     : subscribers
@@ -152,14 +173,17 @@ export function ContestAdminBoosty({ status, statusLoading, subscribers, subscri
       </div>
       {subscribers?.error && <div className="contest-message contest-message-err" role="alert">{subscribers.error}</div>}
       <p className="admin-people-summary" role="status">{summary}</p>
+      <p className="admin-people-summary">Telegram: последняя проверка VIP-канала на сайте. Без привязки или свежей проверки членство неизвестно.</p>
       {visible.length ? (
         <div className="admin-people-table-wrap" aria-busy={subscribersLoading}>
           <TableSurface title="Подписки Boosty"><table className="admin-people-table is-boosty">
             <thead>
-              <tr><th scope="col">Подписчик</th><th scope="col">Уровень</th><th scope="col">Подписка</th><th scope="col">Доступ на сайте</th><th scope="col">Подписан</th></tr>
+              <tr><th scope="col">Подписчик</th><th scope="col">Уровень</th><th scope="col">Подписка</th><th scope="col">Доступ на сайте</th><th scope="col">В Telegram-канале</th><th scope="col">Подписан</th></tr>
             </thead>
             <tbody>
-              {visible.map(subscriber => <BoostyRow key={subscriber.id} subscriber={subscriber} entitlementLabels={entitlementLabels} />)}
+              {visible.map(subscriber => <BoostyRow key={subscriber.id} subscriber={subscriber} entitlementLabels={entitlementLabels}
+                channelMembership={telegramAccounts?.error || !telegramAccounts?.configured ? unknownMembership : memberships.get(subscriber.email.trim().toLowerCase()) ?? unknownMembership}
+                telegramLoading={telegramAccountsLoading} formatDate={formatDate} />)}
             </tbody>
           </table></TableSurface>
         </div>

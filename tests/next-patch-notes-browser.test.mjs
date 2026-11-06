@@ -27,13 +27,20 @@ test('patch notes render the stored article as compact change cards, and the hom
   const pilot = await startPublicCardPilot({ pagesEnabled: true });
   let browser;
   try {
+    const latest = await (await fetch(`${pilot.origin}/api/patch-notes/latest`)).json();
     // The first request to a fresh server loads the route's modules, which can
     // outlast the 600 ms first-paint read budget on a busy runner.
     await (await fetch(`${pilot.origin}/standard/patches/`)).text();
-    const document = await fetch(`${pilot.origin}/standard/patches/`);
+    const latestHtml = await (await fetch(`${pilot.origin}/standard/patches/`)).text();
+    assert.ok(latestHtml.includes(`<option value="${latest.version}" selected="">`),
+      'the default page selects the latest patch, including official supplements');
+    // Reviewed official notes may be newer than the upstream fixture's article.
+    const fixturePath = '/standard/patches/?version=36.6.3';
+    await (await fetch(`${pilot.origin}${fixturePath}`)).text();
+    const document = await fetch(`${pilot.origin}${fixturePath}`);
     assert.equal(document.status, 200);
     const html = await document.text();
-    assert.match(html, /Балансные изменения Стандарта и Полей сражений<\/h2>/, 'the newest patch with changes is in the server HTML, its title without the version prefix');
+    assert.match(html, /Балансные изменения Стандарта и Полей сражений<\/h2>/, 'the selected article is in the server HTML, its title without the version prefix');
     assert.match(html, /<option value="36\.6\.3" selected="">Патч 36\.6\.3<\/option>/, 'the version is the switcher');
     assert.match(html, /Змей ветреных вершин/);
     assert.match(html, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/standard\/patches\/"/);
@@ -47,7 +54,7 @@ test('patch notes render the stored article as compact change cards, and the hom
     page.on('pageerror', error => errors.push(error.message));
     for (const [width, height] of [[1440, 900], [412, 915]]) {
       await page.setViewport({ width, height, isMobile: width < 600, hasTouch: width < 600 });
-      await page.goto(`${pilot.origin}/standard/patches/`, { waitUntil: 'networkidle2' });
+      await page.goto(`${pilot.origin}${fixturePath}`, { waitUntil: 'networkidle2' });
       await page.waitForSelector('.hp-patch-card');
       const state = await pageState(page);
       assert.deepEqual(state.h1, ['Патчноуты Hearthstone']);
@@ -81,12 +88,14 @@ test('patch notes render the stored article as compact change cards, and the hom
       'the old text is struck out');
     await page.click('.hp-patch-kinds button[data-kind="nerf"]');
     await page.waitForFunction(() => document.querySelectorAll('.hp-patch-card').length === 2);
-    // At 412 px the switcher sits in the header; the newer arrow leads back to the newest patch.
+    // At 412 px the switcher sits in the header; the newer arrow leads to the next archived version.
     await page.select('.hp-patch-versions select', '35.6.2');
     // Its title only names the version, so the header says "Патч 35.6.2".
     await page.waitForFunction(() => document.querySelector('.hp-patch-hero__title')?.textContent === 'Патч 35.6.2');
-    assert.equal(await page.$eval('.hp-patch-versions a[rel="next"]', node => node.getAttribute('href')), '/standard/patches/',
-      'the newer patch link leads back to the newest patch');
+    const nextVersion = await page.$eval('.hp-patch-versions select', node => node.options[node.selectedIndex - 1].value);
+    assert.equal(await page.$eval('.hp-patch-versions a[rel="next"]', node => node.getAttribute('href')),
+      nextVersion === latest.version ? '/standard/patches/' : `/standard/patches/?version=${nextVersion}`,
+      'the newer patch link selects the next archived version');
     assert.equal(new URL(page.url()).searchParams.get('version'), '35.6.2');
     assert.equal((await fetch(`${pilot.origin}/api/patch-notes/9.9.9`)).status, 404);
 

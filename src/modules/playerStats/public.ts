@@ -21,6 +21,7 @@ export {
   classIconUrl,
   formatDuration,
   formatGameDate,
+  formatGameDay,
   formatNumber,
   formatPercent,
   formatSigned,
@@ -31,6 +32,7 @@ export {
 export { GameStatsSignedOutError, gameStatsFromPayload, gameStatsUrl } from './api/gameStatsApi';
 export { useGameStats, type GameStatsState } from './hooks/useGameStats';
 export { useGameStatsModes } from './hooks/useGameStatsModes';
+export { GameStatsSourceContext, useGameDateFormat } from './hooks/gameStatsSource';
 export { HERO_MIN_GAMES, heroPickRate, visibleHeroes } from './model/heroTable';
 export { CombatSparkline } from './ui/CombatSparkline';
 export { MinionBoard } from './ui/MinionBoard';

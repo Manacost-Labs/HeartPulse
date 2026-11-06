@@ -40,7 +40,9 @@
   font-size: clamp(1.9rem, 4.2vw, 3rem);
   font-weight: 400;
   line-height: 1.05;
+  /* A long name breaks by syllable with a hyphen; only an unbreakable nickname breaks anywhere. */
   overflow-wrap: anywhere;
+  hyphens: auto;
   text-shadow: 0 2px 10px rgba(20, 2, 4, 0.55);
 }
 

@@ -77,7 +77,7 @@ test('a player sets a nickname and shares a public profile that shows only publi
     // A visitor without a session sees only the allow-listed fields.
     const api = await fetch(`${runtime.origin}/api/profiles/7`).then(response => response.json());
     assert.deepEqual(Object.keys(api.profile).sort(),
-      ['avatarInitials', 'displayName', 'isSubscriber', 'memberSince', 'nickname', 'publicProfileId']);
+      ['avatarInitials', 'displayName', 'isSubscriber', 'memberSince', 'nickname', 'publicProfileId', 'showsStats']);
     const document = await fetch(`${runtime.origin}/id/7/`);
     const html = await document.text();
     assert.equal(document.status, 200);

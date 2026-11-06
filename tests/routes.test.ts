@@ -35,7 +35,6 @@ const EXPECTED_ROUTE_PATHS = [
   ['standard-vicious-gold', '/standard/vicious-gold'],
   ['standard-cards', '/standard/cards'],
   ['patch-notes', '/standard/patches'],
-  ['radar', '/standard/radar'],
   ['winrates', '/classes'],
   ['tierlist', '/tierlist'],
   ['legendaries', '/legendaries'],
@@ -105,3 +104,4 @@ assert.equal(entitlementOf('deck-builder'), null, 'the constructed deck workbenc
 assert.equal(tabFromPath('/standard/deck-builder/'), 'deck-builder');
 
 console.log(`route registry assertions passed (${TABS.length} routes)`);
+

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import express from 'express';
@@ -22,6 +23,8 @@ const token = (userId: string): ApplicationToken => ({
   refreshExpiresAt: Date.now() + 60_000, createdAt: Date.now(), revokedAt: null, replacedById: null,
 });
 let entitled = false;
+// Public ID 7 is user-1; it shows its statistics only while this is true.
+let publicVisible = false;
 let globalCalls = 0;
 /** The account's web replays by game event id (plan 2.3); read on every answer. */
 const replayLinks: Record<string, Record<string, string>> = {};
@@ -57,6 +60,7 @@ app.use('/api', createPlayerStatsRouter({
   hasEntitlement: async () => entitled,
   service,
   setPrivateNoStore: response => response.set('Cache-Control', 'no-store'),
+  resolvePublicStatsOwner: id => (id === '7' && publicVisible ? 'user-1' : id === '9' ? 'user-2' : null),
 }));
 const server = app.listen(0, '127.0.0.1');
 await new Promise<void>((resolve, reject) => {
@@ -161,6 +165,55 @@ try {
   const standard = await (await stats('mode=standard')).json();
   assert.equal(standard.games, 0, 'an opaque v1 constructed event has no statistics');
   assert.deepEqual(standard.recentGames, []);
+
+  // A profile shows its statistics only after its owner switched them on; hidden and missing look alike.
+  const hidden = await fetch(`${origin}/api/profiles/7/game-stats/modes`);
+  const missing = await fetch(`${origin}/api/profiles/8/game-stats/modes`);
+  assert.equal(hidden.status, 404);
+  assert.deepEqual(await hidden.json(), await missing.json());
+  assert.equal((await fetch(`${origin}/api/profiles/7/game-stats?mode=battlegrounds`)).status, 404);
+
+  publicVisible = true;
+  const publicModes = await fetch(`${origin}/api/profiles/7/game-stats/modes`);
+  assert.equal(publicModes.headers.get('cache-control'), 'public, max-age=60');
+  assert.deepEqual((await publicModes.json()).modes, { battlegrounds: 1, standard: 0, wild: 0, arena: 1 },
+    'a public profile shows which tabs exist, not how many games: a growing count would time each new game');
+  assert.equal((await fetch(`${origin}/api/profiles/7/game-stats?mode=mercenaries`)).status, 400);
+
+  // The public copy: no global comparison even for a subscribed viewer, positions instead of event ids, days instead of times.
+  const own = await (await stats('mode=battlegrounds')).json();
+  const publicBg = await fetch(`${origin}/api/profiles/7/game-stats?mode=battlegrounds`, { headers: { cookie: 'session=1' } });
+  assert.equal(publicBg.headers.get('cache-control'), 'public, max-age=60');
+  const publicBgWire = await publicBg.text();
+  const shown = JSON.parse(publicBgWire);
+  assert.equal(shown.games, own.games);
+  assert.equal(shown.global.availability, 'none', 'no global comparison and no subscription offer on someone else\'s page');
+  assert.deepEqual(shown.recentGames, [], 'recent games (event ids, times, unlisted replay links) stay with the owner');
+  assert.deepEqual(shown.ratingSeries.map((game: { id: string }) => game.id), ['1', '2', '3']);
+  assert.deepEqual(shown.ratingSeries.map((game: { startedAt: number }) => new Date(game.startedAt).toISOString()),
+    ['2026-10-20T00:00:00.000Z', '2026-10-21T00:00:00.000Z', '2026-10-22T00:00:00.000Z']);
+  for (const game of own.ratingSeries as Array<{ id: string }>) {
+    assert.equal(publicBgWire.includes(game.id), false, 'a tracker event id reached the public statistics');
+  }
+  const publicArenaWire = await (await fetch(`${origin}/api/profiles/7/game-stats?mode=arena`)).text();
+  assert.equal(publicArenaWire.includes('arena-run-0001'), false, 'the tracker run id reached the public statistics');
+  assert.equal(JSON.parse(publicArenaWire).runs[0].wins, 5);
+
+  // A game of the current UTC day is the owner's at once and public only from the next day on,
+  // so polling the public copy cannot time it.
+  await upload([bg(23, 2, 6450)]);
+  assert.equal((await (await stats('mode=battlegrounds')).json()).games, 4);
+  assert.equal((await (await fetch(`${origin}/api/profiles/7/game-stats?mode=battlegrounds`)).json()).games, 3);
+  assert.equal((await (await fetch(`${origin}/api/profiles/7/game-stats?mode=battlegrounds&mmr=TOP_5_PERCENT`)).json()).games, 3,
+    'paid-comparison filters do not change the public answer');
+
+  // Neither does a first game in a new mode open a public tab before the next UTC day.
+  await upload([arena(1, 'win')].map(game => ({ ...game, occurredAt: '2026-10-23T09:00:00Z' })), 'Bearer two');
+  assert.deepEqual((await (await fetch(`${origin}/api/profiles/9/game-stats/modes`)).json()).modes,
+    { battlegrounds: 1, standard: 0, wild: 0, arena: 0 });
+  const composition = readFileSync(new URL('../server/index.ts', import.meta.url), 'utf8');
+  assert.match(composition, /countEvents: \(userId, types, minSchemaVersion, until\) => trackerEvents\.countEvents\(userId, types, minSchemaVersion, until\)/,
+    'the server must pass the public day bound to the event counts');
 } finally {
   server.close();
 }

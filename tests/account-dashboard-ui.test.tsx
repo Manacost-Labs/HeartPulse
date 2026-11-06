@@ -6,6 +6,8 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { type BoostyConfirmation } from '../src/modules/identity/ui/AccountAccessOptions';
 import { accountPlanSummary } from '../src/modules/identity/model/accountPlan';
 import AccountContests from '../src/modules/identity/ui/AccountContests';
+import { accountTabFromHash } from '../src/modules/identity/model/accountTabs';
+import { savedDecksFromPayload } from '../src/modules/identity/model/savedDeck';
 import AccountLinks from '../src/modules/identity/ui/AccountLinks';
 import AccountSessions from '../src/modules/identity/ui/AccountSessions';
 import AccountSettings from '../src/modules/identity/ui/AccountSettings';
@@ -19,6 +21,9 @@ import type { SubscriptionStatus } from '../src/modules/subscriptions/public';
 register('data:text/javascript,export async function load(url, context, next) { return url.endsWith(".css") ? { format: "module", source: "", shortCircuit: true } : next(url, context); }');
 const { default: AccountHero } = await import('../src/modules/identity/ui/AccountHero');
 const { default: AccountPlanSection } = await import('../src/modules/identity/ui/AccountPlanSection');
+const { default: AccountTabs } = await import('../src/modules/identity/ui/AccountTabs');
+const { default: AccountDecks } = await import('../src/modules/identity/ui/AccountDecks');
+const { default: AccountPublicProfile } = await import('../src/modules/identity/ui/AccountPublicProfile');
 const { default: AccountBillingPlanCard } = await import('../src/features/AccountBillingPlanCard');
 const { AccountPlanCardSlot } = await import('../src/modules/identity/ui/accountPlanCardSlot');
 
@@ -165,10 +170,9 @@ test('before the first check the Boosty row offers no confirmation shortcut', ()
   assert.match(markup, /Статус появится после проверки/);
 });
 
-test('contest history is one quiet line until there are entries', () => {
-  const empty = renderToStaticMarkup(<AccountContests entries={[]} loading={false} />);
-  assert.match(empty, /Вы ещё не участвовали в конкурсах/);
-  assert.match(empty, /href="\/contests\/"/);
+test('contest history has no section until there are entries', () => {
+  assert.equal(renderToStaticMarkup(<AccountContests entries={[]} loading={false} />), '');
+  assert.equal(renderToStaticMarkup(<AccountContests entries={[]} loading />), '');
   const entries = renderToStaticMarkup(<AccountContests loading={false} entries={[{
     id: 'e1', contestId: 'c1', title: 'Турнир сборок', prize: 'Набор карт', imageUrl: '',
     status: 'completed', entryStatus: 'approved', joinedAt: '2026-09-12T10:00:00Z', isWinner: true,
@@ -177,6 +181,7 @@ test('contest history is one quiet line until there are entries', () => {
   assert.match(entries, /Завершён · участие одобрено/);
   assert.match(entries, /Приз: Набор карт/);
   assert.match(entries, /Победа/);
+  assert.match(entries, /href="\/contests\/"/);
 });
 
 test('the newsletter comes first, then prize contacts, and every field has its label', () => {
@@ -203,8 +208,8 @@ test('the account offers section navigation and help with clear contact groups',
       countries={[]} saving={false} onChange={noop} onSubmit={noop} />,
   );
   assert.match(markup, /<fieldset/);
-  assert.match(markup, /<legend>Контакты для призов<\/legend>/);
-  assert.match(markup, /<legend>Рассылка<\/legend>/);
+  assert.match(markup, /<legend class="account-row__label">Контакты для призов<\/legend>/);
+  assert.match(markup, /<legend class="account-row__label">Рассылка<\/legend>/);
   assert.match(markup, /href="\/faq\/#faq-newsletter"/);
 });
 
@@ -243,10 +248,12 @@ test('the hero names the plan status once and links to the public profile', () =
   assert.match(subscriber, /Подписка активна/);
   assert.doesNotMatch(subscriber, /Boosty · до 12 нояб\./, 'the plan details live in the plan section only');
   assert.match(subscriber, /href="\/id\/42\/"[^>]*>.*Мой профиль/);
+  assert.match(subscriber, />Поделиться</, 'the profile can be shared from the header');
   assert.equal(subscriber.match(/>Выйти</g)?.length, 1);
   const free = hero(subscription());
   assert.equal(free.match(/Без подписки/g)?.length, 1, 'no repeated status');
   assert.match(hero(null, false), /Проверяем/);
+  assert.doesNotMatch(hero(renewing(true), true, { ...user, publicProfileId: 'p_legacy' }), /Поделиться/);
   assert.doesNotMatch(hero(renewing(true), true, { ...user, publicProfileId: 'p_legacy' }), /Мой профиль/,
     'only a server-issued numeric ID becomes a profile link');
 });
@@ -298,4 +305,75 @@ test('active sessions: this browser first, others can be ended, all others only 
   assert.match(renderToStaticMarkup(
     <AccountLinks user={user} subscription={active} telegram={telegram} patreonLinkUrl="" sessions={control} />,
   ), /id="account-links"[\s\S]*Активные сеансы/, 'the list lives in «Вход и привязки»');
+});
+
+test('a location hash opens its tab, including the section anchors from before the tabs', () => {
+  assert.equal(accountTabFromHash('#subscription'), 'subscription');
+  assert.equal(accountTabFromHash('#decks'), 'decks');
+  assert.equal(accountTabFromHash('#account-access'), 'subscription');
+  assert.equal(accountTabFromHash('#account-tracker-data'), 'stats');
+  assert.equal(accountTabFromHash('#account-settings'), 'personal');
+  assert.equal(accountTabFromHash(''), null);
+  assert.equal(accountTabFromHash('#faq-newsletter'), null);
+  assert.equal(accountTabFromHash('#constructor'), null, 'inherited keys are not sections');
+  assert.equal(accountTabFromHash('#__proto__'), null);
+  assert.equal(accountTabFromHash('#%E0%A4%A'), null, 'a malformed hash is ignored');
+});
+
+test('the account shows four tabs and every panel stays mounted, only the first visible', () => {
+  const markup = renderToStaticMarkup(
+    <AccountTabs panels={{ personal: <p>личное</p>, subscription: <p>план</p>, stats: <p>игры</p>, decks: <p>колоды</p> }} />,
+  );
+  const labels = [...markup.matchAll(/role="tab"[^>]*>([^<]+)</g)].map(match => match[1]);
+  assert.deepEqual(labels, ['Персональные данные', 'Подписка', 'Моя статистика', 'Мои колоды']);
+  assert.match(markup, /id="account-tab-personal"[^>]*aria-selected="true"[^>]*tabindex="0"/);
+  assert.match(markup, /id="account-tab-decks"[^>]*aria-selected="false"[^>]*tabindex="-1"/);
+  assert.match(markup, /id="account-panel-personal"[^>]*aria-labelledby="account-tab-personal"><p>личное/);
+  assert.match(markup, /id="account-panel-stats"[^>]*hidden=""><p>игры/);
+  assert.match(markup, /data-tour-id="profile-tabs"/);
+});
+
+test('the decks tab loads the saved decks before showing a form or a gallery', () => {
+  const markup = renderToStaticMarkup(<AccountDecks />);
+  assert.match(markup, /<h2 id="account-decks-title">Мои колоды<\/h2>/);
+  assert.match(markup, /Загружаем колоды…/);
+  assert.doesNotMatch(markup, /saved-decks__form|saved-decks__gallery/, 'nothing is offered before the list is known');
+  assert.match(markup, /href="#stats"/, 'the played decks are one tab away');
+});
+
+test('without access the subscription tab offers the Telegram VIP channel bought through Tribute', () => {
+  const offer = (telegramLinked: boolean) => renderToStaticMarkup(
+    <AccountPlanSection plan={accountPlanSummary(subscription(), true, NOW)} subscription={subscription()} loading={false}
+      checkedAt="" onRefresh={noop} boosty={boosty} patreonLinkUrl="" telegramLinked={telegramLinked} />,
+  );
+  assert.match(offer(false), /Подписаны в Telegram/);
+  assert.match(offer(false), /href="#account-links"[^>]*>Привязать Telegram/);
+  assert.doesNotMatch(offer(true), /Привязать Telegram/, 'a linked Telegram is checked with «Проверить снова»');
+  assert.match(offer(false), /href="https:\/\/web\.tribute\.tg\/s\/xz9"/);
+  assert.match(offer(false), /href="\/faq\/#faq-access-missing"/);
+});
+
+test('the public profile section switches the statistics and decks on and off, starting hidden', () => {
+  const section = (statsVisible: boolean, withSwitch = true) => renderToStaticMarkup(
+    <AccountPublicProfile identity={{ publicProfileId: '7', nickname: null, nicknameChangeAvailableAt: null, statsVisible }}
+      failed={false} saving={false} saveNickname={noop} saveStatsVisible={withSwitch ? noop : undefined} origin="https://hearthpulse.net" />,
+  );
+  assert.match(section(false), /role="switch"[^>]*aria-checked="false"[^>]*>.*Показывать мою статистику и колоды/);
+  assert.match(section(true), /role="switch"[^>]*aria-checked="true"[^>]*>.*Показывать мою статистику и колоды/);
+  assert.match(section(false), /без времени партий/);
+  assert.doesNotMatch(section(false, false), /Показывать мою статистику/);
+});
+
+test('saved decks show only images the site serves itself', () => {
+  const deck = { id: 'd1', deckCode: 'AAECAZ8F', name: 'Колода', format: 'wild', comment: 'план', status: 'ready', createdAt: '' };
+  const [own, foreign, broken] = savedDecksFromPayload({ decks: [
+    { ...deck, imageUrl: '/api/public-resource/deckview/static/generated/a.jpg', previewImageUrl: '/api/public-resource/deckview/static/generated/a.webp' },
+    { ...deck, id: 'd2', imageUrl: 'https://evil.example/a.jpg', previewImageUrl: 'javascript:alert(1)' },
+    { ...deck, id: 'd3', status: 'unknown' },
+  ] }) ?? [];
+  assert.equal(own.previewImageUrl, '/api/public-resource/deckview/static/generated/a.webp');
+  assert.equal(own.format, 'wild');
+  assert.deepEqual([foreign.imageUrl, foreign.previewImageUrl], [null, null]);
+  assert.equal(broken, undefined, 'an unknown status is dropped');
+  assert.equal(savedDecksFromPayload({ error: 'x' }), null);
 });

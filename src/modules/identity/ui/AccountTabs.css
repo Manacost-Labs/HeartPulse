@@ -1,0 +1,61 @@
+.account-tabs { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+
+.account-tabs__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 4px;
+  border: 8px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 / 8px stretch;
+  background: var(--arena-parchment-texture), var(--arena-parchment-light);
+  background-clip: padding-box;
+  box-shadow: 0 10px 24px rgba(70, 38, 15, 0.16);
+}
+
+.account-tabs__tab {
+  flex: 1 1 0;
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--account-muted);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.account-tabs__tab:hover { background: rgba(122, 30, 34, 0.08); color: var(--account-ink); }
+.account-tabs__tab[aria-selected="true"] { background: var(--account-accent); color: var(--account-accent-ink); }
+.account-tabs__panel { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.account-tabs__panel[hidden] { display: none; }
+
+/* Four labels do not fit one row on a phone; two rows keep every tab visible without a scroller. */
+@media (max-width: 640px) {
+  .account-tabs__list { display: grid; grid-template-columns: 1fr 1fr; border-width: 6px; border-image-width: 6px; }
+  .account-tabs__tab { padding: 0 0.5rem; font-size: 0.95rem; }
+}
+
+.account-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.75rem;
+}
+
+.account-empty__actions { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: flex-start; }
+
+.account-empty-preview { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.account-empty-preview__item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1.5px dashed var(--account-line);
+  border-radius: 12px;
+  color: var(--account-muted);
+  font-size: 0.95rem;
+}
+.account-empty-preview__item strong { color: var(--account-ink); font-size: 1rem; }
+.account-empty-preview__icon { display: inline-grid; place-items: center; width: 32px; height: 32px; margin-bottom: 4px; border-radius: 8px; background: rgba(122, 30, 34, 0.08); color: var(--account-accent); }

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { fetchGameStatsModes, gameStatsFromPayload, gameStatsUrl } from '../src/modules/playerStats/api/gameStatsApi.js';
-import { comparison, formatDuration, formatSigned, pluralGames, rankLabel, winrate } from '../src/modules/playerStats/model/format.js';
+import { comparison, formatDuration, formatGameDay, formatSigned, pluralGames, rankLabel, winrate } from '../src/modules/playerStats/model/format.js';
 import { heroPickRate, visibleHeroes } from '../src/modules/playerStats/model/heroTable.js';
 import type { HeroStats } from '../src/modules/playerStats/model/stats.js';
 
@@ -64,5 +64,12 @@ try {
 } finally {
   globalThis.fetch = realFetch;
 }
+
+// A public profile reads the public copy of the same statistics; the day of a public game never carries a time.
+assert.equal(gameStatsUrl({ mode: 'arena', period: 'all', duos: false, mmr: 'TOP_50_PERCENT' }, '7'),
+  '/api/profiles/7/game-stats?mode=arena&period=all');
+const dayOnly = formatGameDay(Date.parse('2026-10-22T00:00:00Z'));
+assert.match(dayOnly, /^22 окт/);
+assert.doesNotMatch(dayOnly, /\d{2}:\d{2}/);
 
 console.log('player stats client: ok');

@@ -84,3 +84,40 @@ test('the password toggle sits beside its label, so the field is named by the la
   const field = markup.match(/<div class="login-password-field">([\s\S]*?)<\/div>/)?.[1] ?? '';
   assert.match(field, /<label class="login-field"><span>Пароль<\/span><input[^>]*><\/label><button type="button"/);
 });
+
+function visibleText(markup: string): string {
+  return markup.replace(/<!-- -->/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+}
+
+test('without a destination site the card says nothing about one', () => {
+  const text = visibleText(card());
+  assert.doesNotMatch(text, /Вход через hearthpulse\.net|только на hearthpulse\.net/);
+});
+
+test('a guest sent from another site is told which site and that the password stays on hearthpulse.net', () => {
+  const signInFor = { name: 'Манакост', host: 'hs-manacost.ru' };
+  for (const patch of [{}, { mode: 'register' as const }, { mode: 'reset' as const }, { step: 'code' as const }]) {
+    const text = visibleText(card({ signInFor, ...patch }));
+    assert.match(text, /Вход через hearthpulse\.net для сайта Манакост \(hs-manacost\.ru\)/);
+    assert.match(text, /Пароль вводится только на hearthpulse\.net/);
+  }
+  assert.match(card({ signInFor }), /<h1 id="login-card-title"[^>]*>Вход в HearthPulse<\/h1>/, 'the card keeps its own title');
+});
+
+test('a site whose name is its host is named once, and the name is plain text', () => {
+  const named = visibleText(card({ signInFor: { name: 'partner.example', host: 'partner.example' } }));
+  assert.match(named, /для сайта partner\.example Пароль вводится/);
+  assert.doesNotMatch(named, /\(partner\.example\)/);
+  const hostile = card({ signInFor: { name: '<img src=x onerror=alert(1)>', host: 'evil.example' } });
+  assert.doesNotMatch(hostile, /<img/);
+  assert.match(hostile, /&lt;img src=x onerror=alert\(1\)&gt;/);
+});
+
+test('while the site is unknown the card already holds its place: the neutral part is shown, the name is not', () => {
+  for (const patch of [{}, { mode: 'register' as const }, { mode: 'reset' as const }, { step: 'code' as const }]) {
+    const markup = card({ signInFor: 'unnamed', ...patch });
+    const text = visibleText(markup);
+    assert.match(text, /Вход через hearthpulse\.net Пароль вводится только на hearthpulse\.net/);
+    assert.doesNotMatch(text, /для сайта/);
+  }
+});

@@ -21,12 +21,16 @@ type RegisterPlayerGamesDependencies = {
   /** The account's web replays of its games, for links in «Последние игры». */
   replaysOfGames?: (userId: string, gameIds: string[]) => Record<string, string>;
   setPrivateNoStore: (response: Response) => void;
+  /** The account behind a public profile while it shows its statistics (`findPublicStatsOwner`). */
+  resolvePublicStatsOwner?: (publicProfileId: string) => string | null;
   environment?: NodeJS.ProcessEnv;
 };
 
 /** Each statistics request may aggregate up to 5 000 events, so it is limited before any work starts. */
 export function registerPlayerGamesRateLimit(app: Application): void {
   app.use('/api/account/game-stats', rateLimit({ windowMs: 60_000, max: 60, standardHeaders: true, legacyHeaders: false }));
+  // A path pattern, not a regular expression: Express matches it case-insensitively like the routes themselves.
+  app.use('/api/profiles/:publicProfileId/game-stats', rateLimit({ windowMs: 60_000, max: 60, standardHeaders: true, legacyHeaders: false }));
 }
 
 /**
@@ -50,6 +54,7 @@ export function registerPlayerGames(dependencies: RegisterPlayerGamesDependencie
     hasEntitlement: dependencies.hasEntitlement,
     service,
     setPrivateNoStore: dependencies.setPrivateNoStore,
+    resolvePublicStatsOwner: dependencies.resolvePublicStatsOwner,
   }));
   return { invalidate: service.invalidate };
 }

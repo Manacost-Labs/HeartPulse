@@ -2271,13 +2271,14 @@ for (const [device, viewport] of [
     const galleryViolationCount = galleryUploadViolationCount + await auditAccessibility(page, `admin gallery [${device}]`, '.admin-workspace-content');
 
     await page.goto(`${BASE}/admin?section=boosty`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForFunction(() => document.querySelectorAll('.admin-boosty-row').length === 2);
+    await page.waitForFunction(() => document.querySelectorAll('.admin-boosty-row').length === 2
+      && !document.querySelector('.admin-boosty .admin-people-reload')?.disabled);
     const boostyState = await page.evaluate(listState, '.admin-boosty');
     if (boostyState.rows !== 2 || boostyState.chips.join(',') !== '2,1,1,1,1' || !boostyState.status.includes('работает') || !boostyState.summary.includes('Всего 2')) {
       failures.push(`admin Boosty [${device}]: deterministic status, filters or subscriber table did not render (${JSON.stringify(boostyState)})`);
     }
-    if (JSON.stringify(boostyState.headers) !== JSON.stringify(['Подписчик', 'Уровень', 'Подписка', 'Доступ на сайте', 'Подписан'])
-      || JSON.stringify(boostyState.pills) !== JSON.stringify([['Активна', 'Открывает сайт'], ['Не активна', 'Не открывает сайт']])) {
+    if (JSON.stringify(boostyState.headers) !== JSON.stringify(['Подписчик', 'Уровень', 'Подписка', 'Доступ на сайте', 'В Telegram-канале', 'Подписан'])
+      || JSON.stringify(boostyState.pills) !== JSON.stringify([['Активна', 'Открывает сайт', 'В канале'], ['Не активна', 'Не открывает сайт', 'Нет связки с сайтом']])) {
       failures.push(`admin Boosty [${device}]: table columns or statuses changed (${JSON.stringify(boostyState)})`);
     }
     if (boostyState.searchHeight < 44) failures.push(`admin Boosty [${device}]: search field is below the 44px target (${boostyState.searchHeight})`);
@@ -2729,8 +2730,10 @@ for (const [device, viewport] of [
         headings: [...document.querySelectorAll('h1')].map(heading => heading.id),
         headerBackground: header ? getComputedStyle(header).backgroundColor : '',
         openSections: document.querySelectorAll('a.account-access__tile').length,
-        publicProfileActions: [...document.querySelectorAll('.account-hero__actions > :is(a, button)')]
+        // «Мой профиль» and «Поделиться» are one plaque; the sign-out is its own tag in the plate's corner.
+        publicProfileActions: [...document.querySelectorAll('.account-hero__plaque > :is(a, button)')]
           .map(action => action.textContent.trim()),
+        signOut: [...document.querySelectorAll('.account-hero .account-logout')].map(action => action.textContent.trim()),
         contactsVisible: Boolean(document.querySelector('#account-settings input#account-telegram')?.getClientRects().length),
         smallControls: controls.filter(control => control.getBoundingClientRect().height < 40)
           .map(control => (control.textContent || control.getAttribute('aria-label') || control.tagName).trim().slice(0, 40)),
@@ -2749,7 +2752,8 @@ for (const [device, viewport] of [
       || profileState.headings.join() !== 'account-title'
       || profileState.headerBackground !== 'rgb(58, 6, 16)'
       || profileState.openSections < 1
-      || profileState.publicProfileActions.join('|') !== 'Мой профиль|Выйти'
+      || profileState.publicProfileActions.join('|') !== 'Мой профиль|Поделиться'
+      || profileState.signOut.join('|') !== 'Выйти'
       || profileState.contactsVisible !== true
       || profileState.smallControls.length > 0
       || profileState.scrollWidth > profileState.clientWidth + 1) {

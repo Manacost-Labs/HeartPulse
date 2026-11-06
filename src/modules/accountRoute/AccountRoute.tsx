@@ -2,6 +2,7 @@ import React from 'react';
 import {
   loadLoginPanel,
   type AuthUser,
+  type SignInFor,
 } from '../identity/public';
 
 const LazyLoginPanel = React.lazy(loadLoginPanel);
@@ -12,6 +13,8 @@ type AccountRouteProps = {
   user: AuthUser | null;
   checking: boolean;
   onChange: (user: AuthUser | null) => void;
+  /** The external site this guest is signing in for, when the composition knows it. */
+  signInFor?: SignInFor;
 };
 
 /**
@@ -24,6 +27,7 @@ export default function AccountRoute({
   user,
   checking,
   onChange,
+  signInFor,
 }: AccountRouteProps) {
   if (connect) {
     return (
@@ -41,6 +45,7 @@ export default function AccountRoute({
       initialAuthUser={user}
       parentAuthChecking={checking}
       onAuthChange={onChange}
+      signInFor={signInFor}
     />
   );
 }

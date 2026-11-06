@@ -23,16 +23,20 @@ export function BoostySection() {
   const loadSubscribers = useCallback(() => fetchBoostySubscribers(freshRef.current), []);
   const status = useAdminResource(ADMIN_READS.boostyStatus.key, loadStatus);
   const subscribers = useAdminResource(ADMIN_READS.boostySubscribers.key, loadSubscribers);
+  const accounts = useAdminResource(ADMIN_READS.telegram.key, ADMIN_READS.telegram.load);
   return (
     <ContestAdminBoosty
       status={status.error ? boostyStatusFailure(status.error) : status.data ?? null}
       statusLoading={status.loading || status.refreshing}
       subscribers={subscribers.error ? boostySubscribersFailure(subscribers.error) : subscribers.data ?? null}
       subscribersLoading={subscribers.loading || subscribers.refreshing}
+      telegramAccounts={accounts.error ? telegramAccountsFailure(accounts.error) : accounts.data ?? null}
+      telegramAccountsLoading={accounts.loading || accounts.refreshing}
       onReload={() => {
         freshRef.current = true;
         void status.reload();
         void subscribers.reload();
+        void accounts.reload();
         freshRef.current = false;
       }}
       formatDate={formatDate}

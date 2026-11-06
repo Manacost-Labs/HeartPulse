@@ -111,3 +111,14 @@ export async function saveOwnNickname(nickname: string): Promise<OwnPublicProfil
   if (!saved) throw new Error(authErrorFromPayload(payload) || 'Не удалось сохранить ник');
   return saved;
 }
+
+/** Shows or hides the tracker statistics and decks on the public page. */
+export async function saveOwnStatsVisibility(stats: boolean): Promise<OwnPublicProfile> {
+  const response = await fetchWithDeadline('/api/account/public-profile/visibility', {
+    method: 'PUT', headers: AUTH_JSON_HEADERS, body: JSON.stringify({ stats }), deadlineMs: 10_000,
+  });
+  const payload: unknown = await response.json().catch(() => ({}));
+  const saved = response.ok ? ownPublicProfileFromPayload(payload) : null;
+  if (!saved) throw new Error(authErrorFromPayload(payload) || 'Не удалось сохранить настройку');
+  return saved;
+}
