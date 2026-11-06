@@ -6,7 +6,7 @@ import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
 import { canonicalPagePath } from '../app/routing/canonicalPagePath';
-import { publicResourceUrl } from '../publicResourceUrl';
+import { publicResourceImageUrl, publicResourceUrl } from '../publicResourceUrl';
 import { CardVariantImages, CardVariantSwitch } from '../shared/ui/CardVariantSwitch';
 import {
   battlegroundBaseCardId,
@@ -542,20 +542,6 @@ function isArchiveDisplayCard(card: LibraryCard, kind: LibraryKind, pool: PoolMo
   return hasReliableGolden(card);
 }
 
-function hideBrokenTileImage(event: React.SyntheticEvent<HTMLImageElement>): void {
-  const image = event.currentTarget;
-  const fallbacks = (image.dataset.fallbacks || '').split('|').filter(Boolean);
-  const index = Number(image.dataset.fallbackIndex || 0);
-  const fallback = fallbacks[index];
-  if (fallback) {
-    image.dataset.fallbackIndex = String(index + 1);
-    image.src = fallback;
-    return;
-  }
-  const tile = image.closest('[data-library-card-tile]') as HTMLElement | null;
-  if (tile) tile.style.display = 'none';
-}
-
 function hideBrokenImage(event: React.SyntheticEvent<HTMLImageElement>): void {
   event.currentTarget.style.display = 'none';
 }
@@ -874,8 +860,13 @@ const LibraryCardTile = React.memo(function LibraryCardTile({
 }) {
   const [showGolden, setShowGolden] = useState(false);
   const href = cardPath(card, pool);
-  const image = primaryCardImage(card) || '/arena-logo-icon.webp?v=arena-legacy-20260629';
-  const fallbacks = fallbackCardImages(card, image, false);
+  const originalImage = primaryCardImage(card) || '/arena-logo-icon.webp?v=arena-legacy-20260629';
+  // Tiles are at most 240 CSS pixels wide; keep 2x detail without transferring full PNGs.
+  const image = publicResourceImageUrl(originalImage, { width: 480 });
+  const fallbacks = uniqueStrings([
+    image !== originalImage ? originalImage : null,
+    ...fallbackCardImages(card, originalImage, false),
+  ]);
   const golden = goldenCardImage(card);
   const cardKind = cardLibraryKind(card);
   const englishName = visibleEnglishLibraryName(card, cardRuName(card));
@@ -898,7 +889,7 @@ const LibraryCardTile = React.memo(function LibraryCardTile({
           loading="lazy"
           decoding="async"
           data-fallbacks={fallbacks.join('|') || undefined}
-          onError={hideBrokenTileImage}
+          onError={fallbackBrokenHeroImage}
         />
         {golden && showGolden && (
           <img

@@ -108,3 +108,69 @@ test('library bounds its first batch and loads golden artwork only for an intend
     await page.waitForFunction(expected => document.querySelectorAll('[data-library-card-tile]').length === expected, {}, before + 36);
   } finally { await browser.close(); await runtime.close(); }
 });
+
+
+test('library thumbnails stay usable after image delivery failures', async t => {
+  const runtime = await startStorybookStatic();
+  const browser = await launchBrowser({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
+  const fixture = readFileSync('public/arena-logo-icon.webp');
+  try {
+    for (const mode of ['unavailable', 'optimized', 'original-fallback']) {
+      await t.test(mode, async () => {
+        const page = await browser.newPage();
+        const requests = [];
+        const errors = [];
+        page.on('pageerror', error => errors.push(error.message));
+        await page.setRequestInterception(true);
+        page.on('request', request => {
+          const url = new URL(request.url());
+          if (!url.pathname.startsWith('/api/public-resource/db/uploads/')) return void request.continue();
+          requests.push(url);
+          const ok = mode === 'optimized' || (mode === 'original-fallback' && !url.searchParams.has('width'));
+          void request.respond({ status: ok ? 200 : 503, contentType: ok ? 'image/webp' : 'text/plain',
+            body: ok ? fixture : 'Image unavailable' });
+        });
+        try {
+          for (const width of [390, 1440]) {
+            requests.length = 0;
+            await page.setViewport({ width, height: 900 });
+            await page.goto(runtime.storyUrl('battlegrounds-library--image-recovery'), { waitUntil: 'networkidle0' });
+            await page.waitForSelector('[data-library-card-tile]');
+            const result = await page.evaluate(() => {
+              const tiles = [...document.querySelectorAll('[data-library-card-tile]')];
+              return {
+                visible: tiles.filter(tile => tile.getClientRects().length > 0).length,
+                links: tiles.map(tile => tile.getAttribute('href')),
+                images: tiles.map(tile => { const image = tile.querySelector('img');
+                  return { src: image.getAttribute('src'), loaded: image.complete && image.naturalWidth > 0 }; }),
+                overflow: document.documentElement.scrollWidth > innerWidth,
+              };
+            });
+            assert.equal(result.visible, 2, `${mode}: failed artwork must not remove catalog entries at ${width}px`);
+            assert.equal(result.overflow, false);
+            assert.ok(result.links.every(link => link.startsWith('/library/minions/')));
+            assert.ok(result.images.every(image => image.loaded));
+            assert.ok(requests.some(url => url.searchParams.get('width') === '480'
+              && url.searchParams.get('quality') === '82' && url.searchParams.get('format') === 'webp'),
+            'tiles request a bounded WebP instead of the full PNG');
+            if (mode === 'unavailable') {
+              assert.ok(result.images.every(image => image.src.startsWith('/arena-logo-icon.webp')));
+              assert.ok(requests.length <= 8, 'failed image candidates are tried once, without a retry loop');
+            } else if (mode === 'original-fallback') {
+              assert.ok(result.images.every(image => image.src.includes('/uploads/cards/') && !image.src.includes('width=')),
+                'optimizer failure retains the original image before trying another artwork');
+            } else {
+              assert.ok(requests.every(url => url.searchParams.has('width')), 'successful thumbnails do not fetch originals');
+            }
+          }
+          assert.deepEqual(errors, []);
+        } finally {
+          await page.close();
+        }
+      });
+    }
+  } finally {
+    await browser.close();
+    await runtime.close();
+  }
+});
