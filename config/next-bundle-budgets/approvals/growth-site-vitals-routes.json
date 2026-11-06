@@ -1,0 +1,6 @@
+{
+  "reason": "Рост (PR #354): две новые страницы — /download/ и /id/<n>/year/<год>/ — добавлены в общий список шаблонов Web Vitals (shared/webVitalsDimensions.ts), который входит в клиентский код каждой страницы; каталог /standard/archetypes/ стоял у самой границы бюджета и вырос на 17 Б.",
+  "routes": {
+    "/standard/archetypes/": { "jsGzipBytes": 64 }
+  }
+}
