@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { DataTable, type DataTableColumn } from '../../vendor/varylo-ui/data-display/DataTable';
 import type { SortState } from '../../vendor/varylo-ui/data-display/data-table';
 import { SegmentedControl } from '../../vendor/varylo-ui/navigation/SegmentedControl';
-import { KpiGroup } from '../../vendor/varylo-ui/data-display/KpiGroup';
 import {
   CLASS_LABELS,
   classIconUrl,
@@ -12,7 +11,7 @@ import {
   winrate,
   type ArenaStats,
 } from '../../modules/playerStats/public';
-import { DATA_TABLE_LABELS, KPI_LABELS } from './playerStatsLabels';
+import { DATA_TABLE_LABELS } from './playerStatsLabels';
 import { RecentArenaGames } from './RecentGamesBlock';
 import { StatsBlock } from './StatsBlock';
 
@@ -56,28 +55,15 @@ const RUN_ORDER: Record<string, SortState> = {
   best: { key: 'wins', direction: 'desc' },
 };
 
-/** Arena: runs with their score (latest or best first), average wins and classes. */
+/** Arena under the header numbers: runs with their score (latest or best first) and classes. */
 export function ArenaStatsView({ stats }: { stats: ArenaStats }) {
-  const { summary } = stats;
   const [sort, setSort] = useState<SortState | null>(RUN_ORDER.recent);
   const formatGameDate = useGameDateFormat();
   const runTableColumns = useMemo(() => runColumns(formatGameDate), [formatGameDate]);
   const table = { density: 'compact' as const, locale: 'ru-RU', labels: DATA_TABLE_LABELS };
   return (
     <>
-      <div className="player-stats-summary player-stats-summary--wide">
-        <KpiGroup locale="ru-RU" labels={KPI_LABELS} minTileWidth={150} items={[
-          { id: 'runs', label: 'Забегов', value: summary.runs, caption: `игр ${formatNumber(stats.games)}` },
-          { id: 'average', label: 'Средние победы', value: summary.averageWins, format: { maximumFractionDigits: 2 } },
-          { id: 'twelve', label: '12 побед', value: summary.twelveWinRuns,
-            caption: summary.bestRun ? `лучший: ${score(summary.bestRun)}, ${CLASS_LABELS[summary.bestRun.playerClass]}` : undefined },
-          { id: 'winrate', label: 'Винрейт игр', value: summary.gameWinrate === null ? null : summary.gameWinrate / 100,
-            format: { style: 'percent', maximumFractionDigits: 1 } },
-          { id: 'time', label: 'Время в игре', value: Math.round(summary.timePlayedSeconds / 360) / 10,
-            format: { style: 'unit', unit: 'hour', unitDisplay: 'short', maximumFractionDigits: 1 } },
-        ]} />
-      </div>
-      <StatsBlock title="Забеги" aside={(
+      <StatsBlock title="Забеги" wide aside={(
         <SegmentedControl aria-label="Порядок забегов" size="sm" value={sort?.key === 'wins' ? 'best' : 'recent'}
           onValueChange={value => setSort(RUN_ORDER[value])}
           options={[{ value: 'recent', label: 'Последние' }, { value: 'best', label: 'Лучшие' }]} />

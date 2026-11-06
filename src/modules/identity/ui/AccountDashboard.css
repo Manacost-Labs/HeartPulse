@@ -262,3 +262,4 @@
 .account-tracker-data__done { margin: 0; color: var(--account-ink); font-size: 0.95rem; }
 .account-tracker-data__error { margin: 0; color: var(--arena-red); font-size: 0.95rem; }
 .account-tracker-data .account-button svg { vertical-align: -2px; }
+.account-game-stats__install { align-self: flex-start; }

@@ -13,6 +13,8 @@ export type PublicProfileCardProps = {
   signedIn?: boolean;
   /** The player's statistics and decks, composed by the page when the owner shows them. */
   children?: ReactNode;
+  /** The statistics' header strip (mode, period, main numbers), drawn inside the identity plate. */
+  summary?: ReactNode;
 };
 
 /** A player without a nickname has no initials of their own; the site's mark stands in. */
@@ -22,7 +24,7 @@ const NEUTRAL_PORTRAIT = '/arena-logo-icon-256.webp';
  * The public player card at `/id/<n>/`. It renders only the fields of the
  * public projection; everything here is visible to anyone with the link.
  */
-export default function PublicProfileCard({ profile, onCopyLink, signedIn = false, children }: PublicProfileCardProps) {
+export default function PublicProfileCard({ profile, onCopyLink, signedIn = false, children, summary }: PublicProfileCardProps) {
   const [copied, setCopied] = useState(false);
   const copyLink = async () => {
     try {
@@ -66,6 +68,7 @@ export default function PublicProfileCard({ profile, onCopyLink, signedIn = fals
             {copied ? 'Ссылка скопирована' : 'Скопировать ссылку'}
           </button>
         </div>
+        {summary ? <div className="identity-plate__summary">{summary}</div> : null}
       </header>
       {children}
       <section className="public-profile__about" aria-labelledby="public-profile-about">

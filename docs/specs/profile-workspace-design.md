@@ -46,15 +46,16 @@ there is no payment history or theme section.
   subscription opens and links «Оплатили, а доступ закрыт».
   «Проверить снова» and the last check time sit in the section head.
 - «Моя статистика» tab (`#account-game-stats`): the games the Hearthpulse
-  desktop tracker uploaded, in the tabs «Поля сражений», «Стандарт»,
-  «Вольный» and «Арена», like HSReplay «My Stats»
+  desktop tracker uploaded, switched between «Стандарт», «Поля сражений»,
+  «Вольный» and «Арена» in the section's dark header strip, like HSReplay «My Stats»
   ([player game statistics](player-game-stats.md)). The account owns the
   section head; the body comes through `AccountGameStatsSlot` from the composition
   `src/features/playerStats`. It is shown only with `PLAYER_STATS_ENABLED=1`
-  and only to an account with version 2 tracker events, a tab per mode with
-  events. Otherwise the slot renders its `empty` note: «Пока игр нет» and what
-  will appear, never a call to install the application. While the check runs
-  the tab shows nothing.
+  and only to an account with version 2 tracker events, offering only modes with
+  events. The slot's `frame(body, summary)` places the header strip under the
+  section head. Otherwise the slot renders its `empty` note: «Пока игр нет»,
+  what will appear and «Установить Hearthpulse» (`/download/`). While the
+  check runs the tab shows nothing.
 - «Данные приложения» (`#account-tracker-data`), in the statistics tab, only
   while the desktop tracker has stored events: how many and over which
   dates, «Скачать мои данные» (a JSON export) and «Удалить данные» behind an

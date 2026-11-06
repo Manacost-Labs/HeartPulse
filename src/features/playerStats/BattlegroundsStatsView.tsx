@@ -1,6 +1,4 @@
 import { useMemo, useState } from 'react';
-import { DataTable, type DataTableColumn } from '../../vendor/varylo-ui/data-display/DataTable';
-import { KpiGroup } from '../../vendor/varylo-ui/data-display/KpiGroup';
 import { SegmentedControl } from '../../vendor/varylo-ui/navigation/SegmentedControl';
 import {
   CombatSparkline,
@@ -13,13 +11,13 @@ import {
   formatPercent,
   formatSigned,
   heroPickRate,
-  pluralGames,
+  placementShares,
   visibleHeroes,
   type BattlegroundsStats,
   type GlobalMmrFilter,
   type HeroStats,
+  type ProfileStatsText,
 } from '../../modules/playerStats/public';
-import { DATA_TABLE_LABELS, KPI_LABELS } from './playerStatsLabels';
 import { RecentBattlegroundsGames } from './RecentGamesBlock';
 import { GlobalNote, StatsBlock } from './StatsBlock';
 
@@ -30,88 +28,93 @@ const MMR_OPTIONS: Array<{ value: GlobalMmrFilter; label: string }> = [
   { value: 'TOP_1_PERCENT', label: 'Топ 1%' },
 ];
 
-function heroColumns(stats: BattlegroundsStats): DataTableColumn<HeroStats>[] {
-  const name = (hero: HeroStats) => stats.cards[hero.heroCardId] ?? hero.heroCardId;
+/** Share of games per place as labelled columns; the top half is the player's red, the rest muted. */
+function PlacementChart({ counts, average, text }: { counts: number[]; average: number | null; text: ProfileStatsText }) {
+  const shares = placementShares(counts);
+  const peak = Math.max(1, ...shares.map(item => item.share));
+  return (
+    <figure className="profile-places" aria-label={`${text.placements}: ${shares.map(item => `${item.place}-е ${formatPercent(item.share)}`).join(', ')}`}>
+      <ol className="profile-places__bars" style={{ gridTemplateColumns: `repeat(${shares.length}, minmax(0, 1fr))` }}>
+        {shares.map(item => (
+          <li key={item.place} data-top={item.top || undefined} aria-hidden="true">
+            <span className="profile-places__share">{formatNumber(item.share, 0)}%</span>
+            <span className="profile-places__bar" style={{ blockSize: `${Math.max(2, (item.share / peak) * 100)}%` }} />
+            <span className="profile-places__place">{item.place}</span>
+          </li>
+        ))}
+      </ol>
+      {average !== null ? (
+        <figcaption>{text.averagePlace}: <strong>{formatNumber(average, 2)}</strong></figcaption>
+      ) : null}
+    </figure>
+  );
+}
+
+function HeroRow({ hero, stats }: { hero: HeroStats; stats: BattlegroundsStats }) {
+  const name = stats.cards[hero.heroCardId] ?? hero.heroCardId;
   const withGlobal = stats.global.availability === 'available';
-  return [
-    { key: 'hero', header: 'Герой', accessor: name, sortable: true, cell: hero => (
-      <span className="player-stats-hero">
-        <span className="player-stats-hero__art"><img src={cardImageUrl(hero.heroCardId)} alt="" decoding="async" /></span>
-        <span><strong>{name(hero)}</strong><small>{pluralGames(hero.games)}</small></span>
-      </span>
-    ) },
-    { key: 'netRating', header: 'Рейтинг', align: 'right', sortable: true, accessor: hero => hero.netRating ?? -Infinity,
-      cell: hero => <span data-tone={hero.netRating === null ? undefined : hero.netRating >= 0 ? 'better' : 'worse'}
-        className="player-stats-signed">{formatSigned(hero.netRating)}</span> },
-    { key: 'combat', header: withGlobal ? 'Бои по ходам: вы / все' : 'Бои по ходам', cell: hero => (
-      <CombatSparkline own={hero.combat} global={withGlobal ? hero.global?.combat ?? null : null}
-        label={`Победы в боях на ${name(hero)}`} />
-    ) },
-    { key: 'placements', header: 'Места', cell: hero => (
-      <PlacementBars compact counts={hero.placements} label={`Места на ${name(hero)}`}
-        global={withGlobal ? hero.global?.placementPercent ?? null : null} />
-    ) },
-    { key: 'averagePlacement', header: 'Среднее место', align: 'right', sortable: true, cell: hero => (
-      <span className="player-stats-metric">
+  const pick = heroPickRate(hero);
+  return (
+    <li className="profile-hero">
+      <span className="profile-hero__portrait"><img src={cardImageUrl(hero.heroCardId)} alt="" width="56" height="56" loading="lazy" decoding="async" /></span>
+      <span className="profile-hero__name"><strong>{name}</strong><small>{hero.games} игр{pick !== null ? ` · выбор ${formatPercent(pick)}` : ''}</small></span>
+      <span className="profile-hero__metric profile-hero__metric--average">
+        <small>Среднее место</small>
         <strong>{formatNumber(hero.averagePlacement, 2)}</strong>
         <VsGlobal own={hero.averagePlacement} global={hero.global?.averagePlacement ?? null} digits={2} lowerIsBetter />
       </span>
-    ) },
-    { key: 'pickRate', header: 'Выбор', align: 'right', sortable: true, accessor: hero => heroPickRate(hero) ?? -1, cell: hero => (
-      <span className="player-stats-metric">
-        <strong>{formatPercent(heroPickRate(hero))}</strong>
-        <VsGlobal own={heroPickRate(hero)} global={hero.global?.pickRatePercent ?? null} unit="%" />
+      <span className="profile-hero__metric profile-hero__metric--rating">
+        <small>Рейтинг</small>
+        <strong data-tone={hero.netRating ? Math.sign(hero.netRating) : undefined}>{formatSigned(hero.netRating)}</strong>
       </span>
-    ) },
-  ];
+      <span className="profile-hero__places">
+        <PlacementBars compact counts={hero.placements} label={`Места на ${name}`}
+          global={withGlobal ? hero.global?.placementPercent ?? null : null} />
+      </span>
+      <span className="profile-hero__combat">
+        <CombatSparkline own={hero.combat} global={withGlobal ? hero.global?.combat ?? null : null} label={`Победы в боях на ${name}`} />
+      </span>
+    </li>
+  );
 }
 
-/** HSReplay «My Stats» for Battlegrounds: header numbers, rating line, hero performance. */
-export function BattlegroundsStatsView({ stats, mmr, onMmrChange }: {
+/** Battlegrounds under the header numbers: placements, the rating line, heroes and the latest games. */
+export function BattlegroundsStatsView({ stats, mmr, onMmrChange, text }: {
   stats: BattlegroundsStats;
   mmr: GlobalMmrFilter;
   onMmrChange: (value: GlobalMmrFilter) => void;
+  text: ProfileStatsText;
 }) {
   const [minGames, setMinGames] = useState<number>(3);
   const heroes = useMemo(() => visibleHeroes(stats.heroes, minGames), [stats.heroes, minGames]);
-  const columns = useMemo(() => heroColumns(stats), [stats]);
   const { summary } = stats;
   return (
     <>
-      <div className="player-stats-summary">
-        <KpiGroup locale="ru-RU" labels={KPI_LABELS} minTileWidth={150} items={[
-          { id: 'rating', label: 'Лучший рейтинг', value: summary.highestRating,
-            caption: summary.currentRating !== null ? `сейчас ${formatNumber(summary.currentRating)}` : undefined },
-          { id: 'placement', label: 'Среднее место', value: summary.averagePlacement, format: { maximumFractionDigits: 2 },
-            caption: summary.top4Rate !== null ? `в топ-${stats.duos ? 2 : 4}: ${formatPercent(summary.top4Rate)}` : undefined },
-          { id: 'games', label: 'Игр', value: stats.games, caption: `первых мест: ${formatNumber(summary.firstPlaces)}` },
-          { id: 'time', label: 'Время в игре', value: Math.round(summary.timePlayedSeconds / 360) / 10,
-            format: { style: 'unit', unit: 'hour', unitDisplay: 'short', maximumFractionDigits: 1 } },
-        ]} />
-        <PlacementBars counts={summary.placements} average={summary.averagePlacement} label="Места за период" />
-      </div>
-      {stats.ratingSeries.length > 1 ? (
-        <StatsBlock title="Рейтинг по играм">
-          <RatingTimeline points={stats.ratingSeries} names={stats.cards} />
+      <div className="player-stats-pair" data-balance="places">
+        <StatsBlock title={text.placements}>
+          <PlacementChart counts={summary.placements} average={summary.averagePlacement} text={text} />
         </StatsBlock>
-      ) : null}
-      <StatsBlock title="Герои" aside={(
+        {stats.ratingSeries.length > 1 ? (
+          <StatsBlock title={text.rating}><RatingTimeline points={stats.ratingSeries} names={stats.cards} /></StatsBlock>
+        ) : null}
+      </div>
+      <StatsBlock title={text.heroes} wide aside={(
         <>
           {stats.global.availability === 'available' ? (
             <SegmentedControl aria-label="Сравнивать с игроками" size="sm" value={mmr}
               onValueChange={value => onMmrChange(value as GlobalMmrFilter)} options={MMR_OPTIONS} />
           ) : null}
-          <SegmentedControl aria-label="Минимум игр на герое" size="sm" value={String(minGames)}
+          <SegmentedControl aria-label={text.minGames} size="sm" value={String(minGames)}
             onValueChange={value => setMinGames(Number(value))}
-            options={HERO_MIN_GAMES.map(value => ({ value: String(value), label: `${value}+ игр` }))} />
+            options={HERO_MIN_GAMES.map(value => ({ value: String(value), label: text.gamesPlus(value) }))} />
         </>
       )}>
         <GlobalNote availability={stats.global.availability} section="battlegrounds" />
-        <DataTable label="Герои" data={heroes} columns={columns} getRowId={hero => hero.heroCardId}
-          density="compact" locale="ru-RU" labels={DATA_TABLE_LABELS} pageSize={20}
-          empty={`Нет героев с ${minGames} и более играми`} />
+        {heroes.length
+          ? <ol className="profile-heroes">{heroes.map(hero => <HeroRow key={hero.heroCardId} hero={hero} stats={stats} />)}</ol>
+          : <p className="player-stats-note">{text.noHeroes(minGames)}</p>}
       </StatsBlock>
-      <RecentBattlegroundsGames games={stats.recentGames} names={stats.cards} />
+      <RecentBattlegroundsGames games={stats.recentGames} names={stats.cards} text={text} />
     </>
   );
 }

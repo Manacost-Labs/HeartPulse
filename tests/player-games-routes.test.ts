@@ -7,6 +7,7 @@ import type { ApplicationAuthManager, ApplicationToken } from '../server/modules
 import { createPlayerStatsRouter, createPlayerStatsService, validateStatisticsPayload } from '../server/modules/playerGames/public.js';
 import { registerPlayerGames } from '../server/app/registerPlayerGames.js';
 import { recentConstructedGames } from '../server/modules/playerGames/service/recentGames.js';
+import { buildConstructedStats } from '../server/modules/playerGames/service/constructedStats.js';
 import {
   createSqliteTrackerEventRepository,
   createTrackerIngestionRouter,
@@ -241,5 +242,11 @@ const recent = recentConstructedGames([constructedGame('old', 1), constructedGam
 assert.deepEqual(recent.map(game => game.id), ['new', 'old']);
 assert.deepEqual([recent[0].deckName, recent[0].opponentArchetype, recent[0].rankAfter?.legendRank, recent[0].replayId],
   ['Огненный маг', 'Cycle Rogue', 812, null]);
+
+// A deck's line: its latest results oldest first, so the newest game is last.
+const lost = { ...constructedGame('lost', 3), result: 'loss' as const };
+const deckStats = buildConstructedStats([lost, constructedGame('new', 2), constructedGame('old', 1)],
+  { mode: 'standard', period: 'all', global: { availability: 'none' } }, null);
+assert.deepEqual(deckStats.decks[0].results, ['win', 'win', 'loss']);
 
 console.log('player games routes: ok');

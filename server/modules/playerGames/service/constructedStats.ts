@@ -1,6 +1,6 @@
 import { ladderValue, type HearthstoneClass, type LadderRank, type PlayerGame } from '../model/game.js';
 import { archetypeKey, classKey, type GlobalArchetype } from '../model/globalSources.js';
-import { MAX_SERIES_POINTS, average, rate, type ConstructedStats, type WinLoss } from '../model/stats.js';
+import { MAX_DECK_RESULTS, MAX_SERIES_POINTS, average, rate, type ConstructedStats, type WinLoss } from '../model/stats.js';
 import { recentConstructedGames } from './recentGames.js';
 
 type ConstructedGame = Extract<PlayerGame, { mode: 'standard' | 'wild' }>;
@@ -70,8 +70,10 @@ export function buildConstructedStats(
     const detail = game.constructed;
     const deckKey = detail.deckCode ?? `${detail.playerClass}:${detail.archetype ?? detail.deckName ?? ''}`;
     const deck = tally(decks, deckKey, () => ({ key: deckKey, deckCode: detail.deckCode, deckName: detail.deckName,
-      archetype: detail.archetype, playerClass: detail.playerClass, lastPlayedAt: game.startedAt, games: 0, wins: 0 }), game);
+      archetype: detail.archetype, playerClass: detail.playerClass, lastPlayedAt: game.startedAt, games: 0, wins: 0, results: [] }), game);
     deck.lastPlayedAt = Math.max(deck.lastPlayedAt, game.startedAt);
+    // Games arrive newest first, so the first results seen are the latest ones; reversed below.
+    if (deck.results.length < MAX_DECK_RESULTS) deck.results.push(game.result);
     if (detail.archetype && archetypeKey(detail.archetype)) {
       tally(archetypes, `${detail.playerClass}:${archetypeKey(detail.archetype)}`, () => ({ archetype: detail.archetype as string,
         playerClass: detail.playerClass, globalWinrate: globalRate.archetype(detail.archetype as string), games: 0, wins: 0 }), game);
@@ -125,7 +127,7 @@ export function buildConstructedStats(
       rank: game.constructed.rankAfter as LadderRank,
       value: ladderValue(game.constructed.rankAfter) as number,
     })),
-    decks: byGames(decks),
+    decks: byGames(decks).map(deck => ({ ...deck, results: deck.results.reverse() })),
     archetypes: byGames(archetypes),
     classes: byGames(classes),
     opponentClasses: byGames(opponents),

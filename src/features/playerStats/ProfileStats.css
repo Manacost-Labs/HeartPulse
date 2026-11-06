@@ -1,0 +1,571 @@
+/*
+ * The profile statistics: a dark header strip with the main numbers, then
+ * parchment groups (decks, matchups, placements, heroes, recent games).
+ * Win and loss colours are those of the matchup matrix (StandardMatchupMatrix.css).
+ */
+
+/* ---- Header strip: mode, period, four numbers ---------------------------- */
+
+.profile-stats-summary {
+  --profile-stats-good-on-dark: #a8e0a6;
+  --profile-stats-bad-on-dark: #ffa79c;
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.85rem;
+  min-width: 0;
+  padding: 0.85rem 1rem 1rem;
+  border: 1px solid rgba(239, 201, 111, 0.28);
+  border-radius: 6px;
+  background: linear-gradient(120deg, #4a0912 0%, #33050b 60%, #26040a 100%);
+  color: #fff0c8;
+}
+
+/* Inside the profile's identity plate the tavern art shows through, as on the archetype header. */
+.identity-plate__summary .profile-stats-summary {
+  background: rgba(30, 4, 9, 0.62);
+  -webkit-backdrop-filter: blur(10px) saturate(1.15);
+  backdrop-filter: blur(10px) saturate(1.15);
+}
+
+.profile-stats-summary__controls {
+  --ui-fg: var(--arena-ink);
+  --ui-control-h-sm: 36px;
+  --ui-segmented-control-bg: rgba(255, 240, 200, 0.08);
+  --ui-segmented-control-shadow: inset 0 0 0 1px rgba(239, 201, 111, 0.32);
+  --ui-segmented-control-thumb-bg: var(--arena-gold-light);
+  --ui-segmented-control-thumb-shadow: none;
+  --ui-segmented-control-item-fg: rgba(255, 240, 200, 0.86);
+
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.profile-stats-summary__controls > * { min-width: 0; max-width: 100%; }
+
+.profile-stats-summary__numbers {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.profile-stats-summary__item {
+  display: grid;
+  align-content: start;
+  gap: 0.2rem;
+  min-width: 0;
+  padding: 0.15rem 1rem;
+  border-left: 1px solid rgba(239, 201, 111, 0.22);
+}
+
+.profile-stats-summary__item:first-child { padding-left: 0; border-left: 0; }
+
+.profile-stats-summary__item dt {
+  min-height: 1rem;
+  color: var(--arena-gold-light);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.profile-stats-summary__item dd {
+  display: grid;
+  gap: 0.15rem;
+  min-height: 3.6rem;
+  margin: 0;
+}
+
+.profile-stats-summary__value {
+  overflow: hidden;
+  color: #fff0c8;
+  font-family: var(--font-display);
+  font-size: clamp(1.45rem, 2.5vw, 2rem);
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  /* The display face draws the no-break space of «6 857» as wide as a digit. */
+  word-spacing: -0.2em;
+}
+
+.profile-stats-summary__value[data-tone='1'] { color: var(--profile-stats-good-on-dark); }
+.profile-stats-summary__value[data-tone='-1'] { color: var(--profile-stats-bad-on-dark); }
+
+.profile-stats-summary__caption {
+  color: rgba(255, 240, 200, 0.8);
+  font-size: 0.8rem;
+}
+
+.profile-stats-summary__item[data-skeleton] span {
+  display: block;
+  border-radius: 3px;
+  background: rgba(255, 240, 200, 0.12);
+}
+
+.profile-stats-summary__item[data-skeleton] dt span { width: 55%; height: 0.7rem; }
+.profile-stats-summary__item[data-skeleton] .profile-stats-summary__value span { width: 70%; height: 1.9rem; }
+
+.profile-stats-summary[aria-busy] .profile-stats-summary__numbers {
+  opacity: 0.7;
+  transition: opacity var(--motion-fast) var(--motion-ease);
+}
+
+/* ---- Body and groups ----------------------------------------------------- */
+
+.profile-stats {
+  display: grid;
+  gap: 1.25rem;
+  min-width: 0;
+  color: var(--arena-ink);
+}
+
+.profile-stats > * { min-width: 0; }
+
+.profile-stats[aria-busy] > :not(.profile-stats__error) {
+  opacity: 0.75;
+  transition: opacity var(--motion-fast) var(--motion-ease);
+}
+
+.profile-stats > .player-stats-block:first-child,
+.profile-stats > .player-stats-note:first-child + .player-stats-block,
+.profile-stats > .player-stats-pair:first-child > .player-stats-block {
+  padding-top: 0;
+  border-top: 0;
+}
+
+.profile-stats__error {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  color: var(--arena-red);
+}
+
+.profile-stats__error p { margin: 0; }
+
+.profile-stats-body-skeleton {
+  min-height: 30rem;
+  border-radius: 6px;
+  background: rgba(84, 51, 22, 0.06);
+}
+
+.player-stats-block .player-stats-block__note {
+  max-width: 46rem;
+  margin: 0.15rem 0 0;
+  color: var(--arena-muted-ink);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.player-stats-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 1.25rem 2rem;
+  align-items: start;
+}
+
+.player-stats-pair[data-balance='places'] { grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.4fr); }
+.player-stats-pair > :only-child { grid-column: 1 / -1; }
+
+/* ---- Decks --------------------------------------------------------------- */
+
+.profile-decks {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17.5rem, 1fr));
+  gap: 0.85rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Doubled class: the account resets the colour of every `li` and `p` it holds. */
+.profile-decks > .profile-deck {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  align-content: space-between;
+  gap: 0.75rem;
+  min-height: 9.75rem;
+  overflow: hidden;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid rgba(46, 22, 11, 0.55);
+  border-radius: 6px;
+  background: #3a0610;
+  color: #fff0c8;
+  box-shadow: 0 6px 16px rgba(70, 38, 15, 0.16);
+}
+
+.profile-deck__art { position: absolute; z-index: -1; inset: 0; }
+
+.profile-deck__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 60% 30%;
+}
+
+.profile-deck__art::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(40, 3, 9, 0.95) 0%, rgba(52, 5, 11, 0.82) 48%, rgba(60, 6, 12, 0.4) 100%);
+  content: '';
+}
+
+.profile-deck__head {
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  min-width: 0;
+}
+
+.profile-deck__icon {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.35));
+}
+
+.profile-deck__name { flex: 1 1 auto; min-width: 0; }
+
+.profile-deck__name h4 {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  color: #fff0c8;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 400;
+  line-height: 1.2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.profile-deck .profile-deck__name p {
+  margin: 0.1rem 0 0;
+  overflow: hidden;
+  color: rgba(255, 240, 200, 0.78);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-deck__copy {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(239, 201, 111, 0.45);
+  border-radius: 6px;
+  background: rgba(30, 4, 9, 0.5);
+  color: var(--arena-gold-light);
+  cursor: pointer;
+}
+
+.profile-deck__copy:hover { border-color: var(--arena-gold-light); background: rgba(30, 4, 9, 0.8); }
+.profile-deck__copy:focus-visible { outline: 3px solid var(--arena-gold-light); outline-offset: 2px; }
+
+.profile-deck__numbers {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  column-gap: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.profile-deck .profile-deck__rate {
+  display: inline-flex;
+  gap: 0.35rem;
+  align-items: center;
+  margin: 0;
+  color: #fff0c8;
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 1.05;
+}
+
+.profile-deck .profile-deck__rate[data-tone='1'] { color: var(--profile-stats-good-on-dark, #a8e0a6); }
+.profile-deck .profile-deck__rate[data-tone='-1'] { color: var(--profile-stats-bad-on-dark, #ffa79c); }
+.profile-deck__rate svg { color: rgba(255, 240, 200, 0.7); }
+
+.profile-deck .profile-deck__record {
+  grid-row: 2;
+  margin: 0.2rem 0 0;
+  color: rgba(255, 240, 200, 0.82);
+  font-size: 0.8rem;
+}
+
+.profile-deck__trend { --ui-sparkline-line-width: 2px; --ui-chart-glow: none; grid-row: 1 / span 2; grid-column: 2; }
+.profile-deck[data-low] .profile-deck__numbers { opacity: 0.75; }
+
+/* ---- Matchup heat grid --------------------------------------------------- */
+
+.profile-heat { min-width: 0; overflow-x: auto; }
+
+.profile-heat table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.profile-heat__tall { display: none; }
+.profile-heat th { font-weight: 400; }
+.profile-heat thead th { padding: 0 0 0.2rem; vertical-align: bottom; }
+.profile-heat__icon { display: block; }
+.profile-heat__icon img { display: block; margin: 0 auto; }
+.profile-heat tbody th { padding-right: 0.5rem; text-align: left; white-space: nowrap; }
+.profile-heat__name { display: inline-flex; gap: 0.45rem; align-items: center; font-size: 0.875rem; }
+.profile-heat tr[data-total] th,
+.profile-heat .profile-heat__total { color: var(--arena-ink); font-size: 0.75rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+
+.profile-heat__cell {
+  --_tone: #2f7d46;
+  --_mix: 0%;
+
+  min-width: 2.9rem;
+  height: 2.75rem;
+  padding: 0.15rem 0.2rem;
+  border-radius: 4px;
+  background: color-mix(in oklab, var(--_tone) var(--_mix), rgba(255, 249, 226, 0.7));
+  line-height: 1.1;
+  text-align: center;
+}
+
+.profile-heat__cell strong { display: block; font-size: 0.875rem; }
+.profile-heat__cell small { display: block; color: var(--arena-muted-ink); font-size: 0.68rem; }
+.profile-heat__cell[data-tone='1'] { --_mix: 18%; }
+.profile-heat__cell[data-tone='2'] { --_mix: 34%; }
+.profile-heat__cell[data-tone='3'] { --_mix: 52%; }
+.profile-heat__cell[data-tone='-1'] { --_tone: #a2272b; --_mix: 18%; }
+.profile-heat__cell[data-tone='-2'] { --_tone: #a2272b; --_mix: 34%; }
+.profile-heat__cell[data-tone='-3'] { --_tone: #a2272b; --_mix: 52%; }
+.profile-heat__cell:is([data-tone='2'], [data-tone='3'], [data-tone='-2'], [data-tone='-3']) small { color: var(--arena-ink); }
+.profile-heat__cell[data-low] strong { color: var(--arena-muted-ink); font-weight: 600; }
+.profile-heat__cell[data-empty] { color: var(--arena-muted-ink); background: rgba(84, 51, 22, 0.05); }
+
+/* «Всего» is set apart by a rule: a row on wide screens, a column on phones. */
+.profile-heat tr[data-total] > * { border-top: 2px solid rgba(84, 51, 22, 0.35); }
+.profile-heat__cell[data-total] { box-shadow: inset 2px 0 0 rgba(84, 51, 22, 0.35); }
+.profile-heat :is(tr[data-total] .profile-heat__cell, .profile-heat__cell[data-total]) strong { font-weight: 800; }
+
+/* ---- Battlegrounds placements -------------------------------------------- */
+
+.profile-places { display: grid; gap: 0.6rem; margin: 0; }
+
+.profile-places__bars {
+  display: grid;
+  gap: 0.4rem;
+  align-items: stretch;
+  height: 13rem;
+  margin: 0;
+  padding: 0 0 0.25rem;
+  border-bottom: 1px solid var(--arena-paper-line);
+  list-style: none;
+}
+
+.profile-places__bars li {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  justify-items: stretch;
+  min-width: 0;
+  text-align: center;
+}
+
+.profile-places__share { color: var(--arena-muted-ink); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+
+.profile-places__bar {
+  align-self: end;
+  border-radius: 3px 3px 0 0;
+  background: rgba(123, 21, 27, 0.32);
+}
+
+.profile-places__bars li[data-top] .profile-places__bar { background: var(--arena-red); }
+.profile-places__place { padding-top: 0.3rem; font-family: var(--font-display); font-size: 0.95rem; }
+.profile-places figcaption { color: var(--arena-muted-ink); font-size: 0.85rem; }
+.profile-places figcaption strong { color: var(--arena-ink); font-family: var(--font-display); font-size: 1.1rem; font-weight: 400; }
+
+/* ---- Battlegrounds heroes ------------------------------------------------ */
+
+.profile-heroes { display: grid; margin: 0; padding: 0; list-style: none; }
+
+.profile-hero {
+  display: grid;
+  grid-template-columns: 56px minmax(9rem, 1.3fr) 6.5rem 5rem minmax(7rem, 1fr) minmax(7.5rem, 1fr);
+  gap: 0.5rem 1rem;
+  align-items: center;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--arena-paper-line);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The card render cropped to the portrait, the way the game shows a hero. */
+.profile-hero__portrait {
+  width: 56px;
+  height: 56px;
+  overflow: hidden;
+  border: 2px solid var(--arena-wood-dark);
+  border-radius: 50%;
+  background: var(--arena-parchment);
+  box-shadow: 0 0 0 2px rgba(217, 171, 73, 0.55);
+}
+
+.profile-hero__portrait img { width: 200%; max-width: none; height: auto; margin: -45% 0 0 -50%; }
+.profile-hero__name { display: grid; min-width: 0; }
+.profile-hero__name strong { overflow: hidden; font-family: var(--font-display); font-size: 1rem; font-weight: 400; text-overflow: ellipsis; white-space: nowrap; }
+.profile-hero__name small,
+.profile-hero__metric small { color: var(--arena-muted-ink); font-size: 0.72rem; }
+.profile-hero__metric { display: grid; justify-items: end; }
+.profile-hero__metric strong { font-family: var(--font-display); font-size: 1.1rem; font-weight: 400; }
+.profile-hero__metric strong[data-tone='1'] { color: #326233; }
+.profile-hero__metric strong[data-tone='-1'] { color: #8c2730; }
+.profile-hero__places,
+.profile-hero__combat { min-width: 0; }
+
+/* ---- Recent games -------------------------------------------------------- */
+
+.profile-games { display: grid; margin: 0; padding: 0; list-style: none; }
+
+.profile-game {
+  position: relative;
+  display: grid;
+  grid-template-columns: 6.25rem minmax(0, 2fr) minmax(0, 1fr) 7.5rem 120px;
+  gap: 0.35rem 1rem;
+  align-items: center;
+  min-height: 3.25rem;
+  padding: 0.4rem 0 0.4rem 0.75rem;
+  border-bottom: 1px solid var(--arena-paper-line);
+  font-variant-numeric: tabular-nums;
+}
+
+.profile-game::before {
+  position: absolute;
+  top: 0.4rem;
+  bottom: 0.4rem;
+  left: 0;
+  width: 3px;
+  border-radius: 2px;
+  background: var(--arena-muted-ink);
+  content: '';
+}
+
+.profile-game[data-result='win']::before { background: #326233; }
+.profile-game[data-result='loss']::before { background: #8c2730; }
+.profile-game__result { font-family: var(--font-display); font-size: 0.95rem; }
+.profile-game[data-result='win'] .profile-game__result { color: #326233; }
+.profile-game[data-result='loss'] .profile-game__result { color: #8c2730; }
+.profile-game__main { display: flex; flex-wrap: wrap; gap: 0.25rem 0.6rem; align-items: center; min-width: 0; }
+.profile-game__opponent { display: inline-flex; gap: 0.6rem; align-items: center; min-width: 0; }
+.profile-game__class { display: inline-flex; gap: 0.4rem; align-items: center; min-width: 0; font-size: 0.875rem; }
+.profile-game__class > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.profile-game__hero { border: 1.5px solid var(--arena-wood-dark); border-radius: 50%; object-fit: cover; object-position: 50% 22%; }
+.profile-game__vs { color: var(--arena-muted-ink); font-size: 0.7rem; font-weight: 800; text-transform: uppercase; }
+.profile-game__facts,
+.profile-game__date { color: var(--arena-muted-ink); font-size: 0.8rem; }
+.profile-game__date { text-align: right; }
+
+.profile-game__replay {
+  position: relative;
+  display: block;
+  width: 120px;
+  aspect-ratio: 120 / 63;
+  overflow: hidden;
+  border: 1px solid rgba(84, 51, 22, 0.35);
+  border-radius: 4px;
+  background: #2b1a10;
+}
+
+.profile-game__replay[data-none] { border: 0; background: none; }
+.profile-game__replay img { display: block; width: 100%; height: 100%; object-fit: cover; }
+
+.profile-game__watch {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  display: inline-flex;
+  gap: 0.25rem;
+  align-items: center;
+  padding: 0.15rem 0.45rem;
+  border-radius: 0 4px 0 0;
+  background: rgba(30, 4, 9, 0.85);
+  color: #fff0c8;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+a.profile-game__replay:hover { border-color: var(--arena-red); }
+a.profile-game__replay:focus-visible { outline: 3px solid rgba(123, 21, 27, 0.72); outline-offset: 2px; }
+
+.profile-games__more {
+  justify-self: start;
+  min-height: 42px;
+  margin-top: 0.5rem;
+  padding: 0 1rem;
+  border: 1px solid var(--arena-red);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--arena-red);
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.profile-games__more:hover { background: rgba(123, 21, 27, 0.08); }
+
+/* ---- Narrow screens ------------------------------------------------------ */
+
+@media (max-width: 760px) {
+  /* Eleven opponents by up to six columns fit a 360 px phone as rows. */
+  .profile-heat__wide { display: none; }
+  .profile-heat__tall { display: table; }
+}
+
+@media (max-width: 960px) {
+  .player-stats-pair,
+  .player-stats-pair[data-balance='places'] { grid-template-columns: minmax(0, 1fr); }
+
+  .profile-hero { grid-template-columns: 56px minmax(0, 1fr) 6rem 4.5rem; }
+  .profile-hero__places { grid-column: 2 / -1; }
+  .profile-hero__combat { display: none; }
+}
+
+@media (max-width: 720px) {
+  /* Result and date on top, the matchup and facts under them, the replay beside. */
+  .profile-game { grid-template-columns: minmax(0, 1fr) 96px; gap: 0.15rem 0.75rem; }
+  .profile-game:has(> [data-none]) { grid-template-columns: minmax(0, 1fr); }
+  .profile-game__result { grid-column: 1; grid-row: 1; }
+  .profile-game__date { grid-column: 1; grid-row: 1; justify-self: end; }
+  .profile-game__main { grid-column: 1; grid-row: 2; }
+  .profile-game__facts { grid-column: 1; grid-row: 3; }
+  .profile-game__replay { grid-column: 2; grid-row: 1 / span 3; width: 96px; }
+  .profile-game__replay[data-none] { display: none; }
+}
+
+@media (max-width: 640px) {
+  .profile-stats-summary { padding: 0.75rem; }
+  .profile-stats-summary__controls { --ui-control-h-sm: 42px; }
+  .profile-stats-summary__numbers { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 0.75rem; }
+  .profile-stats-summary__item:nth-child(odd) { padding-left: 0; border-left: 0; }
+  .profile-stats-summary__item:nth-child(even) { padding-right: 0; }
+  .profile-decks { grid-template-columns: minmax(0, 1fr); }
+  .profile-places__bars { height: 10rem; }
+
+  .profile-heat table { border-spacing: 2px; }
+  .profile-heat__cell { min-width: 0; height: 2.6rem; padding: 0.1rem; }
+  .profile-heat__cell strong { font-size: 0.8rem; }
+
+  /* The name takes the first line; places and the two numbers share the second. */
+  .profile-hero {
+    grid-template-areas: 'portrait name name name' 'portrait places average rating';
+    grid-template-columns: 48px minmax(0, 1fr) auto auto;
+    gap: 0.3rem 0.75rem;
+  }
+  .profile-hero__portrait { grid-area: portrait; align-self: start; width: 48px; height: 48px; }
+  .profile-hero__name { grid-area: name; }
+  .profile-hero__places { grid-area: places; }
+  .profile-hero__metric--average { grid-area: average; }
+  .profile-hero__metric--rating { grid-area: rating; }
+}
