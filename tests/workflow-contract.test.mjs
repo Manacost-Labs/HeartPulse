@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 
 import { FULL_SHARDS, planTestShards } from '../scripts/ci-test-plan.mjs';
 import { planShards, TEST_SUITE_IDS, validateTestDurations } from '../scripts/test-suite-runner.mjs';
@@ -169,10 +172,57 @@ assert.ok(ciJobs['browser-observatory'].includes('name: build-outputs-${{ github
 
 const buildOutputsName = 'name: build-outputs-${{ github.sha }}';
 assert.match(ciJobs.build, /- name: Upload validated build outputs\s+uses: actions\/upload-artifact@v7/);
-for (const directory of ['build', 'dist', 'apps/public-web/.next', '!apps/public-web/.next/cache']) {
-  assert.match(ciJobs.build, new RegExp(`^ {12}${directory.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}$`, 'm'));
+const packOutputs = ciJobs.build.match(/- name: Pack validated build outputs\n {8}run: (.+)\n/)?.[1];
+assert.ok(packOutputs, 'validated outputs must be packaged before upload');
+assert.ok(ciJobs.build.includes('path: ${{ runner.temp }}/build-outputs.tar.gz'));
+assert.match(ciJobs.build, /compression-level: 0\n {10}if-no-files-found: error/,
+  'the artifact service must not recompress the gzip payload');
+assert.match(ciJobs.build, /retention-days: 3\s+# [^\n]+\s+overwrite: true/);
+const unpackOutputs = [];
+for (const job of ['test-suites', 'browser-tests', 'browser-quarantine', 'browser-observatory']) {
+  assert.ok(ciJobs[job].includes(buildOutputsName + '\n          path: ${{ runner.temp }}/build-outputs'));
+  const unpack = ciJobs[job].match(/- name: Extract validated build outputs\n {8}run: (.+)\n/)?.[1];
+  assert.ok(unpack, `${job} must extract outputs before running tests`);
+  assert.ok(ciJobs[job].indexOf('- name: Download validated build outputs') < ciJobs[job].indexOf('- name: Extract validated build outputs'));
+  assert.ok(ciJobs[job].indexOf('- name: Extract validated build outputs') < ciJobs[job].indexOf('- name: Run '));
+  unpackOutputs.push(unpack);
 }
-assert.match(ciJobs.build, /retention-days: 3\s+# [^\n]+\s+overwrite: true\s+include-hidden-files: true/);
+assert.equal(new Set(unpackOutputs).size, 1, 'every consumer restores the same archive');
+// Execute the actual workflow commands in isolation, including hidden outputs
+// and a cache sentinel, so path/exclusion drift cannot silently lose inputs.
+const archiveFixture = mkdtempSync(join(tmpdir(), 'ci-build-archive-'));
+try {
+  const source = join(archiveFixture, 'source');
+  const restored = join(archiveFixture, 'restored');
+  const runnerTemp = join(archiveFixture, 'runner temp');
+  for (const dir of [source, restored, join(runnerTemp, 'build-outputs')]) mkdirSync(dir, { recursive: true });
+  const fixtures = new Map([
+    ['build/backend.js', 'compiled backend'],
+    ['dist/.hidden/output.js', 'hidden output'],
+    ['apps/public-web/.next/BUILD_ID', 'validated build'],
+    ['apps/public-web/.next/server/app/with space.html', '<html>fixture</html>'],
+  ]);
+  for (const [path, content] of [...fixtures, ['apps/public-web/.next/cache/excluded', 'cache']]) {
+    const file = join(source, path);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, content, { mode: 0o640 });
+  }
+  const env = { ...process.env, RUNNER_TEMP: runnerTemp };
+  execFileSync('bash', ['-e', '-o', 'pipefail', '-c', packOutputs], { cwd: source, env });
+  const archive = join(runnerTemp, 'build-outputs.tar.gz');
+  writeFileSync(join(runnerTemp, 'build-outputs/build-outputs.tar.gz'), readFileSync(archive));
+  execFileSync('bash', ['-e', '-o', 'pipefail', '-c', unpackOutputs[0]], { cwd: restored, env });
+  for (const [path, content] of fixtures) {
+    assert.equal(readFileSync(join(restored, path), 'utf8'), content);
+    assert.equal(statSync(join(restored, path)).mode & 0o777, statSync(join(source, path)).mode & 0o777);
+  }
+  assert.throws(() => statSync(join(restored, 'apps/public-web/.next/cache')), { code: 'ENOENT' });
+  rmSync(join(source, 'dist'), { recursive: true });
+  assert.throws(() => execFileSync('bash', ['-e', '-o', 'pipefail', '-c', packOutputs],
+    { cwd: source, env, stdio: 'pipe' }), 'missing required output must fail packaging');
+} finally {
+  rmSync(archiveFixture, { recursive: true, force: true });
+}
 assert.match(ciJobs.build, /retention-days: 7\s+compression-level: 6\s+# [^\n]+\s+overwrite: true\s+# [^\n]+\s+include-hidden-files: true/,
   'a full re-run on main can repackage the release of the same SHA');
 const releaseEvents = "if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'merge_group'";
@@ -189,8 +239,6 @@ for (const [job, shards] of [['test-suites', 'registry-shards'], ['browser-tests
   assert.ok(ciJobs[job].includes(`    if: \${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.${shards} != '[]' && needs.build.result == 'success'${storybookCondition} }}\n`),
     `${job} runs after its required inputs, even with skipped reuse, unless its plan is empty`);
   assert.ok(ciJobs[job].includes(buildOutputsName), `${job} must download the validated build outputs`);
-  assert.match(ciJobs[job], /uses: actions\/download-artifact@v8\n {8}with:\n {10}name: build-outputs-\$\{\{ github\.sha \}\}\n\n/,
-    'outputs restore at their repository paths (no custom download path)');
   if (job === 'browser-tests') {
     assert.match(ciJobs[job], /name: storybook-static-\$\{\{ github\.sha \}\}\n {10}path: storybook-static\n/);
   } else {
@@ -214,6 +262,8 @@ assert.ok(ciJobs.build.includes("format('pr-{0}-{1}', github.event.pull_request.
 assert.ok(ciJobs.build.includes('key: ${{ steps.next-cache.outputs.cache-primary-key }}'),
   'the save uses the exact key computed by restore');
 assert.doesNotMatch(ciJobs['browser-observatory'], /actions\/cache\/save/);
+assert.ok(ciJobs.build.indexOf('- name: Build and smoke-test release inputs') < ciJobs.build.indexOf('- name: Pack validated build outputs'));
+assert.ok(ciJobs.build.indexOf('- name: Pack validated build outputs') < ciJobs.build.indexOf('- name: Upload validated build outputs'));
 const releaseCreateIndex = ciJobs.build.indexOf('- name: Create immutable production release');
 assert.ok(ciJobs.build.indexOf('- name: Build and smoke-test release inputs') < ciJobs.build.indexOf('- name: Upload validated build outputs'));
 assert.ok(ciJobs.build.indexOf('- name: Upload validated build outputs') < releaseCreateIndex,

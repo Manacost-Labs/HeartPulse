@@ -126,21 +126,22 @@ jobs:
           path: apps/public-web/.next/cache
           key: ${{ steps.next-cache.outputs.cache-primary-key }}
 
+      # One compressed payload avoids per-file artifact extraction and exposes
+      # transfer and filesystem extraction as separately timed consumer steps.
+      - name: Pack validated build outputs
+        run: tar --exclude=apps/public-web/.next/cache -I 'gzip -1' -cf "$RUNNER_TEMP/build-outputs.tar.gz" build dist apps/public-web/.next
+
       - name: Upload validated build outputs
         uses: actions/upload-artifact@v7
         with:
           name: build-outputs-${{ github.sha }}
-          path: |
-            build
-            dist
-            apps/public-web/.next
-            !apps/public-web/.next/cache
+          path: ${{ runner.temp }}/build-outputs.tar.gz
+          compression-level: 0
           if-no-files-found: error
           # Long enough to re-run a failed shard the next day without a rebuild.
           retention-days: 3
           # A full re-run rebuilds the same SHA and replaces the first attempt's outputs.
           overwrite: true
-          include-hidden-files: true
 
       # The merge queue packages the release too, so the push that lands its
       # commit on main can deploy it without rebuilding (see the reuse job).
@@ -263,6 +264,10 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: build-outputs-${{ github.sha }}
+          path: ${{ runner.temp }}/build-outputs
+
+      - name: Extract validated build outputs
+        run: tar --no-same-owner -xzf "$RUNNER_TEMP/build-outputs/build-outputs.tar.gz"
 
       - name: Run registered non-browser shard
         env:
@@ -328,6 +333,10 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: build-outputs-${{ github.sha }}
+          path: ${{ runner.temp }}/build-outputs
+
+      - name: Extract validated build outputs
+        run: tar --no-same-owner -xzf "$RUNNER_TEMP/build-outputs/build-outputs.tar.gz"
 
       - name: Download Storybook build
         uses: actions/download-artifact@v8
@@ -387,6 +396,10 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: build-outputs-${{ github.sha }}
+          path: ${{ runner.temp }}/build-outputs
+
+      - name: Extract validated build outputs
+        run: tar --no-same-owner -xzf "$RUNNER_TEMP/build-outputs/build-outputs.tar.gz"
 
       - name: Download Storybook build
         uses: actions/download-artifact@v8
@@ -437,6 +450,10 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: build-outputs-${{ github.sha }}
+          path: ${{ runner.temp }}/build-outputs
+
+      - name: Extract validated build outputs
+        run: tar --no-same-owner -xzf "$RUNNER_TEMP/build-outputs/build-outputs.tar.gz"
 
       - name: Run full browser observatory
         run: node scripts/browser-qa-batch.mjs ${{ matrix.batch }}

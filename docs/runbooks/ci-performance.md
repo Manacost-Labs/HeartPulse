@@ -944,6 +944,39 @@ passes afterward. Worker, workflow and QA-group contracts verify the retained
 coverage and concurrency. A real batch-3 run on four local CPUs checks both
 `public` and `admin-mobile`; its timing is not a GitHub SLO measurement.
 
+## Single-payload build artifact trial
+
+Run `42132192018` on `03df04d` passed all 36 checks. Required validation
+finished at +271 seconds, including queue time. The registry shard 1 download
+step took 102 seconds for a 23,825,832-byte artifact and became the critical
+path. Its log combines network transfer and file extraction, so this does not
+establish which operation stalled. The registry contains 553 files: 552 PASS
+and one FLAKY home-hydration file, including the four quarantine results.
+A local delayed-module probe did not reproduce that cancellation assertion;
+its deadline and assertions remain unchanged.
+
+The next experiment packages `build`, `dist` and `apps/public-web/.next`
+into one `build-outputs.tar.gz`, excluding only the Next cache. Tar includes
+hidden outputs and preserves paths and modes. Gzip level 1 compresses once in
+the build job; the artifact upload uses level 0 to avoid recompressing it.
+Every consumer downloads the same SHA-named artifact to its temporary
+directory, then extracts at the workspace root with `--no-same-owner`.
+Transfer and extraction now have separate step timings. Missing required
+inputs or extraction failures fail the job. The production release packaging,
+Storybook artifact, test selection and required dependencies are unchanged.
+This follows the artifact action's documented
+[tar transport pattern](https://github.com/actions/upload-artifact#permission-loss).
+
+The workflow regression executes its actual pack and extract commands on
+fixtures, checking hidden files, spaces, modes, cache exclusion and failure
+on a missing output directory. A separate roundtrip of all 2,051 local build
+files compares paths, SHA-256 digests and modes, including a simulated
+uncompressed ZIP transport layer; source files remain unchanged. On four
+local CPUs, packing took 0.554 seconds and extraction 0.168 seconds, yielding
+a 24,015,327-byte payload. These local timings do not prove a hosted speedup.
+Judge the experiment by complete hosted setup, packing and required-gate time;
+revert it if the extra packaging has no measured benefit.
+
 ## Verification
 
 Focused runner and workflow tests must prove deterministic complete sharding,
