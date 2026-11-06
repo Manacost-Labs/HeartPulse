@@ -1237,3 +1237,25 @@ source comparison proves that route tables, helpers and scenario assertions
 match the original after removing only group-selection plumbing. All 48
 registry tests and 11 worker/workflow/QA-group contracts passed, along with
 scoped Semgrep, Oxlint and documentation checks. Hosted timing is still pending.
+
+## Stable-inventory timing calibration sample
+
+Run `42146509165` on `c306c382` passed all 36 checks and all 559 registered
+files without retries. Required validation took 169 seconds, including queue
+time. Both canonical groups and lightbox close passed on their first attempt.
+The release artifact was ready at +50 seconds; Storybook finished at +65
+seconds. Browser shards 5 and 8 finished last at +163 seconds.
+
+The 40 browser workers averaged 56.737 seconds of recorded test-file time,
+with loads from 36.119 to 73.693 seconds. This suggests stale scheduling
+weights after the scenario splits; it does not prove that rebalancing alone
+will meet the two-minute target. The longest worker combined admin layout,
+Battleground library controls and Battleground library details.
+
+Keep the executable inputs, test inventory and scheduling weights unchanged
+for a second full PR timing sample. The PR diff still includes the CI changes,
+so the test planner must select all registry and browser shards. Only after
+two complete eligible runs may the calibration command update PASS-only
+per-file medians. Preserve existing weights without sufficient samples, and
+verify the resulting schedule in a subsequent hosted run. A documentation-only
+measurement commit supplies the second sample without changing test behavior.
