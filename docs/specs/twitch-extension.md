@@ -43,7 +43,7 @@ PubSub не попадают. Порядок `cards` — порядок спис
 - Экспорт данных аккаунта (`GET /api/account/tracker-data/export`) несёт
   `twitch: [{ twitchUserId, login, displayName, linkedAt }]` после `usage`
   (пустой массив без привязки).
-- Политика конфиденциальности, раздел 10 «Twitch-расширение Hearthpulse»
+- Политика конфиденциальности, раздел 11 «Публичный профиль, Twitch и чат-команды»
   (`src/modules/legalPages/content.json`).
 
 ## Приложение → сайт
