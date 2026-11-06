@@ -15,8 +15,8 @@ favourite hero and top-4 rate, and a share image.
 - A year opens on December 1 of that year (UTC). `YEAR_REVIEW_ENABLED=1` in
   the Express environment opens it earlier (testing), `0` keeps it closed; a
   future year never opens. Closed → 404.
-- No name: the page and the image say «Итоги года Hearthpulse <year>», never
-  the profile's display name, BattleTag or account id.
+- No name: the page and the image say «Итоги года Hearthpulse» and the year,
+  never the profile's display name, BattleTag or account id.
 
 ## API
 

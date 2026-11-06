@@ -38,12 +38,14 @@ Consent, in order (each one off by default):
 3. **Public statistics** of the profile (`/id/<n>/`) for `!winrate`, `!rank`,
    `!mmr`; otherwise «стример не показывает статистику».
 
+<!-- markdownlint-disable MD013 -->
 | Command | Source |
 | --- | --- |
 | `!deck` | The extension snapshot ([spec](twitch-extension.md)): the deck name and a deckstring built from the cards' dbf ids, copies and the hero |
 | `!winrate` | The account's tracker games that started in the last 12 hours: Constructed and Arena wins–losses, Battlegrounds games and average place |
 | `!rank` | The ladder rank after the newest ranked Constructed game |
 | `!mmr` | The Battlegrounds rating after the newest game, with the change over the 12 hours' games of that queue |
+<!-- markdownlint-enable MD013 -->
 
 - **Stream delay.** The app holds each extension state for the streamer's
   delay (`TwitchDelaySeconds`, 0–600 s) before it sends it, so `!deck` is

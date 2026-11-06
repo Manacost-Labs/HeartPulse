@@ -8,6 +8,7 @@ forums) and a «Сделано в Hearthpulse» link back to the download landin
 
 ## URLs
 
+<!-- markdownlint-disable MD013 -->
 | URL | Owner | Answer |
 | --- | --- | --- |
 | `/og/replay/<id>/` | Next route handler | 1200 × 630 JPEG: heroes, result, Battlegrounds board, brand |
@@ -16,6 +17,7 @@ forums) and a «Сделано в Hearthpulse» link back to the download landin
 | `/embed/deck/<code>/` | Next route handler | HTML: deck list by cost, mana curve 0…7+, «Скопировать код» (380 × 760 suggested) |
 | `/embed/oembed/?url=…` | Next route handler | oEmbed 1.0 JSON |
 | `/download/` | Next page | landing: what it is, three screenshots, downloads, RU/EN |
+<!-- markdownlint-enable MD013 -->
 
 `<id>` is the ten-character replay id. `<code>` is a deckstring; its `/` may
 be raw or `%2F`, `+` may arrive as a space. The deck is resolved by the site's
