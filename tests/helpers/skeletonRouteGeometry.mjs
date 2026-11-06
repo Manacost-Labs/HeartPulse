@@ -184,13 +184,16 @@ async function settle(page) {
   await page.mouse.move(0, 0);
 }
 
-/** Document-relative box of the n-th match, measured after its lazy content and images are in view. */
+/** Document-relative box of the n-th match, measured after scrolling and settling descendant images. */
 async function measure(page, selector, index = 0) {
   const handle = (await page.$$(selector))[index];
   if (!handle) return null;
   await handle.evaluate(async element => {
     element.scrollIntoView({ block: 'center' });
     const images = [...element.querySelectorAll('img')].filter(image => !image.complete);
+    // A tall container can leave its lazy images offscreen even after scrolling.
+    // Measure the loaded geometry instead of waiting for requests that never start.
+    for (const image of images) if (image.loading === 'lazy') image.loading = 'eager';
     await Promise.race([
       Promise.all(images.map(image => new Promise(done => {
         image.addEventListener('load', done, { once: true }); image.addEventListener('error', done, { once: true });

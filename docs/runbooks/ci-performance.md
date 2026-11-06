@@ -1766,3 +1766,40 @@ local pair, not a hosted CI speedup or evidence that the SLO is satisfied.
 The existing QA command contract passes; project and focused Semgrep report
 no findings. Oxlint exits successfully with three pre-existing unused-symbol
 warnings outside the changed helper; documentation lint passes.
+
+## Load lazy descendants before skeleton geometry measurements
+
+Full run `42171515686` on `3bc1c5e3` passes all 36 checks and all 559 files
+without retries. Required validation takes 185 seconds including queue.
+The responsive observatory group passes in 70.124 seconds; browser shard 1
+is now last to finish at second 180. Its slowest worker spends 41.232 seconds
+in the secondary mobile skeleton-geometry file, alongside account-loading
+and soft-paywall layout checks. The overall two-minute target remains unmet.
+
+A local four-CPU profile of that skeleton file passes all four route cases
+and identifies two three-second waits measuring the long and short
+legendary-card grid. Scrolling a tall grid into the centre of the viewport
+does not bring every lazy descendant into loading range. The image-event
+wait can therefore reach its existing bound while those images remain
+unrequested.
+
+The measurement helper now makes incomplete lazy descendants eager before
+waiting for their load/error events. This affects only the test page at the
+geometry measurement stage. It loads the content being measured; it does
+not remove images from the wait. Existing bounds, held-data behavior,
+skeleton settling, CLS observation windows, long/short text variants,
+geometry comparisons and all assertions remain unchanged.
+
+A temporary real-browser probe places delayed image responses outside both
+ends of the viewport within a tall grid. The original helper returns with
+both images incomplete and fails the probe. The candidate requests and
+loads both images before returning the measured box. The probe remains
+outside the repository; production source and the test registry are
+unchanged. Hosted verification of this candidate is pending.
+
+All four consumers of the helper pass their mobile/desktop route suites
+(18 test results including four parent suites). A sequential four-CPU pair
+using unchanged builds completes the secondary mobile file in 23.200 seconds
+before and 17.359 seconds after the change; both reports pass all four route
+cases. This single local pair does not establish a hosted speedup. Project
+and focused Semgrep, Oxlint and documentation lint pass.
