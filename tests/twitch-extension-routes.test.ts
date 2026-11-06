@@ -12,6 +12,7 @@ import {
   createTwitchLinkPageRouter,
   createTwitchLinkRepository,
   createTwitchLiveState,
+  readTwitchEnvelope,
   readTwitchExtensionConfig,
   signTwitchJwt,
   verifyTwitchJwt,
@@ -244,7 +245,7 @@ try {
 
   response = await fetch(`${origin}/api/account/twitch`, { headers: { 'x-test-user': 'user-1' } });
   assert.deepEqual({ ...(await response.json() as object), linkedAt: 'x' }, {
-    configured: true, linked: true, login: 'streamer', displayName: 'Streamer', linkedAt: 'x',
+    configured: true, linked: true, login: 'streamer', displayName: 'Streamer', linkedAt: 'x', chatCommands: false,
   });
   response = await fetch(`${origin}/api/account/twitch`);
   assert.equal(response.status, 401);
@@ -369,6 +370,28 @@ try {
   assert.equal(response.headers.get('location'), '/profile/?twitch=linked#account-twitch');
   assert.equal(links.find('user-1'), null);
   assert.equal(links.find('user-2')?.twitchUserId, '4242');
+
+  // Chat commands (docs/specs/chat-commands.md): off for every link until the streamer switches them on.
+  assert.equal(links.findByLogin('STREAMER')?.userId, 'user-2', 'the login lookup is case-insensitive');
+  assert.equal(links.findByLogin('STREAMER')?.chatCommands, false);
+  const chatSwitch = (body: unknown, user?: string) => fetch(`${origin}/api/account/twitch/chat-commands`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json', ...(user ? { 'x-test-user': user } : {}) }, body: JSON.stringify(body) });
+  assert.equal((await chatSwitch({ enabled: true })).status, 401);
+  assert.equal((await chatSwitch({ enabled: 'yes' }, 'user-2')).status, 400);
+  assert.equal((await chatSwitch({ enabled: true }, 'user-9')).status, 404, 'no link, no switch');
+  response = await chatSwitch({ enabled: true }, 'user-2');
+  assert.deepEqual(await response.json(), { chatCommands: true });
+  assert.equal(links.findByLogin('streamer')?.chatCommands, true);
+  response = await fetch(`${origin}/api/account/twitch`, { headers: { 'x-test-user': 'user-2' } });
+  assert.equal((await response.json()).chatCommands, true);
+  assert.equal(JSON.parse([...links.exportRows('user-2')][0]).chatCommands, true, 'the data export carries the switch');
+  // The stored envelope reads back into the state the app sent.
+  clock += 1_000;
+  assert.equal((await postState(deckState(46), 'write-2')).status, 204);
+  const read = readTwitchEnvelope(live.snapshot('4242') as string);
+  assert.equal(read?.state.mode, 'constructed');
+  assert.equal(read?.receivedAt, clock);
+  assert.equal(readTwitchEnvelope('{"z":"bad"}'), null);
 
   // Unlinking stops relaying and forgets the snapshot.
   clock += 1_000;

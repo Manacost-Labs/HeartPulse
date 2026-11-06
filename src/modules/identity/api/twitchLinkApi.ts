@@ -6,6 +6,8 @@ export type TwitchLinkState = {
   linked: boolean;
   login: string | null;
   displayName: string | null;
+  /** Chat bot commands of the channel (!deck !winrate !rank !mmr); off by default. */
+  chatCommands?: boolean;
 };
 
 /** Starts the Twitch OAuth flow; a full-page navigation, not a fetch. */
@@ -24,6 +26,17 @@ export async function fetchTwitchLink(signal?: AbortSignal): Promise<TwitchLinkS
     return payload as TwitchLinkState;
   } catch {
     return null;
+  }
+}
+
+/** Switches the channel's chat commands; throws with the server's message on failure. */
+export async function setTwitchChatCommands(enabled: boolean): Promise<void> {
+  const response = await fetchWithDeadline('/api/account/twitch/chat-commands', {
+    method: 'PUT', headers: { 'Content-Type': 'application/json', 'X-CSRF-Request': '1' }, body: JSON.stringify({ enabled }), deadlineMs: 10_000,
+  });
+  if (!response.ok) {
+    const payload: unknown = await response.json().catch(() => ({}));
+    throw new Error(authErrorFromPayload(payload) || 'Не удалось сохранить чат-команды');
   }
 }
 

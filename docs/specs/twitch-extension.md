@@ -22,7 +22,8 @@ PubSub не попадают. Порядок `cards` — порядок спис
   `/profile/#account-twitch` (блок «Twitch-расширение» на вкладке
   «Персональные данные»).
 - `GET /api/account/twitch` (сессия сайта) →
-  `{configured, linked, login, displayName, linkedAt}`; без входа `401`.
+  `{configured, linked, login, displayName, linkedAt, chatCommands}`; без
+  входа `401`.
 - `GET /api/account/twitch/connect` (сессия) — OAuth authorization code flow
   без scope. `state` — 24 случайных байта: он уходит в Twitch и в cookie
   `hp_twitch_oauth` (HttpOnly, SameSite=Lax, Secure, Path
@@ -40,8 +41,13 @@ PubSub не попадают. Порядок `cards` — порядок спис
   `twitch_links`, удаляется вместе с аккаунтом.
 - `DELETE /api/account/twitch` (сессия + `X-CSRF-Request`) →
   `{linked:false}`; снимок канала забывается.
+- `PUT /api/account/twitch/chat-commands` `{enabled:boolean}` (сессия +
+  `X-CSRF-Request`) → `{chatCommands}`; без привязки `404`. Колонка
+  `twitch_links.chat_commands`, по умолчанию `0`; перенос Twitch на другой
+  аккаунт её сбрасывает. Чат-команды: [спецификация](chat-commands.md).
 - Экспорт данных аккаунта (`GET /api/account/tracker-data/export`) несёт
-  `twitch: [{ twitchUserId, login, displayName, linkedAt }]` после `usage`
+  `twitch: [{ twitchUserId, login, displayName, linkedAt, chatCommands }]`
+  после `usage`
   (пустой массив без привязки).
 - Политика конфиденциальности, раздел 11 «Публичный профиль, Twitch и чат-команды»
   (`src/modules/legalPages/content.json`).

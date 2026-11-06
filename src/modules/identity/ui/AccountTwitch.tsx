@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Twitch } from 'lucide-react';
-import { fetchTwitchLink, TWITCH_CONNECT_URL, unlinkTwitch, type TwitchLinkState } from '../api/twitchLinkApi';
+import { fetchTwitchLink, setTwitchChatCommands, TWITCH_CONNECT_URL, unlinkTwitch, type TwitchLinkState } from '../api/twitchLinkApi';
 import AccountSectionHead from './AccountSectionHead';
 
 /** What the OAuth callback reported in `?twitch=`; read once on mount. */
@@ -50,6 +50,15 @@ export default function AccountTwitch({ initial }: { initial?: TwitchLinkState |
       .finally(() => setBusy(false));
   };
 
+  const saveChatCommands = (enabled: boolean) => {
+    setBusy(true);
+    setStatus(null);
+    setTwitchChatCommands(enabled)
+      .then(() => setLink(current => (current ? { ...current, chatCommands: enabled } : current)))
+      .catch((error: unknown) => setStatus({ type: 'err', text: error instanceof Error ? error.message : 'Не удалось сохранить чат-команды' }))
+      .finally(() => setBusy(false));
+  };
+
   return (
     <section id="account-twitch" className="account-section account-twitch" aria-labelledby="account-twitch-title">
       <AccountSectionHead
@@ -69,6 +78,21 @@ export default function AccountTwitch({ initial }: { initial?: TwitchLinkState |
           </a>
         ) : null}
       />
+      {link.linked ? (
+        <div className="account-twitch__chat">
+          {/* A switch, not a checkbox: the choice is saved at once, without a «Сохранить». */}
+          <button type="button" role="switch" className="account-switch" aria-checked={link.chatCommands === true}
+            aria-describedby="account-twitch-chat-hint" disabled={busy} onClick={() => saveChatCommands(link.chatCommands !== true)}>
+            <span className="account-switch__track" aria-hidden="true"><span className="account-switch__thumb" /></span>
+            Чат-команды !deck, !winrate, !rank, !mmr
+          </button>
+          <p id="account-twitch-chat-hint" className="account-row__hint">
+            Бот вашего канала (Nightbot, StreamElements) отвечает, пока приложение передаёт колоду: код колоды, а при
+            показе статистики — счёт за 12 часов, ранг и MMR; игры — через 10 минут после конца.{' '}
+            <a href="https://github.com/Manacost-Labs/HeartPulse/blob/main/docs/runbooks/chat-commands.md" target="_blank" rel="noopener noreferrer">Как подключить</a>
+          </p>
+        </div>
+      ) : null}
       {status ? <p className={`account-twitch__${status.type}`} role={status.type === 'err' ? 'alert' : 'status'}>{status.text}</p> : null}
     </section>
   );

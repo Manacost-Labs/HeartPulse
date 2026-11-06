@@ -1,4 +1,4 @@
-import { gzipSync } from 'node:zlib';
+import { gunzipSync, gzipSync } from 'node:zlib';
 
 /** The request body the desktop app may send; bigger bodies are refused before validation. */
 export const TWITCH_STATE_MAX_BODY_BYTES = 16 * 1024;
@@ -118,4 +118,19 @@ export function validateTwitchState(body: unknown): Validation {
 export function buildTwitchEnvelope(input: TwitchStateInput, receivedAt: number): string {
   const z = gzipSync(Buffer.from(JSON.stringify(input.state), 'utf8')).toString('base64');
   return JSON.stringify({ v: 1, seq: input.seq, at: receivedAt, z });
+}
+
+/**
+ * The state inside a stored envelope (`buildTwitchEnvelope`) and the site's receive time, for readers on the site
+ * (chat commands); null for an envelope this module did not build.
+ */
+export function readTwitchEnvelope(envelope: string): { state: TwitchStreamState; receivedAt: number } | null {
+  try {
+    const parsed = JSON.parse(envelope) as { z?: unknown; at?: unknown };
+    if (typeof parsed.z !== 'string' || typeof parsed.at !== 'number') return null;
+    const state = JSON.parse(gunzipSync(Buffer.from(parsed.z, 'base64')).toString('utf8')) as TwitchStreamState;
+    return state && (state.mode === 'none' || state.mode === 'constructed') ? { state, receivedAt: parsed.at } : null;
+  } catch {
+    return null;
+  }
 }

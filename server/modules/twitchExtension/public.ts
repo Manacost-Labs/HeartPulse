@@ -11,6 +11,7 @@ export {
   TWITCH_SNAPSHOT_TTL_MS,
   TWITCH_STATE_MAX_BODY_BYTES,
   buildTwitchEnvelope,
+  readTwitchEnvelope,
   validateTwitchState,
   type TwitchStreamState,
 } from './model.js';
