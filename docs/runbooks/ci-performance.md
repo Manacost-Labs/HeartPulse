@@ -1117,3 +1117,33 @@ must ignore failed, flaky and unrun files, reject malformed or duplicate
 observations, and preserve weights without enough fresh samples. Keep run IDs
 with the calibration for reproducibility. A replay of recorded times estimates
 balance only; only a new GitHub Actions run measures actual CI improvement.
+
+## Desktop route geometry groups
+
+Run `42141140467` on `7b16f692` passed all 36 checks and all 555 registered
+files without retries. Required validation took 169 seconds, including queue
+time. Both library listing files passed on their first attempt. This one run
+does not establish the ten-run SLO or isolate the effect of the navigation
+change from runner variation.
+
+Browser shard 2 finished last at +164 seconds. Its desktop route geometry
+file took 65.299 seconds across seven sequential routes. Like the existing
+mobile split, desktop now uses two independent files: the first three routes
+(`fun-decks`, `guide-detail`, `guides-list`) and the remaining four
+(`cosmetics-list` and the three arena routes). The existing shared helper is
+byte-identical: geometry and CLS assertions, held requests, fonts, animation
+waits, cleanup and the 1440×900 viewport are preserved. Each group owns its
+backend, Next server and browser. Explicit `SKELETON_ROUTES` selections still
+run in full for single-file diagnostics; the default CI groups are disjoint.
+
+The old 63.021-second scheduling weight is allocated into 31.802 and 31.219
+seconds using successful route durations from that hosted run. These are
+initial scheduling seeds, not new measured per-file medians. The registry now
+contains 556 files: 552 blocking and four quarantined, with 96 blocking browser
+files. Ten browser jobs and four workers per job remain unchanged.
+
+Both groups passed concurrently in real Chrome on four local CPUs, covering
+all seven routes without skips or retries. A coverage proof confirms the
+partition equals the active route inventory and that the shared helper is
+unchanged. Registry validation and all 11 worker/workflow/QA-group contracts
+pass. Local timings are not a hosted speedup measurement.
