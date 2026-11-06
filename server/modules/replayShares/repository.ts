@@ -1,4 +1,4 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, randomInt } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import type { ReplayKind } from './sanitize.js';
@@ -51,7 +51,8 @@ const DAY = 86_400_000;
 const ID_ALPHABET = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 export function newReplayId(): string {
-  return [...randomBytes(10)].map(byte => ID_ALPHABET[byte % ID_ALPHABET.length]).join('');
+  // randomInt draws without the modulo bias of a byte taken mod 62.
+  return Array.from({ length: 10 }, () => ID_ALPHABET[randomInt(ID_ALPHABET.length)]).join('');
 }
 
 const hashToken = (token: string) => createHash('sha256').update(token).digest('hex');

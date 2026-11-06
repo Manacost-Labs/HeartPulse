@@ -5,7 +5,7 @@
     "sourceFiles": 103,
     "routeRegistrations": 283,
     "middlewareRegistrations": 143,
-    "explicitGuardRouteRegistrations": 68,
+    "explicitGuardRouteRegistrations": 72,
     "unresolvedPaths": 0
   },
   "registrations": [
@@ -4951,9 +4951,13 @@
       "path": "/v1/tracker/replays",
       "pathKind": "string",
       "receiver": "router",
-      "middleware": [],
+      "middleware": [
+        "limiter"
+      ],
       "handler": "<inline-handler>",
-      "guardSignals": [],
+      "guardSignals": [
+        "limiter"
+      ],
       "source": "server/modules/replayShares/routes.ts",
       "sourceOrder": 0
     },
@@ -4963,9 +4967,13 @@
       "path": "/v1/tracker/replays/:id",
       "pathKind": "string",
       "receiver": "router",
-      "middleware": [],
+      "middleware": [
+        "limiter"
+      ],
       "handler": "<inline-handler>",
-      "guardSignals": [],
+      "guardSignals": [
+        "limiter"
+      ],
       "source": "server/modules/replayShares/routes.ts",
       "sourceOrder": 1
     },
@@ -4987,9 +4995,13 @@
       "path": "/account/replays",
       "pathKind": "string",
       "receiver": "router",
-      "middleware": [],
+      "middleware": [
+        "limiter"
+      ],
       "handler": "<inline-handler>",
-      "guardSignals": [],
+      "guardSignals": [
+        "limiter"
+      ],
       "source": "server/modules/replayShares/routes.ts",
       "sourceOrder": 3
     },
@@ -4999,9 +5011,13 @@
       "path": "/account/replays/:id",
       "pathKind": "string",
       "receiver": "router",
-      "middleware": [],
+      "middleware": [
+        "limiter"
+      ],
       "handler": "<inline-handler>",
-      "guardSignals": [],
+      "guardSignals": [
+        "limiter"
+      ],
       "source": "server/modules/replayShares/routes.ts",
       "sourceOrder": 4
     },

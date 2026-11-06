@@ -55,6 +55,8 @@ export function registerReplayShares(dependencies: RegisterReplaySharesDependenc
     userAuth: dependencies.userAuth,
     publicOrigin: dependencies.publicOrigin,
     resolveCardNames: dependencies.resolveCardNames,
+    // Token and account routes: 60 a minute from one address (uploads also have their hourly limit above).
+    limiter: rateLimit({ windowMs: 60_000, max: 60, standardHeaders: true, legacyHeaders: false, keyGenerator: clientKey }),
   });
   dependencies.app.use('/api', router);
   if (dependencies.backgroundJobs) {

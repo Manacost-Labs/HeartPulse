@@ -1,5 +1,5 @@
 import { gunzipSync } from 'node:zlib';
-import { Router, type Request, type Response } from 'express';
+import { Router, type Request, type RequestHandler, type Response } from 'express';
 import type { ApplicationAuthManager } from '../applicationAuth/public.js';
 import type { ReplayShareRepository } from './repository.js';
 import { sanitizeReplayUpload } from './sanitize.js';
@@ -17,6 +17,8 @@ type ReplayShareRouterDependencies = {
   /** Card ids → Russian names, so the page shows cards only by known names. */
   resolveCardNames?: (cardIds: string[]) => Promise<Record<string, string>>;
   now?: () => number;
+  /** Per-address limit of the token and account routes (composition: express-rate-limit; tests: none). */
+  limiter?: RequestHandler;
 };
 
 const apiError = (code: string, message: string) => ({ error: { code, message } });
@@ -41,6 +43,7 @@ function bearerToken(authorization: unknown): string {
 export function createReplayShareRouter(dependencies: ReplayShareRouterDependencies): Router & { prune: () => void } {
   const router = Router();
   const now = dependencies.now ?? Date.now;
+  const limiter: RequestHandler = dependencies.limiter ?? ((_request, _response, next) => next());
   // The public answer by id (file and card names), newest last; a delete or the prune drops it at once.
   const readCache = new Map<string, { kind: string; createdAt: string; header: Record<string, unknown>; text: string; cardNames: Record<string, string> }>();
   const forget = (id: string) => readCache.delete(id);
@@ -48,7 +51,7 @@ export function createReplayShareRouter(dependencies: ReplayShareRouterDependenc
     if (dependencies.repository.prune(at) > 0) readCache.clear();
   };
 
-  router.post('/v1/tracker/replays', (request, response) => {
+  router.post('/v1/tracker/replays', limiter, (request, response) => {
     dependencies.setPrivateNoStore(response);
     const authenticated = dependencies.accessTokens.authenticate(bearerToken(request.headers.authorization), ['tracker.write']);
     if (!authenticated) {
@@ -82,7 +85,7 @@ export function createReplayShareRouter(dependencies: ReplayShareRouterDependenc
   });
 
   // Deleting from the app: the token handed out at upload, or the account's own access token.
-  router.delete('/v1/tracker/replays/:id', (request, response) => {
+  router.delete('/v1/tracker/replays/:id', limiter, (request, response) => {
     dependencies.setPrivateNoStore(response);
     const id = String(request.params.id);
     if (!REPLAY_ID.test(id)) return response.status(404).json(apiError('NOT_FOUND', 'No such replay'));
@@ -121,7 +124,7 @@ export function createReplayShareRouter(dependencies: ReplayShareRouterDependenc
   });
 
   // The account page: the player's replays and deleting one.
-  router.get('/account/replays', (request, response) => {
+  router.get('/account/replays', limiter, (request, response) => {
     dependencies.setPrivateNoStore(response);
     const user = dependencies.userAuth(request);
     if (!user) return response.status(401).json(apiError('UNAUTHORIZED', 'Sign in'));
@@ -130,7 +133,7 @@ export function createReplayShareRouter(dependencies: ReplayShareRouterDependenc
     })) });
   });
 
-  router.delete('/account/replays/:id', (request, response) => {
+  router.delete('/account/replays/:id', limiter, (request, response) => {
     dependencies.setPrivateNoStore(response);
     const user = dependencies.userAuth(request);
     if (!user) return response.status(401).json(apiError('UNAUTHORIZED', 'Sign in'));
