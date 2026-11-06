@@ -1640,3 +1640,28 @@ card to contain its deck list when `openFun` returns: the old wait fails that
 check, while the candidate passes the full filter scenario. This guards
 against making axe run against unresolved card placeholders. Project/scoped
 Semgrep, Oxlint and documentation checks pass. Hosted validation is pending.
+
+## Repeat the stable code before rebalancing workers
+
+Full run `42166129720/1` on `f6b64971` passes all 36 checks and all 559 files
+without retries. Required validation takes 183 seconds including queue.
+The filter test takes 45.428 seconds and lightbox takes 38.379 seconds. This
+run does not demonstrate an overall speedup from the latest readiness change.
+
+The browser workers' recorded weights now differ substantially from measured
+costs. In shard 2, worker 4 has 58.9 planned seconds but takes 91.0 seconds;
+worker 3 has 58.2 planned seconds but takes 89.8 seconds. Across the 40 browser
+workers, planned sums range from 52.0 to 63.2 seconds, while observed sums
+range from 33.0 to 91.0 seconds. These sums exclude job setup and queue time.
+Runner contention and test costs both affect these observations, so one run
+is insufficient evidence for selecting a new schedule.
+
+The next documentation-only commit intentionally triggers another full PR
+benchmark with identical test, application and workflow code. After its full
+results arrive, use this run and that distinct run as a calibration window
+only if coverage and provenance pass the existing checks. Do not count a
+rerun attempt as an additional independent run, use workflow-dispatch timing
+as full-PR calibration evidence, or relax retry/quarantine rules. Calibrate
+through the existing `--allow-full-pr` command and verify exact test coverage
+before testing the new partition in hosted CI. The two-minute goal remains
+unmet; neither new weights nor a causal speedup are claimed here.
