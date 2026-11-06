@@ -377,3 +377,17 @@ test('saved decks show only images the site serves itself', () => {
   assert.equal(broken, undefined, 'an unknown status is dropped');
   assert.equal(savedDecksFromPayload({ error: 'x' }), null);
 });
+
+test('the Twitch block links, shows the linked channel and stays hidden without the extension', async () => {
+  const { default: AccountTwitch } = await import('../src/modules/identity/ui/AccountTwitch');
+  assert.equal(accountTabFromHash('#account-twitch'), 'personal');
+  const unlinked = renderToStaticMarkup(<AccountTwitch initial={{ configured: true, linked: false, login: null, displayName: null }} />);
+  assert.match(unlinked, /id="account-twitch"/);
+  assert.match(unlinked, /href="\/api\/account\/twitch\/connect"/);
+  assert.match(unlinked, /Привязать Twitch/);
+  const linked = renderToStaticMarkup(<AccountTwitch initial={{ configured: true, linked: true, login: 'streamer', displayName: 'Streamer' }} />);
+  assert.match(linked, /<strong>Streamer<\/strong>/);
+  assert.match(linked, /Отвязать/);
+  assert.doesNotMatch(linked, /twitch\/connect/);
+  assert.equal(renderToStaticMarkup(<AccountTwitch initial={{ configured: false, linked: false, login: null, displayName: null }} />), '');
+});

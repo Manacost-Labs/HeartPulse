@@ -28,6 +28,7 @@ type RegisterTrackerIngestionDependencies = {
   exportReplays?: (userId: string) => Iterable<string>;
   /** The account's app usage claims for the data export. */
   exportUsage?: (userId: string) => Iterable<string>;
+  exportTwitch?: (userId: string) => Iterable<string>;
 };
 
 export function registerTrackerIngestionRateLimit(app: Application): void {
@@ -59,6 +60,7 @@ export function registerTrackerIngestion(dependencies: RegisterTrackerIngestionD
     onDeleted: dependencies.onDeleted,
     exportReplays: dependencies.exportReplays,
     exportUsage: dependencies.exportUsage,
+    exportTwitch: dependencies.exportTwitch,
   }));
   return repository;
 }

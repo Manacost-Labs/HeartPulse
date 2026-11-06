@@ -98,7 +98,7 @@ try {
   assert.equal(openapi.status, 200);
   const openapiPayload = await openapi.json() as Record<string, any>;
   assert.equal(openapiPayload.openapi, '3.1.0');
-  assert.equal(openapiPayload.info.version, '1.8.0');
+  assert.equal(openapiPayload.info.version, '1.9.0');
   assert.equal(openapiPayload.components.securitySchemes.ApiKeyAuth.name, 'X-API-Key');
   assert.equal(openapiPayload.components.securitySchemes.ApplicationBearer.scheme, 'bearer');
   assert.ok(openapiPayload.paths['/api/v1/oauth/device/code']);
@@ -106,6 +106,9 @@ try {
   assert.ok(openapiPayload.paths['/api/v1/oauth/revoke']);
   assert.ok(openapiPayload.paths['/api/v1/me']);
   assert.ok(openapiPayload.paths['/api/v1/tracker/events/batch']);
+  assert.ok(openapiPayload.paths['/api/v1/twitch/state']);
+  assert.ok(openapiPayload.paths['/api/v1/twitch/status']);
+  assert.ok(openapiPayload.paths['/api/v1/twitch/ext/snapshot']);
   assert.ok(openapiPayload.paths['/api/v1/catalog/manifest']);
   assert.ok(openapiPayload.paths['/api/v1/cards']);
   assert.ok(openapiPayload.paths['/api/v1/cards/{cardId}']);

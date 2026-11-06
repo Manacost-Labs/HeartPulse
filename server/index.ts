@@ -170,6 +170,7 @@ import { registerReplayShares, registerReplaySharesRateLimit } from './app/regis
 import { registerAppUsage, registerAppUsageRateLimit } from './app/registerAppUsage.js';
 import { registerCrashReports, registerCrashReportsRateLimit } from './app/registerCrashReports.js';
 import { TRACKER_MAX_BATCH_BYTES } from './modules/trackerIngestion/public.js';
+import { registerTwitchExtension, twitchExtensionPreflight, twitchStateStreamRequest } from './app/registerTwitchExtension.js';
 import { registerBrowserIdentity } from './app/registerBrowserIdentity.js';
 import { registerPlayerGames, registerPlayerGamesRateLimit } from './app/registerPlayerGames.js';
 import { createPlayerGamesGlobalSources } from './app/playerGamesGlobalSources.js';
@@ -6992,7 +6993,7 @@ const apiLimiter = rateLimit({
     || req.ip === '::1'
     // A cross-site cookie mutation is refused by the CSRF rule below without
     // touching data; counting it would let another site spend the visitor's budget.
-    || !cookieMutationCsrfAllowed(req)
+    || !cookieMutationCsrfAllowed(req) || twitchStateStreamRequest(req.method, req.path)
   ),
 });
 app.use('/api/', apiLimiter);
@@ -7112,7 +7113,7 @@ app.use((req, res, next) => {
   }
   res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, DELETE, OPTIONS');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-API-Key, X-CSRF-Request');
-  if (req.method === 'OPTIONS') return res.sendStatus(204);
+  if (req.method === 'OPTIONS' && !twitchExtensionPreflight(req.path)) return res.sendStatus(204);
   next();
 });
 
@@ -7184,7 +7185,7 @@ const trackerEvents = registerTrackerIngestion({ app, getDatabase: db, accessTok
   validatePayload: validateStatisticsPayload, onStored: playerStats.invalidate, userAuth, onDeleted: playerStats.invalidate,
   // The export reads the replays through a closure: their module is registered just below.
   exportReplays: userId => replayShares.exportRows(userId, Date.now()),
-  exportUsage: userId => appUsage.exportRows(userId) });
+  exportUsage: userId => appUsage.exportRows(userId), exportTwitch: registerTwitchExtension({ app, getDatabase: db, env: process.env, accessTokens: applicationAuth, userAuth, setPrivateNoStore, appUrl: APP_URL }).exportRows });
 const replayShares = registerReplayShares({ app, getDatabase: db, accessTokens: applicationAuth, setPrivateNoStore, userAuth,
   publicOrigin: APP_URL, resolveCardNames: ruCardNames, backgroundJobs: BACKGROUND_JOBS_ENABLED });
 registerCrashReports({ app, getDatabase: db, setPrivateNoStore, backgroundJobs: BACKGROUND_JOBS_ENABLED });

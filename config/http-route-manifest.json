@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 106,
-    "routeRegistrations": 285,
-    "middlewareRegistrations": 147,
+    "sourceFiles": 109,
+    "routeRegistrations": 293,
+    "middlewareRegistrations": 153,
     "explicitGuardRouteRegistrations": 73,
     "unresolvedPaths": 0
   },
@@ -1296,6 +1296,88 @@
       "guardSignals": [],
       "source": "server/app/registerTrackerIngestion.ts",
       "sourceOrder": 3
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/v1/twitch/ext"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "createTwitchExtensionCors(config)"
+      ],
+      "guardSignals": [],
+      "source": "server/app/registerTwitchExtension.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/v1/twitch/state"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "rateLimit(...)"
+      ],
+      "guardSignals": [
+        "rateLimit(...)"
+      ],
+      "source": "server/app/registerTwitchExtension.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/account/twitch/connect"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "rateLimit(...)"
+      ],
+      "guardSignals": [
+        "rateLimit(...)"
+      ],
+      "source": "server/app/registerTwitchExtension.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api/v1"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "createTwitchApiRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/app/registerTwitchExtension.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "createTwitchAccountRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/app/registerTwitchExtension.ts",
+      "sourceOrder": 4
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "createTwitchLinkPageRouter()"
+      ],
+      "guardSignals": [],
+      "source": "server/app/registerTwitchExtension.ts",
+      "sourceOrder": 5
     },
     {
       "kind": "route",
@@ -5244,6 +5326,102 @@
       "guardSignals": [],
       "source": "server/modules/trackerIngestion/routes.ts",
       "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/account/twitch",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/twitchExtension/accountRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/account/twitch/connect",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/twitchExtension/accountRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/account/twitch/callback",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/twitchExtension/accountRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "DELETE",
+      "path": "/account/twitch",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/twitchExtension/accountRoutes.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/account/twitch",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/twitchExtension/accountRoutes.ts",
+      "sourceOrder": 4
+    },
+    {
+      "kind": "route",
+      "method": "POST",
+      "path": "/twitch/state",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/twitchExtension/apiRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/twitch/status",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/twitchExtension/apiRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/twitch/ext/snapshot",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/twitchExtension/apiRoutes.ts",
+      "sourceOrder": 2
     },
     {
       "kind": "route",

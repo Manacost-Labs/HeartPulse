@@ -1,13 +1,14 @@
 import { BATTLEGROUND_STATISTICS_SCHEMAS } from './battlegroundSchemas.js';
 import { TRACKER_INGESTION_OPENAPI_PATHS, TRACKER_INGESTION_OPENAPI_SCHEMAS } from '../trackerIngestion/public.js';
+import { TWITCH_EXTENSION_OPENAPI_PATHS, TWITCH_EXTENSION_OPENAPI_SCHEMAS, TWITCH_EXTENSION_OPENAPI_SECURITY_SCHEMES, TWITCH_EXTENSION_OPENAPI_TAG } from '../twitchExtension/public.js';
 export const PUBLIC_API_OPENAPI = {
   openapi: '3.1.0',
-  info: { title: 'Manacost Public API', version: '1.8.0', description: 'Versioned Hearthstone data API for approved applications.' },
+  info: { title: 'Manacost Public API', version: '1.9.0', description: 'Versioned Hearthstone data API for approved applications.' },
   servers: [{ url: '/', description: 'Current Manacost environment' }],
   tags: [
     { name: 'Authorization', description: 'OAuth 2.0 device authorization for the desktop tracker.' },
     { name: 'Profile', description: 'The authorized user and cached subscription status.' },
-    { name: 'Tracker', description: 'Authenticated, idempotent IceCrow profile-event ingestion.' },
+    { name: 'Tracker', description: 'Authenticated, idempotent IceCrow profile-event ingestion.' }, TWITCH_EXTENSION_OPENAPI_TAG,
     { name: 'Catalog', description: 'Available Manacost data resources.' },
     { name: 'Images', description: 'Same-origin cached Hearthstone card images.' },
     { name: 'Statistics', description: 'Aggregated Constructed, Arena and Battlegrounds statistics and history.' },
@@ -163,7 +164,7 @@ export const PUBLIC_API_OPENAPI = {
         },
       },
     },
-    ...TRACKER_INGESTION_OPENAPI_PATHS,
+    ...TRACKER_INGESTION_OPENAPI_PATHS, ...TWITCH_EXTENSION_OPENAPI_PATHS,
     '/api/v1/catalog/manifest': {
       get: {
         summary: 'Get the public data catalog manifest',
@@ -1497,9 +1498,8 @@ export const PUBLIC_API_OPENAPI = {
     },
   },
   components: {
-    securitySchemes: { ApiKeyAuth: { type: 'apiKey', in: 'header', name: 'X-API-Key' }, ApplicationBearer: {
-        type: 'http',
-        scheme: 'bearer',
+    securitySchemes: { ApiKeyAuth: { type: 'apiKey', in: 'header', name: 'X-API-Key' }, ...TWITCH_EXTENSION_OPENAPI_SECURITY_SCHEMES, ApplicationBearer: {
+        type: 'http', scheme: 'bearer',
         bearerFormat: 'opaque',
         description: 'Short-lived access token issued by the device authorization flow.',
       },
@@ -1604,7 +1604,7 @@ export const PUBLIC_API_OPENAPI = {
           },
         },
       },
-      ...TRACKER_INGESTION_OPENAPI_SCHEMAS,
+      ...TRACKER_INGESTION_OPENAPI_SCHEMAS, ...TWITCH_EXTENSION_OPENAPI_SCHEMAS,
       CreateApiKeyInput: {
         type: 'object',
         additionalProperties: false,
