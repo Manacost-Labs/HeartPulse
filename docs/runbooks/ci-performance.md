@@ -1842,3 +1842,40 @@ identical application, test and workflow code to `0abf2dab`. Together with
 for the changed test durations. It is not another implementation change or
 a claim that the target has been reached. Any recalibration must retain
 exactly-once registry coverage and exclude quarantine results.
+
+## Bound backend readiness by elapsed startup time
+
+The documentation-only repeat `42175096180` on `bad55fb5` fails registry
+shard 3. Both `next-lcp-image-preload.test.mjs` and
+`next-seo-page-metadata.test.mjs` report `Backend did not start` with empty
+child output. Neither owned child had reported an exit or signal at the
+assertion. The old helper allowed 300 polling iterations at 30 ms: roughly
+nine seconds before accounting for other work. These failures occur during
+fixture setup, before the page assertions. The log does not establish why
+the hosted child startup was delayed. This failed run is excluded from the
+calibration window; no duration weights are updated from it.
+
+A regression probe delays the real owned backend's startup by ten seconds
+using a Node preload. The original helper fails in about nine seconds. The
+helper now uses a 30-second monotonic elapsed-time budget, preserving the
+30 ms polling interval and one-second health-request timeout. Readiness
+still requires the owned child's exact listening message, successful health
+response and initialized database. Early exit/signal checks and cleanup
+remain intact. Slow health replies count toward the elapsed budget rather
+than allowing hundreds of separate request timeouts. Timeout errors now
+include elapsed time, PID, compiled/source mode, exit/signal state and output.
+
+All four lifecycle checks pass against the compiled backend, including the
+real delayed-start regression and an unhealthy backend with an accelerated
+monotonic clock to verify the deadline and resource cleanup without a
+30-second test pause. The existing owned-child and setup-failure checks,
+plus the unhealthy deadline check, also pass in source mode. The two failed
+files pass together with two processes on four local CPU cores: 19 test
+results including the nested cases. Project/scoped Semgrep and Oxlint pass.
+
+This changes only test-fixture readiness and its diagnostics. There are no
+new retries, product timeout changes, disabled assertions or registry
+changes. Normal startup still returns as soon as readiness is observed.
+The longer allowance may lengthen a genuinely stalled setup; the existing
+cleanup still terminates its owned child and closes temporary resources.
+Hosted verification remains required, and the two-minute CI target is unmet.

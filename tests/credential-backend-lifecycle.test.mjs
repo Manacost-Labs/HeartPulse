@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import test from 'node:test';
 
-async function runFixtureProbe(source) {
+async function runFixtureProbe(source, timeout = 15000) {
   const child = spawn(process.execPath, ['--input-type=module', '-e', source], {
     detached: true, stdio: ['ignore', 'pipe', 'pipe'],
   });
@@ -14,7 +14,7 @@ async function runFixtureProbe(source) {
     timedOut = true;
     // The failure being tested leaks backend children as well as local servers.
     process.kill(-child.pid, 'SIGKILL');
-  }, 15000);
+  }, timeout);
   try {
     const code = await new Promise((resolve, reject) => {
       child.once('error', reject);
@@ -51,5 +51,34 @@ test('card fixture setup failure closes its backend and local servers before rej
       return prepare.call(this, sql, ...args);
     };
     await assert.rejects(publicCardFixture(), /injected seed failure/);
+  `);
+});
+
+test('a delayed owned backend can become ready without restarting it', async () => {
+  await runFixtureProbe(`
+    import assert from 'node:assert/strict';
+    import { startCredentialBackend } from './tests/helpers/credentialBackend.mjs';
+    const preload = 'data:text/javascript,' + encodeURIComponent(
+      'await new Promise(resolve => setTimeout(resolve, 10000));');
+    const backend = await startCredentialBackend({ env: { NODE_OPTIONS: '--import=' + preload } });
+    try {
+      assert.ok(backend.database.prepare("SELECT name FROM sqlite_master WHERE name='users'").get());
+      assert.equal((await fetch(backend.origin + '/health/live')).status, 200);
+    } finally { await backend.close(); }
+  `, 35000);
+});
+
+test('an unhealthy backend hits the readiness deadline and releases its resources', async () => {
+  await runFixtureProbe(`
+    import assert from 'node:assert/strict';
+    import { startCredentialBackend } from './tests/helpers/credentialBackend.mjs';
+    const now = performance.now.bind(performance);
+    let elapsed = 0;
+    Object.defineProperty(performance, 'now', { value: () => now() + elapsed });
+    globalThis.fetch = async () => {
+      elapsed += 31000;
+      return new Response('', { status: 503 });
+    };
+    await assert.rejects(startCredentialBackend(), /Backend did not start within 30000 ms/);
   `);
 });

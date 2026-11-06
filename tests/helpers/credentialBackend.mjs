@@ -143,7 +143,11 @@ export async function startCredentialBackend(options = {}) {
   };
   try {
     let ready = false;
-    for (let attempt = 0; attempt < 300; attempt += 1) {
+    const startupTimeoutMs = 30_000;
+    const startedAt = performance.now();
+    // Allow a scheduled-but-not-yet-running child to start on a busy CI runner.
+    // Bound elapsed time rather than polling count, including slow health replies.
+    while (performance.now() - startedAt < startupTimeoutMs) {
       assert.equal(child.exitCode, null, `Backend exited before readiness: ${output}`);
       assert.equal(child.signalCode, null, `Backend stopped before readiness: ${output}`);
       // A concurrent fixture can claim the released reservation before this child.
@@ -155,7 +159,9 @@ export async function startCredentialBackend(options = {}) {
       if (ready) break;
       await delay(30);
     }
-    assert.ok(ready, `Backend did not start: ${output}`);
+    assert.ok(ready, `Backend did not start within ${startupTimeoutMs} ms `
+      + `(elapsed=${Math.round(performance.now() - startedAt)} ms, pid=${child.pid}, `
+      + `compiled=${compiled}, exit=${child.exitCode}, signal=${child.signalCode}): ${output}`);
     assert.ok(existsSync(databasePath), `Backend database missing after readiness: ${output}`);
     database = new DatabaseSync(databasePath);
     database.prepare('SELECT id FROM users LIMIT 0').all();
