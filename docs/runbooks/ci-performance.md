@@ -1803,3 +1803,42 @@ using unchanged builds completes the secondary mobile file in 23.200 seconds
 before and 17.359 seconds after the change; both reports pass all four route
 cases. This single local pair does not establish a hosted speedup. Project
 and focused Semgrep, Oxlint and documentation lint pass.
+
+## Confirm the geometry change and collect a matching full-run sample
+
+Full run `42173054103` on `0abf2dab` passes all 36 checks: 555 blocking files
+and four quarantine files pass without retries. Required validation takes
+175 seconds including queue. All four skeleton-geometry files pass; the
+secondary mobile file takes 31.590 seconds. The two-minute target remains
+unmet.
+
+Browser shard 5 finishes last at second 170. It starts at second 71, spends
+22 seconds preparing and 72 seconds running tests. Its longest worker runs
+home hydration, patch notes and Storybook loading; the home-hydration file
+includes intentional timeout and cancellation checks, whose observation
+windows remain unchanged.
+
+The Storybook job takes 46 seconds to build, including 43.34 seconds inside
+Vite. A temporary local transform profiler is removed after investigation;
+its first attempt failed to save its report, and the corrected attempt
+completed. Aggregate asynchronous hook times overlap and are not CPU costs.
+A subsequent Node CPU profile attributes 3.47 seconds of its 20.77-second
+main-process sample to garbage collection.
+
+A four-CPU ABBA experiment tests Node's `--max-semi-space-size=64` against
+the default, without source/configuration changes. Elapsed seconds are
+21.350 (default), 22.166 (64), 20.940 (64), and 20.832 (default). Reported
+maximum process RSS values are 2517.7, 2578.0, 2359.6, and 2807.7 MiB;
+these are process maxima, not simultaneous process-tree memory totals.
+All builds succeed and each emits 1126 files. Their bundle assets match;
+generated component manifests and project metadata vary. There is no
+consistent timing benefit, so the memory option is not adopted. See the
+[Node CLI documentation](https://nodejs.org/api/cli.html#--max-semi-space-sizesize-in-mib)
+for the option's memory/throughput tradeoff.
+
+This documentation-only commit requests one additional full PR run with
+identical application, test and workflow code to `0abf2dab`. Together with
+`42173054103`, a successful run will provide a matching calibration window
+for the changed test durations. It is not another implementation change or
+a claim that the target has been reached. Any recalibration must retain
+exactly-once registry coverage and exclude quarantine results.
