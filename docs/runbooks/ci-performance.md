@@ -1169,3 +1169,37 @@ that was never observed from a recorded transition ending or being cancelled.
 Original frame sampling, CPU throttling at 6×, fade duration/end/monotonicity,
 scroll-lock and reduced-motion assertions are unchanged. This adds evidence
 for the next failure; it does not claim the flake is fixed.
+
+## Independent Arena access scenarios
+
+Run `42143742966` on `e9d9a1a3` passed all 36 checks and all 556 registered
+files without retries. Required validation took 162 seconds, including queue
+time. Lightbox close passed on its first attempt; this does not establish the
+root cause of its intermittent failure. The approximately two-minute target
+and ten-run acceptance rule remain unmet.
+
+The longest blocking browser file was Arena guest paywall, at 61.495 seconds.
+Its three independent cases took 18.174 seconds for guest preview, 26.429 for
+layout shift, and 16.358 for administrator access. Each case already owned
+its backend, Next server and browser. They now register as three files so
+workers can schedule them independently. The scenario bodies and imports
+are byte-identical to the originals; no shared product implementation changes.
+
+All three Arena routes remain covered for guests and administrators. The CLS
+case keeps both 1440×900 and mobile 390×844 viewports, its 500ms observation
+window, the 0.02 shift limit and original navigation/readiness waits. The
+administrator case still waits for subscription status before asserting that
+no paywall exists. The preview case keeps loader and animation assertions.
+
+The previous 54.534-second weight is allocated into initial seeds of 16.258,
+23.643 and 14.633 seconds from the successful hosted case durations. These
+are not newly measured per-file medians. Registry size becomes 558 files:
+554 blocking and four quarantined, including 98 blocking browser files.
+Browser job/worker counts and required gates remain unchanged. Calibration
+still requires two complete eligible runs; an incomplete or failed full PR
+run cannot provide a shortcut around that coverage requirement.
+
+All three files passed concurrently in real Chrome on four local CPUs. All
+48 registry tests and 11 worker/workflow/QA-group contracts passed, along
+with scoped Semgrep, Oxlint and documentation checks. These local results
+verify the split; only a new hosted run measures its CI timing effect.
