@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { expect, fn, userEvent } from 'storybook/test';
+import { expect, fn, userEvent, waitFor } from 'storybook/test';
 import BgLibrary from './BgLibrary';
 
 const cards = [
@@ -108,5 +108,36 @@ export const MinionDetail: Story = {
     await expect(await canvas.findByRole('heading', { level: 1, name: 'Счастье' })).toBeVisible();
     await expect(canvas.getAllByRole('heading', { level: 1 })).toHaveLength(1);
     await expect(canvas.getByRole('button', { name: 'Назад в библиотеку' })).toBeVisible();
+  },
+};
+
+
+export const ImageRecovery: Story = {
+  args: { cacheScope: 'image-recovery-preview' },
+  beforeEach: () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async (input, init) => {
+      const path = new URL(String(input), location.origin).pathname;
+      if (path === '/api/bg/library/cards') return Response.json({ data: cards.map((card, index) => ({
+        ...card,
+        images: {
+          card: `/api/public-resource/db/uploads/cards/BG_IMAGE_FIXTURE_${index}.png`,
+          framed: `/api/public-resource/db/uploads/framed/BG_IMAGE_FIXTURE_${index}.png`,
+          golden: `/api/public-resource/db/uploads/golden/BG_IMAGE_FIXTURE_${index}.png`,
+        },
+      })) });
+      return originalFetch(input, init);
+    };
+    return () => { globalThis.fetch = originalFetch; };
+  },
+  play: async ({ canvas, canvasElement }) => {
+    await canvas.findByText('2 найдено · 2 загружено');
+    await waitFor(() => {
+      const images = [...canvasElement.querySelectorAll<HTMLImageElement>('[data-library-card-tile] img')];
+      expect(images).toHaveLength(2);
+      expect(images.every(image => image.complete)).toBe(true);
+      expect(canvas.getByRole('link', { name: /Открыть страницу карты Счастье/ })).toBeVisible();
+      expect(canvas.getByRole('link', { name: /Открыть страницу карты Зверь/ })).toBeVisible();
+    });
   },
 };
