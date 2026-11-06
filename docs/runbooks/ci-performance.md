@@ -1665,3 +1665,33 @@ as full-PR calibration evidence, or relax retry/quarantine rules. Calibrate
 through the existing `--allow-full-pr` command and verify exact test coverage
 before testing the new partition in hosted CI. The two-minute goal remains
 unmet; neither new weights nor a causal speedup are claimed here.
+
+## Calibrate the stable worker costs
+
+Full run `42167066800/1` on `580202eb` completes with all 36 checks and all
+559 files PASS without retries. Required validation takes 170 seconds from
+run creation including queue. Browser shard 2 again finishes last; lightbox
+passes on the first attempt. Its only source-tree difference from
+`f6b64971` is this runbook, so both runs measure identical application, test
+and workflow code.
+
+The calibration window consists exclusively of the 48 blocking reports from
+each successful full run `42166129720/1` and `42167066800/1`. Each contributes
+555 unique PASS files. Four quarantine PASS results per run are verified
+separately and excluded from calibration. The existing command with explicit
+`--allow-full-pr` computes median seconds for all 555 blocking files; 551
+stored values change and four remain numerically equal. Quarantine weights
+and the default remain unchanged.
+
+Exact partition checks preserve 99 browser files across 40 global workers
+and 456 non-browser files across eight workers, each appearing once. No
+workflow, concurrency, required-gate, retry or test-assertion changes are
+made. All 65 planner, calibration, worker and workflow contract tests pass.
+
+Evaluating both partitions with the new weights, the largest browser-worker
+sum is 88.925 seconds for the old partition and 68.648 for the new partition;
+the corresponding registry sums are 60.905 and 48.189 seconds. These are
+model estimates from the calibration inputs, not measured speedups. Changed
+runner contention, setup and queue time may offset them. The next full
+hosted run must validate the partition and elapsed CI time; the two-minute
+goal and ten-run acceptance rule remain unmet.
