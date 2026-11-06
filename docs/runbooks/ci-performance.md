@@ -1315,3 +1315,31 @@ after it. All three identity continuation groups also pass on four CPUs with
 the temporary probe removed. All 65 assertion lines are unchanged. Focused
 and project Semgrep checks report no findings; JavaScript and documentation
 checks pass. The hosted result for this correction is still pending.
+
+## Field-focus navigation readiness
+
+Run `42149805899` on `6217f98b` passed all 36 checks (32 successful and four
+intentionally skipped) and all 559 files without retries. Required validation
+took 167 seconds including queue time. Registry shard 3 and the corrected
+identity layout scenario passed. The two-minute goal remains unmet.
+
+Browser shard 7 finished last. Its worker 37 spent 71.290 seconds across field
+focus, subscriber canonical links and soft-paywall overview. Field focus
+checks three routes at two widths. Local profiling attributed 6.393 seconds
+to its six `networkidle2` navigations; this is local evidence, not hosted
+savings.
+
+For field focus only, wait for document load, the visible field, loaded fonts
+and the hydrated pointer-focus handler. A setup event observes the handler's
+existing document attribute; a real Tab key restores keyboard mode before
+the original assertions. The test still exercises real clicks, typing and
+Tab navigation, including returning from keyboard to pointer mode. A missing
+handler times out instead of silently bypassing the checks. All six cases
+and their original assertions remain unchanged. No product code or scheduling
+weights change in this candidate.
+
+The existing test passes locally on four CPUs. A temporary probe delaying
+focus-handler installation by 1.5 seconds passes all six cases; suppressing
+the pointer handler fails the readiness wait at its ten-second deadline.
+The probes are removed from the final source. Hosted timing remains pending;
+a shorter local test does not establish an end-to-end CI speedup.
