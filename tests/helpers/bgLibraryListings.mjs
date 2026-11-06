@@ -47,6 +47,8 @@ export function registerBgLibraryListings(label, widths) {
         for (const [path, heading] of listings) {
           const response = await page.goto(`${runtime.origin}${path}`, { waitUntil: 'networkidle2' });
           assert.equal(response.status(), 200, `${path} at ${width}px`);
+          // networkidle2 can resolve while the session request is still pending.
+          await page.waitForSelector('.arena-paywall', { visible: true, timeout: 10_000 });
           await page.evaluate(axe);
           const state = await page.evaluate(async () => ({
             canonical: document.querySelector('link[rel=canonical]')?.href,

@@ -1050,6 +1050,37 @@ and assertion bodies remain intact. The local desktop tour portion took
 These local runs differ in concurrent load and do not establish hosted savings;
 judge the next full CI run, including the still-long responsive inventory.
 
+## Library listing access readiness
+
+Run `42138221063` on `304b347f` passed all 36 checks, with 554 PASS and one
+FLAKY registered file. Required validation took 193 seconds. The tour readiness
+regression and every observatory group passed. The final browser shard 9
+retried `next-bg-library-listings-browser.test.mjs`: its first attempt saw no
+subscription-gate text at `bgLibraryListings.mjs:64`. The retry passed.
+
+The listing renders `PaywallPending` until its session check finishes.
+`networkidle2` permits two outstanding requests and therefore does not prove
+that access is settled. A local probe delayed the first `/api/auth/me` request
+by three seconds. The old test reproduced the same false-versus-true assertion
+on `/library/minions/`; diagnostics showed a pending access placeholder,
+correct canonical/H1/main/overflow and no axe violations. This reproduces the
+failure mechanism, not the exact hosted request latency.
+
+The helper now waits up to 10 seconds for a visible `.arena-paywall` before
+injecting axe and taking measurements. The existing gate-text assertion still
+checks its content. Canonicals, headings, main count, overflow, accessibility,
+console/request errors, absence of private API requests, all 17 routes, both
+viewports and the three invalid-route 404 checks remain unchanged. Navigation
+mode and application access deadlines are unchanged. Missing gates still fail
+readiness; a wrong gate still fails the original assertions.
+
+The delayed-session probe passes with this wait and is removed before commit.
+Both normal viewport files pass concurrently on four local CPUs, covering
+34 route/viewport combinations plus six invalid-route checks. A byte comparison
+confirms only the readiness wait and its comment were added; all assertions
+and scenario bodies are preserved. Worker/workflow/QA contracts, focused
+Semgrep, Oxlint, documentation and integration preflight also pass.
+
 ## Verification
 
 Focused runner and workflow tests must prove deterministic complete sharding,
