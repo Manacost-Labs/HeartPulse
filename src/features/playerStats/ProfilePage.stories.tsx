@@ -1,12 +1,11 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, userEvent, within } from 'storybook/test';
-import PublicProfileCard from '../../modules/identity/ui/PublicProfileCard';
-import type { PublicProfile } from '../../modules/identity/public';
+import { lazy, Suspense } from 'react';
+import { loadPublicProfileCard, type PublicProfile } from '../../modules/identity/public';
 import PlayerStatsPanel from './PlayerStatsPanel';
 import PublicPlayerStats, { type PublicStatsCard } from './PublicPlayerStats';
 import type { ProfileStatsLang } from '../../modules/playerStats/public';
 import { profileBattlegroundsFixture, profileStandardFixture } from './profilePageFixtures';
-import '../../modules/identity/ui/AccountDashboard.css';
 
 const DAY = 86_400_000;
 const day = (time: number) => Math.floor(time / DAY) * DAY;
@@ -52,6 +51,8 @@ const profile: PublicProfile = {
   showsStats: true,
 };
 
+const PublicProfileCard = lazy(loadPublicProfileCard);
+
 const card: PublicStatsCard = ({ summary, children }) => (
   <PublicProfileCard profile={profile} onCopyLink={() => {}} summary={summary}>{children}</PublicProfileCard>
 );
@@ -60,7 +61,7 @@ const card: PublicStatsCard = ({ summary, children }) => (
 function Page({ lang = 'ru' }: { lang?: ProfileStatsLang }) {
   return (
     <div style={{ maxWidth: 1240, margin: '0 auto', padding: '0 16px' }}>
-      <PublicPlayerStats publicProfileId="7" card={card} lang={lang} />
+      <Suspense fallback={null}><PublicPlayerStats publicProfileId="7" card={card} lang={lang} /></Suspense>
     </div>
   );
 }
@@ -68,9 +69,9 @@ function Page({ lang = 'ru' }: { lang?: ProfileStatsLang }) {
 /** The account's «Моя статистика»: the same panel inside the account section. */
 function Account() {
   return (
-    <div className="account-dashboard" style={{ maxWidth: 1240, margin: '0 auto', padding: '16px' }}>
+    <div style={{ maxWidth: 1240, margin: '0 auto', padding: '16px' }}>
       <PlayerStatsPanel frame={(body, summary) => (
-        <section className="account-section account-game-stats" aria-labelledby="account-game-stats-title">
+        <section style={{ display: 'grid', gap: '1rem' }} aria-labelledby="account-game-stats-title">
           <h2 id="account-game-stats-title">Моя статистика</h2>
           {summary}
           {body}
