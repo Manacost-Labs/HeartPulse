@@ -40,7 +40,7 @@ assert.equal(escapeHtml(`<a href="x">'&`), '&lt;a href=&quot;x&quot;&gt;&#39;&am
 const replayBody = replayEmbedBody(battlegrounds);
 assert.ok(replayBody.includes('Мурлок &lt;b&gt; 3/4'), 'board names are escaped');
 assert.ok(!replayBody.includes('<b>'), 'no raw markup from card names');
-assert.ok(replayBody.includes('https://hearthpulse.net/replay/abcDEF1234/'));
+assert.match(replayBody, /href="https:\/\/hearthpulse\.net\/replay\/abcDEF1234\/"/, 'the embed links its replay page');
 assert.ok(replayEmbedBody(constructed).includes('hp-badge win'));
 
 const page = embedResponse(embedDocument({ title: 'T', body: '<p>x</p>', back: 'https://hearthpulse.net/', script: true }), 200, 'no-cache');
@@ -52,7 +52,7 @@ assert.equal(page.headers.get('x-frame-options'), null, 'the embed sends no SAME
 assert.equal(page.headers.get('x-robots-tag'), 'noindex');
 const html = await page.text();
 assert.ok(html.includes('Сделано в Hearthpulse'));
-assert.ok(html.includes('https://hearthpulse.net/download/'));
+assert.match(html, /href="https:\/\/hearthpulse\.net\/download\/"/, 'the footer links the download landing');
 assert.equal(embedMessage('нет', 404).status, 404);
 
 // ---- deck embed --------------------------------------------------------------------------------------------------
