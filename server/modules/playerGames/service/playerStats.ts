@@ -56,6 +56,20 @@ function createTtlCache(now: () => number) {
   };
 }
 
+function availability(allowed: boolean, loaded: boolean): GlobalAvailability {
+  if (!allowed) return 'subscription';
+  return loaded ? 'available' : 'unavailable';
+}
+
+/** Links «Последние игры» to the account's replays as they are now: an upload or a delete shows at once. */
+function withReplays(replays: PlayerStatsDependencies['replaysOfGames'], userId: string, stats: PlayerStats): PlayerStats {
+  if (!replays || stats.recentGames.length === 0) return stats;
+  const byGame = replays(userId, stats.recentGames.map(game => game.id));
+  const recentGames: Array<{ id: string; replayId: string | null }> = stats.recentGames;
+  // Same mode, same game shapes: only `replayId` changes.
+  return { ...stats, recentGames: recentGames.map(game => ({ ...game, replayId: byGame[game.id] ?? null })) } as PlayerStats;
+}
+
 /**
  * Reads the account's newest tracker events of one mode and period, as games,
  * and aggregates them. Events without the statistics fields are skipped.
@@ -106,22 +120,7 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
     return await attempt(() => resolveCardNames([...ids])) ?? {};
   }
 
-  function availability(allowed: boolean, loaded: boolean): GlobalAvailability {
-    if (!allowed) return 'subscription';
-    return loaded ? 'available' : 'unavailable';
-  }
-
   const results = new Map<string, { expiresAt: number; value: PlayerStats }>();
-
-  /** Links «Последние игры» to the account's replays as they are now: an upload or a delete shows at once. */
-  function withReplays(userId: string, stats: PlayerStats): PlayerStats {
-    const replays = dependencies.replaysOfGames;
-    if (!replays || stats.recentGames.length === 0) return stats;
-    const byGame = replays(userId, stats.recentGames.map(game => game.id));
-    const recentGames: Array<{ id: string; replayId: string | null }> = stats.recentGames;
-    // Same mode, same game shapes: only `replayId` changes.
-    return { ...stats, recentGames: recentGames.map(game => ({ ...game, replayId: byGame[game.id] ?? null })) } as PlayerStats;
-  }
 
   return {
     /** Which tabs have data: version 2 game and run events per mode, counted without reading payloads. */
@@ -145,11 +144,11 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
     async load(userId: string, query: PlayerStatsQuery, globalAllowed: boolean, until: number | null = null): Promise<PlayerStats> {
       const key = `${userId}|${query.mode}:${query.period}:${query.duos}:${query.mmr}:${globalAllowed}:${until}`;
       const hit = results.get(key);
-      if (hit && hit.expiresAt > now()) return withReplays(userId, hit.value);
+      if (hit && hit.expiresAt > now()) return withReplays(dependencies.replaysOfGames, userId, hit.value);
       const value = await compute(userId, query, globalAllowed, until);
       results.set(key, { expiresAt: now() + RESULT_TTL_MS, value });
       if (results.size > MAX_RESULT_ENTRIES) results.delete(results.keys().next().value as string);
-      return withReplays(userId, value);
+      return withReplays(dependencies.replaysOfGames, userId, value);
     },
 
     /** The service's clock, so readers built on it agree with its cache. */
