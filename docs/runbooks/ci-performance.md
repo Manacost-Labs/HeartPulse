@@ -1081,6 +1081,34 @@ confirms only the readiness wait and its comment were added; all assertions
 and scenario bodies are preserved. Worker/workflow/QA contracts, focused
 Semgrep, Oxlint, documentation and integration preflight also pass.
 
+## Library listing navigation readiness
+
+Run `42139571641` on `9568af44` passed all 36 checks and all 555 registered
+files without retries, including both library listing files. Required
+validation took 202 seconds. Browser shard 3 finished last; its executable
+preload hit the bounded abort after 10.078 seconds and ordinary Chrome launch
+then took 5.877 seconds. The fallback behaved as intended, but setup variation
+and long browser files still keep the two-minute goal unmet.
+
+A local desktop listing control passed in 31.041 seconds. Across its 17
+positive routes, `networkidle2` returned 17.259 seconds after document `load`
+in total. The next change waits for `load`, the existing visible access gate,
+loaded fonts and completed finite animations before measuring and running axe.
+It removes the network-quiet heuristic while retaining document/resource load
+and explicit rendered-state readiness. The three 404 navigations retain their
+original wait mode. Every assertion, path, viewport and private-request check
+is byte-identical; no product deadline changes.
+
+The candidate desktop run passed in 17.592 seconds on four local CPUs. Its
+combined navigation/access/font/animation readiness took 8.103 seconds across
+17 routes. These sequential local samples are not a hosted CI speedup estimate.
+Both viewport files also pass with the first session response delayed three
+seconds, exercising the previously reproduced access race with the new wait
+mode. Temporary delays and timing probes are removed before commit. Scheduling
+weights stay unchanged until fresh complete hosted runs support calibration.
+Normal mobile verification also passes. Contract tests, focused Semgrep,
+Oxlint, documentation and integration preflight pass.
+
 ## Verification
 
 Focused runner and workflow tests must prove deterministic complete sharding,

@@ -45,10 +45,16 @@ export function registerBgLibraryListings(label, widths) {
       for (const width of widths) {
         await page.setViewport({ width, height: 900 });
         for (const [path, heading] of listings) {
-          const response = await page.goto(`${runtime.origin}${path}`, { waitUntil: 'networkidle2' });
+          const response = await page.goto(`${runtime.origin}${path}`, { waitUntil: 'load' });
           assert.equal(response.status(), 200, `${path} at ${width}px`);
-          // networkidle2 can resolve while the session request is still pending.
+          // Document load does not prove that the session check has finished.
           await page.waitForSelector('.arena-paywall', { visible: true, timeout: 10_000 });
+          await page.evaluate(async () => {
+            await document.fonts.ready;
+            await Promise.all(document.getAnimations()
+              .filter(animation => Number.isFinite(animation.effect?.getComputedTiming().endTime))
+              .map(animation => animation.finished.catch(() => {})));
+          });
           await page.evaluate(axe);
           const state = await page.evaluate(async () => ({
             canonical: document.querySelector('link[rel=canonical]')?.href,
