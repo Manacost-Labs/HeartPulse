@@ -146,7 +146,9 @@ show no skeleton for that wait.
 stories at 1350, 1024, 768, 412 and 360 px;
 `tests/archetype-vicious-skeleton-geometry-browser.test.mjs` covers archetype
 sections and Vicious Gold. `tests/skeleton-route-geometry-browser.test.mjs`
-runs the production Next build against held fixture responses
+and `tests/skeleton-route-desktop-geometry-browser.test.mjs` split the two
+viewports while sharing `tests/helpers/skeletonRouteGeometry.mjs`. They run
+the production Next build against held fixture responses
 (`tests/helpers/skeletonRouteFixtures.mjs`) at 412×915 and 1440×900, compares
 skeleton and loaded parts of real routes and requires zero layout shift across
 the swap. `tests/public-loader-deadline-browser.test.mjs` proves that stalled

@@ -15,12 +15,24 @@ const SUBSCRIBED = { hasAccess: true, entitlements: { battlegrounds: true }, sou
 
 async function startGateway(nextOrigin) {
   const next = new URL(nextOrigin);
+  let sessionHeld = false;
+  const releases = [];
+  const holdSession = () => { sessionHeld = true; };
+  const releaseSession = () => {
+    sessionHeld = false;
+    for (const release of releases.splice(0)) release();
+  };
   const server = http.createServer((request, response) => {
     const subscriber = /(?:^|;\s*)pending_reader=1/.test(request.headers.cookie ?? '');
     const json = payload => response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' })
       .end(JSON.stringify(payload));
     if (request.url === '/api/auth/me') {
-      setTimeout(() => json({ user: subscriber ? SUBSCRIBER : null }), SESSION_DELAY_MS);
+      if (sessionHeld) {
+        const released = new Promise(resolve => releases.push(resolve));
+        setTimeout(() => { void released.then(() => json({ user: subscriber ? SUBSCRIBER : null })); }, SESSION_DELAY_MS);
+      } else {
+        setTimeout(() => json({ user: subscriber ? SUBSCRIBER : null }), SESSION_DELAY_MS);
+      }
       return;
     }
     if (subscriber && request.url === '/api/subscription/status') return json(SUBSCRIBED);
@@ -35,7 +47,7 @@ async function startGateway(nextOrigin) {
       answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
     request.pipe(upstream);
   });
-  return { server, origin: await listenLocal(server) };
+  return { server, origin: await listenLocal(server), holdSession, releaseSession };
 }
 
 // While the access check runs, the gated pages hold the gate's height, so the
@@ -65,13 +77,18 @@ test('gated pages keep the gate height while the access check runs', async () =>
             }
           }).observe({ type: 'layout-shift', buffered: true });
         });
-        await page.goto(`${gateway.origin}${path}`, { waitUntil: 'domcontentloaded' });
-        const pending = await page.waitForSelector('.arena-paywall-pending', { timeout: 10_000 }).catch(() => null);
-        assert.ok(pending, `${path} must render the reserved placeholder while access is checked`);
-        assert.equal(await page.$('.arena-paywall'), null, `${path} must not show the gate before the check ends`);
-        // No locked preview either: a subscriber would see it, and so would the cached server HTML.
-        assert.equal(await page.evaluate(() => document.body.textContent.includes('Раздел подписчиков')), false,
-          `${path} must not show the subscribers' preview while access is checked`);
+        gateway.holdSession();
+        try {
+          await page.goto(`${gateway.origin}${path}`, { waitUntil: 'domcontentloaded' });
+          const pending = await page.waitForSelector('.arena-paywall-pending', { timeout: 10_000 }).catch(() => null);
+          assert.ok(pending, `${path} must render the reserved placeholder while access is checked`);
+          assert.equal(await page.$('.arena-paywall'), null, `${path} must not show the gate before the check ends`);
+          // No locked preview either: a subscriber would see it, and so would the cached server HTML.
+          assert.equal(await page.evaluate(() => document.body.textContent.includes('Раздел подписчиков')), false,
+            `${path} must not show the subscribers' preview while access is checked`);
+        } finally {
+          gateway.releaseSession();
+        }
         await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 10_000 });
         await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         const shifts = await page.evaluate(() => window.__layoutShifts);

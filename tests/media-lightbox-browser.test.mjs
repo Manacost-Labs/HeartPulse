@@ -318,21 +318,41 @@ describe('the gallery lightbox with a mouse and a keyboard', () => {
       // The flying copy is sampled every frame of the closing; it must end on the tile of "Арт 3".
       await page.evaluate(() => {
         window.__flight = [];
+        window.__flightFinished = false;
+        const sampleCopy = copy => {
+          const { left, top, width, height } = copy.getBoundingClientRect();
+          window.__flight.push({ left, top, width, height });
+        };
+        // The compositor can finish between RAF callbacks. Observe its actual
+        // final geometry before the product's finished handler removes the copy.
+        const animate = Element.prototype.animate;
+        Element.prototype.animate = function (...args) {
+          const animation = animate.apply(this, args);
+          if (this.matches('body > img[aria-hidden="true"]')) {
+            animation.finished.then(() => {
+              sampleCopy(this);
+              window.__flightFinished = true;
+            }, () => {});
+          }
+          return animation;
+        };
         const sample = () => {
           const copy = document.querySelector('body > img[aria-hidden="true"]');
-          if (copy) { const { left, top, width, height } = copy.getBoundingClientRect(); window.__flight.push({ left, top, width, height }); }
+          if (copy) sampleCopy(copy);
           if (!window.__stop) requestAnimationFrame(sample);
         };
         requestAnimationFrame(sample);
       });
       await page.keyboard.press('Escape');
       await gone(page);
-      const { flight, target } = await page.evaluate(() => {
+      const { flight, finished, target } = await page.evaluate(() => {
         window.__stop = true;
         const image = document.querySelector('button[aria-label="Открыть Арт 3"] img').getBoundingClientRect();
-        return { flight: window.__flight, target: { left: image.left, top: image.top, width: image.width, height: image.height } };
+        return { flight: window.__flight, finished: window.__flightFinished,
+          target: { left: image.left, top: image.top, width: image.width, height: image.height } };
       });
       assert.ok(flight.length > 3, 'the picture flew back to the page');
+      assert.equal(finished, true, 'the closing flight completed before its final geometry was checked');
       const last = flight.at(-1);
       assert.ok(Math.abs(last.left - target.left) < 40 && Math.abs(last.top - target.top) < 40 && Math.abs(last.width - target.width) < 40,
         `the flight ends on the tile of the art on show: ${JSON.stringify({ last, target })}`);

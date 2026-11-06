@@ -25,3 +25,6 @@ apps/public-web/tsconfig.tsbuildinfo
 # Mutation testing (npm run test:mutation): sandbox and reports
 .stryker-tmp/
 reports/mutation/
+
+# Session recovery records are local tooling state, never release inputs.
+.continuity/

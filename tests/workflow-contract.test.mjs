@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 
 import { FULL_SHARDS, planTestShards } from '../scripts/ci-test-plan.mjs';
 import { planShards, TEST_SUITE_IDS, validateTestDurations } from '../scripts/test-suite-runner.mjs';
@@ -50,6 +53,70 @@ assert.deepEqual(
   ['reuse', 'plan', 'build', 'storybook', 'validate', 'test-suites', 'browser-tests', 'browser-quarantine', 'browser-observatory', 'required',
     'refresh-caches', 'deploy-production'],
 );
+
+const dependencyAction = readFileSync('.github/actions/install-dependencies/action.yml', 'utf8');
+assert.match(dependencyAction, /restore-npm-cache:\n\s+description:.*\n\s+required: false\n\s+default: 'false'/);
+assert.ok(dependencyAction.includes("cache: ${{ (steps.modules.outputs.cache-hit != 'true' || inputs.restore-npm-cache == 'true') && 'npm' || '' }}"),
+  'jobs that perform additional clean installs need the npm download cache even on a node_modules hit');
+for (const [name, job] of Object.entries(ciJobs)) {
+  assert.equal(job.includes("restore-npm-cache: 'true'"), name === 'test-suites',
+    `${name}: only registry jobs opt into the additional npm download cache`);
+}
+
+const browserRuntimeAction = readFileSync('.github/actions/browser-runtime/action.yml', 'utf8');
+assert.match(browserRuntimeAction, /chrome-runtime-v1-\$\{RUNNER_OS\}-\$\{RUNNER_ARCH\}-\$\{ImageOS\}-\$\{ImageVersion\}-\$\{version\}/,
+  'browser caches must match the exact runner image, architecture and installed package');
+assert.doesNotMatch(browserRuntimeAction, /restore-keys:/, 'an older browser package must not be selected');
+assert.match(browserRuntimeAction, /lookup-only: \$\{\{ inputs.save-cache == 'true' \}\}/);
+assert.match(browserRuntimeAction, /if: inputs.save-cache != 'true' && steps.cache.outcome == 'success' && steps.cache.outputs.cache-hit == 'true'/,
+  'only a consumer with an exact cache hit may select cached executables');
+assert.match(ciJobs.build, /name: Seed installed browser cache\n\s+uses: \.\/\.github\/actions\/browser-runtime\n\s+with:\n\s+save-cache: 'true'/);
+assert.match(ciJobs['refresh-caches'], /name: Seed installed browser cache\n\s+uses: \.\/\.github\/actions\/browser-runtime\n\s+with:\n\s+save-cache: 'true'/,
+  'main refresh seeds the default-branch cache when the build was reused');
+for (const job of ['test-suites', 'browser-tests', 'browser-quarantine', 'browser-observatory']) {
+  assert.match(ciJobs[job], /name: Restore installed browser runtime\n\s+uses: \.\/\.github\/actions\/browser-runtime/);
+}
+
+// Execute the action's selection step: absent or mismatched caches must leave
+// the system browser and its existing preload setting intact.
+const selectBrowserScript = browserRuntimeAction.split('    - name: Select restored Chrome\n')[1]
+  .split('      run: |\n')[1].split('\n').map(line => line.slice(8)).join('\n');
+const browserCacheRoot = mkdtempSync(join(tmpdir(), 'browser-cache-contract-'));
+try {
+  const browserDirectory = join(browserCacheRoot, 'hp-browser-runtime');
+  const githubEnvironment = join(browserCacheRoot, 'github-env');
+  const expectedVersion = '150.0.0.1-1';
+  let selectionLog;
+  const selectBrowser = () => {
+    writeFileSync(githubEnvironment, 'existing=preserved\n');
+    selectionLog = execFileSync('bash', ['-e', '-o', 'pipefail', '-c', selectBrowserScript], {
+      encoding: 'utf8',
+      env: {
+        ...process.env, RUNNER_TEMP: browserCacheRoot, GITHUB_ENV: githubEnvironment,
+        PACKAGE_VERSION: expectedVersion,
+      },
+    });
+    return readFileSync(githubEnvironment, 'utf8');
+  };
+  assert.equal(selectBrowser(), 'existing=preserved\n', 'a missing cache preserves fallback');
+  assert.match(selectionLog, /System Chrome fallback: cached files missing or not executable/);
+  mkdirSync(browserDirectory);
+  for (const executable of ['chrome', 'google-chrome']) {
+    writeFileSync(join(browserDirectory, executable), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
+  }
+  assert.equal(selectBrowser(), 'existing=preserved\n', 'an incomplete cache preserves fallback');
+  writeFileSync(join(browserDirectory, '.hp-package-version'), '149.0.0.1-1\n');
+  assert.equal(selectBrowser(), 'existing=preserved\n', 'a different package preserves fallback');
+  assert.match(selectionLog, /System Chrome fallback: cached package version mismatch/);
+  writeFileSync(join(browserDirectory, '.hp-package-version'), `${expectedVersion}\n`);
+  assert.equal(selectBrowser(), `existing=preserved\nHP_CACHED_CHROMIUM_PATH=${browserDirectory}/google-chrome\nHP_BROWSER_PRELOAD=0\n`);
+  assert.match(selectionLog, /Cached Chrome available only for explicit --no-sandbox launches; system browser retained for sandboxed launches/);
+  assert.equal(selectBrowser(), `existing=preserved\nHP_CACHED_CHROMIUM_PATH=${browserDirectory}/google-chrome\nHP_BROWSER_PRELOAD=0\n`,
+    'selecting the same cache again is safe');
+} finally {
+  rmSync(browserCacheRoot, { recursive: true, force: true });
+}
+
 const validationJobs = ['build', 'storybook', 'validate', 'test-suites', 'browser-tests', 'browser-observatory'];
 const allValidationSucceeded = validationJobs.map(job => `needs.${job}.result == 'success'`);
 assert.match(ciWorkflow, /^ {2}merge_group:\n {4}types: \[checks_requested\]$/m, 'the merge queue runs the same validation');
@@ -95,8 +162,8 @@ for (const event of ['merge_group', 'push', 'workflow_dispatch']) {
   assert.deepEqual(planTestShards({ event, status: 0, output: '{"mode":"none","files":{}}', registry: { suites: [] } }), {
     mode: 'all',
     reason: `${event} always runs every test`,
-    registryShards: [1, 2],
-    browserShards: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+    registryShards: [1, 2, 3, 4],
+    browserShards: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
     affectedTests: '',
   }, `${event} runs the full matrices`);
 }
@@ -113,7 +180,7 @@ assert.match(ciJobs.reuse, /^ {4}if: github\.event_name == 'push' && github\.ref
 assert.match(ciJobs.reuse, /permissions:\n {6}actions: read\n {6}contents: read\n/);
 assert.match(ciJobs.reuse, /run-id: \$\{\{ steps\.find\.outputs\.run-id \}\}/);
 assert.match(ciJobs.reuse, /GITHUB_TOKEN: \$\{\{ github\.token \}\}\n {8}run: node scripts\/find-validated-release\.mjs$/m);
-for (const job of ['build', 'storybook', 'validate', 'browser-observatory']) {
+for (const job of ['build', 'storybook', 'validate']) {
   assert.ok(ciJobs[job].includes("    needs: reuse\n    if: ${{ !cancelled() && needs.reuse.outputs.run-id == '' }}\n"),
     `${job} validates whenever no merge-queue run is reused, including when the lookup itself failed`);
 }
@@ -153,20 +220,96 @@ assert.match(ciJobs.validate, /- name: Run release-blocking static checks\s+run:
 assert.match(ciJobs.validate, /fetch-depth: 0/, 'the clean-code gate needs the diff base history');
 assert.match(ciJobs.validate, /run: npm audit --omit=dev --audit-level=critical/);
 assert.match(ciJobs.build, /- name: Build and smoke-test release inputs\s+run: npm run verify:release:build$/m);
+assert.ok(ciJobs.build.includes("HP_CI_SEPARATE_NEXT_TYPES: '1'"));
+assert.ok(packageScripts['verify:release:checks'].includes('npm run lint:next:authoritative'),
+  'skipping the duplicate build check requires the same compiler in the required static gate');
 for (const [id, body] of Object.entries(ciJobs)) {
   if (id === 'build') continue;
   assert.doesNotMatch(body, /npm run (?:verify:release:build|release:create)\b/, `${id} must not package a second release`);
   if (id === 'refresh-caches') continue;
   assert.doesNotMatch(body, /npm run build(?![\w:-])/, `${id} must not build a second release`);
 }
-assert.match(ciJobs['browser-observatory'], /run: npm run qa:ci/);
+assert.match(ciJobs['browser-observatory'], /run: node scripts\/browser-qa-batch.mjs \$\{\{ matrix\.batch \}\}/);
+assert.match(ciJobs['browser-observatory'], /^ {4}needs: \[reuse, build\]$/m);
+assert.ok(ciJobs['browser-observatory'].includes("needs.build.result == 'success'"));
+assert.ok(ciJobs['browser-observatory'].includes('name: build-outputs-${{ github.sha }}'));
 
 const buildOutputsName = 'name: build-outputs-${{ github.sha }}';
 assert.match(ciJobs.build, /- name: Upload validated build outputs\s+uses: actions\/upload-artifact@v7/);
-for (const directory of ['build', 'dist', 'apps/public-web/.next', '!apps/public-web/.next/cache']) {
-  assert.match(ciJobs.build, new RegExp(`^ {12}${directory.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')}$`, 'm'));
+const packOutputs = ciJobs.build.match(/- name: Pack validated build outputs\n {8}run: (.+)\n/)?.[1];
+assert.ok(packOutputs, 'validated outputs must be packaged before upload');
+assert.ok(ciJobs.build.includes('path: ${{ runner.temp }}/build-outputs.tar.zst'));
+assert.match(ciJobs.build, /compression-level: 0\n {10}if-no-files-found: error/,
+  'the artifact service must not recompress the zstd payload');
+assert.match(ciJobs.build, /retention-days: 3\s+# [^\n]+\s+overwrite: true/);
+const unpackOutputs = [];
+for (const job of ['test-suites', 'browser-tests', 'browser-quarantine', 'browser-observatory']) {
+  assert.ok(ciJobs[job].includes(buildOutputsName + '\n          path: ${{ runner.temp }}/build-outputs'));
+  const unpack = ciJobs[job].match(/- name: Extract validated build outputs\n {8}run: (.+)\n/)?.[1];
+  assert.ok(unpack, `${job} must extract outputs before running tests`);
+  assert.ok(ciJobs[job].indexOf('- name: Download validated build outputs') < ciJobs[job].indexOf('- name: Extract validated build outputs'));
+  assert.ok(ciJobs[job].indexOf('- name: Extract validated build outputs') < ciJobs[job].indexOf('- name: Run '));
+  unpackOutputs.push(unpack);
 }
-assert.match(ciJobs.build, /retention-days: 3\s+# [^\n]+\s+overwrite: true\s+include-hidden-files: true/);
+assert.equal(new Set(unpackOutputs).size, 1, 'every consumer restores the same archive');
+const packStorybook = ciJobs.storybook.match(/- name: Pack Storybook build\n {8}run: (.+)\n/)?.[1];
+assert.ok(packStorybook, 'Storybook must be packaged before upload');
+assert.ok(ciJobs.storybook.includes('path: ${{ runner.temp }}/storybook-static.tar.zst'));
+assert.match(ciJobs.storybook, /compression-level: 0\n {10}if-no-files-found: error/);
+const unpackStorybook = [];
+for (const job of ['browser-tests', 'browser-quarantine']) {
+  const unpack = ciJobs[job].match(/- name: Extract Storybook build\n {8}run: (.+)\n/)?.[1];
+  assert.ok(unpack, `${job} must extract Storybook before running tests`);
+  assert.ok(ciJobs[job].indexOf('- name: Download Storybook build') < ciJobs[job].indexOf('- name: Extract Storybook build'));
+  assert.ok(ciJobs[job].indexOf('- name: Extract Storybook build') < ciJobs[job].indexOf('- name: Run '));
+  unpackStorybook.push(unpack);
+}
+assert.equal(new Set(unpackStorybook).size, 1, 'both consumers restore the same Storybook archive');
+// Execute the actual workflow commands in isolation, including hidden outputs
+// and a cache sentinel, so path/exclusion drift cannot silently lose inputs.
+const archiveFixture = mkdtempSync(join(tmpdir(), 'ci-build-archive-'));
+try {
+  const source = join(archiveFixture, 'source');
+  const restored = join(archiveFixture, 'restored');
+  const runnerTemp = join(archiveFixture, 'runner temp');
+  for (const dir of [source, restored, join(runnerTemp, 'build-outputs'), join(runnerTemp, 'storybook-build')]) mkdirSync(dir, { recursive: true });
+  const fixtures = new Map([
+    ['build/backend.js', 'compiled backend'],
+    ['storybook-static/index.html', '<html>Storybook</html>'],
+    ['storybook-static/assets/with space.js', 'story asset'],
+    ['storybook-static/.hidden/output.json', 'hidden story output'],
+    ['dist/.hidden/output.js', 'hidden output'],
+    ['apps/public-web/.next/BUILD_ID', 'validated build'],
+    ['apps/public-web/.next/server/app/with space.html', '<html>fixture</html>'],
+  ]);
+  for (const [path, content] of [...fixtures, ['apps/public-web/.next/cache/excluded', 'cache']]) {
+    const file = join(source, path);
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, content, { mode: 0o640 });
+  }
+  const env = { ...process.env, RUNNER_TEMP: runnerTemp };
+  execFileSync('bash', ['-e', '-o', 'pipefail', '-c', packOutputs], { cwd: source, env });
+  const archive = join(runnerTemp, 'build-outputs.tar.zst');
+  writeFileSync(join(runnerTemp, 'build-outputs/build-outputs.tar.zst'), readFileSync(archive));
+  execFileSync('bash', ['-e', '-o', 'pipefail', '-c', unpackOutputs[0]], { cwd: restored, env });
+  execFileSync('bash', ['-e', '-o', 'pipefail', '-c', packStorybook], { cwd: source, env });
+  writeFileSync(join(runnerTemp, 'storybook-build/storybook-static.tar.zst'),
+    readFileSync(join(runnerTemp, 'storybook-static.tar.zst')));
+  execFileSync('bash', ['-e', '-o', 'pipefail', '-c', unpackStorybook[0]], { cwd: restored, env });
+  for (const [path, content] of fixtures) {
+    assert.equal(readFileSync(join(restored, path), 'utf8'), content);
+    assert.equal(statSync(join(restored, path)).mode & 0o777, statSync(join(source, path)).mode & 0o777);
+  }
+  assert.throws(() => statSync(join(restored, 'apps/public-web/.next/cache')), { code: 'ENOENT' });
+  rmSync(join(source, 'dist'), { recursive: true });
+  assert.throws(() => execFileSync('bash', ['-e', '-o', 'pipefail', '-c', packOutputs],
+    { cwd: source, env, stdio: 'pipe' }), 'missing required output must fail packaging');
+  rmSync(join(source, 'storybook-static'), { recursive: true });
+  assert.throws(() => execFileSync('bash', ['-e', '-o', 'pipefail', '-c', packStorybook],
+    { cwd: source, env, stdio: 'pipe' }), 'missing Storybook must fail packaging');
+} finally {
+  rmSync(archiveFixture, { recursive: true, force: true });
+}
 assert.match(ciJobs.build, /retention-days: 7\s+compression-level: 6\s+# [^\n]+\s+overwrite: true\s+# [^\n]+\s+include-hidden-files: true/,
   'a full re-run on main can repackage the release of the same SHA');
 const releaseEvents = "if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'merge_group'";
@@ -174,25 +317,40 @@ for (const step of ['Create immutable production release', 'Upload immutable pro
   assert.ok(ciJobs.build.includes(`- name: ${step}\n        ${releaseEvents}\n`),
     `${step} runs for a push to main and in the merge queue, whose release that push may reuse`);
 }
-assert.match(ciJobs.storybook, /name: storybook-static-\$\{\{ github\.sha \}\}\n {10}path: storybook-static\n/);
+assert.ok(ciJobs.storybook.includes('name: storybook-static-${{ github.sha }}'));
 for (const [job, shards] of [['test-suites', 'registry-shards'], ['browser-tests', 'browser-shards']]) {
-  assert.match(ciJobs[job], /^ {4}needs: \[plan, build, storybook\]$/m, `${job} must test the built outputs as planned`);
-  assert.ok(ciJobs[job].includes(`    if: \${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.${shards} != '[]' && needs.build.result == 'success' && needs.storybook.result == 'success' }}\n`),
-    `${job} must run after both builds even though the reuse job upstream was skipped, unless the plan gave it no shard`);
+  const storybookDependency = job === 'browser-tests' ? ', storybook' : '';
+  const storybookCondition = job === 'browser-tests' ? " && needs.storybook.result == 'success'" : '';
+  assert.ok(ciJobs[job].includes(`    needs: [plan, build${storybookDependency}]\n`),
+    `${job} waits only for the artifacts it consumes`);
+  assert.ok(ciJobs[job].includes(`    if: \${{ !cancelled() && needs.plan.result == 'success' && needs.plan.outputs.${shards} != '[]' && needs.build.result == 'success'${storybookCondition} }}\n`),
+    `${job} runs after its required inputs, even with skipped reuse, unless its plan is empty`);
   assert.ok(ciJobs[job].includes(buildOutputsName), `${job} must download the validated build outputs`);
-  assert.match(ciJobs[job], /uses: actions\/download-artifact@v8\n {8}with:\n {10}name: build-outputs-\$\{\{ github\.sha \}\}\n\n/,
-    'outputs restore at their repository paths (no custom download path)');
-  assert.match(ciJobs[job], /name: storybook-static-\$\{\{ github\.sha \}\}\n {10}path: storybook-static\n/);
-  assert.doesNotMatch(ciJobs[job], /continue-on-error/, `${job} failures must block production`);
+  if (job === 'browser-tests') {
+    assert.match(ciJobs[job], /name: storybook-static-\$\{\{ github\.sha \}\}\n {10}path: \$\{\{ runner\.temp \}\}\/storybook-build\n/);
+  } else {
+    assert.doesNotMatch(ciJobs[job], /storybook/, 'registry jobs neither wait for nor download unused Storybook outputs');
+  }
+  for (const step of ciJobs[job].split(/^ {6}- name: /m)) {
+    if (!step.startsWith('Upload test timings\n')) {
+      assert.doesNotMatch(step, /continue-on-error/, `${job} failures must block production`);
+    }
+  }
   assert.match(ciJobs[job], /strategy:\n(?: {6}#[^\n]*\n)? {6}fail-fast: false\n/,
     'a failing shard must not cancel and hide the other shards');
 }
-// Only main and manual runs save the Next.js cache; every other ref only reads it.
-for (const job of ['build', 'browser-observatory', 'refresh-caches']) {
+// PRs retain one isolated cache per lockfile/config; immutable hits are not saved again.
+for (const job of ['build', 'refresh-caches']) {
   assert.match(ciJobs[job], /uses: actions\/cache\/restore@v6\n {8}with:\n {10}path: apps\/public-web\/\.next\/cache\n/);
 }
-assert.match(ciJobs.build, /- name: Save Next\.js build cache\n {8}if: github\.event_name == 'push' \|\| github\.event_name == 'workflow_dispatch'\n/);
+assert.ok(ciJobs.build.includes("if: steps.next-cache.outputs.cache-hit != 'true' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request')"));
+assert.ok(ciJobs.build.includes("format('pr-{0}-{1}', github.event.pull_request.number, hashFiles('apps/public-web/next.config.mjs'))"),
+  'a PR does not create a large cache for every commit');
+assert.ok(ciJobs.build.includes('key: ${{ steps.next-cache.outputs.cache-primary-key }}'),
+  'the save uses the exact key computed by restore');
 assert.doesNotMatch(ciJobs['browser-observatory'], /actions\/cache\/save/);
+assert.ok(ciJobs.build.indexOf('- name: Build and smoke-test release inputs') < ciJobs.build.indexOf('- name: Pack validated build outputs'));
+assert.ok(ciJobs.build.indexOf('- name: Pack validated build outputs') < ciJobs.build.indexOf('- name: Upload validated build outputs'));
 const releaseCreateIndex = ciJobs.build.indexOf('- name: Create immutable production release');
 assert.ok(ciJobs.build.indexOf('- name: Build and smoke-test release inputs') < ciJobs.build.indexOf('- name: Upload validated build outputs'));
 assert.ok(ciJobs.build.indexOf('- name: Upload validated build outputs') < releaseCreateIndex,
@@ -213,19 +371,23 @@ const onlyFilesRun = command => [
   `          ${command} "\${only_files[@]}"`,
   '',
 ].join('\n');
-const suiteRun = ciJobs['test-suites'].match(/^ {10}npm run test:suite -- ([a-z,-]+) --shard /m)?.[1];
+const suiteRun = ciJobs['test-suites'].match(/^ {10}node scripts\/run-test-workers.mjs --suite ([a-z,-]+) --shard /m)?.[1];
 assert.ok(suiteRun, 'the non-browser shards must run registry suites');
 assert.ok(ciJobs['test-suites'].includes(onlyFilesRun(
-  `npm run test:suite -- ${suiteRun} --shard \${{ matrix.shard }}/\${{ strategy.job-total }} --continue-on-failure`,
+  `node scripts/run-test-workers.mjs --suite ${suiteRun} --shard \${{ matrix.shard }}/\${{ strategy.job-total }} --continue-on-failure --workers 2 --report-dir "$RUNNER_TEMP/test-timings"`,
 )), 'the non-browser shards derive the total from the matrix and run only the planned files');
 assert.ok(suiteRun, 'the non-browser shards must run registry suites and derive the total from the matrix');
 assert.deepEqual([...suiteRun.split(','), 'browser'].sort(), [...TEST_SUITE_IDS].sort(),
   'every registry suite runs in exactly one job');
-assert.deepEqual(FULL_SHARDS, { registry: 2, browser: 9 },
-  'a full run has two registry shards (a third only added runner minutes outside the critical path) and nine browser shards');
+assert.deepEqual(FULL_SHARDS, { registry: 4, browser: 10 },
+  'a full run has four registry jobs and ten browser jobs, with bounded isolated workers');
+for (const job of ['browser-tests', 'browser-observatory']) {
+  assert.ok(ciJobs[job].includes("HP_BROWSER_PRELOAD: '1'"),
+    `${job} measures the bounded executable preload experiment`);
+}
 assert.ok(
   ciJobs['browser-tests'].includes(onlyFilesRun(
-    'npm run test:suite -- browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure --quarantine exclude',
+    'node scripts/run-test-workers.mjs --suite browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure --quarantine exclude --workers 4 --warmup-browser --report-dir "$RUNNER_TEMP/test-timings"',
   )),
   'shards derive the total from the matrix, retry a failing file exactly once, report every failure and skip the quarantine',
 );
@@ -233,7 +395,7 @@ assert.ok(
 // CI required or the deployment (both need lists are asserted exactly above).
 const quarantineJob = ciJobs['browser-quarantine'];
 assert.match(quarantineJob, /^ {4}name: Browser quarantine \(non-blocking\)$/m);
-assert.match(quarantineJob, /^ {4}needs: \[build, storybook\]$/m, 'the quarantine job tests the built outputs');
+assert.match(quarantineJob, /^ {4}needs: \[build, storybook, required\]$/m, 'quarantine uses built outputs after the blocking gate to leave runner slots for validation');
 assert.match(quarantineJob, /^ {4}continue-on-error: true$/m, 'a quarantine failure never fails the run');
 const quarantineIf = quarantineJob.match(/^ {4}if: (.+)$/m)?.[1];
 assert.ok(quarantineIf, 'the quarantine job needs an explicit if');
@@ -244,9 +406,15 @@ assert.ok(quarantineIf.includes("github.event_name == 'pull_request' || github.e
   'the quarantine job runs only for pull_request and workflow_dispatch');
 assert.ok(!/merge_group|github\.event_name == 'push'/.test(quarantineIf), 'the quarantine job never runs in merge_group or on push');
 assert.ok(quarantineJob.includes(buildOutputsName), 'the quarantine job must download the validated build outputs');
-assert.match(quarantineJob, /name: storybook-static-\$\{\{ github\.sha \}\}\n {10}path: storybook-static\n/,
+assert.match(quarantineJob, /name: storybook-static-\$\{\{ github\.sha \}\}\n {10}path: \$\{\{ runner\.temp \}\}\/storybook-build\n/,
   'quarantined archetype and skeleton tests serve the Storybook build');
-assert.match(quarantineJob, /- name: Run quarantined browser tests\n {8}run: npm run test:suite -- browser --retry-failed-once --continue-on-failure --quarantine only$/m);
+assert.match(quarantineJob, /- name: Run quarantined browser tests\n {8}run: npm run test:suite -- browser --retry-failed-once --continue-on-failure --quarantine only --report "\$RUNNER_TEMP\/test-timings.json"$/m);
+for (const [job, artifact] of [['test-suites', 'registry-${{ matrix.shard }}'], ['browser-tests', 'browser-${{ matrix.shard }}'], ['browser-quarantine', 'quarantine']]) {
+  assert.match(ciJobs[job], /- name: Upload test timings\n {8}if: always\(\)\n {8}continue-on-error: true/,
+    'timings survive test failures and their upload never changes the test outcome');
+  assert.ok(ciJobs[job].includes(`name: test-timings-${artifact}`));
+  assert.ok(ciJobs[job].includes(`path: \${{ runner.temp }}/test-timings${job === 'browser-quarantine' ? '.json' : ''}`));
+}
 assert.ok(!validationJobs.includes('browser-quarantine'));
 assert.equal(packageScripts['test:suite'], 'node scripts/test-suite-runner.mjs --suite');
 const testRegistry = JSON.parse(readFileSync('tests/test-suites.json', 'utf8'));
@@ -264,14 +432,11 @@ assert.match(ciWorkflow, /CLEAN_CODE_EVENT:\s*\$\{\{ github\.event_name \}\}/);
 assert.match(ciWorkflow, /CLEAN_CODE_PUSH_BEFORE:\s*\$\{\{ github\.event\.before \}\}/);
 assert.match(ciWorkflow, /CLEAN_CODE_PR_BASE_SHA:\s*\$\{\{ github\.event\.pull_request\.base\.sha \}\}/);
 assert.match(ciWorkflow, /CLEAN_CODE_DISPATCH_BASE:\s*\$\{\{ inputs\.clean_code_base \}\}/);
-assert.match(ciJobs['browser-observatory'], /^ {4}name: Full browser observatory \(\$\{\{ matrix\.part \}\}\)$/m);
-assert.match(ciJobs['browser-observatory'], /^ {4}timeout-minutes: 25$/m);
-assert.match(ciJobs['browser-observatory'], /^ {6}QA_PART: \$\{\{ matrix\.part \}\}$/m);
-// Every part the QA script accepts besides `all` runs in exactly one job.
-const qaParts = readFileSync('scripts/e2e-qa.mjs', 'utf8').match(/\[('all'(?:, '[a-z]+')+)\]\.includes\(qaPart\)/)?.[1]
-  .split(', ').map(part => part.replaceAll("'", '')).filter(part => part !== 'all');
-assert.deepEqual(ciJobs['browser-observatory'].match(/^ {8}part: \[([a-z, ]+)\]$/m)?.[1].split(', '), qaParts,
-  'the observatory matrix must cover every QA part');
+assert.match(ciJobs['browser-observatory'], /^ {4}name: Full browser observatory \(batch \$\{\{ matrix\.batch \}\}\)$/m);
+assert.match(ciJobs['browser-observatory'], /^ {4}timeout-minutes: 15$/m);
+assert.match(ciJobs['browser-observatory'], /^ {8}batch: \[1, 2, 3, 4\]$/m);
+assert.doesNotMatch(ciJobs['browser-observatory'], /npm run qa:ci|actions\/cache\/restore/,
+  'the observatory tests the validated artifact without rebuilding it');
 assert.match(
   ciWorkflow,
   /browser-observatory:[\s\S]*?env:\s+PUPPETEER_SKIP_DOWNLOAD:\s*'true'\s+CHROMIUM_PATH:\s*'\/usr\/bin\/google-chrome'/,
@@ -284,8 +449,8 @@ assert.doesNotMatch(
 );
 assert.match(
   ciWorkflow,
-  /- name:\s*Run full browser observatory\s+run:\s*npm run qa:ci/,
-  'the isolated browser job must build the current sources before testing the Next.js runtime',
+  /- name:\s*Run full browser observatory\s+run:\s*node scripts\/browser-qa-batch.mjs/,
+  'every observatory batch must run against the downloaded Next.js release',
 );
 assert.match(ciWorkflow, /npm run release:create -- --output="\$RUNNER_TEMP\/release-\$GITHUB_SHA" --sha="\$GITHUB_SHA"/);
 assert.match(ciWorkflow, /actions\/upload-artifact@v7/);

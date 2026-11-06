@@ -36,7 +36,7 @@ CHROMIUM_PATH=/usr/bin/google-chrome node --test tests/archetype-vicious-skeleto
 CHROMIUM_PATH=/usr/bin/google-chrome node --test tests/public-loader-deadline-browser.test.mjs
 npm run build:next
 SKELETON_SCREENSHOT_DIR=<artifact-dir> CHROMIUM_PATH=/usr/bin/google-chrome \
-  node --test tests/skeleton-route-geometry-browser.test.mjs
+  node --test tests/skeleton-route-geometry-browser.test.mjs tests/skeleton-route-desktop-geometry-browser.test.mjs
 npm run test:storybook
 npm run test:registry
 npm run lint

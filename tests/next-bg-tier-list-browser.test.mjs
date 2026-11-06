@@ -18,6 +18,8 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
   let tierStatus = 200;
   let malformedAuthResponsesRemaining = 0;
   let failedSubscriptionResponsesRemaining = 0;
+  let holdSubscriptionRecovery = false;
+  const subscriptionRecoveries = [];
   const reservation = http.createServer();
   const nextOrigin = await listenLocal(reservation); await closeLocal(reservation);
   const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', 'apps/public-web',
@@ -58,7 +60,13 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
         if (failedSubscriptionResponsesRemaining > 0) {
           failedSubscriptionResponsesRemaining -= 1;
           void respond(503, { error: 'temporarily unavailable' });
-        } else void respond(200, { hasAccess: true, entitlements: { battlegrounds: true } });
+        } else {
+          const recover = () => respond(200, { hasAccess: true, entitlements: { battlegrounds: true } });
+          // Observe the transient failure before allowing its successful retry
+          // to replace the pending UI, even if the test reader is scheduled late.
+          if (holdSubscriptionRecovery) subscriptionRecoveries.push(recover);
+          else void recover();
+        }
       } else if (isMenuBackgroundRead(url.pathname)) {
         void respond(200, MENU_PATCH_ARCHIVE);
       } else if (url.pathname === '/api/bg/tier-lists') {
@@ -133,10 +141,13 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
     assert.ok(await page.$('[data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]'));
     assert.equal(await page.$eval('.bg-tierlist-toolbar__meta', node => node.textContent), '0');
     failedSubscriptionResponsesRemaining = 1;
+    holdSubscriptionRecovery = true;
     await page.reload({ waitUntil: 'networkidle2' });
     assert.equal(failedSubscriptionResponsesRemaining, 0);
     assert.match(await page.$eval('main', node => node.textContent), /Проверяем доступ к тир-листу/,
       'a temporary subscription API failure must not appear as a revoked entitlement');
+    holdSubscriptionRecovery = false;
+    await Promise.all(subscriptionRecoveries.splice(0).map(recover => recover()));
     await page.waitForSelector('[data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]', { timeout: 10000 });
     tierStatus = 503;
     await page.reload({ waitUntil: 'networkidle2' });

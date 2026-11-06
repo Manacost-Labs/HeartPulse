@@ -86,34 +86,39 @@ export async function publicCardFixture({ backendEnv, externalRoutes = {} } = {}
     } else { response.end(JSON.stringify({ data: [], patches: [], decks: [] })); }
   });
   const externalOrigin = await listenLocal(source);
-  let backend;
-  try { backend = await startCredentialBackend({ externalOrigin, frontend: true, cardImages: true, env: backendEnv }); }
-  catch (error) { await closeLocal(source); throw error; }
-  const app = express();
-  app.use(express.static(resolve('dist')));
-  app.use((request, response) => {
-    if (!request.path.startsWith('/api/') && !request.path.includes('sitemap') && request.path !== '/robots.txt' && !/^\/standard\/cards\/(standard|wild)\/[^/]+\/?$/.test(request.path)) {
-      return response.sendFile(resolve('dist/index.html'));
-    }
-    const upstream = http.request(backend.origin + request.originalUrl, { method: request.method, headers: request.headers }, incoming => {
-      response.writeHead(incoming.statusCode, incoming.headers); incoming.pipe(response);
-    });
-    upstream.on('error', () => response.status(502).end()); request.pipe(upstream);
-  });
-  const legacy = http.createServer(app);
-  const legacyOrigin = await listenLocal(legacy);
-  const session = randomUUID(); const now = new Date().toISOString();
-  backend.database.prepare(`INSERT INTO users (id, email, name, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`)
-    .run('card-reader', 'card-reader@example.test', 'Игрок', 'unused', 'user', now, now);
-  backend.database.prepare(`INSERT INTO sessions (token_hash, user_id, email, expires_at, created_at) VALUES (?, ?, ?, ?, ?)`)
-    .run(createHash('sha256').update(session).digest('hex'), 'card-reader', 'card-reader@example.test', Date.now() + 3600000, now);
-  return {
-    backend, legacyOrigin, cookie: `manacost_auth_token=${session}`,
-    setUnavailable(value) { unavailable = value; },
-    grant() {
-      backend.database.prepare(`INSERT INTO manual_subscription_grants (user_id, active, entitlements_json, granted_by, granted_at, updated_at) VALUES (?, 1, ?, ?, ?, ?)`)
-        .run('card-reader', '{"standard":true}', 'integration-test', now, now);
-    },
-    async close() { await closeLocal(legacy); await backend.close(); await closeLocal(source); },
+  let backend; let legacy;
+  const close = async () => {
+    await Promise.all([legacy && closeLocal(legacy), backend?.close(), closeLocal(source)]);
   };
+  try {
+    backend = await startCredentialBackend({ externalOrigin, frontend: true, cardImages: true, env: backendEnv });
+    const legacyIndex = readFileSync(resolve('dist/index.html'));
+    const app = express();
+    app.use(express.static(resolve('dist')));
+    app.use((request, response) => {
+      if (!request.path.startsWith('/api/') && !request.path.includes('sitemap') && request.path !== '/robots.txt' && !/^\/standard\/cards\/(standard|wild)\/[^/]+\/?$/.test(request.path)) {
+        return response.type('html').send(legacyIndex);
+      }
+      const upstream = http.request(backend.origin + request.originalUrl, { method: request.method, headers: request.headers }, incoming => {
+        response.writeHead(incoming.statusCode, incoming.headers); incoming.pipe(response);
+      });
+      upstream.on('error', () => response.status(502).end()); request.pipe(upstream);
+    });
+    legacy = http.createServer(app);
+    const legacyOrigin = await listenLocal(legacy);
+    const session = randomUUID(); const now = new Date().toISOString();
+    backend.database.prepare(`INSERT INTO users (id, email, name, password_hash, role, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+      .run('card-reader', 'card-reader@example.test', 'Игрок', 'unused', 'user', now, now);
+    backend.database.prepare(`INSERT INTO sessions (token_hash, user_id, email, expires_at, created_at) VALUES (?, ?, ?, ?, ?)`)
+      .run(createHash('sha256').update(session).digest('hex'), 'card-reader', 'card-reader@example.test', Date.now() + 3600000, now);
+    return {
+      backend, legacyOrigin, cookie: `manacost_auth_token=${session}`,
+      setUnavailable(value) { unavailable = value; },
+      grant() {
+        backend.database.prepare(`INSERT INTO manual_subscription_grants (user_id, active, entitlements_json, granted_by, granted_at, updated_at) VALUES (?, 1, ?, ?, ?, ?)`)
+          .run('card-reader', '{"standard":true}', 'integration-test', now, now);
+      },
+      close,
+    };
+  } catch (error) { await close(); throw error; }
 }

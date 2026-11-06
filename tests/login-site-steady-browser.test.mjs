@@ -46,7 +46,9 @@ async function measure(page, origin, width, site) {
   await page.goto(`${origin}/?login#reader_interaction=${site.uid}`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.login-card .login-form');
   const early = await page.evaluate(() => document.body.innerText.replace(/\s+/g, ' '));
-  await new Promise(resolve => setTimeout(resolve, lateAnswerMs + 800));
+  // A busy renderer may not supply enough samples within a fixed wall-clock pause.
+  await page.waitForFunction(() => window.__named && window.__tops.length > 20);
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
   return page.evaluate(() => (window.__flushShifts(), {
     shift: window.__shift,
     spread: Math.max(...window.__tops) - Math.min(...window.__tops),

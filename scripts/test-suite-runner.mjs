@@ -4,6 +4,8 @@ import { constants as osConstants } from 'node:os';
 import { performance } from 'node:perf_hooks';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { writeTestTimingReport } from './lib/test-timing-report.mjs';
+import { runProcess, terminateChild } from './lib/process-task.mjs';
 
 export const TEST_SUITE_IDS = Object.freeze([
   'unit',
@@ -30,8 +32,6 @@ const IGNORED_DIRECTORY_NAMES = new Set([
 const ENVIRONMENT_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const ISSUE_URL_PATTERN = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/issues\/[1-9][0-9]*$/;
 const QUARANTINE_MODES = Object.freeze(['exclude', 'only']);
-const FORCE_KILL_DELAY_MS = 1_000;
-const FORWARDED_SIGNALS = ['SIGINT', 'SIGTERM'];
 
 function isRecord(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -213,119 +213,9 @@ function commandForTest(testFile) {
   return { command: process.execPath, args: ['--import', 'tsx', testFile] };
 }
 
-function terminateChild(child, signal) {
-  if (process.platform !== 'win32' && Number.isInteger(child.pid)) {
-    try {
-      process.kill(-child.pid, signal);
-      return;
-    } catch (error) {
-      if (error?.code !== 'ESRCH') throw error;
-    }
-  }
-  child.kill?.(signal);
-}
-
-function runChild(
-  testFile,
-  repositoryRoot,
-  environment,
-  spawnImpl, signalEmitter, killImpl,
-) {
+function runChild(testFile, repositoryRoot, environment, spawnImpl, signalEmitter, killImpl) {
   const { command, args } = commandForTest(testFile);
-  return new Promise((resolve, reject) => {
-    const child = spawnImpl(command, args, {
-      cwd: repositoryRoot,
-      detached: process.platform !== 'win32',
-      env: environment,
-      shell: false,
-      stdio: 'inherit',
-    });
-    let settled = false;
-    let forwardedSignal = null;
-    let forceKillTimer = null;
-    let forceKillSent = false;
-    const cleanup = () => {
-      for (const signal of FORWARDED_SIGNALS) signalEmitter.removeListener(signal, signalHandlers[signal]);
-      if (forceKillTimer) clearTimeout(forceKillTimer);
-    };
-    const interruptError = signal => {
-      const error = new Error(`${testFile} interrupted by ${signal}`);
-      error.signal = signal;
-      error.testFile = testFile;
-      error.interrupted = true;
-      return error;
-    };
-    const forceKill = () => {
-      if (forceKillSent) return;
-      forceKillSent = true;
-      try {
-        killImpl(child, 'SIGKILL');
-      } catch {
-        // The original interruption remains the result even if the group exited first.
-      }
-    };
-    const forwardSignal = signal => {
-      if (settled) return;
-      if (forwardedSignal) {
-        forceKill();
-        return;
-      }
-      forwardedSignal = signal;
-      try {
-        killImpl(child, signal);
-        forceKillTimer = setTimeout(forceKill, FORCE_KILL_DELAY_MS);
-        forceKillTimer.unref?.();
-      } catch (error) {
-        settled = true;
-        cleanup();
-        const interrupted = interruptError(signal);
-        interrupted.cause = error;
-        reject(interrupted);
-      }
-    };
-    const signalHandlers = Object.fromEntries(
-      FORWARDED_SIGNALS.map(signal => [signal, () => forwardSignal(signal)]),
-    );
-    for (const signal of FORWARDED_SIGNALS) signalEmitter.on(signal, signalHandlers[signal]);
-
-    const rejectInterrupted = () => {
-      if (!forwardedSignal) return false;
-      forceKill();
-      cleanup();
-      reject(interruptError(forwardedSignal));
-      return true;
-    };
-
-    child.once('error', error => {
-      if (settled) return;
-      settled = true;
-      if (rejectInterrupted()) return;
-      cleanup();
-      error.testFile = testFile;
-      reject(error);
-    });
-    child.once('close', (exitCode, signal) => {
-      if (settled) return;
-      settled = true;
-      if (rejectInterrupted()) return;
-      cleanup();
-      if (signal) {
-        const error = new Error(`${testFile} terminated by ${signal}`);
-        error.signal = signal;
-        error.testFile = testFile;
-        reject(error);
-        return;
-      }
-      if (exitCode !== 0) {
-        const error = new Error(`${testFile} exited with code ${exitCode}`);
-        error.exitCode = exitCode;
-        error.testFile = testFile;
-        reject(error);
-        return;
-      }
-      resolve();
-    });
-  });
+  return runProcess(command, args, { label: testFile, repositoryRoot, environment, spawnImpl, signalEmitter, killImpl });
 }
 
 /**
@@ -481,6 +371,7 @@ export async function runTestRegistry(registry, options) {
     quarantine = null,
     onlyFiles = null,
     summaryPath = null,
+    reportPath = null,
     annotations = false,
     clock = () => performance.now(),
   } = options;
@@ -520,19 +411,26 @@ export async function runTestRegistry(registry, options) {
   const flaky = [];
   const failures = [];
   let executed = 0;
-  const finish = () => writeStepSummary(summaryPath, {
-    title: `Test suites: ${[...selectedSuites].join(', ')}${shard ? ` · shard ${shard.index}/${shard.total}` : ''}${
-      quarantine === 'only' ? ' · quarantine (non-blocking)' : ''}`,
-    results,
-    executed,
-    selected: planned.length,
-    flaky,
-    failed: failures.length,
-  });
+  const finish = () => {
+    writeTestTimingReport(reportPath, { results, suites: selectedSuites, shard, quarantine, environment: parentEnv });
+    writeStepSummary(summaryPath, {
+      title: `Test suites: ${[...selectedSuites].join(', ')}${shard ? ` · shard ${shard.index}/${shard.total}` : ''}${
+        quarantine === 'only' ? ' · quarantine (non-blocking)' : ''}`,
+      results,
+      executed,
+      selected: planned.length,
+      flaky,
+      failed: failures.length,
+    });
+  };
   const stop = error => {
     logger(`[test-suite] SUMMARY executed=${executed} registered=${validated.files.length}${shardLabel}${
       failures.length > 1 ? ` failed=${failures.length}` : ''}`);
-    finish();
+    try {
+      finish();
+    } catch {
+      logger('[test-suite] Could not write diagnostic reports; preserving the test failure');
+    }
     if (failures.length > 1 && !error.interrupted) {
       error.message = `${failures.length} test files failed: ${failures.map(({ testFile }) => testFile).join(', ')}`;
     }
@@ -610,7 +508,7 @@ function printValidationSummary(validated) {
   );
 }
 
-const USAGE = 'usage: node scripts/test-suite-runner.mjs <--validate|--all|--suite <id>[,<id>...]> [--shard <index>/<total>] [--retry-failed-once] [--continue-on-failure] [--quarantine <exclude|only>] [--only-files <file>]';
+const USAGE = 'usage: node scripts/test-suite-runner.mjs <--validate|--all|--suite <id>[,<id>...]> [--shard <index>/<total>] [--retry-failed-once] [--continue-on-failure] [--quarantine <exclude|only>] [--only-files <file>] [--report <file>]';
 
 /** Parses runner arguments; exported for the CLI contract tests. */
 export function parseRunnerArguments(args) {
@@ -639,6 +537,8 @@ export function parseRunnerArguments(args) {
       options.quarantine = rest.shift();
     } else if (flag === '--only-files' && rest.length > 0 && !rest[0].startsWith('--') && options.onlyFilesPath === undefined) {
       options.onlyFilesPath = rest.shift();
+    } else if (flag === '--report' && rest.length > 0 && !rest[0].startsWith('--') && options.reportPath === undefined) {
+      options.reportPath = rest.shift();
     } else {
       throw new Error(USAGE);
     }
@@ -668,6 +568,7 @@ async function main() {
     quarantine: options.quarantine,
     onlyFiles: options.onlyFilesPath ? parseOnlyFiles(readFileSync(options.onlyFilesPath, 'utf8'), repositoryRoot) : null,
     summaryPath: process.env.GITHUB_STEP_SUMMARY || null,
+    reportPath: options.reportPath ?? null,
     annotations: process.env.GITHUB_ACTIONS === 'true',
   });
 }

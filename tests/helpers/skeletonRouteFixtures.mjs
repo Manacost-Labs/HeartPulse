@@ -1,5 +1,5 @@
 /**
- * Route table for tests/skeleton-route-geometry-browser.test.mjs.
+ * Shared route table for the mobile and desktop skeleton geometry browser tests.
  *
  * Each route names the page, the fixture API answers it needs, the request
  * that is HELD while the skeleton is measured, and the parts to compare.

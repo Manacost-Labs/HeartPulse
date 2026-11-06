@@ -12,6 +12,7 @@
     ".storybook/**/*.{ts,tsx,css}",
     "server/**/*.ts",
     "scripts/*.{js,mjs}",
+    "tests/helpers/**/*.{ts,tsx,mjs}",
     "apps/public-web/{app,lib,ui}/**/*.{ts,tsx}",
     "apps/public-web/*.mjs"
   ],

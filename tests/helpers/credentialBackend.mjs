@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { mkdtempSync, mkdirSync, rmSync, symlinkSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, rmSync, symlinkSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
@@ -78,8 +78,18 @@ function controlledSmtp() {
   };
 }
 
-/** Runs the current backend entry point with only temporary state and local SMTP. */
+export function credentialBackendArguments({ compiled = false, externalOrigin = false } = {}) {
+  return [
+    ...(!compiled ? ['--import', 'tsx'] : []),
+    ...(externalOrigin ? ['--import', './tests/helpers/controlledExternalFetch.mjs'] : []),
+    compiled ? 'build/server/index.js' : 'server/index.ts',
+  ];
+}
+
+/** Source by default; CI explicitly tests the exact compiled release with temporary state and local SMTP. */
 export async function startCredentialBackend(options = {}) {
+  const compiled = process.env.HP_TEST_COMPILED_BACKEND === '1';
+  if (compiled) assert.ok(existsSync('build/server/index.js'), 'compiled backend missing; run npm run build first');
   const directory = mkdtempSync(join(tmpdir(), 'hearthpulse-auth-integration-'));
   const dataDirectory = join(directory, 'data');
   mkdirSync(dataDirectory);
@@ -91,7 +101,7 @@ export async function startCredentialBackend(options = {}) {
   await new Promise(resolve => reservation.close(resolve));
   const origin = `http://127.0.0.1:${port}`;
   const databasePath = join(directory, 'users.sqlite');
-  const child = spawn(process.execPath, ['--import', 'tsx', ...(options.externalOrigin ? ['--import', './tests/helpers/controlledExternalFetch.mjs'] : []), 'server/index.ts'], {
+  const child = spawn(process.execPath, credentialBackendArguments({ compiled, externalOrigin: options.externalOrigin }), {
     cwd: process.cwd(),
     env: {
       PATH: process.env.PATH,
@@ -122,7 +132,7 @@ export async function startCredentialBackend(options = {}) {
   const close = async () => {
     database?.close();
     await smtp.close();
-    if (child.exitCode === null) {
+    if (child.exitCode === null && child.signalCode === null) {
       const stopped = once(child, 'exit');
       child.kill('SIGTERM');
       const deadline = setTimeout(() => child.kill('SIGKILL'), 3000);
@@ -133,14 +143,28 @@ export async function startCredentialBackend(options = {}) {
   };
   try {
     let ready = false;
-    for (let attempt = 0; attempt < 300; attempt += 1) {
+    const startupTimeoutMs = 30_000;
+    const startedAt = performance.now();
+    // Allow a scheduled-but-not-yet-running child to start on a busy CI runner.
+    // Bound elapsed time rather than polling count, including slow health replies.
+    while (performance.now() - startedAt < startupTimeoutMs) {
       assert.equal(child.exitCode, null, `Backend exited before readiness: ${output}`);
-      ready = await fetch(`${origin}/health/live`).then(r => r.ok, () => false);
+      assert.equal(child.signalCode, null, `Backend stopped before readiness: ${output}`);
+      // A concurrent fixture can claim the released reservation before this child.
+      // Only the owned child's listening callback proves that it bound the port.
+      if (output.includes(`[Server] API server running on ${origin}\n`)) {
+        ready = await fetch(`${origin}/health/live`, { signal: AbortSignal.timeout(1000) })
+          .then(r => r.ok, () => false);
+      }
       if (ready) break;
       await delay(30);
     }
-    assert.ok(ready, `Backend did not start: ${output}`);
+    assert.ok(ready, `Backend did not start within ${startupTimeoutMs} ms `
+      + `(elapsed=${Math.round(performance.now() - startedAt)} ms, pid=${child.pid}, `
+      + `compiled=${compiled}, exit=${child.exitCode}, signal=${child.signalCode}): ${output}`);
+    assert.ok(existsSync(databasePath), `Backend database missing after readiness: ${output}`);
     database = new DatabaseSync(databasePath);
+    database.prepare('SELECT id FROM users LIMIT 0').all();
     return {
       database, dataDirectory, smtp, close, origin, output: () => output,
       request(path, body, headers = {}) {

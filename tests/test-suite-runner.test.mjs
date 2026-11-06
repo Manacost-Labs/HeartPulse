@@ -565,6 +565,7 @@ test('a file that fails once and passes on the single retry is reported as FLAKY
     writeFixture(repositoryRoot, 'tests/stable.test.mjs');
     const summaryPath = path.join(repositoryRoot, 'summary.md');
     const exitCodes = { 'tests/flaky.test.mjs': [1, 0], 'tests/stable.test.mjs': [0] };
+    const reportPath = path.join(repositoryRoot, 'timings.json');
     const messages = [];
     let now = 0;
 
@@ -575,6 +576,7 @@ test('a file that fails once and passes on the single retry is reported as FLAKY
       suiteIds: ['browser'],
       retryFailedOnce: true,
       summaryPath,
+      reportPath,
       annotations: true,
       clock: () => (now += 1500),
       spawnImpl: (command, args) => completedChild(exitCodes[args.at(-1)].shift()),
@@ -596,6 +598,7 @@ test('a file that fails once and passes on the single retry is reported as FLAKY
     assert.match(markdown, /\*\*FLAKY\*\* \(failed once, passed on the single retry\): `tests\/flaky\.test\.mjs`/);
     assert.match(markdown, /\| ⚠️ FLAKY \| `tests\/flaky\.test\.mjs` \| 1\.5s \(first attempt: tests\/flaky\.test\.mjs exited with code 1\) \|/);
     assert.match(markdown, /\| ✅ PASS \| `tests\/stable\.test\.mjs` \| 1\.5s \|/);
+    assert.deepEqual(JSON.parse(readFileSync(reportPath, 'utf8')).results.map(item => item.status), ['FLAKY', 'PASS']);
   });
 });
 
@@ -859,6 +862,67 @@ test('parses --only-files as a path and rejects it without one or twice', () => 
   ]) {
     assert.throws(() => parseRunnerArguments(args), /usage:/, args.join(' '));
   }
+});
+
+test('parses --report strictly and writes JSON on success and early failure', async () => {
+  assert.equal(parseRunnerArguments(['--all', '--report', 'timings.json']).reportPath, 'timings.json');
+  for (const args of [['--all', '--report'], ['--all', '--report', '--shard', '1/2'], ['--all', '--report', 'a', '--report', 'b']]) {
+    assert.throws(() => parseRunnerArguments(args), /usage:/);
+  }
+  for (const exitCode of [0, 7]) await withRepository(async repositoryRoot => {
+    const reportPath = path.join(repositoryRoot, 'reports', 'timings.json');
+    const files = ['tests/first.test.mjs', 'tests/later.test.mjs'];
+    for (const file of files) writeFixture(repositoryRoot, file);
+    let now = 0;
+    const run = runTestRegistry(registry(files), {
+      repositoryRoot, reportPath, logger: () => {}, clock: () => (now += 250),
+      parentEnv: { GITHUB_RUN_ID: '123', GITHUB_RUN_ATTEMPT: '2', GITHUB_SHA: 'a'.repeat(40), GITHUB_EVENT_NAME: 'merge_group', PRIVATE_TOKEN: 'must-not-appear' },
+      spawnImpl: () => completedChild(exitCode),
+    });
+    if (exitCode) await assert.rejects(run, error => error.exitCode === 7);
+    else await run;
+    const report = JSON.parse(readFileSync(reportPath, 'utf8'));
+    assert.equal(report.version, 1);
+    assert.equal(report.run.id, '123');
+    assert.equal(report.run.attempt, '2');
+    assert.deepEqual(report.results.map(item => item.status), exitCode ? ['FAIL', 'NOT RUN'] : ['PASS', 'PASS']);
+    assert.equal(report.results[0].milliseconds, 250);
+    assert.equal(report.results[1].milliseconds, exitCode ? null : 250);
+    assert.ok(!JSON.stringify(report).includes('must-not-appear'));
+  });
+});
+
+test('a diagnostic write failure preserves the original test exit code', async () => {
+  await withRepository(async repositoryRoot => {
+    writeFixture(repositoryRoot, 'tests/broken.test.mjs');
+    const reportPath = path.join(repositoryRoot, 'occupied');
+    writeFileSync(reportPath, 'not a directory');
+    await assert.rejects(runTestRegistry(registry(['tests/broken.test.mjs']), {
+      repositoryRoot, reportPath: path.join(reportPath, 'report.json'),
+      logger: () => {}, spawnImpl: () => completedChild(7),
+    }), error => error.exitCode === 7);
+  });
+});
+
+test('an interrupted runner writes FAIL and NOT RUN entries without continuing', async () => {
+  await withRepository(async repositoryRoot => {
+    const files = ['tests/active.test.mjs', 'tests/later.test.mjs'];
+    for (const file of files) writeFixture(repositoryRoot, file);
+    const signalEmitter = new EventEmitter();
+    const child = new EventEmitter();
+    child.pid = 1234;
+    const reportPath = path.join(repositoryRoot, 'timings.json');
+    const run = runTestRegistry(registry(files), {
+      repositoryRoot, reportPath, signalEmitter, continueOnFailure: true,
+      spawnImpl: () => child,
+      killImpl: () => queueMicrotask(() => child.emit('close', null, 'SIGTERM')),
+      logger: () => {},
+    });
+    signalEmitter.emit('SIGTERM');
+    await assert.rejects(run, error => error.interrupted && error.signal === 'SIGTERM');
+    assert.deepEqual(JSON.parse(readFileSync(reportPath, 'utf8')).results.map(item => item.status), ['FAIL', 'NOT RUN']);
+    assert.equal(signalEmitter.listenerCount('SIGTERM'), 0);
+  });
 });
 
 test('reads --only-files from the selection JSON, a bare suite map, an array or one path per line', () => {

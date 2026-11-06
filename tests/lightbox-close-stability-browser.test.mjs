@@ -127,7 +127,7 @@ for (const [name, viewport] of [
  * so the fade is read from the transition itself: when it started on the
  * document timeline, how long it runs, and when the lightbox left the page.
  */
-async function heroLightboxClose({ reducedMotion }) {
+async function heroLightboxClose({ reducedMotion, transitionDelay = 0 }) {
   const page = await browser.newPage();
   await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
   if (reducedMotion) await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
@@ -137,6 +137,9 @@ async function heroLightboxClose({ reducedMotion }) {
   await page.waitForSelector('.bg-hero-action-card', { visible: true });
   await page.click('.bg-hero-action-card');
   await page.waitForFunction(() => getComputedStyle(document.querySelector('.bg-hero-media-lightbox')).opacity === '1');
+  if (transitionDelay) await page.$eval('.bg-hero-media-lightbox', (element, milliseconds) => {
+    element.style.transitionDelay = `${milliseconds}ms`;
+  }, transitionDelay);
   const cdp = await page.createCDPSession();
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 6 });
   const { opacities, fade } = await page.evaluate(() => new Promise(resolve => {
@@ -144,22 +147,56 @@ async function heroLightboxClose({ reducedMotion }) {
     const samples = [];
     let goneFor = 0;
     let transition = null;
-    const fade = { start: null, duration: null, to: null, removedAt: null };
+    const fade = { start: null, duration: null, delay: null, to: null, removedAt: null, lifecycle: [] };
+    // Inline styles and event metadata do not force a layout/style flush. Keep
+    // evidence even when a busy renderer exposes no live transition to sample.
+    const record = (phase, elapsed = null) => {
+      if (fade.lifecycle.length < 16) fade.lifecycle.push({
+        phase, at: performance.now(), opacity: lightbox.style.opacity,
+        transition: lightbox.style.transition, connected: lightbox.isConnected, elapsed,
+        animation: transition ? {
+          playState: transition.playState, pending: transition.pending,
+          startTime: transition.startTime, currentTime: transition.currentTime,
+        } : null,
+      });
+    };
+    record('observe');
+    for (const name of ['transitionrun', 'transitionstart', 'transitionend', 'transitioncancel']) {
+      lightbox.addEventListener(name, event => {
+        if (event.target === lightbox && event.propertyName === 'opacity') record(name, event.elapsedTime);
+      });
+    }
     // Read while the transition runs: removing the lightbox cancels it.
     const readFade = () => {
-      transition ??= lightbox.getAnimations().find(animation => animation.transitionProperty === 'opacity') ?? null;
+      if (!transition) {
+        transition = lightbox.getAnimations().find(animation => animation.transitionProperty === 'opacity') ?? null;
+        // Snapshot the real start before removal clears it, even if frame and
+        // transition-event observers arrive late. If readiness rejects, the
+        // unchanged assertions still reject missing fade metadata.
+        if (transition) {
+          record('animation-captured');
+          void transition.ready.then(() => {
+            record('animation-ready');
+            readFade();
+          }, () => record('animation-ready-rejected'));
+        }
+      }
       if (!transition || fade.start !== null || transition.startTime === null) return;
       fade.start = transition.startTime;
       fade.duration = transition.effect.getComputedTiming().duration;
+      fade.delay = transition.effect.getComputedTiming().delay;
       fade.to = Number(transition.effect.getKeyframes().at(-1)?.opacity);
     };
-    const removal = new MutationObserver(() => {
+    const removal = new MutationObserver(records => {
+      if (records.some(change => change.type === 'attributes' && change.target === lightbox)) record('style');
       if (lightbox.isConnected) return;
+      record('removed');
       fade.removedAt = performance.now();
       readFade();
       removal.disconnect();
     });
     removal.observe(document.body, { childList: true, subtree: true });
+    removal.observe(lightbox, { attributes: true, attributeFilter: ['style'] });
     lightbox.addEventListener('transitionstart', readFade);
     const sample = () => {
       const current = document.querySelector('.bg-hero-media-lightbox');
@@ -193,4 +230,14 @@ test('under reduced motion the hero media lightbox closes at once', async () => 
   const { opacities } = await heroLightboxClose({ reducedMotion: true });
   const closedAt = opacities.indexOf(null);
   assert.ok(closedAt >= 0 && closedAt <= 3, `the lightbox must close within a few frames: ${opacities.join(', ')}`);
+});
+
+test('a scheduled hero fade outlives the close fallback timer', async () => {
+  const { fade, bodyLocked } = await heroLightboxClose({ reducedMotion: false, transitionDelay: 900 });
+  const detail = JSON.stringify(fade);
+  assert.ok(fade.start !== null && fade.delay === 900 && fade.duration >= 150 && fade.to === 0,
+    `a real delayed opacity transition is scheduled: ${detail}`);
+  assert.ok(fade.removedAt >= fade.start + fade.delay + fade.duration,
+    `the close fallback must not cut short a scheduled fade: ${detail}`);
+  assert.equal(bodyLocked, '', 'the page scroll lock is released after the delayed fade');
 });

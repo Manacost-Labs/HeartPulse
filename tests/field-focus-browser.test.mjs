@@ -20,8 +20,16 @@ test('search fields keep their shape during pointer typing and retain a Tab indi
     for (const width of [390, 1440]) {
       await page.setViewport({ width, height: 900 });
       for (const [route, field] of SEARCH_FIELDS) {
-        await page.goto(`${runtime.origin}${route}`, { waitUntil: 'networkidle2' });
+        await page.goto(`${runtime.origin}${route}`, { waitUntil: 'load' });
         await page.waitForSelector(field, { visible: true });
+        await page.evaluate(() => document.fonts.ready);
+        // Wait for the hydrated focus handler, rather than unrelated network traffic.
+        // The original checks below still exercise real pointer and keyboard input.
+        await page.waitForFunction(() => {
+          document.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }));
+          return document.documentElement.hasAttribute('data-pointer-focus');
+        }, { timeout: 10_000 });
+        await page.keyboard.press('Tab');
         const readStyle = () => page.$eval(field, input => {
           const style = getComputedStyle(input);
           const frame = getComputedStyle(input.parentElement);

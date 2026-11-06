@@ -112,8 +112,8 @@ before(async () => {
   if (shotsDir) mkdirSync(shotsDir, { recursive: true });
   else { shotsDir = mkdtempSync(join(tmpdir(), 'hp-login-button-')); ownsShotsDir = true; }
 
-  const executablePath = ['/usr/bin/chromium', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable']
-    .find(existsSync);
+  const executablePath = [process.env.CHROMIUM_PATH, '/usr/bin/chromium', '/usr/bin/google-chrome', '/usr/bin/google-chrome-stable']
+    .find(candidate => candidate && existsSync(candidate));
   assert.ok(executablePath, 'Chromium/Chrome executable is required');
   browser = await launchBrowser({
     executablePath,

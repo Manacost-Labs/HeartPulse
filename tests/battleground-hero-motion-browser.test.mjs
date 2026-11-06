@@ -192,6 +192,9 @@ test('hero filters preserve Top 1% errors and discard late responses after a fas
     await page.evaluate(() => {
       const originalFetch = globalThis.fetch;
       globalThis.heroFilterRequests = [];
+      // Hover/focus prefetch and selection share the pending request. Keep the
+      // synthetic failure pending until selection, independent of input timing.
+      const topOneSelected = new Promise(resolve => { globalThis.releaseHeroTopOne = resolve; });
       globalThis.fetch = async (input, init) => {
         const url = new URL(String(input), location.origin);
         if (url.pathname === '/bg-legacy/tier-data.js') {
@@ -201,7 +204,10 @@ test('hero filters preserve Top 1% errors and discard late responses after a fas
         if (url.pathname !== '/api/bg/heroes') return originalFetch(input, init);
         const mmr = url.searchParams.get('mmr');
         globalThis.heroFilterRequests.push(mmr);
-        if (mmr === 'TOP_1_PERCENT') return Response.json({ ok: false, error: 'Нет данных для Топ 1% (проверка)' }, { status: 503 });
+        if (mmr === 'TOP_1_PERCENT') {
+          await topOneSelected;
+          return Response.json({ ok: false, error: 'Нет данных для Топ 1% (проверка)' }, { status: 503 });
+        }
         if (mmr === 'TOP_20_PERCENT') await new Promise(resolve => setTimeout(resolve, 300));
         return Response.json({ ok: true, fetched_at: '2026-10-12T12:00:00Z', heroes: [{
           dbfId: 61488, hero: 'Алекстраза', tier: 'A', pick_rate: '12%',
@@ -210,6 +216,9 @@ test('hero filters preserve Top 1% errors and discard late responses after a fas
       };
     });
     await page.click('button::-p-text(Топ 1%)');
+    await page.waitForFunction(() => [...document.querySelectorAll('button')]
+      .some(button => button.textContent === 'Топ 1%' && button.getAttribute('aria-pressed') === 'true'));
+    await page.evaluate(() => globalThis.releaseHeroTopOne());
     await page.waitForFunction(() => document.querySelector('.bg-heroes-page [role=alert]')?.textContent.includes('Нет данных для Топ 1%'));
     assert.equal(await page.$$eval('.bg-heroes-page a[href="/heroes/61488/"]', links => links.length), 0);
     await page.click('button::-p-text(Топ 20%)');
