@@ -977,6 +977,37 @@ a 24,015,327-byte payload. These local timings do not prove a hosted speedup.
 Judge the experiment by complete hosted setup, packing and required-gate time;
 revert it if the extra packaging has no measured benefit.
 
+## Mobile route geometry groups
+
+Run `42134776160` on `32653a83` passed all 36 checks and all 553 registered
+files without retries. Required validation completed at +186 seconds.
+Packing took one second and uploading two seconds. Across consumer jobs,
+downloads took at most five seconds and extraction at most one second, using
+integer step timestamps. This unpaired run supports keeping the archive trial
+for further measurement, but does not establish a causal speedup or the SLO.
+
+Browser shard 2 finished last. Its mobile route geometry file took 70.340
+seconds, covering seven sequential routes. It now runs in two independent
+files: the first three routes (`fun-decks`, `guide-detail`, `guides-list`)
+and the remaining four (`cosmetics-list` and the three arena routes). Each
+file owns its backend, Next server and browser. Shared route measurements,
+CLS and geometry assertions, fonts, animation waits, fixtures and the mobile
+viewport are unchanged. Desktop still checks every route. An explicit
+`SKELETON_ROUTES` selection continues to run in full when invoking either
+mobile file for diagnostics; default CI runs the disjoint groups exactly once.
+
+The prior 63.773-second scheduling weight is allocated as 33.002 and 30.771
+seconds using successful subtest durations from that hosted run. These are
+initial scheduling seeds, not new per-file medians. There are now 554
+registered files: 550 blocking and four quarantined, with 94 blocking browser
+files. Four workers per browser job and ten browser jobs remain unchanged.
+The coverage proof checks both groups against the entire active route table
+and verifies that only route selection changed in the shared harness. Both
+mobile groups passed concurrently in real Chrome on four local CPUs: all
+seven routes, no skips or retries. Registry validation and all 11 worker,
+workflow and QA-group checks also passed. Local group timings are not a
+hosted CI speedup measurement.
+
 ## Verification
 
 Focused runner and workflow tests must prove deterministic complete sharding,

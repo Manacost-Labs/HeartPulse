@@ -335,9 +335,12 @@ async function runRoute({ browser, origin, backend, route, viewport }) {
   return record;
 }
 
-export async function verifySkeletonRoutes(t, viewports = VIEWPORTS) {
+// A range partitions the default CI inventory; an explicit SKELETON_ROUTES
+// selection still runs in full for single-file diagnostic invocations.
+export async function verifySkeletonRoutes(t, viewports = VIEWPORTS, routeRange) {
+  const routes = routeRange && !process.env.SKELETON_ROUTES ? selectedRoutes.slice(...routeRange) : selectedRoutes;
   assert.ok(existsSync(join(ROOT, 'apps/public-web/.next/BUILD_ID')), 'run `npm run build:next` before this browser test');
-  assert.ok(selectedRoutes.length > 0, `SKELETON_ROUTES matched no route; ids: ${SKELETON_ROUTES.map(route => route.id).join(', ')}`);
+  assert.ok(routes.length > 0, `SKELETON_ROUTES matched no route; ids: ${SKELETON_ROUTES.map(route => route.id).join(', ')}`);
   const backend = createFixtureBackend();
   const legacyOrigin = await listenLocal(backend.server);
   let next; let gateway; let browser; const records = [];
@@ -347,7 +350,7 @@ export async function verifySkeletonRoutes(t, viewports = VIEWPORTS) {
     const origin = await listenLocal(gateway);
     const executablePath = [process.env.CHROMIUM_PATH, '/usr/bin/google-chrome', '/usr/bin/chromium'].find(path => path && existsSync(path));
     browser = await launchBrowser({ executablePath, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
-    for (const route of selectedRoutes) {
+    for (const route of routes) {
       for (const viewport of viewports) {
         await t.test(`${route.id} at ${viewport.width}x${viewport.height}`, async subtest => {
           const record = await runRoute({ browser, origin, backend, route, viewport });

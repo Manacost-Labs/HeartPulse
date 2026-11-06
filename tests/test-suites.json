@@ -570,6 +570,7 @@
         "tests/skeleton-geometry-browser.test.mjs",
         "tests/storybook-story-loading-browser.test.mjs",
         "tests/skeleton-route-geometry-browser.test.mjs",
+        "tests/skeleton-route-secondary-geometry-browser.test.mjs",
         "tests/skeleton-route-desktop-geometry-browser.test.mjs",
         "tests/archetype-vicious-skeleton-geometry-browser.test.mjs",
         "tests/archetype-vicious-skeleton-geometry-tablet-browser.test.mjs",
