@@ -1727,3 +1727,42 @@ probes are removed. Project/scoped Semgrep and Oxlint pass. The only test
 source change replaces the wall-clock pause; product behavior, registry,
 worker count and retry policy are unchanged. Hosted verification remains
 pending, and the two-minute target remains unmet.
+
+## Limit responsive image decoding to the screenshot's lazy images
+
+Full run `42169811877` on `9a39f4b` passes all 36 checks: 555 blocking
+and four quarantine files pass without retries. Required validation takes
+179 seconds including queue. Observatory batch 4 finishes last; its
+`shell-responsive` group takes 83.943 seconds.
+
+A local four-CPU profile of the unchanged responsive group captures all 30
+scenarios successfully. Image settling consumes 12.450 seconds, including
+six approximately two-second waits. Every incomplete image recorded at this
+stage is a lazy image outside the viewport. Calling `decode()` does not
+ensure such an image starts loading, so these promises reach the existing
+two-second bound without contributing to the viewport screenshot.
+
+Responsive settling now scrolls to the screenshot origin before measuring
+image rectangles and skips decoding only lazy images fully outside that
+viewport. Partially visible lazy images and all otherwise eligible eager
+images remain included. Font readiness, network idle, the two-second decode
+bound, animation frames, all routes, profiles, assertions and screenshots
+are preserved. No production code, concurrency, retry or gate changes are
+included.
+
+A temporary real-browser probe fails on the original helper and passes on
+the candidate: lazy images beyond all four viewport edges are excluded,
+while a partially visible image, a visible image and an offscreen eager
+image complete delayed decodes before settling returns. The complete
+responsive matrix passes with identical scenario identities, HTTP statuses,
+QA outcomes and touch-target findings. The probe is outside the repository.
+Hosted timing verification remains pending; the two-minute goal is unmet.
+
+A sequential baseline/candidate measurement on the same four CPU cores and
+unchanged build completes this group in 41.253 and 29.605 seconds,
+respectively. Both runs pass all 30 captures with identical HTTP statuses,
+scenario outcomes and all 145 existing touch-target findings. This is one
+local pair, not a hosted CI speedup or evidence that the SLO is satisfied.
+The existing QA command contract passes; project and focused Semgrep report
+no findings. Oxlint exits successfully with three pre-existing unused-symbol
+warnings outside the changed helper; documentation lint passes.

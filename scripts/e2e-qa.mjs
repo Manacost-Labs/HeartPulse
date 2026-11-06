@@ -735,16 +735,19 @@ async function settleResponsiveSnapshot(page, { waitForFooter }) {
   await page.waitForNetworkIdle({ idleTime: 250, timeout: 10_000 });
   await page.evaluate(async () => {
     await document.fonts?.ready;
+    window.scrollTo({ top: 0, behavior: 'auto' });
     const images = [...document.querySelectorAll('img')].filter(image => {
       const rect = image.getBoundingClientRect();
       const style = getComputedStyle(image);
-      return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden';
+      const inViewport = rect.bottom > 0 && rect.right > 0 && rect.top < innerHeight && rect.left < innerWidth;
+      // Viewport screenshots cannot include offscreen lazy images, whose decode may never start.
+      return rect.width > 0 && rect.height > 0 && style.display !== 'none' && style.visibility !== 'hidden'
+        && (image.loading !== 'lazy' || inViewport);
     });
     await Promise.all(images.map(image => Promise.race([
       image.decode().catch(() => {}),
       new Promise(resolve => setTimeout(resolve, 2_000)),
     ])));
-    window.scrollTo({ top: 0, behavior: 'auto' });
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   });
 }
