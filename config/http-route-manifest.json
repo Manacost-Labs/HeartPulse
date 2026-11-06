@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 103,
-    "routeRegistrations": 283,
-    "middlewareRegistrations": 143,
-    "explicitGuardRouteRegistrations": 72,
+    "sourceFiles": 106,
+    "routeRegistrations": 285,
+    "middlewareRegistrations": 147,
+    "explicitGuardRouteRegistrations": 73,
     "unresolvedPaths": 0
   },
   "registrations": [
@@ -1039,6 +1039,34 @@
       "sourceOrder": 2
     },
     {
+      "kind": "middleware",
+      "paths": [
+        "/api/v1/chat"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "rateLimit(...)"
+      ],
+      "guardSignals": [
+        "rateLimit(...)"
+      ],
+      "source": "server/app/registerChatCommands.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "createChatCommandsRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/app/registerChatCommands.ts",
+      "sourceOrder": 1
+    },
+    {
       "kind": "route",
       "method": "POST",
       "path": "/api/v1/crash-reports",
@@ -1096,6 +1124,21 @@
     {
       "kind": "middleware",
       "paths": [
+        "/api/profiles/:publicProfileId/year"
+      ],
+      "receiver": "app",
+      "handlers": [
+        "rateLimit(...)"
+      ],
+      "guardSignals": [
+        "rateLimit(...)"
+      ],
+      "source": "server/app/registerPlayerGames.ts",
+      "sourceOrder": 2
+    },
+    {
+      "kind": "middleware",
+      "paths": [
         "/api"
       ],
       "receiver": "dependencies.app",
@@ -1104,7 +1147,20 @@
       ],
       "guardSignals": [],
       "source": "server/app/registerPlayerGames.ts",
-      "sourceOrder": 2
+      "sourceOrder": 3
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/api"
+      ],
+      "receiver": "dependencies.app",
+      "handlers": [
+        "yearReview"
+      ],
+      "guardSignals": [],
+      "source": "server/app/registerPlayerGames.ts",
+      "sourceOrder": 4
     },
     {
       "kind": "middleware",
@@ -4182,6 +4238,22 @@
     {
       "kind": "route",
       "method": "GET",
+      "path": "/v1/chat/:channel/:command",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "limiter"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "limiter"
+      ],
+      "source": "server/modules/chatCommands/routes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
       "path": "/card-choices/:format/:cardId",
       "pathKind": "string",
       "receiver": "router",
@@ -4466,6 +4538,18 @@
       "guardSignals": [],
       "source": "server/modules/playerGames/routes/statsRoutes.ts",
       "sourceOrder": 3
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/profiles/:publicProfileId/year/:year",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/playerGames/routes/yearReviewRoutes.ts",
+      "sourceOrder": 0
     },
     {
       "kind": "route",

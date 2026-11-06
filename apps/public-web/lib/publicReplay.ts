@@ -12,7 +12,9 @@ export type PublicReplay = {
   createdAt: string;
   /** Mode and result in Russian (result '' when unknown). */
   summary: { mode: string; result: string; turns: number; placement: number; heroName: string; opponentHeroName: string;
-    opponentArchetype: string; finalBoard: Array<{ name: string; attack: number; health: number; golden: boolean }> };
+    opponentArchetype: string; finalBoard: Array<{ cardId: string; name: string; attack: number; health: number; golden: boolean }>;
+    /** Raw header values for previews and embeds: card ids for art, the result key for colour; '' when absent. */
+    heroCardId: string; opponentHeroCardId: string; resultKey: string; deckCode: string };
   turns: ReplayTurn[];
 };
 
@@ -65,8 +67,10 @@ export function readReplay(payload: Payload): PublicReplay {
       mode: replayModeLabel(summary.mode), result: replayResultLabel(summary.result), turns: count(summary.turns), placement: count(summary.placement),
       heroName: name(text(summary.heroCardId)), opponentHeroName: summary.opponentHeroCardId ? name(text(summary.opponentHeroCardId)) : '',
       opponentArchetype: text(summary.opponentArchetype),
-      finalBoard: board.map(minion => ({ name: name(text(minion.cardId)), attack: count(minion.attack), health: count(minion.health),
-        golden: minion.golden === true })),
+      finalBoard: board.map(minion => ({ cardId: text(minion.cardId), name: name(text(minion.cardId)), attack: count(minion.attack),
+        health: count(minion.health), golden: minion.golden === true })),
+      heroCardId: text(summary.heroCardId), opponentHeroCardId: text(summary.opponentHeroCardId), resultKey: text(summary.result),
+      deckCode: text(summary.deckCode),
     },
     turns,
   };

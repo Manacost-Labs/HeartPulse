@@ -42,6 +42,9 @@ is a separate administrator workspace and retains its permission gate.
 | `lib/seoPageMetadata.ts` | Metadata of pages in `config/public-seo-pages.json` |
 | `ui/SeoPageIntro.tsx` | Server-rendered text of a page whose data is closed to a guest (`/tierlist/`, `/classes/`, `/legendaries/`), from `config/public-seo-page-copy.json`; passed to the client page as `children` |
 | `lib/public*.ts` | Server-only loaders that validate public Express projections |
+| `lib/ogImage.tsx`, `app/og/…/route.tsx` | Link-preview PNGs (`next/og`, the OTF of `HSDisplay`, card art from `/api/card-image/`), cached in the process; [spec](../../docs/specs/embeds-and-oembed.md) |
+| `lib/embedDocument.ts`, `lib/embedBodies.ts`, `app/embed/…/route.ts` | Embeds for other sites' iframes and their oEmbed: hand-written HTML outside the layout, `frame-ancestors *`, no site scripts |
+| `app/download/page.tsx`, `ui/MadeWithHearthpulse.tsx` | The app's download landing and the «Сделано в Hearthpulse» band of shared pages |
 | `lib/publicFirstPaintRead.ts` | `readFirstPaintJson()`: a server read that only improves the first paint; `null` after 600 ms or on any failure, so the page falls back to its browser request |
 | `lib/runtimeClientConfig.ts` | Root-managed runtime switches (card-image CDN) for server rendering and the inline document config |
 | `proxy.ts` | Request proxy for card, hero, library and cosmetics detail probes, and the home page's `Cache-Control` |

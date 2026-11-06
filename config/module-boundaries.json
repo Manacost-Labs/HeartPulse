@@ -590,6 +590,7 @@
       ],
       "docs": [
         "docs/specs/player-game-stats.md",
+        "docs/specs/year-in-review.md",
         "docs/architecture/module-boundaries.md"
       ]
     },
@@ -642,6 +643,24 @@
       ],
       "docs": [
         "docs/specs/crash-reports.md",
+        "docs/architecture/module-boundaries.md"
+      ]
+    },
+    {
+      "id": "server.chatCommands",
+      "runtime": "server",
+      "root": "server/modules/chatCommands",
+      "purpose": "Owns the plain-text chat bot answers of linked Twitch channels (!deck !winrate !rank !mmr) behind the stream delay and the streamer's consent.",
+      "owner": "identity-platform",
+      "publicEntry": "server/modules/chatCommands/public.ts",
+      "dependencies": [
+        "server.playerGames"
+      ],
+      "focusedTests": [
+        "npm run test:chat-commands"
+      ],
+      "docs": [
+        "docs/specs/chat-commands.md",
         "docs/architecture/module-boundaries.md"
       ]
     },

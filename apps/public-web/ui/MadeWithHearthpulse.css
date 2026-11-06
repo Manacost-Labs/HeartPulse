@@ -1,0 +1,42 @@
+/* «Сделано в Hearthpulse» on shared pages: one line, wraps on phones. */
+.made-with-hp {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 32px 0 0;
+  padding: 10px 14px;
+  border: 1px solid var(--arena-paper-line);
+  border-radius: 10px;
+  background: var(--arena-parchment-light);
+  color: var(--arena-ink);
+}
+
+.made-with-hp__logo {
+  flex: none;
+}
+
+.made-with-hp__text {
+  flex: 1 1 240px;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.made-with-hp__action {
+  flex: none;
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: var(--arena-red);
+  color: var(--arena-parchment-light);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.made-with-hp__action:hover,
+.made-with-hp__action:focus-visible {
+  background: var(--arena-red-dark);
+}
+
+html[data-hp-viewer='remembered'] .made-with-hp {
+  display: none;
+}

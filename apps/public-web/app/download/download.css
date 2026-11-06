@@ -1,0 +1,135 @@
+/* The download landing: one column, the language chosen by a radio pair (no JavaScript). */
+.app-landing {
+  max-width: 980px;
+  margin: 0 auto;
+  padding: 0 0 24px;
+  color: var(--arena-ink);
+}
+
+.app-landing__lang-input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.app-landing__langs {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.app-landing__langs label {
+  padding: 4px 12px;
+  border: 1px solid var(--arena-paper-line);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.app-landing:has(#app-landing-ru:checked) label[for='app-landing-ru'],
+.app-landing:has(#app-landing-en:checked) label[for='app-landing-en'] {
+  background: var(--arena-red);
+  color: var(--arena-parchment-light);
+}
+
+.app-landing:has(#app-landing-ru:focus-visible) label[for='app-landing-ru'],
+.app-landing:has(#app-landing-en:focus-visible) label[for='app-landing-en'] {
+  outline: 2px solid var(--arena-gold);
+  outline-offset: 2px;
+}
+
+.app-landing__copy--en,
+.app-landing:has(#app-landing-en:checked) .app-landing__copy--ru {
+  display: none;
+}
+
+.app-landing:has(#app-landing-en:checked) .app-landing__copy--en {
+  display: block;
+}
+
+.app-landing__head {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.app-landing__head h1 {
+  margin: 0;
+}
+
+.app-landing__lead {
+  margin: 4px 0 0;
+  font-size: 1.1rem;
+}
+
+.app-landing__points {
+  margin: 0 0 20px;
+  padding-left: 20px;
+}
+
+.app-landing__points li {
+  margin: 4px 0;
+}
+
+.app-landing__downloads {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.app-landing__button {
+  padding: 10px 16px;
+  border: 1px solid var(--arena-red);
+  border-radius: 10px;
+  color: var(--arena-red);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.app-landing__button--primary {
+  background: var(--arena-red);
+  color: var(--arena-parchment-light);
+}
+
+.app-landing__button:hover,
+.app-landing__button:focus-visible {
+  border-color: var(--arena-red-dark);
+  background: var(--arena-red-dark);
+  color: var(--arena-parchment-light);
+}
+
+.app-landing__meta {
+  margin: 10px 0 24px;
+  color: var(--arena-muted-ink);
+  font-size: 0.9rem;
+}
+
+.app-landing__shots {
+  display: grid;
+  gap: 16px;
+}
+
+.app-landing__shots figure {
+  margin: 0;
+}
+
+.app-landing__shots img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(48, 37, 28, 0.25);
+}
+
+.app-landing__shots figcaption {
+  margin-top: 6px;
+  color: var(--arena-muted-ink);
+  font-size: 0.9rem;
+}
+
+.app-landing__head h1,
+.app-landing__copy h1 {
+  font-family: 'HSDisplay', serif;
+  font-size: clamp(2rem, 5vw, 2.8rem);
+  line-height: 1.1;
+}
