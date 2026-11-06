@@ -1917,3 +1917,42 @@ and passes afterward. No application, test inventory, shard allocation,
 retry policy or required gate changes are included. Hosted verification
 must determine whether reduced payload bytes help the free-runner path;
 the change does not guarantee elimination of network stalls.
+
+### Final free-runner pass: Storybook artifact transfer
+
+The owner requested a final bounded optimization pass and completion, while
+retaining free runs only. The existing `ubuntu-24.04` runners, blocking test
+inventory, worker counts, retry policy and quarantine classification stay intact.
+No paid runner or billing configuration was enabled.
+
+Run [42181378647](https://github.com/Manacost-Labs/HeartPulse/actions/runs/42181378647)
+on `be1f50f4` verified the application zstd artifact: 32 successful checks,
+4 conditionally skipped checks, and all 555 blocking plus 4 quarantined files
+passed without FLAKY results. Required CI completed in **184 seconds including
+queue**. Browser shard 1 was the critical job, with an 87-second test step.
+The two-minute target and the ten-run p50/p95 acceptance window remain unmet.
+
+The final change applies the same zstd level-9, two-thread packaging to
+Storybook. Both the blocking browser jobs and non-blocking quarantine restore
+`storybook-static` before starting tests. SHA-scoped artifact names, retention,
+missing-output failures and `--no-same-owner` extraction remain in place; outer
+artifact compression is disabled for the already compressed payload.
+
+On the unchanged local 1126-file Storybook build, a Python ZIP/deflate-6 model
+produced 23,236,937 bytes; tar/zstd produced 22,083,197 bytes. This comparison
+supports a smaller transfer but does not measure GitHub's upload implementation
+or establish an end-to-end CI speedup. Local packaging took 0.198 seconds for
+zstd. The restored archive matched all 1161 entries in content hashes, entry
+types, link targets and ordinary read/write/execute permissions. Extraction
+correctly dropped inherited local setgid directory bits with no-same-owner.
+
+The workflow contract executes both real packaging and extraction commands on
+fixtures with hidden files, spaced paths and mode-sensitive outputs. It rejects
+missing Storybook inputs and checks extraction precedes both test consumers.
+The contract failed before the workflow update and passed afterward.
+
+Completion is gated on the final commit's full hosted checks. After that result,
+record the measured duration in the PR and hand the draft back; do not start a
+new tuning series simply to chase an exact two-minute result. Preserve the
+unmet SLO explicitly rather than reducing coverage or excluding infrastructure
+waits from the measurement.

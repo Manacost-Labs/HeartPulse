@@ -189,11 +189,15 @@ jobs:
       - name: Build Storybook
         run: npm run build-storybook
 
+      - name: Pack Storybook build
+        run: tar -I 'zstd -9 -T2' -cf "$RUNNER_TEMP/storybook-static.tar.zst" storybook-static
+
       - name: Upload Storybook build
         uses: actions/upload-artifact@v7
         with:
           name: storybook-static-${{ github.sha }}
-          path: storybook-static
+          path: ${{ runner.temp }}/storybook-static.tar.zst
+          compression-level: 0
           if-no-files-found: error
           retention-days: 3
           overwrite: true
@@ -355,7 +359,10 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: storybook-static-${{ github.sha }}
-          path: storybook-static
+          path: ${{ runner.temp }}/storybook-build
+
+      - name: Extract Storybook build
+        run: tar --no-same-owner --zstd -xf "$RUNNER_TEMP/storybook-build/storybook-static.tar.zst"
 
       - name: Run registered browser shard
         env:
@@ -421,7 +428,10 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: storybook-static-${{ github.sha }}
-          path: storybook-static
+          path: ${{ runner.temp }}/storybook-build
+
+      - name: Extract Storybook build
+        run: tar --no-same-owner --zstd -xf "$RUNNER_TEMP/storybook-build/storybook-static.tar.zst"
 
       - name: Run quarantined browser tests
         run: npm run test:suite -- browser --retry-failed-once --continue-on-failure --quarantine only --report "$RUNNER_TEMP/test-timings.json"

@@ -252,6 +252,19 @@ for (const job of ['test-suites', 'browser-tests', 'browser-quarantine', 'browse
   unpackOutputs.push(unpack);
 }
 assert.equal(new Set(unpackOutputs).size, 1, 'every consumer restores the same archive');
+const packStorybook = ciJobs.storybook.match(/- name: Pack Storybook build\n {8}run: (.+)\n/)?.[1];
+assert.ok(packStorybook, 'Storybook must be packaged before upload');
+assert.ok(ciJobs.storybook.includes('path: ${{ runner.temp }}/storybook-static.tar.zst'));
+assert.match(ciJobs.storybook, /compression-level: 0\n {10}if-no-files-found: error/);
+const unpackStorybook = [];
+for (const job of ['browser-tests', 'browser-quarantine']) {
+  const unpack = ciJobs[job].match(/- name: Extract Storybook build\n {8}run: (.+)\n/)?.[1];
+  assert.ok(unpack, `${job} must extract Storybook before running tests`);
+  assert.ok(ciJobs[job].indexOf('- name: Download Storybook build') < ciJobs[job].indexOf('- name: Extract Storybook build'));
+  assert.ok(ciJobs[job].indexOf('- name: Extract Storybook build') < ciJobs[job].indexOf('- name: Run '));
+  unpackStorybook.push(unpack);
+}
+assert.equal(new Set(unpackStorybook).size, 1, 'both consumers restore the same Storybook archive');
 // Execute the actual workflow commands in isolation, including hidden outputs
 // and a cache sentinel, so path/exclusion drift cannot silently lose inputs.
 const archiveFixture = mkdtempSync(join(tmpdir(), 'ci-build-archive-'));
@@ -259,9 +272,12 @@ try {
   const source = join(archiveFixture, 'source');
   const restored = join(archiveFixture, 'restored');
   const runnerTemp = join(archiveFixture, 'runner temp');
-  for (const dir of [source, restored, join(runnerTemp, 'build-outputs')]) mkdirSync(dir, { recursive: true });
+  for (const dir of [source, restored, join(runnerTemp, 'build-outputs'), join(runnerTemp, 'storybook-build')]) mkdirSync(dir, { recursive: true });
   const fixtures = new Map([
     ['build/backend.js', 'compiled backend'],
+    ['storybook-static/index.html', '<html>Storybook</html>'],
+    ['storybook-static/assets/with space.js', 'story asset'],
+    ['storybook-static/.hidden/output.json', 'hidden story output'],
     ['dist/.hidden/output.js', 'hidden output'],
     ['apps/public-web/.next/BUILD_ID', 'validated build'],
     ['apps/public-web/.next/server/app/with space.html', '<html>fixture</html>'],
@@ -276,6 +292,10 @@ try {
   const archive = join(runnerTemp, 'build-outputs.tar.zst');
   writeFileSync(join(runnerTemp, 'build-outputs/build-outputs.tar.zst'), readFileSync(archive));
   execFileSync('bash', ['-e', '-o', 'pipefail', '-c', unpackOutputs[0]], { cwd: restored, env });
+  execFileSync('bash', ['-e', '-o', 'pipefail', '-c', packStorybook], { cwd: source, env });
+  writeFileSync(join(runnerTemp, 'storybook-build/storybook-static.tar.zst'),
+    readFileSync(join(runnerTemp, 'storybook-static.tar.zst')));
+  execFileSync('bash', ['-e', '-o', 'pipefail', '-c', unpackStorybook[0]], { cwd: restored, env });
   for (const [path, content] of fixtures) {
     assert.equal(readFileSync(join(restored, path), 'utf8'), content);
     assert.equal(statSync(join(restored, path)).mode & 0o777, statSync(join(source, path)).mode & 0o777);
@@ -284,6 +304,9 @@ try {
   rmSync(join(source, 'dist'), { recursive: true });
   assert.throws(() => execFileSync('bash', ['-e', '-o', 'pipefail', '-c', packOutputs],
     { cwd: source, env, stdio: 'pipe' }), 'missing required output must fail packaging');
+  rmSync(join(source, 'storybook-static'), { recursive: true });
+  assert.throws(() => execFileSync('bash', ['-e', '-o', 'pipefail', '-c', packStorybook],
+    { cwd: source, env, stdio: 'pipe' }), 'missing Storybook must fail packaging');
 } finally {
   rmSync(archiveFixture, { recursive: true, force: true });
 }
@@ -294,7 +317,7 @@ for (const step of ['Create immutable production release', 'Upload immutable pro
   assert.ok(ciJobs.build.includes(`- name: ${step}\n        ${releaseEvents}\n`),
     `${step} runs for a push to main and in the merge queue, whose release that push may reuse`);
 }
-assert.match(ciJobs.storybook, /name: storybook-static-\$\{\{ github\.sha \}\}\n {10}path: storybook-static\n/);
+assert.ok(ciJobs.storybook.includes('name: storybook-static-${{ github.sha }}'));
 for (const [job, shards] of [['test-suites', 'registry-shards'], ['browser-tests', 'browser-shards']]) {
   const storybookDependency = job === 'browser-tests' ? ', storybook' : '';
   const storybookCondition = job === 'browser-tests' ? " && needs.storybook.result == 'success'" : '';
@@ -304,7 +327,7 @@ for (const [job, shards] of [['test-suites', 'registry-shards'], ['browser-tests
     `${job} runs after its required inputs, even with skipped reuse, unless its plan is empty`);
   assert.ok(ciJobs[job].includes(buildOutputsName), `${job} must download the validated build outputs`);
   if (job === 'browser-tests') {
-    assert.match(ciJobs[job], /name: storybook-static-\$\{\{ github\.sha \}\}\n {10}path: storybook-static\n/);
+    assert.match(ciJobs[job], /name: storybook-static-\$\{\{ github\.sha \}\}\n {10}path: \$\{\{ runner\.temp \}\}\/storybook-build\n/);
   } else {
     assert.doesNotMatch(ciJobs[job], /storybook/, 'registry jobs neither wait for nor download unused Storybook outputs');
   }
@@ -383,7 +406,7 @@ assert.ok(quarantineIf.includes("github.event_name == 'pull_request' || github.e
   'the quarantine job runs only for pull_request and workflow_dispatch');
 assert.ok(!/merge_group|github\.event_name == 'push'/.test(quarantineIf), 'the quarantine job never runs in merge_group or on push');
 assert.ok(quarantineJob.includes(buildOutputsName), 'the quarantine job must download the validated build outputs');
-assert.match(quarantineJob, /name: storybook-static-\$\{\{ github\.sha \}\}\n {10}path: storybook-static\n/,
+assert.match(quarantineJob, /name: storybook-static-\$\{\{ github\.sha \}\}\n {10}path: \$\{\{ runner\.temp \}\}\/storybook-build\n/,
   'quarantined archetype and skeleton tests serve the Storybook build');
 assert.match(quarantineJob, /- name: Run quarantined browser tests\n {8}run: npm run test:suite -- browser --retry-failed-once --continue-on-failure --quarantine only --report "\$RUNNER_TEMP\/test-timings.json"$/m);
 for (const [job, artifact] of [['test-suites', 'registry-${{ matrix.shard }}'], ['browser-tests', 'browser-${{ matrix.shard }}'], ['browser-quarantine', 'quarantine']]) {
