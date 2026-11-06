@@ -1,7 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { ReactNode } from 'react';
 import { expect, userEvent } from 'storybook/test';
-import type { BattlegroundsStats } from '../../modules/playerStats/public';
+import {
+  PROFILE_STATS_TEXT,
+  type BattlegroundsStats,
+} from '../../modules/playerStats/public';
 import { ArenaStatsView } from './ArenaStatsView';
 import { BattlegroundsStatsView } from './BattlegroundsStatsView';
 import { ConstructedStatsView } from './ConstructedStatsView';
@@ -10,6 +13,9 @@ import { arenaFixture, battlegroundsFixture, standardFixture } from './playerSta
 import '../../vendor/varylo-ui/styles/index.css';
 import '../../shared/ui/varyloParchment.css';
 import './PlayerStatsPanel.css';
+import './ProfileStats.css';
+
+const text = PROFILE_STATS_TEXT.ru;
 
 /** Global values shaped like the HSReplay mirror's, so the «в среднем» comparisons can be reviewed. */
 const withGlobal: BattlegroundsStats = {
@@ -27,7 +33,7 @@ const withGlobal: BattlegroundsStats = {
 };
 
 function Frame({ children }: { children: ReactNode }) {
-  return <div className="player-stats-panel hp-varylo-parchment"><div className="player-stats-mode">{children}</div></div>;
+  return <div className="player-stats-panel profile-stats hp-varylo-parchment">{children}</div>;
 }
 
 const meta = {
@@ -39,16 +45,17 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Battlegrounds: Story = {
-  render: () => <Frame><BattlegroundsStatsView stats={battlegroundsFixture} mmr="TOP_50_PERCENT" onMmrChange={() => {}} /></Frame>,
+  render: () => <Frame><BattlegroundsStatsView stats={battlegroundsFixture} mmr="TOP_50_PERCENT" onMmrChange={() => {}} text={text} /></Frame>,
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('Лучший рейтинг')).toBeVisible();
+    await expect(canvas.getByRole('figure', { name: /^Места:/ })).toBeVisible();
     await expect(canvas.getByText(/открывает/)).toBeVisible();
-    await expect(canvas.getByRole('table', { name: 'Герои' })).toBeVisible();
+    await expect(canvas.getByRole('heading', { name: 'Герои' })).toBeVisible();
+    await expect(canvas.getAllByRole('link', { name: /^Смотреть:/ })[0]).toBeVisible();
   },
 };
 
 export const BattlegroundsVsGlobal: Story = {
-  render: () => <Frame><BattlegroundsStatsView stats={withGlobal} mmr="TOP_20_PERCENT" onMmrChange={() => {}} /></Frame>,
+  render: () => <Frame><BattlegroundsStatsView stats={withGlobal} mmr="TOP_20_PERCENT" onMmrChange={() => {}} text={text} /></Frame>,
   play: async ({ canvas }) => {
     await expect(canvas.getByRole('radiogroup', { name: 'Сравнивать с игроками' })).toBeVisible();
     await expect(canvas.queryByText(/открывает/)).toBeNull();
@@ -56,7 +63,7 @@ export const BattlegroundsVsGlobal: Story = {
 };
 
 export const RatingHover: Story = {
-  render: () => <Frame><BattlegroundsStatsView stats={battlegroundsFixture} mmr="TOP_50_PERCENT" onMmrChange={() => {}} /></Frame>,
+  render: () => <Frame><BattlegroundsStatsView stats={battlegroundsFixture} mmr="TOP_50_PERCENT" onMmrChange={() => {}} text={text} /></Frame>,
   play: async ({ canvas, canvasElement }) => {
     const chart = canvas.getByRole('img', { name: /Рейтинг после каждой/ });
     chart.focus();
@@ -68,17 +75,18 @@ export const RatingHover: Story = {
 };
 
 export const Standard: Story = {
-  render: () => <Frame><ConstructedStatsView stats={standardFixture} /></Frame>,
+  render: () => <Frame><ConstructedStatsView stats={standardFixture} text={text} /></Frame>,
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('Ранг сейчас')).toBeVisible();
-    await expect(canvas.getByRole('table', { name: 'Колоды' })).toBeVisible();
+    await expect(canvas.getByRole('list', { name: 'Колоды' })).toBeVisible();
+    // Every opponent class is a row of the heat grid, and its «Всего» repeats no separate table.
+    await expect(canvas.getByRole('table', { name: /против классов соперников/ })).toBeVisible();
+    await expect(canvas.queryByRole('table', { name: 'Соперники' })).toBeNull();
   },
 };
 
 export const Arena: Story = {
   render: () => <Frame><ArenaStatsView stats={arenaFixture} /></Frame>,
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('Средние победы', { selector: '.ui-kpi-group__label' })).toBeVisible();
     await userEvent.click(canvas.getByRole('radio', { name: 'Лучшие' }));
     await expect(canvas.getByRole('table', { name: 'Забеги' })).toBeVisible();
   },

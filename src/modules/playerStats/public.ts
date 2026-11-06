@@ -34,6 +34,17 @@ export { useGameStats, type GameStatsState } from './hooks/useGameStats';
 export { useGameStatsModes } from './hooks/useGameStatsModes';
 export { GameStatsSourceContext, useGameDateFormat } from './hooks/gameStatsSource';
 export { HERO_MIN_GAMES, heroPickRate, visibleHeroes } from './model/heroTable';
+export { PROFILE_STATS_TEXT, type ProfileStatsLang, type ProfileStatsText } from './model/profileText';
+export {
+  deckCards,
+  matchupHeatmap,
+  placementShares,
+  summaryItems,
+  transposeHeatmap,
+  winrateTone,
+  type DeckCard,
+  type HeatCell,
+} from './model/profileView';
 export { CombatSparkline } from './ui/CombatSparkline';
 export { MinionBoard } from './ui/MinionBoard';
 export { PlacementBars } from './ui/PlacementBars';

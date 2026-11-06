@@ -1,6 +1,6 @@
 import { Suspense, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Activity, Layers, Swords, TrendingUp, X } from 'lucide-react';
+import { Activity, Download, Layers, Swords, TrendingUp, X } from 'lucide-react';
 import type { SubscriptionStatus } from '../../subscriptions/public';
 import type { AccountSocialLinks } from '../model/accountDashboard';
 import { accountPlanSummary } from '../model/accountPlan';
@@ -112,19 +112,19 @@ function StatsHead() {
 }
 
 /**
- * Shown while the tracker has sent no games. The application does not send
- * games for everyone yet, so this says what will appear without asking anyone
- * to install it.
+ * Shown while the tracker has sent no games: what will appear, and where to
+ * get the application that sends them (`/download/`, the public landing).
  */
 const NO_STATS = (
   <section id="account-game-stats" className="account-section account-game-stats" aria-labelledby="account-game-stats-title">
     <StatsHead />
-    <p className="account-muted">Пока игр нет. Когда приложение Hearthpulse начнёт присылать ваши партии, здесь появится:</p>
+    <p className="account-muted">Пока игр нет. Поставьте бесплатное приложение Hearthpulse и войдите в нём в этот аккаунт — после первой партии здесь появится:</p>
     <AccountEmptyPreview items={[
       { icon: <TrendingUp size={17} />, title: 'Рейтинг и ранги', text: 'По каждой игре, за сезон и за последние 7–90 дней.' },
-      { icon: <Layers size={17} />, title: 'Колоды', text: 'Винрейт по колодам, классам и соперникам, код для импорта.' },
-      { icon: <Swords size={17} />, title: 'Поля сражений и Арена', text: 'Герои, места и забеги с итоговым счётом.' },
+      { icon: <Layers size={17} />, title: 'Колоды и матчапы', text: 'Винрейт каждой колоды, её тренд и сетка против классов.' },
+      { icon: <Swords size={17} />, title: 'Поля сражений и Арена', text: 'Места, рейтинг, герои и забеги с итоговым счётом.' },
     ]} />
+    <a className="account-button account-game-stats__install" href="/download/"><Download size={16} aria-hidden="true" />Установить Hearthpulse</a>
   </section>
 );
 
@@ -174,9 +174,10 @@ export default function AccountDashboard(props: AccountDashboardProps) {
               <Suspense fallback={null}>
                 <GameStats
                   empty={NO_STATS}
-                  frame={body => (
+                  frame={(body, summary) => (
                     <section id="account-game-stats" className="account-section account-game-stats" aria-labelledby="account-game-stats-title">
                       <StatsHead />
+                      {summary}
                       {body}
                     </section>
                   )}
