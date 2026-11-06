@@ -83,9 +83,11 @@ try {
   // Simulate root ownership without elevating the test or any fixture binary.
   writeFileSync(join(fixtureBin, 'stat'), '#!/bin/sh\nprintf \'%s\\n\' "$TEST_SANDBOX_STAT"\n', { mode: 0o755 });
   const fixtureScript = selectBrowserScript.replaceAll('/opt/google/chrome/chrome-sandbox', trustedHelper);
+  let selectionLog;
   const selectBrowser = (sandboxStat = '0:4755') => {
     writeFileSync(githubEnvironment, 'existing=preserved\n');
-    execFileSync('bash', ['-e', '-o', 'pipefail', '-c', fixtureScript], {
+    selectionLog = execFileSync('bash', ['-e', '-o', 'pipefail', '-c', fixtureScript], {
+      encoding: 'utf8',
       env: {
         ...process.env, RUNNER_TEMP: browserCacheRoot, GITHUB_ENV: githubEnvironment,
         PACKAGE_VERSION: expectedVersion, PATH: `${fixtureBin}:${process.env.PATH}`,
@@ -95,6 +97,7 @@ try {
     return readFileSync(githubEnvironment, 'utf8');
   };
   assert.equal(selectBrowser(), 'existing=preserved\n', 'a missing cache preserves fallback');
+  assert.match(selectionLog, /System Chrome fallback: cached files missing or not executable/);
   mkdirSync(browserDirectory);
   for (const executable of ['chrome', 'google-chrome']) {
     writeFileSync(join(browserDirectory, executable), '#!/bin/sh\nexit 0\n', { mode: 0o755 });
@@ -102,18 +105,24 @@ try {
   assert.equal(selectBrowser(), 'existing=preserved\n', 'an incomplete cache preserves fallback');
   writeFileSync(join(browserDirectory, '.hp-package-version'), '149.0.0.1-1\n');
   assert.equal(selectBrowser(), 'existing=preserved\n', 'a different package preserves fallback');
+  assert.match(selectionLog, /System Chrome fallback: cached package version mismatch/);
   writeFileSync(join(browserDirectory, '.hp-package-version'), `${expectedVersion}\n`);
   assert.equal(selectBrowser(), 'existing=preserved\n', 'a missing trusted helper preserves fallback');
+  assert.match(selectionLog, /System Chrome fallback: installed sandbox helper missing, non-executable or symlink/);
   writeFileSync(trustedHelper, '#!/bin/sh\nexit 0\n', { mode: 0o755 });
   assert.equal(selectBrowser('1000:4755'), 'existing=preserved\n', 'a user-owned helper preserves fallback');
+  assert.match(selectionLog, /System Chrome fallback: installed sandbox helper uid:mode=1000:4755; expected 0:4755/);
   assert.equal(selectBrowser('0:755'), 'existing=preserved\n', 'a helper without setuid preserves fallback');
+  assert.match(selectionLog, /System Chrome fallback: installed sandbox helper uid:mode=0:755; expected 0:4755/);
   const restoredHelper = join(browserDirectory, 'chrome-sandbox');
   mkdirSync(restoredHelper);
   assert.equal(selectBrowser(), 'existing=preserved\n', 'a failed helper replacement preserves fallback');
+  assert.match(selectionLog, /System Chrome fallback: sandbox helper link failed/);
   rmSync(restoredHelper, { recursive: true });
   writeFileSync(restoredHelper, 'untrusted restored helper');
   assert.equal(selectBrowser(), `existing=preserved\nCHROMIUM_PATH=${browserDirectory}/google-chrome\nHP_BROWSER_PRELOAD=0\n`);
   assert.equal(readlinkSync(restoredHelper), trustedHelper, 'sandbox uses the installed package helper');
+  assert.match(selectionLog, /Cached Chrome selected; installed SUID helper retained; executable preload disabled/);
   assert.match(selectBrowser(), /CHROMIUM_PATH=/, 'selecting the same cache again is safe');
   rmSync(trustedHelper);
   symlinkSync(join(browserDirectory, 'chrome'), trustedHelper);

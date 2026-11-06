@@ -1423,3 +1423,24 @@ selection check failed before browser launch because its backend did not start
 within the fixture deadline; an isolated rerun passed unchanged. These local
 checks verify the correction, with that local startup limitation recorded; the
 next full hosted run must verify compatibility and timing.
+
+## Report the browser cache selection outcome
+
+Run `42156092029` on `1a7fd254` passed all 36 checks, with required validation
+at 201 seconds including queue time. All 559 registered files completed:
+558 passed immediately and the lightbox close-stability file passed on its
+single allowed retry. The first hero fade check observed transition start,
+then element removal and transition cancellation; its root cause is still open.
+
+Browser shard 8 restored the exact Chrome cache and passed radar, but subsequent
+steps still used `/usr/bin/google-chrome` with preload enabled. This verifies
+the fallback path, not a hosted launch of the restored browser. The silent
+selection guards did not identify the rejected condition. No hosted cache
+speedup or sandbox-helper compatibility is established by this successful run.
+
+Selection now logs a specific fallback reason, including numeric owner/mode
+when helper permissions are unsuitable, or an explicit successful selection.
+It retains every guard, fallback behavior, sandbox setting and test assertion.
+The action-shell contract verifies these messages alongside the existing
+selection outcomes. The next run must identify the actual rejected condition
+before another cache-performance conclusion or same-SHA timing rerun.
