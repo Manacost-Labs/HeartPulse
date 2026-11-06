@@ -238,9 +238,9 @@ const buildOutputsName = 'name: build-outputs-${{ github.sha }}';
 assert.match(ciJobs.build, /- name: Upload validated build outputs\s+uses: actions\/upload-artifact@v7/);
 const packOutputs = ciJobs.build.match(/- name: Pack validated build outputs\n {8}run: (.+)\n/)?.[1];
 assert.ok(packOutputs, 'validated outputs must be packaged before upload');
-assert.ok(ciJobs.build.includes('path: ${{ runner.temp }}/build-outputs.tar.gz'));
+assert.ok(ciJobs.build.includes('path: ${{ runner.temp }}/build-outputs.tar.zst'));
 assert.match(ciJobs.build, /compression-level: 0\n {10}if-no-files-found: error/,
-  'the artifact service must not recompress the gzip payload');
+  'the artifact service must not recompress the zstd payload');
 assert.match(ciJobs.build, /retention-days: 3\s+# [^\n]+\s+overwrite: true/);
 const unpackOutputs = [];
 for (const job of ['test-suites', 'browser-tests', 'browser-quarantine', 'browser-observatory']) {
@@ -273,8 +273,8 @@ try {
   }
   const env = { ...process.env, RUNNER_TEMP: runnerTemp };
   execFileSync('bash', ['-e', '-o', 'pipefail', '-c', packOutputs], { cwd: source, env });
-  const archive = join(runnerTemp, 'build-outputs.tar.gz');
-  writeFileSync(join(runnerTemp, 'build-outputs/build-outputs.tar.gz'), readFileSync(archive));
+  const archive = join(runnerTemp, 'build-outputs.tar.zst');
+  writeFileSync(join(runnerTemp, 'build-outputs/build-outputs.tar.zst'), readFileSync(archive));
   execFileSync('bash', ['-e', '-o', 'pipefail', '-c', unpackOutputs[0]], { cwd: restored, env });
   for (const [path, content] of fixtures) {
     assert.equal(readFileSync(join(restored, path), 'utf8'), content);

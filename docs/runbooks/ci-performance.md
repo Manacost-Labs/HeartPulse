@@ -1879,3 +1879,41 @@ changes. Normal startup still returns as soon as readiness is observed.
 The longer allowance may lengthen a genuinely stalled setup; the existing
 cleanup still terminates its owned child and closes temporary resources.
 Hosted verification remains required, and the two-minute CI target is unmet.
+
+## Keep free runners and reduce build-artifact transfer
+
+Full run `42175888974` on `f74c47da` passes all 36 checks and all 559 files
+without test retries, including the previously failing fixtures and new
+backend lifecycle checks. Required validation takes 322 seconds including
+queue. Browser shard 3 spends 42 seconds restoring dependencies, 36 seconds
+restoring Chrome, 107 seconds downloading build outputs and 50 seconds
+running tests. Its cache logs show periods without download progress. This
+infrastructure time stays included in the end-to-end SLO.
+
+The owner requires free runs. The proposed larger-runner experiment is
+not adopted: no paid runner, billing configuration or runner label was
+changed. The current jobs retain their standard `ubuntu-24.04` runners.
+The two-minute target remains unmet.
+
+Build outputs now use a single zstd archive (`zstd -9 -T2`) instead of the
+gzip payload. Two compression threads bound local CPU usage. The existing
+Ubuntu 24.04 runner image `20261101.360.1` already includes zstd 1.5.7, as
+recorded in its official runner-image software inventory. All four consumers
+explicitly decompress the same `.tar.zst` payload. Artifact naming by SHA,
+retention, missing-output failures, no-same-owner extraction and disabled
+outer compression are retained. Next's build cache remains excluded.
+
+On the same local four-CPU affinity and unchanged files, gzip level 1 packs
+24,015,327 bytes in 0.454 seconds; zstd level 9 with two threads packs
+20,919,210 bytes in 0.144 seconds. Levels 3 and 6 were also measured before
+selecting level 9. This is a local codec measurement, not a hosted CI speedup.
+Both archives have 2368 identical entries, including full file hashes,
+permissions, types and link targets. The same cache exclusion holds.
+
+The workflow contract executes the actual pack/extract commands on hidden
+files, paths containing spaces and permission-sensitive fixtures, and
+rejects missing required build outputs. It fails before the workflow change
+and passes afterward. No application, test inventory, shard allocation,
+retry policy or required gate changes are included. Hosted verification
+must determine whether reduced payload bytes help the free-runner path;
+the change does not guarantee elimination of network stalls.
