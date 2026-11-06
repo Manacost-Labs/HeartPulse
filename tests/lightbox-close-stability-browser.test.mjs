@@ -144,7 +144,21 @@ async function heroLightboxClose({ reducedMotion }) {
     const samples = [];
     let goneFor = 0;
     let transition = null;
-    const fade = { start: null, duration: null, to: null, removedAt: null };
+    const fade = { start: null, duration: null, to: null, removedAt: null, lifecycle: [] };
+    // Inline styles and event metadata do not force a layout/style flush. Keep
+    // evidence even when a busy renderer exposes no live transition to sample.
+    const record = (phase, elapsed = null) => {
+      if (fade.lifecycle.length < 16) fade.lifecycle.push({
+        phase, at: performance.now(), opacity: lightbox.style.opacity,
+        transition: lightbox.style.transition, connected: lightbox.isConnected, elapsed,
+      });
+    };
+    record('observe');
+    for (const name of ['transitionrun', 'transitionstart', 'transitionend', 'transitioncancel']) {
+      lightbox.addEventListener(name, event => {
+        if (event.target === lightbox && event.propertyName === 'opacity') record(name, event.elapsedTime);
+      });
+    }
     // Read while the transition runs: removing the lightbox cancels it.
     const readFade = () => {
       transition ??= lightbox.getAnimations().find(animation => animation.transitionProperty === 'opacity') ?? null;
@@ -153,13 +167,16 @@ async function heroLightboxClose({ reducedMotion }) {
       fade.duration = transition.effect.getComputedTiming().duration;
       fade.to = Number(transition.effect.getKeyframes().at(-1)?.opacity);
     };
-    const removal = new MutationObserver(() => {
+    const removal = new MutationObserver(records => {
+      if (records.some(change => change.type === 'attributes' && change.target === lightbox)) record('style');
       if (lightbox.isConnected) return;
+      record('removed');
       fade.removedAt = performance.now();
       readFade();
       removal.disconnect();
     });
     removal.observe(document.body, { childList: true, subtree: true });
+    removal.observe(lightbox, { attributes: true, attributeFilter: ['style'] });
     lightbox.addEventListener('transitionstart', readFade);
     const sample = () => {
       const current = document.querySelector('.bg-hero-media-lightbox');

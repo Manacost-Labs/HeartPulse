@@ -1147,3 +1147,25 @@ all seven routes without skips or retries. A coverage proof confirms the
 partition equals the active route inventory and that the shared helper is
 unchanged. Registry validation and all 11 worker/workflow/QA-group contracts
 pass. Local timings are not a hosted speedup measurement.
+
+## Lightbox close failure diagnostics
+
+Run `42142434528` on `11323b66` failed browser shard 10 because the hero media
+lightbox close test observed no opacity transition on either attempt. The
+required gate correctly failed. Both new desktop geometry groups passed;
+552 blocking reports contain 551 PASS and one FAIL. The failure also appeared
+before the desktop split, so there is no evidence that this split caused it.
+
+The ordinary local lightbox file passed all four cases. Diagnostic runs on
+one CPU with 30× and 60× browser CPU throttling also passed; neither reproduced
+the hosted failure. A small transition sampling probe also passed with and
+without early observation. These experiments do not establish a root cause
+or a fix. Temporary throttling/probes are removed from the committed test.
+
+The failure detail now includes bounded transition lifecycle events and
+inline opacity changes, with timestamps and removal state. These diagnostic
+reads do not force style or layout calculation. They distinguish an animation
+that was never observed from a recorded transition ending or being cancelled.
+Original frame sampling, CPU throttling at 6×, fade duration/end/monotonicity,
+scroll-lock and reduced-motion assertions are unchanged. This adds evidence
+for the next failure; it does not claim the flake is fixed.
