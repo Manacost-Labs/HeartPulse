@@ -35,6 +35,7 @@ export {
 export {
   ensurePublicStatsVisibilitySchema,
   findPublicStatsOwner,
+  isPublicStatsVisible,
   setPublicStatsVisible,
 } from './statsVisibility.js';
 export {

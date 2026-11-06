@@ -3,7 +3,7 @@
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
     "sourceFiles": 109,
-    "routeRegistrations": 293,
+    "routeRegistrations": 294,
     "middlewareRegistrations": 153,
     "explicitGuardRouteRegistrations": 73,
     "unresolvedPaths": 0
@@ -5341,8 +5341,8 @@
     },
     {
       "kind": "route",
-      "method": "GET",
-      "path": "/account/twitch/connect",
+      "method": "PUT",
+      "path": "/account/twitch/chat-commands",
       "pathKind": "string",
       "receiver": "router",
       "middleware": [],
@@ -5354,7 +5354,7 @@
     {
       "kind": "route",
       "method": "GET",
-      "path": "/account/twitch/callback",
+      "path": "/account/twitch/connect",
       "pathKind": "string",
       "receiver": "router",
       "middleware": [],
@@ -5362,6 +5362,18 @@
       "guardSignals": [],
       "source": "server/modules/twitchExtension/accountRoutes.ts",
       "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/account/twitch/callback",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/twitchExtension/accountRoutes.ts",
+      "sourceOrder": 3
     },
     {
       "kind": "route",
@@ -5373,7 +5385,7 @@
       "handler": "<inline-handler>",
       "guardSignals": [],
       "source": "server/modules/twitchExtension/accountRoutes.ts",
-      "sourceOrder": 3
+      "sourceOrder": 4
     },
     {
       "kind": "route",
@@ -5385,7 +5397,7 @@
       "handler": "<inline-handler>",
       "guardSignals": [],
       "source": "server/modules/twitchExtension/accountRoutes.ts",
-      "sourceOrder": 4
+      "sourceOrder": 5
     },
     {
       "kind": "route",

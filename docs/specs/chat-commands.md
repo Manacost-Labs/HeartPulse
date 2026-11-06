@@ -24,13 +24,18 @@ Setup guide: [runbook](../runbooks/chat-commands.md).
   `!deck` reads the data once. Limits: 30 requests a minute per channel and
   command, 600 a minute per address (the bots fetch from shared servers).
 - `Access-Control-Allow-Origin: *`, `X-Robots-Tag: noindex`.
+- Composition: `registerTwitchExtension` (its `chat` option) mounts the router
+  through `server/app/registerChatCommands.ts` with the Twitch links, the live
+  snapshots (`readTwitchEnvelope`), the account's games and the public
+  statistics switch.
 
 ## Sources and consent
 
 Consent, in order (each one off by default):
 
 1. **Chat commands** switched on in the Twitch section of the profile
-   (`twitch_links.chat_commands`). Off → the empty 404 above.
+   (`twitch_links.chat_commands`, `PUT /api/account/twitch/chat-commands`).
+   Off → the empty 404 above.
 2. **Live with Hearthpulse**: the app is sending its deck to the Twitch
    extension now (the channel's snapshot is younger than its 30-minute TTL).
    Otherwise every command answers «стример сейчас не в эфире с Hearthpulse»,

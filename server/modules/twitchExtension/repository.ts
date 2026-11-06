@@ -19,6 +19,8 @@ export type TwitchLink = {
   login: string;
   displayName: string;
   linkedAt: string;
+  /** Chat bot commands of the channel (docs/specs/chat-commands.md); off until the streamer switches them on. */
+  chatCommands?: boolean;
 };
 
 type Row = Record<string, unknown>;
@@ -28,16 +30,34 @@ const fromRow = (row: Row): TwitchLink => ({
   login: String(row.login),
   displayName: String(row.display_name),
   linkedAt: String(row.linked_at),
+  chatCommands: Number(row.chat_commands ?? 0) === 1,
 });
+
+/** Added after the first deploy of the table: an older table gets the column, off for every link. */
+function ensureChatCommandsColumn(database: DatabaseSync): void {
+  const columns = new Set((database.prepare('PRAGMA table_info(twitch_links)').all() as Row[]).map(row => String(row.name ?? '')));
+  if (!columns.has('chat_commands')) database.exec('ALTER TABLE twitch_links ADD COLUMN chat_commands INTEGER NOT NULL DEFAULT 0');
+}
 
 export type TwitchLinkRepository = ReturnType<typeof createTwitchLinkRepository>;
 
 export function createTwitchLinkRepository(getDatabase: () => DatabaseSync) {
   getDatabase().exec(TWITCH_LINK_TABLES_SQL);
+  ensureChatCommandsColumn(getDatabase());
   return {
     find(userId: string): TwitchLink | null {
       const row = getDatabase().prepare('SELECT * FROM twitch_links WHERE user_id = ?').get(userId) as Row | undefined;
       return row ? fromRow(row) : null;
+    },
+    /** The link of a Twitch login (case-insensitive), for the public chat command answers. */
+    findByLogin(login: string): TwitchLink | null {
+      const row = getDatabase().prepare('SELECT * FROM twitch_links WHERE lower(login) = lower(?) LIMIT 1').get(login) as Row | undefined;
+      return row ? fromRow(row) : null;
+    },
+    /** Switches the channel's chat commands; false when the account has no link. */
+    setChatCommands(userId: string, enabled: boolean): boolean {
+      const result = getDatabase().prepare('UPDATE twitch_links SET chat_commands = ? WHERE user_id = ?').run(enabled ? 1 : 0, userId) as { changes?: number | bigint };
+      return Number(result.changes ?? 0) > 0;
     },
     /**
      * Links the Twitch account to this site account. A Twitch account that was
@@ -63,7 +83,8 @@ export function createTwitchLinkRepository(getDatabase: () => DatabaseSync) {
     *exportRows(userId: string): Iterable<string> {
       const link = this.find(userId);
       if (link) {
-        yield JSON.stringify({ twitchUserId: link.twitchUserId, login: link.login, displayName: link.displayName, linkedAt: link.linkedAt });
+        yield JSON.stringify({ twitchUserId: link.twitchUserId, login: link.login, displayName: link.displayName, linkedAt: link.linkedAt,
+          chatCommands: link.chatCommands === true });
       }
     },
     /** Returns the removed link, if there was one. */

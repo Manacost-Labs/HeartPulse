@@ -78,7 +78,20 @@ export function createTwitchAccountRouter(dependencies: TwitchAccountRouterDepen
       login: link?.login ?? null,
       displayName: link?.displayName ?? null,
       linkedAt: link?.linkedAt ?? null,
+      chatCommands: link?.chatCommands === true,
     });
+  });
+
+  // Chat bot commands (!deck !winrate !rank !mmr) of the linked channel: the streamer's explicit switch, off by default.
+  router.put('/account/twitch/chat-commands', (request, response) => {
+    dependencies.setPrivateNoStore(response);
+    const user = dependencies.userAuth(request);
+    if (!user) return response.status(401).json(apiError('LOGIN_REQUIRED', 'Sign in first'));
+    if (typeof request.body?.enabled !== 'boolean') return response.status(400).json(apiError('INVALID_BODY', 'Send {"enabled":true|false}'));
+    if (!dependencies.links.setChatCommands(user.id, request.body.enabled)) {
+      return response.status(404).json(apiError('TWITCH_NOT_LINKED', 'Link Twitch first'));
+    }
+    return response.json({ chatCommands: request.body.enabled });
   });
 
   router.get('/account/twitch/connect', (request, response) => {

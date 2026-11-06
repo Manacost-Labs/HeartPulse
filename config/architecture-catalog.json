@@ -352,6 +352,10 @@
           "path": "/api/account/twitch"
         },
         {
+          "method": "PUT",
+          "path": "/api/account/twitch/chat-commands"
+        },
+        {
           "method": "GET",
           "path": "/account/twitch"
         }

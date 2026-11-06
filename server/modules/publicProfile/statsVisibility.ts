@@ -37,3 +37,11 @@ export function findPublicStatsOwner(database: DatabaseSync, publicProfileId: st
   `).get(Number(publicProfileId)) as { id?: unknown } | undefined;
   return row?.id ? String(row.id) : null;
 }
+
+/** Whether the account shows its statistics publicly and is not blocked (chat commands read it by account id). */
+export function isPublicStatsVisible(database: DatabaseSync, userId: string): boolean {
+  const row = database.prepare(`
+    SELECT 1 AS visible FROM users WHERE id = ? AND public_stats_visible = 1 AND COALESCE(blocked_at, '') = '' LIMIT 1
+  `).get(userId) as { visible?: unknown } | undefined;
+  return row?.visible === 1;
+}

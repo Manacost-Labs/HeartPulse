@@ -265,3 +265,4 @@
 .account-twitch__ok { margin: 0; color: var(--account-ink); font-size: 0.95rem; }
 .account-twitch__err { margin: 0; color: var(--arena-red); font-size: 0.95rem; }
 .account-twitch .account-button svg { vertical-align: -2px; }
+.account-twitch__chat { display: grid; gap: 6px; margin: 12px 0 0; }

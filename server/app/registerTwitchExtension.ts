@@ -10,8 +10,13 @@ import {
   createTwitchLinkPageRouter,
   createTwitchLinkRepository,
   createTwitchLiveState,
+  readTwitchEnvelope,
   readTwitchExtensionConfig,
 } from '../modules/twitchExtension/public.js';
+import type { ChatSnapshot } from '../modules/chatCommands/public.js';
+import { isPublicStatsVisible } from '../modules/publicProfile/public.js';
+import type { ReadAccountGames } from './registerPlayerGames.js';
+import { registerChatCommands } from './registerChatCommands.js';
 
 type Environment = Record<string, string | undefined>;
 
@@ -36,6 +41,8 @@ type RegisterTwitchExtensionDependencies = {
   userAuth: (request: Request) => { id: string } | null;
   setPrivateNoStore: (response: Response) => void;
   appUrl: string;
+  /** Chat commands (docs/specs/chat-commands.md): the account's games and hero card id → dbf id for deck codes. */
+  chat?: { readGames: ReadAccountGames; heroDbfId: (cardId: string) => Promise<number | null> };
 };
 
 /** Returns the link rows for the account data export. */
@@ -76,5 +83,25 @@ export function registerTwitchExtension(dependencies: RegisterTwitchExtensionDep
     onError,
   }));
   dependencies.app.use(createTwitchLinkPageRouter());
+  if (dependencies.chat) {
+    const chat = dependencies.chat;
+    registerChatCommands(dependencies.app, {
+      findChannel: login => {
+        const link = links.findByLogin(login);
+        return link ? { userId: link.userId, twitchUserId: link.twitchUserId, chatEnabled: link.chatCommands === true,
+          statsPublic: isPublicStatsVisible(dependencies.getDatabase(), link.userId) } : null;
+      },
+      snapshot: (twitchUserId): ChatSnapshot | null => {
+        const envelope = live.snapshot(twitchUserId);
+        const read = envelope ? readTwitchEnvelope(envelope) : null;
+        if (!read) return null;
+        const { state } = read;
+        return { receivedAt: read.receivedAt, deck: state.mode === 'constructed' ? { name: state.deck.name, hero: state.deck.hero,
+          format: state.deck.format, cards: state.deck.cards.map(card => ({ dbf: card.dbf, total: card.total })) } : null };
+      },
+      readGames: chat.readGames,
+      heroDbfId: chat.heroDbfId,
+    });
+  }
   return { exportRows: userId => links.exportRows(userId) };
 }
