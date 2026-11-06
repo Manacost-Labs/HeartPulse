@@ -7174,7 +7174,7 @@ const playerStats = registerPlayerGames({ app, userAuth, setPrivateNoStore,
   resolvePublicStatsOwner: publicProfileId => findPublicStatsOwner(db(), publicProfileId),
   loadEvents: (userId, query) => trackerEvents.listEvents(userId, query),
   countEvents: (userId, types, minSchemaVersion, until) => trackerEvents.countEvents(userId, types, minSchemaVersion, until),
-  hasEntitlement: requestHasEntitlementAccess, resolveCardNames: ruCardNames,
+  hasEntitlement: requestHasEntitlementAccess, resolveCardNames: ruCardNames, resolveCardIds: ruCardNames.cardIdsByDbf,
   replaysOfGames: (userId, gameIds) => replayShares.replaysOfGames(userId, gameIds, Date.now()),
   global: createPlayerGamesGlobalSources({
     loadConstructedMeta: format => loadStandardMeta(format, 'all', 'past_week', 'any_player', 100) }) });

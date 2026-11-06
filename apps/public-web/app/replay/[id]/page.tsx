@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import '@/src/route-parchment.css';
 import './replay.css';
 import { loadPublicReplay } from '@/apps/public-web/lib/publicReplay';
+import { replayShareText, replayUrls } from '@/apps/public-web/lib/replayShare';
+import { MadeWithHearthpulse } from '@/apps/public-web/ui/MadeWithHearthpulse';
 
 type Props = { params: Promise<{ id: string }> };
 export const dynamic = 'force-dynamic';
@@ -17,9 +19,21 @@ async function resolveReplay(params: Props['params']) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const replay = await resolveReplay(params);
   if (replay === 'unavailable') return { title: 'Реплей — HearthPulse', robots: { index: false, follow: false } };
-  const title = replay.kind === 'battlegrounds' ? `Реплей Полей сражений: ${replay.summary.heroName}` : `Реплей: ${replay.summary.heroName}`;
-  // A player's game, shared by link: not for search engines.
-  return { title: `${title} — HearthPulse`, robots: { index: false, follow: false } };
+  const { title, description } = replayShareText(replay);
+  const urls = replayUrls(replay.id);
+  const image = { url: urls.image, width: 1200, height: 630, alt: title };
+  // A player's game, shared by link: not for search engines, but with a rich preview in chats (Telegram, Discord, VK).
+  return {
+    title: `${title} — реплей Hearthpulse`,
+    description,
+    robots: { index: false, follow: false },
+    alternates: {
+      canonical: urls.page,
+      types: { 'application/json+oembed': `https://hearthpulse.net/embed/oembed/?url=${encodeURIComponent(urls.page)}` },
+    },
+    openGraph: { type: 'website', siteName: 'Hearthpulse', locale: 'ru_RU', url: urls.page, title, description, images: [image] },
+    twitter: { card: 'summary_large_image', title, description, images: [image] },
+  };
 }
 
 const SIDE: Record<string, string> = { you: 'Вы', opponent: 'Соперник', game: '' };
@@ -70,6 +84,7 @@ export default async function Page({ params }: Props) {
           </details>
         ))}
       </section>
+      <MadeWithHearthpulse />
     </main>
   );
 }

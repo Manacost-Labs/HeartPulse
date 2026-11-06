@@ -674,6 +674,27 @@ expectRegexAction('/id/2147483647/', 'proxy_pass http://127.0.0.1:4321;', 'maxim
 expectRegexAction('/id/0/', 'proxy_pass http://127.0.0.1:4321;', 'invalid profile ID must reach Next 404');
 expectRegexAction('/profiles/p_short/', 'proxy_pass http://127.0.0.1:4321;', 'invalid legacy profile ID must reach Next 404');
 
+// Growth pages (docs/specs/embeds-and-oembed.md): replays, previews, embeds and the download landing reach Next.
+expectRegexAction('/replay/abcDEF1234/', 'proxy_pass http://127.0.0.1:4321;', 'a shared web replay');
+expectRegexAction('/replay/abcDEF1234', 'proxy_pass http://127.0.0.1:4321;', 'Next redirects the slash-less replay URL itself');
+expectRegexAction('/og/replay/abcDEF1234/', 'proxy_pass http://127.0.0.1:4321;', 'a replay link preview');
+expectRegexAction('/og/year/42/2026/', 'proxy_pass http://127.0.0.1:4321;', 'a year-in-review preview');
+expectRegexAction('/embed/replay/abcDEF1234/', 'proxy_pass http://127.0.0.1:4321;', 'a replay embed');
+expectRegexAction('/embed/deck/AAECAZ8F+Bo32Bf2X/BpOZBg==/', 'proxy_pass http://127.0.0.1:4321;', 'a deck embed with / and + in its code');
+expectRegexAction('/embed/oembed/', 'proxy_pass http://127.0.0.1:4321;', 'the oEmbed endpoint');
+for (const embedPath of ['/embed/replay/abcDEF1234/', '/embed/deck/AAECAZ8F+Bo32Bf2X/BpOZBg==/', '/embed/oembed/']) {
+  const embed = firstMatchingRegexLocation(embedPath);
+  assert.doesNotMatch(embed?.body || '', /arena-security-headers\.conf|X-Frame-Options "SAMEORIGIN"/,
+    `${embedPath} must be frameable by other sites`);
+  assert.match(embed?.body || '', /proxy_hide_header X-Frame-Options;/, `${embedPath} never forwards a frame ban`);
+}
+for (const outside of ['/replay/short/', '/embed/hearthpulse-login-v1.js', '/embed/other/', '/og/replay/abc/']) {
+  assert.ok(!matchingRegexLocations(outside).some(location => location.body.includes('127.0.0.1:4321')),
+    `${outside} is not a growth page`);
+}
+assert.ok(locations.some(location => location.modifier === '=' && location.pattern === '/download/'
+  && location.body.includes('proxy_pass http://127.0.0.1:4321;')), 'the download landing reaches Next');
+
 for (const invalidPath of [
   '/articlesevil',
   '/standard/cards/classic',

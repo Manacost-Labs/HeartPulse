@@ -74,6 +74,21 @@ Limits: 512 KB gzip, 8 MB text, 100 000 lines, 512 characters a line.
   Battlegrounds final board, the timeline in `<details>`; a card only by its
   known name («неизвестная карта» otherwise). Unknown id → 404; the API busy
   or down → «Реплей временно недоступен».
+- Link previews (2026-11, growth): the page sends `og:*` and
+  `twitter:card=summary_large_image` with a title and description built only
+  from the sanitized summary (`apps/public-web/lib/replayShare.ts`) and the
+  image `/og/replay/<id>/` (1200 × 630 PNG drawn by `next/og`: heroes, result,
+  Battlegrounds final board, the Hearthpulse brand). The image is kept in a
+  64-entry memory cache of the Next process and sent with
+  `Cache-Control: public, max-age=86400`; a deleted replay answers 404 because
+  the replay is read before the cache. It also links its oEmbed endpoint
+  (`application/json+oembed`), see [embeds](embeds-and-oembed.md).
+- «Сделано в Hearthpulse — скачать»: a one-line band under the timeline for a
+  guest (hidden by CSS when `html[data-hp-viewer]` marks a remembered viewer),
+  linking to `/download/`.
+- Nginx: `/replay/<id>` and `/og/…` reach Next through their own locations of
+  `deploy/nginx/arena-html-routing.conf` (they were missing at the first
+  deploy, so the page answered the catch-all 404).
 - Account, «Реплеи на сайте»: the list with links and «Удалить» (asks first);
   a failed load shows an error with «Повторить».
 

@@ -1,0 +1,74 @@
+/* Year in review: a column of large numbers, two to three per row on wide screens. */
+.year-review {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 32px 16px 64px;
+  color: var(--arena-ink);
+}
+
+.year-review__kicker {
+  margin: 0;
+  color: var(--arena-red);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.year-review__head h1 {
+  margin: 4px 0 8px;
+}
+
+.year-review__tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.year-review__tile {
+  padding: 14px 16px;
+  border: 1px solid var(--arena-paper-line);
+  border-radius: 12px;
+  background: var(--arena-parchment-light);
+}
+
+.year-review__tile dt {
+  color: var(--arena-muted-ink);
+  font-size: 0.85rem;
+}
+
+.year-review__tile dd {
+  margin: 4px 0 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.year-review__tile small {
+  display: block;
+  color: var(--arena-muted-ink);
+  font-size: 0.85rem;
+  font-weight: 400;
+}
+
+.year-review__cards ol {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.year-review__cards li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.year-review__cards img {
+  border-radius: 6px;
+}
+
+.year-review__cards small {
+  color: var(--arena-muted-ink);
+}

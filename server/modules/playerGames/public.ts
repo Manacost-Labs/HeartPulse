@@ -10,3 +10,7 @@ export type { GlobalMmrFilter, PlayerStats } from './model/stats.js';
 export { statisticsFromEvent, validateStatisticsPayload } from './schema/gameSchema.js';
 export { createPlayerStatsService, type PlayerStatsService } from './service/playerStats.js';
 export { createPlayerStatsRouter, type GlobalStatsEntitlement } from './routes/statsRoutes.js';
+export { buildYearReview, yearReviewOpen, type YearReview } from './service/yearReview.js';
+export { readPlayerGames } from './service/readGames.js';
+export { createYearReviewRouter } from './routes/yearReviewRoutes.js';
+export { ladderValue, type LadderRank } from './model/game.js';

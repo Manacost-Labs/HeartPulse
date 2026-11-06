@@ -3,6 +3,9 @@ import rateLimit from 'express-rate-limit';
 import {
   createPlayerStatsRouter,
   createPlayerStatsService,
+  createYearReviewRouter,
+  readPlayerGames,
+  type PlayerGame,
   type CountStatisticsEvents,
   type GlobalStatisticsSources,
   type GlobalStatsEntitlement,
@@ -18,6 +21,8 @@ type RegisterPlayerGamesDependencies = {
   hasEntitlement: (request: Request, entitlement: GlobalStatsEntitlement) => Promise<boolean>;
   global: GlobalStatisticsSources;
   resolveCardNames?: (cardIds: string[]) => Promise<Record<string, string>>;
+  /** Deck dbf ids → card ids, for the year in review's top cards. */
+  resolveCardIds?: (dbfIds: number[]) => Promise<Record<number, string>>;
   /** The account's web replays of its games, for links in «Последние игры». */
   replaysOfGames?: (userId: string, gameIds: string[]) => Record<string, string>;
   setPrivateNoStore: (response: Response) => void;
@@ -31,6 +36,7 @@ export function registerPlayerGamesRateLimit(app: Application): void {
   app.use('/api/account/game-stats', rateLimit({ windowMs: 60_000, max: 60, standardHeaders: true, legacyHeaders: false }));
   // A path pattern, not a regular expression: Express matches it case-insensitively like the routes themselves.
   app.use('/api/profiles/:publicProfileId/game-stats', rateLimit({ windowMs: 60_000, max: 60, standardHeaders: true, legacyHeaders: false }));
+  app.use('/api/profiles/:publicProfileId/year', rateLimit({ windowMs: 60_000, max: 60, standardHeaders: true, legacyHeaders: false }));
 }
 
 /**
@@ -39,9 +45,12 @@ export function registerPlayerGamesRateLimit(app: Application): void {
  * While off, the routes answer 404 and the account page shows no section.
  * Returns the cache invalidation the tracker ingestion calls after storing events.
  */
-export function registerPlayerGames(dependencies: RegisterPlayerGamesDependencies): { invalidate: (userId: string) => void } {
+/** The account's games for readers outside the statistics pages (chat commands); empty while the statistics are off. */
+export type ReadAccountGames = (userId: string, window: { since: number; until: number; limit: number }) => PlayerGame[];
+
+export function registerPlayerGames(dependencies: RegisterPlayerGamesDependencies): { invalidate: (userId: string) => void; readGames: ReadAccountGames } {
   const environment = dependencies.environment ?? process.env;
-  if (environment.PLAYER_STATS_ENABLED !== '1') return { invalidate: () => {} };
+  if (environment.PLAYER_STATS_ENABLED !== '1') return { invalidate: () => {}, readGames: () => [] };
   const service = createPlayerStatsService({
     loadEvents: dependencies.loadEvents,
     countEvents: dependencies.countEvents,
@@ -56,5 +65,19 @@ export function registerPlayerGames(dependencies: RegisterPlayerGamesDependencie
     setPrivateNoStore: dependencies.setPrivateNoStore,
     resolvePublicStatsOwner: dependencies.resolvePublicStatsOwner,
   }));
-  return { invalidate: service.invalidate };
+  const yearReview = dependencies.resolvePublicStatsOwner ? createYearReviewRouter({
+    loadEvents: dependencies.loadEvents,
+    resolvePublicStatsOwner: dependencies.resolvePublicStatsOwner,
+    resolveCardNames: dependencies.resolveCardNames,
+    resolveCardIds: dependencies.resolveCardIds,
+    flag: environment.YEAR_REVIEW_ENABLED,
+  }) : null;
+  if (yearReview) dependencies.app.use('/api', yearReview);
+  return {
+    invalidate: userId => {
+      service.invalidate(userId);
+      yearReview?.invalidate(userId);
+    },
+    readGames: (userId, window) => readPlayerGames(dependencies.loadEvents, userId, window, Date.now()),
+  };
 }
