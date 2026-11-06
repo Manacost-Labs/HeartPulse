@@ -146,8 +146,20 @@ try {
 
   // Why a deck is fun, how far its win rate can be trusted, and the filters and the sort kept in the address.
   const openFun = async query => {
-    await open(fixture(query.replace(/^id=[^&]*&viewMode=story&?/, '')));
+    await openStory(page, fixture(query.replace(/^id=[^&]*&viewMode=story&?/, '')));
     await page.waitForSelector('.fun-decks-tools');
+    // Include resolved deck lists in axe, and measure the final font/animation layout.
+    await page.waitForFunction(() => (
+      (document.querySelector('.fun-deck-card:not(.fun-deck-card--loading)')
+        || document.querySelector('.fun-decks-page__state'))
+      && !document.querySelector('.fun-decks-page .loading-surface')
+    ));
+    await page.evaluate(async () => {
+      await document.fonts.ready;
+      await Promise.all(document.getAnimations()
+        .filter(animation => Number.isFinite(animation.effect?.getComputedTiming().endTime))
+        .map(animation => animation.finished.catch(() => {})));
+    });
   };
   const funTitles = () => page.$$eval('.fun-deck-card h2', nodes => nodes.map(node => node.textContent));
   const funCards = () => page.$$eval('.fun-deck-card', cards => cards.map(card => ({

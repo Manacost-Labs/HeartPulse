@@ -1609,3 +1609,34 @@ attempt hit an occupied local port; the successful review used an isolated
 ephemeral loopback port and a matching URL allowlist. Its servers and browser
 were closed. Hosted verification is still required before claiming that the
 intermittent CI failure is eliminated.
+
+## Resolve fun-deck contents before filter assertions
+
+Full run `42164840832` on `8ee8207f` passes all 36 checks and all 559 test
+files without retries. The five lightbox cases, including the new delayed
+fade, pass on the first attempt. Required validation takes 182 seconds from
+run creation including queue. This is one successful hosted run of the fade
+fix, not proof that every intermittent failure is eliminated.
+
+Browser shard 2 is on the critical path. Its slowest worker totals 86.20
+seconds, including 45.00 seconds in `soft-paywall-filters-browser.test.mjs`.
+The filter helper repeatedly opens the story, then waits for network idle
+with a three-second timeout whose failure is ignored. The fixture's mocked
+fetch promises are not represented by this network-idle condition.
+
+Only `openFun` in the filters block changes: it now waits for rendered cards
+or an empty-result state, absence of deck loading surfaces, fonts and finite
+animations. The initial guest scenario and overview/layout helpers keep their
+existing waits. All 81 assertion lines, screenshots, accessibility rules,
+filter interactions, reload behavior and viewport coverage are unchanged;
+no production code, test membership, retry or workflow changes are made.
+
+The original test passes locally in 9.575 seconds and the candidate in 7.300
+seconds on the same build. This single local pair is not a hosted speedup
+claim. An earlier instrumented profile failed with `ERR_NETWORK_CHANGED`
+and is excluded from the successful comparison. A temporary probe delays
+fixture deck-resolution replies by 1.5 seconds and requires every rendered
+card to contain its deck list when `openFun` returns: the old wait fails that
+check, while the candidate passes the full filter scenario. This guards
+against making axe run against unresolved card placeholders. Project/scoped
+Semgrep, Oxlint and documentation checks pass. Hosted validation is pending.
