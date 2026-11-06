@@ -32,13 +32,23 @@ export function useOverlayFade<T extends HTMLElement>(onClose: () => void, fallb
       done = true;
       onCloseRef.current();
     };
+    const finishAfterFade = () => {
+      const fades = element?.getAnimations().filter(animation => animation instanceof CSSTransition
+        && animation.transitionProperty === 'opacity'
+        && (animation.playState === 'running' || animation.playState === 'paused')) ?? [];
+      // A busy compositor may not have started a scheduled fade by the timeout.
+      // Cancellation also settles it; cleanup prevents a stale callback after unmount.
+      if (fades.length) void Promise.allSettled(fades.map(animation => animation.finished)).then(finish);
+      else finish();
+    };
     // The entrance's end event may still be queued when a quick close starts.
     const ended = (event: TransitionEvent) => {
-      if (event.target === element && event.propertyName === 'opacity' && getComputedStyle(element).opacity === '0') finish();
+      if (event.target === element && event.propertyName === 'opacity' && getComputedStyle(element).opacity === '0') finishAfterFade();
     };
     element?.addEventListener('transitionend', ended);
-    const timer = window.setTimeout(finish, fallbackMs);
+    const timer = window.setTimeout(finishAfterFade, fallbackMs);
     return () => {
+      done = true;
       window.clearTimeout(timer);
       element?.removeEventListener('transitionend', ended);
     };

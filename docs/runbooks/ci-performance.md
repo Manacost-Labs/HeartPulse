@@ -1568,3 +1568,44 @@ guest network assertion fails specifically with `guests never request
 builder data`. The probes are not committed; the original end-to-end test
 remains the validation contract. The next full hosted run must verify the
 change under CI contention.
+
+## Preserve scheduled fades past the close fallback
+
+Run `42163664685` on `1b543fef` fails browser shard 2 and `CI required` because
+the original hero lightbox fade test fails both attempts. This is separate
+from the guest-builder readiness change. The new diagnostics capture an
+opacity transition with `playState=running`, `pending=true`, null start time
+and current time zero. Removal cancels it and rejects `Animation.ready`.
+Thus this failure contains a transition that never became ready before
+removal, rather than only a late read of completed animation metadata.
+
+`useOverlayFade` previously invoked its close callback unconditionally at
+600 ms, even with a scheduled opacity transition. A deterministic regression
+adds a real 900 ms CSS delay to the existing hero story: the old hook removes
+the overlay before the delay plus its 200 ms fade completes. This reproduces
+the premature-fallback mechanism, not the hosted compositor scheduling.
+
+The hook now checks its own running/paused opacity transitions at fallback
+or an eligible end event, waiting for their finished promises to settle.
+Cancellation also settles the wait; no-animation fallback still closes.
+The callback remains idempotent, and effect cleanup disables pending
+callbacks after unmount. Unlike earlier measurement-only changes, this fixes
+production behavior on a delayed renderer. It does not alter CSS duration,
+CPU throttling, existing assertions, retries, quarantine or job topology.
+
+The regression fails against the old built Storybook and passes after the
+hook fix and rebuild. All five lightbox scenarios pass, including the four
+original cases and reduced motion. Temporary cancellation/no-transition
+probes both pass. TypeScript, project and scoped Semgrep, Oxlint and four
+Storybook contracts pass. React Doctor reports only two unrelated existing
+unused imports in the deck-builder runes test.
+
+Chrome DevTools MCP review of the rebuilt hero story at 1440 and 390 pixels
+confirms the image and controls fit, native Escape closes the lightbox,
+scroll locking is released, and no console warning/error or failed request
+is recorded. Screenshots and accessibility snapshots were inspected; the
+fixture image is the story's intentional SVG placeholder. A first review
+attempt hit an occupied local port; the successful review used an isolated
+ephemeral loopback port and a matching URL allowlist. Its servers and browser
+were closed. Hosted verification is still required before claiming that the
+intermittent CI failure is eliminated.
