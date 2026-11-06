@@ -151,6 +151,10 @@ async function heroLightboxClose({ reducedMotion }) {
       if (fade.lifecycle.length < 16) fade.lifecycle.push({
         phase, at: performance.now(), opacity: lightbox.style.opacity,
         transition: lightbox.style.transition, connected: lightbox.isConnected, elapsed,
+        animation: transition ? {
+          playState: transition.playState, pending: transition.pending,
+          startTime: transition.startTime, currentTime: transition.currentTime,
+        } : null,
       });
     };
     record('observe');
@@ -166,7 +170,13 @@ async function heroLightboxClose({ reducedMotion }) {
         // Snapshot the real start before removal clears it, even if frame and
         // transition-event observers arrive late. If readiness rejects, the
         // unchanged assertions still reject missing fade metadata.
-        if (transition) void transition.ready.then(readFade, () => {});
+        if (transition) {
+          record('animation-captured');
+          void transition.ready.then(() => {
+            record('animation-ready');
+            readFade();
+          }, () => record('animation-ready-rejected'));
+        }
       }
       if (!transition || fade.start !== null || transition.startTime === null) return;
       fade.start = transition.startTime;

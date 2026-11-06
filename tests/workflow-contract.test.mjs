@@ -54,6 +54,15 @@ assert.deepEqual(
     'refresh-caches', 'deploy-production'],
 );
 
+const dependencyAction = readFileSync('.github/actions/install-dependencies/action.yml', 'utf8');
+assert.match(dependencyAction, /restore-npm-cache:\n\s+description:.*\n\s+required: false\n\s+default: 'false'/);
+assert.ok(dependencyAction.includes("cache: ${{ (steps.modules.outputs.cache-hit != 'true' || inputs.restore-npm-cache == 'true') && 'npm' || '' }}"),
+  'jobs that perform additional clean installs need the npm download cache even on a node_modules hit');
+for (const [name, job] of Object.entries(ciJobs)) {
+  assert.equal(job.includes("restore-npm-cache: 'true'"), name === 'test-suites',
+    `${name}: only registry jobs opt into the additional npm download cache`);
+}
+
 const browserRuntimeAction = readFileSync('.github/actions/browser-runtime/action.yml', 'utf8');
 assert.match(browserRuntimeAction, /chrome-runtime-v1-\$\{RUNNER_OS\}-\$\{RUNNER_ARCH\}-\$\{ImageOS\}-\$\{ImageVersion\}-\$\{version\}/,
   'browser caches must match the exact runner image, architecture and installed package');

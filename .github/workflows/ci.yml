@@ -254,6 +254,8 @@ jobs:
 
       - name: Install locked dependencies
         uses: ./.github/actions/install-dependencies
+        with:
+          restore-npm-cache: 'true'
 
       - name: Restore installed browser runtime
         uses: ./.github/actions/browser-runtime

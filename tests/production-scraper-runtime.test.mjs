@@ -10,12 +10,14 @@ const root = mkdtempSync(join(tmpdir(), 'hearthpulse-production-scraper-'));
 const runtime = join(root, 'runtime');
 
 function run(command, args, options = {}) {
+  const started = performance.now();
   const result = spawnSync(command, args, {
     cwd: options.cwd ?? repository,
     encoding: 'utf8',
     env: { ...process.env, PUPPETEER_SKIP_DOWNLOAD: 'true', ...options.env },
     timeout: options.timeout ?? 180_000,
   });
+  console.log(`[production-runtime] phase=${options.phase} milliseconds=${Math.round(performance.now() - started)} status=${result.status}`);
   assert.equal(
     result.status,
     0,
@@ -33,7 +35,7 @@ function immutableRuntimeInventory() {
 
 try {
   if (process.env.PRODUCTION_SCRAPER_BUILD_READY !== '1') {
-    run('npm', ['run', 'build:server']);
+    run('npm', ['run', 'build:server'], { phase: 'build-server' });
   }
 
   mkdirSync(join(runtime, 'server', 'data'), { recursive: true });
@@ -41,10 +43,11 @@ try {
   cpSync(join(repository, 'package-lock.json'), join(runtime, 'package-lock.json'));
   cpSync(join(repository, 'build'), join(runtime, 'build'), { recursive: true });
 
-  run('npm', ['ci', '--omit=dev', '--no-audit', '--no-fund'], { cwd: runtime });
+  run('npm', ['ci', '--omit=dev', '--no-audit', '--no-fund'], { cwd: runtime, phase: 'install-production-dependencies' });
   const beforeImport = immutableRuntimeInventory();
   run(process.execPath, ['--input-type=module', '-e', "await import('./build/server/scraper.js')"], {
     cwd: runtime,
+    phase: 'import-scraper',
     env: {
       APP_ROOT_DIR: runtime,
       SERVER_DATA_DIR: join(runtime, 'server', 'data'),
@@ -59,7 +62,7 @@ try {
     '--input-type=module',
     '-e',
     "const {verifyScraperBrowserRuntime}=await import('./build/server/scraperBrowserRuntime.js'); await verifyScraperBrowserRuntime();",
-  ], { cwd: runtime });
+  ], { cwd: runtime, phase: 'verify-browser-runtime' });
 } finally {
   rmSync(root, { recursive: true, force: true });
 }

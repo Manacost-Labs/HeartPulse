@@ -1501,3 +1501,37 @@ and passes the readiness capture; early removal and immediate removal still
 fail. All four original real-Storybook scenarios pass with the cached browser.
 The next hosted run must establish whether this prevents the observed retry;
 no claim of complete flake elimination is made from the local result.
+
+## Restore download cache for clean production installs
+
+Full run `42159377748` on `94e2a309` passed all 36 checks; required validation
+finished at 167 seconds including queue. Reports contain 558 PASS and one
+FLAKY among 559 files. Lightbox still retries: its style mutation precedes
+transition start by about 7.2 seconds, then removal cancels the transition
+with no stored timing. Four simultaneous local hero-fade probes sharing four
+CPU cores all pass. That does not establish that a dedicated runner fixes it.
+The test now records bounded animation state at capture, readiness, events
+and removal to distinguish a stale animation object from delayed readiness.
+Assertions, frame sampling, CPU throttling and product behavior are unchanged.
+
+Registry shard 4 is the critical job. Its slowest worker spends 47.769 seconds
+in `production-scraper-runtime.test.mjs`, which installs production dependencies
+into an isolated temporary runtime with `npm ci --omit=dev`. The dependency
+action previously restored npm's download cache only on a `node_modules` miss;
+a hit therefore left this second clean install without that restored cache.
+
+The dependency action gains a default-off `restore-npm-cache` input. Only the
+registry matrix opts in, restoring npm package archives through the existing
+setup-node cache even on a `node_modules` hit. The production smoke still runs
+its original clean install, lockfile checks, isolated import, filesystem
+inventory and browser-runtime verification. No installed production tree is
+reused and no test assertion or required gate is removed. Count the added
+restore cost across all registry shards when evaluating hosted results.
+
+Local smoke validation passes first with an empty npm cache and then with
+`npm_config_offline=true`, using the populated cache and a fresh isolated
+runtime. This proves the download cache can support the original clean install;
+it showed no local elapsed-time improvement. Command-phase timing is now logged
+for server build (when needed), production install, scraper import and browser
+verification so hosted results can attribute the cost before adopting further
+optimizations. These timings do not alter the commands or their assertions.

@@ -7,6 +7,10 @@ inputs:
     description: Save node_modules after a miss; one job per run saves, so parallel jobs do not race.
     required: false
     default: 'false'
+  restore-npm-cache:
+    description: Restore npm package downloads for additional clean installs after a node_modules hit.
+    required: false
+    default: 'false'
 runs:
   using: composite
   steps:
@@ -30,8 +34,8 @@ runs:
       uses: actions/setup-node@v7
       with:
         node-version: '22'
-        # The npm download cache only helps npm ci, which a hit skips.
-        cache: ${{ steps.modules.outputs.cache-hit != 'true' && 'npm' || '' }}
+        # Registry smoke tests run a separate clean production install even on a hit.
+        cache: ${{ (steps.modules.outputs.cache-hit != 'true' || inputs.restore-npm-cache == 'true') && 'npm' || '' }}
 
     - name: Install locked dependencies
       if: steps.modules.outputs.cache-hit != 'true'
