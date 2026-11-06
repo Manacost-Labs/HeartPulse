@@ -21,6 +21,8 @@ const lateDecoyInteraction = 'I'.repeat(24);
 const decoyName = 'hs-manacost.ru Манакост официальный сайт — безопасный вход для читателей и игроков Hearthstone';
 // The answer to /client arrives this long after the card is on screen.
 const lateAnswerMs = 1000;
+let firstFrameReady = Promise.resolve();
+let releaseFirstFrame = () => {};
 const httpRequestUrls = [];
 const entry = join(root, 'entry.tsx');
 const bundle = join(root, 'bundle.js');
@@ -137,10 +139,13 @@ const server = createServer((request, response) => {
   if (client) {
     if (client[1] === brokenInteraction) { request.socket.destroy(); return; }
     const answer = clientAnswers[client[1]] ?? { status: 404 };
-    setTimeout(() => {
+    // Delayed layout fixtures start their one-second delay after the first form frame
+    // is sampled; a busy test driver must not consume that observation window.
+    const ready = answer.delay ? firstFrameReady : Promise.resolve();
+    void ready.then(() => setTimeout(() => {
       response.writeHead(answer.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
       response.end(answer.body ? JSON.stringify(answer.body) : undefined);
-    }, answer.delay ?? 0);
+    }, answer.delay ?? 0));
     return;
   }
   // The consent page answers slowly, so a request the page would still make while leaving is not lost with it.
@@ -326,6 +331,7 @@ try {
         Storage.prototype[method] = () => { throw new DOMException('Storage is denied', 'SecurityError'); };
       }
     }
+    window.__early = null;
     window.__shift = 0;
     window.__tops = [];
     window.__named = false;
@@ -335,7 +341,10 @@ try {
     window.__observer.observe({ type: 'layout-shift', buffered: true });
     const frame = () => {
       const form = document.querySelector('.login-form');
-      if (form) window.__tops.push(Math.round(form.getBoundingClientRect().top * 10) / 10);
+      if (form) {
+        window.__early ??= document.body.innerText;
+        window.__tops.push(Math.round(form.getBoundingClientRect().top * 10) / 10);
+      }
       if (document.body?.innerText.includes('для сайта')) window.__named = true;
       requestAnimationFrame(frame);
     };
@@ -344,9 +353,12 @@ try {
   async function lateAnswer(path, uid, width, query = '') {
     await page.setViewport({ width, height: 844 });
     await page.goto('about:blank');
+    firstFrameReady = new Promise(resolve => { releaseFirstFrame = resolve; });
     await page.goto(`${origin}${path}/?login${query}#reader_interaction=${uid}`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.login-form');
-    const early = await bodyText();
+    await page.waitForFunction(() => window.__early !== null);
+    const early = await page.evaluate(() => window.__early);
+    releaseFirstFrame();
     await new Promise(resolve => setTimeout(resolve, lateAnswerMs + 500));
     return page.evaluate(() => {
       const records = window.__observer.takeRecords();
@@ -435,6 +447,7 @@ try {
   assert.ok(missing.shift < 0.005 && missing.spread <= 1, `a late 404 moved the form by ${missing.spread}px (shift ${missing.shift})`);
   }
 } finally {
+  releaseFirstFrame();
   await browser?.close();
   await new Promise(resolve => server.close(resolve));
   rmSync(root, { recursive: true, force: true });

@@ -1287,3 +1287,31 @@ quarantine weights, and verifies exact disjoint coverage of all 99 blocking
 browser and 456 non-browser files. Calibration, worker/workflow/QA-group and
 registry tests pass. The next full GitHub run measures the actual effect;
 job counts, worker counts, test code and required gates remain unchanged.
+
+## Identity layout fixture: sample before releasing the delayed answer
+
+Run `42148659297` on `9baedb159` failed the registry layout scenario at
+1280 px: the alleged first-frame text already contained the site name.
+The required gate correctly failed because registry shard 3 failed.
+The calibrated weights remain a candidate; this run is not an eligible
+successful calibration sample.
+
+The fixture previously started its one-second answer timer on the HTTP
+request, then read the early text through the Node driver. Delaying that
+read by 1.5 seconds reproduces the exact hosted assertion failure. This
+establishes a fixture race, although the hosted driver delay itself was
+not instrumented.
+
+Capture the first form-frame text inside the existing animation-frame
+observer. Hold only delayed fixture answers until the driver retrieves that
+sample, then retain the original one-second response delay and 1.5-second
+observation window. This makes the scenario independent of driver scheduling
+before the sample. Release the hold during cleanup as well. Guest and context
+fixtures retain their original response behavior. No product code, assertions,
+viewport matrix, layout limits or required gates change.
+
+Validation: the delayed-reader reproduction fails before the change and passes
+after it. All three identity continuation groups also pass on four CPUs with
+the temporary probe removed. All 65 assertion lines are unchanged. Focused
+and project Semgrep checks report no findings; JavaScript and documentation
+checks pass. The hosted result for this correction is still pending.
