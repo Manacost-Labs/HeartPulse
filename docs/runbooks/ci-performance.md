@@ -1203,3 +1203,37 @@ All three files passed concurrently in real Chrome on four local CPUs. All
 48 registry tests and 11 worker/workflow/QA-group contracts passed, along
 with scoped Semgrep, Oxlint and documentation checks. These local results
 verify the split; only a new hosted run measures its CI timing effect.
+
+## Canonical link audit groups
+
+Run `42145130847` on `c0aa9139` passed all 36 checks and all 558 registered
+files without retries. Required validation took 192 seconds. The three Arena
+files passed; this unpaired run does not demonstrate a whole-CI speedup.
+Browser shard 4 was critical. Its test step took 97 seconds, including a
+6.916-second executable preload and 0.866-second initial Chrome launch.
+One worker ran the administrator Arena case and then the 62.046-second
+canonical-link audit. Other workers were also busy with long browser files.
+
+The canonical audit now runs in two independent files with a shared helper:
+twelve guest routes, and four subscriber routes plus the archive and card
+navigation checks. Both groups retain server-HTML and hydrated-anchor reads,
+all content selectors, network-idle waits and browser-error assertions. The
+subscriber group retains both disabled archive checks, hover prefetch, API
+request restrictions, redirect checks and same-document navigation checks.
+The route tables, measurement helpers and original assertions are unchanged;
+only group selection and ownership of the final navigation phase differ.
+Each group owns its runtime/browser and isolated subscriber context.
+
+A local control run passed. Its phase profile recorded 12.900 seconds for
+guest routes, 3.828 for subscriber routes and 3.411 for archive/navigation.
+The previous 45.349-second weight is proportionally allocated as 29.049 and
+16.300 seconds. These are initial seeds from local phase ratios, not hosted
+subgroup medians. Temporary profiling is removed. The registry now contains
+559 files: 555 blocking and four quarantined, including 99 blocking browser
+files. Job/worker counts and required gates remain unchanged.
+
+Both groups passed concurrently in real Chrome on four local CPUs. A normalized
+source comparison proves that route tables, helpers and scenario assertions
+match the original after removing only group-selection plumbing. All 48
+registry tests and 11 worker/workflow/QA-group contracts passed, along with
+scoped Semgrep, Oxlint and documentation checks. Hosted timing is still pending.
