@@ -11,13 +11,22 @@ const LAUNCH_TIMEOUT_MS = 60_000;
  * error, and a second timeout, is thrown as is.
  */
 export async function launchBrowser(options = {}) {
-  const launchOptions = { timeout: LAUNCH_TIMEOUT_MS, ...options };
+  // Relocated Chrome cannot rely on the system executable's sandbox setup.
+  // Reuse cached bytes only when the caller already disabled sandboxing.
+  const cachedExecutable = process.platform === 'linux' && process.env.GITHUB_ACTIONS === 'true'
+    ? process.env.HP_CACHED_CHROMIUM_PATH : undefined;
+  const useCachedBrowser = Boolean(cachedExecutable && options.executablePath
+    && options.executablePath === process.env.CHROMIUM_PATH && options.args?.includes('--no-sandbox'));
+  const launchOptions = {
+    timeout: LAUNCH_TIMEOUT_MS, ...options,
+    ...(useCachedBrowser ? { executablePath: cachedExecutable } : {}),
+  };
   const reportTiming = process.env.GITHUB_ACTIONS === 'true' || process.env.HP_BROWSER_TIMINGS === '1';
   const entry = basename(process.argv[1] || 'unknown');
   const launch = async attempt => {
     const started = performance.now();
     let outcome = 'failed';
-    if (reportTiming) console.log(`[browser] launch-start entry=${entry} pid=${process.pid} attempt=${attempt} transport=${launchOptions.pipe ? 'pipe' : 'websocket'} executable=${basename(launchOptions.executablePath || 'puppeteer-default')}`);
+    if (reportTiming) console.log(`[browser] launch-start entry=${entry} pid=${process.pid} attempt=${attempt} transport=${launchOptions.pipe ? 'pipe' : 'websocket'} runtime=${useCachedBrowser ? 'cache' : 'requested'} executable=${basename(launchOptions.executablePath || 'puppeteer-default')}`);
     try {
       const browser = await puppeteer.launch(launchOptions);
       if (reportTiming) {

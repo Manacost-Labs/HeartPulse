@@ -171,3 +171,51 @@ test('browser preload reads the exact ELF through a Google wrapper without modif
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+
+test('cached Chrome is selected only for explicit unsandboxed launches of the configured CI browser', async t => {
+  // Mock the underlying driver to inspect delegation without launching Chrome.
+  // eslint-disable-next-line no-restricted-imports
+  const { default: puppeteer } = await import('puppeteer');
+  const { launchBrowser } = await import('../scripts/lib/browser-launch.mjs');
+  const keys = ['GITHUB_ACTIONS', 'CHROMIUM_PATH', 'HP_CACHED_CHROMIUM_PATH'];
+  const original = Object.fromEntries(keys.map(key => [key, process.env[key]]));
+  t.after(() => {
+    for (const key of keys) {
+      if (original[key] === undefined) delete process.env[key];
+      else process.env[key] = original[key];
+    }
+  });
+  Object.assign(process.env, {
+    GITHUB_ACTIONS: 'true', CHROMIUM_PATH: '/system/google-chrome',
+    HP_CACHED_CHROMIUM_PATH: '/cache/google-chrome',
+  });
+  const launches = [];
+  t.mock.method(puppeteer, 'launch', async options => {
+    launches.push(options);
+    return { close: async () => {} };
+  });
+  t.mock.method(console, 'log', () => {});
+  const check = async (options, expectedPath) => {
+    const before = structuredClone(options);
+    await launchBrowser(options);
+    const received = launches.at(-1);
+    assert.equal(received.executablePath, expectedPath);
+    assert.deepEqual(received.args, before.args, 'never add or remove sandbox flags');
+    assert.deepEqual(options, before, 'caller options remain unchanged');
+    assert.equal(received.timeout, options.timeout ?? 60000);
+  };
+  const system = { executablePath: process.env.CHROMIUM_PATH, headless: true };
+  const unsandboxed = { ...system, args: ['--no-sandbox', '--disable-dev-shm-usage'], timeout: 1234 };
+  await check(unsandboxed, process.platform === 'linux' ? '/cache/google-chrome' : system.executablePath);
+  await check(system, system.executablePath);
+  await check({ ...system, args: [] }, system.executablePath);
+  await check({ ...system, args: ['--disable-setuid-sandbox'] }, system.executablePath);
+  await check({ ...unsandboxed, executablePath: '/custom/chrome' }, '/custom/chrome');
+  await check({ args: ['--no-sandbox'] }, undefined);
+  delete process.env.HP_CACHED_CHROMIUM_PATH;
+  await check(unsandboxed, system.executablePath);
+  process.env.HP_CACHED_CHROMIUM_PATH = '/cache/google-chrome';
+  process.env.GITHUB_ACTIONS = 'false';
+  await check(unsandboxed, system.executablePath);
+});

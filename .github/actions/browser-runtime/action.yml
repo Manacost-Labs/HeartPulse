@@ -62,15 +62,10 @@ runs:
         browser_dir="$RUNNER_TEMP/hp-browser-runtime"
         [[ -f "$browser_dir/.hp-package-version" && -x "$browser_dir/google-chrome" && -x "$browser_dir/chrome" ]] || fallback "cached files missing or not executable"
         [[ "$(cat "$browser_dir/.hp-package-version")" == "$PACKAGE_VERSION" ]] || fallback "cached package version mismatch"
-        # Cache extraction cannot preserve root ownership. Use the trusted
-        # helper from the same installed package without elevating cached files.
-        sandbox_helper=/opt/google/chrome/chrome-sandbox
-        [[ -f "$sandbox_helper" && -x "$sandbox_helper" && ! -L "$sandbox_helper" ]] || fallback "installed sandbox helper missing, non-executable or symlink"
-        sandbox_metadata=$(stat -c '%u:%a' "$sandbox_helper") || fallback "cannot read installed sandbox helper metadata"
-        [[ "$sandbox_metadata" == '0:4755' ]] || fallback "installed sandbox helper uid:mode=$sandbox_metadata; expected 0:4755"
-        ln -sfnT "$sandbox_helper" "$browser_dir/chrome-sandbox" || fallback "sandbox helper link failed"
-        echo "CHROMIUM_PATH=$browser_dir/google-chrome" >> "$GITHUB_ENV"
+        # Sandboxed launches need the runner's system Chrome. The launcher may
+        # use this cache only when the caller already requested --no-sandbox.
+        echo "HP_CACHED_CHROMIUM_PATH=$browser_dir/google-chrome" >> "$GITHUB_ENV"
         # Extraction has already read and written the executable; retain the
         # normal blank-browser warmup without a second sequential file preload.
         echo 'HP_BROWSER_PRELOAD=0' >> "$GITHUB_ENV"
-        echo 'Cached Chrome selected; installed SUID helper retained; executable preload disabled'
+        echo 'Cached Chrome available only for explicit --no-sandbox launches; system browser retained for sandboxed launches'

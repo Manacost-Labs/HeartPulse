@@ -1444,3 +1444,29 @@ It retains every guard, fallback behavior, sandbox setting and test assertion.
 The action-shell contract verifies these messages alongside the existing
 selection outcomes. The next run must identify the actual rejected condition
 before another cache-performance conclusion or same-SHA timing rerun.
+
+## Keep sandboxed launches on system Chrome
+
+Required validation for `2b9e84c3`, run `42157317112`, passed in 184 seconds
+including queue time. The new selection log identifies the reason for fallback:
+the installed helper is root-owned with mode `0777`, not `4755`. Linking to it
+would not provide a valid SUID sandbox. Do not change its permissions, elevate
+cached bytes or disable sandboxing to make relocation work.
+
+The action now publishes `HP_CACHED_CHROMIUM_PATH` for an exact cache hit while
+leaving `CHROMIUM_PATH` on the system browser. The common launcher substitutes
+the cached executable only on Linux GitHub Actions, when the caller explicitly
+passes `--no-sandbox` and requests exactly the configured `CHROMIUM_PATH`.
+Sandboxed launches, custom executable paths, Puppeteer's default resolution,
+local runs and cache misses retain their requested browser. Arguments and
+caller options remain unchanged. This replaces the installed-helper-link trial.
+The existing unsandboxed warmup uses the restored executable; its redundant
+file preload stays disabled after a cache hit. Per-launch logs distinguish
+`runtime=cache` from `runtime=requested`, making selection observable.
+
+The launcher boundary regression fails before the change and checks all these
+selection cases, flag preservation and caller-option immutability. The action
+contract checks exact metadata, fallback and the separate cache environment
+variable. Existing radar and field-focus scenarios verify the system sandboxed
+and cached unsandboxed paths respectively. Hosted timing and full-suite
+compatibility still require the next run; the two-minute target remains unmet.

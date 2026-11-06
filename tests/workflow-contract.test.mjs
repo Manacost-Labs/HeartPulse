@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, readFileSync, readlinkSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
@@ -77,21 +77,14 @@ try {
   const browserDirectory = join(browserCacheRoot, 'hp-browser-runtime');
   const githubEnvironment = join(browserCacheRoot, 'github-env');
   const expectedVersion = '150.0.0.1-1';
-  const trustedHelper = join(browserCacheRoot, 'system-chrome-sandbox');
-  const fixtureBin = join(browserCacheRoot, 'bin');
-  mkdirSync(fixtureBin);
-  // Simulate root ownership without elevating the test or any fixture binary.
-  writeFileSync(join(fixtureBin, 'stat'), '#!/bin/sh\nprintf \'%s\\n\' "$TEST_SANDBOX_STAT"\n', { mode: 0o755 });
-  const fixtureScript = selectBrowserScript.replaceAll('/opt/google/chrome/chrome-sandbox', trustedHelper);
   let selectionLog;
-  const selectBrowser = (sandboxStat = '0:4755') => {
+  const selectBrowser = () => {
     writeFileSync(githubEnvironment, 'existing=preserved\n');
-    selectionLog = execFileSync('bash', ['-e', '-o', 'pipefail', '-c', fixtureScript], {
+    selectionLog = execFileSync('bash', ['-e', '-o', 'pipefail', '-c', selectBrowserScript], {
       encoding: 'utf8',
       env: {
         ...process.env, RUNNER_TEMP: browserCacheRoot, GITHUB_ENV: githubEnvironment,
-        PACKAGE_VERSION: expectedVersion, PATH: `${fixtureBin}:${process.env.PATH}`,
-        TEST_SANDBOX_STAT: sandboxStat,
+        PACKAGE_VERSION: expectedVersion,
       },
     });
     return readFileSync(githubEnvironment, 'utf8');
@@ -107,26 +100,10 @@ try {
   assert.equal(selectBrowser(), 'existing=preserved\n', 'a different package preserves fallback');
   assert.match(selectionLog, /System Chrome fallback: cached package version mismatch/);
   writeFileSync(join(browserDirectory, '.hp-package-version'), `${expectedVersion}\n`);
-  assert.equal(selectBrowser(), 'existing=preserved\n', 'a missing trusted helper preserves fallback');
-  assert.match(selectionLog, /System Chrome fallback: installed sandbox helper missing, non-executable or symlink/);
-  writeFileSync(trustedHelper, '#!/bin/sh\nexit 0\n', { mode: 0o755 });
-  assert.equal(selectBrowser('1000:4755'), 'existing=preserved\n', 'a user-owned helper preserves fallback');
-  assert.match(selectionLog, /System Chrome fallback: installed sandbox helper uid:mode=1000:4755; expected 0:4755/);
-  assert.equal(selectBrowser('0:755'), 'existing=preserved\n', 'a helper without setuid preserves fallback');
-  assert.match(selectionLog, /System Chrome fallback: installed sandbox helper uid:mode=0:755; expected 0:4755/);
-  const restoredHelper = join(browserDirectory, 'chrome-sandbox');
-  mkdirSync(restoredHelper);
-  assert.equal(selectBrowser(), 'existing=preserved\n', 'a failed helper replacement preserves fallback');
-  assert.match(selectionLog, /System Chrome fallback: sandbox helper link failed/);
-  rmSync(restoredHelper, { recursive: true });
-  writeFileSync(restoredHelper, 'untrusted restored helper');
-  assert.equal(selectBrowser(), `existing=preserved\nCHROMIUM_PATH=${browserDirectory}/google-chrome\nHP_BROWSER_PRELOAD=0\n`);
-  assert.equal(readlinkSync(restoredHelper), trustedHelper, 'sandbox uses the installed package helper');
-  assert.match(selectionLog, /Cached Chrome selected; installed SUID helper retained; executable preload disabled/);
-  assert.match(selectBrowser(), /CHROMIUM_PATH=/, 'selecting the same cache again is safe');
-  rmSync(trustedHelper);
-  symlinkSync(join(browserDirectory, 'chrome'), trustedHelper);
-  assert.equal(selectBrowser(), 'existing=preserved\n', 'a symlink in place of the trusted helper preserves fallback');
+  assert.equal(selectBrowser(), `existing=preserved\nHP_CACHED_CHROMIUM_PATH=${browserDirectory}/google-chrome\nHP_BROWSER_PRELOAD=0\n`);
+  assert.match(selectionLog, /Cached Chrome available only for explicit --no-sandbox launches; system browser retained for sandboxed launches/);
+  assert.equal(selectBrowser(), `existing=preserved\nHP_CACHED_CHROMIUM_PATH=${browserDirectory}/google-chrome\nHP_BROWSER_PRELOAD=0\n`,
+    'selecting the same cache again is safe');
 } finally {
   rmSync(browserCacheRoot, { recursive: true, force: true });
 }
