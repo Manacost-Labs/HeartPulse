@@ -1008,6 +1008,48 @@ seven routes, no skips or retries. Registry validation and all 11 worker,
 workflow and QA-group checks also passed. Local group timings are not a
 hosted CI speedup measurement.
 
+## Guided-tour geometry readiness
+
+Run `42136196730` on `5d1d0fc7` passed all 36 checks and all 554 files without
+retries; required validation completed at +178 seconds. Both mobile geometry
+groups passed on their first attempt. Observatory batch 4 was last, with
+`shell-responsive` at 83.191 seconds and `admin-desktop` at 89.567 seconds.
+The two-minute target remains unmet.
+
+A local control run of `admin-desktop` passed and recorded seven tours with
+36 steps. Each step slept 750 ms before reading its geometry: 27 seconds of
+fixed pauses. The tests already request reduced motion. The next change waits
+for loaded fonts, no pending/running finite tour animation, and three animation
+frames with identical dialog/spotlight rectangles and window scroll position.
+The readiness wait uses the same 10-second bound as existing step readiness;
+it fails if the UI never appears or keeps moving. The old 750 ms pause was a
+settling heuristic, not a product response-time assertion.
+
+Final geometry, overlap, viewport, focus trapping, inert background, step
+counts, completion persistence and accessibility assertions are unchanged.
+Readiness does not wait for those assertions to become true: even stable
+incorrect geometry is returned to the original checks. Infinite animations
+are not awaited; position and size must still stabilize. Each call owns a
+browser handle and disposes it on success or failure. No product, animation,
+viewport, scenario, screenshot or batch configuration changes.
+
+A real-Chrome regression fails against a no-op and verifies finite animation
+completion together with smooth scrolling, rejection of missing or constantly
+moving UI, and exposure of stable incorrect geometry. It is registered in the
+browser suite,
+bringing the total to 555 files: 551 blocking and four quarantined, including
+95 blocking browser files. A new file keeps the default scheduling weight
+until enough hosted PASS observations support calibration.
+
+All four affected groups (`admin-desktop`, `admin-mobile`, `routes-desktop`,
+`routes-mobile`) pass against the production Next build, run in pairs on four
+local CPUs. The temporary profiler is removed before commit. A byte comparison
+confirms the QA suite changed only its import and the fixed pause; all scenario
+and assertion bodies remain intact. The local desktop tour portion took
+3.629 seconds for the same 36 steps; the control recorded 28.637 seconds.
+These local runs differ in concurrent load and do not establish hosted savings;
+judge the next full CI run, including the still-long responsive inventory.
+
 ## Verification
 
 Focused runner and workflow tests must prove deterministic complete sharding,

@@ -8,6 +8,7 @@
 import { createHomeOrbitInspector } from './qa/homeOrbitFixtures.mjs';
 import { qaGroupFilter } from './qa/groups.mjs';
 import { screenshotCapture } from './qa/screenshots.mjs';
+import { waitForTourGeometry } from './qa/tourSettling.mjs';
 import { launchBrowser } from './lib/browser-launch.mjs';
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
@@ -440,8 +441,7 @@ async function auditPageTour(page, { label, expectedSteps = null, minSteps = 2, 
       const labelText = document.querySelector('.page-tour__dialog .ui-tour__progress-text')?.textContent || '';
       return labelText.startsWith(`Шаг ${expectedIndex} из `);
     }, { timeout: 10_000 }, index + 1);
-    // Smooth scrolling to the target and the card's entrance settle well within this pause.
-    await new Promise(resolve => setTimeout(resolve, 750));
+    await waitForTourGeometry(page);
 
     const state = await page.evaluate(isMobile => {
       const dialog = document.querySelector('.page-tour__dialog');
