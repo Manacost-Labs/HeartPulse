@@ -74,6 +74,13 @@ export async function loadArchetypeCatalogForSlug<C extends PeriodCatalog & { it
   return hasSlug(fallback) ? fallback : first;
 }
 
+/** The route entry: a slug asks for the window listing it, otherwise the requested or default window. */
+export function loadArchetypeCatalog<C extends PeriodCatalog & { items: { slug: string }[] }>(
+  load: Load<C>, format: Format, period?: string | null, slug?: string,
+): Promise<C> {
+  return slug ? loadArchetypeCatalogForSlug(load, format, slug) : loadArchetypeCatalogForPeriod(load, format, period);
+}
+
 type BuildItem = { archetype: string; builds: unknown[]; deckCount: number };
 
 /**

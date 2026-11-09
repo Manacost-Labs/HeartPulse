@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import express, { type RequestHandler } from 'express';
 import { setImmediate as flush } from 'node:timers/promises';
+import { loadArchetypeCatalogForPeriod, loadArchetypeCatalogForSlug } from '../server/constructedArchetypeCatalogPeriod.js';
 import { createArchetypeCatalogCache, createArchetypeRankMatrixLoader } from '../server/modules/constructedArchetypes/public.js';
 import { withCatalogCardMedia } from '../server/modules/constructedCards/public.js';
 import {
@@ -97,13 +98,12 @@ const dependencies: ConstructedArchetypeRouterDependencies = {
     response.set('Cache-Control', 'no-store');
     response.vary('Cookie');
   },
-  loadCatalog: (format, period) => {
+  loadCatalog: (format, period, slug) => {
     // Period keys of the cache are covered by constructed-archetype-catalog-period.test.ts.
-    catalogPeriods.push(period ?? null);
+    if (slug) slugReads.push(`${format}/${slug}`);
+    else catalogPeriods.push(period ?? null);
     return catalogCache.load(format);
   },
-  // The detail page and its teaser read the default catalog that lists the slug (patch, Bans, source window).
-  loadSlugCatalog: (format, slug) => { slugReads.push(`${format}/${slug}`); return catalogCache.load(format); },
   loadHistory: async () => { historyReads++; if (historyFails) throw new Error('History unavailable'); return [{
     recordedAt: '2026-07-24T12:38:57.727Z',
     games: 31_959,
@@ -312,4 +312,66 @@ try {
 } finally {
   catalogCache.clear();
   await new Promise<void>((resolve, reject) => server.close(error => (error ? reject(error) : resolve())));
+}
+
+// API -> window choice -> route: the real window chain behind the routes, with a fixture HSGuru source.
+{
+  const windows = ['black_empire', 'black_empire_ban', 'patch_37.0.2'];
+  const thief = catalog.items[0];
+  const patchTen = { ...thief, archetype: 'Patch Ten', archetypeLabel: 'Patch Ten', slug: 'patch-ten' };
+  const window = (period: string, patch: string, items: typeof catalog.items) => ({
+    ...catalog, format: 'standard' as const, formatLabel: 'Стандарт', period, patch, availablePeriods: windows, items,
+    currentPatchPeriod: 'patch_37.0.2',
+  });
+  const served: Record<string, ConstructedArchetypeCatalog | Error> = {
+    'patch_37.0.2': window('patch_37.0.2', '37.0.2', [patchTen]),
+    black_empire_ban: window('black_empire_ban', 'black_empire_ban', [thief, patchTen]),
+  };
+  const source = window('black_empire', '', [thief, patchTen]);
+  const load = async (_format: 'standard' | 'wild', period?: string) => {
+    const answer = period ? served[period] : source;
+    if (answer instanceof Error) throw answer;
+    return answer ?? source;
+  };
+  const chainApp = express();
+  chainApp.use('/api', createConstructedArchetypeRouter({
+    ...dependencies,
+    loadCatalog: (format, period, slug) => (slug
+      ? loadArchetypeCatalogForSlug(load, format, slug) : loadArchetypeCatalogForPeriod(load, format, period)),
+  }));
+  const chainServer = chainApp.listen(0, '127.0.0.1');
+  await new Promise<void>(resolve => chainServer.once('listening', resolve));
+  const chainAddress = chainServer.address();
+  assert.ok(chainAddress && typeof chainAddress === 'object');
+  const chain = `http://127.0.0.1:${chainAddress.port}/api/constructed-archetypes`;
+  const read = async (path: string, init: RequestInit = {}) => {
+    const response = await fetch(`${chain}${path}`, init);
+    return { status: response.status, body: await response.json() as any };
+  };
+  try {
+    let answer = await read('/teaser?format=standard');
+    assert.deepEqual([answer.body.period, answer.body.patch], ['patch_37.0.2', '37.0.2']);
+    answer = await read('/teaser/standard/patch-ten');
+    assert.deepEqual([answer.status, answer.body.patch], [200, '37.0.2']);
+    // Not in the shorter patch window, found in Bans: the page names that window.
+    answer = await read('/teaser/standard/thief-priest');
+    assert.deepEqual([answer.status, answer.body.patch], [200, 'black_empire_ban']);
+    answer = await read('/standard/thief-priest', { headers });
+    assert.deepEqual([answer.status, answer.body.patch, answer.body.item.slug], [200, 'black_empire_ban', 'thief-priest']);
+    answer = await read('/standard/patch-ten', { headers });
+    assert.deepEqual([answer.status, answer.body.patch], [200, '37.0.2']);
+    assert.equal((await read('/teaser/standard/nobody')).status, 404);
+    assert.equal((await read('/standard/nobody', { headers })).status, 404);
+    answer = await read('/teaser?format=standard&period=black_empire_ban');
+    assert.equal(answer.body.period, 'black_empire_ban');
+    // A failed patch window falls back to Bans, then to the source window, never to a 5xx.
+    served['patch_37.0.2'] = new Error('HTTP 500');
+    answer = await read('/teaser?format=standard');
+    assert.deepEqual([answer.status, answer.body.period], [200, 'black_empire_ban']);
+    served.black_empire_ban = new Error('HTTP 500');
+    answer = await read('/teaser?format=standard');
+    assert.deepEqual([answer.status, answer.body.period], [200, 'black_empire']);
+  } finally {
+    await new Promise<void>((resolve, reject) => chainServer.close(error => (error ? reject(error) : resolve())));
+  }
 }

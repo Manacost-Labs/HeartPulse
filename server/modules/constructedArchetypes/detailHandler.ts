@@ -7,7 +7,7 @@ type Catalog = {
 };
 type DetailDependencies<C extends Catalog, H, A, R> = {
   /** With the slug: the default catalog that lists it. */
-  loadCatalog: (format: Format, slug?: string) => Promise<C>;
+  loadCatalog: (format: Format, slug: string) => Promise<C>;
   loadHistory: (format: Format, archetype: string) => Promise<H>;
   loadAnalysis: (format: Format, archetype: string) => Promise<A>;
   /** Winrate by rank and period; only the `ranks` section reads it. */

@@ -7,7 +7,7 @@ import { ArchetypeStructuredData } from './ArchetypeStructuredData';
 
 export async function ArchetypeDetailRoute({ params, family }: { params: ArchetypeRouteParams; family: ArchetypeFamily }) {
   const { format, slug, detail } = await resolveArchetypeRoute(params);
-  const catalog = await loadArchetypeFormatCatalog(format);
+  const catalog = await loadArchetypeFormatCatalog(format, detail);
   return <>
     <ArchetypeStructuredData detail={detail} catalog={catalog} family={family} />
     <ArchetypeDetailPageClient pathname={`/standard/${family}/${format}/${slug}/`} detail={detail}>

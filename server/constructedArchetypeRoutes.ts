@@ -93,8 +93,6 @@ export type ConstructedArchetypeCatalog = {
   period: string | null;
   /** Periods the source can build the catalog for; the Bans window among them opens the pages. */
   availablePeriods: string[];
-  /** The source's `meta.current_patch_period`; absent when it names none. */
-  currentPatchPeriod?: string;
   minimumGames: number;
   updatedAt: string | null;
   coverage: Record<string, unknown>;
@@ -104,10 +102,8 @@ export type ConstructedArchetypeCatalog = {
 export type ConstructedArchetypeRouterDependencies = {
   accessGuard: RequestHandler;
   setPrivateNoStore: (response: import('express').Response) => void;
-  /** Without a period: the catalog the archetype pages open on (docs/specs/standard-meta-periods.md). */
-  loadCatalog: (format: ConstructedArchetypeFormat, period?: string | null) => Promise<ConstructedArchetypeCatalog>;
-  /** The default catalog that lists the slug (patch, Bans, source window); the detail pages read it. */
-  loadSlugCatalog?: (format: ConstructedArchetypeFormat, slug: string) => Promise<ConstructedArchetypeCatalog>;
+  /** Without a period: the catalog the archetype pages open on; with a slug: the first default window listing it. */
+  loadCatalog: (format: ConstructedArchetypeFormat, period?: string | null, slug?: string) => Promise<ConstructedArchetypeCatalog>;
   loadHistory: (
     format: ConstructedArchetypeFormat,
     archetype: string,
@@ -198,7 +194,7 @@ export function createConstructedArchetypeRouter(
       return response.status(400).json({ error: 'Некорректный адрес архетипа' });
     }
     try {
-      const catalog = await (dependencies.loadSlugCatalog?.(format, slug) ?? dependencies.loadCatalog(format));
+      const catalog = await dependencies.loadCatalog(format, null, slug);
       const item = catalog.items.find(row => row.slug === slug);
       if (!item) return response.status(404).json({ error: 'Архетип не найден в текущей мете' });
       const build = item.builds[0] ?? null;
@@ -252,8 +248,7 @@ export function createConstructedArchetypeRouter(
   });
 
   router.get('/constructed-archetypes/:format/:slug', createArchetypeDetailHandler({
-    loadCatalog: (format, slug) => (slug && dependencies.loadSlugCatalog
-      ? dependencies.loadSlugCatalog(format, slug) : dependencies.loadCatalog(format)),
+    loadCatalog: (format, slug) => dependencies.loadCatalog(format, null, slug),
     loadHistory: dependencies.loadHistory,
     loadAnalysis: async (format, archetype) => {
       const [analysis, cardCatalog] = await Promise.all([
