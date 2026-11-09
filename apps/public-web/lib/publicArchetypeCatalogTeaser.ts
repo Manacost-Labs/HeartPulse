@@ -7,11 +7,11 @@ import { FIRST_PAINT_READ_BUDGET_MS, readFirstPaintJson } from './publicFirstPai
 
 /**
  * Anonymous catalog teaser of the format the page opens with (`?format=`),
- * for the server-rendered guest view, or `null` to let the browser load it.
+ * (and the HSGuru `period` of the window, default when omitted) for the server-rendered guest view, or `null` to let the browser load it.
  */
-export const loadPublicArchetypeCatalogTeaser = cache(async (search: string) => {
+export const loadPublicArchetypeCatalogTeaser = cache(async (search: string, period: string | null = null) => {
   const { format } = readInitialCatalogFilters(search, []);
-  const raw = await readFirstPaintJson(signal => fetchPublicExpress(`/api/constructed-archetypes/teaser?format=${format}`, signal),
+  const raw = await readFirstPaintJson(signal => fetchPublicExpress(`/api/constructed-archetypes/teaser?format=${format}${period ? `&period=${period}` : ''}`, signal),
     Date.now() + FIRST_PAINT_READ_BUDGET_MS);
   return raw === null ? null : publicArchetypeCatalog(raw, format);
 });

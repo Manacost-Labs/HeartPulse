@@ -6,7 +6,8 @@ type Catalog = {
   items: { slug: string; archetype: string }[];
 };
 type DetailDependencies<C extends Catalog, H, A, R> = {
-  loadCatalog: (format: Format) => Promise<C>;
+  /** With the slug: the default catalog that lists it. */
+  loadCatalog: (format: Format, slug: string) => Promise<C>;
   loadHistory: (format: Format, archetype: string) => Promise<H>;
   loadAnalysis: (format: Format, archetype: string) => Promise<A>;
   /** Winrate by rank and period; only the `ranks` section reads it. */
@@ -28,7 +29,7 @@ export function createArchetypeDetailHandler<C extends Catalog, H, A, R = never>
       response.status(400).json({ error: 'Неизвестный раздел архетипа' }); return;
     }
     try {
-      const catalog = await dependencies.loadCatalog(format);
+      const catalog = await dependencies.loadCatalog(format, slug);
       const item = catalog.items.find(row => row.slug === slug);
       if (!item) { response.status(404).json({ error: 'Архетип не найден в текущей мете' }); return; }
       if (section === 'history') {

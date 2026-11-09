@@ -43,6 +43,37 @@ export function latestStandardMetaBanPeriod(
   return (latest ?? null) as StandardMetaPeriod | null;
 }
 
+function patchVersion(period: string): number[] {
+  return period.slice('patch_'.length).split('.').map(Number);
+}
+
+function comparePatchPeriods(left: string, right: string): number {
+  const a = patchVersion(left);
+  const b = patchVersion(right);
+  for (let index = 0; index < Math.max(a.length, b.length); index += 1) {
+    const difference = (a[index] ?? 0) - (b[index] ?? 0);
+    if (difference) return difference;
+  }
+  return 0;
+}
+
+/**
+ * The current patch window (`patch_<version>`): the source's own
+ * `current_patch_period` when it lists it, otherwise the newest listed patch by
+ * version number (`patch_37.0.10` is newer than `patch_37.0.9`), or null.
+ */
+export function currentStandardMetaPatchPeriod(
+  availablePeriods: readonly string[],
+  currentPatchPeriod: string | null | undefined,
+): StandardMetaPeriod | null {
+  if (currentPatchPeriod && PATCH_PERIOD.test(currentPatchPeriod) && availablePeriods.includes(currentPatchPeriod)) {
+    return currentPatchPeriod as StandardMetaPeriod;
+  }
+  const patches = availablePeriods.filter(period => PATCH_PERIOD.test(period));
+  if (!patches.length) return null;
+  return patches.reduce((newest, period) => (comparePatchPeriods(period, newest) > 0 ? period : newest)) as StandardMetaPeriod;
+}
+
 /** The period a request should load: retired windows map to their successor, unknown values to null. */
 export function resolveStandardMetaRequestPeriod(value: string): StandardMetaPeriod | null {
   if (Object.hasOwn(PERIOD_ALIASES, value)) return PERIOD_ALIASES[value as StandardMetaRetiredPeriod];

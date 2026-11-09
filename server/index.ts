@@ -111,7 +111,7 @@ import {
   type ConstructedArchetypeFormat,
   type ConstructedArchetypeHistoryPoint,
 } from './constructedArchetypeRoutes.js';
-import { loadArchetypeCatalogForPeriod, readArchetypeCatalogPeriods } from './constructedArchetypeCatalogPeriod.js';
+import { loadArchetypeCatalog, readArchetypeCatalogPeriods } from './constructedArchetypeCatalogPeriod.js';
 import { createArchetypeHsguruStatsRouter } from './constructedArchetypeHsguruStats.js';
 import { assertArchetypeCatalogSource, createArchetypeCatalogCache, createArchetypeRankMatrixLoader, createMetaSliceCache, disambiguateArchetypeLabels, layerArchetypeTranslations, loadWithRetiredPatchFallback, warmMetaEntrySlices, archetypeFallbackTranslations, archetypeLabel, archetypeTranslationKey } from './modules/constructedArchetypes/public.js';
 import {
@@ -5918,7 +5918,7 @@ const constructedArchetypeCatalogCache = createArchetypeCatalogCache({
   read: fetchConstructedArchetypeCatalog, ttlMs: EXTERNAL_DATASET_CACHE_MS,
   onRefreshError: (format, error) => console.warn(`[constructed-archetypes] ${format} refresh failed:`, error instanceof Error ? error.message : 'Unknown error'),
 });
-// The source's default window; the archetype pages open on the Bans window through loadArchetypeCatalogForPeriod.
+// The source's default window; the archetype pages open on the current patch (then Bans) through loadArchetypeCatalog.
 const loadConstructedArchetypeCatalog = (format: ConstructedArchetypeFormat) => constructedArchetypeCatalogCache.load(format);
 
 async function fetchConstructedArchetypeCatalog(
@@ -7478,7 +7478,7 @@ app.use('/api', createStandardMetaRouter({
 }));
 app.use('/api', createConstructedArchetypeRouter({
   accessGuard: requireStandardAccess,
-  loadCatalog: (format, period) => loadArchetypeCatalogForPeriod(constructedArchetypeCatalogCache.load, format, period),
+  loadCatalog: (format, period, slug) => loadArchetypeCatalog(constructedArchetypeCatalogCache.load, format, period, slug),
   loadHistory: loadConstructedArchetypeHistory,
   loadAnalysis: loadConstructedArchetypeAnalysis,
   loadRanks: createArchetypeRankMatrixLoader((format, rank, period, coin) => loadStandardMeta(format, rank, period, coin, 100)),
@@ -7491,7 +7491,7 @@ app.use('/api', createConstructedArchetypeRouter({
 }));
 
 app.use('/api', createCardChoicesRouter({ request: path => fetch(`${hsDataApiOrigin()}${path}`, { signal: AbortSignal.timeout(15_000) }), onError: error => console.error('[card-choices] failed:', error instanceof Error ? error.message : error) }));
-app.use('/api', createArchetypeHsguruStatsRouter({ accessGuard: requireStandardAccess, setPrivateNoStore, loadRuCards: ensureRuCardsData, request: path => fetch(datasetApiUrl(path), { signal: AbortSignal.timeout(15_000) }), ruCardByDbf: dbfId => hearthstoneJsonRuCardsByDbf?.get(dbfId), loadCatalog: format => loadArchetypeCatalogForPeriod(constructedArchetypeCatalogCache.load, format), loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards, onError: (scope, error) => console.error(`[archetype-hsguru-stats] ${scope} failed:`, error instanceof Error ? error.message : error) }));
+app.use('/api', createArchetypeHsguruStatsRouter({ accessGuard: requireStandardAccess, setPrivateNoStore, loadRuCards: ensureRuCardsData, request: path => fetch(datasetApiUrl(path), { signal: AbortSignal.timeout(15_000) }), ruCardByDbf: dbfId => hearthstoneJsonRuCardsByDbf?.get(dbfId), loadCatalog: (format, slug) => loadArchetypeCatalog(constructedArchetypeCatalogCache.load, format, null, slug), loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards, onError: (scope, error) => console.error(`[archetype-hsguru-stats] ${scope} failed:`, error instanceof Error ? error.message : error) }));
 app.use('/api', createPatchNotesApi({
   fetchJson: url => fetchConstructedCardJson(url, 12_000), loadCardNames: ensureRuCardsData, ttlMs: 30 * 60_000,
   loadBattlegroundCards: createBattlegroundCatalogLoader({
