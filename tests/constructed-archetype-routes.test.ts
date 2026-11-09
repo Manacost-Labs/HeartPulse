@@ -82,6 +82,7 @@ let historyReads = 0, analysisReads = 0, mediaReads = 0;
 let historyFails = false, analysisFails = false;
 let catalogTime = 0, catalogReads = 0;
 const catalogPeriods: Array<string | null> = [];
+const slugReads: string[] = [];
 let refresh: Promise<ConstructedArchetypeCatalog> | null = null;
 const catalogCache = createArchetypeCatalogCache({
   ttlMs: 100, staleMs: 100, retryMs: 100, now: () => catalogTime,
@@ -101,6 +102,8 @@ const dependencies: ConstructedArchetypeRouterDependencies = {
     catalogPeriods.push(period ?? null);
     return catalogCache.load(format);
   },
+  // The detail page and its teaser read the default catalog that lists the slug (patch, Bans, source window).
+  loadSlugCatalog: (format, slug) => { slugReads.push(`${format}/${slug}`); return catalogCache.load(format); },
   loadHistory: async () => { historyReads++; if (historyFails) throw new Error('History unavailable'); return [{
     recordedAt: '2026-07-24T12:38:57.727Z',
     games: 31_959,
@@ -266,6 +269,7 @@ try {
   assert.equal(detail.status, 200);
   const detailBody = await detail.json() as any;
   assert.equal(detailBody.item.archetype, 'Thief Priest');
+  assert.ok(slugReads.includes('wild/thief-priest'), 'the detail page looks the slug up through the window chain');
   assert.equal(detailBody.history.length, 1);
   assert.equal(detailBody.analysis.rank, 'legend');
   assert.equal(detailBody.analysis.classMatchups[0].classKey, 'mage');
