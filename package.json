@@ -228,7 +228,9 @@
     "quality:pilot-report": "context-economy --project . pilot-report",
     "quality:usage-report": "context-economy --project . report --end-to-end",
     "design:verify": "python3 scripts/quality/quality-guard.py --family design",
-    "test:archetype-detail-loading": "node --test tests/next-archetype-details-browser.test.mjs"
+    "test:archetype-detail-loading": "node --test tests/next-archetype-details-browser.test.mjs",
+    "test:subscription-analytics-server": "tsx --test tests/subscription-analytics-routes.test.ts tests/subscription-analytics-normalize.test.ts",
+    "test:subscription-analytics-client": "tsx --test tests/subscription-analytics-model.test.ts tests/subscription-analytics-live.test.ts"
   },
   "config": {
     "typescript_checker": "tsgo"
