@@ -135,6 +135,9 @@ or renewals (the Boosty source does not observe renewals and Tribute had sent
 no events since August), so the page showed a misleading total built from a
 few paid posts. The revenue card on the overview is removed for the same
 reason. `GET /api/admin/boosty/analytics` and its `articles=0` option stay.
+The «Аналитика подписок» section (`docs/specs/admin-valyro-console.md`) is not
+the old money page: it shows no revenue, only the observed state of paid
+subscribers from `GET /api/admin/boosty/subscription-metrics`.
 
 ## Overview (phase 2)
 
