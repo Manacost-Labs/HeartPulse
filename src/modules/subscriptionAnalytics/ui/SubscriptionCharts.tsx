@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { LineChart } from '../../../shared/ui/analytics/LineChart';
 import { StackedBarChart } from '../../../shared/ui/analytics/StackedBarChart';
 import '../../../shared/ui/analytics/Analytics.css';
+import { partialWeekNotes } from '../model/subscriptionBlocks';
 import { formatCount } from '../model/subscriptionFormat';
 import {
   dailyChartPoints, planSeries, planShareRows, rankPlans, unobservedDayCount, unobservedRanges,
@@ -48,7 +49,7 @@ export function DailyPaidChart({ metrics }: { metrics: SubscriptionMetrics }) {
 /** Начало и окончание доступа по неделям; неполная неделя отмечена отдельным сегментом. */
 export function WeeklyAccessChart({ metrics }: { metrics: SubscriptionMetrics }) {
   const points = useMemo(() => weeklyChartPoints(metrics.weekly), [metrics.weekly]);
-  const partial = metrics.weekly.some(week => week.partial);
+  const partialNotes = useMemo(() => partialWeekNotes(metrics.weekly), [metrics.weekly]);
   return <div className="sa-chart-slot" data-chart-id="weekly-access">
     <LineChart
       title="Начало и окончание доступа по неделям"
@@ -65,7 +66,7 @@ export function WeeklyAccessChart({ metrics }: { metrics: SubscriptionMetrics })
       <li><i style={{ borderTopColor: STARTS_COLOR }} />Начали доступ</li>
       <li><i data-dashed="" style={{ borderTopColor: '#5f554a' }} />Закончили</li>
     </ul>
-    {partial && <p className="sa-chart-note">Последняя неделя ещё не закончилась: её числа неполные и вырастут.</p>}
+    {partialNotes.map(note => <p key={note} className="sa-chart-note" data-testid="partial-week-note">{note}</p>)}
   </div>;
 }
 

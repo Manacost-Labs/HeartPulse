@@ -4,6 +4,7 @@ import '../../../shared/ui/analytics/Analytics.css';
 import { SubscriptionMetricsError } from '../api/subscriptionMetricsClient';
 import { formatDataAge, lastPollAgeMs } from '../model/subscriptionFreshness';
 import { DailyPaidChart, SubscriptionChartsSkeleton, WeeklyAccessChart } from './SubscriptionCharts';
+import { SubscriptionBlocks, SubscriptionBlocksSkeleton } from './SubscriptionBlocks';
 import { SubscriptionTiles, SubscriptionTilesSkeleton } from './SubscriptionTiles';
 import { useLiveSubscriptionMetrics, useNow, type LiveSubscriptionMetrics } from './useLiveSubscriptionMetrics';
 import './subscriptionAnalytics.css';
@@ -96,6 +97,7 @@ export function SubscriptionAnalyticsView({ live, days, onDaysChange }: {
     {!metrics && live.loading && <>
       <SubscriptionTilesSkeleton />
       <SubscriptionChartsSkeleton />
+      <SubscriptionBlocksSkeleton />
     </>}
     {!metrics && !live.loading && live.error && <UnavailableState live={live} />}
     {metrics && <>
@@ -104,8 +106,9 @@ export function SubscriptionAnalyticsView({ live, days, onDaysChange }: {
         <DailyPaidChart metrics={metrics} />
         <WeeklyAccessChart metrics={metrics} />
       </div>
-      {/* Срез 3 (#362): сюда встают тарифы и переходы, когорты 30/60/90, отток по месяцам, деньги, конверсия и «что нельзя посчитать». */}
-      <div className="sa-more" data-slot="more" />
+      <div className="sa-more" data-slot="more">
+        <SubscriptionBlocks metrics={metrics} />
+      </div>
       <p className="sa-footnote">Цифры — наблюдаемое состояние подписчиков: мы видим, кто платит в момент опроса Boosty. Даты и месяцы — по UTC.</p>
     </>}
   </div>;

@@ -55,7 +55,7 @@ export function buildSubscriptionTiles(metrics: SubscriptionMetrics): Subscripti
   const end = nominalTariffValue.end;
   return [
     { id: 'paidNow', label: 'Платных сейчас', value: summary.paidNow, text: formatCount(summary.paidNow), hint: `В начале периода: ${formatCount(summary.paidStart)}` },
-    { id: 'netChange', label: 'Изменение за период', value: summary.netChange, text: formatSignedCount(summary.netChange), hint: `Бесплатных сейчас: ${formatCount(summary.freeNow)}` },
+    { id: 'netChange', label: 'Изменение за период', value: summary.netChange, text: formatSignedCount(summary.netChange), hint: 'Платных сейчас минус платные в начале периода' },
     { id: 'newStarts', label: 'Новые', value: summary.newStarts, text: formatCount(summary.newStarts), hint: 'Впервые замечены платными' },
     { id: 'returnedStarts', label: 'Вернувшиеся', value: summary.returnedStarts, text: formatCount(summary.returnedStarts), hint: 'Платили раньше, подписались снова' },
     { id: 'endsToFree', label: 'Ушли на бесплатный', value: summary.endsToFree, text: formatCount(summary.endsToFree), hint: 'Остались подписчиками без платы' },
