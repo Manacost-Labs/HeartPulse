@@ -16,7 +16,7 @@ export function SubscriptionTiles({ tiles }: { tiles: SubscriptionTile[] }) {
 }
 
 export function SubscriptionTilesSkeleton() {
-  return <div className="sa-tiles" aria-hidden="true">
+  return <div className="sa-tiles sa-tiles--skeleton" aria-hidden="true">
     {Array.from({ length: 10 }, (_, index) => <div key={index} className="sa-skeleton sa-skeleton--tile" />)}
   </div>;
 }

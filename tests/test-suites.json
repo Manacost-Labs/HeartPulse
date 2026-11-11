@@ -526,6 +526,7 @@
         "tests/next-first-paint-data-browser.test.mjs",
         "tests/next-admin-browser.test.mjs",
         "tests/admin-console-layout-browser.test.mjs",
+        "tests/admin-subscription-analytics-browser.test.mjs",
         "tests/next-admin-archetypes-browser.test.mjs",
         "tests/next-not-found-browser.test.mjs",
         "tests/next-error-boundary-browser.test.mjs",

@@ -2,6 +2,8 @@
 // (scripts/e2e-qa.mjs) and the QA backend read by Next.js server rendering
 // (scripts/qa/backend.mjs) answer from these same values, so server HTML and
 // hydrated client state describe one fixture world.
+import { readFileSync } from 'node:fs';
+
 export const qaCardImage = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="400" height="560" viewBox="0 0 400 560"%3E%3Crect width="400" height="560" rx="34" fill="%233b254b"/%3E%3Crect x="22" y="22" width="356" height="516" rx="26" fill="%23c49a55"/%3E%3Crect x="42" y="42" width="316" height="300" rx="18" fill="%236d1117"/%3E%3Ccircle cx="200" cy="188" r="92" fill="%23f0cf77"/%3E%3Cpath d="M145 235L200 105l55 130z" fill="%235b3470"/%3E%3Crect x="58" y="366" width="284" height="126" rx="18" fill="%23f7e8bf"/%3E%3Ctext x="200" y="420" text-anchor="middle" font-size="25" font-family="serif" font-weight="700" fill="%233d2a1e"%3EQA CARD%3C/text%3E%3Ctext x="200" y="458" text-anchor="middle" font-size="17" font-family="sans-serif" fill="%235c4938"%3EManacost%3C/text%3E%3C/svg%3E';
 const qaCardGoldenImage = `${qaCardImage}#golden`;
 const qaCard = {
@@ -399,6 +401,16 @@ export const subscriber = {
   boosty: { checked: true, found: true, hasAccess: true },
   telegram: { checked: false, hasAccess: false },
 };
+/**
+ * Real aggregate sample of the Boosty subscription metrics (no personal data). The last accepted
+ * poll is moved to two minutes ago so the section reads as fresh whenever the QA runtime starts.
+ */
+export const qaSubscriptionMetrics = (() => {
+  const sample = JSON.parse(readFileSync(new URL('../../tests/fixtures/boosty-subscription-metrics-sample-20261111.json', import.meta.url), 'utf8'));
+  sample.coverage.lastAcceptedPollAt = new Date(Date.now() - 2 * 60_000).toISOString();
+  return sample;
+})();
+
 export const adminFixtures = {
   '/api/articles': { articles: qaArticles },
   '/api/admin/constructed-cards': {
@@ -822,6 +834,7 @@ export const adminFixtures = {
       createdAt: '2026-07-21T01:00:00.000Z',
     }],
   },
+  '/api/admin/boosty/subscription-metrics': qaSubscriptionMetrics,
   '/api/admin/boosty/status': {
     configured: true,
     ok: true,

@@ -62,7 +62,8 @@
 .sa-legend li { display: inline-flex; align-items: center; gap: 6px; }
 .sa-legend i { inline-size: 18px; block-size: 0; border-top: 2.25px solid #8d171d; }
 .sa-legend i[data-dashed] { border-top-style: dashed; }
-.sa-chart-slot { min-width: 0; }
+/* Скрытая таблица для скринридеров у общих графиков шире телефона: не даём ей растянуть прокрутку страницы. */
+.sa-chart-slot { position: relative; min-width: 0; overflow-x: clip; }
 
 /* Место для блоков среза 3 (тарифы, когорты, оттоки по месяцам, деньги): сюда они встают секциями. */
 .sa-more { display: grid; gap: 20px; }
