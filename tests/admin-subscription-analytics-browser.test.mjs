@@ -107,6 +107,64 @@ test('subscription analytics: tiles, charts, live polling and failure states', a
       .map(title => title.textContent));
     assert.deepEqual(loneEndings, ['Неделя с 10 авг (неполная): Закончили 12', 'Неделя с 9 ноя (неполная): Закончили 12'], 'endings of both partial weeks are drawn and named');
 
+    // Both partial weeks are named under the chart, the first one too (it sits left of the first boundary).
+    const weekNotes = await page.$$eval('[data-testid="partial-week-note"]', elements => elements.map(element => element.textContent));
+    assert.equal(weekNotes.length, 2);
+    assert.match(weekNotes[0], /Неделя с 10 авг неполная/);
+    assert.match(weekNotes[1], /Неделя с 9 ноя ещё не закончилась/);
+    assert.match(await page.$eval('[data-chart-id="weekly-access"] .sa-legend', element => element.textContent), /неполная неделя/);
+    // The change tile explains itself; the free count lives in the conversion block now.
+    assert.doesNotMatch(await tileText(page, 'netChange'), /Бесплатных сейчас/);
+
+    // Slice 3 blocks: each has its Russian heading, units and honest wording.
+    const sectionText = id => page.$eval(`[data-section="${id}"]`, element => element.innerText.replace(/\s+/g, ' ').trim());
+    const headings = await page.$$eval('.sa-section h3', elements => elements.map(element => element.textContent.trim()));
+    assert.deepEqual(headings, [
+      'Стоимость базы по ценам тарифов', 'Тарифы', 'Переходы между тарифами', 'Удержание когорт', 'Отток по месяцам',
+      'Денежная оценка (не выручка)', 'Конверсия бесплатных подписчиков в платных', 'Что нельзя посчитать', 'Ограничения и оговорки', 'Покрытие данных',
+    ]);
+    const baseValue = await sectionText('base-value');
+    assert.match(baseValue, /Средний тариф снизился: 207 ₽ → 193 ₽ \(−14 ₽\)/);
+    assert.match(baseValue, /60 318 ₽ в месяц.*291.*79 942 ₽ в месяц.*414/);
+    const plansText = await sectionText('plans');
+    assert.match(plansText, /Алмаз 199 ₽\/мес 255 317 \+62 221 165 9 3/);
+    assert.match(plansText, /Топ-1000 Легенды 999 ₽\/мес 1 2 \+1 1 0 0 0/);
+    const transitionsText = await sectionText('transitions');
+    assert.match(transitionsText, /Любитель Арены Алмаз ↑ Повышение 7/);
+    assert.match(transitionsText, /Алмаз Легенда ↑ Повышение 3/);
+    const retentionText = await sectionText('retention');
+    assert.match(retentionText, /Через 30 дней 72,4 % Проверено 123 из 150 человек/);
+    assert.match(retentionText, /Ещё 27 не удалось проверить.*59,3 %.*77,3 %/);
+    assert.match(retentionText, /Через 90 дней 42,9 % Проверено 21 из 21 человек.*Мало данных/);
+    assert.match(retentionText, /Исходная база периода 64,9 % 189 из 291/);
+    const churnText = await sectionText('churn');
+    assert.match(churnText, /август 2026 неполный 12,7 % 291 37 74 38 327/);
+    assert.match(churnText, /сентябрь 2026 20,2 % 327 66 84 77 334/);
+    assert.match(churnText, /ноябрь 2026 неполный 6,9 % 394 27/);
+    assert.match(churnText, /август 2026 и ноябрь 2026 неполные.*нельзя сравнивать с полными/);
+    const moneyText = await sectionText('money');
+    assert.match(moneyText, /Денежная оценка \(не выручка\).*Это оценка, а не выручка/);
+    assert.match(moneyText, /Прирост счётчиков \(оценка\) 215 374 ₽ 1 079 приростов за период/);
+    assert.match(moneyText, /Плательщиков 546/);
+    assert.match(moneyText, /ARPPU \(оценка\) 394 ₽/);
+    assert.match(moneyText, /Уменьшений счётчика 0/);
+    assert.match(moneyText, /Первых значений счётчика 1/);
+    assert.match(moneyText, /Деньги — это рост счётчика платежей подписчика между опросами, а не выписка по платежам/);
+    assert.match(moneyText, /сентябрь 2026 58 154 ₽ 310 188 ₽/);
+    assert.match(await sectionText('conversion'), /Бесплатных на начало 243.*Хоть раз стали платными 20.*4 из них сейчас не платят.*Платят сейчас 16.*Доля ставших платными 8,2 %.*Бесплатных сейчас 357/);
+    const unavailableText = await sectionText('unavailable');
+    for (const phrase of ['Чистая выручка недоступна', 'Точная доля продлений недоступна', 'сколько стоило их привлечение']) assert.ok(unavailableText.includes(phrase), phrase);
+    const limitationsText = await sectionText('limitations');
+    for (const phrase of ['Все суммы считаются рублями', 'впервые увидели подписчика платным', 'первому опросу в течение суток', 'Отток месяца', 'по UTC', 'перерывы в опросах', 'Первый и текущий месяцы неполные']) {
+      assert.ok(limitationsText.includes(phrase) || limitationsText.toLowerCase().includes(phrase.toLowerCase()), phrase);
+    }
+    const coverageText = await sectionText('coverage');
+    assert.match(coverageText, /Наблюдаем с 28 июл 2026, 00:36 UTC/);
+    assert.match(coverageText, /Принято опросов 55 266/);
+    assert.match(coverageText, /Самый долгий перерыв 114 ч/);
+    assert.match(coverageText, /11 сен, 21:56 UTC 15 сен, 22:25 UTC 96,5 ч/);
+    assert.match(coverageText, /24 сен, 17:11 UTC 29 сен, 11:12 UTC 114 ч/);
+
     // A new period asks with its own days and keeps the screen: no skeleton, tiles stay.
     await page.evaluate(() => { window.__skeletons = 0; window.__shift = 0; });
     await page.click('.sa-periods button:nth-child(1)');
@@ -228,6 +286,25 @@ test('subscription analytics on a phone: no horizontal scroll, readable in both 
       assert.ok(layout.main <= 0, `${scheme}: the main area scrolls sideways by ${layout.main}px`);
       assert.equal(layout.columns, 2, `${scheme}: tiles in two columns on a phone`);
       assert.equal(layout.clipped, 0, `${scheme}: no tile or button cuts its content`);
+      // Wide tables scroll inside their own labelled area, the first column stays in view.
+      const tables = await page.$$eval('[data-section] [role="region"]', regions => regions.map(region => ({
+        name: region.getAttribute('aria-label'),
+        wider: region.scrollWidth > region.clientWidth + 1,
+        fits: region.getBoundingClientRect().right <= window.innerWidth + 1,
+        focusable: region.tabIndex === 0,
+      })));
+      assert.deepEqual(tables.map(table => table.name), [
+        'Таблица: Тарифы', 'Таблица: Переходы между тарифами', 'Таблица: Отток по месяцам', 'Таблица: Денежная оценка по месяцам', 'Таблица: Перерывы в опросах',
+      ]);
+      for (const table of tables) assert.ok(table.fits && table.focusable, `${scheme}: ${table.name} stays inside the screen and is reachable by keyboard`);
+      assert.ok(tables[0].wider && tables[2].wider, `${scheme}: plan and churn tables scroll inside their area`);
+      const stickyKept = await page.evaluate(() => {
+        const region = document.querySelector('[data-section="plans"] [role="region"]');
+        region.scrollLeft = region.scrollWidth;
+        const cell = region.querySelector('tbody th').getBoundingClientRect();
+        return Math.abs(cell.left - region.getBoundingClientRect().left) < 2;
+      });
+      assert.ok(stickyKept, `${scheme}: the plan name column stays pinned while the table scrolls`);
       assert.ok(layout.chart >= 300, `${scheme}: charts use the full width (${layout.chart}px)`);
       // Tile text keeps AA contrast against what is behind it.
       const contrast = await page.evaluate(() => {
