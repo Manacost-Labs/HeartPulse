@@ -11,6 +11,7 @@ import {
 
 const sample = JSON.parse(readFileSync(new URL('./fixtures/boosty-subscription-metrics-sample-20261111.json', import.meta.url), 'utf8')) as Record<string, unknown>;
 const UPSTREAM_ERROR = { error: 'Не удалось загрузить аналитику подписок', source: 'unavailable' };
+const firstOf = (key: string) => (sample[key] as Array<Record<string, unknown>>)[0];
 
 function listen(server: Server): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -114,6 +115,9 @@ describe('GET /api/admin/boosty/subscription-metrics', () => {
       ['чужая semantics', response => { response.end(JSON.stringify({ ...sample, semantics: 'observed_cumulative_delta' })); }, true],
       ['не объект', response => { response.end('[]'); }, false],
       ['сломанное поле', response => { response.end(JSON.stringify({ ...sample, summary: { paidNow: '414' } })); }, false],
+      ['несуществующий день', response => { response.end(JSON.stringify({ ...sample, daily: [{ ...firstOf('daily'), date: '2026-02-30' }] })); }, false],
+      ['несуществующий месяц', response => { response.end(JSON.stringify({ ...sample, months: [{ ...firstOf('months'), month: '2026-13' }] })); }, false],
+      ['несуществующая неделя', response => { response.end(JSON.stringify({ ...sample, weekly: [{ ...firstOf('weekly'), weekStart: '2026-00-10' }] })); }, false],
     ];
     for (const [name, reply, incompatible] of cases) {
       upstreamReply = (_request, response) => reply(response);

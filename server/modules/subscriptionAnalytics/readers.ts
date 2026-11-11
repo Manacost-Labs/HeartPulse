@@ -62,15 +62,18 @@ export function moment(value: unknown, path: string): string {
   return found;
 }
 
-function pattern(re: RegExp, what: string) {
+/** Маски мало: `2026-02-30` Node молча сдвигает на 2 марта, а `2026-13` — не месяц. */
+function calendar(re: RegExp, what: string, toDay: (found: string) => string) {
   return (value: unknown, path: string): string => {
     const found = text(value, path);
-    if (!re.test(found)) fail(path, what);
+    const day = toDay(found);
+    const parsed = re.test(found) ? new Date(`${day}T00:00:00Z`) : null;
+    if (!parsed || Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== day) fail(path, what);
     return found;
   };
 }
-export const dateOnly = pattern(DATE_ONLY, 'дата ГГГГ-ММ-ДД');
-export const monthOnly = pattern(MONTH_ONLY, 'месяц ГГГГ-ММ');
+export const dateOnly = calendar(DATE_ONLY, 'дата ГГГГ-ММ-ДД', found => found);
+export const monthOnly = calendar(MONTH_ONLY, 'месяц ГГГГ-ММ', found => `${found}-01`);
 
 export function flag(value: unknown, path: string): boolean {
   if (typeof value !== 'boolean') fail(path, 'true/false');
