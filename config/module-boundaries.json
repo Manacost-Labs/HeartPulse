@@ -1064,6 +1064,40 @@
       ]
     },
     {
+      "id": "server.subscriptionAnalytics",
+      "runtime": "server",
+      "root": "server/modules/subscriptionAnalytics",
+      "purpose": "Owns the administrator endpoint with aggregate Boosty paid-subscription metrics read from boosty-auth: strict whitelist normalization, timeout and the unavailable/incompatible answers.",
+      "owner": "operations",
+      "publicEntry": "server/modules/subscriptionAnalytics/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:subscription-analytics-server"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/boosty-article-analytics.md"
+      ]
+    },
+    {
+      "id": "client.subscriptionAnalytics",
+      "runtime": "client",
+      "root": "src/modules/subscriptionAnalytics",
+      "purpose": "Owns the client side of the Boosty subscription analytics: the response client, tile model, Russian texts for source codes, data freshness and the live-refresh hook.",
+      "owner": "operations",
+      "publicEntry": "src/modules/subscriptionAnalytics/public.ts",
+      "dependencies": [
+        "client.adminWorkspace"
+      ],
+      "focusedTests": [
+        "npm run test:subscription-analytics-client"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/boosty-article-analytics.md"
+      ]
+    },
+    {
       "id": "client.streamers",
       "runtime": "client",
       "root": "src/modules/streamers",

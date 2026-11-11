@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 106,
-    "routeRegistrations": 285,
+    "sourceFiles": 107,
+    "routeRegistrations": 286,
     "middlewareRegistrations": 147,
     "explicitGuardRouteRegistrations": 73,
     "unresolvedPaths": 0
@@ -3560,7 +3560,8 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createAdminBoostyAnalyticsRouter(...)"
+        "createAdminBoostyAnalyticsRouter(...)",
+        "createSubscriptionAnalyticsApi(...)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",
@@ -5196,6 +5197,18 @@
       "guardSignals": [],
       "source": "server/modules/streamers/routes.ts",
       "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/admin/boosty/subscription-metrics",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/subscriptionAnalytics/routes.ts",
+      "sourceOrder": 0
     },
     {
       "kind": "route",

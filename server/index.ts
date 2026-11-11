@@ -83,6 +83,7 @@ import { createConstructedCardDataService, createConstructedCardRouter } from '.
 import { createBattlegroundCatalogLoader, createPatchNotesApi } from './modules/patchNotes/public.js';
 import { createRadarApi } from './modules/radar/public.js';
 import { createLeaderboardsApi } from './modules/leaderboards/public.js';
+import { createSubscriptionAnalyticsApi } from './modules/subscriptionAnalytics/public.js';
 import { createStreamersApi } from './modules/streamers/public.js';
 import { ConstructedCardUpstreamError, createCardChoicesRouter, type ConstructedCardDeck } from './modules/constructedCards/public.js';
 import {
@@ -8873,7 +8874,7 @@ app.use('/api', createAdminBoostyAnalyticsRouter({
   adminAuth,
   setPrivateNoStore,
   loadAnalytics: loadBoostyArticleAnalytics,
-}));
+}), createSubscriptionAnalyticsApi({ boostyBaseUrl: BOOSTY_AUTH_API_URL, adminAuth, setPrivateNoStore }));
 
 app.use('/api', createAdminTelegramReadRouter({
   adminAuth,
