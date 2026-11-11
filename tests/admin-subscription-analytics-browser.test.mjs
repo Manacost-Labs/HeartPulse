@@ -102,7 +102,10 @@ test('subscription analytics: tiles, charts, live polling and failure states', a
     await page.waitForSelector('[data-chart-id="weekly-access"] svg[data-chart]');
     assert.match(await page.$$eval('[data-chart-id="weekly-access"] .analytics-chart__boundary', elements => elements.map(element => element.textContent).join(' ')), /неполная неделя/);
     // A partial week is its own one-point segment: its endings must still be drawn, not only its starts.
-    assert.equal((await page.$$('[data-chart-id="weekly-access"] .analytics-chart__reference-point')).length, 2, 'endings of both partial weeks stay visible');
+    const loneEndings = await page.$$eval('[data-chart-id="weekly-access"] svg[data-chart] circle > title', titles => titles
+      .filter(title => title.parentElement.getBoundingClientRect().width > 0)
+      .map(title => title.textContent));
+    assert.deepEqual(loneEndings, ['Неделя с 10 авг (неполная): Закончили 12', 'Неделя с 9 ноя (неполная): Закончили 12'], 'endings of both partial weeks are drawn and named');
 
     // A new period asks with its own days and keeps the screen: no skeleton, tiles stay.
     await page.evaluate(() => { window.__skeletons = 0; window.__shift = 0; });
