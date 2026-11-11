@@ -2063,7 +2063,7 @@
       "owner": "operations",
       "purpose": "Client of the Boosty subscription analytics: response client, tile model, Russian texts for source codes, data freshness and the live-refresh hook for the admin page.",
       "paths": ["src/modules/subscriptionAnalytics"],
-      "publicEntrypoints": ["src/modules/subscriptionAnalytics/public.ts"],
+      "publicEntrypoints": ["src/modules/subscriptionAnalytics/public.ts", "src/modules/subscriptionAnalytics/SubscriptionAnalyticsPage.lazy.ts"],
       "frontendRoutes": [],
       "backendRoutes": [],
       "contracts": ["src/modules/subscriptionAnalytics/model/types.ts", "docs/boosty-article-analytics.md"],

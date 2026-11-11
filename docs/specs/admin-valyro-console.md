@@ -130,6 +130,34 @@ that section alone.
 - The overview's segment shortcuts open the people list on that segment once;
   showing the section again keeps the operator's own filters.
 
+### Subscription analytics
+
+`/admin/?section=subscription-analytics` («Аналитика подписок», group
+«Аудитория», next to Boosty) shows the paid Boosty base from
+`GET /api/admin/boosty/subscription-metrics?days=30|92|180|365` (92 by default).
+Code: `src/modules/subscriptionAnalytics/` (`ui/SubscriptionAnalyticsPage.tsx`
+is loaded as a lazy chunk).
+
+- The header holds the period switch, «Обновить», «Обновлено N секунд назад»
+  (ticks every second, fixed width) and «Последний опрос Boosty» (UTC and age).
+  A last accepted poll older than 15 minutes raises a warning banner.
+- The page polls once a minute, pauses on a hidden tab and asks at once on
+  return (`useLiveSubscriptionMetrics`). A new period or a failed poll keeps
+  the shown data; a failed poll adds «Не удалось обновить, показаны данные от …».
+  With no data yet: skeleton, then 403 «Недостаточно прав», or «Источник
+  аналитики недоступен» with «Повторить» (the next poll recovers by itself).
+- Tiles come from `buildSubscriptionTiles`; a rate that is `null` reads
+  «нет данных», never 0 %.
+- «Активные платные подписчики по дням» is the shared `LineChart`: a day with
+  `observed: false` breaks the solid line and the carried value is drawn dashed
+  and named in the legend; the tooltip lists the plans of the day. «Доли
+  тарифов» (`StackedBarChart`) shows the plan mix on six observed days.
+- «Начало и окончание доступа по неделям» is a `LineChart` with starts (solid)
+  and ends (dashed); an incomplete week is its own segment.
+- The page shows no revenue: it only reports the observed state of
+  subscribers. `div.sa-more` is reserved for the plans, cohorts, monthly
+  churn and money blocks of the next slice (#362).
+
 ## Older section styles
 
 `src/features/contests.css` still styles most sections. Its `--admin-*`
