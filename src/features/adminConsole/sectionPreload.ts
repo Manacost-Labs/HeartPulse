@@ -4,6 +4,7 @@
  * functions, so a prefetched chunk is the chunk the section later renders.
  */
 import { loadAdminOverviewPage, preloadAdminOverview } from '../../modules/adminCrm/public';
+import { loadSubscriptionAnalyticsPage } from '../../modules/subscriptionAnalytics/public';
 import { prefetchAdminResource } from '../../modules/adminWorkspace/public';
 import type { AdminWorkspaceSection } from '../adminWorkspaceState';
 import { preloadAdminUsers } from '../useAdminUsersList';
@@ -18,6 +19,7 @@ export const SECTION_CHUNKS = {
   mechanics: () => import('../ContestAdminMechanicTranslations'),
   operations: () => import('../ContestAdminStandardOperations'),
   apiKeys: () => import('../../modules/developerApi/public'),
+  subscriptionAnalytics: loadSubscriptionAnalyticsPage,
 } as const;
 
 const SECTION_CODE: Partial<Record<AdminWorkspaceSection, () => Promise<unknown>>> = {
@@ -29,6 +31,7 @@ const SECTION_CODE: Partial<Record<AdminWorkspaceSection, () => Promise<unknown>
   'fun-decks': SECTION_CHUNKS.operations,
   'standard-data': SECTION_CHUNKS.operations,
   'api-keys': SECTION_CHUNKS.apiKeys,
+  'subscription-analytics': SECTION_CHUNKS.subscriptionAnalytics,
 };
 
 /** Pointing at a menu item starts downloading that section's code, ahead of the click. */

@@ -41,3 +41,8 @@ export {
   useNow,
   type LiveSubscriptionMetrics,
 } from './ui/useLiveSubscriptionMetrics';
+
+/** Страница раздела тянет вёрстку, CSS и графики: админка грузит её по требованию. */
+export function loadSubscriptionAnalyticsPage() {
+  return import('./SubscriptionAnalyticsPage.lazy');
+}

@@ -1,0 +1,94 @@
+/* Раздел «Аналитика подписок». Цвета — токены админки; графики общие (parchment), вне тем. */
+.subscription-analytics {
+  --crm-ink: var(--admin-ink, #2d241c);
+  --crm-muted: var(--admin-muted, #75685c);
+  --crm-surface: var(--admin-surface, #fffdf8);
+  --crm-soft: var(--admin-surface-soft, #f8f2e7);
+  --crm-line: var(--admin-divider, #e5d8c3);
+  --crm-accent: var(--admin-gold-dark, #785018);
+  --crm-ok: #2f6b3a;
+  --crm-warn: #8a5a06;
+  --crm-warn-soft: #f7e6bd;
+  --crm-bad: var(--admin-danger, #a13b35);
+  --crm-bad-soft: #f5dcd8;
+  display: grid; gap: 20px; min-width: 0; color: var(--crm-ink);
+}
+.subscription-analytics > * { min-width: 0; }
+
+.sa-head { display: grid; gap: 12px; }
+.sa-head__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.sa-head h2 { margin: 0; font-size: 14px; font-weight: 600; }
+.sa-head p { margin: 2px 0 0; color: var(--crm-muted); font-size: 12px; }
+
+.sa-periods { display: inline-flex; padding: 3px; border: 1px solid var(--crm-line); border-radius: 10px; background: var(--crm-soft); }
+.sa-periods button {
+  min-height: 36px; min-width: 56px; padding: 4px 12px; border: 0; border-radius: 7px; background: transparent;
+  color: var(--crm-muted); font-family: inherit; font-size: 13px; font-weight: 600; line-height: 1.2; cursor: pointer; font-variant-numeric: tabular-nums;
+}
+.sa-periods button:hover { color: var(--crm-ink); }
+.sa-periods button[aria-pressed='true'] { background: var(--crm-surface); color: var(--crm-ink); box-shadow: 0 0 0 1px var(--crm-line); }
+.sa-periods button:focus-visible, .sa-refresh:focus-visible { outline: 2px solid var(--crm-accent); outline-offset: 2px; }
+
+.sa-refresh { display: inline-flex; align-items: center; gap: 6px; min-height: 36px; padding: 4px 12px; border: 1px solid var(--crm-line); border-radius: 10px; background: var(--crm-surface); color: var(--crm-ink); font-family: inherit; font-size: 13px; font-weight: 600; line-height: 1.2; cursor: pointer; }
+.sa-refresh:disabled { opacity: .6; cursor: default; }
+.sa-refresh svg[data-spin] { animation: sa-spin 1s linear infinite; }
+
+.sa-live { display: flex; flex-wrap: wrap; align-items: center; column-gap: 16px; row-gap: 4px; min-height: 20px; margin: 0; color: var(--crm-muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.sa-live > span { display: inline-flex; align-items: center; gap: 6px; }
+.sa-live__dot { inline-size: 8px; block-size: 8px; border-radius: 50%; background: var(--crm-ok); }
+.sa-live__dot[data-state='busy'] { animation: sa-pulse 1.1s ease-in-out infinite; }
+.sa-live__dot[data-state='stale'] { background: var(--crm-warn); }
+.sa-live__dot[data-state='failed'] { background: var(--crm-bad); }
+.sa-live__age { display: inline-block; min-inline-size: 9.5em; }
+
+.sa-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 14px; border: 1px solid var(--crm-warn); border-radius: 10px; background: var(--crm-warn-soft); color: var(--crm-warn); font-size: 13px; }
+.sa-banner svg { flex: none; }
+.sa-banner--bad { border-color: var(--crm-bad); background: var(--crm-bad-soft); color: var(--crm-bad); }
+.sa-banner strong { font-weight: 600; }
+
+.sa-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+.sa-tile { display: grid; align-content: start; gap: 2px; min-width: 0; padding: 14px 16px 12px; border: 1px solid var(--crm-line); border-radius: 10px; background: var(--crm-surface); }
+.sa-tile__label { color: var(--crm-muted); font-size: 12.5px; font-weight: 600; }
+.sa-tile__value { margin-block: 6px 2px; font-size: 28px; font-weight: 700; line-height: 1.15; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.sa-tile__value[data-empty] { color: var(--crm-muted); font-weight: 600; }
+.sa-tile__value[data-tone='up'] { color: var(--crm-ok); }
+.sa-tile__value[data-tone='down'] { color: var(--crm-bad); }
+.sa-tile__hint { color: var(--crm-muted); font-size: 12px; line-height: 1.4; }
+.sa-tile__none { color: var(--crm-muted); font-size: 12px; }
+
+.sa-charts { display: grid; gap: 20px; }
+.sa-chart-note { margin: 10px 0 0; color: #735e49; font-size: 12.5px; line-height: 1.5; }
+.sa-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 10px 0 0; padding: 0; list-style: none; color: #735e49; font-size: 12.5px; }
+.sa-legend li { display: inline-flex; align-items: center; gap: 6px; }
+.sa-legend i { inline-size: 18px; block-size: 0; border-top: 2.25px solid #8d171d; }
+.sa-legend i[data-dashed] { border-top-style: dashed; }
+.sa-chart-slot { min-width: 0; }
+
+/* Место для блоков среза 3 (тарифы, когорты, оттоки по месяцам, деньги): сюда они встают секциями. */
+.sa-more { display: grid; gap: 20px; }
+.sa-more:empty { display: none; }
+
+.sa-footnote { margin: 0; color: var(--crm-muted); font-size: 12px; line-height: 1.5; }
+
+.sa-state { display: grid; justify-items: start; gap: 8px; padding: 24px 20px; border: 1px solid var(--crm-line); border-radius: 10px; background: var(--crm-surface); }
+.sa-state h3 { margin: 0; font-size: 16px; font-weight: 600; }
+.sa-state p { margin: 0; color: var(--crm-muted); font-size: 13px; line-height: 1.5; }
+
+.sa-skeleton { background: var(--crm-soft); border: 1px solid var(--crm-line); border-radius: 10px; animation: sa-fade 1.6s ease-in-out infinite; }
+.sa-skeleton--tile { min-block-size: 108px; }
+.sa-skeleton--chart { min-block-size: 360px; }
+
+@keyframes sa-pulse { 50% { opacity: .35; } }
+@keyframes sa-fade { 50% { opacity: .55; } }
+@keyframes sa-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .sa-live__dot[data-state='busy'], .sa-skeleton, .sa-refresh svg[data-spin] { animation: none; }
+}
+@media (max-width: 520px) {
+  .sa-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+  .sa-tile { padding: 12px; }
+  .sa-tile__value { font-size: 24px; }
+  .sa-head__row { align-items: stretch; }
+  .sa-periods { inline-size: 100%; }
+  .sa-periods button { flex: 1 1 0; min-width: 0; }
+}

@@ -14,7 +14,8 @@ export type AdminWorkspaceSection =
   | 'api-keys'
   | 'contests'
   | 'referrals'
-  | 'boosty';
+  | 'boosty'
+  | 'subscription-analytics';
 
 export type AdminWorkspaceState = {
   section: AdminWorkspaceSection;

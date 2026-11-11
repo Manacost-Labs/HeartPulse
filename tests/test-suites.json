@@ -233,6 +233,7 @@
         "tests/standard-meta-classes.test.ts",
         "tests/standard-meta-profile-access.test.ts",
         "tests/standard-meta-recommendation-cache.test.ts",
+        "tests/subscription-analytics-charts.test.ts",
         "tests/subscription-analytics-live.test.ts",
         "tests/subscription-analytics-model.test.ts",
         "tests/subscription-analytics-normalize.test.ts",
