@@ -25,7 +25,7 @@ export function formatUtcMoment(ms: number, seconds = false): string {
 export function LiveStatus({ live }: { live: LiveSubscriptionMetrics }) {
   const now = useNow(1000);
   const failed = live.error !== null && live.metrics !== undefined;
-  const state = failed ? 'failed' : live.stale ? 'stale' : live.refreshing ? 'busy' : 'ok';
+  const state = live.error !== null ? 'failed' : live.stale ? 'stale' : live.refreshing ? 'busy' : 'ok';
   const updated = live.updatedAt === null ? null : formatDataAge(now - live.updatedAt);
   const pollAge = live.metrics ? lastPollAgeMs(live.metrics, now) : null;
   const pollAgeText = formatDataAge(pollAge);

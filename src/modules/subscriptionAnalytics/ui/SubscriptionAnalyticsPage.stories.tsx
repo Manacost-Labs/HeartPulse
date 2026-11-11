@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, fn, userEvent, within } from 'storybook/test';
-import sampleFixture from '../../../../tests/fixtures/boosty-subscription-metrics-sample-20261111.json';
+import sampleFixture from './sampleMetrics.json';
 import { SubscriptionMetricsError } from '../api/subscriptionMetricsClient';
 import { buildSubscriptionTiles } from '../model/subscriptionTiles';
 import type { SubscriptionMetrics } from '../model/types';
