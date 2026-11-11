@@ -1,4 +1,5 @@
 import { EMPTY_VALUE, formatCount, formatPercent, formatRub, formatSignedCount } from './subscriptionFormat';
+import { pluralRu } from '../../../shared/text/pluralRu';
 import { formatShortDate } from './subscriptionCharts';
 import type {
   SubscriptionMetrics, SubscriptionNominalValue, SubscriptionPlanTransition, SubscriptionRetention, SubscriptionWeeklyPoint,
@@ -68,6 +69,7 @@ const clampPercent = (value: number) => Math.min(100, Math.max(0, value));
 export function retentionView(row: SubscriptionRetention): RetentionView {
   const { lowerBound, upperBound } = row;
   const range = row.unknown > 0 && lowerBound !== null && upperBound !== null ? { lower: lowerBound, upper: upperBound } : null;
+  const bounds = range ? `Если все они ушли — ${formatPercent(range.lower)}, если все остались — ${formatPercent(range.upper)}.` : '';
   const emptyReason = row.rate !== null ? null
     : row.eligible === 0 ? `Пока никто из периода не дожил до ${row.days} дней.`
       : `Из ${formatCount(row.eligible)} человек проверить не удалось никого: годовщина попала на перерыв в опросах.`;
@@ -77,9 +79,9 @@ export function retentionView(row: SubscriptionRetention): RetentionView {
     rateText: row.rate === null ? null : formatPercent(row.rate),
     emptyReason,
     checked: `Проверено ${formatCount(row.evaluated)} из ${formatCount(row.eligible)} человек`,
-    unknownNote: row.unknown > 0 && row.rate !== null
-      ? `Ещё ${formatCount(row.unknown)} не удалось проверить: ${row.days}-й день попал на перерыв в опросах, их нет в проценте.${range ? ` Если все они ушли — ${formatPercent(range.lower)}, если все остались — ${formatPercent(range.upper)}.` : ''}`
-      : null,
+    unknownNote: row.unknown === 0 ? null
+      : row.rate === null ? bounds || null
+        : `Ещё ${formatCount(row.unknown)} не удалось проверить: ${row.days}-й день попал на перерыв в опросах, их нет в проценте.${bounds && ` ${bounds}`}`,
     smallNote: row.eligible > 0 && row.eligible < SMALL_COHORT
       ? `Когорта из ${formatCount(row.eligible)} человек: процент может заметно измениться.`
       : null,
@@ -112,9 +114,11 @@ export function baseValueView(metrics: SubscriptionMetrics): BaseValueView {
     const headline = `Средний тариф ${down ? 'снизился' : 'вырос'}: ${formatRub(start.averageTariffRub)} → ${formatRub(end.averageTariffRub)} (${formatSignedRub(deltaAverageRub)})`;
     const pricesKnown = start.unknownPrices === 0 && end.unknownPrices === 0;
     let detail = 'Стоимость считается по ценам тарифов, а не по платежам.';
-    if (pricesKnown && deltaSubscribers > 0) {
-      const added = deltaValueRub / deltaSubscribers;
-      detail = `Каждый добавившийся подписчик в среднем приносит тариф ${formatRub(added)} в месяц — ${added < start.averageTariffRub ? 'ниже' : 'выше'} прежнего среднего, поэтому средний тариф ${down ? 'снижается' : 'растёт'}${deltaValueRub > 0 ? `, хотя вся база выросла на ${formatRub(deltaValueRub)} в месяц` : ''}.`;
+    // Отношение приростов — арифметика всей базы (приходы, уходы и смены тарифа вместе), а не тариф новых
+    // подписчиков; оно осмысленно, только когда выросли и число людей, и стоимость.
+    if (pricesKnown && deltaSubscribers > 0 && deltaValueRub > 0) {
+      const perAdded = deltaValueRub / deltaSubscribers;
+      detail = `База выросла на ${formatCount(deltaSubscribers)} ${pluralRu(deltaSubscribers, 'человека', 'человека', 'человек')} и на ${formatRub(deltaValueRub)} в месяц: на одного человека прироста приходится ${formatRub(perAdded)} — ${perAdded < start.averageTariffRub ? 'меньше' : 'больше'} прежнего среднего тарифа, поэтому средний ${down ? 'снизился' : 'вырос'}. В этом расчёте вместе приходы, уходы и смены тарифа.`;
     }
     takeaway = { tone: down ? 'down' : 'up', headline, detail };
   }

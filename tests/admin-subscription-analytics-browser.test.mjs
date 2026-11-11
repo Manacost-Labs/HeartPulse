@@ -138,9 +138,9 @@ test('subscription analytics: tiles, charts, live polling and failure states', a
     assert.match(retentionText, /Через 90 дней 42,9 % Проверено 21 из 21 человек.*Мало данных/);
     assert.match(retentionText, /Исходная база периода 64,9 % 189 из 291/);
     const churnText = await sectionText('churn');
-    assert.match(churnText, /август 2026 неполный 291 37 12,7 % 74 38 327/);
-    assert.match(churnText, /сентябрь 2026 327 66 20,2 % 84 77 334/);
-    assert.match(churnText, /ноябрь 2026 неполный 394 27 6,9 %/);
+    assert.match(churnText, /август 2026 неполный 12,7 % 291 37 74 38 327/);
+    assert.match(churnText, /сентябрь 2026 20,2 % 327 66 84 77 334/);
+    assert.match(churnText, /ноябрь 2026 неполный 6,9 % 394 27/);
     assert.match(churnText, /август 2026 и ноябрь 2026 неполные.*нельзя сравнивать с полными/);
     const moneyText = await sectionText('money');
     assert.match(moneyText, /Денежная оценка \(не выручка\).*Это оценка, а не выручка/);

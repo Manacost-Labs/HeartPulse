@@ -96,14 +96,22 @@ describe('блоки подписок: чистая модель', () => {
     const view = baseValueView(sample);
     assert.equal(view.takeaway?.tone, 'down');
     assert.equal(view.takeaway?.headline, 'Средний тариф снизился: 207 ₽ → 193 ₽ (−14 ₽)');
-    assert.match(view.takeaway?.detail ?? '', /тариф 160 ₽ в месяц — ниже прежнего среднего/);
-    assert.match(view.takeaway?.detail ?? '', /выросла на 19 624 ₽/);
+    assert.match(view.takeaway?.detail ?? '', /выросла на 123 человека и на 19\s624\s₽ в месяц/);
+    assert.match(view.takeaway?.detail ?? '', /на одного человека прироста приходится 160\s₽ — меньше прежнего среднего тарифа/);
+  });
+
+  it('смены тарифа при малом приросте не выдаются за тариф новых подписчиков', () => {
+    // Десять человек перешли с 1000 ₽ на 100 ₽ и пришёл один новый: стоимость базы упала, людей стало больше.
+    const shifted = structuredClone(sample);
+    shifted.nominalTariffValue.start = { subscribers: 10, tariffValueRub: 10_000, averageTariffRub: 1000, unknownPrices: 0 };
+    shifted.nominalTariffValue.end = { subscribers: 11, tariffValueRub: 1100, averageTariffRub: 100, unknownPrices: 0 };
+    assert.equal(baseValueView(shifted).takeaway?.detail, 'Стоимость считается по ценам тарифов, а не по платежам.');
   });
 
   it('без средних или при неизвестных ценах не выдумывает причину', () => {
     const unknown = structuredClone(sample);
     unknown.nominalTariffValue.end.unknownPrices = 2;
-    assert.doesNotMatch(baseValueView(unknown).takeaway?.detail ?? '', /Каждый добавившийся/);
+    assert.doesNotMatch(baseValueView(unknown).takeaway?.detail ?? '', /на одного человека прироста/);
     unknown.nominalTariffValue.end.averageTariffRub = null;
     assert.equal(baseValueView(unknown).takeaway, null);
   });
@@ -124,6 +132,9 @@ describe('блоки подписок: чистая модель', () => {
     assert.match(none.emptyReason ?? '', /не дожил/);
     const blind = retentionView({ days: 60, eligible: 5, evaluated: 0, retained: 0, unknown: 5, rate: null, lowerBound: 0, upperBound: 100 });
     assert.match(blind.emptyReason ?? '', /перерыв/);
+    // Границы остаются и когда проверить не удалось никого.
+    assert.match(blind.unknownNote ?? '', /^Если все они ушли — 0\s%, если все остались — 100\s%\.$/);
+    assert.deepEqual(blind.range, { lower: 0, upper: 100 });
   });
 
   it('виды переходов: незнакомый вид читается как «Другое»', () => {
