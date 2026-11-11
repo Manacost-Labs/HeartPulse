@@ -107,7 +107,10 @@ export function LineChart({ title, subtitle, points, unit = '', color = '#8d171d
             {run.length > 1 && !band(run) && <path d={area(run)} fill={`url(#${gradientId})`} />}
             <path d={line(run)} fill="none" stroke={color} strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" />
           </g>)}
-          {referenceRuns.map((run, index) => run.length > 1 && <path key={index} className="analytics-chart__reference" d={line(run)} />)}
+          {/* A lone reference value (its neighbours belong to other segments) has no line to draw, so it gets a marker. */}
+          {referenceRuns.map((run, index) => run.length > 1
+            ? <path key={index} className="analytics-chart__reference" d={line(run)} />
+            : <circle key={index} className="analytics-chart__reference-point" cx={x(run[0].position)} cy={y(run[0].y as number)} r="3" />)}
           {boundaryLabels.map(boundary => <g key={boundary.index} className="analytics-chart__boundary">
             {boundary.line && <line x1={boundary.at} x2={boundary.at} y1={TOP - 14} y2={bottom} />}
             {boundary.shown && <text x={boundary.anchorEnd ? boundary.at - 4 : boundary.at + 4} y={TOP - 6} textAnchor={boundary.anchorEnd ? 'end' : 'start'}>{boundary.label}</text>}
