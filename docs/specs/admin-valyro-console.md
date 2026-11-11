@@ -154,9 +154,20 @@ is loaded as a lazy chunk).
   тарифов» (`StackedBarChart`) shows the plan mix on six observed days.
 - «Начало и окончание доступа по неделям» is a `LineChart` with starts (solid)
   and ends (dashed); an incomplete week is its own segment.
+- Below the charts (`ui/SubscriptionBlocks.tsx`, `ui/SubscriptionLimits.tsx`,
+  pure helpers in `model/subscriptionBlocks.ts`) sit the blocks of slice 3:
+  base value by plan prices (start against end, with the average-tariff
+  takeaway), plans, plan transitions, cohort retention 30/60/90 («Проверено N
+  из M», bounds when `unknown > 0`, «пока рано считать» for `rate: null`, a
+  small-sample chip under 30 people), monthly churn (partial months marked),
+  the money estimate, free-to-paid conversion, «Что нельзя посчитать»,
+  limitations and data coverage with the polling gaps. Tables use the shared
+  `TableSurface`: they scroll inside a labelled region, the first column stays
+  pinned.
+- The money block is always titled «Денежная оценка (не выручка)» and opens with
+  a callout saying it is an estimate from counter growth, not revenue.
 - The page shows no revenue: it only reports the observed state of
-  subscribers. `div.sa-more` is reserved for the plans, cohorts, monthly
-  churn and money blocks of the next slice (#362).
+  subscribers.
 
 ## Older section styles
 

@@ -223,7 +223,7 @@ function Money({ metrics }: { metrics: SubscriptionMetrics }) {
   >
     <Callout>
       <strong>Это оценка, а не выручка.</strong>{' '}
-      В неё не входят комиссии, возвраты и выплаты, а счётчик видит не каждый платёж, а только его рост между опросами.
+      В неё не входят комиссии, возвраты и выплаты.
       {notes.map(code => <span key={code} className="sa-callout__line">{limitationText(code)}</span>)}
     </Callout>
     <ul className="sa-stats" aria-label="Денежная оценка за период">

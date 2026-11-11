@@ -3,6 +3,9 @@ import { readFileSync } from 'node:fs';
 import { describe, it } from 'node:test';
 import type { SubscriptionMetrics } from '../src/modules/subscriptionAnalytics/model/types.js';
 import {
+  baseValueView, formatHours, formatMoment, partialWeekNotes, retentionView, sortedTransitions, transitionLabel,
+} from '../src/modules/subscriptionAnalytics/model/subscriptionBlocks.js';
+import {
   dailyChartPoints, formatShortDate, planSeries, planShareRows, rankPlans, unobservedDayCount, unobservedRanges, weeklyChartPoints,
 } from '../src/modules/subscriptionAnalytics/model/subscriptionCharts.js';
 
@@ -85,5 +88,64 @@ describe('графики подписок на образце', () => {
       assert.equal(points[index].segment, week.partial ? 'partial' : 'full');
     });
     assert.match(points.at(-1)!.label ?? '', /неполная/);
+  });
+});
+
+describe('блоки подписок: чистая модель', () => {
+  it('главный вывод — средний тариф снизился, прирост стоит дешевле прежнего среднего', () => {
+    const view = baseValueView(sample);
+    assert.equal(view.takeaway?.tone, 'down');
+    assert.equal(view.takeaway?.headline, 'Средний тариф снизился: 207 ₽ → 193 ₽ (−14 ₽)');
+    assert.match(view.takeaway?.detail ?? '', /тариф 160 ₽ в месяц — ниже прежнего среднего/);
+    assert.match(view.takeaway?.detail ?? '', /выросла на 19 624 ₽/);
+  });
+
+  it('без средних или при неизвестных ценах не выдумывает причину', () => {
+    const unknown = structuredClone(sample);
+    unknown.nominalTariffValue.end.unknownPrices = 2;
+    assert.doesNotMatch(baseValueView(unknown).takeaway?.detail ?? '', /Каждый добавившийся/);
+    unknown.nominalTariffValue.end.averageTariffRub = null;
+    assert.equal(baseValueView(unknown).takeaway, null);
+  });
+
+  it('удержание: проверено N из M, границы и малая выборка', () => {
+    const [d30, d60, d90] = sample.retention.map(retentionView);
+    assert.equal(d30.checked, 'Проверено 123 из 150 человек');
+    assert.match(d30.unknownNote ?? '', /59,3 %.*77,3 %/);
+    assert.equal(d30.smallNote, null);
+    assert.equal(d60.unknownNote, null);
+    assert.equal(d90.rateText, '42,9 %');
+    assert.match(d90.smallNote ?? '', /21 человек/);
+  });
+
+  it('удержание без доли — «пока рано», а не 0 %', () => {
+    const none = retentionView({ days: 30, eligible: 0, evaluated: 0, retained: 0, unknown: 0, rate: null, lowerBound: null, upperBound: null });
+    assert.equal(none.rateText, null);
+    assert.match(none.emptyReason ?? '', /не дожил/);
+    const blind = retentionView({ days: 60, eligible: 5, evaluated: 0, retained: 0, unknown: 5, rate: null, lowerBound: 0, upperBound: 100 });
+    assert.match(blind.emptyReason ?? '', /перерыв/);
+  });
+
+  it('виды переходов: незнакомый вид читается как «Другое»', () => {
+    assert.equal(transitionLabel('upgrade'), 'Повышение');
+    assert.equal(transitionLabel('downgrade'), 'Понижение');
+    assert.equal(transitionLabel('sideways'), 'Другое');
+    assert.deepEqual(sortedTransitions([{ fromPlan: 'A', toPlan: 'B', kind: 'other', count: 1 }, { fromPlan: 'B', toPlan: 'A', kind: 'other', count: 5 }]).map(row => row.count), [5, 1]);
+  });
+
+  it('перерывы и моменты: UTC, часы с десятой', () => {
+    assert.equal(formatMoment('2026-09-11T21:56:26.176017+00:00'), '11 сен, 21:56 UTC');
+    assert.equal(formatMoment('2026-07-28T00:36:47.655977+00:00', true), '28 июл 2026, 00:36 UTC');
+    assert.equal(formatMoment(null), '—');
+    assert.equal(formatHours(96.5), '96,5 ч');
+    assert.equal(formatHours(114), '114 ч');
+  });
+
+  it('подписи неполных недель называют и первую, и последнюю', () => {
+    const notes = partialWeekNotes(sample.weekly);
+    assert.equal(notes.length, 2);
+    assert.match(notes[0], /^Неделя с 10 авг неполная: период начинается в середине недели/);
+    assert.match(notes[1], /^Неделя с 9 ноя ещё не закончилась/);
+    assert.deepEqual(partialWeekNotes(sample.weekly.map(week => ({ ...week, partial: false }))), []);
   });
 });

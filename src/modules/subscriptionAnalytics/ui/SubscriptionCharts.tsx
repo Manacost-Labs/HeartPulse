@@ -65,6 +65,7 @@ export function WeeklyAccessChart({ metrics }: { metrics: SubscriptionMetrics })
     <ul className="sa-legend" aria-label="Обозначения графика">
       <li><i style={{ borderTopColor: STARTS_COLOR }} />Начали доступ</li>
       <li><i data-dashed="" style={{ borderTopColor: '#5f554a' }} />Закончили</li>
+      {partialNotes.length > 0 && <li><i data-dot="" />Точка за пунктирной вертикалью — неполная неделя</li>}
     </ul>
     {partialNotes.map(note => <p key={note} className="sa-chart-note" data-testid="partial-week-note">{note}</p>)}
   </div>;

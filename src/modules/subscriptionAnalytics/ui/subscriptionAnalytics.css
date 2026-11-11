@@ -62,6 +62,7 @@
 .sa-legend li { display: inline-flex; align-items: center; gap: 6px; }
 .sa-legend i { inline-size: 18px; block-size: 0; border-top: 2.25px solid #8d171d; }
 .sa-legend i[data-dashed] { border-top-style: dashed; }
+.sa-legend i[data-dot] { inline-size: 8px; block-size: 8px; border: 2px solid #2f6b3a; border-radius: 50%; margin-inline: 5px; }
 /* Скрытая таблица для скринридеров у общих графиков шире телефона: не даём ей растянуть прокрутку страницы. */
 .sa-chart-slot { position: relative; min-width: 0; overflow-x: clip; }
 
@@ -102,14 +103,12 @@
 .subscription-analytics .analytics-table .sa-table :is(th, td) { padding: 9px 12px; white-space: nowrap; }
 .subscription-analytics .analytics-table .sa-table thead th { text-align: left; }
 .subscription-analytics .analytics-table .sa-table :is(th, td).is-numeric { text-align: right; }
-.subscription-analytics .analytics-table .sa-table tbody th { background: #fbf3de; font-weight: 600; text-align: left; white-space: normal; min-inline-size: 7.5rem; max-inline-size: 11rem; }
-.subscription-analytics .analytics-table .sa-table tbody tr:nth-child(even) th { background: #f7ecd3; }
-.subscription-analytics .analytics-table .sa-table :is(thead, tbody) th:first-child { position: sticky; inset-inline-start: 0; z-index: 1; box-shadow: 1px 0 0 #ddcfb1; }
+.subscription-analytics .analytics-table.analytics-table--native .sa-table tbody th { background: var(--ui-surface, #fffdf8); color: var(--ui-fg, var(--crm-ink)); font-weight: 600; text-align: left; white-space: normal; min-inline-size: 7.5rem; max-inline-size: 11rem; }
+.subscription-analytics .analytics-table .sa-table :is(thead, tbody) th:first-child { position: sticky; inset-inline-start: 0; z-index: 1; box-shadow: 1px 0 0 var(--ui-divider, #ddcfb1); }
 .subscription-analytics .analytics-table .sa-table thead th:first-child { z-index: 2; }
 .subscription-analytics .analytics-table .sa-table td[data-tone='up'] { color: var(--crm-ok); font-weight: 600; }
 .subscription-analytics .analytics-table .sa-table td[data-tone='down'] { color: var(--crm-bad); font-weight: 600; }
-.subscription-analytics .analytics-table .sa-table tr[data-partial] td, .subscription-analytics .analytics-table .sa-table tr[data-partial] th { font-style: normal; }
-.subscription-analytics .analytics-table .sa-table [data-empty] { color: #735e49; }
+.subscription-analytics .analytics-table .sa-table [data-empty] { color: var(--crm-muted); }
 .sa-table .sa-churn { min-inline-size: 7.5rem; }
 .sa-churn strong { display: block; font-weight: 600; }
 .sa-bar { display: block; inline-size: 100%; block-size: 6px; margin-top: 4px; border-radius: 3px; background: #e5d8c3; overflow: hidden; }

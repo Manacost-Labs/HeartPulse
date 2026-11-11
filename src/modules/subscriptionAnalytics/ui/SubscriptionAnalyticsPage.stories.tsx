@@ -64,7 +64,7 @@ export const SampleData: Story = {
     await expect(canvas.getByRole('heading', { name: 'Переходы между тарифами' })).toBeVisible();
     await expect(canvas.getByRole('heading', { name: 'Денежная оценка (не выручка)' })).toBeVisible();
     await expect(canvas.getByTestId('base-value-takeaway')).toHaveTextContent('Средний тариф снизился: 207 ₽ → 193 ₽');
-    await expect(within(canvas.getByRole('region', { name: 'Таблица: Тарифы' })).getByRole('cell', { name: '199 ₽/мес' })).toBeVisible();
+    await expect(within(canvas.getByRole('region', { name: 'Таблица: Тарифы' })).getByRole('cell', { name: /^199\s₽\/мес$/ })).toBeVisible();
     await expect(canvas.getByTestId('retention-small')).toHaveTextContent('21 человек');
     await expect(canvas.getByTestId('retention-unknown')).toHaveTextContent('59,3 %');
     await expect(canvas.getByTestId('partial-months-note')).toHaveTextContent('август 2026 и ноябрь 2026');
@@ -120,7 +120,7 @@ export const UpdateFailedWithData: Story = {
 export const RefreshingPeriod: Story = {
   args: { state: live({ refreshing: true }), initialDays: 365 },
   play: async ({ canvas }) => {
-    await expect(await canvas.findByRole('status')).toHaveTextContent('Обновляем');
+    await expect(await within(await canvas.findByTestId('live-status')).findByRole('status')).toHaveTextContent('Обновляем');
     await expect(canvas.getByRole('list', { name: 'Сводка за период' })).toBeVisible();
   },
 };

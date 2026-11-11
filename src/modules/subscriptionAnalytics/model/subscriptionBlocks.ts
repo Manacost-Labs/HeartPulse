@@ -66,7 +66,8 @@ export interface RetentionView {
 const clampPercent = (value: number) => Math.min(100, Math.max(0, value));
 
 export function retentionView(row: SubscriptionRetention): RetentionView {
-  const hasRange = row.unknown > 0 && row.lowerBound !== null && row.upperBound !== null;
+  const { lowerBound, upperBound } = row;
+  const range = row.unknown > 0 && lowerBound !== null && upperBound !== null ? { lower: lowerBound, upper: upperBound } : null;
   const emptyReason = row.rate !== null ? null
     : row.eligible === 0 ? `Пока никто из периода не дожил до ${row.days} дней.`
       : `Из ${formatCount(row.eligible)} человек проверить не удалось никого: годовщина попала на перерыв в опросах.`;
@@ -76,13 +77,13 @@ export function retentionView(row: SubscriptionRetention): RetentionView {
     rateText: row.rate === null ? null : formatPercent(row.rate),
     emptyReason,
     checked: `Проверено ${formatCount(row.evaluated)} из ${formatCount(row.eligible)} человек`,
-    unknownNote: row.unknown > 0
-      ? `Ещё ${formatCount(row.unknown)} не удалось проверить: ${row.days}-й день попал на перерыв в опросах, их нет в проценте.${hasRange ? ` Если все они ушли — ${formatPercent(row.lowerBound!)}, если все остались — ${formatPercent(row.upperBound!)}.` : ''}`
+    unknownNote: row.unknown > 0 && row.rate !== null
+      ? `Ещё ${formatCount(row.unknown)} не удалось проверить: ${row.days}-й день попал на перерыв в опросах, их нет в проценте.${range ? ` Если все они ушли — ${formatPercent(range.lower)}, если все остались — ${formatPercent(range.upper)}.` : ''}`
       : null,
     smallNote: row.eligible > 0 && row.eligible < SMALL_COHORT
       ? `Когорта из ${formatCount(row.eligible)} человек: процент может заметно измениться.`
       : null,
-    range: hasRange ? { lower: clampPercent(row.lowerBound!), upper: clampPercent(row.upperBound!) } : null,
+    range: range ? { lower: clampPercent(range.lower), upper: clampPercent(range.upper) } : null,
   };
 }
 
