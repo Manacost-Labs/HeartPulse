@@ -78,24 +78,25 @@ is a separate administrator workspace and retains its permission gate.
 - Import siblings with `./`; import everything else as `@/<repository path>`
   (for example `@/src/modules/subscriptions/public`). Never `../`, never
   `server/`. `tests/next-import-paths.test.mjs` enforces this.
-- The default constructed-card catalog reuses validated anonymous seeds for
-  30 seconds in the Next process, with at most one Standard and one Wild entry.
-  Concurrent default reads coalesce. A caller waits for Express at most
-  two seconds; the read itself goes on for up to ten and warms the cache when
-  it succeeds, so a slow but live Express costs one 503, not an outage. The
+- The default constructed-card catalog reuses validated anonymous seeds for 30
+  seconds in the Next process, with at most one Standard and one Wild entry.
+  Concurrent default reads coalesce. A caller waits for Express at most two
+  seconds; the read itself goes on for up to ten and warms the cache when it
+  succeeds, so a slow but live Express costs one 503, not an outage. The
   catalog check of `proxy.ts` is skipped for script fetches (RSC, menu
   prefetch). On a failure or timeout the last good catalog of that format is
   served (up to six hours, five seconds of backoff before the next try);
-  without one the read throws `CatalogUnavailableError` and `proxy.ts`
-  answers a 503 with `Retry-After` and no noindex, because a page cannot set a status. The store hangs off
-  `globalThis` (`lib/defaultCatalogStore.ts`) so the proxy and the pages share
-  it. The last good projection of each card (500 entries, `lib/cardLastGood.ts`)
-  is kept apart from the 4 KiB header, so a large card survives too; `proxy.ts`
-  and the card page wait for Express two seconds.
+  without one the read throws `CatalogUnavailableError` and `proxy.ts` answers
+  a 503 with `Retry-After` and no noindex, because a page cannot set a status.
+  The store hangs off `globalThis` (`lib/defaultCatalogStore.ts`) so the proxy
+  and the pages share it. The last good projection of each card (500 entries,
+  `lib/cardLastGood.ts`) is kept apart from the 4 KiB header, so a large card
+  survives too; `proxy.ts` and the card page wait for Express two seconds.
   Filtered, ranked, sorted and paged requests have their own entries keyed by
   the normalized API request (at most 100 entries), so they too fall back to
-  their last good version. Table/gallery presentation shares the same seed. See
-  [cache contract](../../docs/specs/public-card-catalog-response-cache.md).
+  their last good version. Table/gallery presentation shares the same seed.
+  See [cache
+  contract](../../docs/specs/public-card-catalog-response-cache.md).
 - Server components fetch only anonymous public projections through
   `fetchPublicExpress()`. A read that only puts data into the first paint
   (the meta and fun-deck guest previews, the archetype catalog teaser, the
