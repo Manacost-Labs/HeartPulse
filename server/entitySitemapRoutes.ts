@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { DeadlineExceededError, withDeadline } from './modules/constructedCards/public.js';
 import { Router, type Request, type RequestHandler, type Response } from 'express';
 import {
   SemanticSitemapStore,
@@ -59,6 +60,10 @@ export type EntitySitemapRouterDependencies = {
   minimumGuideCount?: number;
   staticLastModifiedMs?: number;
   retryAfterSeconds?: number;
+  /** A request waits this long for a sitemap rebuild before it gets the last known good document. Default 2 s. */
+  responseDeadlineMs?: number;
+  /** A rebuild that has not settled by then is abandoned, so the next request starts a new one. Default 25 s. */
+  loadDeadlineMs?: number;
   now?: () => number;
   onError?: (error: unknown) => void;
 };
@@ -201,6 +206,9 @@ function createDynamicDocumentLoader(
   now: () => number,
   cacheTtlMs: number,
 ): () => Promise<CachedDocument> {
+  const responseMs = Math.max(1, dependencies.responseDeadlineMs ?? 2_000);
+  const loadMs = Math.max(1, dependencies.loadDeadlineMs ?? 25_000);
+  const operation = `entity-sitemap:${definition.segment}`;
   const store = new SemanticSitemapStore({
     directory: dependencies.stateDirectory,
     filename: definition.filename,
@@ -214,11 +222,23 @@ function createDynamicDocumentLoader(
   return async () => {
     const current = now();
     if (cache && cache.expiresAt > current) return cache;
-    if (inflight) return inflight;
+    const wait = async (running: Promise<CachedDocument>): Promise<CachedDocument> => {
+      try {
+        return await withDeadline(running, responseMs, `${operation}:response`);
+      } catch (error) {
+        if (!(error instanceof DeadlineExceededError)) throw error;
+        const lastKnownGood = store.readLastKnownGood();
+        if (!lastKnownGood) throw error;
+        // The rebuild goes on; its result replaces this short-lived copy.
+        cache = dynamicDocument(lastKnownGood, 'last-known-good', now() + Math.min(cacheTtlMs, 30_000));
+        return cache;
+      }
+    };
+    if (inflight) return wait(inflight);
     const job = (async () => {
       try {
         cache = dynamicDocument(store.publish(
-          definition.project(await definition.load(), origin),
+          definition.project(await withDeadline(definition.load(), loadMs, operation), origin),
         ), 'catalog', now() + cacheTtlMs);
         return cache;
       } catch (error) {
@@ -236,7 +256,7 @@ function createDynamicDocumentLoader(
       if (inflight === job) inflight = null;
     });
     inflight = job;
-    return job;
+    return wait(job);
   };
 }
 

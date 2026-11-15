@@ -65,3 +65,23 @@ is logged as `[constructed-cards] <format> catalog refresh failed`.
 The Next seed's separate 30-second lifetime and validation stay unchanged.
 It never renews an expired seed on failure; any backend LKG result arrives
 through a new validated read with truthful source metadata.
+
+## Express read deadlines
+
+Incident 2026-11-15: one source read that never settled stayed in the shared
+load map, so every later catalog, card and card-sitemap request waited on it.
+Each shared (deduplicated) load now has two deadlines:
+
+- Response deadline, 2 s (`responseDeadlineMs`). A caller waits that long,
+  then gets the last good version: the previous result, else the stored
+  catalog without statistics (`dataStatus: stale`, `cacheSource: LKG`). With
+  no stored version the answer is a fast 503 with `Retry-After`. The same
+  holds for card details (known card, empty wiki and decks) and for
+  `/sitemaps/*-cards.xml` (`responseDeadlineMs` of the sitemap router).
+- Load deadline, 15 s (`loadDeadlineMs`; 25 s for a sitemap rebuild). Past it
+  the load is dropped from deduplication, so the next request starts a fresh
+  read and picks up recovered data.
+
+Every missed deadline writes one `[deadline] <name> did not finish within N ms`
+line naming the load (`constructed-cards:catalog:standard`, `…:patches`,
+`…:decks`, `entity-sitemap:standard-cards`, and so on).
