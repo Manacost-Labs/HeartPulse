@@ -118,7 +118,9 @@ function dynamicDocument(
 
 function sendDocument(request: Request, response: Response, document: CachedDocument, maxAgeSeconds: number): Response {
   response.set('Content-Type', 'application/xml; charset=utf-8');
-  response.set('Cache-Control', `public, max-age=${maxAgeSeconds}, stale-while-revalidate=${maxAgeSeconds}`);
+  // An outage copy must not be pinned by the edge cache for a full sitemap lifetime.
+  const seconds = document.source === 'last-known-good' ? Math.min(maxAgeSeconds, 30) : maxAgeSeconds;
+  response.set('Cache-Control', `public, max-age=${seconds}, stale-while-revalidate=${seconds}`);
   response.set('ETag', document.etag);
   if (document.lastModified) response.set('Last-Modified', document.lastModified);
   response.set('X-Sitemap-Source', document.source);

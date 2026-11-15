@@ -69,8 +69,10 @@ export function createSlowMemo(now: () => number, ttlMs = 30_000, maxEntries = 2
   return {
     isSlow: (key: string) => (until.get(key) ?? 0) > now(),
     mark(key: string) {
+      until.delete(key); // re-insert, so the map stays ordered from the oldest mark to the newest
       if (until.size >= maxEntries) for (const [other, at] of until) if (at <= now()) until.delete(other);
-      if (until.size >= maxEntries) until.clear();
+      // Still full of live marks: give up only the oldest one, never the fresh ones.
+      if (until.size >= maxEntries) for (const oldest of until.keys()) { until.delete(oldest); break; }
       until.set(key, now() + ttlMs);
     },
     clear: (key: string) => { until.delete(key); },

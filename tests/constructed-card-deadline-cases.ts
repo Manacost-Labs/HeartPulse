@@ -7,6 +7,7 @@ import express, { type RequestHandler } from 'express';
 import { createConstructedCardDataService, createConstructedCardRouter } from '../server/constructedCardRoutes.js';
 import { createEntitySitemapRouter } from '../server/entitySitemapRoutes.js';
 import { createEntitySitemapLoaders } from '../server/entitySitemapSources.js';
+import { createSlowMemo } from '../server/modules/constructedCards/public.js';
 
 // Incident 2026-11-15: a source read that never settles stayed in the shared
 // load map forever, so the catalog, card pages and card sitemaps hung with it.
@@ -216,4 +217,20 @@ test('only the card detail read hangs: repeats answer at once, and after the loa
   } finally {
     await router.close();
   }
+});
+
+test('the slow memo stays bounded and gives up only its oldest mark, never the fresh ones', () => {
+  let now = 0;
+  const memo = createSlowMemo(() => now, 30_000, 3);
+  memo.mark('a');
+  now = 5_000;
+  memo.mark('b');
+  memo.mark('c');
+  memo.mark('d'); // a fourth live mark with room for three
+  assert.deepEqual(['a', 'b', 'c', 'd'].map(key => memo.isSlow(key)), [false, true, true, true]);
+  memo.mark('b'); // marked again: now the newest, so 'c' is the next to go
+  memo.mark('e');
+  assert.deepEqual(['b', 'c', 'd', 'e'].map(key => memo.isSlow(key)), [true, false, true, true]);
+  now = 36_000;
+  assert.deepEqual(['b', 'd', 'e'].map(key => memo.isSlow(key)), [false, false, false], 'marks still expire on time');
 });
