@@ -14,14 +14,20 @@ export async function readCatalog(format: CardFormat, url: string, signal?: Abor
   return publicCatalogSeed(await response.json(), format);
 }
 
-type DefaultCatalog = ReturnType<typeof createDefaultCatalogCache<Awaited<ReturnType<typeof readCatalog>>>>;
+type Catalog = Awaited<ReturnType<typeof readCatalog>>;
 const STORE_KEY = Symbol.for('hearthpulse.defaultCatalogStore');
 
 /**
  * One store per Node process: `proxy.ts` and the pages are bundled apart, and
- * both must see the same last good catalog, so it hangs off `globalThis`.
+ * both must see the same last good catalogs, so it hangs off `globalThis`.
+ * Keyed by format and normalized request, so a filtered or paged list falls
+ * back to its own last good version as the default one does.
  */
-export function defaultCatalogStore(): DefaultCatalog {
-  const holder = globalThis as unknown as { [STORE_KEY]?: DefaultCatalog };
-  return holder[STORE_KEY] ??= createDefaultCatalogCache((format, signal) => readCatalog(format, catalogRequest(format, ''), signal));
+export function cachedCatalog(format: CardFormat, search: string): Promise<Catalog> {
+  const holder = globalThis as unknown as { [STORE_KEY]?: (key: string) => Promise<Catalog> };
+  holder[STORE_KEY] ??= createDefaultCatalogCache<Catalog>((key, signal) => {
+    const split = key.indexOf('|');
+    return readCatalog(key.slice(0, split) as CardFormat, key.slice(split + 1), signal);
+  });
+  return holder[STORE_KEY](`${format}|${catalogRequest(format, search)}`);
 }

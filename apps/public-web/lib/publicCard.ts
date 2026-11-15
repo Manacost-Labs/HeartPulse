@@ -5,6 +5,8 @@ import type { CardFormat, PublicCardSeed } from '@/src/modules/constructedCards/
 
 import { publicCardSeed } from './publicCardSeed';
 import { fetchPublicExpress } from './expressApi';
+import { lastGoodCardProjection } from './cardLastGood';
+import { CATALOG_READ_DEADLINE_MS } from './publicCatalogCache';
 import { decodePublicProjection, MISSING_PUBLIC_PROJECTION, PUBLIC_CARD_PROJECTION_HEADER } from './publicProjectionHeader';
 
 /**
@@ -16,8 +18,16 @@ export const loadPublicCard = cache(async (format: CardFormat, cardId: string): 
   const projection = (await headers()).get(PUBLIC_CARD_PROJECTION_HEADER);
   if (projection === MISSING_PUBLIC_PROJECTION) return null;
   if (projection) return publicCardSeed(decodePublicProjection(projection), cardId);
-  const response = await fetchPublicExpress(`/api/public/constructed-cards/${format}/${encodeURIComponent(cardId)}`);
-  if (response.status === 404) return null;
-  if (!response.ok) throw new Error('Public card temporarily unavailable');
-  return publicCardSeed(await response.json(), cardId);
+  // The header did not carry it (too large): read Express for two seconds, else the last good copy.
+  try {
+    const response = await fetchPublicExpress(`/api/public/constructed-cards/${format}/${encodeURIComponent(cardId)}`,
+      undefined, { timeoutMs: CATALOG_READ_DEADLINE_MS });
+    if (response.status === 404) return null;
+    if (!response.ok) throw new Error('Public card temporarily unavailable');
+    return publicCardSeed(await response.json(), cardId);
+  } catch (error) {
+    const last = lastGoodCardProjection(format, cardId);
+    if (last === undefined) throw error;
+    return publicCardSeed(last, cardId);
+  }
 });

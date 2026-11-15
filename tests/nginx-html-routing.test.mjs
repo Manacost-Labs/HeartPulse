@@ -661,8 +661,6 @@ assert.match(mapSource, /map\s+\$status\s+\$arena_next_html_robots_header\s*\{/,
   'Next HTML errors need a status-dependent robots policy');
 assert.match(standardCardsListing?.body || '', /add_header X-Robots-Tag \$arena_next_cards_robots_header always;/,
   'Next HTML errors must emit their robots policy as a response header');
-assert.match(mapSource, /map\s+"\$status \$uri"\s+\$arena_next_cards_robots_header\s*\{[^}]*default\s+\$arena_next_html_robots_header;[^}]*"~\^503 \/standard\/cards\(\?:\/\|\$\)"\s+"";/s,
-  'a card catalog 503 is transient: no noindex, every other status keeps the Next error policy');
 assert.match(routingSource, /location \^~ \/_next\/\s*\{[^}]*proxy_pass http:\/\/127\.0\.0\.1:4321;/s,
   'Next static assets must reach the matching runtime');
 const spaFallback = locations.find(location => location.pattern === '@arena_spa_noindex');

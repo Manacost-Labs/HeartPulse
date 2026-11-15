@@ -84,7 +84,10 @@ async function startStallingApi() {
     response.setHeader('Content-Type', 'application/json');
     if (request.url.startsWith('/api/public/constructed-cards/')) {
       const known = request.url === CARD_PATH;
-      response.writeHead(known ? 200 : 404).end(JSON.stringify(known ? publicCard('CARD_QA_1') : { error: 'Card not found' }));
+      const big = request.url.endsWith('/CARD_BIG');
+      const body = big ? publicCard('CARD_BIG') : publicCard('CARD_QA_1');
+      if (big) body.card.rulesText = 'Боевой клич: возьмите карту. '.repeat(400);
+      response.writeHead(known || big ? 200 : 404).end(JSON.stringify(known || big ? body : { error: 'Card not found' }));
     } else if (request.url.startsWith('/api/constructed-cards')) {
       response.end(JSON.stringify(catalogBody(request.url.includes('format=wild') ? 'wild' : 'standard')));
     } else {
@@ -136,6 +139,52 @@ test('a stalled Express without a last good version is a quick 503 that stays in
       assert.equal(response.headers.get('x-robots-tag'), null, `${path} must not carry noindex`);
       assert.doesNotMatch(html, /noindex|index, follow/, `${path} body must not carry robots directives`);
     }
+  } finally {
+    if (next) await next.close();
+    await closeLocal(api.server);
+  }
+});
+
+test('filtered and paged catalog addresses never answer 500 while Express is stalled', async () => {
+  const api = await startStallingApi();
+  let next;
+  try {
+    next = await startNextServer({ legacyOrigin: api.origin });
+    assert.equal((await timed(next.origin + '/standard/cards/')).response.status, 200, next.output());
+    api.state.stalled = true;
+    for (const path of ['/standard/cards/?class=MAGE', '/standard/cards/standard/?page=2', '/standard/cards/wild/?mana=2']) {
+      const { response, html, seconds } = await timed(next.origin + path);
+      assert.equal(response.status, 503, `${path}: ${next.output()}`);
+      assert.ok(seconds < 3.5, `${path} answered after ${seconds}s`);
+      assert.ok(response.headers.get('retry-after'), `${path} needs Retry-After`);
+      assert.equal(response.headers.get('x-robots-tag'), null);
+      assert.doesNotMatch(html, /noindex|index, follow/, `${path} must not mix robots directives`);
+    }
+    api.state.stalled = false;
+    assert.equal((await timed(next.origin + '/standard/cards/?class=MAGE')).response.status, 200);
+    api.state.stalled = true;
+    const { response, html } = await timed(next.origin + '/standard/cards/?class=MAGE');
+    assert.equal(response.status, 200, 'a filtered list has its own last good version');
+    assert.match(html, /Проверочная карта/);
+  } finally {
+    if (next) await next.close();
+    await closeLocal(api.server);
+  }
+});
+
+test('a card whose projection exceeds the request header is still served from the last good copy', async () => {
+  const api = await startStallingApi();
+  let next;
+  try {
+    next = await startNextServer({ legacyOrigin: api.origin });
+    const path = '/standard/cards/standard/CARD_BIG/';
+    const warm = await timed(next.origin + path);
+    assert.equal(warm.response.status, 200, next.output());
+    api.state.stalled = true;
+    const { response, html, seconds } = await timed(next.origin + path);
+    assert.equal(response.status, 200, `a large card must not turn into 503: ${next.output()}`);
+    assert.ok(seconds < 5.5, `answered after ${seconds}s`);
+    assert.match(html, /Проверочная карта/);
   } finally {
     if (next) await next.close();
     await closeLocal(api.server);

@@ -9,7 +9,8 @@ import { encodePublicProjection, MISSING_PUBLIC_PROJECTION, PUBLIC_BG_PROJECTION
   PUBLIC_CARD_PROJECTION_HEADER } from './lib/publicProjectionHeader';
 import { MISSING_COSMETICS_DETAIL_HEADER } from './lib/cosmeticsDetailContract';
 import { fetchPublicExpress } from './lib/expressApi';
-import { defaultCatalogStore } from './lib/defaultCatalogStore';
+import { cachedCatalog } from './lib/defaultCatalogStore';
+import { rememberCardProjection, lastGoodCardProjection, forgetCardProjection } from './lib/cardLastGood';
 import { CATALOG_READ_DEADLINE_MS } from './lib/publicCatalogCache';
 import { isPublicHomeDocument, PUBLIC_DOCUMENT_RESPONSE_HEADERS } from './documentCaching.mjs';
 
@@ -95,17 +96,6 @@ async function checkCosmeticsDetail(pathname: string, headers: Headers, method: 
   }
 }
 
-// Last good card projections (encoded for the header), so a card page survives an Express outage.
-const CARD_LKG_LIMIT = 500;
-const CARD_LKG_MAX_AGE_MS = 6 * 60 * 60 * 1000;
-const cardLastGood = new Map<string, { encoded: string; storedAt: number }>();
-
-function rememberCard(key: string, encoded: string) {
-  cardLastGood.delete(key);
-  cardLastGood.set(key, { encoded, storedAt: Date.now() });
-  if (cardLastGood.size > CARD_LKG_LIMIT) cardLastGood.delete(cardLastGood.keys().next().value as string);
-}
-
 /**
  * A missing card stays the page's 404 and a verified card is handed to the
  * page, so one request reads Express once, for at most two seconds. A card the
@@ -113,20 +103,19 @@ function rememberCard(key: string, encoded: string) {
  * an indexable-safe 503.
  */
 async function checkConstructedCard(format: string, cardId: string, headers: Headers, method: string): Promise<Response | null> {
-  const key = `${format}/${cardId}`;
   const fromLastGood = (retryAfter: string | null) => {
-    const last = cardLastGood.get(key);
-    if (last && Date.now() - last.storedAt <= CARD_LKG_MAX_AGE_MS) {
-      headers.set(PUBLIC_CARD_PROJECTION_HEADER, last.encoded);
-      return null;
-    }
-    return unavailableResponse(retryAfter, method, true);
+    const last = lastGoodCardProjection(format, cardId);
+    if (last === undefined) return unavailableResponse(retryAfter, method, true);
+    // A projection too large for a header is read by the page from the same last good copy.
+    const encoded = encodePublicProjection(last);
+    if (encoded) headers.set(PUBLIC_CARD_PROJECTION_HEADER, encoded);
+    return null;
   };
   try {
     const response = await fetchPublicExpress(`/api/public/constructed-cards/${format}/${encodeURIComponent(cardId)}`,
       undefined, { timeoutMs: CATALOG_READ_DEADLINE_MS });
     if (response.status === 404) {
-      cardLastGood.delete(key);
+      forgetCardProjection(format, cardId);
       headers.set(PUBLIC_CARD_PROJECTION_HEADER, MISSING_PUBLIC_PROJECTION);
       return null;
     }
@@ -134,11 +123,9 @@ async function checkConstructedCard(format: string, cardId: string, headers: Hea
     const projection = await response.json();
     publicCardSeed(projection, cardId);
     // A projection too large for a header is read again by the page itself.
+    rememberCardProjection(format, cardId, projection);
     const encoded = encodePublicProjection(projection);
-    if (encoded) {
-      headers.set(PUBLIC_CARD_PROJECTION_HEADER, encoded);
-      rememberCard(key, encoded);
-    }
+    if (encoded) headers.set(PUBLIC_CARD_PROJECTION_HEADER, encoded);
     return null;
   } catch {
     return fromLastGood(null);
@@ -148,15 +135,15 @@ async function checkConstructedCard(format: string, cardId: string, headers: Hea
 const CATALOG_PAGE = /^\/standard\/cards(?:\/(standard|wild))?\/?$/u;
 
 /**
- * The catalog pages read one shared default catalog. Probing it here makes an
+ * The catalog pages read a shared catalog (default, filtered or paged). Probing it here makes an
  * outage visible as a real 503 (a page cannot set a status), while a last good
  * version answers 200 and a failure never reaches the 500 error boundary.
  */
-async function checkCatalog(pathname: string, method: string): Promise<Response | null> {
+async function checkCatalog(pathname: string, search: string, method: string): Promise<Response | null> {
   const match = pathname.match(CATALOG_PAGE);
   if (!match) return null;
   try {
-    await defaultCatalogStore()(match[1] === 'wild' ? 'wild' : 'standard');
+    await cachedCatalog(match[1] === 'wild' ? 'wild' : 'standard', search.replace(/^\?/, ''));
     return null;
   } catch {
     return unavailableResponse(null, method, true);
@@ -217,7 +204,7 @@ export async function proxy(request: NextRequest) {
       const cardUnavailable = await checkConstructedCard(route.format, route.cardId, headers, request.method);
       if (cardUnavailable) return cardUnavailable;
     }
-    const catalogUnavailable = await checkCatalog(request.nextUrl.pathname, request.method);
+    const catalogUnavailable = await checkCatalog(request.nextUrl.pathname, request.nextUrl.search, request.method);
     if (catalogUnavailable) return catalogUnavailable;
     const probe = battlegroundDetailProbe(request.nextUrl.pathname);
     if (probe) {

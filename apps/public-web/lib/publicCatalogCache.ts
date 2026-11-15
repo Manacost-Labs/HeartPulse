@@ -1,5 +1,3 @@
-import type { CardFormat } from '@/src/modules/constructedCards/public';
-
 /** The source is not awaited longer than this; the last good catalog answers instead. */
 export const CATALOG_READ_DEADLINE_MS = 2_000;
 const FRESH_MS = 30_000;
@@ -7,6 +5,8 @@ const FRESH_MS = 30_000;
 const RETRY_BACKOFF_MS = 5_000;
 /** The last good catalog is served through an outage this long; beyond it the data is too old to call current. */
 const STALE_LIMIT_MS = 6 * 60 * 60 * 1000;
+/** Default and filtered catalog addresses share one bounded store. */
+const MAX_ENTRIES = 100;
 
 export class CatalogUnavailableError extends Error {
   constructor(message = 'Public catalog temporarily unavailable') {
@@ -18,25 +18,33 @@ export class CatalogUnavailableError extends Error {
 type Entry<T> = { good?: { value: T; storedAt: number }; pending?: Promise<T>; backoffUntil: number };
 
 /**
- * Anonymous default catalog per format. A read waits for the source at most
+ * Anonymous catalog projections by key (format and normalized request, so filtered and paged lists are covered too). A read waits for the source at most
  * `CATALOG_READ_DEADLINE_MS`; a success stays fresh for 30s and becomes the
  * last good version. When the source fails or stalls the last good version is
  * served (stale), and only without one the read throws `CatalogUnavailableError`.
  */
-export function createDefaultCatalogCache<T>(read: (format: CardFormat, signal: AbortSignal) => Promise<T>, now = Date.now) {
-  const entries = new Map<CardFormat, Entry<T> & { freshUntil: number }>();
+export function createDefaultCatalogCache<T>(read: (key: string, signal: AbortSignal) => Promise<T>, now = Date.now) {
+  const entries = new Map<string, Entry<T> & { freshUntil: number }>();
   const stale = (entry: Entry<T> | undefined, error: unknown): T => {
     if (entry?.good && now() - entry.good.storedAt <= STALE_LIMIT_MS) return entry.good.value;
     throw error instanceof CatalogUnavailableError ? error : new CatalogUnavailableError();
   };
-  return (format: CardFormat): Promise<T> => {
+  return (format: string): Promise<T> => {
     let entry = entries.get(format);
     if (entry?.good && entry.freshUntil > now()) return Promise.resolve(entry.good.value);
     if (entry?.pending) return entry.pending;
     if (entry && entry.backoffUntil > now()) {
       try { return Promise.resolve(stale(entry, null)); } catch (error) { return Promise.reject(error); }
     }
-    if (!entry) { entry = { backoffUntil: 0, freshUntil: 0 }; entries.set(format, entry); }
+    if (!entry) {
+      entry = { backoffUntil: 0, freshUntil: 0 };
+      entries.set(format, entry);
+      // Oldest idle entries go first; one with a read in flight is never dropped.
+      for (const [key, old] of entries) {
+        if (entries.size <= MAX_ENTRIES) break;
+        if (key !== format && !old.pending) entries.delete(key);
+      }
+    }
     const current = entry;
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;

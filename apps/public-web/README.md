@@ -87,11 +87,12 @@ is a separate administrator workspace and retains its permission gate.
   `CatalogUnavailableError` and `proxy.ts` answers a 503 with `Retry-After`
   and no noindex, because a page cannot set a status. The store hangs off
   `globalThis` (`lib/defaultCatalogStore.ts`) so the proxy and the pages share
-  it. `proxy.ts` likewise keeps the last good projection of each card (500
-  entries) and waits for Express two seconds.
-  Filters, ranks, periods, sorts and later pages bypass this cache
-  when their normalized API request differs from the default. Table/gallery
-  presentation shares the same seed. See
+  it. The last good projection of each card (500 entries, `lib/cardLastGood.ts`)
+  is kept apart from the 4 KiB header, so a large card survives too; `proxy.ts`
+  and the card page wait for Express two seconds.
+  Filtered, ranked, sorted and paged requests have their own entries keyed by
+  the normalized API request (at most 100 entries), so they too fall back to
+  their last good version. Table/gallery presentation shares the same seed. See
   [cache contract](../../docs/specs/public-card-catalog-response-cache.md).
 - Server components fetch only anonymous public projections through
   `fetchPublicExpress()`. A read that only puts data into the first paint
