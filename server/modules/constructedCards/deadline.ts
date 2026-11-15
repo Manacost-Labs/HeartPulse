@@ -9,8 +9,14 @@ export class DeadlineExceededError extends Error {
   }
 }
 
-/** One line per missed deadline, so the next hang names what exactly hung. */
+const lastLogged = new Map<string, number>();
+
+/** One line per missed deadline and load name, at most once per 30 s, so a long outage does not flood the log. */
 export function logDeadlineExceeded(operation: string, deadlineMs: number): void {
+  const at = Date.now();
+  if (at - (lastLogged.get(operation) ?? 0) < 30_000) return;
+  if (lastLogged.size > 500) lastLogged.clear();
+  lastLogged.set(operation, at);
   console.warn(`[deadline] ${operation} did not finish within ${deadlineMs} ms`);
 }
 

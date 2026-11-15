@@ -10,6 +10,7 @@ import {
 import {
   ConstructedCardCatalogUnavailableError,
   answerWithin,
+  knownCardFallback,
   withDeadline,
   createConstructedCardCatalogQuery,
   createConstructedCardCatalogReaders,
@@ -531,14 +532,15 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
   const [responseDeadlineMs, loadDeadlineMs] = [dependencies.responseDeadlineMs ?? 2_000, dependencies.loadDeadlineMs ?? 15_000];
 
   const loadPatches = async (): Promise<SecondarySourceLoad> => {
-    if (!dependencies.patchesUrl) return { value: [], degraded: false, warning: null };
+    const patchesUrl = dependencies.patchesUrl;
+    if (!patchesUrl) return { value: [], degraded: false, warning: null };
     const current = now();
     if (patchesCache && patchesCache.expiresAt > current) {
       return { value: patchesCache.value, degraded: false, warning: null };
     }
     if (patchesJob) return patchesJob;
     const jobGeneration = generation;
-    const job = withDeadline(Promise.resolve().then(() => dependencies.fetchJson(dependencies.patchesUrl!)),
+    const job = withDeadline(Promise.resolve().then(() => dependencies.fetchJson(patchesUrl)),
       loadDeadlineMs, 'constructed-cards:patches', dependencies.onDeadline)
       .then(payload => {
         if (!Array.isArray(payload?.patches)) {
@@ -819,16 +821,8 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     negativeDetailCache.set(key, current + 60_000);
   };
 
-  const composeKnownCardFallback = (cachedDetail: JsonRecord | undefined, knownCard: JsonRecord,
-    catalogCollection: ConstructedCardCollection, statsCollection: ConstructedCardCollection,
-  ) => composeDetailResult(
-    cachedDetail ?? { ...knownCard, wiki: knownCard.wiki ?? {}, decks: [] },
-    catalogCollection,
-    statsCollection,
-    { partial: true, fallback: true, warning: cachedDetail
-      ? 'Показывается последняя сохранённая версия подробной информации о карте.'
-      : 'Часть подробной информации о карте временно недоступна.' },
-  );
+  const composeKnownCardFallback = (...args: Parameters<typeof knownCardFallback> extends [unknown, ...infer R] ? R : never) =>
+    knownCardFallback(composeDetailResult, ...args);
 
   const loadCardDetailShared = async (
     format: ConstructedCardFormat,
@@ -864,7 +858,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
       }
       const url = `${dependencies.catalogBaseUrl.replace(/\/$/, '')}/constructed-cards/${encodeURIComponent(cardId)}?include=wiki`;
       try {
-        const payload = await dependencies.fetchJson(url);
+        const payload = await withDeadline(dependencies.fetchJson(url), loadDeadlineMs, `constructed-cards:detail-source:${key}`, dependencies.onDeadline);
         const detail = payload?.data && typeof payload.data === 'object' && !Array.isArray(payload.data)
           ? payload.data as JsonRecord
           : null;
@@ -899,32 +893,39 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
         }
         return composeKnownCardFallback(cached?.value, knownCard, catalogCollection, statsCollection);
       }
-    })(), loadDeadlineMs * 2, `constructed-cards:detail:${key}`, dependencies.onDeadline)
+    })(), loadDeadlineMs, `constructed-cards:detail:${key}`, dependencies.onDeadline)
       .finally(() => { if (detailJobs.get(key) === job) detailJobs.delete(key); });
     detailJobs.set(key, job);
     return job;
   };
 
   /** Waits for the shared detail load no longer than the response deadline, then answers from the last good catalog. */
+  const detailSlow = new Map<string, number>(); // details whose shared load missed the response deadline
   const loadCardDetail: ConstructedCardDataService['loadCardDetail'] = (
     format, cardId, period = '1d', statsFormat = format, rank = 'legend',
-  ) => answerWithin(
-    loadCardDetailShared(format, cardId, period, statsFormat, rank), responseDeadlineMs,
-    `constructed-cards:detail-response:${format}:${statsFormat}:${rank}:${period}:${cardId.toUpperCase()}`,
-    dependencies.onDeadline, () => {
+  ) => {
+    const key = `${format}:${statsFormat}:${rank}:${period}:${cardId.toUpperCase()}`;
+    const lastGood = (): ConstructedCardDetailResult | null => {
       const catalogCollection = peekCards(format, period, rank);
       const statsCollection = statsFormat === format ? catalogCollection : peekCards(statsFormat, period, rank);
       const knownCard = catalogCollection?.cards.find(
         card => String(card?.card_id ?? '').trim().toUpperCase() === cardId.toUpperCase(),
       );
       if (!catalogCollection || !statsCollection || !knownCard) return null;
-      return composeKnownCardFallback(
-        detailCache.get(`${format}:${statsFormat}:${rank}:${period}:${cardId.toUpperCase()}`)?.value,
-        knownCard, catalogCollection, statsCollection,
-      );
-    },
-    cause => new ConstructedCardDetailUnavailableError(undefined, { cause }),
-  );
+      return composeKnownCardFallback(detailCache.get(key)?.value, knownCard, catalogCollection, statsCollection);
+    };
+    if (!detailJobs.has(key)) detailSlow.delete(key);
+    else if ((detailSlow.get(key) ?? 0) > now()) {
+      const last = lastGood();
+      if (last) return Promise.resolve(last);
+    }
+    return answerWithin(
+      loadCardDetailShared(format, cardId, period, statsFormat, rank), responseDeadlineMs,
+      `constructed-cards:detail-response:${key}`, dependencies.onDeadline,
+      () => { detailSlow.set(key, now() + 30_000); return lastGood(); },
+      cause => new ConstructedCardDetailUnavailableError(undefined, { cause }),
+    );
+  };
 
   const loadCardHistory = async (
     format: ConstructedCardFormat,

@@ -25,7 +25,7 @@ after(() => { for (const directory of directories) rmSync(directory, { recursive
 function harness() {
   const directory = mkdtempSync(join(tmpdir(), 'arena-card-deadline-'));
   directories.push(directory);
-  const state = { hang: false, now: Date.parse('2026-11-15T12:00:00.000Z'), cards: [card('CARD_1', 1), card('CARD_2', 2)] };
+  const state = { hang: false, hangDetail: false, now: Date.parse('2026-11-15T12:00:00.000Z'), cards: [card('CARD_1', 1), card('CARD_2', 2)] };
   const deadlines: string[] = [];
   const service = createConstructedCardDataService({
     stateDirectory: directory,
@@ -54,6 +54,7 @@ function harness() {
           pagination: { page: 1, total: parsed.searchParams.get('format') === 'wild' ? state.cards.length + 1 : state.cards.length, total_pages: 1 },
         });
       }
+      if (state.hangDetail) return new Promise(() => {});
       const cardId = decodeURIComponent(parsed.pathname.split('/').pop() || '');
       return Promise.resolve({ data: { ...state.cards.find(item => item.card_id === cardId), wiki: { patch_changes: [] } } });
     },
@@ -177,6 +178,35 @@ test('a source that never answers and no stored version: a quick 503 with Retry-
     const sitemap = await timed(`${router.origin}/sitemaps/standard-cards.xml`);
     assert.equal(sitemap.response.status, 503);
     assert.equal(sitemap.response.headers.get('retry-after'), '17');
+  } finally {
+    await router.close();
+  }
+});
+
+test('only the card detail read hangs: repeats answer at once, and after the load deadline the next read is fresh', async () => {
+  const h = harness();
+  const router = await listen(app(h));
+  try {
+    const detail = `${router.origin}/api/constructed-cards/CARD_1?format=standard`;
+    assert.equal((await timed(`${router.origin}/api/constructed-cards?format=standard`)).response.status, 200);
+    h.state.hangDetail = true;
+    const first = await timed(detail);
+    assert.equal(first.response.status, 200, first.body);
+    assert.equal((JSON.parse(first.body) as { partial: boolean }).partial, true);
+    const missed = () => h.deadlines.filter(name => name.startsWith('constructed-cards:detail-response:')).length;
+    const before = missed();
+    for (let index = 0; index < 5; index += 1) assert.equal((await timed(detail)).response.status, 200);
+    assert.equal(missed(), before, 'a repeated detail request must not wait for the hung load again');
+
+    // The same load is dropped after the load deadline, not after twice that.
+    h.state.hangDetail = false;
+    await new Promise(resolve => setTimeout(resolve, LOAD_MS + 150));
+    h.state.now += 400_000;
+    const fresh = await timed(detail);
+    assert.equal(fresh.response.status, 200, fresh.body);
+    const body = JSON.parse(fresh.body) as { partial: boolean; warning: string | null };
+    assert.equal(body.partial, false, fresh.body);
+    assert.equal(fresh.response.headers.get('x-data-cache'), 'fresh');
   } finally {
     await router.close();
   }
