@@ -310,7 +310,9 @@ test('the snapshot store pins the day before a patch once and keeps it while lat
 
 test('the service records today, pins the day before each released patch and shows no archetypes without that day', async () => {
   const directory = mkdtempSync(join(tmpdir(), 'patch-archetypes-'));
-  const store = new PatchArchetypeSnapshotStore({ stateDirectory: directory });
+  // The store keeps 45 days by its own clock: a fixed one, or the row of 30 September expires with the calendar.
+  const clock = () => Date.parse('2026-10-21T09:00:00Z');
+  const store = new PatchArchetypeSnapshotStore({ stateDirectory: directory, now: clock });
   try {
     store.record(snapshotFromCatalog(standardCatalog('2026-09-30T20:00:00Z'), 0));
     const loaded: string[] = [];
@@ -337,7 +339,7 @@ test('the service records today, pins the day before each released patch and sho
     assert.equal(old?.meta, null, 'an old patch without a snapshot of its day before gets none, not today\'s');
     assert.equal(old?.entries.every(entry => entry.archetypes.length === 0), true);
     assert.deepEqual(store.pinned('37.0.0'), [], 'the day before 37.0.0 was never recorded');
-    const today = new PatchArchetypeSnapshotStore({ stateDirectory: directory });
+    const today = new PatchArchetypeSnapshotStore({ stateDirectory: directory, now: clock });
     today.pin('future', '2026-10-21');
     assert.deepEqual(today.pinned('future').map(item => item.items[0].slug), ['today'], 'today\'s read is on record for a future patch');
     today.close();
