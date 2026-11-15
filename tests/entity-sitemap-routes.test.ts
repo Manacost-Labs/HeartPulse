@@ -223,6 +223,8 @@ try {
   const lkg = await fetch(`${app.origin}/sitemaps/standard-cards.xml`);
   assert.equal(lkg.status, 200, 'even an old valid LKG must remain available during an outage');
   assert.equal(lkg.headers.get('x-sitemap-source'), 'last-known-good');
+  assert.equal(lkg.headers.get('cache-control'), 'public, max-age=30, stale-while-revalidate=30',
+    'an outage copy must not be pinned by shared caches for the full sitemap lifetime');
   assert.equal(await lkg.text(), changedXml);
   assert.doesNotMatch(lkg.headers.get('x-sitemap-source') || '', /private|error|upstream/i);
 
