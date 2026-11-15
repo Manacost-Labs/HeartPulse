@@ -83,8 +83,8 @@ is a separate administrator workspace and retains its permission gate.
   Concurrent default reads coalesce. A caller waits for Express at most
   two seconds; the read itself goes on for up to ten and warms the cache when
   it succeeds, so a slow but live Express costs one 503, not an outage. The
-  catalog check of `proxy.ts` is skipped for script fetches (RSC, menu prefetch). On a failure or timeout the last
-  good catalog of that format is served (up to six hours, five seconds of
+  catalog check of `proxy.ts` is skipped for script fetches (RSC, menu
+  prefetch). On a failure or timeout the last good catalog of that format is served (up to six hours, five seconds of
   backoff before the next try); without one the read throws
   `CatalogUnavailableError` and `proxy.ts` answers a 503 with `Retry-After`
   and no noindex, because a page cannot set a status. The store hangs off
