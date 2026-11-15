@@ -112,19 +112,27 @@ async function checkConstructedCard(format: string, cardId: string, headers: Hea
     return null;
   };
   try {
-    const response = await fetchPublicExpress(`/api/public/constructed-cards/${format}/${encodeURIComponent(cardId)}`,
-      undefined, { timeoutMs: CATALOG_READ_DEADLINE_MS });
-    if (response.status === 404) {
-      forgetCardProjection(format, cardId);
+    // The read may outlive its two seconds: it then still warms the last good copy for the next visit.
+    const read = fetchPublicExpress(`/api/public/constructed-cards/${format}/${encodeURIComponent(cardId)}`)
+      .then(async response => {
+        if (response.status === 404) { forgetCardProjection(format, cardId); return { status: 404 as const }; }
+        if (!response.ok) { await response.body?.cancel(); return { status: 'error' as const, retryAfter: response.headers.get('retry-after') }; }
+        const projection = await response.json();
+        publicCardSeed(projection, cardId);
+        rememberCardProjection(format, cardId, projection);
+        return { status: 200 as const, projection };
+      });
+    read.catch(() => undefined);
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const late = new Promise<'late'>(resolve => { timer = setTimeout(() => resolve('late'), CATALOG_READ_DEADLINE_MS); });
+    const result = await Promise.race([read, late]).finally(() => clearTimeout(timer));
+    if (result === 'late') return fromLastGood(null);
+    if (result.status === 404) {
       headers.set(PUBLIC_CARD_PROJECTION_HEADER, MISSING_PUBLIC_PROJECTION);
       return null;
     }
-    if (!response.ok) return fromLastGood(response.headers.get('retry-after'));
-    const projection = await response.json();
-    publicCardSeed(projection, cardId);
-    // A projection too large for a header is read again by the page itself.
-    rememberCardProjection(format, cardId, projection);
-    const encoded = encodePublicProjection(projection);
+    if (result.status === 'error') return fromLastGood(result.retryAfter);
+    const encoded = encodePublicProjection(result.projection);
     if (encoded) headers.set(PUBLIC_CARD_PROJECTION_HEADER, encoded);
     return null;
   } catch {
@@ -204,7 +212,11 @@ export async function proxy(request: NextRequest) {
       const cardUnavailable = await checkConstructedCard(route.format, route.cardId, headers, request.method);
       if (cardUnavailable) return cardUnavailable;
     }
-    const catalogUnavailable = await checkCatalog(request.nextUrl.pathname, request.nextUrl.search, request.method);
+    // Only a document needs a real status: a client-side (RSC) read or a menu prefetch of the
+    // catalog gets the in-app error state, and answering it with 503 only litters the console.
+    // Next strips its own RSC markers before the proxy, so a script fetch is told by `Sec-Fetch-Dest: empty`.
+    const scriptFetch = request.headers.get('rsc') === '1' || request.headers.get('sec-fetch-dest') === 'empty';
+    const catalogUnavailable = scriptFetch ? null : await checkCatalog(request.nextUrl.pathname, request.nextUrl.search, request.method);
     if (catalogUnavailable) return catalogUnavailable;
     const probe = battlegroundDetailProbe(request.nextUrl.pathname);
     if (probe) {

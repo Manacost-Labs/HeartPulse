@@ -95,7 +95,6 @@ test('route error pages keep their recovery copy and report the error once', asy
     // ships the empty seed and the browser loads the list), so an API failure
     // no longer reaches its boundary.
     for (const [path, heading, scope] of [
-      ['/standard/cards/standard/', 'Данные карты временно недоступны', 'route:standard-cards'],
       ['/contests/', 'Конкурсы временно недоступны', 'route:contests'],
     ]) {
       const seen = reports.length;
@@ -106,6 +105,12 @@ test('route error pages keep their recovery copy and report the error once', asy
       assert.deepEqual(section.retry, ['Повторить']);
       assert.ok((await reportAfter(seen)).scope.startsWith(`${scope} digest=`), `${path} reports as ${scope}`);
     }
+    // The card catalog has no error page for a document: without a last good version proxy.ts answers
+    // a retryable 503 (#369); its in-app boundary still serves client-side navigations.
+    const cards = await fetch(`${next.origin}/standard/cards/standard/`);
+    assert.equal(cards.status, 503);
+    assert.ok(cards.headers.get('retry-after'));
+    assert.equal(cards.headers.get('x-robots-tag'), null);
     assert.deepEqual(pageErrors, []);
   } finally {
     if (browser) await browser.close();

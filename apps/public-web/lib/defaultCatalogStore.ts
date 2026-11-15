@@ -1,7 +1,7 @@
 import { constructedCardCatalogUrl, catalogLocation, type CardFormat } from '@/src/modules/constructedCards/public';
 import { publicCatalogSeed } from './publicCatalogSeed';
 import { fetchPublicExpress } from './expressApi';
-import { CATALOG_READ_DEADLINE_MS, CatalogUnavailableError, createDefaultCatalogCache } from './publicCatalogCache';
+import { CatalogUnavailableError, createDefaultCatalogCache } from './publicCatalogCache';
 
 export function catalogRequest(format: CardFormat, search: string) {
   const state = catalogLocation(format, search);
@@ -9,7 +9,7 @@ export function catalogRequest(format: CardFormat, search: string) {
 }
 
 export async function readCatalog(format: CardFormat, url: string, signal?: AbortSignal) {
-  const response = await fetchPublicExpress(url, signal, { timeoutMs: CATALOG_READ_DEADLINE_MS });
+  const response = await fetchPublicExpress(url, signal);
   if (!response.ok) throw new CatalogUnavailableError();
   return publicCatalogSeed(await response.json(), format);
 }

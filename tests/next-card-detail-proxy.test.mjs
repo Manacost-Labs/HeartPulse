@@ -78,9 +78,15 @@ const catalogBody = format => ({
 
 // Express that can be switched to "accepts the connection and never answers", the production incident of 2026-11-15.
 async function startStallingApi() {
-  const state = { stalled: false };
+  const state = { stalled: false, delayMs: 0 };
   const server = http.createServer((request, response) => {
     if (state.stalled && !request.url.startsWith('/api/auth/me')) return;
+    if (state.delayMs && !request.url.startsWith('/api/auth/me')) {
+      const delay = state.delayMs;
+      state.delayMs = 0;
+      setTimeout(() => server.emit('request', request, response), delay);
+      return;
+    }
     response.setHeader('Content-Type', 'application/json');
     if (request.url.startsWith('/api/public/constructed-cards/')) {
       const known = request.url === CARD_PATH;
@@ -185,6 +191,28 @@ test('a card whose projection exceeds the request header is still served from th
     assert.equal(response.status, 200, `a large card must not turn into 503: ${next.output()}`);
     assert.ok(seconds < 5.5, `answered after ${seconds}s`);
     assert.match(html, /Проверочная карта/);
+  } finally {
+    if (next) await next.close();
+    await closeLocal(api.server);
+  }
+});
+
+test('a slow but live Express costs one 503 for a cold card and a cold catalog, then the late answer serves the next visit', async () => {
+  const api = await startStallingApi();
+  let next;
+  try {
+    next = await startNextServer({ legacyOrigin: api.origin });
+    for (const path of ['/standard/cards/standard/CARD_QA_1/', '/standard/cards/']) {
+      api.state.delayMs = 3000;
+      const slow = await timed(next.origin + path);
+      assert.equal(slow.response.status, 503, `${path}: ${next.output()}`);
+      assert.ok(slow.seconds < 3, `${path} gave up after ${slow.seconds}s`);
+      await new Promise(resolve => setTimeout(resolve, 1800));
+      api.state.stalled = true;
+      const warm = await timed(next.origin + path);
+      assert.equal(warm.response.status, 200, `${path} must be warmed by the read that outlived its deadline: ${next.output()}`);
+      api.state.stalled = false;
+    }
   } finally {
     if (next) await next.close();
     await closeLocal(api.server);

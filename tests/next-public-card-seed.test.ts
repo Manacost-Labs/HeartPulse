@@ -103,7 +103,10 @@ test('a stalled source gives way to the last good catalog after two seconds, not
   context.mock.timers.tick(1);
   assert.deepEqual(await done, ['good', 'good'], 'every waiter gets the last good catalog at the two-second deadline');
   assert.equal(calls, 2, 'waiters share one read');
-  assert.equal(signal?.aborted, true, 'the abandoned request must be cancelled');
+  assert.equal(signal?.aborted, false, 'the slow read goes on in the background');
+  context.mock.timers.tick(8_000);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(signal?.aborted, true, 'but it is stopped at its hard deadline');
 });
 
 test('a stalled source with no last good catalog is unavailable after two seconds', async context => {
@@ -115,25 +118,22 @@ test('a stalled source with no last good catalog is unavailable after two second
   await outcome;
 });
 
-test('a late success from an abandoned read cannot replace a newer catalog', async context => {
+test('a slow but live source costs one 503, then the late answer serves the next visit', async context => {
   context.mock.timers.enable({ apis: ['setTimeout'] });
-  let time = 0;
   let calls = 0;
-  let finishOld: ((value: string) => void) | undefined;
+  let finish: ((value: string) => void) | undefined;
   const recover = createDefaultCatalogCache<string>(() => {
     calls++;
-    if (calls === 1) return Promise.resolve('first');
-    return calls === 2 ? new Promise(resolve => { finishOld = resolve; }) : Promise.resolve('replacement');
-  }, () => time);
-  assert.equal(await recover('standard'), 'first');
-  time = 31_000;
-  const abandoned = recover('standard');
+    return new Promise(resolve => { finish = resolve; });
+  });
+  const first = assert.rejects(recover('standard'), (error: Error) => error.name === 'CatalogUnavailableError');
+  const second = assert.rejects(recover('standard'), (error: Error) => error.name === 'CatalogUnavailableError');
   await Promise.resolve();
   context.mock.timers.tick(2_000);
-  assert.equal(await abandoned, 'first');
-  time = 40_000;
-  assert.equal(await recover('standard'), 'replacement');
-  finishOld?.('obsolete');
+  await Promise.all([first, second]);
+  assert.equal(calls, 1, 'a visit during a slow read joins it instead of starting another');
+  finish?.('late but good');
   await new Promise(resolve => setImmediate(resolve));
-  assert.equal(await recover('standard'), 'replacement');
+  assert.equal(await recover('standard'), 'late but good', 'the late answer warmed the cache');
+  assert.equal(calls, 1);
 });
