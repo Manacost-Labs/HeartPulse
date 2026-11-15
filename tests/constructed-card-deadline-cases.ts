@@ -156,6 +156,12 @@ test('a source that never answers: list, card and sitemaps are served from the l
     for (const name of ['constructed-cards-response:standard:legend:1d', 'constructed-cards:catalog:standard']) {
       assert.ok(h.deadlines.includes(name), `no deadline line for ${name}: ${h.deadlines.join(', ')}`);
     }
+    // A map built from the last good version is not kept as a normal one: shortly
+    // after the source is back (well inside the 5 minute map TTL) it is rebuilt.
+    h.state.now += 31_000;
+    const rebuilt = await timed(sitemap);
+    assert.equal(rebuilt.response.status, 200);
+    assert.match(rebuilt.body, /CARD_3/, 'the map must be rebuilt from fresh data after recovery');
     h.state.now += 400_000;
     const recovered = await timed(list);
     assert.equal(recovered.response.status, 200);

@@ -1,8 +1,7 @@
 import { createHash } from 'node:crypto';
-import { DeadlineExceededError, withDeadline } from './modules/constructedCards/public.js';
+import { createDynamicDocumentLoader } from './entitySitemapDynamicLoader.js';
 import { Router, type Request, type RequestHandler, type Response } from 'express';
 import {
-  SemanticSitemapStore,
   type SemanticSitemapDocument,
   type SitemapSegment,
   type SitemapSemanticEntry,
@@ -199,67 +198,6 @@ function dynamicSitemapDefinitions(
   return definitions;
 }
 
-function createDynamicDocumentLoader(
-  definition: DynamicSitemapDefinition,
-  dependencies: EntitySitemapRouterDependencies,
-  origin: string,
-  now: () => number,
-  cacheTtlMs: number,
-): () => Promise<CachedDocument> {
-  const responseMs = Math.max(1, dependencies.responseDeadlineMs ?? 2_000);
-  const loadMs = Math.max(1, dependencies.loadDeadlineMs ?? 25_000);
-  const operation = `entity-sitemap:${definition.segment}`;
-  const store = new SemanticSitemapStore({
-    directory: dependencies.stateDirectory,
-    filename: definition.filename,
-    segment: definition.segment,
-    canonicalOrigin: origin,
-    now,
-    minimumEntryCount: definition.minimumEntryCount,
-  });
-  let cache: CachedDocument | null = null;
-  let inflight: Promise<CachedDocument> | null = null;
-  return async () => {
-    const current = now();
-    if (cache && cache.expiresAt > current) return cache;
-    const wait = async (running: Promise<CachedDocument>): Promise<CachedDocument> => {
-      try {
-        return await withDeadline(running, responseMs, `${operation}:response`);
-      } catch (error) {
-        if (!(error instanceof DeadlineExceededError)) throw error;
-        const lastKnownGood = store.readLastKnownGood();
-        if (!lastKnownGood) throw error;
-        // The rebuild goes on; its result replaces this short-lived copy.
-        cache = dynamicDocument(lastKnownGood, 'last-known-good', now() + Math.min(cacheTtlMs, 30_000));
-        return cache;
-      }
-    };
-    if (inflight) return wait(inflight);
-    const job = (async () => {
-      try {
-        cache = dynamicDocument(store.publish(
-          definition.project(await withDeadline(definition.load(), loadMs, operation), origin),
-        ), 'catalog', now() + cacheTtlMs);
-        return cache;
-      } catch (error) {
-        try {
-          dependencies.onError?.(new Error(`${definition.segment} sitemap refresh failed`, { cause: error }));
-        } catch {
-          // Diagnostics must never alter the public contract.
-        }
-        const lastKnownGood = store.readLastKnownGood();
-        if (!lastKnownGood) throw error;
-        cache = dynamicDocument(lastKnownGood, 'last-known-good', now() + cacheTtlMs);
-        return cache;
-      }
-    })().finally(() => {
-      if (inflight === job) inflight = null;
-    });
-    inflight = job;
-    return wait(job);
-  };
-}
-
 export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDependencies): Router {
   const router = Router({ caseSensitive: true, strict: true });
   const origin = canonicalSitemapOrigin(dependencies.canonicalOrigin);
@@ -286,7 +224,11 @@ export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDepen
   router.get('/sitemaps/static.xml', fixedHandler(staticDocument));
   const dynamicLoaders = new Map(definitions.map(definition => [
     definition.pathname,
-    createDynamicDocumentLoader(definition, dependencies, origin, now, cacheTtlMs),
+    createDynamicDocumentLoader({
+      definition, origin, now, cacheTtlMs, stateDirectory: dependencies.stateDirectory,
+      responseDeadlineMs: dependencies.responseDeadlineMs, loadDeadlineMs: dependencies.loadDeadlineMs,
+      onError: dependencies.onError, toDocument: dynamicDocument,
+    }),
   ]));
   router.get(ENTITY_SITEMAP_PATHS, async (request, response, next) => {
     const loadDocument = dynamicLoaders.get(request.path as DynamicSitemapDefinition['pathname']);

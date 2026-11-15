@@ -10,6 +10,7 @@ import {
 import {
   ConstructedCardCatalogUnavailableError,
   answerWithin,
+  createSlowMemo,
   knownCardFallback,
   withDeadline,
   createConstructedCardCatalogQuery,
@@ -900,7 +901,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
   };
 
   /** Waits for the shared detail load no longer than the response deadline, then answers from the last good catalog. */
-  const detailSlow = new Map<string, number>(); // details whose shared load missed the response deadline
+  const detailSlow = createSlowMemo(now); // details whose shared load missed the response deadline
   const loadCardDetail: ConstructedCardDataService['loadCardDetail'] = (
     format, cardId, period = '1d', statsFormat = format, rank = 'legend',
   ) => {
@@ -914,15 +915,15 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
       if (!catalogCollection || !statsCollection || !knownCard) return null;
       return composeKnownCardFallback(detailCache.get(key)?.value, knownCard, catalogCollection, statsCollection);
     };
-    if (!detailJobs.has(key)) detailSlow.delete(key);
-    else if ((detailSlow.get(key) ?? 0) > now()) {
+    if (!detailJobs.has(key)) detailSlow.clear(key);
+    else if (detailSlow.isSlow(key)) {
       const last = lastGood();
       if (last) return Promise.resolve(last);
     }
     return answerWithin(
       loadCardDetailShared(format, cardId, period, statsFormat, rank), responseDeadlineMs,
       `constructed-cards:detail-response:${key}`, dependencies.onDeadline,
-      () => { detailSlow.set(key, now() + 30_000); return lastGood(); },
+      () => { detailSlow.mark(key); return lastGood(); },
       cause => new ConstructedCardDetailUnavailableError(undefined, { cause }),
     );
   };

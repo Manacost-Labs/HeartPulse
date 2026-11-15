@@ -1,4 +1,5 @@
 import type { BattlegroundLibraryKind } from './battlegroundLibrarySeoRoutes.js';
+import { StaleSitemapSourceError } from './entitySitemapDynamicLoader.js';
 import {
   loadCosmeticsSitemapRows,
   loadGuideArchiveSitemapRows,
@@ -15,7 +16,7 @@ type SourceOptions = {
 
 type ConstructedCardLoader = (
   format: 'standard' | 'wild',
-) => Promise<{ cards: unknown[] }>;
+) => Promise<{ cards: unknown[]; dataStatus?: string }>;
 
 const BATTLEGROUNDS_ORIGIN = 'http://127.0.0.1:3108';
 
@@ -98,15 +99,25 @@ export function excludeStandardCardsFromWildCatalog(
   });
 }
 
+type CardCollection = { cards: unknown[]; dataStatus?: string };
+
+/** A stale collection is still usable, but must not be published as a fresh build. */
+function freshCards(collection: CardCollection): unknown[] {
+  if (collection.dataStatus === 'stale') throw new StaleSitemapSourceError(collection.cards);
+  return collection.cards;
+}
+
 export function createEntitySitemapLoaders(loadConstructedCards: ConstructedCardLoader) {
   return {
-    loadStandardCards: () => loadConstructedCards('standard').then(collection => collection.cards),
+    loadStandardCards: () => loadConstructedCards('standard').then(freshCards),
     loadWildCards: async () => {
       const [standard, wild] = await Promise.all([
         loadConstructedCards('standard'),
         loadConstructedCards('wild'),
       ]);
-      return excludeStandardCardsFromWildCatalog(standard.cards, wild.cards);
+      const cards = excludeStandardCardsFromWildCatalog(standard.cards, wild.cards);
+      if (standard.dataStatus === 'stale' || wild.dataStatus === 'stale') throw new StaleSitemapSourceError(cards);
+      return cards;
     },
     loadBattlegroundMinions: () => loadBattlegroundLibrarySitemapRows('minion'),
     loadBattlegroundSpells: () => loadBattlegroundLibrarySitemapRows('spell'),

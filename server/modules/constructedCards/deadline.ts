@@ -62,3 +62,17 @@ export async function answerWithin<T>(
     return last;
   }
 }
+
+/** Keys whose shared load missed its response deadline; bounded, expired entries are dropped. */
+export function createSlowMemo(now: () => number, ttlMs = 30_000, maxEntries = 256) {
+  const until = new Map<string, number>();
+  return {
+    isSlow: (key: string) => (until.get(key) ?? 0) > now(),
+    mark(key: string) {
+      if (until.size >= maxEntries) for (const [other, at] of until) if (at <= now()) until.delete(other);
+      if (until.size >= maxEntries) until.clear();
+      until.set(key, now() + ttlMs);
+    },
+    clear: (key: string) => { until.delete(key); },
+  };
+}
