@@ -9,9 +9,7 @@ import {
 } from './constructedCardCatalogStore.js';
 import {
   ConstructedCardCatalogUnavailableError,
-  answerWithin,
-  createSlowMemo,
-  knownCardFallback,
+  answerWithin, createSlowMemo, knownCardFallback,
   withDeadline,
   createConstructedCardCatalogQuery,
   createConstructedCardCatalogReaders,
