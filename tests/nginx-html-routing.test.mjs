@@ -659,8 +659,10 @@ assert.match(standardCardsListing?.body || '', /proxy_pass http:\/\/127\.0\.0\.1
   'constructed-card format listings must use Next');
 assert.match(mapSource, /map\s+\$status\s+\$arena_next_html_robots_header\s*\{/,
   'Next HTML errors need a status-dependent robots policy');
-assert.match(standardCardsListing?.body || '', /add_header X-Robots-Tag \$arena_next_html_robots_header always;/,
+assert.match(standardCardsListing?.body || '', /add_header X-Robots-Tag \$arena_next_cards_robots_header always;/,
   'Next HTML errors must emit their robots policy as a response header');
+assert.match(mapSource, /map\s+"\$status \$uri"\s+\$arena_next_cards_robots_header\s*\{[^}]*default\s+\$arena_next_html_robots_header;[^}]*"~\^503 \/standard\/cards\(\?:\/\|\$\)"\s+"";/s,
+  'a card catalog 503 is transient: no noindex, every other status keeps the Next error policy');
 assert.match(routingSource, /location \^~ \/_next\/\s*\{[^}]*proxy_pass http:\/\/127\.0\.0\.1:4321;/s,
   'Next static assets must reach the matching runtime');
 const spaFallback = locations.find(location => location.pattern === '@arena_spa_noindex');
@@ -1205,7 +1207,7 @@ async function startCardSeoUpstream() {
     const pathname = incomingUrl.pathname;
     const fixture = pathname === '/404.html' && errorDocumentStatus !== 404
       ? { status: errorDocumentStatus, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next error document unavailable</p>' }
-      : ['/', '/admin/', '/deck-builder/', '/archetypes/', '/archetypes/856/', '/archetypes/wild/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/standard/tempo-mage/', '/standard/archetypes/wild/tempo-mage/', '/library/', '/library/archive/minions/'].includes(pathname) && incomingUrl.searchParams.has('fail')
+      : ['/', '/admin/', '/deck-builder/', '/archetypes/', '/archetypes/856/', '/archetypes/wild/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/standard/tempo-mage/', '/standard/archetypes/wild/tempo-mage/', '/library/', '/library/archive/minions/', '/standard/cards/standard/', '/standard/cards/wild/', '/standard/deck-builder/'].includes(pathname) && incomingUrl.searchParams.has('fail')
       ? { status: 503, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next listing unavailable</p>' }
       : responses.get(pathname);
     if (!fixture) {
@@ -1844,9 +1846,17 @@ http {
     const unavailableCard = await requestNginx(port, '/standard/cards/standard/OUTAGE_1/');
     assert.equal(unavailableCard.status, 503, 'card catalog outage status must pass through nginx');
     assert.match(unavailableCard.body, /card-upstream-503/, 'card catalog outage body must pass through nginx');
-    assert.equal(unavailableCard.headers['x-robots-tag'], 'noindex, nofollow', 'outage robots policy');
+    assert.equal(unavailableCard.headers['x-robots-tag'], undefined, 'a transient 503 must not carry noindex');
     assert.equal(unavailableCard.headers['retry-after'], '300', 'outage retry policy must pass through nginx');
     assert.match(unavailableCard.headers['cache-control'] || '', /no-store/, 'outage cache policy');
+    for (const path of ['/standard/cards/standard/?fail', '/standard/cards/wild/?fail']) {
+      const unavailableListing = await requestNginx(port, path);
+      assert.equal(unavailableListing.status, 503, path);
+      assert.equal(unavailableListing.headers['x-robots-tag'], undefined, `${path} 503 must not carry noindex`);
+    }
+    const unavailableBuilder = await requestNginx(port, '/standard/deck-builder/?fail');
+    assert.equal(unavailableBuilder.status, 503);
+    assert.equal(unavailableBuilder.headers['x-robots-tag'], 'noindex, nofollow', 'only the card pages are exempt');
 
     const heroRedirect = await requestNginx(port, '/heroes/76521?utm_source=contract');
     assert.equal(heroRedirect.status, 301, 'hero detail must normalize its slash once');

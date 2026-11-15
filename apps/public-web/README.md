@@ -80,9 +80,15 @@ is a separate administrator workspace and retains its permission gate.
   `server/`. `tests/next-import-paths.test.mjs` enforces this.
 - The default constructed-card catalog reuses validated anonymous seeds for
   30 seconds in the Next process, with at most one Standard and one Wild entry.
-  Concurrent default reads coalesce; expired entries never hide an upstream
-  failure. A shared read has its own ten-second deadline and AbortSignal;
-  timed-out reads are evicted and cannot leave subsequent visits pending.
+  Concurrent default reads coalesce. A shared read waits for Express at most
+  two seconds (own deadline and AbortSignal). On a failure or timeout the last
+  good catalog of that format is served (up to six hours, five seconds of
+  backoff before the next try); without one the read throws
+  `CatalogUnavailableError` and `proxy.ts` answers a 503 with `Retry-After`
+  and no noindex, because a page cannot set a status. The store hangs off
+  `globalThis` (`lib/defaultCatalogStore.ts`) so the proxy and the pages share
+  it. `proxy.ts` likewise keeps the last good projection of each card (500
+  entries) and waits for Express two seconds.
   Filters, ranks, periods, sorts and later pages bypass this cache
   when their normalized API request differs from the default. Table/gallery
   presentation shares the same seed. See

@@ -15,12 +15,18 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.match(response.headers.get('cache-control'), /no-store/);
     assert.equal(response.headers.get('x-robots-tag'), null, 'the card Nginx location adds the header to error statuses');
     const outageHtml = await response.text();
-    assert.match(outageHtml, /<meta name="robots" content="noindex, nofollow">/);
+    assert.doesNotMatch(outageHtml, /noindex/, 'a transient 503 of an indexable card page must not ask to be dropped from the index');
     assert.doesNotMatch(outageHtml, /rel="canonical"/);
     const outageHead = await fetch(runtime.origin + path, { method: 'HEAD' });
     assert.equal(outageHead.status, 503);
     assert.equal(await outageHead.text(), '');
-    assert.equal((await fetch(runtime.origin + '/standard/cards/')).status, 500, 'catalog outage is not an empty successful page');
+    for (const catalogPath of ['/standard/cards/', '/standard/cards/standard/', '/standard/cards/wild/']) {
+      const outage = await fetch(runtime.origin + catalogPath);
+      assert.equal(outage.status, 503, 'catalog outage without a last good version is a retryable 503, not a 500');
+      assert.ok(outage.headers.get('retry-after'));
+      assert.equal(outage.headers.get('x-robots-tag'), null);
+      assert.doesNotMatch(await outage.text(), /noindex/);
+    }
     runtime.setUnavailable(false);
     response = await fetch(runtime.origin + path);
     assert.equal(response.status, 200, runtime.output());
