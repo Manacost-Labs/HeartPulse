@@ -324,11 +324,9 @@ only what the page itself shows:
   `isBasedOn` address is the teaser's `sourceUrl` when it is an https address on
   HSGuru, otherwise the registry one. The graph carries no numbers of the
   teaser, no deck codes and no paid fields.
-- `creator` and `publisher` of a `Dataset` point at `{"@id":
-  "https://hearthpulse.net/#org"}`, and the builder adds that `Organization`
-  node (`organization` in the registry: name, url, logo) to the graph of every
-  page with a `Dataset`: Google does not resolve an `@id` from another
-  document. `license` stays the site terms.
+- A `Dataset` has `publisher` = `{"@id": "https://hearthpulse.net/#org"}`, and
+  no `creator` and no `license`; the one `Organization` node is added to every
+  graph. See `docs/specs/seo-structured-data.md`.
 - A `Dataset` whose values only subscribers see (arena classes, arena tier list)
   has `isAccessibleForFree: false` and a description that says so; it names no
   figure and nothing the visible text of the page does not explain.

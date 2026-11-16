@@ -227,7 +227,7 @@ try {
   const jsonLdMatch = html.match(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/);
   assert.ok(jsonLdMatch);
   const jsonLd = JSON.parse(jsonLdMatch[1]);
-  assert.deepEqual(jsonLd['@graph'].map((node: any) => node['@type']), ['WebPage', 'CreativeWork', 'BreadcrumbList']);
+  assert.deepEqual(jsonLd['@graph'].map((node: any) => node['@type']), ['WebPage', 'CreativeWork', 'BreadcrumbList', 'Organization']);
   assert.equal(jsonLd['@graph'][0].mainEntity['@id'], 'https://hearthpulse.net/library/minions/%D0%B1%D0%B0%D1%8E%D0%B1%D0%BE%D1%82-alert-x-98582/#card');
   assert.equal(jsonLd['@graph'][1].identifier, 98582);
   assert.equal(jsonLd['@graph'][1].alternateName, 'Lullabot & Friends');

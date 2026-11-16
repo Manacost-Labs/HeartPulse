@@ -362,6 +362,7 @@
         "tests/next-public-card-pilot.test.mjs",
         "tests/next-card-detail-proxy.test.mjs",
         "tests/next-seo-page-metadata.test.mjs",
+        "tests/next-seo-structured-data.test.mjs",
         "tests/next-bundle-budgets.test.mjs",
         "tests/observability.test.ts",
         "tests/operational-routes.test.ts",

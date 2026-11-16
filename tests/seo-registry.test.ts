@@ -512,8 +512,9 @@ assert.match(standardMetaLandingSource, /<h1>Мета<\/h1>/);
   ]);
   assert.deepEqual(dataset.isBasedOn, { '@type': 'Dataset', name: 'HSGuru: Pure Paladin', url: 'https://www.hsguru.com/archetype/Pure%20Paladin' });
   assert.equal(dataset.dateModified, '2026-10-29T11:00:03.937Z', 'the date of the data, as the page prints it');
-  assert.deepEqual([dataset.creator, dataset.publisher], [{ '@id': 'https://hearthpulse.net/#org' }, { '@id': 'https://hearthpulse.net/#org' }]);
-  assert.equal(dataset.license, 'https://hearthpulse.net/terms/');
+  assert.deepEqual(dataset.publisher, { '@id': 'https://hearthpulse.net/#org' });
+  assert.equal('creator' in dataset, false, 'the site is not the creator of data it derives from HSGuru');
+  assert.equal('license' in dataset, false);
   assert.doesNotMatch(JSON.stringify(graph), /deckCode|builds|history|analysis|AAE/i);
   // A metric the source lacks is left out, not written as null; no date and no source address, none written.
   const sparse = await archetypeStructuredDataGraph({ ...graphFacts, winrate: null, popularity: null, dateModified: null, sourceUrl: null });

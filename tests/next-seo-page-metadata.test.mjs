@@ -131,8 +131,10 @@ test('registry pages render canonical, robots, share metadata and JSON-LD from t
       const response = await fetch(`${runtime.nextOrigin}${path === '/' ? '/' : `${path}/`}`);
       assert.equal(response.status, 200, path);
       const types = nodes.map(node => node['@type']);
-      assert.deepEqual(jsonLdGraph(await response.text())?.['@graph'].map(node => node['@type']),
-        types.includes('Dataset') ? ['Organization', ...types] : types, `${path} JSON-LD`);
+      const html = await response.text();
+      // A listing may add its ItemList; every other node is the registry's, behind the one organization.
+      assert.deepEqual(jsonLdGraph(html)?.['@graph'].map(node => node['@type']).filter(type => type !== 'ItemList'),
+        ['Organization', ...types], `${path} JSON-LD`);
     }
 
     // /articles/ is a collection of kolodahearthstone.com articles: noindex, follow
@@ -180,7 +182,7 @@ test('a card page describes the card, its site and its path in one JSON-LD graph
       assert.equal(response.status, 200, path);
       const html = await response.text();
       const graph = entityGraph(html, path.slice(0, -1));
-      assert.deepEqual(graph.map(node => node['@type']), ['WebPage', 'CreativeWork', 'BreadcrumbList'], `${format} graph`);
+      assert.deepEqual(graph.map(node => node['@type']), ['WebPage', 'CreativeWork', 'BreadcrumbList', 'Organization'], `${format} graph`);
       const [page, card, breadcrumb] = graph;
 
       assert.deepEqual(page, {
@@ -251,7 +253,7 @@ test('a card library listing shows its path above the same list of cards', async
       assert.equal(response.status, 200, path);
       const html = await response.text();
       const graph = entityGraph(html, path);
-      assert.deepEqual(graph.map(node => node['@type']), ['CollectionPage', 'BreadcrumbList'], `${path} graph`);
+      assert.deepEqual(graph.map(node => node['@type']), ['CollectionPage', 'BreadcrumbList', 'Organization'], `${path} graph`);
       const { mainEntity: list, ...collection } = graph[0];
       assert.deepEqual(collection, {
         '@type': 'CollectionPage', '@id': `${canonical}#collection`, url: canonical, name: 'Карты Hearthstone',
@@ -270,18 +272,15 @@ test('a card library listing shows its path above the same list of cards', async
       }
 
       assert.equal(list['@type'], 'ItemList');
-      assert.equal(list.numberOfItems, 3000, `${path} counts the whole catalog`);
+      assert.equal(list.numberOfItems, 60, `${path} counts the cards it lists, not the catalog`);
       assert.equal(list.itemListElement.length, 60, `${path} lists the cards of the page`);
       assert.deepEqual(list.itemListElement[0], { '@type': 'ListItem', position: 1, name: 'Публичная карта 1', url: firstCard }, `${path} first card`);
     }
 
-    // The second page keeps the listing's identity and continues the positions.
-    const second = entityGraph(await (await fetch(`${runtime.nextOrigin}/standard/cards/standard/?page=2`)).text(), '/standard/cards/standard/');
-    assert.equal(second[0]['@id'], 'https://hearthpulse.net/standard/cards/standard/#collection');
-    assert.equal(second[0].mainEntity.numberOfItems, 3000);
-    assert.equal(second[0].mainEntity.itemListElement[0].position, 61);
-    assert.equal(second[0].mainEntity.itemListElement.at(-1).position, 120);
-    assert.equal(second[1].itemListElement.length, 3);
+    // The second page is noindex, so like every page that is not indexable it prints no graph.
+    const secondHtml = await (await fetch(`${runtime.nextOrigin}/standard/cards/standard/?page=2`)).text();
+    assert.match(secondHtml, /<meta name="robots" content="noindex/);
+    assert.doesNotMatch(secondHtml, /application\/ld\+json/);
   } finally {
     await runtime.close();
   }
@@ -302,7 +301,12 @@ test('every SEO registry page takes its title, description and share metadata fr
         const robots = INVENTORY_ROUTES.find(route => route.id === page.policyRouteId)?.indexPolicy === 'noindex-follow'
           ? 'noindex, follow' : 'noindex, nofollow';
         assertOnce(html, /<meta name="robots" content="([^"]*)"/g, robots, `${page.path} robots`);
-        assert.doesNotMatch(html, /<link rel="canonical"/, `${page.path} must not expose a canonical URL`);
+        if (page.path === '/standard/deck-builder') {
+          // The one noindex page that names itself canonical (E21 S8): a copy with ?code= points here.
+          assertOnce(html, /<link rel="canonical" href="([^"]*)"/g, 'https://hearthpulse.net/standard/deck-builder/', `${page.path} canonical`);
+        } else {
+          assert.doesNotMatch(html, /<link rel="canonical"/, `${page.path} must not expose a canonical URL`);
+        }
         assert.doesNotMatch(html, /<meta property="og:url"/, `${page.path} must not expose og:url`);
         assert.doesNotMatch(html, /application\/ld\+json/, `${page.path} must not carry structured data`);
         continue;
@@ -540,8 +544,10 @@ test('the meta page stays prerendered with ISR', () => {
 const DATA_DATE = '2026-10-28T23:00:04.000Z';
 const HSGURU_META = 'https://www.hsguru.com/meta';
 const ORGANIZATION = {
-  '@type': 'Organization', '@id': 'https://hearthpulse.net/#org', name: 'Manacost', url: 'https://hearthpulse.net/',
+  '@type': 'Organization', '@id': 'https://hearthpulse.net/#org', name: 'HearthPulse', url: 'https://hearthpulse.net/',
   logo: { '@type': 'ImageObject', url: 'https://hearthpulse.net/assets/arena_icon.webp' },
+  sameAs: ['https://t.me/manacost_ru', 'https://boosty.to/kolodahearthstone'],
+  parentOrganization: { '@type': 'Organization', name: 'Manacost', sameAs: ['https://t.me/manacost_ru', 'https://boosty.to/kolodahearthstone'] },
 };
 
 /** Runs `scenario` against real Next reading a fake Express; `page(path)` returns the HTML and the JSON-LD graph. */
@@ -588,9 +594,8 @@ test('the meta page describes its teaser as a dataset dated by the teaser, from 
       '@type': 'Dataset', '@id': 'https://hearthpulse.net/standard/meta/#dataset', url: 'https://hearthpulse.net/standard/meta/',
       name: 'Мета Стандарта Hearthstone: винрейт, популярность и число игр архетипов',
       description: 'Срез меты Стандарта Hearthstone по данным HSGuru: винрейт, популярность и число игр архетипов. На странице показан бесплатный срез; полная таблица доступна подписчикам.',
-      inLanguage: 'ru', breadcrumb: { '@id': 'https://hearthpulse.net/standard/meta/#breadcrumb' },
-      dateModified: DATA_DATE, license: 'https://hearthpulse.net/terms/',
-      creator: { '@id': 'https://hearthpulse.net/#org' }, publisher: { '@id': 'https://hearthpulse.net/#org' },
+      inLanguage: 'ru',
+      dateModified: DATA_DATE, publisher: { '@id': 'https://hearthpulse.net/#org' },
       isBasedOn: { '@type': 'Dataset', name: 'HSGuru: Meta', url: HSGURU_META },
       variableMeasured: [
         { '@type': 'PropertyValue', name: 'Винрейт', unitText: '%' },
@@ -643,7 +648,8 @@ test('the catalog dataset is dated by the catalog and the page asks the API once
     assert.equal(dataset.dateModified, DATA_DATE, 'the date of the catalog, not the day of the request');
     assert.deepEqual(dataset.isBasedOn, { '@type': 'Dataset', name: 'HSGuru: Meta', url: HSGURU_META });
     assert.deepEqual(dataset.variableMeasured.map(variable => variable.name), ['Винрейт', 'Популярность', 'Число игр']);
-    assert.deepEqual(dataset.creator, { '@id': 'https://hearthpulse.net/#org' });
+    assert.equal('creator' in dataset, false);
+    assert.equal('license' in dataset, false);
     assert.doesNotMatch(JSON.stringify(graph), /PAID_BUILD_CODE|deckCode|Зоолок|gameMode|temporalCoverage|P7D/);
     const wild = (await page('/standard/archetypes/?format=wild')).graph;
     assert.equal(nodeOfType(wild, 'Dataset').dateModified, DATA_DATE);
@@ -666,7 +672,9 @@ test('statistics pages without a public date carry no date, and the tier-list co
       assert.deepEqual(graph[0], ORGANIZATION, `${path} defines the organization`);
       const dataset = nodeOfType(graph, 'Dataset');
       assert.ok(dataset.isBasedOn && dataset.variableMeasured.length > 0, `${path} names its source and metrics`);
-      assert.deepEqual(dataset.creator, { '@id': 'https://hearthpulse.net/#org' }, `${path} creator`);
+      assert.equal('creator' in dataset, false, `${path} creator`);
+      assert.equal('license' in dataset, false, `${path} license`);
+      assert.deepEqual(dataset.publisher, { '@id': 'https://hearthpulse.net/#org' }, `${path} publisher`);
       assert.doesNotMatch(JSON.stringify(graph), /dateModified|temporalCoverage|P7D|gameMode|\{\{/, `${path} has no invented date or window`);
     }
     assert.equal(nodeOfType(await graphOf('/classes/'), 'Dataset').description.includes('11'), false);
