@@ -94,9 +94,18 @@ was stored, and the first request of every epoch, a miss, sees the origin's
 own answer. A removed page or marker therefore stops being served within
 10 min, and an origin outage shows its error after at most 10 min. The ISR
 pages whose HTML holds no server data (`revalidate = 300` without
-`/standard/meta/` and `/articles/`, whose build copy is empty until
-`/health/next/revalidate/` runs after a deploy) stay fresh for 300 s, the
-others for 60 s. Immutable assets and
+`/standard/meta/`, `/articles/`, `/tierlist/` and `/classes/`, whose build
+copy is empty until `/health/next/revalidate/` runs after a deploy) stay fresh for 300 s, the
+others for 60 s. After a deploy `scripts/warm-prerendered-pages.mjs` also
+requests the dynamic pages that render Express data on the local Next origin
+until each has its data (the table with the marker of each page's data is
+`scripts/lib/post-deploy-data-pages.mjs`): a first-paint read that misses its
+600 ms budget on a cold or busy server ships the page without the data, and
+the edge would keep that copy for a minute. The runner waits up to two
+minutes for Express (`WARM_API_WAIT_MS`), revalidates the prerendered pages
+again while any of them lacks its data, and gives up after five minutes
+(`WARM_TOTAL_MS`). A page that stays without data is reported per page and as
+`::warning::`; the deploy is not failed. Immutable assets and
 public media keep serving stale copies on origin errors. Content-hashed Next assets of
 earlier releases stay on the origin for 35 days, so a document cached just
 before a deploy still loads. An RSC payload of the earlier build may still be

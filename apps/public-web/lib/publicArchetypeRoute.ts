@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
 import { robotsContent } from '@/src/shared/seo/robots';
+import { isStandardMetaPeriod } from '@/shared/standardMetaPeriods';
 import { isIndexableArchetype } from '@/shared/constructedArchetypeIndexing';
 import { SHARE_IMAGE_HEIGHT, SHARE_IMAGE_WIDTH, shareImagePath } from '@/shared/shareImages';
 import { loadPublicArchetypeCatalogTeaser } from './publicArchetypeCatalogTeaser';
@@ -28,15 +29,17 @@ export async function resolveArchetypeRoute(params: ArchetypeRouteParams) {
  * `null` when the catalog does not answer in time (the read is cached per
  * render, so the metadata and the page ask Express once).
  */
-export function loadArchetypeFormatCatalog(format: 'standard' | 'wild') {
-  return loadPublicArchetypeCatalogTeaser(`?format=${format}`);
+export function loadArchetypeFormatCatalog(format: 'standard' | 'wild', detail?: { patch: string }) {
+  // The detail names its window in `patch` (`black_empire_ban`, or `37.0.2` for a patch): neighbours come from that window.
+  const period = detail?.patch ? (isStandardMetaPeriod(detail.patch) ? detail.patch : `patch_${detail.patch}`) : null;
+  return loadPublicArchetypeCatalogTeaser(`?format=${format}`, period);
 }
 
 export async function archetypeDetailMetadata(params: ArchetypeRouteParams, family: ArchetypeFamily): Promise<Metadata> {
   const { format, slug, detail } = await resolveArchetypeRoute(params);
   const pathname = `/standard/${family}/${format}/${slug}`;
   const policy = await resolvePublicUrlPolicy(pathname, '');
-  const { title, description } = archetypeDetailSeoText(detail, Date.now(), await loadArchetypeFormatCatalog(format));
+  const { title, description } = archetypeDetailSeoText(detail, Date.now(), await loadArchetypeFormatCatalog(format, detail));
   // nginx redirects the old `meta` family to `archetypes`; a page served without it still names the one real URL.
   const canonical = family === 'meta'
     ? `https://hearthpulse.net/standard/archetypes/${format}/${slug}/`

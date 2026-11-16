@@ -36,18 +36,85 @@ function createEtag(source: string, data: any, timestamp: number): string {
   return `"class-winrates-${source}-${updated.toString(36)}-${data.classes.length}"`;
 }
 
+/**
+ * What the anonymous projection may say about a class. Every field is listed
+ * here on purpose: the object is built field by field, never by spreading a
+ * dataset row, so a figure added to the dataset later (wins, pick rate,
+ * distributions, matchups) stays closed.
+ */
+export type WinratesTeaserClass = {
+  place: number;
+  id: string;
+  name: string;
+  /** Rounded to 0.1 percentage point; a more precise winrate is a closed value. */
+  winrate: number;
+  /** The size of the class's sample, in the unit of `sampleUnit`; `null` when the source gives none. */
+  sample: number | null;
+};
+
+/** What `sample` counts: HSReplay publishes drafts (`num_drafts`), Firestone games (`totalGames`). */
+export type WinratesSampleUnit = 'drafts' | 'games';
+
+export type WinratesPublicTeaser = {
+  updatedAt: string | null;
+  source: string;
+  sampleUnit: WinratesSampleUnit;
+  classes: WinratesTeaserClass[];
+};
+
+const text = (value: unknown): string => typeof value === 'string' ? value.trim() : '';
+const record = (value: unknown): Record<string, unknown> => value && typeof value === 'object' ? value as Record<string, unknown> : {};
+
+/**
+ * The open slice of a class winrate dataset: the order of the classes with a
+ * winrate rounded to 0.1, the sample size of the class, the date and the source.
+ * Classes are ranked by the dataset's own winrate (used only for the order).
+ * `null` when no class has a usable winrate or the dataset is synthetic.
+ */
+export function projectWinratesPublicTeaser(dataset: unknown): WinratesPublicTeaser | null {
+  const data = record(dataset);
+  const source = text(data.source);
+  if (source === 'initial' || !Array.isArray(data.classes)) return null;
+  const ranked: Array<{ id: string; name: string; exact: number; sample: number | null }> = [];
+  for (const entry of data.classes as unknown[]) {
+    const row = record(entry);
+    const id = text(row.id);
+    const name = text(row.name);
+    const exact = typeof row.winrate === 'number' ? row.winrate : Number.NaN;
+    if (!id || !name || !Number.isFinite(exact) || exact < 0 || exact > 100) continue;
+    const sample = typeof row.games === 'number' && Number.isFinite(row.games) && row.games > 0 ? Math.floor(row.games) : null;
+    ranked.push({ id, name, exact, sample });
+  }
+  if (!ranked.length) return null;
+  ranked.sort((a, b) => b.exact - a.exact);
+  const updatedAt = text(data.updatedAt);
+  const firestone = /firestone/i.test(source);
+  return {
+    updatedAt: updatedAt && Number.isFinite(Date.parse(updatedAt)) ? updatedAt : null,
+    // The teaser reads the default source only: a Firestone dataset says so, the rest is HSReplay's
+    // (its dataset arrives as `api.kolodahearthstone.com`, a snapshot as `cached`).
+    source: firestone ? 'Firestone' : 'HSReplay',
+    sampleUnit: firestone ? 'games' : 'drafts',
+    classes: ranked.map((item, index) => ({
+      place: index + 1, id: item.id, name: item.name, winrate: Math.round(item.exact * 10) / 10, sample: item.sample,
+    })),
+  };
+}
+
+type ResolvedWinrates = { data: unknown; etag: string; cacheControl: string; cacheSource: string };
+
 export function createWinrateRouter(dependencies: WinrateRouterDependencies): Router {
   const router = Router();
   const cacheHeader = dependencies.cacheHeader ?? 'public, max-age=300, stale-while-revalidate=300';
   const staleCacheHeader = dependencies.staleCacheHeader ?? 'public, max-age=300, stale-while-revalidate=600';
   const now = dependencies.now ?? Date.now;
 
-  router.get('/winrates', dependencies.accessGuard, async (request, response) => {
-    const source: ClassWinrateSource = request.query.source === 'firestone' ? 'firestone' : 'hsreplay';
+  /** The dataset for a source: memory, Redis, origin (or a fresher snapshot), stale memory, then the snapshot; `null` when none. */
+  const resolveWinrates = async (source: ClassWinrateSource): Promise<ResolvedWinrates | null> => {
     const timestamp = now();
     const cached = dependencies.cache.get(source);
     if (cached && cached.expiresAt > timestamp && validDataset(cached.data)) {
-      return sendDatasetJsonCached(request, response, cached.data, cached.etag, cacheHeader, 'memory');
+      return { data: cached.data, etag: cached.etag, cacheControl: cacheHeader, cacheSource: 'memory' };
     }
 
     const key = dependencies.redisKey(source);
@@ -59,7 +126,7 @@ export function createWinrateRouter(dependencies: WinrateRouterDependencies): Ro
           etag: redisCached.etag,
           expiresAt: timestamp + dependencies.memoryTtlMs,
         });
-        return sendDatasetJsonCached(request, response, redisCached.data, redisCached.etag, cacheHeader, 'redis');
+        return { data: redisCached.data, etag: redisCached.etag, cacheControl: cacheHeader, cacheSource: 'redis' };
       }
     } catch (error) {
       dependencies.onError?.('redis-read', source, error);
@@ -86,31 +153,38 @@ export function createWinrateRouter(dependencies: WinrateRouterDependencies): Ro
       });
       Promise.resolve(dependencies.redisSet(key, data, etag, dependencies.redisTtlSeconds))
         .catch(error => dependencies.onError?.('redis-write', source, error));
-      return sendDatasetJsonCached(request, response, data, etag, cacheHeader, cacheSource);
+      return { data, etag, cacheControl: cacheHeader, cacheSource };
     } catch (error) {
       dependencies.onError?.('origin', source, error);
       if (cached && validDataset(cached.data)) {
-        return sendDatasetJsonCached(
-          request,
-          response,
-          { ...cached.data, warning: 'stale' },
-          cached.etag,
-          staleCacheHeader,
-          'memory-stale',
-        );
+        return { data: { ...cached.data, warning: 'stale' }, etag: cached.etag, cacheControl: staleCacheHeader, cacheSource: 'memory-stale' };
       }
       if (snapshot && validDataset(snapshot.data)) {
-        return sendDatasetJsonCached(
-          request,
-          response,
-          { ...snapshot.data, source: snapshot.data.source ?? 'cached', warning: 'fallback' },
-          snapshot.etag,
-          staleCacheHeader,
-          'fallback',
-        );
+        return {
+          data: { ...snapshot.data, source: snapshot.data.source ?? 'cached', warning: 'fallback' },
+          etag: snapshot.etag, cacheControl: staleCacheHeader, cacheSource: 'fallback',
+        };
       }
-      return response.status(502).json({ error: 'Class winrates unavailable' });
+      return null;
     }
+  };
+
+  router.get('/winrates', dependencies.accessGuard, async (request, response) => {
+    const source: ClassWinrateSource = request.query.source === 'firestone' ? 'firestone' : 'hsreplay';
+    const resolved = await resolveWinrates(source);
+    if (!resolved) return response.status(502).json({ error: 'Class winrates unavailable' });
+    return sendDatasetJsonCached(request, response, resolved.data, resolved.etag, resolved.cacheControl, resolved.cacheSource);
+  });
+
+  // No access guard: this is the open slice of the page for guests and robots.
+  // It reads the default source only, so a guest cannot fan out origin reads,
+  // and answers with the whitelisted projection.
+  router.get('/winrates/public-teaser', async (request, response) => {
+    const resolved = await resolveWinrates('hsreplay');
+    const teaser = resolved ? projectWinratesPublicTeaser(resolved.data) : null;
+    if (!resolved || !teaser) return response.status(502).json({ error: 'Class winrates unavailable' });
+    return sendDatasetJsonCached(request, response, teaser, `"teaser-${resolved.etag.replace(/"/g, '')}"`,
+      resolved.cacheControl, resolved.cacheSource);
   });
 
   return router;

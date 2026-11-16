@@ -47,7 +47,7 @@ function ArticleImage({ src, title, lead }: { src: string; title: string; lead: 
 
 function articleSectionLabel(article: HomeArticle): string {
   if (article.tag) return article.tag;
-  if (article.mode === 'battlegrounds') return 'Поля Сражений';
+  if (article.mode === 'battlegrounds') return 'Поля сражений';
   if (article.mode === 'standard') return 'Стандарт';
   if (article.mode === 'wild') return 'Вольный';
   if (article.mode === 'arena') return 'Арена';
@@ -72,12 +72,12 @@ export default function HomeLatestArticles({ articles, loading, onNavigate }: {
       <div className="home-section-heading">
         <div>
           <span>Новые материалы</span>
-          <h2 id="home-articles-heading">Последние статьи</h2>
+          <h2 id="home-articles-heading">Подборка статей</h2>
         </div>
         <p>Свежие мета-отчёты, разборы патчей и практические гайды редакции.</p>
       </div>
 
-      {initialLoading && <span className="sr-only" role="status">Загружаем последние статьи</span>}
+      {initialLoading && <span className="sr-only" role="status">Загружаем подборку статей</span>}
       <div data-home-feed="articles" className="home-latest-articles__board" aria-busy={loading}>
         {initialLoading
           ? [0, 1, 2].map(index => <HomeArticleSkeleton key={index} />)
@@ -112,7 +112,7 @@ export default function HomeLatestArticles({ articles, loading, onNavigate }: {
         className="home-latest-articles__all"
         onClick={(event: React.MouseEvent) => { event.preventDefault(); onNavigate('articles'); }}
       >
-        Все статьи <ArrowRight size={16} aria-hidden="true" />
+        Вся подборка <ArrowRight size={16} aria-hidden="true" />
       </a>
     </section>
   );

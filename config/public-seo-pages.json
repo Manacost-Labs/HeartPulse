@@ -52,16 +52,16 @@
     "/standard/meta": {
       "policyRouteId": "standard-meta",
       "navigationRouteId": "standard-meta",
-      "title": "Мета Hearthstone {year}: тир-лист колод | HearthPulse",
+      "title": "Мета Hearthstone, {year}: колоды и винрейты | HearthPulse",
       "description": "Мета Хартстоуна (хс) {year}: тир-лист колод Стандарта и Вольного формата, винрейт и популярность архетипов. Данные HSGuru.",
-      "dataTitle": "Мета Hearthstone {month}: тир-лист колод | HearthPulse",
+      "dataTitle": "Мета Hearthstone, {month}: колоды и винрейты",
       "dataDescription": "Мета Хартстоуна (хс){asOf}: тир-лист колод Стандарта.[ Лидер — {leader}.][ Винрейт и популярность архетипов.] Данные HSGuru.",
       "sitemap": true
     },
     "/standard/fun-decks": {
       "policyRouteId": "fun-decks",
       "navigationRouteId": "fun-decks",
-      "title": "Фан-колоды Hearthstone {year}: Стандарт и Вольный | HearthPulse",
+      "title": "Фан-колоды Hearthstone {year} | HearthPulse",
       "description": "Свежая подборка необычных и off-meta колод Hearthstone для Стандарта и Вольного режима: составы карт, винрейт, число игр и готовые коды.",
       "sitemap": true
     },
@@ -126,9 +126,9 @@
     "/articles": {
       "policyRouteId": "articles",
       "navigationRouteId": "articles",
-      "title": "Статьи и гайды по Арене Hearthstone | HearthPulse",
-      "description": "Гайды, разборы мета и советы по режиму Арена в Hearthstone от команды Manacost. Актуальные статьи для игроков всех уровней.",
-      "sitemap": true
+      "title": "Подборка статей Hearthstone | HearthPulse",
+      "description": "Подборка статей Hearthstone: гайды, разборы мета и советы по Арене. Сами статьи лежат на kolodahearthstone.com, карточки ведут туда.",
+      "sitemap": false
     },
     "/gallery": {
       "policyRouteId": "gallery",
@@ -146,19 +146,19 @@
     },
     "/cosmetics/heroes": {
       "policyRouteId": "cosmetics-kind",
-      "title": "Скины героев Hearthstone: все портреты и анимации | HearthPulse",
+      "title": "Скины героев Hearthstone: портреты и анимации | HearthPulse",
       "description": "Галерея скинов героев Hearthstone с русскими названиями, фильтрами по классу, редкости и способу получения, анимациями и звуками.",
       "sitemap": true
     },
     "/cosmetics/coins": {
       "policyRouteId": "cosmetics-kind",
-      "title": "Косметические монеты Hearthstone: полная галерея | HearthPulse",
+      "title": "Косметические монеты Hearthstone | HearthPulse",
       "description": "Все косметические монеты Hearthstone с изображениями карт, crop-артами и списками карт, которые генерируют монеты или связаны с ними.",
       "sitemap": true
     },
     "/cosmetics/pets": {
       "policyRouteId": "cosmetics-kind",
-      "title": "Питомцы Hearthstone: все раскраски и End Screen | HearthPulse",
+      "title": "Питомцы Hearthstone: раскраски и End Screen | HearthPulse",
       "description": "Галерея питомцев Hearthstone со всеми вариантами раскрасок, отдельными страницами, дополнительными артами и изображениями End Screen.",
       "sitemap": true
     },
@@ -172,8 +172,8 @@
     "/leaderboards": {
       "policyRouteId": "leaderboards",
       "navigationRouteId": "leaderboards",
-      "title": "Таблицы лидеров Hearthstone {year}: официальный рейтинг Blizzard | HearthPulse",
-      "description": "Официальные таблицы лидеров Hearthstone по регионам Европа, Америка и Азия: Стандарт, Вольный, Поля сражений, Арена и Твист. Места, рейтинг, пороги топ-100/1000/5000 и история игрока по дням.",
+      "title": "Таблицы лидеров Hearthstone: рейтинг Blizzard | HearthPulse",
+      "description": "Официальные таблицы лидеров Hearthstone по регионам Европа, Америка и Азия: Стандарт, Вольный, Поля сражений, Арена и Твист.",
       "sitemap": true
     },
     "/contests": {
@@ -193,73 +193,73 @@
     "/battlegrounds/strategies": {
       "policyRouteId": "bg-strategies",
       "navigationRouteId": "bg-strategies",
-      "title": "Конструктор стратегий БГ | HearthPulse",
-      "description": "Собирайте свои стратегии БГ Hearthstone из существ, заклинаний и аксессуаров Полей сражений.",
+      "title": "Конструктор стратегий Полей сражений | HearthPulse",
+      "description": "Собирайте свои стратегии Полей сражений Hearthstone из существ, заклинаний и аксессуаров и сохраняйте готовые сборки.",
       "sitemap": true
     },
     "/heroes": {
       "policyRouteId": "bg-heroes",
       "navigationRouteId": "bg-heroes",
-      "title": "Герои БГ Hearthstone: тир-лист и силы | HearthPulse",
-      "description": "Герои Hearthstone Battlegrounds: тир-лист, силы, компаньоны, статистика и отдельная индексируемая страница каждого героя.",
+      "title": "Герои Полей сражений Hearthstone: способности и тиры",
+      "description": "Герои Полей сражений Hearthstone: способности героев, тиры, компаньоны, статистика и отдельная индексируемая страница каждого героя.",
       "sitemap": true
     },
     "/library": {
       "policyRouteId": "bg-library",
       "navigationRouteId": "bg-library",
-      "title": "Библиотека БГ Hearthstone: все карты | HearthPulse",
+      "title": "Библиотека Полей сражений: все карты | HearthPulse",
       "description": "Библиотека карт Hearthstone Battlegrounds: существа, заклинания, актуальный пул, архив, фильтры и отдельная индексируемая страница каждой карты.",
       "sitemap": true
     },
     "/library/minions": {
       "policyRouteId": "bg-library-kind",
-      "title": "Существа БГ Hearthstone: полная библиотека | HearthPulse",
+      "title": "Существа Полей сражений: библиотека | HearthPulse",
       "description": "Существа Hearthstone Battlegrounds: уровни таверны, типы, механики, статистика и отдельная индексируемая страница каждой карты.",
       "sitemap": true
     },
     "/library/spells": {
       "policyRouteId": "bg-library-kind",
-      "title": "Заклинания БГ Hearthstone: библиотека | HearthPulse",
+      "title": "Заклинания Полей сражений: библиотека | HearthPulse",
       "description": "Заклинания Hearthstone Battlegrounds: актуальный пул, изображения, фильтры, статистика и отдельная индексируемая страница каждой карты.",
       "sitemap": true
     },
     "/library/archive": {
       "policyRouteId": "bg-library-archive-root",
-      "title": "Архив карт БГ Hearthstone | HearthPulse",
+      "title": "Архив карт Полей сражений Hearthstone | HearthPulse",
       "description": "Архивные существа и заклинания Hearthstone Battlegrounds с отдельными страницами карт.",
       "sitemap": true
     },
     "/library/archive/minions": {
       "policyRouteId": "bg-library-archive",
-      "title": "Архив существ БГ Hearthstone | HearthPulse",
+      "title": "Архив существ Полей сражений Hearthstone | HearthPulse",
       "description": "Архив существ Hearthstone Battlegrounds: старые существа вне активного пула с карточками и поиском.",
       "sitemap": true
     },
     "/library/archive/spells": {
       "policyRouteId": "bg-library-archive",
-      "title": "Архив заклинаний БГ Hearthstone | HearthPulse",
+      "title": "Архив заклинаний Полей сражений Hearthstone | HearthPulse",
       "description": "Архив заклинаний Hearthstone Battlegrounds: старые заклинания таверны вне активного пула.",
       "sitemap": true
     },
     "/battlegrounds/tier-list": {
       "policyRouteId": "bg-tier-list",
       "navigationRouteId": "bg-tier-list",
-      "title": "Тир-лист БГ Hearthstone {year} | HearthPulse",
-      "description": "Тир-лист БГ Hearthstone: рейтинг существ, стратегий, заклинаний и аксессуаров Полей сражений.",
+      "title": "Тир-лист Полей сражений Hearthstone, {year} | HearthPulse",
+      "description": "Тир-лист Полей сражений Hearthstone: рейтинг существ, составов, заклинаний и аксессуаров по данным актуального патча.",
       "sitemap": true
     },
     "/battlegrounds/tier-builder": {
       "policyRouteId": "bg-tier-builder",
       "navigationRouteId": "bg-tier-builder",
-      "title": "Конструктор тир-листов Полей Сражений | HearthPulse",
-      "description": "Конструктор тир-листов Hearthstone Battlegrounds: создавайте собственные списки героев, карт и стратегий Полей Сражений.",
+      "title": "Конструктор тир-листов Полей сражений | HearthPulse",
+      "description": "Конструктор тир-листов Hearthstone Battlegrounds: создавайте собственные списки героев, карт и стратегий Полей сражений.",
       "sitemap": true
     },
     "/admin": {
       "policyRouteId": "admin-panel",
       "navigationRouteId": "admin-panel",
       "title": "Панель управления — HearthPulse",
-      "description": "Закрытая административная область HearthPulse.",
+      "description": "Закрытая административная область HearthPulse: управление данными, подписками и контентом сайта.",
       "sitemap": false
     }
   }

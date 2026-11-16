@@ -18,8 +18,8 @@
 - Клиент выдаёт владелец HearthPulse по **точному списку в коде**.
   Самостоятельной регистрации нет (решение владельца ждёт задача
   [#333](https://github.com/Manacost-Labs/HeartPulse/issues/333)). Сегодня в
-  production настроен только клиент Манакоста, подробности в разделе
-  «Как получить клиента».
+  production допустимы только клиенты Манакоста (кабинет читателя и
+  Манакост Студия), подробности в разделе «Как получить клиента».
 - Scope v1: только `openid profile`.
 - Только переход в том же окне. Popup, iframe и SRI в v1 нет.
 - Для нативных и десктопных приложений есть отдельный device flow `/connect`,
@@ -121,15 +121,20 @@ production-провайдера, а список допустимых клиен
 
 Что есть на сегодня (`server/modules/browserIdentity/configuration.ts`):
 
-- В production провайдер принимает только два точных клиента Манакоста:
+- В production провайдер принимает только точные клиенты Манакоста:
   `manacost-reader-production` с callback
-  `https://hs-manacost.ru/reader-auth/callback` и (по отдельному флагу,
-  по умолчанию выключен) `manacost-reader-staging` с callback
-  `https://test.hs-manacost.ru/reader-auth/callback`. Любая другая запись в
+  `https://hs-manacost.ru/reader-auth/callback`, `manacost-studio`
+  (Манакост Студия) с callback `https://studio.hearthpulse.net/auth/callback`
+  и (по отдельному флагу, по умолчанию выключен) `manacost-reader-staging` с
+  callback `https://test.hs-manacost.ru/reader-auth/callback`. Студия — не
+  кабинет читателя: scope только `openid profile`, `offline_access` ей
+  недоступен, API `reader-entitlements` и `reader-permissions` её секрет не
+  принимают. Любая другая запись в
   `BROWSER_IDENTITY_CLIENTS` не пройдёт `validateIdentityOptions`, и провайдер
   не запустится: конфигурация fail-closed.
 - Путь redirect URI для любого клиента сегодня может быть только
-  `/reader-auth/callback`.
+  `/reader-auth/callback`; единственное исключение — точный callback
+  `manacost-studio`.
 - Общие правила redirect URI: схема `https`, без логина и пароля, query,
   fragment, wildcard и явного порта; строка должна совпадать с нормализованным
   URL посимвольно. Один redirect URI на клиента. Близкие значения (`www`,
@@ -153,7 +158,7 @@ production-провайдера, а список допустимых клиен
 [#333](https://github.com/Manacost-Labs/HeartPulse/issues/333).
 Для других клиентов страница согласия показывает в качестве названия и хоста
 хост callback (`clientPresentation()`); красивое имя бренда есть только у
-клиентов Манакоста.
+точных клиентов Манакоста («Манакост», «Манакост — тест», «Манакост Студия»).
 
 ## Серверный обмен кода
 

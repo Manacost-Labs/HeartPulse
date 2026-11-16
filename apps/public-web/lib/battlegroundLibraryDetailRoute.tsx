@@ -1,4 +1,5 @@
 import 'server-only';
+import { battlegroundCardTitle } from '@/shared/entityPageTitles';
 import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { buildEntityStructuredData } from '@/shared/entitySeoStructuredData';
@@ -34,9 +35,7 @@ async function resolveCard({ params, searchParams }: BattlegroundDetailProps, po
 function seo(card: NonNullable<Awaited<ReturnType<typeof loadPublicBattlegroundLibraryCard>>>, pool: BattlegroundLibraryPool) {
   const origin = 'https://hearthpulse.net';
   const canonical = new URL(card.canonicalPath, origin).href;
-  const title = pool === 'archive'
-    ? `${card.name} — архивная ${card.typeName.toLowerCase()} Полей сражений | HearthPulse`
-    : `${card.name} — ${card.typeName.toLowerCase()} Полей сражений | HearthPulse`;
+  const title = battlegroundCardTitle({ name: card.name, type: card.typeName, archive: pool === 'archive' });
   const description = pool === 'archive'
     ? `${card.name} — архивная карта Полей сражений Hearthstone. ${card.text ?? ''}`.slice(0, 300)
     : card.text

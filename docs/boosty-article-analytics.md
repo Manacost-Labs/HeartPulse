@@ -141,6 +141,49 @@ without notice.
 - Clearly label baseline/data-coverage limitations and source freshness.
 - Add a Storybook story with populated, loading, and empty/error states.
 
+### Subscription metrics endpoint (`server/modules/subscriptionAnalytics`)
+
+`GET /api/admin/boosty/subscription-metrics?days=N` serves the admin
+"Аналитика подписок" section (live refresh, one request per minute per open
+tab). It is separate from `/api/admin/boosty/analytics` above and lives in its
+own server module; the legacy router is not extended.
+
+- **Source**: `GET {BOOSTY_AUTH_API_URL}/api/analytics/subscriptions?days=N`
+  in boosty-auth (`build_subscription_metrics`). Localhost only, no
+  authorization, aggregates only: no names, e-mails or subscriber ids. Only
+  `days` is sent upstream, never `from`/`to`: boosty-auth then reuses its cached
+  answer until the next accepted Boosty poll (every 120 s); with `to` the cache
+  does not work. HearthPulse keeps no cache of its own.
+- **Access**: `adminAuth`, otherwise `403 { error: 'Недостаточно прав' }`. Every
+  answer, including 400/403/502, is `Cache-Control: private, no-store`.
+- **`days`**: integer 1..366, 92 when omitted; anything else is `400` with a
+  Russian message and the source is not called.
+- **Failures**: network error, non-200, non-JSON, malformed payload, `schemaVersion`
+  other than 1 or a foreign `semantics`, or no answer within 10 s answer
+  `502` with `source: 'unavailable'` and the error text
+  «Не удалось загрузить аналитику подписок».
+  An incompatible version/semantics adds `reason: 'incompatible'`. Source text
+  and addresses are never passed to the client. While boosty-auth has not been
+  deployed with the endpoint, this is the expected answer; the client recovers on
+  its next poll without a reload.
+- **Normalization**: the payload is rebuilt from a whitelist of contract fields
+  with type checks (`server/modules/subscriptionAnalytics/normalize.ts`,
+  contract in `contract.ts`); unknown fields are dropped, so a new source field
+  reaches the page only after review. List sizes are bounded.
+- **Contract semantics**: dates and months are UTC, percentages are precomputed
+  to one decimal and `rate` may be `null`. `unavailable[]` and `limitations[]`
+  are machine codes; their Russian texts live in the client module
+  (`src/modules/subscriptionAnalytics/model/subscriptionTexts.ts`), with a
+  fallback text for unknown codes.
+- **Client**: `src/modules/subscriptionAnalytics` (depends only on
+  `client.adminWorkspace`). `useLiveSubscriptionMetrics(days)` polls every 60 s
+  on top of `useAdminResource` with `keepPrevious`, pauses on a hidden tab, asks
+  at once on return, keeps the shown data while loading and after an error, and
+  reports `updatedAt` (last successful answer), `lastPollAt` (last accepted
+  Boosty poll) and `stale` (that poll is older than 15 minutes). The client
+  contract types are a copy of the server ones; a test fails if they diverge.
+- **Not here**: the page, navigation and charts (next slices).
+
 ## Retention definition
 
 The cohort contains subscribers whose first qualified positive observation is
@@ -163,6 +206,10 @@ paid access expiration.
   retention maturity.
 - Express route tests for admin authorization, date bounds, upstream failures,
   payload validation, and interval attribution.
+- Subscription metrics: route tests against a fake localhost boosty-auth,
+  fast-check properties of the whitelist normalizer, tile/text/freshness model
+  on the real sample (`boosty-subscription-metrics-sample-20261111.json`),
+  and the live-refresh controller with fake timers and tab visibility.
 - React/model tests for formatting and empty/partial states.
 - Storybook contract/build, TypeScript lint, changed-file React checks,
   Semgrep, server build, and a real-browser admin review.

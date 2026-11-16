@@ -6,6 +6,7 @@ import {
   type SubscriptionEntitlementKey,
   type SubscriptionStatus,
 } from '../src/modules/subscriptions/public';
+import { NAVIGATION_DATA } from '../src/app/routing/navigationData';
 
 function subscriptionStatus(overrides: Partial<SubscriptionStatus> = {}): SubscriptionStatus {
   return {
@@ -84,7 +85,7 @@ assert.equal(
 
 const EXPECTED_ENTITLEMENT_LABELS = [
   'Арена',
-  'Поля Сражений',
+  'Поля сражений',
   'Стандарт',
   'Конкурсы',
   'Архив гайдов',
@@ -118,9 +119,15 @@ assert.deepEqual(
   'an explicit entitlement map must include only enabled named sections',
 );
 
+// The menu names the subscription each section sells; every name must be an entitlement the contract knows.
+const sectionEntitlements = NAVIGATION_DATA.flatMap(route => (route.entitlement ? [route.entitlement] : []));
+assert.ok(sectionEntitlements.length > 0, 'some menu sections are sold by subscription');
+for (const entitlement of sectionEntitlements) {
+  assert.ok(entitlementKeys.includes(entitlement), `menu entitlement ${entitlement} must be a known subscription entitlement`);
+}
+
 for (const relativePath of [
   '../apps/public-web/ui/usePublicAccess.ts',
-  '../src/app/routing/navigationDefinitions.ts',
   '../src/components/GlobalUtilityHeader.tsx',
   '../src/features/DeferredRoutes.tsx',
   '../src/features/adminConsole/sections/IntegrationSections.tsx',

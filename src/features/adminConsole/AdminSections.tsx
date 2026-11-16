@@ -18,6 +18,7 @@ const ContestAdminMechanicTranslations = React.lazy(async () => ({ default: (awa
 const ContestAdminStandardOperations = React.lazy(async () => ({ default: (await SECTION_CHUNKS.operations()).ContestAdminStandardOperations }));
 const ContestAdminFunDecks = React.lazy(async () => ({ default: (await SECTION_CHUNKS.operations()).ContestAdminFunDecks }));
 const AdminApiKeys = React.lazy(async () => ({ default: (await SECTION_CHUNKS.apiKeys()).AdminApiKeys }));
+const SubscriptionAnalyticsPage = React.lazy(SECTION_CHUNKS.subscriptionAnalytics);
 
 /** The shared loading panel, holding the height of the admin section that replaces it. */
 function SectionFallback({ minHeight = 520 }: { minHeight?: number }) {
@@ -77,6 +78,8 @@ export function renderAdminSection(section: AdminWorkspaceSection, context: Admi
       return <Lazy><ContestAdminFunDecks /></Lazy>;
     case 'api-keys':
       return <Lazy minHeight={440}><AdminApiKeys /></Lazy>;
+    case 'subscription-analytics':
+      return <Lazy minHeight={560}><SubscriptionAnalyticsPage /></Lazy>;
     default:
       return null;
   }

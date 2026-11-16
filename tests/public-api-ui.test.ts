@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { elements, headings, importWithoutStyles, labelled, links, visibleText } from './helpers/renderedMarkup';
+import { elements, headings, importWithoutStyles, labelled, links, roles, visibleText } from './helpers/renderedMarkup';
 
 const { DeveloperApiPage } = await importWithoutStyles<typeof import('../src/modules/developerApi/ui/DeveloperApiPage')>(
   new URL('../src/modules/developerApi/ui/DeveloperApiPage', import.meta.url));
@@ -84,7 +84,11 @@ test('both terminal examples are labelled scroll regions a keyboard can reach', 
 
 test('the footer links visitors to the developer documentation', () => {
   const html = renderToStaticMarkup(React.createElement(SiteFooter));
-  assert.deepEqual(headings(html), ['h2 Разделы', 'h2 Сообщество', 'h2 Разработчикам']);
+  // The footer repeats on every page: its column names are labels, not headings of the page outline.
+  assert.deepEqual(headings(html), [], 'no h1-h6 in the footer');
+  assert.deepEqual(roles(html).filter(role => role.startsWith('heading')), [], 'no role=heading in the footer');
+  const footerText = visibleText(html);
+  for (const column of ['Разделы', 'Сообщество', 'Разработчикам']) assert.ok(footerText.includes(column), `column ${column} is still shown`);
   const footerLinks = links(html);
   assert.ok(footerLinks.some(link => link.name === 'API для разработчиков' && link.href === '/developers/api/'));
   assert.ok(footerLinks.some(link => link.name === 'OpenAPI JSON' && link.href === '/api/v1/openapi.json'));

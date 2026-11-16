@@ -19,10 +19,11 @@ async function head(origin, path) {
   return (await response.text()).match(/<head>([\s\S]*?)<\/head>/)?.[1] ?? '';
 }
 
+const INVENTORY_ROUTES = JSON.parse(readFileSync('src/shared/seo/publicRouteInventory.json', 'utf8')).routes;
 const YEAR = String(new Date().getUTCFullYear());
 const REGISTRY_PAGES = Object.entries(JSON.parse(readFileSync('config/public-seo-pages.json', 'utf8')).pages)
   .map(([path, page]) => ({
-    path, url: path === '/' ? '/' : `${path}/`, sitemap: page.sitemap,
+    path, url: path === '/' ? '/' : `${path}/`, sitemap: page.sitemap, policyRouteId: page.policyRouteId,
     title: page.title.replaceAll('{year}', YEAR), description: page.description.replaceAll('{year}', YEAR),
   }));
 
@@ -63,6 +64,42 @@ function jsonLdGraph(html) {
     .find(data => Array.isArray(data['@graph']));
 }
 
+describe('search console ownership codes come from config/search-verification.json', () => {
+  const SEARCH_VERIFICATION = JSON.parse(readFileSync('config/search-verification.json', 'utf8'));
+  // Verification tag already live on production since 2026-09-30 (fd8f222a).
+  const LIVE_GOOGLE_CODE = 'aGEyRvNTeG7FHSUUER0Tsfyyyd3sdRywc4qLycYIcpo';
+
+  it('lists only google and yandex, each a list of distinct codes without spaces or quotes', () => {
+    assert.deepEqual(Object.keys(SEARCH_VERIFICATION).sort(), ['google', 'yandex']);
+    for (const [engine, codes] of Object.entries(SEARCH_VERIFICATION)) {
+      assert.ok(Array.isArray(codes), `${engine} is a list`);
+      for (const code of codes) {
+        assert.match(code, /^[^\s"'<>&\\]+$/, `${engine} code ${JSON.stringify(code)}`);
+      }
+      assert.equal(new Set(codes).size, codes.length, `${engine} has duplicate codes`);
+    }
+  });
+
+  it('keeps the google code that production already serves', () => {
+    assert.equal(SEARCH_VERIFICATION.google[0], LIVE_GOOGLE_CODE);
+  });
+
+  it('prints every code as a meta tag on the home page and never an empty tag', async () => {
+    const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
+    try {
+      const home = await head(runtime.nextOrigin, '/');
+      for (const [engine, codes] of Object.entries(SEARCH_VERIFICATION)) {
+        const name = { google: 'google-site-verification', yandex: 'yandex-verification' }[engine];
+        const printed = [...home.matchAll(new RegExp(`<meta name="${name}" content="([^"]*)"/>`, 'g'))].map(match => match[1]);
+        assert.deepEqual(printed, codes, `${name} tags`);
+      }
+      assert.ok(!/name="[a-z-]*verification" content=""/.test(home), 'no empty verification tag');
+    } finally {
+      await runtime.close();
+    }
+  });
+});
+
 test('registry pages render canonical, robots, share metadata and JSON-LD from the SEO registries', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   try {
@@ -94,14 +131,30 @@ test('registry pages render canonical, robots, share metadata and JSON-LD from t
       const response = await fetch(`${runtime.nextOrigin}${path === '/' ? '/' : `${path}/`}`);
       assert.equal(response.status, 200, path);
       const types = nodes.map(node => node['@type']);
-      assert.deepEqual(jsonLdGraph(await response.text())?.['@graph'].map(node => node['@type']),
-        types.includes('Dataset') ? ['Organization', ...types] : types, `${path} JSON-LD`);
+      const html = await response.text();
+      // A listing may add its ItemList; every other node is the registry's, behind the one organization.
+      assert.deepEqual(jsonLdGraph(html)?.['@graph'].map(node => node['@type']).filter(type => type !== 'ItemList'),
+        ['Organization', ...types], `${path} JSON-LD`);
     }
 
-    // /articles/ is prerendered, so every query gets the same HTML with the
-    // canonical page; Nginx marks the paginated URL noindex (nginx-html-routing test).
-    const filtered = await head(runtime.nextOrigin, '/articles/?page=2');
-    assert.match(filtered, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/articles\/"\/>/);
+    // /articles/ is a collection of kolodahearthstone.com articles: noindex, follow
+    // and no canonical or share tags, since it is outside the sitemap. The prerendered
+    // HTML is the same for every query; Nginx marks the paginated URL noindex.
+    for (const path of ['/articles/', '/articles/?page=2']) {
+      const articles = await head(runtime.nextOrigin, path);
+      assert.match(articles, /<meta name="robots" content="noindex, follow"\/>/, `${path} robots`);
+      assert.doesNotMatch(articles, /<link rel="canonical"/, `${path} has no canonical`);
+      assert.match(articles, /<title>Подборка статей Hearthstone[^<]*<\/title>/, `${path} title`);
+    }
+
+    // The menu and the footer a visitor gets name the section a collection.
+    const articlesHtml = await (await fetch(`${runtime.nextOrigin}/articles/`)).text();
+    const footer = articlesHtml.match(/<footer class="arena-footer"[\s\S]*?<\/footer>/)?.[0] ?? '';
+    assert.match(footer, /<a href="\/articles\/"[^>]*>Подборка<\/a>/, 'footer link to /articles/');
+    const articlesLinks = [...articlesHtml.matchAll(/<a href="\/articles\/"[^>]*>([\s\S]*?)<\/a>/g)]
+      .map(match => visibleText(match[1]).trim());
+    assert.ok(articlesLinks.filter(text => text === 'Подборка').length >= 2, 'menu and footer links to /articles/');
+    assert.ok(!articlesLinks.includes('Статьи'), 'no link still calls /articles/ «Статьи»');
   } finally {
     await runtime.close();
   }
@@ -122,20 +175,21 @@ const crumbs = breadcrumb => breadcrumb.itemListElement.map(({ '@type': type, po
 test('a card page describes the card, its site and its path in one JSON-LD graph', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   try {
-    for (const [format, formatName, formatLabel, crumbName] of [['standard', 'Стандарт', 'Стандарте', 'Стандарт'], ['wild', 'Вольный формат', 'Вольном формате', 'Вольный']]) {
+    for (const [format, formatName, crumbName] of [['standard', 'Стандарт', 'Стандарт'], ['wild', 'Вольный формат', 'Вольный']]) {
       const path = `/standard/cards/${format}/CARD_QA_0002/`;
       const canonical = `https://hearthpulse.net${path}`;
       const response = await fetch(`${runtime.nextOrigin}${path}`);
       assert.equal(response.status, 200, path);
       const html = await response.text();
       const graph = entityGraph(html, path.slice(0, -1));
-      assert.deepEqual(graph.map(node => node['@type']), ['WebPage', 'CreativeWork', 'BreadcrumbList'], `${format} graph`);
+      assert.deepEqual(graph.map(node => node['@type']), ['WebPage', 'CreativeWork', 'BreadcrumbList', 'Organization'], `${format} graph`);
       const [page, card, breadcrumb] = graph;
 
       assert.deepEqual(page, {
         '@type': 'WebPage', '@id': `${canonical}#webpage`, url: canonical,
-        name: `Публичная карта 2 — карта Hearthstone (${formatName}, CARD_QA_0002) | HearthPulse`,
-        description: `Публичная карта 2: Боевой клич: возьмите карту. Статистика и колоды с картой в ${formatLabel} на HearthPulse.`,
+        // The title is the first variant of the ladder up to 60 characters (shared/entityPageTitles.ts).
+        name: `Публичная карта 2 — карта (${formatName}, CARD_QA_0002)`,
+        description: `Публичная карта 2 (${formatName}, CARD_QA_0002): Боевой клич: возьмите карту. Статистика и колоды с картой на HearthPulse.`,
         inLanguage: 'ru',
         isPartOf: { '@type': 'WebSite', '@id': 'https://hearthpulse.net/#website', name: 'HearthPulse', url: 'https://hearthpulse.net/' },
         primaryImageOfPage: { '@type': 'ImageObject', contentUrl: 'https://hearthpulse.net/arena-logo-icon.webp' },
@@ -146,7 +200,7 @@ test('a card page describes the card, its site and its path in one JSON-LD graph
         '@type': 'CreativeWork', '@id': `${canonical}#card`, url: canonical,
         name: 'Публичная карта 2', alternateName: 'Public Card 2', identifier: 'CARD_QA_0002',
         image: 'https://hearthpulse.net/arena-logo-icon.webp',
-        description: `Публичная карта 2: Боевой клич: возьмите карту. Статистика и колоды с картой в ${formatLabel} на HearthPulse.`,
+        description: `Публичная карта 2 (${formatName}, CARD_QA_0002): Боевой клич: возьмите карту. Статистика и колоды с картой на HearthPulse.`,
         inLanguage: 'ru', isPartOf: { '@type': 'VideoGame', name: 'Hearthstone' },
         additionalProperty: [
           { '@type': 'PropertyValue', name: 'Формат', value: formatName },
@@ -200,7 +254,7 @@ test('a card library listing shows its path above the same list of cards', async
       assert.equal(response.status, 200, path);
       const html = await response.text();
       const graph = entityGraph(html, path);
-      assert.deepEqual(graph.map(node => node['@type']), ['CollectionPage', 'BreadcrumbList'], `${path} graph`);
+      assert.deepEqual(graph.map(node => node['@type']), ['CollectionPage', 'BreadcrumbList', 'Organization'], `${path} graph`);
       const { mainEntity: list, ...collection } = graph[0];
       assert.deepEqual(collection, {
         '@type': 'CollectionPage', '@id': `${canonical}#collection`, url: canonical, name: 'Карты Hearthstone',
@@ -213,24 +267,23 @@ test('a card library listing shows its path above the same list of cards', async
 
       // The page shows no breadcrumb: its steps are named with the words it does show.
       assert.match(html, /<a\b[^>]*href="\/"[^>]*>Главная<\/a>/, `${path} shows the home link`);
-      assert.equal(html.match(/<h1\b[^>]*>([^<]*)<\/h1>/)?.[1], trail[1].name, `${path} heading`);
+      const heading = html.match(/<h1\b[^>]*>([^<]*)<\/h1>/)?.[1];
+      assert.ok(heading.startsWith(trail[1].name), `${path} heading ${heading}`);
+      if (trail.length === 3) assert.ok(heading.includes(trail[2].name), `${path} heading names its format`);
       if (trail.length === 3) {
         assert.equal(html.match(/<button\b[^>]*aria-label="([^"]*)"[^>]*aria-pressed="true"/)?.[1], trail[2].name, `${path} format switch`);
       }
 
       assert.equal(list['@type'], 'ItemList');
-      assert.equal(list.numberOfItems, 3000, `${path} counts the whole catalog`);
+      assert.equal(list.numberOfItems, 60, `${path} counts the cards it lists, not the catalog`);
       assert.equal(list.itemListElement.length, 60, `${path} lists the cards of the page`);
       assert.deepEqual(list.itemListElement[0], { '@type': 'ListItem', position: 1, name: 'Публичная карта 1', url: firstCard }, `${path} first card`);
     }
 
-    // The second page keeps the listing's identity and continues the positions.
-    const second = entityGraph(await (await fetch(`${runtime.nextOrigin}/standard/cards/standard/?page=2`)).text(), '/standard/cards/standard/');
-    assert.equal(second[0]['@id'], 'https://hearthpulse.net/standard/cards/standard/#collection');
-    assert.equal(second[0].mainEntity.numberOfItems, 3000);
-    assert.equal(second[0].mainEntity.itemListElement[0].position, 61);
-    assert.equal(second[0].mainEntity.itemListElement.at(-1).position, 120);
-    assert.equal(second[1].itemListElement.length, 3);
+    // The second page is noindex, so like every page that is not indexable it prints no graph.
+    const secondHtml = await (await fetch(`${runtime.nextOrigin}/standard/cards/standard/?page=2`)).text();
+    assert.match(secondHtml, /<meta name="robots" content="noindex/);
+    assert.doesNotMatch(secondHtml, /application\/ld\+json/);
   } finally {
     await runtime.close();
   }
@@ -238,6 +291,8 @@ test('a card library listing shows its path above the same list of cards', async
 
 test('every SEO registry page takes its title, description and share metadata from the registry', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
+  const registryHeadings = new Map();
+  const registryTexts = new Map();
   try {
     for (const page of REGISTRY_PAGES) {
       const response = await fetch(`${runtime.nextOrigin}${page.url}`, { redirect: 'manual' });
@@ -245,10 +300,31 @@ test('every SEO registry page takes its title, description and share metadata fr
       const html = await response.text();
       assertOnce(html, /<title>([^<]*)<\/title>/g, page.title, `${page.path} title`);
       assertOnce(html, /<meta name="description" content="([^"]*)"/g, page.description, `${page.path} description`);
+      registryTexts.set(page.path, {
+        title: decoded(html.match(/<title>([^<]*)<\/title>/)[1]),
+        description: decoded(html.match(/<meta name="description" content="([^"]*)"/)[1]),
+      });
       assert.equal((html.match(/<h1[\s>]/g) ?? []).length, 1, `${page.path} must render exactly one H1`);
+      registryHeadings.set(page.path, visibleText(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)[1]).replace(/\s+/g, ' ').trim());
+      // The two Battlegrounds pages answer different queries and point at each other from the banner, in the server HTML.
+      const sibling = { '/heroes': ['/battlegrounds/tier-list/', 'Тир-лист'], '/battlegrounds/tier-list': ['/heroes/', 'Герои Полей сражений'] }[page.path];
+      if (sibling) {
+        const afterHeading = html.slice(html.indexOf('</h1>'), html.indexOf('</h1>') + 1500);
+        const link = [...afterHeading.matchAll(/<a\b[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/g)].find(([, href]) => href === sibling[0]);
+        assert.ok(link, `${page.path} links to ${sibling[0]} from its banner`);
+        assert.ok(link[2].includes(sibling[1]), `${page.path} link text ${link[2]}`);
+      }
       if (!page.sitemap) {
-        assertOnce(html, /<meta name="robots" content="([^"]*)"/g, 'noindex, nofollow', `${page.path} robots`);
-        assert.doesNotMatch(html, /<link rel="canonical"/, `${page.path} must not expose a canonical URL`);
+        // Outside the sitemap means noindex; the inventory decides whether links are followed.
+        const robots = INVENTORY_ROUTES.find(route => route.id === page.policyRouteId)?.indexPolicy === 'noindex-follow'
+          ? 'noindex, follow' : 'noindex, nofollow';
+        assertOnce(html, /<meta name="robots" content="([^"]*)"/g, robots, `${page.path} robots`);
+        if (page.path === '/standard/deck-builder') {
+          // The one noindex page that names itself canonical (E21 S8): a copy with ?code= points here.
+          assertOnce(html, /<link rel="canonical" href="([^"]*)"/g, 'https://hearthpulse.net/standard/deck-builder/', `${page.path} canonical`);
+        } else {
+          assert.doesNotMatch(html, /<link rel="canonical"/, `${page.path} must not expose a canonical URL`);
+        }
         assert.doesNotMatch(html, /<meta property="og:url"/, `${page.path} must not expose og:url`);
         assert.doesNotMatch(html, /application\/ld\+json/, `${page.path} must not carry structured data`);
         continue;
@@ -264,6 +340,41 @@ test('every SEO registry page takes its title, description and share metadata fr
       assertOnce(html, /<meta name="twitter:description" content="([^"]*)"/g, page.description,
         `${page.path} twitter:description`);
     }
+
+    // Every page answers its own query: no two registry pages share an H1, and the key pages say what they list.
+    const byHeading = new Map();
+    for (const [path, heading] of registryHeadings) byHeading.set(heading, [...(byHeading.get(heading) ?? []), path]);
+    assert.deepEqual([...byHeading].filter(([, paths]) => paths.length > 1), [], 'registry pages with the same H1');
+    for (const [path, heading] of Object.entries({
+      '/': 'Мета Hearthstone на сегодня',
+      '/standard/meta': 'Мета Hearthstone: колоды и винрейты',
+      '/classes': 'Винрейт классов на Арене',
+      '/tierlist': 'Тир-лист карт Арены Hearthstone',
+      '/legendaries': 'Легендарки Арены Hearthstone',
+      '/heroes': 'Герои Полей сражений',
+      '/battlegrounds/tier-list': 'Тир-лист Полей сражений',
+      '/battlegrounds/strategies': 'Конструктор стратегий Полей сражений',
+      '/cosmetics': 'Косметика Hearthstone',
+    })) assert.equal(registryHeadings.get(path), heading, `${path} H1`);
+
+    // What a visitor and a crawler get: every page's own title (up to 60 characters) and description (70-160), none repeated.
+    for (const [path, { title, description }] of registryTexts) {
+      assert.ok(title.length <= 60, `${path} title is ${title.length} characters: ${title}`);
+      assert.ok(description.length >= 70 && description.length <= 160, `${path} description is ${description.length} characters`);
+      for (const [kind, text] of [['title', title], ['description', description], ['H1', registryHeadings.get(path)]]) {
+        assert.doesNotMatch(text, /(^|[^А-Яа-я])БГ([^А-Яа-я]|$)/, `${path} ${kind} says «БГ»`);
+        assert.ok(!text.includes('Сражений'), `${path} ${kind} spells «Полей сражений» with a capital`);
+      }
+    }
+    for (const kind of ['title', 'description']) {
+      const byText = new Map();
+      for (const [path, texts] of registryTexts) byText.set(texts[kind], [...(byText.get(texts[kind]) ?? []), path]);
+      assert.deepEqual([...byText].filter(([, paths]) => paths.length > 1), [], `pages with the same ${kind}`);
+    }
+    // Two queries, two pages: the tier list of compositions never targets the hero query.
+    const tierList = registryTexts.get('/battlegrounds/tier-list');
+    assert.doesNotMatch(`${tierList.title} ${tierList.description} ${registryHeadings.get('/battlegrounds/tier-list')}`, /геро/i);
+    assert.ok(registryTexts.get('/heroes').title.startsWith('Герои Полей сражений'), 'the hero page owns the hero query');
 
     const shareAlt = async path => (await head(runtime.nextOrigin, path)).match(/<meta property="og:image:alt" content="([^"]*)"/)?.[1];
     assert.notEqual(await shareAlt('/cosmetics/'), await shareAlt('/cosmetics/heroes/'),
@@ -375,7 +486,7 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     assertOnce(html, /<meta name="twitter:title" content="([^"]*)"/g, title, `${path} twitter:title`);
     assertOnce(html, /<meta property="og:description" content="([^"]*)"/g, description, `${path} og:description`);
     assert.equal((html.match(/<h1[\s>]/g) ?? []).length, 1, `${path} renders exactly one H1`);
-    assert.ok(title.length <= 65, `${path} title is ${title.length} characters`);
+    assert.ok(title.length <= 60, `${path} title is ${title.length} characters`);
     assert.ok(description.length <= 160, `${path} description is ${description.length} characters`);
     return { html, title, description, text: visibleText(html).replaceAll(' ', ' ') };
   };
@@ -384,7 +495,7 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     const updatedAt = new Date(Date.now() - 3 * HOUR).toISOString();
     state.meta = metaTeaser(updatedAt, TOP_ROWS);
     const meta = await page('/standard/meta/');
-    const [, titleMonth] = meta.title.match(new RegExp(`^Мета Hearthstone (${MONTH_NAMES}) \\d{4}: тир-лист колод \\| HearthPulse$`));
+    const [, titleMonth] = meta.title.match(new RegExp(`^Мета Hearthstone, (${MONTH_NAMES}) \\d{4}: колоды и винрейты$`));
     const [, date, dateMonth, dateYear] = meta.description.match(new RegExp(
       `^Мета Хартстоуна \\(хс\\) на (\\d{1,2} (${GENITIVE_MONTHS}) (\\d{4})): тир-лист колод Стандарта\\. Лидер — Зоолок, 61% побед\\. .*Данные HSGuru\\.$`));
     assert.equal(titleMonth, MONTHS[dateMonth], 'the title names the month of the date in the description');
@@ -417,7 +528,7 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     // Older than a week: no month in the title, «обновлено» and the date in the description, the line stays.
     state.meta = metaTeaser('2026-09-01T09:00:00.000Z', TOP_ROWS);
     const stale = await page('/standard/meta/');
-    assert.equal(stale.title, `Мета Hearthstone ${YEAR}: тир-лист колод | HearthPulse`);
+    assert.equal(stale.title, `Мета Hearthstone, ${YEAR}: колоды и винрейты | HearthPulse`);
     assert.equal(stale.description,
       'Мета Хартстоуна (хс), обновлено 1 сентября 2026: тир-лист колод Стандарта. Лидер — Зоолок, 61% побед. Винрейт и популярность архетипов. Данные HSGuru.');
     assert.ok(stale.text.includes('Данные на 1 сентября 2026, 12:00 МСК'));
@@ -425,7 +536,7 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     // No data: the static text with the year, no date and no numbers, a normal page and a quiet log.
     state.meta = null;
     const none = await page('/standard/meta/');
-    assert.equal(none.title, `Мета Hearthstone ${YEAR}: тир-лист колод | HearthPulse`);
+    assert.equal(none.title, `Мета Hearthstone, ${YEAR}: колоды и винрейты | HearthPulse`);
     assert.equal(none.description, REGISTRY_PAGES.find(entry => entry.path === '/standard/meta').description);
     assert.doesNotMatch(none.text, /Данные на /);
     assert.doesNotMatch(next.output(), /error/i, 'a missing teaser is not an error');
@@ -486,8 +597,10 @@ test('the meta page stays prerendered with ISR', () => {
 const DATA_DATE = '2026-10-28T23:00:04.000Z';
 const HSGURU_META = 'https://www.hsguru.com/meta';
 const ORGANIZATION = {
-  '@type': 'Organization', '@id': 'https://hearthpulse.net/#org', name: 'Manacost', url: 'https://hearthpulse.net/',
+  '@type': 'Organization', '@id': 'https://hearthpulse.net/#org', name: 'HearthPulse', url: 'https://hearthpulse.net/',
   logo: { '@type': 'ImageObject', url: 'https://hearthpulse.net/assets/arena_icon.webp' },
+  sameAs: ['https://t.me/manacost_ru', 'https://boosty.to/kolodahearthstone'],
+  parentOrganization: { '@type': 'Organization', name: 'Manacost', sameAs: ['https://t.me/manacost_ru', 'https://boosty.to/kolodahearthstone'] },
 };
 
 /** Runs `scenario` against real Next reading a fake Express; `page(path)` returns the HTML and the JSON-LD graph. */
@@ -534,9 +647,8 @@ test('the meta page describes its teaser as a dataset dated by the teaser, from 
       '@type': 'Dataset', '@id': 'https://hearthpulse.net/standard/meta/#dataset', url: 'https://hearthpulse.net/standard/meta/',
       name: 'Мета Стандарта Hearthstone: винрейт, популярность и число игр архетипов',
       description: 'Срез меты Стандарта Hearthstone по данным HSGuru: винрейт, популярность и число игр архетипов. На странице показан бесплатный срез; полная таблица доступна подписчикам.',
-      inLanguage: 'ru', breadcrumb: { '@id': 'https://hearthpulse.net/standard/meta/#breadcrumb' },
-      dateModified: DATA_DATE, license: 'https://hearthpulse.net/terms/',
-      creator: { '@id': 'https://hearthpulse.net/#org' }, publisher: { '@id': 'https://hearthpulse.net/#org' },
+      inLanguage: 'ru',
+      dateModified: DATA_DATE, publisher: { '@id': 'https://hearthpulse.net/#org' },
       isBasedOn: { '@type': 'Dataset', name: 'HSGuru: Meta', url: HSGURU_META },
       variableMeasured: [
         { '@type': 'PropertyValue', name: 'Винрейт', unitText: '%' },
@@ -589,7 +701,8 @@ test('the catalog dataset is dated by the catalog and the page asks the API once
     assert.equal(dataset.dateModified, DATA_DATE, 'the date of the catalog, not the day of the request');
     assert.deepEqual(dataset.isBasedOn, { '@type': 'Dataset', name: 'HSGuru: Meta', url: HSGURU_META });
     assert.deepEqual(dataset.variableMeasured.map(variable => variable.name), ['Винрейт', 'Популярность', 'Число игр']);
-    assert.deepEqual(dataset.creator, { '@id': 'https://hearthpulse.net/#org' });
+    assert.equal('creator' in dataset, false);
+    assert.equal('license' in dataset, false);
     assert.doesNotMatch(JSON.stringify(graph), /PAID_BUILD_CODE|deckCode|Зоолок|gameMode|temporalCoverage|P7D/);
     const wild = (await page('/standard/archetypes/?format=wild')).graph;
     assert.equal(nodeOfType(wild, 'Dataset').dateModified, DATA_DATE);
@@ -612,7 +725,9 @@ test('statistics pages without a public date carry no date, and the tier-list co
       assert.deepEqual(graph[0], ORGANIZATION, `${path} defines the organization`);
       const dataset = nodeOfType(graph, 'Dataset');
       assert.ok(dataset.isBasedOn && dataset.variableMeasured.length > 0, `${path} names its source and metrics`);
-      assert.deepEqual(dataset.creator, { '@id': 'https://hearthpulse.net/#org' }, `${path} creator`);
+      assert.equal('creator' in dataset, false, `${path} creator`);
+      assert.equal('license' in dataset, false, `${path} license`);
+      assert.deepEqual(dataset.publisher, { '@id': 'https://hearthpulse.net/#org' }, `${path} publisher`);
       assert.doesNotMatch(JSON.stringify(graph), /dateModified|temporalCoverage|P7D|gameMode|\{\{/, `${path} has no invented date or window`);
     }
     assert.equal(nodeOfType(await graphOf('/classes/'), 'Dataset').description.includes('11'), false);

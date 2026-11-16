@@ -248,8 +248,23 @@ routes below exist and `GET /api/account/game-stats/modes` answers
 the version 2 game and run events per tab (Standard and Wild share
 `constructed_match`), counted without reading payloads. The account's
 «Моя статистика» tab shows the statistics when a count is above zero, with a
-mode tab only for such a mode; while off (404) or without events it shows
-«Пока игр нет» and what will appear, never a call to install the application.
+mode choice only for such a mode; while off (404) or without events it shows
+«Пока игр нет», what will appear and «Установить Hearthpulse» (`/download/`).
+
+The views (`src/features/playerStats`, profile redesign of 2026-11-07) put
+one dark header strip on top: the mode and period switches and four numbers
+of the shown mode (Standard and Wild: win rate, games, best rank, time;
+Battlegrounds: best rating, average place, games, time; Arena: average wins,
+best run, game win rate, time). Below it, Standard and Wild show deck cards
+(class art, win rate against 50%, record, the line of `decks[].results`),
+the rank line, a matchup heat grid (own classes × opponent classes plus
+«Всего»; turned on phones; under five games uncoloured) and «Последние
+игры» with the replay's link preview and «Смотреть». Battlegrounds shows
+the placement columns, the rating line, heroes with portraits and the latest
+games; Arena its runs and classes. There are no separate class, archetype or
+opponent tables: the decks and the heat grid carry the same numbers. The
+derived values live in `src/modules/playerStats/model/profileView.ts`, the
+Russian and English copy in `model/profileText.ts`.
 Version 2 events are accepted in both states.
 
 An owner may show the same statistics on their public profile; the public
@@ -286,8 +301,10 @@ account drops its cache.
   win rate by turn, times offered/picked when the client sent hero options).
 - Standard and Wild: `summary` (games, wins, win rate, average duration and
   turns, time played, best and current rank, coin/first split), `rankSeries`,
-  `decks`, `archetypes`, `opponentClasses`, `matchups` (own class × opponent
-  class).
+  `decks` (each with `results`: its latest results, oldest first, at most
+  30, for the deck's win rate line; the public copy keeps them, since
+  results carry no time), `archetypes`, `opponentClasses`, `matchups` (own
+  class × opponent class).
 - Arena: `summary` (runs, average wins, best run, 12-win runs, game win
   rate, time played), `runs`, `classes`.
 

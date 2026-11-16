@@ -87,13 +87,13 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
       <HomeHero homeSummaryData={homeSummaryData} loadingHomeSummary={loadingHomeSummary} onNavigate={onNavigate} />
       <nav className="home-page-index" aria-label="Быстрые переходы по главной странице">
         <span>На этой странице</span>
-        <a href="#home-articles-heading">Статьи</a>
+        <a href="#home-articles-heading">Подборка</a>
         {deckLeaderboard && <a href="#home-decks">Колоды</a>}
-        <a href="#home-bg-heading">Поля Сражений</a>
+        <a href="#home-bg-heading">Поля сражений</a>
         <a href="#home-arena-directory-heading">Арена</a>
       </nav>
 
-      <DeferredHomeSection label="Последние статьи" fallback={<HomeLatestArticlesSkeleton />} eager={serverArticles}>
+      <DeferredHomeSection label="Подборка статей" fallback={<HomeLatestArticlesSkeleton />} eager={serverArticles}>
         <React.Suspense fallback={<HomeLatestArticlesSkeleton />}>
           <HomeLatestArticles articles={articles} loading={loadingArticles} onNavigate={onNavigate} />
         </React.Suspense>
@@ -107,7 +107,7 @@ export default function HomeTab({ homeSummaryData, loadingHomeSummary, articles,
         </div>
       )}
 
-      <HomeSectionBoundary label="Поля Сражений">
+      <HomeSectionBoundary label="Поля сражений">
         <HomeBattlegrounds onNavigate={onNavigate} />
       </HomeSectionBoundary>
 

@@ -9,6 +9,8 @@ export type GlobalMmrFilter = typeof GLOBAL_MMR_FILTERS[number];
 /** Newest games a statistics request reads; keeps aggregation bounded for heavy players. */
 export const MAX_STATS_GAMES = 5_000;
 export const MAX_SERIES_POINTS = 500;
+/** Results per deck in `decks[].results`: enough for a trend, small enough for every deck of a period. */
+export const MAX_DECK_RESULTS = 30;
 /** Games listed one by one in «Последние игры». */
 export const MAX_RECENT_GAMES = 50;
 
@@ -116,7 +118,9 @@ export type ConstructedStats = {
     coin: WinLoss;
   };
   rankSeries: Array<{ id: string; startedAt: number; result: string; playerClass: HearthstoneClass; rank: LadderRank; value: number }>;
-  decks: Array<WinLoss & { key: string; deckCode: string | null; deckName: string | null; archetype: string | null; playerClass: HearthstoneClass; lastPlayedAt: number }>;
+  decks: Array<WinLoss & { key: string; deckCode: string | null; deckName: string | null; archetype: string | null; playerClass: HearthstoneClass; lastPlayedAt: number;
+    /** The deck's latest results, oldest first, at most `MAX_DECK_RESULTS`: the deck's win rate line. */
+    results: Array<'win' | 'loss' | 'tie'> }>;
   archetypes: Array<WinLoss & { archetype: string; playerClass: HearthstoneClass; globalWinrate: number | null }>;
   classes: Array<WinLoss & { playerClass: HearthstoneClass; globalWinrate: number | null }>;
   opponentClasses: Array<WinLoss & { opponentClass: HearthstoneClass }>;

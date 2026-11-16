@@ -26,6 +26,12 @@ Production requires client `manacost-reader-production` with exact callback
 `manacost-reader` identifier or accept `.com`, `www`, alternate ports or a
 trailing slash.
 
+Manacost Studio is an optional third production client: add
+`{"id":"manacost-studio","secret":"<fresh secret, 43+ chars>","redirectUri":"https://studio.hearthpulse.net/auth/callback"}`
+to the same `BROWSER_IDENTITY_CLIENTS` array and restart. It is not a Reader:
+it gets `openid profile` only, no `offline_access`, and its secret is refused by
+`/identity/reader-entitlements` and `/identity/reader-permissions`.
+
 `BROWSER_IDENTITY_ALLOW_STAGING_CLIENT=1` permits only the production issuer,
 client `manacost-reader-staging` and exact callback
 `https://test.hs-manacost.ru/reader-auth/callback`. BFF separately requires

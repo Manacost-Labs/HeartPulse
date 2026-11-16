@@ -32,6 +32,7 @@ import DeckListView, {
 } from './decklist/DeckListView';
 import DeckRenderPreview from './deckrender/DeckRenderPreview';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
+import { constructedCardDescription, constructedCardTitle } from '../../shared/entityPageTitles';
 import { constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
 import {
   constructedClassIcon as classIcon,
@@ -552,15 +553,10 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
   useEffect(() => {
     if (!card) return;
     const name = cardName(card);
-    const formatLabel = format === 'standard' ? 'Стандарт' : 'Вольный формат';
     const resolvedCardId = card.card_id || cardId;
-    const rules = plainText(card.text?.ru || card.text?.en);
-    const description = rules
-      ? `${name} (${formatLabel}, ID ${resolvedCardId}): ${rules}`
-      : `${name} — карта Hearthstone (${formatLabel}, ID ${resolvedCardId}) в библиотеке HearthPulse.`;
     void applyDocumentPageMeta({
-      title: `${name} — карта Hearthstone (${formatLabel}, ${resolvedCardId}) | HearthPulse`,
-      description: description.slice(0, 300),
+      title: constructedCardTitle({ name, id: resolvedCardId, format }),
+      description: constructedCardDescription({ name, id: resolvedCardId, format, rulesText: plainText(card.text?.ru || card.text?.en) }),
       pathname: constructedCardPath(format, resolvedCardId),
       search: '',
       image: publicResourceUrl(card.images?.card),

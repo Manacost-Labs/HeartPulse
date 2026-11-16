@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { createServer as createHttpServer, request } from 'node:http';
 import { createServer as createNetServer } from 'node:net';
 import { tmpdir } from 'node:os';
-import { join, relative } from 'node:path';
+import { join } from 'node:path';
 import { spawn, spawnSync } from 'node:child_process';
 import { gunzipSync } from 'node:zlib';
 
@@ -116,38 +116,6 @@ assert.notEqual(epochOf('2026-10-27T13:40:00+00:00'), epochOf('2026-10-28T13:40:
 assert.notEqual(epochOf('2026-10-26T02:40:00+03:00'), epochOf('2026-10-26T02:40:00+02:00'),
   'a repeated daylight-saving hour is a different epoch');
 
-// The ISR location raises the copy to Next's own `revalidate = 300` only for
-// pages whose HTML holds no server data. The data pages are regenerated after
-// each deploy because their build copy is empty; they keep the minute.
-const isrLocation = canonicalApplicationLocation.match(/\n        location ~ (\^\/[^ ]+\$) \{([\s\S]*?)\n        \}/);
-assert.ok(isrLocation, 'the ISR pages must have their own nested document location');
-assert.equal(isrLocation[2].trim().split('\n').map(line => line.trim()).join('\n'),
-  'proxy_pass https://hs_arena_origin;\nproxy_cache_valid 200 300s;',
-  'the ISR location must inherit everything else from the document location');
-{
-  const appRoot = 'apps/public-web/app';
-  const pages = [];
-  const walk = directory => {
-    for (const name of readdirSync(directory)) {
-      const path = join(directory, name);
-      if (statSync(path).isDirectory()) walk(path);
-      else if (name === 'page.tsx') pages.push(path);
-    }
-  };
-  walk(appRoot);
-  const urlOf = page => `/${relative(appRoot, page).replace(/\/?page\.tsx$/, '')}/`.replace(/^\/\/$/, '/');
-  const dataPages = [...readFileSync(`${appRoot}/health/next/revalidate/route.ts`, 'utf8')
-    .match(/const DATA_PAGES = \[([^\]]*)\]/)[1].matchAll(/'([^']+)'/g)].map(([, path]) => `${path}/`);
-  assert.ok(dataPages.length >= 2, 'the post-deploy data pages must be readable');
-  const isrPages = pages.filter(page => /^export const revalidate = 300;$/m.test(readFileSync(page, 'utf8'))
-    && !/^export const dynamic\b/m.test(readFileSync(page, 'utf8'))).map(urlOf);
-  const expected = isrPages.filter(url => !dataPages.includes(url) && !url.includes('[')).sort();
-  const isr = new RegExp(isrLocation[1]);
-  assert.deepEqual(pages.map(urlOf).filter(url => isr.test(url)).sort(), expected,
-    'the five-minute pages must be exactly the ISR pages without server data');
-  assert.ok(expected.includes('/tierlist/') && !expected.includes('/standard/meta/') && !expected.includes('/articles/'));
-  assert.equal(isr.test('/heroes/123/'), false, 'a dynamic page below an ISR index keeps the minute');
-}
 assert.doesNotMatch(canonicalApplicationLocation, /proxy_ignore_headers[^;]*Set-Cookie/,
   'a response that sets a cookie must never be stored');
 assert.match(canonicalApplicationLocation, /proxy_hide_header\s+X-HearthPulse-Edge-Cache;/,
@@ -370,6 +338,10 @@ async function verifyEdgeDocumentCache() {
   const binary = ['nginx', '/usr/sbin/nginx'].find(candidate =>
     spawnSync(candidate, ['-v'], { encoding: 'utf8' }).status === 0);
   if (!binary) return;
+  // Written out here, not taken from the application: the pages that render Express data and the
+  // prerendered pages that do not.
+  const DATA_URLS = ['/tierlist/', '/classes/', '/standard/meta/', '/articles/'];
+  const ISR_WITHOUT_DATA = ['/heroes/', '/legendaries/', '/guides-archive/', '/standard/matchups/', '/standard/vicious-gold/', '/battlegrounds/tier-list/'];
   const VARY = 'rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept-Encoding';
   const hits = new Map();
   // What the origin answers for a path from now on: `gone` (404), `unmarked` or `failing` (502).
@@ -501,8 +473,21 @@ ${serverHeaders}
     assert.equal((await get('/collision/?_rsc=&x=|1')).body, html.body, 'the HTML entry is untouched');
     assert.equal((await get('/collision/', { RSC: 'yes' })).headers['x-proxy-cache'], 'BYPASS');
 
-    const isr = await get('/classes/');
-    assert.equal((await get('/classes/')).body, isr.body, 'an ISR page is stored as well');
+    const isr = await get('/heroes/');
+    assert.equal((await get('/heroes/')).body, isr.body, 'an ISR page is stored as well');
+    // Pages that render Express data: the build copy of the four prerendered ones is empty
+    // until the post-deploy warm-up, so every one keeps a minute, not five. A guest's copy is
+    // shared; a visitor with a cookie or a credential never reads or fills it.
+    for (const path of DATA_URLS) {
+      const guest = await get(path);
+      assert.equal((await get(path)).headers['x-proxy-cache'], 'HIT', `${path} is shared between guests`);
+      const reader = await get(path, { Cookie: '__Host-manacost_auth_token=reader' });
+      assert.equal(reader.headers['x-proxy-cache'], 'BYPASS', `${path} is never answered to a signed-in visitor from the shared copy`);
+      assert.match(reader.body, /reader #\d+$/);
+      assert.equal((await get(path)).body, guest.body, `${path}: a signed-in rendering never replaces the shared copy`);
+      assert.equal((await get(path, { Authorization: 'Bearer x' })).headers['x-proxy-cache'], 'BYPASS');
+    }
+    for (const path of [...ISR_WITHOUT_DATA, '/heroes/123/']) await get(path);
 
     const epoch = (await get('/_epoch')).headers['x-epoch'];
     assert.match(epoch, /^\d{4}-\d\d-\d\dT\d\d:\d[-+]\d\d:\d\d$/, 'nginx evaluates the shipped epoch map');
@@ -523,13 +508,16 @@ ${serverHeaders}
     later.set('/unmarked-later/', 'unmarked');
     later.set('/failing/', 'failing');
     await expire();
-    const classes = await get('/classes/');
-    assert.equal(classes.headers['x-proxy-cache'], 'HIT', 'an ISR page keeps its copy past the minute');
-    assert.equal(classes.body, isr.body);
-    assert.equal(classes.headers['x-hearthpulse-edge-cache'], undefined, 'the ISR location hides the marker as well');
-    assert.equal(classes.headers['x-content-type-options'], 'nosniff', 'the ISR location keeps the security headers');
-    assert.equal(classes.headers['cache-control'], 'private, no-cache');
-
+    for (const path of [...DATA_URLS, '/heroes/123/']) {
+      assert.equal((await get(path)).headers['x-proxy-cache'], 'STALE', `${path} keeps its copy a minute, not five`);
+    }
+    for (const path of ISR_WITHOUT_DATA) {
+      const kept = await get(path);
+      assert.equal(kept.headers['x-proxy-cache'], 'HIT', `${path} (no server data) keeps its copy past the minute`);
+      assert.equal(kept.headers['x-hearthpulse-edge-cache'], undefined, 'the ISR location hides the marker as well');
+      assert.equal(kept.headers['x-content-type-options'], 'nosniff', 'the ISR location keeps the security headers');
+      assert.equal(kept.headers['cache-control'], 'private, no-cache');
+    }
     const stale = await get('/refresh/');
     assert.equal(stale.headers['x-proxy-cache'], 'STALE', 'an expired copy is answered at once');
     assert.match(stale.body, /#1$/);

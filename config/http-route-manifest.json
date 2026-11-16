@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 109,
-    "routeRegistrations": 293,
+    "sourceFiles": 110,
+    "routeRegistrations": 297,
     "middlewareRegistrations": 153,
     "explicitGuardRouteRegistrations": 73,
     "unresolvedPaths": 0
@@ -2369,6 +2369,19 @@
     },
     {
       "kind": "route",
+      "method": "GET",
+      "path": "/sitemaps/archetypes.xml",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/entitySitemapRoutes.ts",
+      "sourceOrder": 2,
+      "expansionOrder": 7
+    },
+    {
+      "kind": "route",
       "method": "ALL",
       "path": "/^\\/sitemaps\\/.*$/",
       "pathKind": "regexp",
@@ -3642,7 +3655,8 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createAdminBoostyAnalyticsRouter(...)"
+        "createAdminBoostyAnalyticsRouter(...)",
+        "createSubscriptionAnalyticsApi(...)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",
@@ -5282,6 +5296,18 @@
     {
       "kind": "route",
       "method": "GET",
+      "path": "/admin/boosty/subscription-metrics",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/subscriptionAnalytics/routes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
       "path": "/account/tracker-data",
       "pathKind": "string",
       "receiver": "router",
@@ -5931,6 +5957,18 @@
     },
     {
       "kind": "route",
+      "method": "GET",
+      "path": "/tierlist/public-teaser",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/tierlistRoutes.ts",
+      "sourceOrder": 1
+    },
+    {
+      "kind": "route",
       "method": "POST",
       "path": "/telemetry/web-vitals",
       "pathKind": "string",
@@ -5956,6 +5994,18 @@
       ],
       "source": "server/winrateRoutes.ts",
       "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/winrates/public-teaser",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/winrateRoutes.ts",
+      "sourceOrder": 1
     }
   ]
 }

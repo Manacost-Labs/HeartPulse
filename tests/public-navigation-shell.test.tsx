@@ -44,7 +44,7 @@ assert.match(html, /aria-current="page"/);
 assert.doesNotMatch(html, /href="\/[^"?#.]*[^\/"?#.]"/, 'navigation links must target canonical trailing-slash URLs');
 assert.match(html, /Традиционный режим/);
 assert.match(html, /Арена/);
-assert.match(html, /Поля Сражений/);
+assert.match(html, /Поля сражений/);
 assert.match(html, /Конструкторы/);
 assert.match(html, /Разное/);
 assert.match(html, /aria-expanded="true"/);
@@ -61,7 +61,7 @@ assert.match(bothOpen, /id="arena-sidebar-misc"(?![^>]*hidden)/);
 assert.equal(html.match(/arena-nav-section-icon/g)?.length, 6, 'three mode emblems in the drawer and three in the sidebar');
 assert.match(html, /href="\/standard\/patches\/"[^>]*>[\s\S]*?<span class="arena-nav-badge" title="Новый патч 37\.0\.0">Новый<\/span>/);
 // The compact rail keeps one name per item for its tooltip and a pressed toggle state.
-assert.match(html, /data-nav-tip="Тир-лист · Поля Сражений"/);
+assert.match(html, /data-nav-tip="Тир-лист · Поля сражений"/);
 assert.match(html, /<button[^>]*class="arena-sidebar-compact-toggle"[^>]*aria-pressed="false"[^>]*aria-label="Свернуть меню"/);
 const compactHtml = renderToStaticMarkup(<PublicNavigation {...props} compact />);
 assert.match(compactHtml, /aria-pressed="true"[^>]*aria-label="Развернуть меню"/);

@@ -8,9 +8,9 @@ The versioned GitHub Actions workflow
 manually. Independent groups run concurrently, each request bounds headers and
 body consumption, and a four-minute global deadline leaves one minute for
 workflow startup and reporting. It retries each check once. GitHub cron can be
-delayed, and a failed workflow is not a paging channel by itself. Do not
-consider `STAB-405` complete until an operator alert channel is connected and a
-failure-to-recovery drill has succeeded.
+delayed (in practice a run every few hours on a quiet repository), so the
+workflow alone does not meet a 15-minute detection target; see
+[Alerting](#alerting).
 
 The production deployment workflow uses the same monitor with two explicit
 profiles while it still owns the `hs-arena-production` concurrency lock:
@@ -49,13 +49,82 @@ PRODUCTION_BASE_URL=https://hearthpulse.net \
 node scripts/production-monitor.mjs
 ```
 
+## Page templates and sitemaps
+
+`full` and `release` request one URL of every indexable public page template
+(`indexPolicy: index` in `src/shared/seo/publicRouteInventory.json`) and the
+sitemap index, `static.xml` and each entity sitemap. A page must answer 200
+HTML, with no error document and no `noindex` header or meta tag. Requests are
+GET only, one at a time with a 150 ms pause
+(`MONITOR_REQUEST_PAUSE_MS`), with the `User-Agent`
+`hs-arena-external-monitor/<version>`.
+
+The list lives in `scripts/production-monitor-templates.mjs`. Static pages are
+taken from the inventory automatically. A dynamic template needs one record in
+`SAMPLE_SOURCES`: a fixed `path`, or `segment` (the first URL of an entity
+sitemap segment). A template that cannot be sampled goes to
+`UNMONITORED_TEMPLATES` with the reason; the unit test fails for an indexable
+template that is in neither, and the monitor reports such a template as a
+warning. A new sitemap segment is one record in `ENTITY_SITEMAP_SEGMENTS` plus
+one in `SAMPLE_SOURCES` for its detail template.
+
+Thresholds: a page slower than 1 s or a sitemap slower than 2 s is a warning
+(`MONITOR_PAGE_WARN_MS`, `MONITOR_SITEMAP_WARN_MS`); 10 s is a timeout and a
+failure. A sitemap served from the last-known-good copy
+(`X-Sitemap-Source: last-known-good`) is a warning. Warnings appear in the
+report and the run summary and never open an alert.
+
+Not sampled today: `constructed-archetype-detail` (no sitemap segment until
+the archetype segment of issue 299 lands), `bg-library-archive-detail` (exists
+only for retired cards, no sitemap lists them) and
+`bg-library-additional-detail` (no public source of a stable URL).
+
+## Data freshness
+
+`/api/health/data` answers 503 when any dataset, including the optional
+`hs-data-api` one, is not fresh, so the status code alone said nothing about
+the cause. The monitor now reads the report: a required dataset
+(`winrates`, `tierlist`, `legendaries`, `constructed-cards-standard`,
+`constructed-cards-wild`) that is missing, empty, or stale fails the check with
+its name and age. A required dataset on the last-known-good copy for less than
+30 minutes (`MONITOR_LKG_MAX_AGE_MS`) is a warning; the age counts from the last
+refresh of that copy, so this is a short-term guard, not a duration of the
+whole incident. A stale optional dataset is a warning; a known one carries its
+issue in `knownIssues` (`KNOWN_DATASET_ISSUES` in the monitor, currently
+`hs-data-api` -> #398, HSGuru Brawl). Remove the entry when the issue closes.
+
+## Alerting
+
+After every scheduled or manual run the workflow calls
+`scripts/production-monitor-alert.mjs` with the `GITHUB_TOKEN` (permission
+`issues: write`), which keeps one issue per outage:
+
+- red and no open alert: opens an issue labelled
+  `type:bug source:qa agent-team` with the failed templates, URLs, statuses and
+  times;
+- red with a different set of failures: one comment, the issue is not
+  duplicated;
+- red with the same failures: nothing;
+- green with an open alert: a recovery comment and the issue is closed.
+
+The open alert is the open issue with these labels whose body carries the
+marker `<!-- production-monitor-alert -->`; do not remove the marker. GitHub
+notifies the repository watchers about the issue; there is no Telegram channel
+in the workflow because the repository has no bot secrets. For a faster
+trigger than GitHub cron, run `node scripts/production-monitor.mjs` from a
+server timer and `scripts/production-monitor-alert.mjs` with
+`PROBE_OUTCOME`, `MONITOR_REPORT_FILE`, `GH_TOKEN`, `GH_REPO`, `GITHUB_RUN_ID`.
+A failure-to-recovery drill (`STAB-405`) on production is still to be done.
+
 ## What it protects
 
 The monitor checks production liveness, readiness, required dataset freshness,
 critical public HTML routes, `robots.txt`, the exact sitemap index, static and
 all entity sitemap contracts (Standard, Wild-only, Battlegrounds minions,
-spells and heroes), deterministic first/middle/last SSR samples for every
-entity type, canonical redirects, JSON-LD identity, public-payload privacy, and
+spells and heroes, cosmetics, guides archive and the Standard archetypes),
+deterministic first/middle/last SSR samples for every entity type (five spread
+samples for archetypes, whose JSON-LD must describe the page's own URL),
+canonical redirects, JSON-LD identity, public-payload privacy, and
 a real noindex `404` for an unknown card. While the card API reports its
 catalog as last-known-good (`X-Data-Cache: LKG`), absence cannot be proven and
 the expected answer is the retryable noindex `503` with `Retry-After`; the

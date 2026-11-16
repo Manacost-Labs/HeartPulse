@@ -1,4 +1,5 @@
 import rawStructuredData from '../../config/public-seo-structured-data.json';
+import { organizationNode, organizationReference, SITE_ORIGIN } from '../../shared/seoOrganization';
 import { normalizePublicPathname, resolvePublicUrlPolicy } from '../shared/seo/publicUrlPolicy';
 import { seoPageForExactPath } from './registry';
 
@@ -6,18 +7,16 @@ type SchemaValue = string | number | boolean | null | SchemaValue[] | { [key: st
 export type SchemaNode = { [key: string]: SchemaValue };
 export type SeoStructuredDataGraph = { '@context': 'https://schema.org'; '@graph': SchemaNode[] };
 
-const SITE_ORIGIN = 'https://hearthpulse.net';
 const URL_KEYS = new Set(['@id', 'item', 'url']);
-const LANGUAGE_TYPES = new Set(['WebSite', 'WebApplication', 'CollectionPage', 'ItemPage', 'Dataset', 'ItemList', 'FAQPage']);
-const BREADCRUMB_LINKED_TYPES = new Set(['WebApplication', 'CollectionPage', 'ItemPage', 'Dataset', 'ItemList']);
+const LANGUAGE_TYPES = new Set(['WebSite', 'WebPage', 'CollectionPage', 'ItemPage', 'Dataset', 'ItemList', 'FAQPage']);
+// `breadcrumb` is a property of a page (WebPage and its subtypes), not of a Dataset or a list.
+const BREADCRUMB_LINKED_TYPES = new Set(['WebPage', 'CollectionPage', 'ItemPage']);
+/** An `ItemList` names at most this many entries; the page shows no more in its first screen of results. */
+export const ITEM_LIST_LIMIT = 100;
 // The page types whose text is the data the page shows, so the date of that data dates them.
 const DATA_DATED_TYPES = new Set(['CollectionPage', 'ItemPage', 'Dataset']);
 
-const { pages: PAGES, organization: ORGANIZATION } = rawStructuredData as {
-  pages: Record<string, SchemaNode[]>;
-  organization: SchemaNode;
-};
-const ORGANIZATION_REFERENCE = { '@id': String(ORGANIZATION['@id']) };
+const { pages: PAGES } = rawStructuredData as { pages: Record<string, SchemaNode[]> };
 
 /** What a page knows about the data it shows; the JSON-LD says no more than the page prints. */
 export type SeoStructuredDataFacts = {
@@ -28,6 +27,12 @@ export type SeoStructuredDataFacts = {
   dateModified?: string | null;
   /** The address the data was read from; replaces the address of a Dataset's single `isBasedOn` source. */
   sourceUrl?: string | null;
+  /**
+   * The entries of the list the page prints in its server-rendered HTML, in page order.
+   * Only a page whose registry entry has a `CollectionPage` gets an `ItemList` from them;
+   * entries beyond `ITEM_LIST_LIMIT`, repeated addresses and addresses off the site are dropped.
+   */
+  items?: readonly { name: string; url: string }[];
 };
 
 function isoInstant(value: string | null | undefined): string | null {
@@ -62,9 +67,10 @@ async function canonicalized(value: SchemaValue, pagePath: string, pageUrl: stri
  * or `null` when the page has no entry or is not indexable. A date or window
  * is written only when the page's data supplies it: `dateModified` is the date
  * the data was updated, and there is no `temporalCoverage` because no source
- * names the window it covers. A page with a Dataset also carries the
- * `Organization` node its `creator` and `publisher` point at: Google resolves
- * an `@id` inside one document only.
+ * names the window it covers. Every graph carries the one `Organization` node
+ * (`shared/seoOrganization.ts`) that `publisher` references point at: Google
+ * resolves an `@id` inside one document only. A Dataset has no `creator` and no
+ * `licence`. `facts.items` becomes an `ItemList` on a page with a `CollectionPage`.
  */
 export async function seoStructuredDataGraph(pathname: string, facts: SeoStructuredDataFacts = {}): Promise<SeoStructuredDataGraph | null> {
   const pagePath = normalizePublicPathname(pathname);
@@ -75,11 +81,28 @@ export async function seoStructuredDataGraph(pathname: string, facts: SeoStructu
 /**
  * The same graph for a page whose nodes are built from its data and so are not
  * in the registry (an archetype page): canonical URLs, language, breadcrumb
- * links, the data date, and the `Organization` and licence of every `Dataset`
- * are added exactly as for a registry page. `null` when the path is not indexable.
+ * links, the data date, the `Organization` node and the `publisher` of every
+ * `Dataset` are added exactly as for a registry page. `null` when the path is not indexable.
  */
 export function seoStructuredDataGraphOf(pathname: string, nodes: readonly SchemaNode[], facts: SeoStructuredDataFacts = {}): Promise<SeoStructuredDataGraph | null> {
   return pageGraph(normalizePublicPathname(pathname), nodes, facts);
+}
+
+/** `ItemList` of the entries a page prints; `null` when it prints none that the list may name. */
+function itemList(items: SeoStructuredDataFacts['items'], pageUrl: string): SchemaNode | null {
+  const seen = new Set<string>();
+  const entries: SchemaNode[] = [];
+  for (const item of items ?? []) {
+    const name = item.name.replace(/\s+/g, ' ').trim();
+    const url = URL.canParse(item.url) ? new URL(item.url) : null;
+    if (!name || !url || url.origin !== SITE_ORIGIN || seen.has(url.href)) continue;
+    seen.add(url.href);
+    entries.push({ '@type': 'ListItem', position: entries.length + 1, name, url: url.href });
+    if (entries.length === ITEM_LIST_LIMIT) break;
+  }
+  return entries.length
+    ? { '@type': 'ItemList', '@id': `${pageUrl}#list`, numberOfItems: entries.length, itemListElement: entries }
+    : null;
 }
 
 async function pageGraph(pagePath: string, nodes: readonly SchemaNode[], facts: SeoStructuredDataFacts): Promise<SeoStructuredDataGraph | null> {
@@ -100,16 +123,23 @@ async function pageGraph(pagePath: string, nodes: readonly SchemaNode[], facts: 
     }
     if (dateModified && DATA_DATED_TYPES.has(type)) node.dateModified = dateModified;
     if (type === 'Dataset') {
-      // The site terms are the only reuse grant the owner has published.
-      if (!node.license) node.license = `${SITE_ORIGIN}/terms/`;
-      node.creator ??= { ...ORGANIZATION_REFERENCE };
-      node.publisher ??= { ...ORGANIZATION_REFERENCE };
+      // The data is derived from other people's sources: the site names itself the
+      // publisher, never the creator, and grants no licence the owner has not published
+      // (the site terms are not a licence for the data), so neither key is ever written.
+      delete node.creator;
+      delete node.license;
+      node.publisher ??= organizationReference();
       const origin = node.isBasedOn;
       if (sourceUrl && origin && typeof origin === 'object' && !Array.isArray(origin)) origin.url = sourceUrl;
     }
   }
-  if (graph.some(node => node['@type'] === 'Dataset')) {
-    graph.unshift(await canonicalized(ORGANIZATION, pagePath, pageUrl) as SchemaNode);
+  const list = itemList(facts.items, pageUrl);
+  const collection = graph.find(node => node['@type'] === 'CollectionPage');
+  if (list && collection && !collection.mainEntity) {
+    collection.mainEntity = { '@id': list['@id'] };
+    graph.push(list);
   }
+  // Every graph carries the one organization node, so each `{"@id": ".../#org"}` resolves in place.
+  graph.unshift(organizationNode());
   return { '@context': 'https://schema.org', '@graph': graph };
 }

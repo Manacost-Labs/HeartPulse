@@ -1,13 +1,15 @@
 import './SiteFooter.css';
+import { FOOTER_COLUMNS, FOOTER_LEGAL_LINKS, type FooterColumn } from './siteFooterContent';
 
-const FOOTER_NAV_LINKS = [
-  { label: 'Главная', href: '/', tab: 'home' },
-  { label: 'Классы', href: '/classes/', tab: 'winrates' },
-  { label: 'Тир-лист', href: '/tierlist/', tab: 'tierlist' },
-  { label: 'Легендарки', href: '/legendaries/', tab: 'legendaries' },
-  { label: 'Статьи', href: '/articles/', tab: 'articles' },
-  { label: 'Галерея', href: '/gallery/', tab: 'gallery' },
-] as const;
+const linkProps = (external?: boolean) => (external ? { target: '_blank', rel: 'noopener noreferrer' } : {});
+
+const footerList = (column: FooterColumn) => (
+  <ul className="arena-footer__links">
+    {column.links.map(link => (
+      <li key={link.href}><a href={link.href} className="arena-footer__link" {...linkProps(link.external)}>{link.label}</a></li>
+    ))}
+  </ul>
+);
 
 export default function SiteFooter(_props: { onNavigate?: (tab: string) => void }) {
   const year = new Date().getFullYear();
@@ -17,46 +19,20 @@ export default function SiteFooter(_props: { onNavigate?: (tab: string) => void 
       aria-label="Подвал сайта"
     >
       <div className="arena-footer__columns">
-        <div className="arena-footer__section">
-          <h2 className="arena-footer__heading">Разделы</h2>
-          <nav aria-label="Навигация по сайту">
-            <ul className="arena-footer__links">
-              {FOOTER_NAV_LINKS.map(link => (
-                <li key={link.tab}>
-                  <a
-                    href={link.href}
-                    className="arena-footer__link"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </div>
-
-        <div className="arena-footer__section">
-          <h2 className="arena-footer__heading">Сообщество</h2>
-          <ul className="arena-footer__links">
-            <li><a href="https://t.me/manacost_ru" target="_blank" rel="noopener noreferrer" className="arena-footer__link">Telegram</a></li>
-            <li><a href="https://boosty.to/kolodahearthstone" target="_blank" rel="noopener noreferrer" className="arena-footer__link">Boosty</a></li>
-          </ul>
-        </div>
-
-        <div className="arena-footer__section">
-          <h2 className="arena-footer__heading">Разработчикам</h2>
-          <ul className="arena-footer__links">
-            <li><a href="/developers/api/" className="arena-footer__link">API для разработчиков</a></li>
-            <li><a href="/api/v1/openapi.json" className="arena-footer__link">OpenAPI JSON</a></li>
-          </ul>
-        </div>
+        {FOOTER_COLUMNS.map(column => (
+          <div className="arena-footer__section" key={column.title}>
+            <p className="arena-footer__heading">{column.title}</p>
+            {column.navLabel
+              ? <nav aria-label={column.navLabel}>{footerList(column)}</nav>
+              : footerList(column)}
+          </div>
+        ))}
       </div>
 
       <div className="arena-footer__legal">
         <p>© 2024–{year} Manacost. Все права защищены.</p>
         <nav className="arena-footer__legal-links" aria-label="Правовые документы">
-          <a href="/privacy/" className="arena-footer__link">Конфиденциальность</a>
-          <a href="/terms/" className="arena-footer__link">Условия использования</a>
+          {FOOTER_LEGAL_LINKS.map(link => <a key={link.href} href={link.href} className="arena-footer__link">{link.label}</a>)}
         </nav>
         <p>Hearthstone® — зарегистрированная торговая марка Blizzard Entertainment.</p>
       </div>

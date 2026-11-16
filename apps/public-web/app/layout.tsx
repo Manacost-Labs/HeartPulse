@@ -10,6 +10,7 @@ import { FieldFocusMode } from '@/apps/public-web/ui/FieldFocusMode';
 import { WebVitalsReporter } from '@/apps/public-web/ui/WebVitalsReporter';
 import { loadRuntimeClientConfig } from '@/apps/public-web/lib/runtimeClientConfig';
 import { COMPACT_NAVIGATION_SCRIPT } from '@/src/app/shell/navigationPreference';
+import searchVerification from '@/config/search-verification.json';
 
 // Pages replace title, description, canonical and robots; everything else
 // here reaches every document, so an unregistered page stays noindex.
@@ -18,8 +19,9 @@ export const metadata: Metadata = {
   title: 'HearthPulse',
   authors: [{ name: 'Manacost' }],
   robots: { index: false, follow: false },
-  // Search Console ownership. Yandex verifies through a static file in `public/`.
-  verification: { google: 'aGEyRvNTeG7FHSUUER0Tsfyyyd3sdRywc4qLycYIcpo' },
+  // Search Console and Yandex Webmaster ownership codes; an empty list prints no tag.
+  // Add codes in config/search-verification.json (docs/runbooks/search-consoles.md).
+  verification: searchVerification,
   icons: {
     icon: [
       { url: '/favicon-16.png?v=hearthstone-cute-20261020', type: 'image/png', sizes: '16x16' },

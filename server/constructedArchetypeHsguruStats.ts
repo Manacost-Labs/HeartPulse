@@ -12,7 +12,7 @@ export type ArchetypeHsguruStatsRouteDependencies = {
   /** GET a hs-data-api path. */
   request: (path: string) => Promise<globalThis.Response>;
   /** The catalog the archetype pages open on; only its slugs resolve. */
-  loadCatalog: (format: Format) => Promise<{ items: { slug: string; archetype: string }[] }>;
+  loadCatalog: (format: Format, slug?: string) => Promise<{ items: { slug: string; archetype: string }[] }>;
   loadRuCards: () => Promise<Record<string, RuCard>>;
   ruCardByDbf: (dbfId: number) => RuCard;
   loadCardCatalog?: (format: Format) => Promise<{ cards: Record<string, unknown>[] }>;
@@ -37,7 +37,7 @@ export function createArchetypeHsguruStatsRouter(dependencies: ArchetypeHsguruSt
   };
   const router = Router();
   router.get('/constructed-archetype-stats/:format/:slug', dependencies.accessGuard, createArchetypeHsguruStatsHandler({
-    findArchetype: async (format, slug) => (await dependencies.loadCatalog(format)).items.find(item => item.slug === slug)?.archetype ?? null,
+    findArchetype: async (format, slug) => (await dependencies.loadCatalog(format, slug)).items.find(item => item.slug === slug)?.archetype ?? null,
     read: reader.read,
     localizeCards,
     setPrivateNoStore: dependencies.setPrivateNoStore,

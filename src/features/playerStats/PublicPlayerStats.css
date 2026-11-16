@@ -1,22 +1,69 @@
-.public-player-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-width: 0;
+/* The statistics on `/id/<n>/`: the groups sit in the wooden frame of assets.md («Главная деревянная рама»). */
+.public-profile > .profile-stats,
+.public-player-stats-pending-body,
+.public-player-stats-empty {
   padding: clamp(1rem, 2.2vw, 1.5rem);
-  /* The wooden frame of assets.md («Главная деревянная рама»), as in the account. */
   border: 8px solid transparent;
   border-image: url('/wallpaper/main-page-rail-border.png') 18 / 8px stretch;
   background: var(--arena-parchment-texture), var(--arena-parchment-light);
   background-clip: padding-box;
   box-shadow: 0 10px 24px rgba(70, 38, 15, 0.16);
-  color: #3d2a1e;
 }
 
-.public-player-stats__head { display: flex; flex-direction: column; gap: 4px; padding-bottom: 0.85rem; border-bottom: 1px solid var(--arena-paper-line); }
-.public-player-stats__head h2 { margin: 0; font-family: var(--font-hs); font-size: 1.5rem; line-height: 1.15; color: #3d2a1e; }
-.public-player-stats__eyebrow { display: inline-flex; align-items: center; gap: 6px; margin: 0; color: #7a1e22; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
-.public-player-stats__description,
-.public-player-stats__empty { margin: 0; color: #6a513a; }
-/* Flex children default to their content's width; the period switch and tables must scroll inside, not widen the page. */
-.public-player-stats > * { min-width: 0; max-width: 100%; }
+/* Hold the places of the header strip (controls and one row of numbers) and of the sections while the modes are checked. */
+.public-player-stats-pending { min-height: 10.25rem; }
+.public-player-stats-pending-body { min-height: 40rem; }
+
+.public-player-stats-empty {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 1rem 1.25rem;
+  align-items: center;
+  color: var(--arena-ink);
+}
+
+.public-player-stats-empty__icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(123, 21, 27, 0.1);
+  color: var(--arena-red);
+}
+
+.public-player-stats-empty h2 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(1.2rem, 2.2vw, 1.45rem);
+  font-weight: 400;
+}
+
+.public-player-stats-empty p { max-width: 44rem; margin: 0.25rem 0 0; color: var(--arena-muted-ink); line-height: 1.5; }
+
+.public-player-stats-empty__cta {
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.5rem 1.1rem;
+  border-radius: 10px;
+  background: var(--arena-red);
+  color: #fbf3dc;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.public-player-stats-empty__cta:hover { background: #5d1418; color: #fff; }
+.public-player-stats-empty__cta:focus-visible { outline: 3px solid rgba(123, 21, 27, 0.72); outline-offset: 3px; }
+
+@media (max-width: 820px) {
+  .public-player-stats-pending { min-height: 12.5rem; }
+}
+
+@media (max-width: 640px) {
+  .public-player-stats-pending { min-height: 20.5rem; }
+  .public-player-stats-empty { grid-template-columns: auto minmax(0, 1fr); }
+  .public-player-stats-empty__cta { grid-column: 1 / -1; }
+}

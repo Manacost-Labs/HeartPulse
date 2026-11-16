@@ -9,8 +9,11 @@ Entries are keyed by format and HSGuru period.
 `loadArchetypeCatalogForPeriod` (`server/constructedArchetypeCatalogPeriod.ts`,
 beside the routes, since it reads the shared period contract) picks the
 catalog the archetype pages open on: the requested period, else the current
-Bans window when the source lists it in `meta.available_periods`, else the
-source default
+patch (`meta.current_patch_period`, or the newest listed `patch_*`), else the
+Bans window, else the source default. `loadArchetypeCatalogForSlug` serves
+the detail page, its teaser and the card statistics: the first of those
+windows that lists the archetype, so a shorter patch window does not 404 an
+archetype the Bans window has
 ([periods spec](../../../docs/specs/standard-meta-periods.md)). Other readers
 (public API, deck statistics, patch notes) keep the source default.
 

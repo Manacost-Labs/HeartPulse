@@ -1,4 +1,11 @@
 import type { BattlegroundLibraryKind } from './battlegroundLibrarySeoRoutes.js';
+import { StaleSitemapSourceError } from './entitySitemapDynamicLoader.js';
+import {
+  archetypeIndexingFacts,
+  archetypePageSlug,
+  type ArchetypeSitemapRow,
+} from './entitySitemapProjections.js';
+import { isIndexableArchetype } from '../shared/constructedArchetypeIndexing.js';
 import {
   loadCosmeticsSitemapRows,
   loadGuideArchiveSitemapRows,
@@ -15,7 +22,19 @@ type SourceOptions = {
 
 type ConstructedCardLoader = (
   format: 'standard' | 'wild',
-) => Promise<{ cards: unknown[] }>;
+) => Promise<{ cards: unknown[]; dataStatus?: string }>;
+
+/** One window of the catalogs the archetype pages read (`loadArchetypeCatalogWindows`), as far as the sitemap reads it. */
+export type ArchetypeSitemapCatalog = {
+  format: string;
+  period: string | null;
+  updatedAt: string | null;
+  items: unknown[];
+};
+
+type ArchetypeSitemapSource = {
+  loadCatalogs: (format: 'standard') => Promise<ArchetypeSitemapCatalog[]>;
+};
 
 const BATTLEGROUNDS_ORIGIN = 'http://127.0.0.1:3108';
 
@@ -86,6 +105,29 @@ export async function loadBattlegroundHeroSitemapRows(
   });
 }
 
+/**
+ * The archetype rows of the Standard sitemap: those the page answers as
+ * indexable. The page reads a slug from the first window that lists it, and the
+ * first row of that slug in it, so a slug is judged there only: a later window
+ * or row with the same slug never enters the list, whatever its numbers.
+ * Wild is not read at all.
+ */
+export function selectIndexableArchetypeRows(catalogs: ArchetypeSitemapCatalog[]): ArchetypeSitemapRow[] {
+  if (!Array.isArray(catalogs) || catalogs.length === 0
+    || catalogs.some(catalog => catalog?.format !== 'standard' || !Array.isArray(catalog.items))) {
+    throw new Error('Entity sitemap archetype catalog is invalid');
+  }
+  const seen = new Set<string>();
+  return catalogs.flatMap(catalog => catalog.items.flatMap(item => {
+    const slug = archetypePageSlug(item);
+    if (slug === null || seen.has(slug)) return [];
+    seen.add(slug);
+    return isIndexableArchetype(archetypeIndexingFacts(item))
+      ? [{ item, updatedAt: catalog.updatedAt, period: catalog.period }]
+      : [];
+  }));
+}
+
 export function excludeStandardCardsFromWildCatalog(
   standardCards: unknown[],
   wildCards: unknown[],
@@ -98,15 +140,25 @@ export function excludeStandardCardsFromWildCatalog(
   });
 }
 
+type CardCollection = { cards: unknown[]; dataStatus?: string };
+
+/** A stale collection is still usable, but must not be published as a fresh build. */
+function freshCards(collection: CardCollection): unknown[] {
+  if (collection.dataStatus === 'stale') throw new StaleSitemapSourceError(collection.cards);
+  return collection.cards;
+}
+
 export function createEntitySitemapLoaders(loadConstructedCards: ConstructedCardLoader) {
   return {
-    loadStandardCards: () => loadConstructedCards('standard').then(collection => collection.cards),
+    loadStandardCards: () => loadConstructedCards('standard').then(freshCards),
     loadWildCards: async () => {
       const [standard, wild] = await Promise.all([
         loadConstructedCards('standard'),
         loadConstructedCards('wild'),
       ]);
-      return excludeStandardCardsFromWildCatalog(standard.cards, wild.cards);
+      const cards = excludeStandardCardsFromWildCatalog(standard.cards, wild.cards);
+      if (standard.dataStatus === 'stale' || wild.dataStatus === 'stale') throw new StaleSitemapSourceError(cards);
+      return cards;
     },
     loadBattlegroundMinions: () => loadBattlegroundLibrarySitemapRows('minion'),
     loadBattlegroundSpells: () => loadBattlegroundLibrarySitemapRows('spell'),
@@ -123,9 +175,14 @@ export function createEntitySitemapRuntimeOptions(
   loadConstructedCards: ConstructedCardLoader,
   environment: Record<string, string | undefined>,
   editorial?: EditorialSitemapSources,
+  archetypes?: ArchetypeSitemapSource,
 ) {
   return {
     ...createEntitySitemapLoaders(loadConstructedCards),
+    ...(archetypes ? {
+      loadArchetypes: async () => selectIndexableArchetypeRows(await archetypes.loadCatalogs('standard')),
+      minimumArchetypeCount: minimumFromEnvironment(environment.SITEMAP_ARCHETYPES_MIN, 30),
+    } : {}),
     ...(editorial ? {
       loadCosmetics: () => loadCosmeticsSitemapRows(editorial.loadCosmeticsCatalog),
       loadGuidesArchive: async () => loadGuideArchiveSitemapRows(editorial.getGuidesDatabase()),

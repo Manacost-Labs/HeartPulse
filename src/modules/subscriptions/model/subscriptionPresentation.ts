@@ -7,7 +7,7 @@ import type {
 // independent from the key order received in provider payloads.
 const SUBSCRIPTION_ENTITLEMENT_LABELS = {
   arena: 'Арена',
-  battlegrounds: 'Поля Сражений',
+  battlegrounds: 'Поля сражений',
   standard: 'Стандарт',
   contests: 'Конкурсы',
   guidesArchive: 'Архив гайдов',

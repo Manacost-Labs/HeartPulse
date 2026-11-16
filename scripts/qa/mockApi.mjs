@@ -591,6 +591,20 @@ export function createQaApiHandler({
       }));
       return true;
     }
+    if (admin && url.pathname === '/api/admin/boosty/subscription-metrics' && method === 'GET') {
+      // adminState.subscriptionMetrics: { failure: 'unavailable' | 'incompatible' | 'forbidden', pollAgeMinutes, requests }.
+      const control = adminState.subscriptionMetrics ??= {};
+      (control.requests ??= []).push(url.searchParams.get('days'));
+      if (control.failure === 'forbidden') respond({ ...jsonResponse({ error: 'Недостаточно прав' }), status: 403 });
+      else if (control.failure) {
+        respond({ ...jsonResponse({ error: 'Источник аналитики недоступен', source: 'unavailable', ...(control.failure === 'incompatible' ? { reason: 'incompatible' } : {}) }), status: 502 });
+      } else {
+        const metrics = structuredClone(adminFixtures[url.pathname]);
+        metrics.coverage.lastAcceptedPollAt = new Date(Date.now() - (control.pollAgeMinutes ?? 2) * 60_000).toISOString();
+        respond(jsonResponse(metrics));
+      }
+      return true;
+    }
     const standardFixturePath = publicStandardFixtureAliases[url.pathname] || url.pathname;
     if ((admin || Boolean(publicStandardFixtureAliases[url.pathname])) && adminFixtures[standardFixturePath]) {
       const fixture = structuredClone(adminFixtures[standardFixturePath]);

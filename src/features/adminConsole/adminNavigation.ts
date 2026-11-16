@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Sparkles,
   Tags,
+  TrendingUp,
   Trophy,
   Users,
 } from 'lucide-react';
@@ -33,6 +34,7 @@ export const ADMIN_NAV_ITEMS: ReadonlyArray<AdminNavigationItem> = [
   { id: 'dashboard', label: 'Обзор', caption: 'Что требует внимания, показатели и события', group: 'Рабочий стол', icon: LayoutDashboard },
   { id: 'users', label: 'Пользователи', caption: 'Поиск людей, доступ, заметки и история', group: 'Аудитория', icon: Users, keywords: ['люди', 'юзеры', 'crm'] },
   { id: 'boosty', label: 'Boosty', caption: 'Подписчики и уровни доступа', group: 'Аудитория', icon: CircleDollarSign, keywords: ['бусти', 'буст', 'подписка'] },
+  { id: 'subscription-analytics', label: 'Аналитика подписок', caption: 'Платные подписчики Boosty: база, приходы и уходы', group: 'Аудитория', icon: TrendingUp, keywords: ['аналитика', 'метрики', 'отток', 'удержание', 'бусти'] },
   { id: 'telegram', label: 'Telegram', caption: 'Аккаунты и проверка доступа', group: 'Аудитория', icon: MessageCircle, keywords: ['телеграм', 'тг', 'vip'] },
   { id: 'articles', label: 'Статьи', caption: 'Публикации, раздел и доступ', group: 'Контент', icon: Newspaper },
   { id: 'gallery', label: 'Галерея', caption: 'Арты и оригиналы для скачивания', group: 'Контент', icon: ImageIcon },

@@ -115,11 +115,13 @@ payload with `success: true`.
   The page (`PublicProfileCard`) is one identity plate — portrait (the
   initials, or the site mark before a nickname exists), «Профиль игрока»,
   the display name, the member-since month, the «Подписчик» badge and
-  «Скопировать ссылку» — then, when `showsStats` is true, «Статистика и
-  колоды» (`src/features/playerStats/PublicPlayerStats.tsx`: the account's
-  statistics views in a wooden frame, fed from the public copy, dates without
-  times, each deck with «Код» to copy its deck code, or «Игрок ещё не прислал
-  ни одной партии» without games), and one section about HearthPulse that
+  «Скопировать ссылку» — then, when `showsStats` is true, the statistics
+  (`src/features/playerStats/PublicPlayerStats.tsx`): their header strip
+  (mode, period, four main numbers) inside the identity plate, and the
+  account's statistics views in a wooden frame under it, fed from the public
+  copy, dates without times, each deck card with a button to copy its deck
+  code. Without games the frame says the statistics will appear here and
+  links «Установить Hearthpulse» (`/download/`). Then one section about HearthPulse that
   invites the visitor to create a profile («Мой кабинет» for a signed-in
   viewer).
   Metadata: title `<displayName> — профиль игрока | HearthPulse`, a

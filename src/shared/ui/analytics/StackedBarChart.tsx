@@ -15,8 +15,19 @@ const LEGEND_ITEM = 72;
 export function StackedBarChart({ title, subtitle, rows, series, tourId }: { title: string; subtitle?: string; rows: StackRow[]; series: StackSeries[]; tourId?: string }) {
   const { ref, width } = usePlotWidth();
   const [active, setActive] = useState<number | null>(null);
-  const legendColumns = Math.max(1, Math.floor(width / LEGEND_ITEM));
-  const legendHeight = Math.ceil(series.length / legendColumns) * 20 + 6;
+  // Legend items flow by their label width, so long names (plans, classes) never print over each other.
+  const legendWidths = series.map(item => Math.max(LEGEND_ITEM, Math.ceil(item.label.length * 6.6) + 32));
+  const legendSlots = series.map((_, index) => {
+    let row = 0;
+    let offset = 0;
+    for (let at = 0; at <= index; at += 1) {
+      if (offset > 0 && offset + legendWidths[at] > width) { row += 1; offset = 0; }
+      if (at === index) return { row, offset };
+      offset += legendWidths[at];
+    }
+    return { row, offset };
+  });
+  const legendHeight = ((legendSlots.at(-1)?.row ?? 0) + 1) * 20 + 6;
   const left = 56;
   const plotWidth = width - left;
   const top = legendHeight + 20;
@@ -29,7 +40,7 @@ export function StackedBarChart({ title, subtitle, rows, series, tourId }: { tit
     <div ref={ref} className="analytics-chart__plot">
       {!rows.length ? <p className="analytics-chart__empty">Для графика пока нет данных.</p> : <>
         <svg data-chart viewBox={`0 0 ${width} ${top + rows.length * ROW}`} role="img" aria-label={title} onPointerLeave={() => setActive(null)}>
-          {series.map((item, index) => <g key={item.key} transform={`translate(${index % legendColumns * LEGEND_ITEM} ${Math.floor(index / legendColumns) * 20})`}><rect y="2" width="10" height="10" rx="2" fill={item.color} /><text x="16" y="12" className="analytics-chart__axis">{item.label}</text></g>)}
+          {series.map((item, index) => <g key={item.key} transform={`translate(${legendSlots[index].offset} ${legendSlots[index].row * 20})`}><rect y="2" width="10" height="10" rx="2" fill={item.color} /><text x="16" y="12" className="analytics-chart__axis">{item.label}</text></g>)}
           {[0, 50, 100].map(tick => <g key={tick}>
             <line className="analytics-chart__grid" x1={left + plotWidth * tick / 100} x2={left + plotWidth * tick / 100} y1={top - 4} y2={top + rows.length * ROW} />
             <text className="analytics-chart__axis" x={left + plotWidth * tick / 100} y={top - 8} textAnchor={tick === 0 ? 'start' : tick === 100 ? 'end' : 'middle'}>{tick}%</text>
@@ -46,7 +57,7 @@ export function StackedBarChart({ title, subtitle, rows, series, tourId }: { tit
                 offset += share;
                 return share > 0 ? <g key={item.key}>
                   <rect x={left + start / 100 * plotWidth} y={y} width={share / 100 * plotWidth} height={BAR} fill={item.color} />
-                  {share / 100 * plotWidth > 30 && <text x={left + (start + share / 2) / 100 * plotWidth} y={y + BAR - 5} textAnchor="middle" fill={item.textColor ?? '#30251c'} fontSize="11" fontWeight="700">{item.label}</text>}
+                  {share / 100 * plotWidth > Math.max(30, item.label.length * 7 + 10) && <text x={left + (start + share / 2) / 100 * plotWidth} y={y + BAR - 5} textAnchor="middle" fill={item.textColor ?? '#30251c'} fontSize="11" fontWeight="700">{item.label}</text>}
                 </g> : null;
               })}
             </g>;

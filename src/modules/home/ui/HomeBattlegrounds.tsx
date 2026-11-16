@@ -9,7 +9,7 @@ const BG_HOME_CARDS: Array<{
   stat: string;
 }> = [
   { id: 'bg-heroes', href: '/heroes/', title: 'Герои', desc: 'Отдельные страницы героев, сила, способности и связки для текущей меты.', stat: 'тиры героев' },
-  { id: 'bg-library', href: '/library/', title: 'Библиотека', desc: 'Существа, заклинания, архив пула и быстрый поиск по картам Полей Сражений.', stat: 'пул карт' },
+  { id: 'bg-library', href: '/library/', title: 'Библиотека', desc: 'Существа, заклинания, архив пула и быстрый поиск по картам Полей сражений.', stat: 'пул карт' },
   { id: 'bg-tier-list', href: '/battlegrounds/tier-list/', title: 'Тир-лист', desc: 'Сводка по сильным картам и стратегиям без ручного копания в таблицах.', stat: 'мета' },
   { id: 'bg-strategies', href: '/battlegrounds/strategies/', title: 'Стратегии', desc: 'Конструктор для сборки и визуализации планов партии.', stat: 'builder' },
   { id: 'bg-tier-builder', href: '/battlegrounds/tier-builder/', title: 'Свой тир-лист', desc: 'Инструмент для сборки собственных рядов и экспорта результата.', stat: 'export' },
@@ -21,11 +21,11 @@ export default function HomeBattlegrounds({ onNavigate }: { onNavigate: (tab: st
       <div className="home-section-heading">
         <div className="home-bg-directory__sign">
           <span>Battlegrounds</span>
-          <h2 id="home-bg-heading">Поля Сражений</h2>
+          <h2 id="home-bg-heading">Поля сражений</h2>
         </div>
         <p>Герои, карты и инструменты для подготовки своей стратегии.</p>
       </div>
-      <nav className="home-bg-directory__links" aria-label="Разделы Полей Сражений">
+      <nav className="home-bg-directory__links" aria-label="Разделы Полей сражений">
         {BG_HOME_CARDS.map((card, index) => (
           <a
             key={card.id}

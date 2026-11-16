@@ -22,9 +22,9 @@ export const headers = [
   ['winrates', '', 'Классы', 'Статистика побед на Арене — текущий патч'],
   ['tierlist', '', 'Тир-лист карт', 'Оценки карт для каждого класса — текущий патч'],
   ['legendaries', '', 'Легендарки', 'Наборы карт для выбора первой легендарки на Арене'],
-  ['battlegrounds', 'bg-library-page', 'Библиотека Полей Сражений', ''],
+  ['battlegrounds', 'bg-library-page', 'Библиотека Полей сражений', ''],
   ['bg-tier-builder', '', 'Конструктор тир-листов Полей сражений', ''],
-  ['battlegrounds', 'bg-tier-list-page', 'Тир-лист БГ', ''],
+  ['battlegrounds', 'bg-tier-list-page', 'Тир-лист Полей сражений', ''],
 ];
 
 export function HeaderFixture({ index = 0 }: { index?: number }) {

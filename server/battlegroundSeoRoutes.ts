@@ -304,9 +304,9 @@ function renderHeroDocument(
         </div>
       </article>
       <nav class="bg-hero-seo__links" aria-label="Связанные разделы">
-        <a href="/heroes/">Все герои БГ</a>
-        <a href="/battlegrounds/tier-list/">Тир-лист БГ</a>
-        <a href="/library/">Библиотека БГ</a>
+        <a href="/heroes/">Все герои Полей сражений</a>
+        <a href="/battlegrounds/tier-list/">Тир-лист Полей сражений</a>
+        <a href="/library/">Библиотека Полей сражений</a>
       </nav>
     </main>`;
   return renderDocument({

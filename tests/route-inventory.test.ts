@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { TABS } from '../src/app/routing/navigationRoutes';
+import { resolvePublicUrlPolicy } from '../src/shared/seo/publicUrlPolicy';
 
 type InventoryRoute = {
   id: string;
@@ -232,7 +233,7 @@ function routeMatchesPath(route: InventoryRoute, path: string): boolean {
 // Pages with authored titles and descriptions live in the SEO registry.
 const seoRegistry = JSON.parse(
   readFileSync(new URL('../config/public-seo-pages.json', import.meta.url), 'utf8'),
-) as { pages: Record<string, { sitemap: boolean }> };
+) as { pages: Record<string, { sitemap: boolean; title: string; description: string }> };
 const indexedRegistryPaths = Object.entries(seoRegistry.pages)
   .filter(([, page]) => page.sitemap)
   .map(([path]) => path);
@@ -243,8 +244,32 @@ for (const path of indexedRegistryPaths) {
   assert.equal(policy.expectedStatus, 200, `${path} registry page must describe a successful HTML route`);
 }
 for (const route of inventory.routes.filter(route => route.htmlStrategy === 'prerender' || route.htmlStrategy === 'prerender-teaser')) {
-  assert.ok(indexedRegistryPaths.includes(route.pattern), `${route.id} must have an SEO registry page`);
+  const registryPage = seoRegistry.pages[route.pattern];
+  assert.ok(registryPage, `${route.id} must have an SEO registry page`);
+  assert.equal(registryPage.sitemap, route.sitemap,
+    `${route.id} registry page must be listed in the sitemap exactly when the inventory says so`);
 }
+
+// /articles is a collection of kolodahearthstone.com articles (owner decision
+// 2026-11-15): crawlable for link discovery, never an index or sitemap entry.
+const articlesRoute = inventory.routes.find(route => route.id === 'articles');
+assert.deepEqual(
+  [articlesRoute?.indexPolicy, articlesRoute?.sitemap, seoRegistry.pages['/articles']?.sitemap],
+  ['noindex-follow', false, false],
+  '/articles must be noindex, follow and absent from the sitemap',
+);
+assert.ok(!indexedRegistryPaths.includes('/articles'), '/articles must not be a sitemap page');
+const articlesPage = seoRegistry.pages['/articles'];
+assert.match(`${articlesPage.title} ${articlesPage.description}`, /подборка/i, '/articles must be called a collection');
+assert.ok(articlesPage.description.split(/\s+/).map(word => word.replace(/[.,;:!?]+$/, '')).some(word => word === 'kolodahearthstone.com'),
+  '/articles must say where the articles live');
+const articlesNav = TABS.find(tab => tab.id === 'articles');
+assert.equal(articlesNav?.label, 'Подборка', 'the menu calls /articles a collection');
+
+// ?version=X patch pages (46 URLs with one title) canonicalise to the clean path.
+const patchPolicy = await resolvePublicUrlPolicy('/standard/patches/', '?version=33.0.2');
+assert.equal(patchPolicy.canonicalUrl, 'https://hearthpulse.net/standard/patches/',
+  '/standard/patches/?version=X must be canonical to the path without the parameter');
 
 const queryOwners = new Map<string, string>();
 for (const policy of inventory.queryPolicies) {

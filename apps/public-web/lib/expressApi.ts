@@ -19,13 +19,13 @@ export function expressOrigin(): URL {
 
 /**
  * Anonymous read of a public Express JSON projection. It never sends viewer
- * cookies, never follows redirects and gives up after ten seconds, so paid or
+ * cookies, never follows redirects and gives up after ten seconds (or `timeoutMs`), so paid or
  * personal data cannot reach shared server-rendered HTML. The path must be
  * origin-relative (`/api/...`) and may carry a query string. A caller's signal
  * can shorten the deadline and cancel a body that is still being read.
  * `revalidate` (seconds) is for prerendered pages; the default never caches.
  */
-export function fetchPublicExpress(path: string, signal?: AbortSignal, options: { revalidate?: number } = {}): Promise<Response> {
+export function fetchPublicExpress(path: string, signal?: AbortSignal, options: { revalidate?: number; timeoutMs?: number } = {}): Promise<Response> {
   // An absolute or protocol-relative URL would leave the loopback origin.
   if (!path.startsWith('/') || path.startsWith('//')) {
     throw new Error('Express path must be origin-relative');
@@ -35,9 +35,10 @@ export function fetchPublicExpress(path: string, signal?: AbortSignal, options: 
   const caching: RequestInit = options.revalidate
     ? { next: { revalidate: options.revalidate } } as RequestInit
     : { cache: 'no-store' };
+  const deadline = AbortSignal.timeout(options.timeoutMs ?? 10_000);
   return fetch(new URL(path, expressOrigin()), {
     ...caching, credentials: 'omit', redirect: 'error',
-    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(10_000)]) : AbortSignal.timeout(10_000),
+    signal: signal ? AbortSignal.any([signal, deadline]) : deadline,
     headers: { Accept: 'application/json' },
   });
 }

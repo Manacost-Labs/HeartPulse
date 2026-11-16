@@ -73,6 +73,9 @@
 .identity-plate__action--quiet { border-color: transparent; background: transparent; backdrop-filter: none; }
 .identity-plate :where(a, button):focus-visible { outline: 3px solid var(--arena-gold-light); outline-offset: 2px; }
 
+/* The statistics' strip spans the plate under the name; the art stays behind it. */
+.identity-plate__summary { grid-column: 1 / -1; min-width: 0; }
+
 @media (max-width: 820px) {
   .identity-plate {
     grid-template-columns: auto minmax(0, 1fr);

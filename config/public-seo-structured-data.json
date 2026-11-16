@@ -1,15 +1,5 @@
 {
   "schemaVersion": 1,
-  "organization": {
-    "@type": "Organization",
-    "@id": "https://hearthpulse.net/#org",
-    "name": "Manacost",
-    "url": "https://hearthpulse.net/",
-    "logo": {
-      "@type": "ImageObject",
-      "url": "https://hearthpulse.net/assets/arena_icon.webp"
-    }
-  },
   "pages": {
     "/": [
       {
@@ -17,44 +7,22 @@
         "@id": "https://hearthpulse.net/#website",
         "url": "https://hearthpulse.net/",
         "name": "HearthPulse",
-        "alternateName": "Manacost Arena",
-        "description": "Актуальная статистика режима Арена в Hearthstone",
+        "description": "Актуальная статистика Арены Hearthstone: тир-лист карт по классам, винрейты, легендарные группы. Данные обновляются автоматически 4 раза в сутки.",
         "inLanguage": "ru",
         "publisher": {
-          "@type": "Organization",
-          "@id": "https://hearthpulse.net/#org",
-          "name": "Manacost",
-          "url": "https://hearthpulse.net",
-          "logo": {
-            "@type": "ImageObject",
-            "url": "https://hearthpulse.net/assets/arena_icon.webp"
-          },
-          "sameAs": [
-            "https://t.me/manacost_ru",
-            "https://boosty.to/kolodahearthstone"
-          ]
+          "@id": "https://hearthpulse.net/#org"
         }
       },
       {
-        "@type": "WebApplication",
-        "@id": "https://hearthpulse.net/#app",
-        "name": "Manacost Arena",
-        "url": "https://hearthpulse.net",
-        "description": "Актуальная статистика режима Арена в Hearthstone: тир-лист карт по классам, винрейты, легендарные группы.",
-        "applicationCategory": "GameApplication",
-        "operatingSystem": "Web",
-        "inLanguage": "ru",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "RUB"
+        "@type": "WebPage",
+        "@id": "https://hearthpulse.net/#page",
+        "name": "HearthPulse — Тир-лист и Винрейты для Арены Hearthstone",
+        "description": "Актуальная статистика Арены Hearthstone: тир-лист карт по классам, винрейты, легендарные группы. Данные обновляются автоматически 4 раза в сутки.",
+        "url": "https://hearthpulse.net/",
+        "isPartOf": {
+          "@id": "https://hearthpulse.net/#website"
         },
-        "featureList": [
-          "Тир-лист карт Арены Hearthstone по всем классам",
-          "Винрейты классов с актуального патча",
-          "Группы легендарных карт для первого выбора",
-          "Автоматическое обновление данных 4 раза в сутки"
-        ]
+        "inLanguage": "ru"
       },
       {
         "@type": "BreadcrumbList",
@@ -630,7 +598,7 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Мета Hearthstone",
+            "name": "Мета Hearthstone: колоды и винрейты",
             "item": "https://hearthpulse.net/standard/meta/"
           }
         ]
@@ -886,7 +854,7 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Классы",
+            "name": "Винрейт классов на Арене",
             "item": "https://hearthpulse.net/classes/"
           }
         ]
@@ -895,9 +863,14 @@
         "@type": "Dataset",
         "@id": "https://hearthpulse.net/classes/#dataset",
         "name": "Винрейт классов Арены Hearthstone",
-        "description": "Процент побед (винрейт) классов в режиме Арена Hearthstone по данным HSReplay и Firestone. Значения доступны по подписке; на открытой странице — описание того, как читать рейтинг, откуда берутся данные и как они обновляются.",
+        "description": "Процент побед (винрейт) классов в режиме Арена Hearthstone по данным HSReplay и Firestone. Разбивки, история и сравнение классов доступны по подписке; на открытой странице — порядок классов с винрейтом до десятых долей процента, размер выборки по классу, дата обновления и источник, а также описание того, как читать рейтинг.",
         "url": "https://hearthpulse.net/classes/",
         "isAccessibleForFree": false,
+        "hasPart": {
+          "@type": "WebPageElement",
+          "isAccessibleForFree": false,
+          "cssSelector": ".paywalled-classes"
+        },
         "isBasedOn": [
           {
             "@type": "Dataset",
@@ -942,7 +915,7 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Тир-лист",
+            "name": "Тир-лист карт Арены Hearthstone",
             "item": "https://hearthpulse.net/tierlist/"
           }
         ]
@@ -951,9 +924,14 @@
         "@type": "Dataset",
         "@id": "https://hearthpulse.net/tierlist/#dataset",
         "name": "Тир-лист карт Арены Hearthstone",
-        "description": "Тир-лист карт Арены Hearthstone по классам с оценками от S до F по данным HSReplay, HearthArena и Firestone. Оценки доступны по подписке; на открытой странице — описание шкалы, источников и обновления данных.",
+        "description": "Тир-лист карт Арены Hearthstone по классам с оценками от S до F по данным HSReplay, HearthArena и Firestone. Полный список и оценки доступны по подписке; на открытой странице — лучшие карты Арены и лучшие карты каждого класса с тиром, дата обновления, нижняя граница числа игр, описание шкалы и источников.",
         "url": "https://hearthpulse.net/tierlist/",
         "isAccessibleForFree": false,
+        "hasPart": {
+          "@type": "WebPageElement",
+          "isAccessibleForFree": false,
+          "cssSelector": ".paywalled-tierlist"
+        },
         "isBasedOn": [
           {
             "@type": "Dataset",
@@ -1003,36 +981,10 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Легендарки",
+            "name": "Легендарки Арены Hearthstone",
             "item": "https://hearthpulse.net/legendaries/"
           }
         ]
-      }
-    ],
-    "/articles": [
-      {
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Главная",
-            "item": "https://hearthpulse.net"
-          },
-          {
-            "@type": "ListItem",
-            "position": 2,
-            "name": "Статьи",
-            "item": "https://hearthpulse.net/articles/"
-          }
-        ]
-      },
-      {
-        "@type": "CollectionPage",
-        "@id": "https://hearthpulse.net/articles/#collection",
-        "name": "Статьи и гайды по Арене Hearthstone",
-        "description": "Гайды, разборы и советы по режиму Арена в Hearthstone от команды Manacost.",
-        "url": "https://hearthpulse.net/articles/"
       }
     ],
     "/gallery": [
@@ -1091,6 +1043,29 @@
     ],
     "/cosmetics/heroes": [
       {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Главная",
+            "item": "https://hearthpulse.net"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Косметика",
+            "item": "https://hearthpulse.net/cosmetics/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": "Скины героев",
+            "item": "https://hearthpulse.net/cosmetics/heroes/"
+          }
+        ]
+      },
+      {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/cosmetics/heroes/#collection",
         "name": "Скины героев Hearthstone",
@@ -1101,6 +1076,29 @@
     ],
     "/cosmetics/coins": [
       {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Главная",
+            "item": "https://hearthpulse.net"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Косметика",
+            "item": "https://hearthpulse.net/cosmetics/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": "Косметические монеты",
+            "item": "https://hearthpulse.net/cosmetics/coins/"
+          }
+        ]
+      },
+      {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/cosmetics/coins/#collection",
         "name": "Косметические монеты Hearthstone",
@@ -1110,6 +1108,29 @@
       }
     ],
     "/cosmetics/pets": [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Главная",
+            "item": "https://hearthpulse.net"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Косметика",
+            "item": "https://hearthpulse.net/cosmetics/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": "Питомцы",
+            "item": "https://hearthpulse.net/cosmetics/pets/"
+          }
+        ]
+      },
       {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/cosmetics/pets/#collection",
@@ -1238,25 +1259,18 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Конструктор стратегий",
+            "name": "Конструктор стратегий Полей сражений",
             "item": "https://hearthpulse.net/battlegrounds/strategies/"
           }
         ]
       },
       {
-        "@type": "WebApplication",
-        "@id": "https://hearthpulse.net/battlegrounds/strategies/#app",
-        "name": "Конструктор стратегий БГ",
-        "url": "https://hearthpulse.net/battlegrounds/strategies/",
+        "@type": "WebPage",
+        "@id": "https://hearthpulse.net/battlegrounds/strategies/#page",
+        "name": "Конструктор стратегий Полей сражений",
         "description": "Инструмент для сборки и визуализации собственного плана на Полях сражений Hearthstone.",
-        "applicationCategory": "GameApplication",
-        "operatingSystem": "Web",
-        "inLanguage": "ru",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "RUB"
-        }
+        "url": "https://hearthpulse.net/battlegrounds/strategies/",
+        "inLanguage": "ru"
       }
     ],
     "/heroes": [
@@ -1280,7 +1294,7 @@
       {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/heroes/#collection",
-        "name": "Герои Полей Сражений Hearthstone",
+        "name": "Герои Полей сражений Hearthstone",
         "description": "Тир-лист героев Hearthstone Battlegrounds с отдельными страницами героев.",
         "url": "https://hearthpulse.net/heroes/",
         "inLanguage": "ru"
@@ -1307,7 +1321,7 @@
       {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/library/#collection",
-        "name": "Библиотека Полей Сражений Hearthstone",
+        "name": "Библиотека Полей сражений Hearthstone",
         "description": "Актуальные и архивные карты Hearthstone Battlegrounds с фильтрами и детальными страницами.",
         "url": "https://hearthpulse.net/library/",
         "inLanguage": "ru"
@@ -1317,7 +1331,7 @@
       {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/library/minions/#collection",
-        "name": "Существа Полей Сражений Hearthstone",
+        "name": "Существа Полей сражений Hearthstone",
         "description": "Актуальные существа Hearthstone Battlegrounds с фильтрами и статистикой.",
         "url": "https://hearthpulse.net/library/minions/",
         "inLanguage": "ru"
@@ -1327,7 +1341,7 @@
       {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/library/spells/#collection",
-        "name": "Заклинания Полей Сражений Hearthstone",
+        "name": "Заклинания Полей сражений Hearthstone",
         "description": "Актуальные заклинания Hearthstone Battlegrounds с фильтрами и статистикой.",
         "url": "https://hearthpulse.net/library/spells/",
         "inLanguage": "ru"
@@ -1337,7 +1351,7 @@
       {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/library/archive/#collection",
-        "name": "Архив карт Полей Сражений Hearthstone",
+        "name": "Архив карт Полей сражений Hearthstone",
         "description": "Архивные карты Hearthstone Battlegrounds.",
         "url": "https://hearthpulse.net/library/archive/",
         "inLanguage": "ru"
@@ -1347,7 +1361,7 @@
       {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/library/archive/minions/#collection",
-        "name": "Архив существ Полей Сражений Hearthstone",
+        "name": "Архив существ Полей сражений Hearthstone",
         "description": "Существа Hearthstone Battlegrounds вне активного пула.",
         "url": "https://hearthpulse.net/library/archive/minions/",
         "inLanguage": "ru"
@@ -1357,7 +1371,7 @@
       {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/library/archive/spells/#collection",
-        "name": "Архив заклинаний Полей Сражений Hearthstone",
+        "name": "Архив заклинаний Полей сражений Hearthstone",
         "description": "Заклинания Hearthstone Battlegrounds вне активного пула.",
         "url": "https://hearthpulse.net/library/archive/spells/",
         "inLanguage": "ru"
@@ -1376,7 +1390,7 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Тир-лист",
+            "name": "Тир-лист Полей сражений",
             "item": "https://hearthpulse.net/battlegrounds/tier-list/"
           }
         ]
@@ -1384,7 +1398,7 @@
       {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/battlegrounds/tier-list/#collection",
-        "name": "Тир-лист Полей Сражений Hearthstone",
+        "name": "Тир-лист Полей сражений Hearthstone",
         "description": "Существа, стратегии, заклинания и аксессуары Hearthstone Battlegrounds.",
         "url": "https://hearthpulse.net/battlegrounds/tier-list/",
         "inLanguage": "ru"
@@ -1409,19 +1423,12 @@
         ]
       },
       {
-        "@type": "WebApplication",
-        "@id": "https://hearthpulse.net/battlegrounds/tier-builder/#app",
-        "name": "Конструктор тир-листов Полей Сражений",
-        "url": "https://hearthpulse.net/battlegrounds/tier-builder/",
+        "@type": "WebPage",
+        "@id": "https://hearthpulse.net/battlegrounds/tier-builder/#page",
+        "name": "Конструктор тир-листов Полей сражений",
         "description": "Инструмент для создания собственных тир-листов Hearthstone Battlegrounds.",
-        "applicationCategory": "GameApplication",
-        "operatingSystem": "Web",
-        "inLanguage": "ru",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "RUB"
-        }
+        "url": "https://hearthpulse.net/battlegrounds/tier-builder/",
+        "inLanguage": "ru"
       }
     ]
   }

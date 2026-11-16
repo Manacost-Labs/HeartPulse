@@ -1,10 +1,15 @@
 import { createContext, type ComponentType, type ReactNode } from 'react';
 
 export type AccountGameStatsProps = {
-  /** Wraps the statistics in the account's section frame and heading. */
-  frame: (body: ReactNode) => ReactNode;
-  /** Shown once the check finds no games (or the statistics are switched off); nothing while checking. */
+  /**
+   * Places the statistics: `summary` is the header strip (mode, period and
+   * the main numbers), `body` the sections of the shown mode.
+   */
+  frame: (body: ReactNode, summary: ReactNode) => ReactNode;
+  /** Shown once the check finds no games (or the statistics are switched off). */
   empty?: ReactNode;
+  /** Shown while the check runs; keeps the place of the section. */
+  pending?: ReactNode;
 };
 
 /**

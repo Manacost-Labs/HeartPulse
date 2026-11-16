@@ -24,11 +24,11 @@ export function HomeArticleSkeleton() {
  * page outline gains no duplicate heading; the single status names the wait.
  */
 export function HomeLatestArticlesSkeleton() {
-  return <LoadingSurface label="Загружаем последние статьи" quiet layout="rows" className="home-latest-articles">
+  return <LoadingSurface label="Загружаем подборку статей" quiet layout="rows" className="home-latest-articles">
     <div className="home-section-heading" aria-hidden="true">
       <div>
         <span>Новые материалы</span>
-        <h2>Последние статьи</h2>
+        <h2>Подборка статей</h2>
       </div>
       <p>Свежие мета-отчёты, разборы патчей и практические гайды редакции.</p>
     </div>
@@ -36,7 +36,7 @@ export function HomeLatestArticlesSkeleton() {
       {[0, 1, 2].map(index => <HomeArticleSkeleton key={index} />)}
     </div>
     <span className="home-latest-articles__all home-latest-articles__all--loading" aria-hidden="true">
-      Все статьи <ArrowRight size={16} aria-hidden="true" />
+      Вся подборка <ArrowRight size={16} aria-hidden="true" />
     </span>
   </LoadingSurface>;
 }

@@ -1,3 +1,5 @@
+import { organizationNode } from './seoOrganization.js';
+
 type Breadcrumb = { name: string; item: string };
 
 type EntityStructuredDataOptions = {
@@ -7,7 +9,7 @@ type EntityStructuredDataOptions = {
   origin: string;
   /** Absolute image URL; a page without a picture omits `primaryImageOfPage`. */
   image: string | null;
-  entityFragment: 'card' | 'hero';
+  entityFragment: 'card' | 'hero' | 'cosmetic';
   entity: Record<string, unknown>;
   breadcrumbs: Breadcrumb[];
 };
@@ -21,7 +23,11 @@ type CollectionStructuredDataOptions = {
   breadcrumbs: Breadcrumb[];
 };
 
-/** Reference to the site node declared on the home page; every page links to it by `@id`. */
+/**
+ * The site node, written in full where a page links it: a `WebSite` with its `@id`, name and
+ * address is a definition inside this document, not a bare reference. The home page node
+ * (`config/public-seo-structured-data.json`) carries the same `@id` and adds the description.
+ */
 function websiteReference(origin: string) {
   return {
     '@type': 'WebSite',
@@ -67,6 +73,7 @@ export function buildEntityStructuredData(options: EntityStructuredDataOptions) 
         ...options.entity,
       },
       breadcrumbList(options.canonical, options.breadcrumbs),
+      organizationNode(),
     ],
   };
 }
@@ -87,6 +94,7 @@ export function buildCollectionStructuredData(options: CollectionStructuredDataO
         mainEntity: options.mainEntity,
       },
       breadcrumbList(options.canonical, options.breadcrumbs),
+      organizationNode(),
     ],
   };
 }

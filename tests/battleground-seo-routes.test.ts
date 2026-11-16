@@ -178,8 +178,8 @@ try {
   assert.match(html, /<img[^>]+src="https:\/\/hearthpulse\.net\/images\/heroes\/TB_BaconShop_HERO_16\.png"/);
   assert.match(html, /<dt>DBF ID<\/dt><dd><code>57944<\/code><\/dd>/);
   assert.match(html, /<dt>ID карты<\/dt><dd><code>TB_BaconShop_HERO_16<\/code><\/dd>/);
-  assert.match(html, /href="\/battlegrounds\/tier-list\/">Тир-лист БГ<\/a>/);
-  assert.match(html, /href="\/library\/">Библиотека БГ<\/a>/);
+  assert.match(html, /href="\/battlegrounds\/tier-list\/">Тир-лист Полей сражений<\/a>/);
+  assert.match(html, /href="\/library\/">Библиотека Полей сражений<\/a>/);
   assert.match(html, /<h2>Сила героя<\/h2>/);
   assert.match(html, /Прокрастинация &amp; польза/);
   assert.match(html, /Пропустите первые два хода\. Начните с существа 3-го уровня\./,
@@ -192,7 +192,7 @@ try {
   const jsonLdMatch = html.match(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/);
   assert.ok(jsonLdMatch, 'existing hero must expose entity JSON-LD');
   const jsonLd = JSON.parse(jsonLdMatch[1]);
-  assert.deepEqual(jsonLd['@graph'].map((node: any) => node['@type']), ['WebPage', 'CreativeWork', 'BreadcrumbList']);
+  assert.deepEqual(jsonLd['@graph'].map((node: any) => node['@type']), ['WebPage', 'CreativeWork', 'BreadcrumbList', 'Organization']);
   assert.equal(jsonLd['@graph'][0].mainEntity['@id'], 'https://hearthpulse.net/heroes/57944/#hero');
   assert.equal(jsonLd['@graph'][1].identifier, 57944);
   assert.equal(jsonLd['@graph'][1].alternateName, 'TB_BaconShop_HERO_16');

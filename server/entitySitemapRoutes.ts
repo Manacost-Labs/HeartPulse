@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
+import { createDynamicDocumentLoader } from './entitySitemapDynamicLoader.js';
 import { Router, type Request, type RequestHandler, type Response } from 'express';
 import {
-  SemanticSitemapStore,
   type SemanticSitemapDocument,
   type SitemapSegment,
   type SitemapSemanticEntry,
@@ -10,6 +10,7 @@ import {
   canonicalSitemapOrigin,
   projectBattlegroundHeroSitemapCatalog,
   projectBattlegroundLibrarySitemapCatalog,
+  projectConstructedArchetypeSitemapCatalog,
   projectConstructedCardSitemapCatalog,
   projectStandardCardSitemapCatalog,
 } from './entitySitemapProjections.js';
@@ -45,6 +46,7 @@ export type EntitySitemapRouterDependencies = {
   loadBattlegroundHeroes?: () => Promise<unknown[]>;
   loadCosmetics?: () => Promise<unknown[]>;
   loadGuidesArchive?: () => Promise<unknown[]>;
+  loadArchetypes?: () => Promise<unknown[]>;
   staticUrls: string[];
   stateDirectory: string;
   canonicalOrigin?: string;
@@ -57,8 +59,13 @@ export type EntitySitemapRouterDependencies = {
   minimumBattlegroundHeroCount?: number;
   minimumCosmeticsCount?: number;
   minimumGuideCount?: number;
+  minimumArchetypeCount?: number;
   staticLastModifiedMs?: number;
   retryAfterSeconds?: number;
+  /** A request waits this long for a sitemap rebuild before it gets the last known good document. Default 2 s. */
+  responseDeadlineMs?: number;
+  /** A rebuild that has not settled by then is abandoned, so the next request starts a new one. Default 25 s. */
+  loadDeadlineMs?: number;
   now?: () => number;
   onError?: (error: unknown) => void;
 };
@@ -71,6 +78,7 @@ const ENTITY_SITEMAP_PATHS: DynamicSitemapDefinition['pathname'][] = [
   '/sitemaps/battleground-heroes.xml',
   '/sitemaps/cosmetics.xml',
   '/sitemaps/guides-archive.xml',
+  '/sitemaps/archetypes.xml',
 ];
 
 export {
@@ -114,7 +122,9 @@ function dynamicDocument(
 
 function sendDocument(request: Request, response: Response, document: CachedDocument, maxAgeSeconds: number): Response {
   response.set('Content-Type', 'application/xml; charset=utf-8');
-  response.set('Cache-Control', `public, max-age=${maxAgeSeconds}, stale-while-revalidate=${maxAgeSeconds}`);
+  // An outage copy must not be pinned by the edge cache for a full sitemap lifetime.
+  const seconds = document.source === 'last-known-good' ? Math.min(maxAgeSeconds, 30) : maxAgeSeconds;
+  response.set('Cache-Control', `public, max-age=${seconds}, stale-while-revalidate=${seconds}`);
   response.set('ETag', document.etag);
   if (document.lastModified) response.set('Last-Modified', document.lastModified);
   response.set('X-Sitemap-Source', document.source);
@@ -191,53 +201,12 @@ function dynamicSitemapDefinitions(
     segment: 'guides-archive', pathname: '/sitemaps/guides-archive.xml', load: dependencies.loadGuidesArchive,
     project: projectGuideArchiveSitemapCatalog, minimumEntryCount: dependencies.minimumGuideCount ?? 500,
   });
-  return definitions;
-}
-
-function createDynamicDocumentLoader(
-  definition: DynamicSitemapDefinition,
-  dependencies: EntitySitemapRouterDependencies,
-  origin: string,
-  now: () => number,
-  cacheTtlMs: number,
-): () => Promise<CachedDocument> {
-  const store = new SemanticSitemapStore({
-    directory: dependencies.stateDirectory,
-    filename: definition.filename,
-    segment: definition.segment,
-    canonicalOrigin: origin,
-    now,
-    minimumEntryCount: definition.minimumEntryCount,
+  if (dependencies.loadArchetypes) definitions.push({
+    segment: 'archetypes', pathname: '/sitemaps/archetypes.xml', load: dependencies.loadArchetypes,
+    project: rows => projectConstructedArchetypeSitemapCatalog(rows, origin),
+    minimumEntryCount: dependencies.minimumArchetypeCount ?? 30,
   });
-  let cache: CachedDocument | null = null;
-  let inflight: Promise<CachedDocument> | null = null;
-  return async () => {
-    const current = now();
-    if (cache && cache.expiresAt > current) return cache;
-    if (inflight) return inflight;
-    const job = (async () => {
-      try {
-        cache = dynamicDocument(store.publish(
-          definition.project(await definition.load(), origin),
-        ), 'catalog', now() + cacheTtlMs);
-        return cache;
-      } catch (error) {
-        try {
-          dependencies.onError?.(new Error(`${definition.segment} sitemap refresh failed`, { cause: error }));
-        } catch {
-          // Diagnostics must never alter the public contract.
-        }
-        const lastKnownGood = store.readLastKnownGood();
-        if (!lastKnownGood) throw error;
-        cache = dynamicDocument(lastKnownGood, 'last-known-good', now() + cacheTtlMs);
-        return cache;
-      }
-    })().finally(() => {
-      if (inflight === job) inflight = null;
-    });
-    inflight = job;
-    return job;
-  };
+  return definitions;
 }
 
 export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDependencies): Router {
@@ -266,7 +235,11 @@ export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDepen
   router.get('/sitemaps/static.xml', fixedHandler(staticDocument));
   const dynamicLoaders = new Map(definitions.map(definition => [
     definition.pathname,
-    createDynamicDocumentLoader(definition, dependencies, origin, now, cacheTtlMs),
+    createDynamicDocumentLoader({
+      definition, origin, now, cacheTtlMs, stateDirectory: dependencies.stateDirectory,
+      responseDeadlineMs: dependencies.responseDeadlineMs, loadDeadlineMs: dependencies.loadDeadlineMs,
+      onError: dependencies.onError, toDocument: dynamicDocument,
+    }),
   ]));
   router.get(ENTITY_SITEMAP_PATHS, async (request, response, next) => {
     const loadDocument = dynamicLoaders.get(request.path as DynamicSitemapDefinition['pathname']);

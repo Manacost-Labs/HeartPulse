@@ -93,7 +93,9 @@ export type ConstructedStats = {
   };
   rankSeries: Array<{ id: string; startedAt: number; result: string; playerClass: HearthstoneClass; rank: LadderRank; value: number }>;
   decks: Array<WinLoss & { key: string; deckCode: string | null; deckName: string | null; archetype: string | null;
-    playerClass: HearthstoneClass; lastPlayedAt: number }>;
+    playerClass: HearthstoneClass; lastPlayedAt: number;
+    /** The deck's latest results, oldest first (at most 30); missing in answers cached before it existed. */
+    results?: Array<'win' | 'loss' | 'tie'> }>;
   archetypes: Array<WinLoss & { archetype: string; playerClass: HearthstoneClass; globalWinrate: number | null }>;
   classes: Array<WinLoss & { playerClass: HearthstoneClass; globalWinrate: number | null }>;
   opponentClasses: Array<WinLoss & { opponentClass: HearthstoneClass }>;

@@ -36,7 +36,7 @@ test('a subscriber goes from the home page through the meta tier list to an arch
     await findByRole(page, 'region', 'Лучшие колоды недели');
     await clickByRole(page, 'link', 'Вся мета');
     await waitForPath(page, '/standard/meta/');
-    await findByRole(page, 'heading', 'Мета');
+    await findByRole(page, 'heading', 'Мета Hearthstone: колоды и винрейты');
 
     await clickByRole(page, 'button', 'Тиры');
     await waitForPressed(page, 'Тиры');

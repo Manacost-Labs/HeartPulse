@@ -18,13 +18,13 @@ test('on a 390 px phone a guest opens the menu, keeps focus inside it, closes it
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(`${runtime.origin}/standard/cards/`, { waitUntil: 'domcontentloaded' });
-    await findByRole(page, 'heading', 'Карты');
+    await findByRole(page, 'heading', 'Карты Hearthstone');
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'the page fits the phone');
 
     await clickByRole(page, 'button', 'Открыть меню');
     await findByRole(page, 'navigation', MENU);
     assert.equal(await ariaState(page, role('button', 'Закрыть меню'), 'aria-expanded'), 'true');
-    await waitForFocus(page, 'link', 'Статьи');
+    await waitForFocus(page, 'link', 'Подборка');
     assert.equal(await ariaState(page, inMenu('link', 'Карты'), 'aria-current'), 'page', 'the menu marks the open section');
     await page.keyboard.down('Shift');
     await page.keyboard.press('Tab');
@@ -39,7 +39,7 @@ test('on a 390 px phone a guest opens the menu, keeps focus inside it, closes it
     await clickByRole(page, 'button', 'Открыть меню');
     await page.click(inMenu('link', 'Мета'));
     await waitForPath(page, '/standard/meta/');
-    await findByRole(page, 'heading', 'Мета');
+    await findByRole(page, 'heading', 'Мета Hearthstone: колоды и винрейты');
     await waitForRoleGone(page, 'navigation', MENU);
     await clickByRole(page, 'button', 'Открыть меню');
     assert.equal(await ariaState(page, inMenu('link', 'Мета'), 'aria-current'), 'page');

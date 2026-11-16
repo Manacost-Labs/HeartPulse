@@ -82,24 +82,6 @@
   color: var(--arena-ink);
 }
 
-.player-stats-panel .ui-tabs__tab {
-  font-family: var(--font-display);
-  font-size: 1rem;
-}
-
-.player-stats-mode {
-  display: grid;
-  gap: 1.25rem;
-  padding-top: 1rem;
-  min-width: 0;
-}
-
-.player-stats-mode[aria-busy] {
-  opacity: 0.75;
-  transition: opacity var(--motion-fast) var(--motion-ease);
-}
-
-.player-stats-mode__filters,
 .player-stats-block__aside {
   display: flex;
   flex-wrap: wrap;
@@ -107,53 +89,7 @@
   align-items: center;
 }
 
-.player-stats-mode__error {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: center;
-  color: var(--arena-red);
-}
-
-.player-stats-mode__error p {
-  margin: 0;
-}
-
-.player-stats-summary {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(10rem, 12.5rem);
-  gap: 1rem;
-  align-items: center;
-}
-
-.player-stats-summary--wide {
-  grid-template-columns: minmax(0, 1fr) auto;
-}
-
-.player-stats-summary .ui-kpi-group {
-  font-variant-numeric: tabular-nums;
-}
-
-.player-stats-summary .ui-kpi-group__value {
-  font-family: var(--font-display);
-}
-
-.player-stats-ranks {
-  display: grid;
-  gap: 0.45rem;
-  margin: 0;
-}
-
-.player-stats-ranks dt {
-  color: var(--arena-muted-ink);
-  font-size: 0.7rem;
-}
-
-.player-stats-ranks dd {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1rem;
-}
+.player-stats-block__aside > * { min-width: 0; max-width: 100%; }
 
 .player-stats-block {
   display: grid;
@@ -175,7 +111,7 @@
 .player-stats-block__head h3 {
   margin: 0;
   font-family: var(--font-display);
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 400;
 }
 
@@ -189,17 +125,10 @@
   color: var(--arena-red);
 }
 
-.player-stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr));
-  gap: 0 1.5rem;
-}
-
 .player-stats-panel .ui-data-table {
   font-variant-numeric: tabular-nums;
 }
 
-.player-stats-hero,
 .player-stats-class {
   display: inline-flex;
   gap: 0.6rem;
@@ -207,52 +136,11 @@
   min-width: 0;
 }
 
-/* The card render cropped to the portrait, the way the game shows a hero. */
-.player-stats-hero__art {
-  flex: none;
-  width: 40px;
-  height: 40px;
-  overflow: hidden;
-  border: 2px solid var(--arena-wood-dark);
-  border-radius: 50%;
-  background: var(--arena-parchment);
-}
-
-.player-stats-hero__art img {
-  width: 200%;
-  max-width: none;
-  height: auto;
-  margin: -45% 0 0 -50%;
-}
-
-.player-stats-hero strong,
 .player-stats-class strong {
   display: block;
   font-family: var(--font-display);
   font-size: 0.9rem;
   font-weight: 400;
-}
-
-.player-stats-hero small,
-.player-stats-class small {
-  display: block;
-  color: var(--arena-muted-ink);
-  font-size: 0.7rem;
-}
-
-.player-stats-metric {
-  display: inline-grid;
-  justify-items: end;
-}
-
-.player-stats-signed[data-tone='better'],
-.player-stats-matchups td[data-tone='better'] {
-  color: #326233;
-}
-
-.player-stats-signed[data-tone='worse'],
-.player-stats-matchups td[data-tone='worse'] {
-  color: #8c2730;
 }
 
 .player-stats-score {
@@ -272,63 +160,3 @@
   font-family: inherit;
   font-size: 0.6875rem;
 }
-
-.player-stats-matchups {
-  overflow-x: auto;
-}
-
-.player-stats-matchups table {
-  border-collapse: collapse;
-  font-size: 0.8rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.player-stats-matchups th,
-.player-stats-matchups td {
-  padding: 0.35rem 0.5rem;
-  border-bottom: 1px solid var(--arena-paper-line);
-  text-align: center;
-}
-
-.player-stats-matchups tbody th {
-  text-align: left;
-  white-space: nowrap;
-}
-
-.player-stats-matchups .player-stats-class {
-  min-width: max-content;
-}
-
-@media (max-width: 767px) {
-  .player-stats-summary,
-  .player-stats-summary--wide {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .player-stats-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
-
-.player-stats-deck { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
-
-.player-stats-copy-code {
-  min-width: 44px;
-  min-height: 40px;
-  padding: 2px 10px;
-  border: 1px solid var(--arena-red, #7a1e22);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--arena-red, #7a1e22);
-  font: inherit;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.player-stats-copy-code:hover { background: rgba(122, 30, 34, 0.08); }
-.player-stats-copy-code:focus-visible { outline: 3px solid rgba(123, 21, 27, 0.72); outline-offset: 2px; }
-
-/* Grid and flex items size to their content by default, so the five-period switch
-   widened a phone page; capped here, the switch scrolls inside its own track. */
-.player-stats-mode > *,
-.player-stats-mode__filters > * { min-width: 0; max-width: 100%; }

@@ -59,6 +59,19 @@ the server. Authentication stays in the browser through the Express APIs.
 contract used by the React view and the Next.js listing routes.
 `src/features/Cosmetics.tsx` remains the transitional presentation owner;
 Express still owns `/api/cosmetics/*` and the Next composition owns only HTML.
+The JSON-LD graph of a cosmetics detail page is built by
+`shared/cosmeticsSeoStructuredData.ts` (cosmetics routes, section names,
+identifiers) on top of the domain-independent entity builder; the Next page and
+`server/cosmeticsSeoRoutes.ts` both use it.
+
+Titles and descriptions of detail pages (cards, cosmetics, Battleground cards,
+guides) are built by `shared/entityPageTitles.ts`: one ladder of variants that
+fits 60 characters, shared by `server/*SeoRoutes.ts`, the Next.js metadata and
+the browser views, so the three renderers cannot drift apart. Root `shared/`
+holds contracts common to Express, Next.js and the browser, not `src/shared`.
+It cannot import `src/` (the server must not), so its length limits and
+`fitMetaDescription` live in `shared/metaText.ts`, kept equal to
+`src/shared/seo/metaDescription.ts`, which the client-only code uses.
 
 ## Editorial articles
 

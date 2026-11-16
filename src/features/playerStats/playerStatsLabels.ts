@@ -1,5 +1,4 @@
 import type { DataTableLabels } from '../../vendor/varylo-ui/data-display/DataTable';
-import type { KpiGroupLabels } from '../../vendor/varylo-ui/data-display/KpiGroup';
 import { pluralRu } from '../../shared/text/pluralRu';
 
 /** Russian texts for the vendored VaryloUI widgets, which ship English defaults. */
@@ -16,12 +15,4 @@ export const DATA_TABLE_LABELS: Partial<DataTableLabels> = {
   noResultsDescription: query => `По запросу «${query}» ничего нет`,
   yes: 'Да',
   no: 'Нет',
-};
-
-export const KPI_LABELS: Partial<KpiGroupLabels> = {
-  increase: 'рост',
-  decrease: 'снижение',
-  unchanged: 'без изменений',
-  noData: 'нет данных',
-  loading: 'Загружаем статистику',
 };

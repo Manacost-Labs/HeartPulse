@@ -83,6 +83,7 @@ import { createConstructedCardDataService, createConstructedCardRouter } from '.
 import { createBattlegroundCatalogLoader, createPatchNotesApi } from './modules/patchNotes/public.js';
 import { createRadarApi } from './modules/radar/public.js';
 import { createLeaderboardsApi } from './modules/leaderboards/public.js';
+import { createSubscriptionAnalyticsApi } from './modules/subscriptionAnalytics/public.js';
 import { createStreamersApi } from './modules/streamers/public.js';
 import { ConstructedCardUpstreamError, createCardChoicesRouter, type ConstructedCardDeck } from './modules/constructedCards/public.js';
 import {
@@ -111,7 +112,7 @@ import {
   type ConstructedArchetypeFormat,
   type ConstructedArchetypeHistoryPoint,
 } from './constructedArchetypeRoutes.js';
-import { loadArchetypeCatalogForPeriod, readArchetypeCatalogPeriods } from './constructedArchetypeCatalogPeriod.js';
+import { loadArchetypeCatalog, loadArchetypeCatalogWindows, readArchetypeCatalogPeriods } from './constructedArchetypeCatalogPeriod.js';
 import { createArchetypeHsguruStatsRouter } from './constructedArchetypeHsguruStats.js';
 import { assertArchetypeCatalogSource, createArchetypeCatalogCache, createArchetypeRankMatrixLoader, createMetaSliceCache, disambiguateArchetypeLabels, layerArchetypeTranslations, loadWithRetiredPatchFallback, warmMetaEntrySlices, archetypeFallbackTranslations, archetypeLabel, archetypeTranslationKey } from './modules/constructedArchetypes/public.js';
 import {
@@ -3637,7 +3638,7 @@ function requireEntitlementAccess(entitlement: SubscriptionEntitlementKey | null
 }
 
 const requireArenaAccess = requireEntitlementAccess('arena', 'разделам Арены');
-const requireBattlegroundsAccess = requireEntitlementAccess('battlegrounds', 'разделам Полей Сражений');
+const requireBattlegroundsAccess = requireEntitlementAccess('battlegrounds', 'разделам Полей сражений');
 const requireStandardAccess = requireEntitlementAccess('standard', 'разделу Стандарт');
 const requireGuidesArchiveAccess = requireEntitlementAccess('guidesArchive', 'архиву гайдов');
 
@@ -5391,7 +5392,7 @@ async function loadBattlegroundSpotlightForHomeSummary() {
 
     return {
       dbfId: Number(selected.hero.dbfId),
-      name: String(selected.hero.hero || 'Герой Полей Сражений'),
+      name: String(selected.hero.hero || 'Герой Полей сражений'),
       image: String(selected.hero.image || ''),
       tier: String(selected.hero.tier || '—'),
       avgPlacement: selected.avgPlacement,
@@ -5919,7 +5920,7 @@ const constructedArchetypeCatalogCache = createArchetypeCatalogCache({
   read: fetchConstructedArchetypeCatalog, ttlMs: EXTERNAL_DATASET_CACHE_MS,
   onRefreshError: (format, error) => console.warn(`[constructed-archetypes] ${format} refresh failed:`, error instanceof Error ? error.message : 'Unknown error'),
 });
-// The source's default window; the archetype pages open on the Bans window through loadArchetypeCatalogForPeriod.
+// The source's default window; the archetype pages open on the current patch (then Bans) through loadArchetypeCatalog.
 const loadConstructedArchetypeCatalog = (format: ConstructedArchetypeFormat) => constructedArchetypeCatalogCache.load(format);
 
 async function fetchConstructedArchetypeCatalog(
@@ -7382,7 +7383,7 @@ if (staticSitemapArtifact) {
       // Called per refresh, after start-up has created the service below.
       loadCosmeticsCatalog: (kind, query) => cosmeticsDataService.loadCatalog(kind, query),
       getGuidesDatabase: oldGuidesDatabase,
-    }),
+    }, { loadCatalogs: format => loadArchetypeCatalogWindows(constructedArchetypeCatalogCache.load, format) }),
     staticUrls: staticSitemapArtifact.urls,
     staticLastModifiedMs: staticSitemapArtifact.modifiedAt,
     stateDirectory: DATA_DIR,
@@ -7479,7 +7480,7 @@ app.use('/api', createStandardMetaRouter({
 }));
 app.use('/api', createConstructedArchetypeRouter({
   accessGuard: requireStandardAccess,
-  loadCatalog: (format, period) => loadArchetypeCatalogForPeriod(constructedArchetypeCatalogCache.load, format, period),
+  loadCatalog: (format, period, slug) => loadArchetypeCatalog(constructedArchetypeCatalogCache.load, format, period, slug),
   loadHistory: loadConstructedArchetypeHistory,
   loadAnalysis: loadConstructedArchetypeAnalysis,
   loadRanks: createArchetypeRankMatrixLoader((format, rank, period, coin) => loadStandardMeta(format, rank, period, coin, 100)),
@@ -7492,7 +7493,7 @@ app.use('/api', createConstructedArchetypeRouter({
 }));
 
 app.use('/api', createCardChoicesRouter({ request: path => fetch(`${hsDataApiOrigin()}${path}`, { signal: AbortSignal.timeout(15_000) }), onError: error => console.error('[card-choices] failed:', error instanceof Error ? error.message : error) }));
-app.use('/api', createArchetypeHsguruStatsRouter({ accessGuard: requireStandardAccess, setPrivateNoStore, loadRuCards: ensureRuCardsData, request: path => fetch(datasetApiUrl(path), { signal: AbortSignal.timeout(15_000) }), ruCardByDbf: dbfId => hearthstoneJsonRuCardsByDbf?.get(dbfId), loadCatalog: format => loadArchetypeCatalogForPeriod(constructedArchetypeCatalogCache.load, format), loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards, onError: (scope, error) => console.error(`[archetype-hsguru-stats] ${scope} failed:`, error instanceof Error ? error.message : error) }));
+app.use('/api', createArchetypeHsguruStatsRouter({ accessGuard: requireStandardAccess, setPrivateNoStore, loadRuCards: ensureRuCardsData, request: path => fetch(datasetApiUrl(path), { signal: AbortSignal.timeout(15_000) }), ruCardByDbf: dbfId => hearthstoneJsonRuCardsByDbf?.get(dbfId), loadCatalog: (format, slug) => loadArchetypeCatalog(constructedArchetypeCatalogCache.load, format, null, slug), loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards, onError: (scope, error) => console.error(`[archetype-hsguru-stats] ${scope} failed:`, error instanceof Error ? error.message : error) }));
 app.use('/api', createPatchNotesApi({
   fetchJson: url => fetchConstructedCardJson(url, 12_000), loadCardNames: ensureRuCardsData, ttlMs: 30 * 60_000,
   loadBattlegroundCards: createBattlegroundCatalogLoader({
@@ -8874,7 +8875,7 @@ app.use('/api', createAdminBoostyAnalyticsRouter({
   adminAuth,
   setPrivateNoStore,
   loadAnalytics: loadBoostyArticleAnalytics,
-}));
+}), createSubscriptionAnalyticsApi({ boostyBaseUrl: BOOSTY_AUTH_API_URL, adminAuth, setPrivateNoStore }));
 
 app.use('/api', createAdminTelegramReadRouter({
   adminAuth,

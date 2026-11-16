@@ -624,3 +624,6 @@ try {
 }
 
 console.log('constructed-card catalog/detail resilience contracts passed');
+
+// Incident 2026-11-15: a source that never settles must not hang the catalog.
+await import('./constructed-card-deadline-cases.js');

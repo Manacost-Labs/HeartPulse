@@ -25,6 +25,16 @@ assert.equal(adminSectionFromSearch('?contest=abc', 'dashboard'), 'contests');
 assert.equal(adminSectionFromSearch('?section=unknown', 'dashboard'), 'dashboard');
 assert.equal(adminSectionFromSearch('', 'contests'), 'contests');
 assert.equal(isAdminSection('api-keys'), true);
+
+// «Аналитика подписок» стоит в группе «Аудитория» сразу после Boosty и находится по слову «отток».
+const analytics = ADMIN_NAV_ITEMS.find(item => item.id === 'subscription-analytics');
+assert.ok(analytics, 'the subscription analytics section is in the menu');
+assert.equal(analytics.label, 'Аналитика подписок');
+assert.equal(analytics.group, 'Аудитория');
+assert.equal(ADMIN_NAV_ITEMS[ADMIN_NAV_ITEMS.findIndex(item => item.id === 'boosty') + 1].id, 'subscription-analytics');
+for (const word of ['аналитика', 'метрики', 'отток', 'удержание', 'бусти']) assert.ok(analytics.keywords?.includes(word), `keyword ${word}`);
+assert.equal(adminSectionFromSearch('?section=subscription-analytics', 'dashboard'), 'subscription-analytics');
+assert.equal(isAdminSection('subscription-analytics'), true);
 assert.equal(isAdminSection('__proto__'), false);
 
 const overview = {
