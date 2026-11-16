@@ -585,7 +585,62 @@ ${serverHeaders}
   }
 }
 
+async function verifyPostDeployWarm() {
+  const { DATA_PAGES, STREAMER_PROFILE_PAGE } = await import('../scripts/lib/post-deploy-data-pages.mjs');
+  const route = readFileSync('apps/public-web/app/health/next/revalidate/route.ts', 'utf8');
+  const revalidated = [...route.match(/const DATA_PAGES = \[([^\]]*)\]/)[1].matchAll(/'([^']+)'/g)].map(([, path]) => `${path}/`).sort();
+  assert.deepEqual(DATA_PAGES.filter(page => page.isr).map(page => page.path).sort(), revalidated,
+    'the warm-up waits for exactly the pages that are regenerated after a deploy');
+  for (const page of [...DATA_PAGES, STREAMER_PROFILE_PAGE]) {
+    assert.ok(page.copy < page.minWords && page.minWords <= page.data, `${page.path ?? 'profile'}: a copy without data is below the threshold, a page with data is not`);
+  }
+  const words = count => `<html><body><p>${'word '.repeat(count)}</p><a href="/streamers/abc/">x</a></body></html>`;
+  const run = async ({ apiOk = true, short = {} }) => {
+    const hits = new Map();
+    let revalidatedAt = 0;
+    const server = createHttpServer((incoming, response) => {
+      const url = incoming.url;
+      hits.set(url, (hits.get(url) ?? 0) + 1);
+      if (url === '/api/articles') { response.writeHead(apiOk ? 200 : 503).end('[]'); return; }
+      if (incoming.method === 'POST' && url === '/health/next/revalidate/') { revalidatedAt = Date.now(); response.writeHead(200).end('{}'); return; }
+      const page = DATA_PAGES.find(item => item.path === url) ?? (url === '/streamers/abc/' ? STREAMER_PROFILE_PAGE : null);
+      assert.ok(page, `unexpected request ${url}`);
+      // A prerendered page keeps its build copy until it was revalidated; a
+      // dynamic page misses its budget as many times as the test says.
+      const copy = page.isr ? !revalidatedAt : (hits.get(url) ?? 0) <= (short[url] ?? 0);
+      response.writeHead(200, { 'Content-Type': 'text/html', ...(page.isr ? { 'X-Nextjs-Cache': copy ? 'STALE' : 'MISS' } : {}) });
+      response.end(words(copy || url in short && short[url] === Infinity ? page.copy : page.data));
+    });
+    await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+    const origin = `http://127.0.0.1:${server.address().port}`;
+    // Asynchronous: the stub server lives in this process.
+    const process_ = spawn(process.execPath, ['scripts/warm-prerendered-pages.mjs'],
+      { env: { PATH: process.env.PATH, PRODUCTION_BASE_URL: origin, NEXT_LOCAL_ORIGIN: origin, WARM_ATTEMPTS: '3', WARM_DELAY_MS: '5' } });
+    const child = { stdout: '', stderr: '' };
+    process_.stdout.on('data', chunk => { child.stdout += chunk; });
+    process_.stderr.on('data', chunk => { child.stderr += chunk; });
+    child.status = await new Promise(resolve => process_.once('exit', resolve));
+    await new Promise(resolve => server.close(resolve));
+    return { hits, child };
+  };
+  const warmed = await run({ short: { '/leaderboards/': 2, '/standard/patches/': Infinity, '/streamers/abc/': Infinity } });
+  assert.equal(warmed.child.status, 0, warmed.child.stderr);
+  assert.equal(warmed.hits.get('/leaderboards/'), 3, 'a page that missed its first-paint read is requested again until it has its data');
+  assert.equal(warmed.hits.get('/tierlist/'), 1, 'a regenerated copy with its data is accepted at once');
+  assert.match(warmed.child.stdout, /\/standard\/patches\/: without data after 3 attempts/);
+  assert.match(warmed.child.stdout, /\/streamers\/abc\/: without data after 3 attempts/);
+  assert.match(warmed.child.stdout, /::warning::pages without data after the deploy warm-up: \/standard\/patches\/, \/streamers\/abc\//);
+  assert.doesNotMatch(warmed.child.stdout, /leaderboards\/: without data/);
+  const healthy = await run({});
+  assert.match(healthy.child.stdout, /every data page carries its data/);
+  assert.doesNotMatch(healthy.child.stdout, /::warning::/);
+  const down = await run({ apiOk: false });
+  assert.equal(down.child.status, 0);
+  assert.equal(down.hits.get('/tierlist/'), undefined, 'nothing is regenerated while Express is down');
+}
+
 await verifyBrowserAssetCompression();
 await verifyEdgeAssetCache();
 await verifyEdgeDocumentCache();
+await verifyPostDeployWarm();
 console.log('HearthPulse canonical nginx contract passed');
