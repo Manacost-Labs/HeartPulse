@@ -123,8 +123,8 @@ are cache busters (card image `?v=`) or upstream sync stamps (cosmetics
   state is read (a file read) while the rebuild starts behind it. Only a
   segment with no document and no state is waited for, once, for at most the
   2 s answer deadline, so the index answers within 2 s. A segment that
-  cannot be built is dated from the state the store saved earlier (the last-known-good copy,
-  which survives a restart); if that state holds no day for any address, the
+  cannot be built is dated from the state the store saved earlier (the
+  last-known-good copy, which survives a restart); if that state holds no day for any address, the
   day its state was last written stands in. When no day can be had for any
   record, that sitemap is left out of the index: it has nothing to serve and
   its own address answers with an error, while one failing segment must not
