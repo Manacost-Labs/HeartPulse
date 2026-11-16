@@ -149,13 +149,13 @@ const trackedNode = (selector: string, value: string) => {
   nodes.set(selector, node);
   return node;
 };
-trackedNode('link[rel="canonical"]', `${ORIGIN}/articles/`);
-trackedNode('meta[property="og:url"]', `${ORIGIN}/articles/`);
+trackedNode('link[rel="canonical"]', `${ORIGIN}/faq/`);
+trackedNode('meta[property="og:url"]', `${ORIGIN}/faq/`);
 const jsonLd = (entityPath?: string) => ({ type: 'application/ld+json', dataset: entityPath ? { entityPath } : {}, remove: reactOwned('JSON-LD') });
 const structuredDataNode = jsonLd();
 const entityStructuredDataNode = jsonLd('/standard/cards/standard/CARD_1');
 // Next writes entity paths with the trailing slash the site serves.
-const ownStructuredDataNode = jsonLd('/articles/');
+const ownStructuredDataNode = jsonLd('/faq/');
 const scripts = [structuredDataNode, entityStructuredDataNode, ownStructuredDataNode];
 const active = (node: { type: string }) => node.type === 'application/ld+json';
 const fakeDocument: any = {
@@ -190,13 +190,13 @@ const fakeDocument: any = {
 Object.defineProperty(globalThis, 'document', { configurable: true, value: fakeDocument });
 Object.defineProperty(globalThis, 'window', {
   configurable: true,
-  value: { location: { pathname: '/articles/', search: '' } },
+  value: { location: { pathname: '/faq/', search: '' } },
 });
 try {
   await applyDocumentPageMeta({
     title: 'Статьи',
     description: 'Описание статей',
-    pathname: '/articles',
+    pathname: '/faq',
     search: '',
     image: 'javascript:alert(1)',
   });
@@ -226,10 +226,10 @@ try {
   assert.equal(nodes.get('meta[property="og:url"]')?.content, '', 'unknown client route must clear the stale og:url');
   assert.deepEqual(scripts.filter(active), [], 'unknown client route must turn off stale JSON-LD');
 
-  (globalThis.window as any).location.pathname = '/articles/';
-  await applyDocumentPageMeta({ title: 'Статьи', description: 'Описание статей', pathname: '/articles', search: '' });
-  assert.equal(nodes.get('link[rel="canonical"]')?.href, `${ORIGIN}/articles/`, 'a known route fills the cleared canonical again');
-  assert.equal(nodes.get('meta[property="og:url"]')?.content, `${ORIGIN}/articles/`);
+  (globalThis.window as any).location.pathname = '/faq/';
+  await applyDocumentPageMeta({ title: 'Статьи', description: 'Описание статей', pathname: '/faq', search: '' });
+  assert.equal(nodes.get('link[rel="canonical"]')?.href, `${ORIGIN}/faq/`, 'a known route fills the cleared canonical again');
+  assert.equal(nodes.get('meta[property="og:url"]')?.content, `${ORIGIN}/faq/`);
 } finally {
   delete (globalThis as any).document;
   delete (globalThis as any).window;
