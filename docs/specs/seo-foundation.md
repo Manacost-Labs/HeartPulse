@@ -121,17 +121,17 @@ are cache busters (card image `?v=`) or upstream sync stamps (cosmetics
   for a rebuild when it can avoid it: a segment's fresh document is used when
   the process has one, and in a process that has built nothing yet the saved
   state is read (a file read) while the rebuild starts behind it. Only a
-  segment with no document and no state is waited for, once, for at most the
-  2 s answer deadline, so the index answers within 2 s. A segment that
-  cannot be built is dated from the state the store saved earlier (the
-  last-known-good copy, which survives a restart); if that state holds no
-  day for any address, the day its state was last written stands in. When no day can be had for
-  any record, that sitemap is left out of the index: it has nothing to serve and
+  segment with no document and no state is waited for, once, for at most the 2
+  s answer deadline, so the index answers within 2 s. A segment that cannot be
+  built is dated from the state the store saved earlier (the last-known-good
+  copy, which survives a restart); if that state holds no day for any address,
+  the day its state was last written stands in. When no day can be had for any
+  record, that sitemap is left out of the index: it has nothing to serve and
   its own address answers with an error, while one failing segment must not
   take every sitemap from crawlers. Every record that is listed has a
-  `lastmod`. The index answers `503` with `Retry-After` only when no record
-  at all can be dated. The production monitor compares the exact set of
-  segments, so a missing one is reported by name.
+  `lastmod`. The index answers `503` with `Retry-After` only when no record at
+  all can be dated. The production monitor compares the exact set of segments,
+  so a missing one is reported by name.
 - **Monitor and the edge cache.** The edge caches `/sitemap.xml` and every
   segment separately, each by `$request_uri` with its query string, for five
   minutes (`deploy/nginx/arena-edge-static-cache.conf`), so right after an
