@@ -98,3 +98,39 @@ The Deathwing Storybook case uses a local fixture at
 `src/features/fixtures/deathwing-card.webp`, captured from the
 [original HearthArena render](https://cdn.heartharena.com/images/renders/ruRU/CATA_190h.webp).
 It stays in the development story bundle and requires no live image API.
+
+## Open slice for guests and robots
+
+`GET /api/tierlist` stays closed (entitlement `arena`). The page `/tierlist/`
+shows guests and robots, in server HTML, an open slice: the top ten cards and
+the top three of each class with their tier, the update date and a lower
+bound of the sample ("по данным более N игр"). It comes from a separate
+anonymous projection, `GET /api/tierlist/public-teaser`
+(`server/tierlistRoutes.ts`), built on the same data, cache and
+last-known-good fallback as the full endpoint.
+
+- The projection reads the default source (HSReplay) only and ignores `source`,
+  `t` and `bust`: a guest cannot fan out origin reads.
+- Per card it carries `cardId`, `name`, `classKey`, `className`, `tier` and
+  `image` (our own `/api/card-image/` address). Cards are ranked by tier, then
+  by the dataset's own score; the score is used for the order and never sent.
+  Cards without a letter tier ("Без тира") and the neutral class (for the
+  per-class lists) are not part of the slice.
+- No source (HSReplay, HearthArena, Firestone) publishes a total game count
+  for the dataset, so `sampleGamesAtLeast` is a lower bound: the largest
+  per-card game count rounded down to two significant digits (987654 becomes
+  980000), or `null` when the source gives none (HearthArena) or it is under
+  1000. It is the only game figure sent, and it is not the exact sample size.
+  Rounding is done in Express; the Next loader drops any other value.
+- It carries no `winrate`, `deckWinrate`, `playedWinrate`, `totalGames` per
+  card or card outside the slice. Without data the route answers 502 and the
+  page renders without the slice (still HTTP 200).
+- `/tierlist/` is a five-minute ISR page. The copy made at build time has no
+  slice (the build has no Express); after a deploy it is replaced on the first
+  regeneration, up to five minutes in Next plus up to five in the nginx cache.
+  The page is not in the post-deploy warm-up list.
+- The closed list sits in `.paywalled-tierlist`, the container named by the
+  page's JSON-LD. Subscribers see the full list as before.
+
+The rules shared by all open slices are in
+[SEO foundation](seo-foundation.md#открытый-слой-и-платная-разметка).

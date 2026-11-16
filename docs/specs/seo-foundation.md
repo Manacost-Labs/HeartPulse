@@ -65,7 +65,9 @@ This slice must not open private API responses to indexing or shared caches.
 - JSON-LD describes what the page shows. `numberOfItems` equals the listed
   items or is omitted, one list never repeats a URL, and a breadcrumb has no
   section crumb without its own page. A Dataset's `license` is the site terms
-  (`/terms/`), the only reuse grant the owner has published. Its
+  (`/terms/`), the only reuse grant the owner has published, unless the node
+  sets `"license": null`: a paywalled Dataset (`/tierlist`) has none, because
+  the terms are not a grant to reuse its closed data. Its
   `dateModified` is the update date of the data the page shows, and
   `temporalCoverage` is written only when a source names the window
   (`docs/specs/seo-entity-indexing.md#json-ld-of-statistics-pages`).
@@ -79,6 +81,55 @@ This slice must not open private API responses to indexing or shared caches.
 - Empty Nginx `add_header` map values intentionally suppress that header.
 - The canonical edge bypasses its proxy cache but does not overwrite
   application `Cache-Control` with a global `no-store` response header.
+
+## Открытый слой и платная разметка
+
+Решение владельца (E21, 2026-11-15): платная страница отдаёт роботам и
+анонимным посетителям один и тот же серверный HTML с открытым слоем, а
+закрытая часть размечена как платная. Следующие срезы E21 (`/classes/`,
+гайды, карточки) ссылаются на этот раздел.
+
+Правила:
+
+- **Один HTML для всех.** Ветвления по `User-Agent` нет: робот и аноним
+  получают тот же документ. Подписчик получает его же, а полный список
+  дорисовывает клиент после проверки доступа.
+- **Закрытое не отправляется.** Открытый слой строит анонимная проекция
+  Express по белому списку полей: объект собирается поле за полем, а не
+  копированием строки датасета. Следующие поля не попадают ни в проекцию, ни
+  в HTML, ни в RSC-payload (`self.__next_f`), ни в JSON-LD: винрейты
+  (`winrate`, `deckWinrate`, `playedWinrate`), число игр по карте
+  (`totalGames`), очки (`score`, `arenaScore`) и карты вне открытого среза.
+  Размер выборки открыт только как нижняя граница: наибольшее число игр по
+  одной карте, округлённое вниз до двух значащих цифр (`sampleGamesAtLeast`,
+  987654 → 980000), на странице «по данным более N игр». Точное число игр по
+  карте не публикуется ни в каком виде.
+  Всё, что серверный компонент передаёт клиентскому через props, попадает в
+  RSC-payload, поэтому клиентской части отдают только белый список, а
+  серверный компонент открытого слоя передают в неё как `children`.
+- **Страница повторно фильтрует ответ.** Загрузчик Next
+  (`apps/public-web/lib/publicTierlistTeaserData.ts`) копирует только
+  разрешённые поля и режет списки до 10 и 3 карт, так что лишнее поле в
+  ответе Express не дойдёт до страницы.
+- **Разметка платной части.** Узел страницы (у `/tierlist` это Dataset) с
+  `isAccessibleForFree: false` и `hasPart` типа `WebPageElement` с
+  `cssSelector` закрытого блока. Селектор должен совпадать с классом
+  реального контейнера в HTML. Если данных для
+  открытого слоя нет, страница отвечает 200 без него, а разметка остаётся.
+- **Лицензия.** У платного Dataset нет поля `license` (`"license": null` в
+  `config/public-seo-structured-data.json` означает «не писать»).
+- **Свежесть после деплоя.** `/tierlist/` — пятиминутная ISR-страница и не
+  входит в `DATA_PAGES` (`app/health/next/revalidate/route.ts`) и прогрев
+  (`scripts/warm-prerendered-pages.mjs`): список этих страниц сверяется с
+  nginx-правилом. Поэтому после деплоя копия сборки без среза заменяется при
+  первой регенерации (до пяти минут Next и до пяти минут кеша nginx).
+
+Что держит правило тестами: `tests/tierlist-public-teaser.test.ts`
+(проекция, маршрут, JSON-LD) и `tests/next-tierlist-teaser.test.mjs`
+(собранная страница: HTML, RSC-payload и JSON-LD). Фикстура
+`tests/helpers/tierlistTeaserFixture.ts` даёт каждому винрейту и каждому
+числу игр уникальное значение; тест падает, если любое из них (или имя карты
+вне среза) найдено в выводе. Первая страница с открытым слоем: `/tierlist/`.
 
 ## Testing strategy
 

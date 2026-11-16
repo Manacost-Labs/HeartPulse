@@ -3,7 +3,7 @@
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
     "sourceFiles": 107,
-    "routeRegistrations": 287,
+    "routeRegistrations": 288,
     "middlewareRegistrations": 147,
     "explicitGuardRouteRegistrations": 73,
     "unresolvedPaths": 0
@@ -5776,6 +5776,18 @@
       ],
       "source": "server/tierlistRoutes.ts",
       "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/tierlist/public-teaser",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/tierlistRoutes.ts",
+      "sourceOrder": 1
     },
     {
       "kind": "route",

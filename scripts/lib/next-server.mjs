@@ -17,15 +17,15 @@ async function freeLoopbackPort() {
  * `legacyOrigin` is the Express-compatible origin its server loaders read.
  * `runtimeClientConfigFile` is a switch file in the `public/runtime-config.js`
  * format; without one the switches are off, so pages under test never load
- * card images from the public CDN.
+ * card images from the public CDN. `env` adds variables to the server's own.
  */
-export async function startNextServer({ legacyOrigin, readyTimeoutMs = 15_000, runtimeClientConfigFile = '' }) {
+export async function startNextServer({ legacyOrigin, readyTimeoutMs = 15_000, runtimeClientConfigFile = '', env = {} }) {
   const port = await freeLoopbackPort();
   const origin = `http://127.0.0.1:${port}`;
   const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', 'apps/public-web',
     '--hostname', '127.0.0.1', '--port', String(port)], {
     env: { PATH: process.env.PATH, NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1', LEGACY_WEB_ORIGIN: legacyOrigin,
-      RUNTIME_CLIENT_CONFIG_FILE: runtimeClientConfigFile },
+      RUNTIME_CLIENT_CONFIG_FILE: runtimeClientConfigFile, ...env },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
   let output = '';
@@ -44,7 +44,7 @@ export async function startNextServer({ legacyOrigin, readyTimeoutMs = 15_000, r
   while (Date.now() < deadline) {
     if (child.exitCode !== null) throw new Error(`Next exited: ${output}`);
     if (await fetch(`${origin}/health/next/`).then(response => response.ok, () => false)) {
-      return { origin, close, output: () => output };
+      return { origin, close, output: () => output, pid: child.pid };
     }
     await delay(50);
   }

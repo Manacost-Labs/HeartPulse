@@ -30,6 +30,8 @@ export function TierListPageClient({ children }: { children?: ReactNode }) {
 
   return <PublicPageShell activeTab="tierlist" pathname="/tierlist/" parchmentPreload="tablet-up" access={access}
     navigate={navigate} updatedAtLabel={updatedAtLabel}>
+    {/* The closed part, named by the page's JSON-LD (`hasPart.cssSelector`); a wrapper without a box of its own. */}
+    <div className="paywalled-tierlist" style={{ display: 'contents' }}>
     <TierList data={data} loading={tierlist.loading || pending}
       error={tierlist.error} companionIds={companionIds}
       tierlistSource={tierlist.source} onTierlistSourceChange={tierlist.changeSource}
@@ -37,6 +39,7 @@ export function TierListPageClient({ children }: { children?: ReactNode }) {
       authUser={access.user} subscriptionStatus={access.subscription}
       subscriptionLoading={pending} onRefreshSubscription={access.refresh}
       accessGranted={allowed} />
+    </div>
     {children}
   </PublicPageShell>;
 }
