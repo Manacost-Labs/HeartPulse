@@ -3,7 +3,7 @@
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
     "sourceFiles": 107,
-    "routeRegistrations": 286,
+    "routeRegistrations": 287,
     "middlewareRegistrations": 147,
     "explicitGuardRouteRegistrations": 73,
     "unresolvedPaths": 0
@@ -2284,6 +2284,19 @@
       "source": "server/entitySitemapRoutes.ts",
       "sourceOrder": 2,
       "expansionOrder": 6
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/sitemaps/archetypes.xml",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/entitySitemapRoutes.ts",
+      "sourceOrder": 2,
+      "expansionOrder": 7
     },
     {
       "kind": "route",
