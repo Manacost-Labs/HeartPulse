@@ -6,7 +6,8 @@ import { COLD_READ_WAIT_MS, readPublicJson } from './firstPaintStore';
 import { isPublicDataMissing } from './publicCatalogCache';
 import { patchNotesReader } from './patchNotesStore';
 import { cosmeticsCatalogSeedRequest } from './publicCosmeticsCatalogData';
-import { FUN_DECKS_PATH, HOME_PATHS, STREAMERS_PATH, archetypeTeaserPath, leaderboardPaths, streamerPath } from './publicDataPaths';
+import { FUN_DECKS_PATH, HOME_PATHS, STREAMERS_PATH, archetypeTeaserPath, streamerPath } from './publicDataPaths';
+import { leaderboardPaths } from './publicLeaderboardPaths';
 
 /**
  * What a document of a data page has to start with, decided by `proxy.ts`

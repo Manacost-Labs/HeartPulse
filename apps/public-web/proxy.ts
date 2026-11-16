@@ -230,8 +230,9 @@ export async function proxy(request: NextRequest) {
     if (cosmeticsUnavailable) return cosmeticsUnavailable;
     // A data page is served only with its data (fresh or the last good copy). Without any, the document
     // would be the page without its data, and the regional edge keeps a 200 for everybody: it is a 503 instead.
+    // A probe that itself fails is a bug, not an outage: the page is served as before.
     const data = scriptFetch || request.nextUrl.searchParams.has('login') ? 'none'
-      : await probePublicData(request.nextUrl.pathname, request.nextUrl.searchParams).catch(() => 'unavailable' as const);
+      : await probePublicData(request.nextUrl.pathname, request.nextUrl.searchParams).catch(() => 'none' as const);
     if (data === 'unavailable') return unavailableResponse('60', request.method, true);
     // The other public families get this header from `next.config.mjs`.
     if (isPublicHomeDocument(request.nextUrl.pathname, request.nextUrl.searchParams)) {

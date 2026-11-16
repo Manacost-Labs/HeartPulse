@@ -4,7 +4,7 @@ import {
   type LeaderboardsInitial, type LeaderboardSelection,
 } from '@/src/modules/leaderboards/public';
 import { readPublicJsonOrNull } from './firstPaintStore';
-import { leaderboardPaths } from './publicDataPaths';
+import { leaderboardPaths } from './publicLeaderboardPaths';
 
 /**
  * Первый кадр таблиц лидеров: каталог сезонов, страница таблицы и сводка
