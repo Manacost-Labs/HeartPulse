@@ -1,15 +1,5 @@
 {
   "schemaVersion": 1,
-  "organization": {
-    "@type": "Organization",
-    "@id": "https://hearthpulse.net/#org",
-    "name": "Manacost",
-    "url": "https://hearthpulse.net/",
-    "logo": {
-      "@type": "ImageObject",
-      "url": "https://hearthpulse.net/assets/arena_icon.webp"
-    }
-  },
   "pages": {
     "/": [
       {
@@ -17,44 +7,22 @@
         "@id": "https://hearthpulse.net/#website",
         "url": "https://hearthpulse.net/",
         "name": "HearthPulse",
-        "alternateName": "Manacost Arena",
-        "description": "Актуальная статистика режима Арена в Hearthstone",
+        "description": "Актуальная статистика Арены Hearthstone: тир-лист карт по классам, винрейты, легендарные группы. Данные обновляются автоматически 4 раза в сутки.",
         "inLanguage": "ru",
         "publisher": {
-          "@type": "Organization",
-          "@id": "https://hearthpulse.net/#org",
-          "name": "Manacost",
-          "url": "https://hearthpulse.net",
-          "logo": {
-            "@type": "ImageObject",
-            "url": "https://hearthpulse.net/assets/arena_icon.webp"
-          },
-          "sameAs": [
-            "https://t.me/manacost_ru",
-            "https://boosty.to/kolodahearthstone"
-          ]
+          "@id": "https://hearthpulse.net/#org"
         }
       },
       {
-        "@type": "WebApplication",
-        "@id": "https://hearthpulse.net/#app",
-        "name": "Manacost Arena",
-        "url": "https://hearthpulse.net",
-        "description": "Актуальная статистика режима Арена в Hearthstone: тир-лист карт по классам, винрейты, легендарные группы.",
-        "applicationCategory": "GameApplication",
-        "operatingSystem": "Web",
-        "inLanguage": "ru",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "RUB"
+        "@type": "WebPage",
+        "@id": "https://hearthpulse.net/#page",
+        "name": "HearthPulse — Тир-лист и Винрейты для Арены Hearthstone",
+        "description": "Актуальная статистика Арены Hearthstone: тир-лист карт по классам, винрейты, легендарные группы. Данные обновляются автоматически 4 раза в сутки.",
+        "url": "https://hearthpulse.net/",
+        "isPartOf": {
+          "@id": "https://hearthpulse.net/#website"
         },
-        "featureList": [
-          "Тир-лист карт Арены Hearthstone по всем классам",
-          "Винрейты классов с актуального патча",
-          "Группы легендарных карт для первого выбора",
-          "Автоматическое обновление данных 4 раза в сутки"
-        ]
+        "inLanguage": "ru"
       },
       {
         "@type": "BreadcrumbList",
@@ -903,7 +871,6 @@
           "isAccessibleForFree": false,
           "cssSelector": ".paywalled-classes"
         },
-        "license": null,
         "isBasedOn": [
           {
             "@type": "Dataset",
@@ -965,7 +932,6 @@
           "isAccessibleForFree": false,
           "cssSelector": ".paywalled-tierlist"
         },
-        "license": null,
         "isBasedOn": [
           {
             "@type": "Dataset",
@@ -1230,19 +1196,12 @@
         ]
       },
       {
-        "@type": "WebApplication",
-        "@id": "https://hearthpulse.net/battlegrounds/strategies/#app",
+        "@type": "WebPage",
+        "@id": "https://hearthpulse.net/battlegrounds/strategies/#page",
         "name": "Конструктор стратегий БГ",
-        "url": "https://hearthpulse.net/battlegrounds/strategies/",
         "description": "Инструмент для сборки и визуализации собственного плана на Полях сражений Hearthstone.",
-        "applicationCategory": "GameApplication",
-        "operatingSystem": "Web",
-        "inLanguage": "ru",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "RUB"
-        }
+        "url": "https://hearthpulse.net/battlegrounds/strategies/",
+        "inLanguage": "ru"
       }
     ],
     "/heroes": [
@@ -1395,19 +1354,12 @@
         ]
       },
       {
-        "@type": "WebApplication",
-        "@id": "https://hearthpulse.net/battlegrounds/tier-builder/#app",
+        "@type": "WebPage",
+        "@id": "https://hearthpulse.net/battlegrounds/tier-builder/#page",
         "name": "Конструктор тир-листов Полей Сражений",
-        "url": "https://hearthpulse.net/battlegrounds/tier-builder/",
         "description": "Инструмент для создания собственных тир-листов Hearthstone Battlegrounds.",
-        "applicationCategory": "GameApplication",
-        "operatingSystem": "Web",
-        "inLanguage": "ru",
-        "offers": {
-          "@type": "Offer",
-          "price": "0",
-          "priceCurrency": "RUB"
-        }
+        "url": "https://hearthpulse.net/battlegrounds/tier-builder/",
+        "inLanguage": "ru"
       }
     ]
   }

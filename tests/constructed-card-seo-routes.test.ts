@@ -269,7 +269,7 @@ try {
   assert.match(html, /data-server-entity-jsonld data-entity-path="\/standard\/cards\/standard\/CARD_1"/,
     'entity JSON-LD must be scoped so SPA navigation can remove stale data');
   const jsonLd = JSON.parse(jsonLdMatch[1]);
-  assert.deepEqual(jsonLd['@graph'].map((node: any) => node['@type']), ['WebPage', 'CreativeWork', 'BreadcrumbList']);
+  assert.deepEqual(jsonLd['@graph'].map((node: any) => node['@type']), ['WebPage', 'CreativeWork', 'BreadcrumbList', 'Organization']);
   assert.equal(jsonLd['@graph'][0].mainEntity['@id'], 'https://hearthpulse.net/standard/cards/standard/CARD_1/#card');
   assert.equal(jsonLd['@graph'][1].identifier, 'CARD_1');
   assert.equal(jsonLd['@graph'][1].additionalProperty.find((item: any) => item.name === 'Формат')?.value, 'Стандарт');

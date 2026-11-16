@@ -1,5 +1,6 @@
 import { Router, type RequestHandler, type Response } from 'express';
 import type { CosmeticKind, CosmeticsDataService } from './cosmeticsRoutes.js';
+import { buildCosmeticStructuredData } from '../shared/entitySeoStructuredData.js';
 import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
 
 type JsonRecord = Record<string, any>;
@@ -53,7 +54,6 @@ function detailProjection(kind: CosmeticKind, detail: JsonRecord) {
       description: `Скин героя Hearthstone: ${text(detail?.class?.nameRu) ?? 'класс не указан'}, ${text(detail?.rarity?.nameRu) ?? 'редкость не указана'}. Анимация, полный арт и звуковые дорожки.`,
       image: text(detail?.images?.static ?? detail?.images?.fullArt, 2_000),
       typeLabel: 'Скин героя',
-      artist: text(detail?.artist),
     };
   }
   if (kind === 'coins') {
@@ -64,7 +64,6 @@ function detailProjection(kind: CosmeticKind, detail: JsonRecord) {
       description: `Косметическая монета Hearthstone «${name}»: изображение карты, crop-арт и связанные карты.`,
       image: text(detail?.images?.crop ?? detail?.images?.card, 2_000),
       typeLabel: 'Косметическая монета',
-      artist: text(detail?.artist),
     };
   }
   const name = text(detail?.name) ?? text(detail?.cardId) ?? 'Питомец';
@@ -74,7 +73,6 @@ function detailProjection(kind: CosmeticKind, detail: JsonRecord) {
     description: `Питомец Hearthstone «${name}»: карточка, End Screen, дополнительные арты и другие раскраски семейства.`,
     image: text(detail?.images?.card ?? detail?.images?.endScreen, 2_000),
     typeLabel: 'Питомец',
-    artist: null,
   };
 }
 
@@ -122,22 +120,10 @@ function renderDetailDocument(options: {
   const canonical = `${options.origin}/cosmetics/${options.kind}/${encodeURIComponent(options.cardId)}/`;
   const title = `${projection.name} — косметика Hearthstone | HearthPulse`;
   const image = sameOriginPublicResourceUrl(projection.image, options.origin);
-  const structuredData = {
-    '@context': 'https://schema.org',
-    '@type': 'CreativeWork',
-    name: projection.name,
-    alternateName: projection.englishName ?? undefined,
-    description: projection.description,
-    image: image ?? undefined,
-    identifier: [
-      { '@type': 'PropertyValue', propertyID: 'card_id', value: options.cardId },
-      ...(Number.isInteger(options.detail?.dbf)
-        ? [{ '@type': 'PropertyValue', propertyID: 'dbf', value: options.detail.dbf }]
-        : []),
-    ],
-    creator: projection.artist ? { '@type': 'Person', name: projection.artist } : undefined,
-    url: canonical,
-  };
+  const structuredData = buildCosmeticStructuredData({
+    origin: options.origin, kind: options.kind, cardId: options.cardId, dbf: options.detail?.dbf,
+    name: projection.name, englishName: projection.englishName, description: projection.description, image,
+  });
   return baseDocument({
     title,
     description: projection.description,

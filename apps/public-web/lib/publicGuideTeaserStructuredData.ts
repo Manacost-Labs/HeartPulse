@@ -1,7 +1,8 @@
+import { organizationNode } from '@/shared/seoOrganization';
 import type { PublicGuideTeaser } from './publicGuideTeaserData';
 
 const ORIGIN = 'https://hearthpulse.net';
-/** The one organization node of the site; the guides' author and publisher are the brand. */
+/** The guides' author and publisher are the brand: a reference to the one organization node, which the graph carries. */
 const ORGANIZATION = { '@id': `${ORIGIN}/#org` };
 /** Class of the block that holds the paywall; the page renders it exactly when text is left out. */
 export const GUIDE_PAID_SELECTOR = '.guide-archive-paid';
@@ -52,6 +53,7 @@ export function buildGuideStructuredData(teaser: PublicGuideTeaser, fallbackImag
           { '@type': 'ListItem', position: 3, name: teaser.title, item: canonical },
         ],
       },
+      organizationNode(),
     ],
   };
 }

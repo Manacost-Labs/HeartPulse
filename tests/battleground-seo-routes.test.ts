@@ -192,7 +192,7 @@ try {
   const jsonLdMatch = html.match(/<script type="application\/ld\+json"[^>]*>([\s\S]*?)<\/script>/);
   assert.ok(jsonLdMatch, 'existing hero must expose entity JSON-LD');
   const jsonLd = JSON.parse(jsonLdMatch[1]);
-  assert.deepEqual(jsonLd['@graph'].map((node: any) => node['@type']), ['WebPage', 'CreativeWork', 'BreadcrumbList']);
+  assert.deepEqual(jsonLd['@graph'].map((node: any) => node['@type']), ['WebPage', 'CreativeWork', 'BreadcrumbList', 'Organization']);
   assert.equal(jsonLd['@graph'][0].mainEntity['@id'], 'https://hearthpulse.net/heroes/57944/#hero');
   assert.equal(jsonLd['@graph'][1].identifier, 57944);
   assert.equal(jsonLd['@graph'][1].alternateName, 'TB_BaconShop_HERO_16');
