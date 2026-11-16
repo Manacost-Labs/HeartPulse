@@ -17,8 +17,14 @@ const teaser = {
   slug: 'arena-100-percent', title: 'Арена 100% побед', description: 'Подробное описание',
   image: '/images/arena.png', publishedAt: '2026-07-10T12:00:00.000Z',
   kind: 'Гайды', kindSlug: 'guides', menuName: 'Арена',
+  updatedAt: '2026-07-10T12:00:00.000Z',
+  excerptHtml: '<p>Открытый текст гайда.</p><h2 id="guide-heading-1">Открытый раздел</h2><p>Продолжение открытого текста.</p>',
+  toc: [{ id: 'guide-heading-1', text: 'Открытый раздел', level: 2 }, { id: 'guide-heading-2', text: 'Платный раздел', level: 2 }],
+  hasPaid: true, indexable: true,
   contentHtml: 'PRIVATE_CONTENT', bodyText: 'PRIVATE_BODY', sourceUrl: 'PRIVATE_SOURCE',
 };
+// Fewer than 150 own words: out of the sitemap, noindex, and nothing is left behind a gate.
+const shortTeaser = { ...teaser, slug: 'short-guide', excerptHtml: '<p>Короткий гайд целиком.</p>', toc: [], hasPaid: false, indexable: false };
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
 const placeholder = readFileSync(new URL('../public/arena-logo-icon.webp', import.meta.url));
 
@@ -29,6 +35,7 @@ test('Next guide detail renders an anonymous teaser, canonicalizes old IDs and r
     if (['/api/guides-archive/teaser/arena-100-percent', '/api/guides-archive/teaser/1'].includes(pathname)) {
       response.end(JSON.stringify(teaser)); return;
     }
+    if (pathname === '/api/guides-archive/teaser/short-guide') { response.end(JSON.stringify(shortTeaser)); return; }
     if (pathname.startsWith('/api/guides-archive/teaser/')) {
       response.writeHead(404).end('{"error":"missing"}'); return;
     }
@@ -85,6 +92,10 @@ test('Next guide detail renders an anonymous teaser, canonicalizes old IDs and r
         canonical: document.querySelector('link[rel=canonical]')?.href,
         h1: [...document.querySelectorAll('h1')].map(node => node.textContent?.trim()),
         main: document.querySelectorAll('main').length,
+        toc: [...document.querySelectorAll('.guide-archive-toc a')].map(node => node.textContent),
+        tocTargets: [...document.querySelectorAll('.guide-archive-toc a')].map(node => Boolean(document.getElementById(node.getAttribute('href').slice(1)))),
+        paidBlocks: document.querySelectorAll('.guide-archive-paid').length,
+        author: document.querySelector('.guide-archive-detail-meta')?.textContent ?? '',
         overflow: document.documentElement.scrollWidth > innerWidth,
         accessibility: (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } }))
           .violations.map(violation => violation.id),
@@ -95,7 +106,37 @@ test('Next guide detail renders an anonymous teaser, canonicalizes old IDs and r
       assert.deepEqual(document.accessibility, []);
       assert.equal(document.canonical, 'https://hearthpulse.net/guides-archive/arena-100-percent/');
       assert.equal(document.html.includes('PRIVATE_'), false);
+      assert.match(document.html, /Открытый текст гайда\./, 'the open part is in the server HTML');
+      assert.deepEqual(document.toc, ['Открытый раздел', 'Платный раздел']);
+      assert.deepEqual(document.tocTargets, [true, true], 'every contents link has a target on the page');
+      assert.equal(document.paidBlocks, 1);
+      assert.ok(document.author.includes('HearthPulse'));
     }
+    // Robots and guests get the same document: the open part, the gate placeholder and the markup.
+    for (const agent of ['Mozilla/5.0 (compatible; Googlebot/2.1)', 'Mozilla/5.0 Chrome/130']) {
+      const html = await (await fetch(`${origin}/guides-archive/arena-100-percent/`, { headers: { 'user-agent': agent } })).text();
+      assert.match(html, /Открытый текст гайда\./);
+      assert.match(html, /Автор: HearthPulse/);
+      assert.match(html, /<meta name="robots" content="index, follow/);
+      const ld = [...html.matchAll(/<script\b(?=[^>]*type="application\/ld\+json")(?=[^>]*data-server-entity-jsonld)[^>]*>([\s\S]*?)<\/script>/g)]
+        .map(match => JSON.parse(match[1]));
+      assert.equal(ld.length, 1);
+      const [article, breadcrumb] = ld[0]['@graph'];
+      assert.equal(article['@type'], 'Article');
+      assert.equal(article.isAccessibleForFree, false);
+      assert.deepEqual(article.author, { '@id': 'https://hearthpulse.net/#org' });
+      assert.deepEqual(article.hasPart, [{ '@type': 'WebPageElement', isAccessibleForFree: false, cssSelector: '.guide-archive-paid' }]);
+      assert.equal('articleBody' in article || 'wordCount' in article, false);
+      assert.deepEqual(breadcrumb.itemListElement.map(item => item.name), ['Главная', 'Архив гайдов', 'Арена 100% побед']);
+      assert.ok(html.includes('class="guide-archive-paid"'), 'the selector of the JSON-LD exists on the page');
+    }
+    // The flight payload carries the open part only.
+    const flight = await (await fetch(`${origin}/guides-archive/arena-100-percent/`, { headers: { RSC: '1' } })).text();
+    assert.equal(flight.includes('PRIVATE_'), false);
+    const shortHtml = await (await fetch(`${origin}/guides-archive/short-guide/`)).text();
+    assert.match(shortHtml, /<meta name="robots" content="noindex, follow"/);
+    assert.equal(/application\/ld\+json" data-server-entity-jsonld/.test(shortHtml), false);
+    assert.equal(shortHtml.includes('class="guide-archive-paid"'), false, 'no closed block, no gate');
     assert.deepEqual(errors, []);
     assert.deepEqual(failed, []);
     assert.deepEqual(protectedCalls, []);

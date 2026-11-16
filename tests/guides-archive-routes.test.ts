@@ -161,4 +161,6 @@ try {
   database.close();
 }
 
+await import('./guides-archive-excerpt-cases.js');
+
 console.log('guides archive router contract tests passed');

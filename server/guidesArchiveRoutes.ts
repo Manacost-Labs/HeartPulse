@@ -1,4 +1,5 @@
 import { Router, type RequestHandler } from 'express';
+import { addGuideHeadingIds, guideHtmlSource, prepareGuide } from './guides/excerpt.js';
 import { createOldGuideSanitizer } from './guides/sanitize.js';
 
 type GuideStatement = {
@@ -66,18 +67,23 @@ function publicGuideTeaserRoute(dependencies: GuidesArchiveRouterDependencies, s
     try {
       const row = dependencies.getDatabase().prepare(`
         SELECT id, slug, old_url, published_at, published_iso, title, description,
-               image, menu_name, menu_code, kind, kind_slug, body_text, body_html
+               image, menu_name, menu_code, kind, kind_slug, body_text, body_html, free_html, short_html
         FROM guides
         WHERE slug = ? OR CAST(id AS TEXT) = ?
         LIMIT 1
       `).get(key, key);
       if (!row) return response.status(404).json({ error: 'Гайд не найден' });
       const item = guideListItem(row, sanitizer);
+      // Only the open part leaves the server; the rest of the text is cut here, not in the page.
+      const guide = prepareGuide(row, sanitizer);
       response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
       return response.json({
         slug: item.slug, title: item.title, description: item.description,
         image: item.image, publishedAt: item.publishedAt,
+        // The archive is frozen: a guide is never edited after publication.
+        updatedAt: item.publishedAt,
         kind: item.kind, kindSlug: item.kindSlug, menuName: item.menuName,
+        excerptHtml: guide.excerptHtml, toc: guide.toc, hasPaid: guide.hasPaid, indexable: guide.indexable,
       });
     } catch (error: unknown) {
       logError('[guides-archive] teaser failed:', error instanceof Error ? error.message : error);
@@ -179,13 +185,12 @@ export function createGuidesArchiveRouter(dependencies: GuidesArchiveRouterDepen
       if (!row) return response.status(404).json({ error: 'Гайд не найден' });
 
       // The legacy CMS split the introduction and paid continuation into separate fields.
-      const htmlSource = [row.free_html, row.body_html].filter(value => String(value ?? '').trim()).join('\n')
-        || row.short_html || '';
+      const htmlSource = guideHtmlSource(row);
       return response.json({
         ...rowToListItem(row),
         keywords: row.keywords || null,
         replyCount: Number(row.reply_count || 0),
-        contentHtml: sanitizer.sanitizeHtml(htmlSource),
+        contentHtml: addGuideHeadingIds(sanitizer.sanitizeHtml(htmlSource)),
         fallbackText: htmlSource ? '' : plainText(row.body_text),
         sourceUrl: sanitizer.normalizeLink(row.old_url),
       });

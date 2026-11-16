@@ -10,6 +10,8 @@ import {
   projectCosmeticsSitemapCatalog,
   projectGuideArchiveSitemapCatalog,
 } from '../server/entitySitemapEditorial.js';
+import { createGuidesArchiveRouter } from '../server/guidesArchiveRoutes.js';
+import { createGuideExcerptDatabase, words } from './helpers/guideExcerptFixture.js';
 import { SemanticSitemapStore } from '../server/entitySitemapStore.js';
 import { createEntitySitemapRouter } from '../server/entitySitemapRoutes.js';
 
@@ -47,13 +49,60 @@ assert.notEqual(heroHash(hero('HERO_1')), heroHash(hero('HERO_1', { name: { ru: 
 assert.throws(() => projectCosmeticsSitemapCatalog([{ kind: 'cards', item: hero('HERO_1') }], ORIGIN), /invalid/);
 assert.throws(() => projectCosmeticsSitemapCatalog([{ kind: 'heroes', item: hero('../x') }], ORIGIN), /invalid/);
 
-const guides = projectGuideArchiveSitemapCatalog(loadGuideArchiveSitemapRows({ prepare: sql => ({
-  all: () => {
-    assert.doesNotMatch(sql, /body_html|body_text/, 'the sitemap does not read guide bodies');
-    return [{ slug: 'guide-230', title: 'Гайд' }, { slug: 'guide-216', title: 'Гайд' }];
-  },
-}) }), ORIGIN);
+// A fake guides table: the listing query carries a text signature, the per-slug query the texts.
+const longText = { free_html: `<p>${words(170, 'слово')}</p>`, body_html: '', short_html: '' };
+let textReads = 0;
+const fakeGuides = (texts: Record<string, typeof longText>) => ({
+  prepare: (sql: string) => ({
+    all: (...params: unknown[]) => {
+      if (/text_signature/.test(sql)) {
+        return Object.entries(texts).map(([slug, text]) => ({
+          slug, title: 'Гайд', text_signature: `${text.free_html.length}:0:0`,
+        }));
+      }
+      textReads += 1;
+      return [texts[String(params[0])]];
+    },
+  }),
+});
+const texts = { 'guide-230': longText, 'guide-216': longText, 'guide-short': { ...longText, free_html: `<p>${words(95, 'мало')}</p>` } };
+const first = loadGuideArchiveSitemapRows(fakeGuides(texts));
+assert.deepEqual(first, [{ slug: 'guide-230', title: 'Гайд' }, { slug: 'guide-216', title: 'Гайд' }],
+  'the short guide is out, and the signature never reaches the rows');
+assert.equal(textReads, 3, 'a first build reads each text once');
+assert.deepEqual(loadGuideArchiveSitemapRows(fakeGuides(texts)), first);
+assert.equal(textReads, 3, 'a repeat build reads no text');
+// A changed text (another signature) is judged again.
+const edited = loadGuideArchiveSitemapRows(fakeGuides({ ...texts, 'guide-short': { ...longText, free_html: `<p>${words(180, 'много')}</p>` } }));
+assert.equal(textReads, 4);
+assert.equal(edited.length, 3);
+const guides = projectGuideArchiveSitemapCatalog(first, ORIGIN);
 assert.deepEqual(guides.map(entry => entry.location), [`${ORIGIN}/guides-archive/guide-216/`, `${ORIGIN}/guides-archive/guide-230/`]);
+
+// One predicate for page and sitemap: a guide is outside the sitemap exactly when its page is noindex.
+{
+  const database = createGuideExcerptDatabase();
+  const app = express();
+  app.use('/api', createGuidesArchiveRouter({
+    getDatabase: () => database, accessGuard: (_request, _response, next) => next(),
+    publicUrl: 'https://legacy.example.test', logError: () => {},
+  }));
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise<void>(resolve => server.once('listening', resolve));
+  try {
+    const port = (server.address() as AddressInfo).port;
+    const listed = new Set(projectGuideArchiveSitemapCatalog(loadGuideArchiveSitemapRows(database), ORIGIN).map(entry => entry.key));
+    assert.equal(listed.has('short-guide'), false);
+    assert.equal(listed.has('sentinel-guide'), true);
+    for (const { slug } of database.prepare('SELECT slug FROM guides').all() as Array<{ slug: string }>) {
+      const projection = await (await fetch(`http://127.0.0.1:${port}/api/guides-archive/teaser/${slug}`)).json() as { indexable: boolean };
+      assert.equal(listed.has(slug), projection.indexable, `${slug}: sitemap and page robots agree`);
+    }
+  } finally {
+    await new Promise<void>(resolve => server.close(() => resolve()));
+    database.close();
+  }
+}
 assert.throws(() => projectGuideArchiveSitemapCatalog([{ slug: 'a/b' }], ORIGIN), /invalid/);
 
 // The store accepts the editorial keys and locations and keeps lastmod stable.

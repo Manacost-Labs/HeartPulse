@@ -1,5 +1,5 @@
 import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
-import React, { useMemo, useState } from 'react';
+import React, { type ReactNode, useMemo, useState } from 'react';
 import { ArrowLeft, BookOpen, CalendarDays, ChevronLeft, ChevronRight, Search, Tag } from 'lucide-react';
 import '../route-parchment.css';
 import './GuidesArchive.css';
@@ -199,6 +199,7 @@ export function GuideArchiveDetailHeader({ guide }: { guide: GuideDetailSeed }) 
           <div className="guide-archive-detail-meta">
             {guide.publishedAt && <span><CalendarDays size={17} /> {formatGuideDate(guide.publishedAt, timeZone)}</span>}
             {guide.menuName && <span><Tag size={17} /> {guide.menuName}</span>}
+            <span className="guide-archive-detail-author">Автор: HearthPulse</span>
           </div>
           {guide.description && <p>{guide.description}</p>}
         </div>
@@ -213,14 +214,16 @@ export function GuideArchiveDetailHeader({ guide }: { guide: GuideDetailSeed }) 
  * as they are and only the body, which the teaser never has, waits for the
  * request. Without a teaser the whole detail waits in its fitted skeleton.
  */
-function GuidesArchiveDetail({ slug, navigatePath, seed }: {
+function GuidesArchiveDetail({ slug, navigatePath, seed, slots }: {
   slug: string;
   navigatePath: (path: string) => void;
   seed?: GuideDetailSeed | null;
+  slots?: GuideDetailSlots;
 }) {
   const { guide, error, missing, retry } = useGuideDetail(slug);
   const [seedSlug] = useState(slug);
   const header = guide ?? (slug === seedSlug ? seed : null);
+  const seeded = slug === seedSlug ? slots : undefined;
 
   if (!guide && !error && !header) return <section className="guide-archive-page"><GuideDetailSkeleton /></section>;
 
@@ -228,11 +231,12 @@ function GuidesArchiveDetail({ slug, navigatePath, seed }: {
     <article className="guide-archive-detail">
       <GuideBackButton navigatePath={navigatePath} />
       {header && <GuideArchiveDetailHeader guide={header} />}
+      {seeded?.toc}
       {error ? (
         <AsyncSurfaceState variant="error" title={missing ? 'Гайд не найден' : 'Не удалось загрузить гайд'}
           message={missing ? undefined : error} actionLabel={missing ? undefined : 'Повторить'} onAction={missing ? undefined : retry} />
       ) : !guide ? (
-        <GuideReaderSkeleton />
+        seeded?.excerpt ?? <GuideReaderSkeleton />
       ) : guide.contentHtml ? (
         <div className="guide-archive-reader" dangerouslySetInnerHTML={{ __html: guide.contentHtml }} />
       ) : (
@@ -244,13 +248,20 @@ function GuidesArchiveDetail({ slug, navigatePath, seed }: {
   );
 }
 
-export default function GuidesArchive({ currentPath, navigatePath, detailSeed }: {
+/**
+ * The server-rendered contents and open text of the seeded guide. The contents stay for the
+ * whole visit; the open text stands in for the body until the full text replaces it.
+ */
+export type GuideDetailSlots = { toc?: ReactNode; excerpt?: ReactNode };
+
+export default function GuidesArchive({ currentPath, navigatePath, detailSeed, detailSlots }: {
   currentPath: string;
   navigatePath: (path: string) => void;
   /** The server-rendered teaser of the guide at `currentPath`, kept on screen while its body loads. */
   detailSeed?: GuideDetailSeed | null;
+  detailSlots?: GuideDetailSlots;
 }) {
   const slug = detailSlugFromPath(currentPath);
-  if (slug) return <GuidesArchiveDetail slug={slug} navigatePath={navigatePath} seed={detailSeed} />;
+  if (slug) return <GuidesArchiveDetail slug={slug} navigatePath={navigatePath} seed={detailSeed} slots={detailSlots} />;
   return <GuidesArchiveList navigatePath={navigatePath} />;
 }
