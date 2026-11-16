@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { isGuideArchiveIndexableCached } from './guides/excerpt.js';
+import { isGuideArchiveIndexableCached } from './guides/indexability.js';
 import type { SitemapSemanticEntry } from './entitySitemapTypes.js';
 
 /**
