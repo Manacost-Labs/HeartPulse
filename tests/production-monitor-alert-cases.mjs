@@ -45,7 +45,7 @@ assert.deepEqual(mutations(fake.calls), ['issue create --title']);
 const create = fake.calls.find(call => call.args[1] === 'create');
 for (const label of ALERT_LABELS) assert.ok(create.args.includes(label));
 assert.ok(create.input.includes(ALERT_MARKER) && create.input.includes('/page template standard-card-detail/'.slice(1, -1)));
-assert.ok(create.input.includes(runUrl));
+assert.ok(create.input.split('\n').some(line => line === `Прогон: ${runUrl}`), 'the alert links the monitor run');
 const openBody = create.input;
 
 // The next red runs with the same failures change nothing (no duplicates).
