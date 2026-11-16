@@ -3,7 +3,7 @@
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
     "sourceFiles": 107,
-    "routeRegistrations": 287,
+    "routeRegistrations": 288,
     "middlewareRegistrations": 147,
     "explicitGuardRouteRegistrations": 73,
     "unresolvedPaths": 0
