@@ -7,6 +7,7 @@ import { type BoostyConfirmation } from '../src/modules/identity/ui/AccountAcces
 import { accountPlanSummary } from '../src/modules/identity/model/accountPlan';
 import AccountContests from '../src/modules/identity/ui/AccountContests';
 import { accountTabFromHash } from '../src/modules/identity/model/accountTabs';
+import { scrollToSectionWhenShown } from '../src/modules/identity/model/accountSectionScroll';
 import { savedDecksFromPayload } from '../src/modules/identity/model/savedDeck';
 import AccountLinks from '../src/modules/identity/ui/AccountLinks';
 import AccountSessions from '../src/modules/identity/ui/AccountSessions';
@@ -376,6 +377,66 @@ test('saved decks show only images the site serves itself', () => {
   assert.deepEqual([foreign.imageUrl, foreign.previewImageUrl], [null, null]);
   assert.equal(broken, undefined, 'an unknown status is dropped');
   assert.equal(savedDecksFromPayload({ error: 'x' }), null);
+});
+
+test('an account anchor scrolls to its section once the section is on the page', () => {
+  // A page whose elements, frames and DOM changes the test drives by hand: no timers, no waiting.
+  const page = () => {
+    const scrolled: string[] = [];
+    const present = new Set<string>();
+    const frames: Array<() => void> = [];
+    const observers = new Set<() => void>();
+    return {
+      scrolled,
+      observers,
+      show: (id: string) => { present.add(id); for (const notify of observers) notify(); },
+      change: () => { for (const notify of observers) notify(); },
+      frame: () => { for (const run of frames.splice(0)) run(); },
+      host: {
+        find: (id: string) => (present.has(id) ? { scrollIntoView: () => { scrolled.push(id); } } : null),
+        observe: (onChange: () => void) => { observers.add(onChange); return () => { observers.delete(onChange); }; },
+        nextFrame: (run: () => void) => { frames.push(run); },
+      },
+    };
+  };
+
+  // The Twitch block renders nothing until GET /api/account/twitch answers: the answer comes after the frame.
+  const late = page();
+  scrollToSectionWhenShown('account-twitch', late.host);
+  assert.deepEqual(late.scrolled, [], 'nothing before the frame: the panel is still hidden');
+  late.frame();
+  assert.deepEqual(late.scrolled, [], 'the section is not on the page yet');
+  assert.equal(late.observers.size, 1, 'the scroll waits for the page to change');
+  late.show('account-links');
+  assert.deepEqual(late.scrolled, [], 'another section appearing is not the one asked for');
+  late.show('account-twitch');
+  assert.deepEqual(late.scrolled, ['account-twitch'], 'scrolled when the section appeared');
+  assert.equal(late.observers.size, 0, 'and stopped watching');
+  late.change();
+  assert.deepEqual(late.scrolled, ['account-twitch'], 'once');
+
+  // A section that is already there scrolls on the frame, without watching.
+  const ready = page();
+  ready.show('account-access');
+  scrollToSectionWhenShown('account-access', ready.host);
+  ready.frame();
+  assert.deepEqual(ready.scrolled, ['account-access']);
+  assert.equal(ready.observers.size, 0);
+
+  // Another anchor or leaving the page cancels a pending scroll, before or after the frame.
+  const left = page();
+  const cancelEarly = scrollToSectionWhenShown('account-twitch', left.host);
+  cancelEarly();
+  left.show('account-twitch');
+  left.frame();
+  assert.deepEqual(left.scrolled, []);
+  const hidden = page();
+  const cancelLate = scrollToSectionWhenShown('account-twitch', hidden.host);
+  hidden.frame();
+  cancelLate();
+  assert.equal(hidden.observers.size, 0, 'a section that never comes leaves no watcher behind');
+  hidden.show('account-twitch');
+  assert.deepEqual(hidden.scrolled, []);
 });
 
 test('the Twitch block links, shows the linked channel and stays hidden without the extension', async () => {

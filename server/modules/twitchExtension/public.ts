@@ -15,6 +15,7 @@ export {
   validateTwitchState,
   type TwitchStreamState,
 } from './model.js';
+export { createTwitchChannelRevoker, type TwitchRevocationReason } from './revocation.js';
 export { TWITCH_LINK_TABLES_SQL, createTwitchLinkRepository, type TwitchLink, type TwitchLinkRepository } from './repository.js';
 export { TwitchApiError, createTwitchApi, type TwitchApi, type TwitchFetch } from './twitchApi.js';
 export { createTwitchApiRouter, createTwitchExtensionCors } from './apiRoutes.js';

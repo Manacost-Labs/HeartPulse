@@ -10,6 +10,7 @@ import {
   validateTwitchState,
 } from './model.js';
 import type { TwitchLinkRepository } from './repository.js';
+import { createTwitchChannelRevoker } from './revocation.js';
 import type { TwitchApi } from './twitchApi.js';
 
 export type TwitchApiRouterDependencies = {
@@ -28,6 +29,8 @@ export type TwitchApiRouterDependencies = {
   setPrivateNoStore: (response: Response) => void;
   onError?: (scope: string, error: unknown) => void;
   now?: () => number;
+  /** Waits out the channel's send budget before a clear; a test supplies its own. */
+  wait?: (milliseconds: number) => Promise<void>;
 };
 
 const apiError = (code: string, message: string) => ({ error: { code, message } });
@@ -38,8 +41,11 @@ function bearerToken(request: Request): string {
 }
 
 /**
- * Preflight and CORS for the extension iframe. It is registered before the
- * site-wide CORS middleware, which knows only the site's own origins.
+ * Preflight and CORS for the extension iframe. The site-wide CORS middleware
+ * runs first and knows only the site's own origins: it answers every other
+ * preflight itself and passes this one on (`twitchExtensionPreflight` in
+ * `server/app/registerTwitchExtension.ts`), and the headers set here replace
+ * the methods and headers it has already written.
  */
 export function createTwitchExtensionCors(config: TwitchExtensionConfig | null) {
   return (request: Request, response: Response, next: NextFunction) => {
@@ -59,6 +65,7 @@ export function createTwitchExtensionCors(config: TwitchExtensionConfig | null) 
 export function createTwitchApiRouter(dependencies: TwitchApiRouterDependencies): Router {
   const router = Router();
   const now = dependencies.now ?? Date.now;
+  const revoke = createTwitchChannelRevoker(dependencies);
   const privateResponse = (response: Response) => {
     dependencies.setPrivateNoStore(response);
     response.set('Pragma', 'no-cache');
@@ -77,7 +84,7 @@ export function createTwitchApiRouter(dependencies: TwitchApiRouterDependencies)
     if (!dependencies.accountActive(token.userId)) {
       // Blocking removes browser sessions only; the app's token lives on, so the publication stops here.
       const link = dependencies.links.find(token.userId);
-      if (link) dependencies.live.forget(link.twitchUserId);
+      if (link) revoke(link.twitchUserId, 'detected');
       response.set('WWW-Authenticate', 'Bearer realm="HearthPulse Tracker"');
       response.status(401).json(apiError('INVALID_ACCESS_TOKEN', 'Access token is invalid or expired'));
       return null;
@@ -113,12 +120,25 @@ export function createTwitchApiRouter(dependencies: TwitchApiRouterDependencies)
       response.set('Retry-After', String(slot.retryAfterSeconds));
       return response.status(429).json(apiError('rate_limited', 'One state per second per channel'));
     }
-    // Stored before the broadcast: a viewer who opens the stream gets it even when one PubSub send failed.
-    dependencies.live.store(link.twitchUserId, envelope);
-    try {
-      await twitch.broadcast(link.twitchUserId, envelope);
-    } catch (error) {
-      dependencies.onError?.('pubsub', error);
+    const channelId = link.twitchUserId;
+    const state = validation.value;
+    // The link as it is now. The send waits its turn behind the channel's earlier messages; if the link is
+    // unlinked, moved or blocked meanwhile, this state belongs to the old link and must not follow its clear.
+    const generation = dependencies.live.generation(channelId);
+    const outcome = await dependencies.live.run(channelId, async () => {
+      if (dependencies.live.generation(channelId) !== generation) return 'revoked';
+      // Stored before the broadcast: a viewer who opens the stream gets it even when one PubSub send failed.
+      dependencies.live.store(channelId, envelope, { seq: state.seq, visible: state.state.mode !== 'none' });
+      try {
+        await twitch.broadcast(channelId, envelope);
+        return 'sent';
+      } catch (error) {
+        dependencies.onError?.('pubsub', error);
+        return 'unavailable';
+      }
+    });
+    if (outcome === 'revoked') return response.status(404).json(apiError('twitch_not_linked', 'Link Twitch on the site first'));
+    if (outcome === 'unavailable') {
       return response.status(503).json(apiError('twitch_unavailable', 'Twitch did not accept the message'));
     }
     return response.status(204).end();
@@ -150,7 +170,8 @@ export function createTwitchApiRouter(dependencies: TwitchApiRouterDependencies)
     // call: the snapshot is served only while an active account owns the channel.
     const owner = dependencies.links.findByChannel(claims.channelId);
     if (!owner || !dependencies.accountActive(owner.userId)) {
-      dependencies.live.forget(claims.channelId);
+      // A channel nobody ever linked has nothing to take away; any viewer of it lands here.
+      if (owner || dependencies.live.tracks(claims.channelId)) revoke(claims.channelId, 'detected');
       return response.status(204).end();
     }
     const envelope = dependencies.live.snapshot(claims.channelId);
