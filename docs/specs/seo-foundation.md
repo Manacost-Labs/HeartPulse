@@ -125,8 +125,8 @@ are cache busters (card image `?v=`) or upstream sync stamps (cosmetics
   2 s answer deadline, so the index answers within 2 s. A segment that
   cannot be built is dated from the state the store saved earlier (the
   last-known-good copy, which survives a restart); if that state holds no
-  day for any address, the day its state was last written stands in. When no day can be had for any
-  record, that sitemap is left out of the index: it has nothing to serve and
+  day for any address, the day its state was last written stands in. When no day can be had for
+  any record, that sitemap is left out of the index: it has nothing to serve and
   its own address answers with an error, while one failing segment must not
   take every sitemap from crawlers. Every record that is listed has a
   `lastmod`. The index answers `503` with `Retry-After` only when no record
