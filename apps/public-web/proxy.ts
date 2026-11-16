@@ -8,6 +8,7 @@ import { publicCardSeed } from './lib/publicCardSeed';
 import { encodePublicProjection, MISSING_PUBLIC_PROJECTION, PUBLIC_BG_PROJECTION_HEADER,
   PUBLIC_CARD_PROJECTION_HEADER } from './lib/publicProjectionHeader';
 import { MISSING_COSMETICS_DETAIL_HEADER } from './lib/cosmeticsDetailContract';
+import { unavailablePageHtml } from './lib/unavailablePage';
 import { fetchPublicExpress } from './lib/expressApi';
 import { cachedCatalog } from './lib/defaultCatalogStore';
 import { rememberCardProjection, lastGoodCardProjection, forgetCardProjection } from './lib/cardLastGood';
@@ -41,8 +42,7 @@ function battlegroundDetailProbe(pathname: string): BattlegroundDetailProbe | nu
 function unavailableResponse(retryAfter: string | null, method: string, indexable = false): Response {
   const retry = retryAfter && /^[1-9][0-9]{0,3}$/.test(retryAfter) && Number(retryAfter) <= 3600
     ? retryAfter : '300';
-  const robotsMeta = indexable ? '' : '<meta name="robots" content="noindex, nofollow">';
-  const html = `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">${robotsMeta}<title>Данные временно недоступны | HearthPulse</title></head><body><main><h1>Данные временно недоступны</h1><p>Попробуйте открыть страницу позже.</p><a href="/">На главную</a></main></body></html>`;
+  const html = unavailablePageHtml({ noindex: !indexable });
   return new Response(method === 'HEAD' ? null : html, { status: 503, headers: {
     'Content-Type': 'text/html; charset=utf-8',
     'Cache-Control': 'private, no-store',

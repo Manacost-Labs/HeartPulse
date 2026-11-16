@@ -103,6 +103,30 @@ async function startStallingApi() {
   return { server, state, origin: await listenLocal(server) };
 }
 
+// The text of a fragment without its markup. Tags are removed until none is left, so that a tag which only
+// appears once another one is cut out cannot survive.
+function textOf(markup) {
+  let text = markup;
+  let previous;
+  do {
+    previous = text;
+    text = text.replace(/<[^>]*>/g, '');
+  } while (text !== previous);
+  return text.trim();
+}
+
+// A landmark of a rendered document: the element `tag` named by `aria-label` (any, when no label), and its links
+// as the reader sees them (text without markup, address).
+function landmark(html, tag, label) {
+  const open = [...html.matchAll(new RegExp(`<${tag}\\b[^>]*>`, 'g'))].find(match => label === undefined || match[0].includes(`aria-label="${label}"`));
+  if (!open) return null;
+  const end = html.indexOf(`</${tag}>`, open.index);
+  const inner = html.slice(open.index, end);
+  const links = [...inner.matchAll(/<a\b[^>]*?href="([^"]*)"[^>]*>([^]*?)<\/a>/g)]
+    .map(([, href, body]) => ({ text: textOf(body), href }));
+  return { html: inner, links };
+}
+
 const timed = async url => {
   const started = Date.now();
   const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
@@ -213,6 +237,71 @@ test('a slow but live Express costs one 503 for a cold card and a cold catalog, 
       assert.equal(warm.response.status, 200, `${path} must be warmed by the read that outlived its deadline: ${next.output()}`);
       api.state.stalled = false;
     }
+  } finally {
+    if (next) await next.close();
+    await closeLocal(api.server);
+  }
+});
+
+// The outage page is a site page, not a bare stub: header, menu, search, text, footer, all without Express.
+test('the outage page is a full site page that needs neither script nor Express, and keeps its status and headers', async () => {
+  const api = await startStallingApi();
+  api.state.stalled = true;
+  let next;
+  try {
+    next = await startNextServer({ legacyOrigin: api.origin });
+    const { response, html } = await timed(`${next.origin}/standard/cards/`);
+    assert.equal(response.status, 503, next.output());
+    assert.equal(response.headers.get('retry-after'), '300');
+    assert.equal(response.headers.get('cache-control'), 'private, no-store');
+    assert.equal(response.headers.get('x-robots-tag'), null);
+    assert.doesNotMatch(html, /noindex|canonical|application\/ld\+json/);
+    assert.equal(html.match(/<h1[ >]/g)?.length, 1, 'exactly one h1');
+    assert.match(html, /<title>Данные временно недоступны \| HearthPulse<\/title>/);
+    for (const label of ['Разделы сайта', 'Основная навигация']) assert.ok(landmark(html, 'nav', label), `a menu named «${label}»`);
+    assert.ok(landmark(html, 'footer', 'Подвал сайта'), 'a footer');
+    assert.match(html, /<form[^>]*role="search"/);
+    assert.match(html, /<a [^>]*href="">Повторить<\/a>/);
+    const sections = landmark(html, 'main', undefined).links.map(link => link.href);
+    for (const path of ['/tierlist/', '/standard/meta/', '/heroes/']) assert.ok(sections.includes(path), `the page offers ${path}`);
+    assert.doesNotMatch(html, /backend|Express|на главную<\/a>/i, 'no technical words in the copy');
+    // Nothing on the page reads data: no script source, no request to the API, no fetch.
+    assert.doesNotMatch(html, /<script[^>]*src=|fetch\(|XMLHttpRequest|["'(]\/api\/(?!v1\/openapi\.json)/);
+    const head = await fetch(`${next.origin}/standard/cards/`, { method: 'HEAD' });
+    assert.equal(head.status, 503);
+    assert.equal(await head.text(), '');
+    // A client-side read is not a document: it never gets the page.
+    const script = await fetch(`${next.origin}/standard/cards/`, { headers: { rsc: '1', 'sec-fetch-dest': 'empty' } });
+    assert.notEqual(script.status, 503, 'an RSC or fetch read must keep its in-app error state');
+  } finally {
+    if (next) await next.close();
+    await closeLocal(api.server);
+  }
+});
+
+// The outage page is a stand-in for the site shell, so its menu and footer are compared with the shell the
+// same server renders for an ordinary page. Differences are named: the stand-in lists «Главная» (the site
+// shows the logo instead) and, for the footer, nothing else.
+test('the outage page menu and footer list the same links as the site shell, apart from the home link', async () => {
+  const api = await startStallingApi();
+  api.state.stalled = true;
+  let next;
+  try {
+    next = await startNextServer({ legacyOrigin: api.origin });
+    const outage = (await timed(`${next.origin}/standard/cards/`)).html;
+    const site = (await timed(`${next.origin}/faq/`)).html;
+    const siteMenu = landmark(site, 'nav', 'Разделы сайта').links;
+    const outageMenu = landmark(outage, 'nav', 'Основная навигация').links;
+    assert.ok(siteMenu.length >= 20, `the site shell lists its menu (${siteMenu.length} links)`);
+    assert.deepEqual(outageMenu[0], { text: 'Главная', href: '/' }, 'the stand-in adds the home link');
+    assert.deepEqual(outageMenu.slice(1), siteMenu, 'same items, labels, paths and order as the site menu');
+    assert.deepEqual(landmark(outage, 'nav', 'Разделы сайта').links, outageMenu, 'the phone drawer lists the same items');
+    const siteFooter = landmark(site, 'footer', 'Подвал сайта');
+    assert.ok(siteFooter.links.length >= 8, 'the site footer lists its links');
+    assert.deepEqual(landmark(outage, 'footer', 'Подвал сайта').links, siteFooter.links, 'same footer links in the same order');
+    assert.doesNotMatch(landmark(outage, 'footer', 'Подвал сайта').html, /<h[1-6]/, 'the stand-in footer has no heading tags');
+    // Without JavaScript the search field is replaced by a plain explanation.
+    assert.match(outage, /<noscript>[^]*Поиск по разделам работает только с включённым JavaScript[^]*<\/noscript>/);
   } finally {
     if (next) await next.close();
     await closeLocal(api.server);

@@ -1,0 +1,12 @@
+{
+  "reason": "Страница 503 (#370) строится из общих данных меню и футера, а не из копии. Для этого подписи, пути и группы пунктов вынесены в src/app/routing/navigationData.ts (иконки подключаются по id), а список ссылок футера — в src/components/siteFooterContent.ts. Клиентский код меню и футера по содержанию тот же, рост — обёртки двух модулей и таблица иконок (измерено: от 9 до 188 Б gzip по маршрутам, +4 Б на выбор имён минификатором).",
+  "routes": {
+    "/guides-archive/": { "jsGzipBytes": 189 },
+    "/heroes/": { "jsGzipBytes": 13 },
+    "/standard/archetypes/": { "jsGzipBytes": 192 },
+    "/standard/deck-builder/": { "jsGzipBytes": 19 },
+    "/standard/fun-decks/": { "jsGzipBytes": 118 },
+    "/standard/meta/": { "jsGzipBytes": 140 },
+    "/tierlist/": { "jsGzipBytes": 60 }
+  }
+}
