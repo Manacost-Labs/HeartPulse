@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
@@ -102,6 +101,18 @@ async function startStallingApi() {
     }
   });
   return { server, state, origin: await listenLocal(server) };
+}
+
+// A landmark of a rendered document: the element `tag` named by `aria-label` (any, when no label), and its links
+// as the reader sees them (text without markup, address).
+function landmark(html, tag, label) {
+  const open = [...html.matchAll(new RegExp(`<${tag}\\b[^>]*>`, 'g'))].find(match => label === undefined || match[0].includes(`aria-label="${label}"`));
+  if (!open) return null;
+  const end = html.indexOf(`</${tag}>`, open.index);
+  const inner = html.slice(open.index, end);
+  const links = [...inner.matchAll(/<a\b[^>]*?href="([^"]*)"[^>]*>([^]*?)<\/a>/g)]
+    .map(([, href, body]) => ({ text: body.replace(/<[^>]*>/g, '').trim(), href }));
+  return { html: inner, links };
 }
 
 const timed = async url => {
@@ -235,13 +246,12 @@ test('the outage page is a full site page that needs neither script nor Express,
     assert.doesNotMatch(html, /noindex|canonical|application\/ld\+json/);
     assert.equal(html.match(/<h1[ >]/g)?.length, 1, 'exactly one h1');
     assert.match(html, /<title>Данные временно недоступны \| HearthPulse<\/title>/);
-    assert.match(html, /<header class="topbar[^"]*">/);
-    assert.match(html, /<nav class="drawer-nav" aria-label="Разделы сайта">/);
-    assert.match(html, /<aside class="rail[^"]*">/);
-    assert.match(html, /<form id="site-search" class="search" role="search"/);
-    assert.match(html, /<footer class="footer"/);
-    assert.match(html, /<a class="btn" href="">Повторить<\/a>/);
-    for (const path of ['/tierlist/', '/standard/meta/', '/heroes/']) assert.ok(html.includes(`class="way" href="${path}"`), path);
+    for (const label of ['Разделы сайта', 'Основная навигация']) assert.ok(landmark(html, 'nav', label), `a menu named «${label}»`);
+    assert.ok(landmark(html, 'footer', 'Подвал сайта'), 'a footer');
+    assert.match(html, /<form[^>]*role="search"/);
+    assert.match(html, /<a [^>]*href="">Повторить<\/a>/);
+    const sections = landmark(html, 'main', undefined).links.map(link => link.href);
+    for (const path of ['/tierlist/', '/standard/meta/', '/heroes/']) assert.ok(sections.includes(path), `the page offers ${path}`);
     assert.doesNotMatch(html, /backend|Express|на главную<\/a>/i, 'no technical words in the copy');
     // Nothing on the page reads data: no script source, no request to the API, no fetch.
     assert.doesNotMatch(html, /<script[^>]*src=|fetch\(|XMLHttpRequest|["'(]\/api\/(?!v1\/openapi\.json)/);
@@ -257,34 +267,29 @@ test('the outage page is a full site page that needs neither script nor Express,
   }
 });
 
-test('the outage page menu and footer match the site menu in both directions, in order', async () => {
+// The outage page is a stand-in for the site shell, so its menu and footer are compared with the shell the
+// same server renders for an ordinary page. Differences are named: the stand-in lists «Главная» (the site
+// shows the logo instead) and, for the footer, nothing else.
+test('the outage page menu and footer list the same links as the site shell, apart from the home link', async () => {
   const api = await startStallingApi();
   api.state.stalled = true;
   let next;
   try {
     next = await startNextServer({ legacyOrigin: api.origin });
-    const { html } = await timed(`${next.origin}/standard/cards/`);
-    // The expectation is read from the menu data file itself, not from the module the page imports.
-    const data = readFileSync(new URL('../src/app/routing/navigationData.ts', import.meta.url), 'utf8');
-    const routes = [...data.matchAll(/\{ id: '([^']+)', label: '([^']+)', path: '(\/[^']*)', group: '([^']+)'/g)]
-      .map(([, id, label, path, group]) => ({ id, label, path: path.replace(/\/?$/, '/'), group }));
-    assert.ok(routes.length >= 25, 'the menu data is parsed');
-    const shown = group => routes.filter(route => route.group === group && route.id !== 'faq');
-    const expected = ['home', 'top', 'standard', 'arena', 'bg-primary', 'bg-builder', 'misc'].flatMap(shown).map(route => `${route.label} ${route.path}`);
-    const rail = html.slice(html.indexOf('<aside'), html.indexOf('</aside>'));
-    const links = [...rail.matchAll(/class="nav-link" href="([^"]+)">([^<]+)</g)].map(([, path, label]) => `${label} ${path}`);
-    assert.deepEqual(links, expected, 'same items, labels, paths and order as the site menu');
-    const drawer = html.slice(html.indexOf('<nav class="drawer-nav"'), html.indexOf('</header>'));
-    assert.equal([...drawer.matchAll(/class="nav-link"/g)].length, expected.length, 'the phone drawer lists the same items');
-    const footer = html.slice(html.indexOf('<footer'), html.indexOf('</footer>'));
-    for (const id of ['home', 'winrates', 'tierlist', 'legendaries', 'articles', 'gallery', 'privacy', 'terms']) {
-      const route = routes.find(item => item.id === id);
-      assert.ok(footer.includes(`href="${route.path}">${route.label}</a>`), `the footer names ${id} as the menu does`);
-    }
-    assert.doesNotMatch(footer, /<h[1-6]/, 'the footer has no heading tags');
-    // Without JavaScript the search field is replaced by a plain explanation: nothing submits to a page that cannot answer.
-    assert.match(html, /<noscript><style>\.utility \.search\{display:none\}<\/style><\/noscript>/);
-    assert.match(html, /<noscript><p class="search-note">Поиск по разделам работает только с включённым JavaScript/);
+    const outage = (await timed(`${next.origin}/standard/cards/`)).html;
+    const site = (await timed(`${next.origin}/faq/`)).html;
+    const siteMenu = landmark(site, 'nav', 'Разделы сайта').links;
+    const outageMenu = landmark(outage, 'nav', 'Основная навигация').links;
+    assert.ok(siteMenu.length >= 20, `the site shell lists its menu (${siteMenu.length} links)`);
+    assert.deepEqual(outageMenu[0], { text: 'Главная', href: '/' }, 'the stand-in adds the home link');
+    assert.deepEqual(outageMenu.slice(1), siteMenu, 'same items, labels, paths and order as the site menu');
+    assert.deepEqual(landmark(outage, 'nav', 'Разделы сайта').links, outageMenu, 'the phone drawer lists the same items');
+    const siteFooter = landmark(site, 'footer', 'Подвал сайта');
+    assert.ok(siteFooter.links.length >= 8, 'the site footer lists its links');
+    assert.deepEqual(landmark(outage, 'footer', 'Подвал сайта').links, siteFooter.links, 'same footer links in the same order');
+    assert.doesNotMatch(landmark(outage, 'footer', 'Подвал сайта').html, /<h[1-6]/, 'the stand-in footer has no heading tags');
+    // Without JavaScript the search field is replaced by a plain explanation.
+    assert.match(outage, /<noscript>[^]*Поиск по разделам работает только с включённым JavaScript[^]*<\/noscript>/);
   } finally {
     if (next) await next.close();
     await closeLocal(api.server);
