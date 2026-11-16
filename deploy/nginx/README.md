@@ -145,7 +145,10 @@ edge IP with `curl --resolve`; it must not contain an `immutable` cache header.
 
 Constructed-card, hero and base Battlegrounds library detail routes proxy to
 authoritative server renderers: confirmed missing entities return `404`,
-catalog outages return `503` with `Retry-After`, and initial HTML contains only
+catalog outages return `503` with `Retry-After` (for `/standard/cards/*` without
+`X-Robots-Tag: noindex`: `$arena_next_cards_robots_header` in `arena-seo-map.conf`
+drops it for 503 only, so a short outage does not drop pages from the index;
+other statuses and other Next routes keep their noindex), and initial HTML contains only
 whitelisted public catalog data. Format/listing routes remain static. Additional
 and archive Battlegrounds detail URLs still use the anonymous SPA shell until
 their entity resolvers are introduced, but that fallback carries
