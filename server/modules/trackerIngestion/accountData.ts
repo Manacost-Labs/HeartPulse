@@ -12,6 +12,8 @@ export type TrackerAccountDataDependencies = {
   exportReplays?: (userId: string) => Iterable<string>;
   /** The account's app usage claims (another module, plan 3.1), written after the replays. */
   exportUsage?: (userId: string) => Iterable<string>;
+  /** The account's Twitch link (another module), written last: zero or one JSON object. */
+  exportTwitch?: (userId: string) => Iterable<string>;
   now?: () => number;
 };
 
@@ -105,6 +107,15 @@ export function createTrackerAccountDataRouter(dependencies: TrackerAccountDataD
           if (response.destroyed) return;
           await writeChunk(response, `${firstClaim ? '' : ','}\n${row}`);
           firstClaim = false;
+        }
+      }
+      if (dependencies.exportTwitch) {
+        await writeChunk(response, '\n],"twitch":[');
+        let firstLink = true;
+        for (const row of dependencies.exportTwitch(user.id)) {
+          if (response.destroyed) return;
+          await writeChunk(response, `${firstLink ? '' : ','}\n${row}`);
+          firstLink = false;
         }
       }
       response.end('\n]}\n');

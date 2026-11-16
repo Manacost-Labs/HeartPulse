@@ -17,6 +17,7 @@ import AccountPlanSection from './AccountPlanSection';
 import AccountSectionHead from './AccountSectionHead';
 import AccountReplays from './AccountReplays';
 import AccountTrackerData from './AccountTrackerData';
+import AccountTwitch from './AccountTwitch';
 import AccountPublicProfile, { type AccountPublicProfileProps } from './AccountPublicProfile';
 import AccountSettings, { type AccountSettingsProps } from './AccountSettings';
 import AccountTabs from './AccountTabs';
@@ -151,6 +152,7 @@ export default function AccountDashboard(props: AccountDashboardProps) {
             {props.publicProfile && <AccountPublicProfile {...props.publicProfile} />}
             <AccountLinks user={props.user} subscription={props.subscription} telegram={props.telegram} patreonLinkUrl={props.patreonLinkUrl} social={props.social} sessions={props.sessions} />
             <AccountSettings {...props.settings} />
+            <AccountTwitch />
             <AccountContests entries={props.contests.entries} loading={props.contests.loading} />
           </>
         ),

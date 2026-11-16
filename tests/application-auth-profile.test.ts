@@ -3,6 +3,7 @@ import {
   serializeApplicationProfileUser,
   serializeApplicationSubscription,
 } from '../server/app/applicationAuthProfile.js';
+import { accountTabFromHash } from '../src/modules/identity/model/accountTabs';
 
 const internalUser = {
   id: 'user-1',
@@ -19,11 +20,29 @@ const user = serializeApplicationProfileUser(internalUser, 'https://arena.hs-man
 assert.deepEqual(user, {
   id: 'user-1',
   publicProfileId: '7',
-  profileUrl: 'https://arena.hs-manacost.ru/profile/',
+  profileUrl: 'https://arena.hs-manacost.ru/?login',
   email: 'player@example.test',
   name: 'Игрок',
   avatarInitials: 'ИИ',
 });
+// The account is the home document with `?login` (the origin nginx serves listed documents only and has
+// no `/profile/`), whatever the configured site address looks like.
+for (const appUrl of ['https://hearthpulse.net', 'https://hearthpulse.net/', 'https://hearthpulse.net//']) {
+  const profile = new URL(serializeApplicationProfileUser(internalUser, appUrl).profileUrl);
+  assert.equal(profile.origin, 'https://hearthpulse.net', appUrl);
+  assert.equal(profile.pathname, '/', `${appUrl}: the home document`);
+  assert.ok(profile.searchParams.has('login'), `${appUrl}: opens the account`);
+  assert.equal(profile.hash, '', `${appUrl}: no anchor of its own, clients add theirs`);
+}
+assert.doesNotMatch(user.profileUrl, /\/profile\b/, 'the site has no /profile/ page');
+// Connected apps add a section anchor to it; the query must survive and every anchor must be a known account section.
+for (const anchor of ['account-replays', 'account-tracker-data', 'account-access', 'account-twitch']) {
+  const link = new URL(user.profileUrl);
+  link.hash = anchor;
+  assert.equal(link.href, `https://arena.hs-manacost.ru/?login#${anchor}`);
+  assert.ok(accountTabFromHash(link.hash), `the account opens a tab for #${anchor}`);
+}
+assert.equal(accountTabFromHash('#no-such-section'), null);
 assert.equal('role' in user, false);
 assert.equal('passwordHash' in user, false);
 assert.equal('telegramId' in user, false);

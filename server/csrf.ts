@@ -9,6 +9,7 @@ const PROTECTED_MUTATION_PATHS = [
   /^\/api\/account\/sessions\/(?:revoke-others|[^/]+\/revoke)\/?$/,
   /^\/api\/account\/public-profile\/(?:nickname|visibility)\/?$/,
   /^\/api\/account\/decks(?:\/[^/]+(?:\/render)?)?\/?$/,
+  /^\/api\/account\/twitch\/?$/,
   /^\/api\/contests\/[^/]+\/join\/?$/,
 ];
 

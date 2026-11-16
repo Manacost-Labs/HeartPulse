@@ -21,6 +21,12 @@ assert.equal(mutationNeedsCsrfProtection('POST', '/api/auth/telegram/link-start'
 assert.equal(mutationNeedsCsrfProtection('POST', '/api/account/sessions/revoke-others'), true);
 assert.equal(mutationNeedsCsrfProtection('POST', '/api/account/sessions/AbCdEfGhIjKlMnOpQrStUv/revoke'), true);
 assert.equal(mutationNeedsCsrfProtection('GET', '/api/account/sessions'), false);
+// Unlinking Twitch (docs/specs/twitch-extension.md); the OAuth start and callback are GET navigations.
+assert.equal(mutationNeedsCsrfProtection('DELETE', '/api/account/twitch'), true);
+assert.equal(mutationNeedsCsrfProtection('DELETE', '/api/Account/Twitch/'), true);
+assert.equal(csrfRequestAllowed({ ...base, method: 'DELETE', path: '/api/account/twitch', csrfHeader: '' }), false);
+assert.equal(csrfRequestAllowed({ ...base, method: 'DELETE', path: '/api/account/twitch' }), true);
+assert.equal(mutationNeedsCsrfProtection('GET', '/api/account/twitch/connect'), false);
 // Express routes ignore case, so every spelling of a protected path is protected.
 for (const path of ['/API/account/sessions/revoke-others', '/Api/Account/SESSIONS/revoke-others/', '/api/account/sessions/AbCdEfGhIjKlMnOpQrStUv/REVOKE',
   '/API/AUTH/LOGOUT', '/Api/Auth/Profile/', '/api/ADMIN/users', '/api/Subscription/Refresh', '/api/%61ccount/sessions/revoke-others']) {

@@ -26,8 +26,10 @@ export function serializeApplicationProfileUser(
   return {
     id: user.id,
     publicProfileId: user.publicProfileId ?? '',
-    // Public profile pages are gone; the field stays for connected clients and now leads to the account itself.
-    profileUrl: `${appUrl.replace(/\/+$/, '')}/profile/`,
+    // Public profile pages are gone; the field stays for connected clients and leads to the account itself.
+    // The account is the home document opened with `?login`: the site has no `/profile/` page (404 in
+    // production). A client may append a section anchor (`#account-replays`); the query stays before it.
+    profileUrl: `${appUrl.replace(/\/+$/, '')}/?login`,
     email: user.email,
     name: user.name,
     avatarInitials: user.avatarInitials ?? user.name.slice(0, 2).toUpperCase(),

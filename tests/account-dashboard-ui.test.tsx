@@ -7,6 +7,7 @@ import { type BoostyConfirmation } from '../src/modules/identity/ui/AccountAcces
 import { accountPlanSummary } from '../src/modules/identity/model/accountPlan';
 import AccountContests from '../src/modules/identity/ui/AccountContests';
 import { accountTabFromHash } from '../src/modules/identity/model/accountTabs';
+import { abandonSectionScroll, scrollToSectionWhenShown, SECTION_SCROLL_WAIT_MS } from '../src/modules/identity/model/accountSectionScroll';
 import { savedDecksFromPayload } from '../src/modules/identity/model/savedDeck';
 import AccountLinks from '../src/modules/identity/ui/AccountLinks';
 import AccountSessions from '../src/modules/identity/ui/AccountSessions';
@@ -376,4 +377,153 @@ test('saved decks show only images the site serves itself', () => {
   assert.deepEqual([foreign.imageUrl, foreign.previewImageUrl], [null, null]);
   assert.equal(broken, undefined, 'an unknown status is dropped');
   assert.equal(savedDecksFromPayload({ error: 'x' }), null);
+});
+
+test('an account anchor scrolls to its section once the section is on the page', () => {
+  // A page whose elements, frames and DOM changes the test drives by hand: no timers, no waiting.
+  const page = () => {
+    const scrolled: string[] = [];
+    const present = new Set<string>();
+    const frames: Array<() => void> = [];
+    const observers = new Set<() => void>();
+    const timers = new Map<() => void, number>();
+    return {
+      scrolled,
+      observers,
+      timers,
+      // The page's clock, moved by the test: every timer that is due runs, nothing sleeps.
+      elapse: (milliseconds: number) => {
+        for (const [run, left] of timers) {
+          if (left > milliseconds) timers.set(run, left - milliseconds);
+          else { timers.delete(run); run(); }
+        }
+      },
+      show: (id: string) => { present.add(id); for (const notify of observers) notify(); },
+      change: () => { for (const notify of observers) notify(); },
+      frame: () => { for (const run of frames.splice(0)) run(); },
+      host: {
+        find: (id: string) => (present.has(id) ? { scrollIntoView: () => { scrolled.push(id); } } : null),
+        observe: (onChange: () => void) => { observers.add(onChange); return () => { observers.delete(onChange); }; },
+        nextFrame: (run: () => void) => { frames.push(run); },
+        after: (milliseconds: number, run: () => void) => { timers.set(run, milliseconds); return () => { timers.delete(run); }; },
+      },
+    };
+  };
+
+  // The Twitch block renders nothing until GET /api/account/twitch answers: the answer comes after the frame.
+  const late = page();
+  scrollToSectionWhenShown('account-twitch', late.host);
+  assert.deepEqual(late.scrolled, [], 'nothing before the frame: the panel is still hidden');
+  late.frame();
+  assert.deepEqual(late.scrolled, [], 'the section is not on the page yet');
+  assert.equal(late.observers.size, 1, 'the scroll waits for the page to change');
+  late.show('account-links');
+  assert.deepEqual(late.scrolled, [], 'another section appearing is not the one asked for');
+  late.show('account-twitch');
+  assert.deepEqual(late.scrolled, ['account-twitch'], 'scrolled when the section appeared');
+  assert.equal(late.observers.size, 0, 'and stopped watching');
+  assert.equal(late.timers.size, 0, 'with no deadline left behind');
+  late.change();
+  assert.deepEqual(late.scrolled, ['account-twitch'], 'once');
+
+  // A section that is already there scrolls on the frame, without watching.
+  const ready = page();
+  ready.show('account-access');
+  scrollToSectionWhenShown('account-access', ready.host);
+  ready.frame();
+  assert.deepEqual(ready.scrolled, ['account-access']);
+  assert.equal(ready.observers.size, 0);
+
+  // Another anchor or leaving the page cancels a pending scroll, before or after the frame.
+  const left = page();
+  const cancelEarly = scrollToSectionWhenShown('account-twitch', left.host);
+  cancelEarly();
+  left.show('account-twitch');
+  left.frame();
+  assert.deepEqual(left.scrolled, []);
+  const hidden = page();
+  const cancelLate = scrollToSectionWhenShown('account-twitch', hidden.host);
+  hidden.frame();
+  cancelLate();
+  assert.equal(hidden.observers.size, 0, 'a section that never comes leaves no watcher behind');
+  assert.equal(hidden.timers.size, 0);
+  hidden.show('account-twitch');
+  assert.deepEqual(hidden.scrolled, []);
+
+  // A section that takes too long: after the deadline the page is the visitor's, a late section does not jump it.
+  const slow = page();
+  scrollToSectionWhenShown('account-twitch', slow.host);
+  slow.frame();
+  slow.elapse(SECTION_SCROLL_WAIT_MS - 1);
+  assert.equal(slow.observers.size, 1, 'still waiting just before the deadline');
+  slow.elapse(1);
+  assert.equal(slow.observers.size, 0, 'the deadline ends the wait');
+  assert.equal(slow.timers.size, 0);
+  slow.show('account-twitch');
+  assert.deepEqual(slow.scrolled, [], 'and a section that comes later is not scrolled to');
+
+  // A section that will not come (the Twitch extension is off, or its request failed): its owner says so
+  // and the wait ends at once, for that section only.
+  const off = page();
+  scrollToSectionWhenShown('account-twitch', off.host);
+  off.frame();
+  const other = page();
+  scrollToSectionWhenShown('account-replays', other.host);
+  other.frame();
+  abandonSectionScroll('account-twitch');
+  assert.equal(off.observers.size, 0, 'no watcher is left for a section that stays hidden');
+  assert.equal(off.timers.size, 0);
+  assert.equal(other.observers.size, 1, 'another section is still awaited');
+  off.show('account-twitch');
+  assert.deepEqual(off.scrolled, []);
+  other.show('account-replays');
+  assert.deepEqual(other.scrolled, ['account-replays']);
+  abandonSectionScroll('account-twitch');
+  abandonSectionScroll('no-such-section');
+
+  // Abandoned before the first frame: the frame must not start watching.
+  const early = page();
+  scrollToSectionWhenShown('account-twitch', early.host);
+  abandonSectionScroll('account-twitch');
+  early.frame();
+  assert.equal(early.observers.size + early.timers.size, 0);
+});
+
+test('the account tabs end a pending anchor scroll on every other choice', async () => {
+  // The wiring, read from the component: jsdom is not part of this project's tests.
+  const { readFileSync } = await import('node:fs');
+  const tabs = readFileSync(new URL('../src/modules/identity/ui/AccountTabs.tsx', import.meta.url), 'utf8');
+  const follow = tabs.slice(tabs.indexOf('const follow = () => {'), tabs.indexOf('follow();'));
+  assert.ok(follow.indexOf('endPendingScroll();') >= 0 && follow.indexOf('endPendingScroll();') < follow.indexOf('if (!tab) return;'),
+    'an address that names no account section ends the wait too');
+  const select = tabs.slice(tabs.indexOf('const select = useCallback('), tabs.indexOf('const onKeyDown'));
+  assert.ok(select.indexOf('endPendingScroll();') >= 0 && select.indexOf('endPendingScroll();') < select.indexOf('replaceState'),
+    'a tab picked by hand ends the wait: replaceState fires no hashchange');
+  const cleanup = tabs.slice(tabs.indexOf('return () => {'), tabs.indexOf('}, [endPendingScroll]);'));
+  assert.match(cleanup, /endPendingScroll\(\);/, 'leaving the page ends the wait');
+});
+
+test('the Twitch block says when it stays hidden', async () => {
+  const { twitchBlockHidden } = await import('../src/modules/identity/ui/AccountTwitch');
+  const state = (configured: boolean, linked: boolean) => ({ configured, linked, login: null, displayName: null });
+  assert.equal(twitchBlockHidden(null, false), true, 'the request failed');
+  assert.equal(twitchBlockHidden(null, true), true);
+  assert.equal(twitchBlockHidden(state(false, false), false), true, 'the extension is not configured on the site');
+  assert.equal(twitchBlockHidden(state(false, false), true), false, 'an OAuth result is still shown');
+  assert.equal(twitchBlockHidden(state(true, false), false), false);
+  assert.equal(twitchBlockHidden(state(false, true), false), false, 'a link made earlier can still be removed');
+});
+
+test('the Twitch block links, shows the linked channel and stays hidden without the extension', async () => {
+  const { default: AccountTwitch } = await import('../src/modules/identity/ui/AccountTwitch');
+  assert.equal(accountTabFromHash('#account-twitch'), 'personal');
+  const unlinked = renderToStaticMarkup(<AccountTwitch initial={{ configured: true, linked: false, login: null, displayName: null }} />);
+  assert.match(unlinked, /id="account-twitch"/);
+  assert.match(unlinked, /href="\/api\/account\/twitch\/connect"/);
+  assert.match(unlinked, /Привязать Twitch/);
+  const linked = renderToStaticMarkup(<AccountTwitch initial={{ configured: true, linked: true, login: 'streamer', displayName: 'Streamer' }} />);
+  assert.match(linked, /<strong>Streamer<\/strong>/);
+  assert.match(linked, /Отвязать/);
+  assert.doesNotMatch(linked, /twitch\/connect/);
+  assert.equal(renderToStaticMarkup(<AccountTwitch initial={{ configured: false, linked: false, login: null, displayName: null }} />), '');
 });

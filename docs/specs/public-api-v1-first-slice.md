@@ -166,7 +166,9 @@ and revocation have independent rate limits. The approval page is
 bearer token. It returns:
 
 - stable internal and public profile identifiers;
-- the canonical public profile URL;
+- `profileUrl`: the account page, `<site>/?login` (the home document with
+  `?login`; the site has no `/profile/` page). A client may append a section
+  anchor, for example `#account-replays`;
 - display name, e-mail and avatar initials;
 - normalized `hasAccess`, `source`, `checkedAt`, `stale` and entitlement flags.
 

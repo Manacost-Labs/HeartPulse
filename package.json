@@ -68,6 +68,7 @@
     "test:crash-reports": "tsx tests/crash-reports-routes.test.ts",
     "test:tracker-ingestion": "tsx tests/tracker-ingestion-routes.test.ts && tsx tests/tracker-account-data-routes.test.ts",
     "test:saved-decks": "tsx tests/saved-decks-routes.test.ts",
+    "test:twitch-extension": "tsx tests/twitch-extension-routes.test.ts",
     "test:player-games": "tsx tests/player-games-schema.test.ts && tsx tests/player-games-routes.test.ts && tsx tests/year-review-routes.test.ts",
     "test:chat-commands": "tsx tests/chat-commands-routes.test.ts",
     "test:player-stats-client": "tsx tests/player-stats-client.test.ts && tsx tests/account-tracker-data-client.test.ts",
