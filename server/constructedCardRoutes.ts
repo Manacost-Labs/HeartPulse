@@ -9,6 +9,8 @@ import {
 } from './constructedCardCatalogStore.js';
 import {
   ConstructedCardCatalogUnavailableError,
+  answerWithin, createSlowMemo, knownCardFallback,
+  withDeadline,
   createConstructedCardCatalogQuery,
   createConstructedCardCatalogReaders,
   constructedCatalogReaderForAccess,
@@ -129,6 +131,9 @@ type DataServiceDependencies = {
   historyStore?: ConstructedCardHistoryStore;
   onHistoryError?: (error: unknown) => void;
   onCatalogError?: (format: ConstructedCardFormat, error: unknown) => void;
+  responseDeadlineMs?: number; // a caller waits this long for a shared load, then gets the last good version (2 s)
+  loadDeadlineMs?: number; // then the shared load leaves deduplication and the next caller retries (15 s)
+  onDeadline?: (operation: string, deadlineMs: number) => void;
   negativeDetailCacheMaxEntries?: number;
   catalogPageConcurrency?: number;
   cacheTtlMs?: number;
@@ -523,16 +528,19 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
   let decksCache: { value: JsonRecord[]; expiresAt: number } | null = null;
   let decksJob: Promise<SecondarySourceLoad> | null = null;
   let generation = 0;
+  const [responseDeadlineMs, loadDeadlineMs] = [dependencies.responseDeadlineMs ?? 2_000, dependencies.loadDeadlineMs ?? 15_000];
 
   const loadPatches = async (): Promise<SecondarySourceLoad> => {
-    if (!dependencies.patchesUrl) return { value: [], degraded: false, warning: null };
+    const patchesUrl = dependencies.patchesUrl;
+    if (!patchesUrl) return { value: [], degraded: false, warning: null };
     const current = now();
     if (patchesCache && patchesCache.expiresAt > current) {
       return { value: patchesCache.value, degraded: false, warning: null };
     }
     if (patchesJob) return patchesJob;
     const jobGeneration = generation;
-    const job = dependencies.fetchJson(dependencies.patchesUrl)
+    const job = withDeadline(Promise.resolve().then(() => dependencies.fetchJson(patchesUrl)),
+      loadDeadlineMs, 'constructed-cards:patches', dependencies.onDeadline)
       .then(payload => {
         if (!Array.isArray(payload?.patches)) {
           throw new ConstructedCardUpstreamError('Constructed card patches payload is invalid');
@@ -561,7 +569,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     }
     if (decksJob) return decksJob;
     const jobGeneration = generation;
-    const job = (async () => {
+    const job = withDeadline((async () => {
       const rowsFromPayload = (payload: JsonRecord): JsonRecord[] => {
         if (Array.isArray(payload?.data)) return payload.data;
         if (Array.isArray(payload?.decks)) return payload.decks;
@@ -619,7 +627,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
       if (value.length !== total) throw new ConstructedCardUpstreamError('Constructed deck pages are incomplete');
       if (generation === jobGeneration) decksCache = { value, expiresAt: now() + cacheTtlMs };
       return { value, degraded: false, warning: null } satisfies SecondarySourceLoad;
-    })().catch(() => ({
+    })(), loadDeadlineMs, 'constructed-cards:decks', dependencies.onDeadline).catch(() => ({
       value: decksCache?.value ?? [],
       degraded: true,
       warning: 'Колоды с этой картой временно недоступны.',
@@ -638,6 +646,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     const job = (async () => {
       let value: CatalogLoad;
       try {
+        const candidate = await withDeadline((async () => {
         const firstPage = await fetchConstructedCatalogPage(dependencies, format, 1);
         const totalPages = Number(firstPage?.pagination?.total_pages);
         if (!Number.isSafeInteger(totalPages) || totalPages < 1 || totalPages > 100) {
@@ -648,7 +657,8 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
           catalogPageConcurrency,
           page => fetchConstructedCatalogPage(dependencies, format, page),
         );
-        const candidate = completeConstructedCatalogCandidate([firstPage, ...remainingPages], format);
+        return completeConstructedCatalogCandidate([firstPage, ...remainingPages], format);
+        })(), loadDeadlineMs, `constructed-cards:catalog:${format}`, dependencies.onDeadline);
         const document = catalogStore.publish(format, candidate.cards, {
           expectedTotal: candidate.expectedTotal,
           sourceUpdatedAt: candidate.sourceUpdatedAt,
@@ -690,8 +700,10 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     return job;
   };
 
-  const { loadCards, loadPublicCards } = createConstructedCardCatalogReaders({
-    catalog: loadCatalog, patch: () => loadPatches().then(result => currentConstructedPatchVersion(result.value)),
+  const { loadCards, loadPublicCards, peekCards } = createConstructedCardCatalogReaders({
+    catalog: loadCatalog, lastKnown: format => catalogStore.readUsable(format),
+    responseDeadlineMs, loadDeadlineMs: Math.ceil(loadDeadlineMs * 1.5), onDeadline: dependencies.onDeadline,
+    patch: () => loadPatches().then(result => currentConstructedPatchVersion(result.value)),
     statistics: (format, period, rank) => dependencies.fetchJson(
       `${dependencies.statsBaseUrl.replace(/\/$/, '')}/${statsDatasetFor(dependencies, format, period, rank)}`,
     ),
@@ -808,7 +820,10 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     negativeDetailCache.set(key, current + 60_000);
   };
 
-  const loadCardDetail = async (
+  const composeKnownCardFallback = (...args: Parameters<typeof knownCardFallback> extends [unknown, ...infer R] ? R : never) =>
+    knownCardFallback(composeDetailResult, ...args);
+
+  const loadCardDetailShared = async (
     format: ConstructedCardFormat,
     cardId: string,
     period: ConstructedCardPeriod = '1d',
@@ -822,7 +837,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     const active = detailJobs.get(key);
     if (active) return active;
     const jobGeneration = generation;
-    const job = (async () => {
+    const job = withDeadline((async () => {
       const catalogCollection = await loadCards(format, period, rank);
       const statsCollection = statsFormat === format
         ? catalogCollection
@@ -842,7 +857,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
       }
       const url = `${dependencies.catalogBaseUrl.replace(/\/$/, '')}/constructed-cards/${encodeURIComponent(cardId)}?include=wiki`;
       try {
-        const payload = await dependencies.fetchJson(url);
+        const payload = await withDeadline(dependencies.fetchJson(url), loadDeadlineMs, `constructed-cards:detail-source:${key}`, dependencies.onDeadline);
         const detail = payload?.data && typeof payload.data === 'object' && !Array.isArray(payload.data)
           ? payload.data as JsonRecord
           : null;
@@ -875,18 +890,40 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
           }
           throw new ConstructedCardDetailUnavailableError(undefined, { cause: error });
         }
-        const fallback = cached?.value ?? { ...knownCard, wiki: knownCard.wiki ?? {}, decks: [] };
-        return composeDetailResult(fallback, catalogCollection, statsCollection, {
-          partial: true,
-          fallback: true,
-          warning: cached
-            ? 'Показывается последняя сохранённая версия подробной информации о карте.'
-            : 'Часть подробной информации о карте временно недоступна.',
-        });
+        return composeKnownCardFallback(cached?.value, knownCard, catalogCollection, statsCollection);
       }
-    })().finally(() => { if (detailJobs.get(key) === job) detailJobs.delete(key); });
+    })(), loadDeadlineMs, `constructed-cards:detail:${key}`, dependencies.onDeadline)
+      .finally(() => { if (detailJobs.get(key) === job) detailJobs.delete(key); });
     detailJobs.set(key, job);
     return job;
+  };
+
+  /** Waits for the shared detail load no longer than the response deadline, then answers from the last good catalog. */
+  const detailSlow = createSlowMemo(now); // details whose shared load missed the response deadline
+  const loadCardDetail: ConstructedCardDataService['loadCardDetail'] = (
+    format, cardId, period = '1d', statsFormat = format, rank = 'legend',
+  ) => {
+    const key = `${format}:${statsFormat}:${rank}:${period}:${cardId.toUpperCase()}`;
+    const lastGood = (): ConstructedCardDetailResult | null => {
+      const catalogCollection = peekCards(format, period, rank);
+      const statsCollection = statsFormat === format ? catalogCollection : peekCards(statsFormat, period, rank);
+      const knownCard = catalogCollection?.cards.find(
+        card => String(card?.card_id ?? '').trim().toUpperCase() === cardId.toUpperCase(),
+      );
+      if (!catalogCollection || !statsCollection || !knownCard) return null;
+      return composeKnownCardFallback(detailCache.get(key)?.value, knownCard, catalogCollection, statsCollection);
+    };
+    if (!detailJobs.has(key)) detailSlow.clear(key);
+    else if (detailSlow.isSlow(key)) {
+      const last = lastGood();
+      if (last) return Promise.resolve(last);
+    }
+    return answerWithin(
+      loadCardDetailShared(format, cardId, period, statsFormat, rank), responseDeadlineMs,
+      `constructed-cards:detail-response:${key}`, dependencies.onDeadline,
+      () => { detailSlow.mark(key); return lastGood(); },
+      cause => new ConstructedCardDetailUnavailableError(undefined, { cause }),
+    );
   };
 
   const loadCardHistory = async (

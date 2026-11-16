@@ -38,6 +38,7 @@ async function track<T>(kind: keyof typeof active, produce: () => T): Promise<T>
 const directory = mkdtempSync(join(tmpdir(), 'arena-constructed-card-fanout-'));
 try {
   const service = createConstructedCardDataService({
+    responseDeadlineMs: 30_000, // the fixture is slow on purpose; the 2 s answer deadline is tested elsewhere
     stateDirectory: directory,
     now: () => Date.parse('2026-10-27T09:00:00.000Z'),
     catalogPageConcurrency: 3,

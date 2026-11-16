@@ -54,6 +54,8 @@ export { createCardHistoryContextReader } from './historyContext.js';
 
 export { isIndexableConstructedCard, projectPublicConstructedCardSeoData } from './publicCardProjection.js';
 export type { PublicConstructedCardSeoData } from './publicCardProjection.js';
+export { knownCardFallback } from './detailFallback.js';
+export { answerWithin, createSlowMemo, DeadlineExceededError, withDeadline } from './deadline.js';
 export { createConstructedCardReader } from './publicCardReader.js';
 export { createPublicCardRouter } from './publicCardRoutes.js';
 export { withCatalogCardMedia, loadCatalogCardMedia } from './catalogCardMedia.js';
