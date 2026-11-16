@@ -665,7 +665,7 @@ try {
   assert.deepEqual(uncovered, [],
     'every indexable template needs a sample in production-monitor-templates.mjs or a reason');
   const sampledIds = new Set(samples.map(sample => sample.id));
-  assert.ok(INDEXABLE_TEMPLATES.length >= 40 && sampledIds.size >= 37);
+  assert.ok(INDEXABLE_TEMPLATES.length >= 39 && sampledIds.size >= 36); // /articles left the index (#376)
   for (const id of ['standard-cards', 'standard-cards-format', 'standard-card-detail']) {
     assert.ok(sampledIds.has(id), `${id} must be monitored`);
   }
