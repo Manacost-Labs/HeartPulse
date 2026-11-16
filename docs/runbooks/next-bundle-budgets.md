@@ -17,6 +17,14 @@ choice), far below the tolerance. The gate fails if no chunk contains the
 release-id literal any more, so a code change cannot silently break the
 normalization. Every run writes `tmp/next-bundle-measurements.json`; CI
 uploads it as the artifact `next-bundle-measurements-<sha>`.
+
+Observed noise (2026-11-16, three local builds of one commit, 50 route/kind
+values): builds differ by at most 4 B per route; a local build differs from
+the CI measurement of the same commit by up to 10 B. The tolerance below is
+at least 1 KiB (about 3.5-4.6 KB for JS), so this noise never decides a
+result: after a baseline refresh every route has at least the tolerance of
+headroom. A failure of a few bytes means the limit was already consumed by
+approvals and a refresh is due, not that the build is flaky.
 `npm run budget:next:baseline` takes it from the newest successful push run
 on `main`, or, when that push reused its merge-queue validation and ran no
 tests, from the merge-queue run of the same commit.
