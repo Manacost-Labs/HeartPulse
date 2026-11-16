@@ -24,7 +24,7 @@ export const headers = [
   ['legendaries', '', 'Легендарки', 'Наборы карт для выбора первой легендарки на Арене'],
   ['battlegrounds', 'bg-library-page', 'Библиотека Полей сражений', ''],
   ['bg-tier-builder', '', 'Конструктор тир-листов Полей сражений', ''],
-  ['battlegrounds', 'bg-tier-list-page', 'Тир-лист БГ', ''],
+  ['battlegrounds', 'bg-tier-list-page', 'Тир-лист Полей сражений', ''],
 ];
 
 export function HeaderFixture({ index = 0 }: { index?: number }) {

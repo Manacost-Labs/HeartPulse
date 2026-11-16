@@ -88,7 +88,7 @@ test('the leaderboards page renders the table on the server, switches modes, jum
     assert.match(html, /TrueBench/, 'the first page of the table is in the server HTML');
     assert.match(html, /Игроков/, 'the summary is in the server HTML');
     assert.match(html, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/leaderboards\/"/);
-    assert.match(html, /<title>Таблицы лидеров Hearthstone \d{4}: официальный рейтинг Blizzard \| HearthPulse<\/title>/);
+    assert.match(html, /<title>Таблицы лидеров Hearthstone: рейтинг Blizzard \| HearthPulse<\/title>/);
     assert.match(html, /href="\/leaderboards\/"/, 'the menu links the page');
     assert.doesNotMatch(html, /noindex/, 'the page is indexable');
 

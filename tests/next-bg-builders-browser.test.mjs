@@ -14,7 +14,7 @@ import { isMenuBackgroundRead, MENU_PATCH_ARCHIVE } from './helpers/menuBackgrou
 
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
 const pages = [
-  { path: '/battlegrounds/strategies/', heading: 'Конструктор стратегий БГ',
+  { path: '/battlegrounds/strategies/', heading: 'Конструктор стратегий Полей сражений',
     script: 'strategy-builder.gridfix2.js', initialized: '#builder-comp-select', placeholder: 'Загружаю сборки...' },
   { path: '/battlegrounds/tier-builder/', heading: 'Конструктор тир-листов Полей сражений',
     script: 'shared.js', initialized: '#tier-builder-summary', placeholder: 'Загружаю библиотеку...' },
