@@ -1,6 +1,6 @@
 import { Router, type RequestHandler, type Response } from 'express';
 import type { CosmeticKind, CosmeticsDataService } from './cosmeticsRoutes.js';
-import { buildCosmeticStructuredData } from '../shared/entitySeoStructuredData.js';
+import { buildCosmeticStructuredData } from '../shared/cosmeticsSeoStructuredData.js';
 import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
 
 type JsonRecord = Record<string, any>;

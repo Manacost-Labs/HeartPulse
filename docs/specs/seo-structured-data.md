@@ -58,5 +58,6 @@ paid markup, archetypes) stay in `seo-entity-indexing.md` and `seo-foundation.md
 - **Cosmetics.** A detail page is a graph of `WebPage`, `CreativeWork`,
   `BreadcrumbList` (Главная → Косметика → раздел → предмет, absolute addresses,
   the last one is the canonical address) and `Organization`
-  (`buildCosmeticStructuredData`; the Next page and the server copy share it).
+  (`buildCosmeticStructuredData` in `shared/cosmeticsSeoStructuredData.ts`;
+  the Next page and the server copy share it).
   No `Person`: the artist of a card is not named.

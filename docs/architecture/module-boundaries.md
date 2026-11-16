@@ -59,6 +59,10 @@ the server. Authentication stays in the browser through the Express APIs.
 contract used by the React view and the Next.js listing routes.
 `src/features/Cosmetics.tsx` remains the transitional presentation owner;
 Express still owns `/api/cosmetics/*` and the Next composition owns only HTML.
+The JSON-LD graph of a cosmetics detail page is built by
+`shared/cosmeticsSeoStructuredData.ts` (cosmetics routes, section names,
+identifiers) on top of the domain-independent entity builder; the Next page and
+`server/cosmeticsSeoRoutes.ts` both use it.
 
 ## Editorial articles
 
