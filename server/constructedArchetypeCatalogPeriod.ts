@@ -74,6 +74,24 @@ export async function loadArchetypeCatalogForSlug<C extends PeriodCatalog & { it
   return hasSlug(fallback) ? fallback : first;
 }
 
+/**
+ * Every window an archetype page can read, in the order `loadArchetypeCatalogForSlug`
+ * tries them: the default window, then the current patch, the Bans window and
+ * the source's own window. The sitemap lists a slug from the first window that
+ * has it, exactly as the page does. A window that cannot be read is skipped.
+ */
+export async function loadArchetypeCatalogWindows<C extends PeriodCatalog>(load: Load<C>, format: Format): Promise<C[]> {
+  const fallback = await load(format);
+  const first = await loadArchetypeCatalogForPeriod(load, format);
+  const windows: C[] = [first];
+  for (const period of defaultWindows(fallback)) {
+    const catalog = period === first.period ? null : await loadWindow(load, fallback, period);
+    if (catalog) windows.push(catalog);
+  }
+  if (!windows.includes(fallback) && fallback.period !== first.period) windows.push(fallback);
+  return windows;
+}
+
 /** The route entry: a slug asks for the window listing it, otherwise the requested or default window. */
 export function loadArchetypeCatalog<C extends PeriodCatalog & { items: { slug: string }[] }>(
   load: Load<C>, format: Format, period?: string | null, slug?: string,
