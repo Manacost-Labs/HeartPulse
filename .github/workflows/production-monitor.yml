@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  issues: write
 
 concurrency:
   group: production-monitor
@@ -27,10 +28,30 @@ jobs:
           node-version: '22'
 
       - name: Probe production
+        id: probe
+        # The alert step below needs the outcome, so a red probe must not
+        # stop the job; the last step fails the run again.
+        continue-on-error: true
         env:
           PRODUCTION_BASE_URL: https://hearthpulse.net
           MONITOR_ATTEMPTS: '2'
           MONITOR_RETRY_DELAY_MS: '5000'
           MONITOR_TIMEOUT_MS: '10000'
           MONITOR_DEADLINE_MS: '240000'
+          MONITOR_REPORT_FILE: ${{ runner.temp }}/production-monitor-report.json
         run: node scripts/production-monitor.mjs
+
+      - name: Alert on state change
+        # Opens one issue when the monitor turns red, comments when the set of
+        # failures changes, closes it when green again. A cancelled run says nothing.
+        if: ${{ always() && (steps.probe.outcome == 'success' || steps.probe.outcome == 'failure') }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PROBE_OUTCOME: ${{ steps.probe.outcome }}
+          MONITOR_REPORT_FILE: ${{ runner.temp }}/production-monitor-report.json
+        run: node scripts/production-monitor-alert.mjs
+
+      - name: Fail the run when the probe failed
+        if: ${{ steps.probe.outcome == 'failure' }}
+        run: exit 1
