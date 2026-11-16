@@ -1,0 +1,1 @@
+Вход через hearthpulse.net принимает третий клиент Манакоста — «Манакост Студия» (`manacost-studio`, callback `https://studio.hearthpulse.net/auth/callback`): только `openid profile`, без длинного входа и без API кабинета читателя; страница согласия и карточка входа называют его по имени. Клиент включается секретом в `BROWSER_IDENTITY_CLIENTS` на production.

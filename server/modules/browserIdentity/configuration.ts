@@ -23,24 +23,36 @@ const READER_CALLBACKS = new Map([
   [READER_PRODUCTION_CLIENT_ID, READER_PRODUCTION_CALLBACK],
 ]);
 
+export const MANACOST_STUDIO_CLIENT_ID = 'manacost-studio';
+export const MANACOST_STUDIO_CALLBACK = 'https://studio.hearthpulse.net/auth/callback';
+
+// Studio is a reserved first-party client but not a Reader: it gets no offline_access policy
+// and no access to the reader-entitlements/reader-permissions APIs.
+const RESERVED_CALLBACKS = new Map([...READER_CALLBACKS, [MANACOST_STUDIO_CLIENT_ID, MANACOST_STUDIO_CALLBACK]]);
+
 /** What a person sees as the destination of a hearthpulse.net sign-in. */
 export interface ClientPresentation {
   displayName: string;
   host: string;
 }
 
-const READER_PRESENTATIONS = new Map<string, ClientPresentation>([
+const RESERVED_PRESENTATIONS = new Map<string, ClientPresentation>([
   [READER_STAGING_CLIENT_ID, { displayName: 'Манакост — тест', host: 'test.hs-manacost.ru' }],
   [READER_PRODUCTION_CLIENT_ID, { displayName: 'Манакост', host: 'hs-manacost.ru' }],
+  [MANACOST_STUDIO_CLIENT_ID, { displayName: 'Манакост Студия', host: 'studio.hearthpulse.net' }],
 ]);
 
 export function isExactReaderClient(client: BrowserIdentityClient): boolean {
   return READER_CALLBACKS.get(client.id) === client.redirectUri;
 }
 
-/** Reserved Manacost readers get their brand name; any other client is shown by its callback host. */
+function isExactReservedClient(client: BrowserIdentityClient): boolean {
+  return RESERVED_CALLBACKS.get(client.id) === client.redirectUri;
+}
+
+/** Reserved Manacost clients get their brand name; any other client is shown by its callback host. */
 export function clientPresentation(client: BrowserIdentityClient): ClientPresentation {
-  const reserved = isExactReaderClient(client) ? READER_PRESENTATIONS.get(client.id) : undefined;
+  const reserved = isExactReservedClient(client) ? RESERVED_PRESENTATIONS.get(client.id) : undefined;
   if (reserved) return { ...reserved };
   const { hostname } = new URL(client.redirectUri);
   return { displayName: hostname, host: hostname };
@@ -94,10 +106,12 @@ export function validateIdentityOptions(options: BrowserIdentityOptions): void {
       && client.id === READER_STAGING_CLIENT_ID && client.redirectUri === READER_STAGING_CALLBACK;
     const productionReader = production
       && client.id === READER_PRODUCTION_CLIENT_ID && client.redirectUri === READER_PRODUCTION_CALLBACK;
+    const studio = production
+      && client.id === MANACOST_STUDIO_CLIENT_ID && client.redirectUri === MANACOST_STUDIO_CALLBACK;
     if (!client.id || ids.has(client.id) || client.secret.length < 43
-      || url.pathname !== '/reader-auth/callback' || url.port
+      || (url.pathname !== '/reader-auth/callback' && !studio) || url.port
       || (!production && productionHost)
-      || (production && !productionReader && !stagingBridge)) {
+      || (production && !productionReader && !stagingBridge && !studio)) {
       throw new Error('Invalid identity client or deployment mismatch');
     }
     ids.add(client.id);

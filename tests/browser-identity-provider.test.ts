@@ -62,6 +62,23 @@ test('configuration rejects unsafe redirects, missing key material and mixed sta
   } finally { db.close(); }
 });
 
+test('production accepts the Manacost Studio client only with its exact callback', () => {
+  const db = new DatabaseSync(':memory:');
+  try {
+    const production = { ...options(db), issuer: 'https://hearthpulse.net/identity', deployment: 'production' as const };
+    const studio = (redirect: string, id = 'manacost-studio') => ({ ...production, clients: [{ id, secret, redirectUri: redirect }] });
+    assert.ok(createBrowserIdentityProvider(studio('https://studio.hearthpulse.net/auth/callback')));
+    for (const redirect of ['https://evil.example.test/auth/callback', 'https://studio.hearthpulse.net/reader-auth/callback',
+      'https://studio.hearthpulse.net/auth/callback/', 'https://www.studio.hearthpulse.net/auth/callback']) {
+      assert.throws(() => createBrowserIdentityProvider(studio(redirect)), undefined, redirect);
+    }
+    assert.throws(() => createBrowserIdentityProvider(studio('https://studio.hearthpulse.net/auth/callback', 'another-client')));
+    assert.deepEqual(readerGrantPolicy('manacost-studio', 'openid profile offline_access'), {
+      rememberLogin: false, ttlSeconds: DEFAULT_READER_GRANT_TTL_SECONDS,
+    });
+  } finally { db.close(); }
+});
+
 test('only explicit offline consent for exact staging or production readers receives the 30-day grant policy', () => {
   for (const clientId of ['manacost-reader-staging', 'manacost-reader-production']) {
     assert.deepEqual(readerGrantPolicy(clientId, 'openid profile offline_access'), {
