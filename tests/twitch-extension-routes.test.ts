@@ -55,6 +55,46 @@ const [, payloadPart] = viewerJwt('42').split('.');
 const noneHeader = Buffer.from(JSON.stringify({ alg: 'none', typ: 'JWT' })).toString('base64url');
 assert.equal(verifyTwitchJwt(`${noneHeader}.${payloadPart}.`, secret, clock), null, 'alg none');
 
+/**
+ * A viewer's extension, as far as it decides which frame to keep. `push` is the acceptance rule of
+ * `FrameBuffer.push` in the Hearthpulse app repository (twitch-extension/src/buffer.ts), copied as is:
+ *
+ *   const newer = frame.seq > this.lastSeq;
+ *   const restarted = frame.seq < this.lastSeq && frame.at > this.lastAt;
+ *   if (!newer && !restarted) return false;
+ *   this.lastSeq = frame.seq;
+ *   this.lastAt = frame.at;
+ *
+ * A frame the site relays in the right order is still lost if this rule drops it, so the tests below
+ * feed every message Twitch accepted through it, in the order Twitch got them.
+ */
+type ViewerFrame = { seq: number; at: number; mode: string; accepted: boolean };
+const viewer = {
+  lastSeq: -1,
+  lastAt: -1,
+  shown: null as { seq: number; mode: string } | null,
+  frames: [] as ViewerFrame[],
+  push(frame: { seq: number; at: number }): boolean {
+    const newer = frame.seq > this.lastSeq;
+    const restarted = frame.seq < this.lastSeq && frame.at > this.lastAt;
+    if (!newer && !restarted) return false;
+    this.lastSeq = frame.seq;
+    this.lastAt = frame.at;
+    return true;
+  },
+  receive(pubsubBody: string): void {
+    const envelope = JSON.parse((JSON.parse(pubsubBody) as { message: string }).message) as { seq: number; at: number; z: string };
+    const mode = (JSON.parse(gunzipSync(Buffer.from(envelope.z, 'base64')).toString('utf8')) as { mode: string }).mode;
+    const accepted = this.push(envelope);
+    if (accepted) this.shown = { seq: envelope.seq, mode };
+    this.frames.push({ seq: envelope.seq, at: envelope.at, mode, accepted });
+  },
+  /** The frames received since the mark, and a new mark. */
+  since(mark: number): ViewerFrame[] {
+    return this.frames.slice(mark);
+  },
+};
+
 // Fake Twitch: OAuth token, users, revoke and Extension PubSub.
 type Call = { url: string; init: RequestInit };
 const calls: Call[] = [];
@@ -80,6 +120,7 @@ const fakeFetch = async (url: string, init: RequestInit): Promise<Response> => {
       pubsubGate.arrived();
       await pubsubGate.open;
     }
+    if (pubsubStatus < 300) viewer.receive(String(init.body));
     return new Response(null, { status: pubsubStatus });
   }
   return new Response('unexpected', { status: 500 });
@@ -479,8 +520,10 @@ try {
   assert.equal(relayed.length, 1, 'one clear for the transfer');
   assert.equal(relayed[0].channel, '4242');
   assert.deepEqual(relayed[0].state, { mode: 'none' });
-  assert.equal(relayed[0].envelope.at, clock);
   assert.ok(relayed[0].envelope.seq > 461, 'newer than the last frame relayed, or the extension would drop it');
+  assert.deepEqual(viewer.frames.at(-1), { seq: relayed[0].envelope.seq, at: relayed[0].envelope.at, mode: 'none', accepted: true },
+    'a viewer with the former owner\'s deck on screen takes the clear');
+  assert.ok(relayed[0].envelope.at > viewer.frames.at(-2)!.at, 'in the same millisecond as deck 461, and still later for the viewer');
   assert.deepEqual(waits, [1_000], 'the clear waits out the channel\'s one-a-second budget');
 
   // A blocked site account neither publishes nor stays on the channel; its token is answered as invalid.
@@ -507,10 +550,12 @@ try {
   blocked.delete('user-2');
   assert.equal(await snapshotStatus(), 204, 'the snapshot was erased, not hidden');
 
-  // The app's own request finds the block first: the same single clear.
+  // The app's own request finds the block first: the same single clear. The owner's next deck after the
+  // clear has a lower `seq` than the clear and is still what the viewer shows.
   clock += 1_000;
   response = await postState(deckState(472), 'write-2');
   assert.equal(response.status, 204);
+  assert.deepEqual(viewer.shown, { seq: 472, mode: 'constructed' }, 'the same owner publishes again after a clear');
   blocked.add('user-2');
   calls.length = 0;
   clock += 1_000;
@@ -597,6 +642,10 @@ try {
   queued = nextQueued();
   const newOwner = postState(deckState(62), 'write-2');
   await queued;
+  // Twitch answers the held deck half a second after the new owner's deck was accepted: the clear is
+  // built and sent only now, later than deck 62 was received, and deck 62 follows it.
+  clock += 500;
+  const beforeRelease = viewer.frames.length;
   pubsubGate = null;
   openGate();
   assert.equal((await onItsWay).status, 204);
@@ -608,9 +657,33 @@ try {
   relayed = pubsubSent();
   assert.deepEqual(relayed.map(message => message.state.mode), ['constructed', 'none', 'constructed']);
   assert.deepEqual([relayed[0].envelope.seq, relayed[2].envelope.seq], [60, 62], 'deck 61 never reached Twitch');
+  // Order alone is not enough: the viewer drops a frame whose `seq` is lower unless its `at` is later.
+  // The clear's `seq` is the site's time, far above 62, so deck 62 must carry a later `at` than the clear.
+  const afterRelease = viewer.since(beforeRelease);
+  assert.deepEqual(afterRelease.map(frame => [frame.mode, frame.accepted]), [['constructed', true], ['none', true], ['constructed', true]],
+    `the viewer keeps the former owner's last deck, the clear and the new owner's first deck: ${JSON.stringify(afterRelease)}`);
+  assert.deepEqual(viewer.shown, { seq: 62, mode: 'constructed' }, 'and shows the new owner\'s deck at once, not at the next keepalive');
+  assert.ok(relayed[1].envelope.seq > 62 && relayed[2].envelope.at > relayed[1].envelope.at);
+
+  // The same owner going on: consecutive decks, two in one millisecond, a keepalive of the same deck.
+  const beforeSteady = viewer.frames.length;
+  for (const seq of [63, 64, 65]) {
+    clock += 1_000;
+    response = await postState(deckState(seq), 'write-2');
+    assert.equal(response.status, 204);
+  }
+  assert.deepEqual(viewer.since(beforeSteady).map(frame => frame.accepted), [true, true, true]);
+  assert.deepEqual(viewer.shown, { seq: 65, mode: 'constructed' });
+
+  // Whatever was sent in this file, the site's receive time never repeats or goes back on the channel:
+  // that is what lets a lower `seq` (a new owner, a restarted app) through after a higher one.
+  for (let index = 1; index < viewer.frames.length; index++) {
+    assert.ok(viewer.frames[index].at > viewer.frames[index - 1].at,
+      `at grows strictly: ${JSON.stringify(viewer.frames.slice(index - 1, index + 1))}`);
+  }
   response = await fetch(`${origin}/api/v1/twitch/ext/snapshot`, { headers: { Authorization: `Bearer ${viewerJwt('4242')}` } });
   assert.equal(response.status, 200);
-  assert.equal(decodeEnvelope(await response.text()).envelope.seq, 62, 'the new owner\'s deck is what a late viewer gets');
+  assert.equal(decodeEnvelope(await response.text()).envelope.seq, 65, 'the new owner\'s newest deck is what a late viewer gets');
 
   // Expired snapshots leave memory by the sweep, whatever the number of channels.
   const idle = createTwitchLiveState(() => clock);

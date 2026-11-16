@@ -6,7 +6,6 @@ export type TwitchChannelRevokerDependencies = {
   live: TwitchLiveState;
   twitch: Pick<TwitchApi, 'broadcast'> | null;
   onError?: (scope: string, error: unknown) => void;
-  now?: () => number;
   /** Waits out the channel's one-a-second budget; a test supplies its own. */
   wait?: (milliseconds: number) => Promise<void>;
 };
@@ -27,7 +26,6 @@ export type TwitchRevocationReason = 'unlinked' | 'detected';
  * is offline never gets it, so a failure is logged and changes nothing here.
  */
 export function createTwitchChannelRevoker(dependencies: TwitchChannelRevokerDependencies) {
-  const now = dependencies.now ?? Date.now;
   const wait = dependencies.wait
     ?? ((milliseconds: number) => new Promise<void>(resolve => { setTimeout(resolve, milliseconds); }));
   return (channelId: string, reason: TwitchRevocationReason): void => {
@@ -38,8 +36,10 @@ export function createTwitchChannelRevoker(dependencies: TwitchChannelRevokerDep
       const delay = live.sendDelayMs(channelId);
       if (delay > 0) await wait(delay);
       live.markSent(channelId);
-      const at = now();
-      // Newer than anything relayed for the channel: the extension drops a frame that is not.
+      // Taken now, in the queue: later than every message sent to the channel before, earlier than the next.
+      const at = live.stamp(channelId);
+      // Newer than anything relayed for the channel: the extension drops a frame that is not. The decks
+      // that follow count from the app's own, lower `seq`; their later `at` is what lets them through.
       const seq = Math.max(at, lastSeq + 1);
       try {
         await twitch.broadcast(channelId, buildTwitchEnvelope({ v: 1, seq, state: { mode: 'none' } }, at));

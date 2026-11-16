@@ -111,8 +111,8 @@ export function createTwitchApiRouter(dependencies: TwitchApiRouterDependencies)
     const link = dependencies.links.find(token.userId);
     if (!link) return response.status(404).json(apiError('twitch_not_linked', 'Link Twitch on the site first'));
 
-    const envelope = buildTwitchEnvelope(validation.value, now());
-    if (Buffer.byteLength(envelope) > TWITCH_PUBSUB_MAX_MESSAGE_BYTES) {
+    // Sized with the time of arrival; the message itself is built in the queue with the time it is sent.
+    if (Buffer.byteLength(buildTwitchEnvelope(validation.value, now())) > TWITCH_PUBSUB_MAX_MESSAGE_BYTES) {
       return response.status(413).json(apiError('payload_too_large', 'Compressed state exceeds 5 KB'));
     }
     const slot = dependencies.live.acquire(link.twitchUserId);
@@ -127,6 +127,7 @@ export function createTwitchApiRouter(dependencies: TwitchApiRouterDependencies)
     const generation = dependencies.live.generation(channelId);
     const outcome = await dependencies.live.run(channelId, async () => {
       if (dependencies.live.generation(channelId) !== generation) return 'revoked';
+      const envelope = buildTwitchEnvelope(state, dependencies.live.stamp(channelId));
       // Stored before the broadcast: a viewer who opens the stream gets it even when one PubSub send failed.
       dependencies.live.store(channelId, envelope, { seq: state.seq, visible: state.state.mode !== 'none' });
       try {

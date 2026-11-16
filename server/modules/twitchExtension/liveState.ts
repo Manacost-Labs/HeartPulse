@@ -13,6 +13,7 @@ export function createTwitchLiveState(now: () => number = Date.now) {
   const lastSendAt = new Map<string, number>();
   const snapshots = new Map<string, Snapshot>();
   const generations = new Map<string, number>();
+  const lastStamp = new Map<string, number>();
   const queues = new Map<string, Promise<void>>();
 
   const sweep = () => {
@@ -22,6 +23,10 @@ export function createTwitchLiveState(now: () => number = Date.now) {
     }
     for (const [channel, at] of lastSendAt) {
       if (current - at > TWITCH_STATE_MIN_INTERVAL_MS) lastSendAt.delete(channel);
+    }
+    // A stamp in the past no longer shapes the next one: the clock alone is already later.
+    for (const [channel, at] of lastStamp) {
+      if (at < current) lastStamp.delete(channel);
     }
   };
 
@@ -44,6 +49,20 @@ export function createTwitchLiveState(now: () => number = Date.now) {
     /** Spends the channel's send slot for a message the site sends itself. */
     markSent(channelId: string): void {
       lastSendAt.set(channelId, now());
+    },
+    /**
+     * The `at` of the channel's next message: the clock, but always later than
+     * the previous message's. The extension keeps a frame whose `seq` is lower
+     * than the last one only when its `at` is later (a restarted app, a new
+     * owner after a clear), so `at` must follow the order the messages are
+     * sent in. Call it inside the channel's queue, when the message is about
+     * to go: a time taken when the request arrived can be earlier than that of
+     * a clear sent before it.
+     */
+    stamp(channelId: string): number {
+      const at = Math.max(now(), (lastStamp.get(channelId) ?? 0) + 1);
+      lastStamp.set(channelId, at);
+      return at;
     },
     /** `seq` and `visible` (a deck, not `none`) describe what viewers were last sent. */
     store(channelId: string, envelope: string, sent: { seq: number; visible: boolean }): void {
