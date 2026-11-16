@@ -3,14 +3,14 @@ import { revalidatePath } from 'next/cache';
 import { isLocalRevalidateRequest } from '@/apps/public-web/lib/localRevalidateRequest';
 
 /** Prerendered pages whose build copy has no data (CI builds without the Express API). */
-const DATA_PAGES = ['/standard/meta', '/articles'] as const;
+const DATA_PAGES = ['/standard/meta', '/articles', '/tierlist'] as const;
 
 /**
  * Marks the prerendered data pages stale right after a deploy, so the next
  * request regenerates them with data instead of serving the build copy for up
  * to five minutes (`scripts/warm-prerendered-pages.mjs`). Anything but a direct
  * call on the host answers 404; it takes no input and only schedules a
- * regeneration of these two pages.
+ * regeneration of these pages.
  */
 export function POST(request: Request) {
   if (!isLocalRevalidateRequest(request.headers)) {

@@ -9,7 +9,7 @@
  * the data itself until regeneration lands.
  */
 const base = process.env.PRODUCTION_BASE_URL || 'https://hearthpulse.net';
-const paths = ['/standard/meta/', '/articles/'];
+const paths = ['/standard/meta/', '/articles/', '/tierlist/'];
 const attempts = Number(process.env.WARM_ATTEMPTS || 6);
 const delayMs = Number(process.env.WARM_DELAY_MS || 5000);
 

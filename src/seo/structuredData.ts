@@ -100,8 +100,11 @@ async function pageGraph(pagePath: string, nodes: readonly SchemaNode[], facts: 
     }
     if (dateModified && DATA_DATED_TYPES.has(type)) node.dateModified = dateModified;
     if (type === 'Dataset') {
-      // The site terms are the only reuse grant the owner has published.
-      if (!node.license) node.license = `${SITE_ORIGIN}/terms/`;
+      // The site terms are the only reuse grant the owner has published. A node
+      // that sets `"license": null` says it has none (a paywalled Dataset: the
+      // terms are not a grant to reuse its data), and the key is left out.
+      if (node.license === null) delete node.license;
+      else if (!node.license) node.license = `${SITE_ORIGIN}/terms/`;
       node.creator ??= { ...ORGANIZATION_REFERENCE };
       node.publisher ??= { ...ORGANIZATION_REFERENCE };
       const origin = node.isBasedOn;
