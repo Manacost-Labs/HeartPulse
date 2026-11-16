@@ -56,7 +56,7 @@ test('a missing date or sample is null, a synthetic or empty dataset is no proje
 
 test('the page parser copies only the whitelisted fields, rounds again and caps the list', () => {
   const teaser = projectWinratesPublicTeaser(buildClassesFixture())!;
-  const dirty = JSON.parse(JSON.stringify(teaser));
+  const dirty = structuredClone(teaser);
   dirty.classes.forEach((item: Record<string, unknown>, index: number) => Object.assign(item, {
     winrate: 57.34821 - index, wins: 4_281_773, pickRate: 13.37041, byPeriod: [{ period: 'sentinel-period' }], place: 99,
   }));
