@@ -21,9 +21,14 @@ export type TwitchAccountRouterDependencies = {
 const STATE_COOKIE = 'hp_twitch_oauth';
 const STATE_TTL_MS = 10 * 60_000;
 const MAX_PENDING_STATES = 10_000;
-/** The Twitch block in the account; `/account/twitch` (the app's `linkUrl`) redirects here. */
-export const TWITCH_ACCOUNT_PAGE = '/profile/#account-twitch';
-const page = (result: string) => `/profile/?twitch=${result}#account-twitch`;
+/**
+ * The Twitch block in the account. The account is the home document opened
+ * with `?login` (as Patreon's `/?login&patreon=linked`); the site has no
+ * `/profile/` page and the origin nginx answers 404 for an unlisted path.
+ * `/account/twitch` (the app's fallback link) redirects here.
+ */
+export const TWITCH_ACCOUNT_PAGE = '/?login#account-twitch';
+const page = (result: string) => `/?login&twitch=${result}#account-twitch`;
 
 const apiError = (code: string, message: string) => ({ error: { code, message } });
 
@@ -113,6 +118,9 @@ export function createTwitchAccountRouter(dependencies: TwitchAccountRouterDepen
       const twitchUser = await twitch.identify(code);
       const previous = dependencies.links.find(user.id);
       if (previous && previous.twitchUserId !== twitchUser.id) dependencies.live.forget(previous.twitchUserId);
+      // The channel moves from another site account: the deck that account sent must not outlive its link.
+      const formerOwner = dependencies.links.findByChannel(twitchUser.id);
+      if (formerOwner && formerOwner.userId !== user.id) dependencies.live.forget(twitchUser.id);
       dependencies.links.link({
         userId: user.id,
         twitchUserId: twitchUser.id,

@@ -107,7 +107,7 @@ export const TWITCH_EXTENSION_OPENAPI_SCHEMAS = {
           name: { type: ['string', 'null'], maxLength: 100 },
           hero: { type: ['string', 'null'], pattern: '^[A-Za-z0-9_]{1,64}$' },
           format: { type: 'string', enum: ['standard', 'wild', 'twist', 'classic', 'casual', 'other'] },
-          left: { type: 'integer', minimum: 0, maximum: 100 },
+          left: { type: 'integer', description: 'Cards left in the deck; the site clamps it to 0..999.' },
           cards: {
             type: 'array',
             maxItems: 80,
@@ -118,10 +118,10 @@ export const TWITCH_EXTENSION_OPENAPI_SCHEMAS = {
               properties: {
                 id: { type: 'string', pattern: '^[A-Za-z0-9_]{1,64}$' },
                 dbf: { type: 'integer', minimum: 0 },
-                cost: { type: 'integer', minimum: 0, maximum: 99 },
-                name: { type: 'string', maxLength: 80 },
-                left: { type: 'integer', minimum: 0, maximum: 30 },
-                total: { type: 'integer', minimum: 0, maximum: 30 },
+                cost: { type: 'integer', minimum: 0, maximum: 999 },
+                name: { type: 'string', description: 'Shown as is, cut to 80 characters; an empty name is replaced by the card id.' },
+                left: { type: 'integer', description: 'Copies left; the site clamps it to 0..99.' },
+                total: { type: 'integer', description: 'Copies in the list; the site clamps it to 0..99.' },
               },
             },
           },

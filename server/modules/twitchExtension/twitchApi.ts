@@ -44,6 +44,8 @@ export function createTwitchApi(config: TwitchExtensionConfig, request: TwitchFe
       // No scope: the site needs only who the streamer is, proven by the login.
       url.searchParams.set('scope', '');
       url.searchParams.set('state', state);
+      // Always the Twitch account chooser: a browser signed in to another channel must not link it silently.
+      url.searchParams.set('force_verify', 'true');
       return url.toString();
     },
 

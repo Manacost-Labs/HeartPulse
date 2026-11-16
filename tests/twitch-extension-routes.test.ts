@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { gunzipSync } from 'node:zlib';
 import express from 'express';
@@ -14,6 +15,7 @@ import {
   createTwitchLiveState,
   readTwitchExtensionConfig,
   signTwitchJwt,
+  TWITCH_ACCOUNT_PAGE,
   verifyTwitchJwt,
   type TwitchExtensionConfig,
 } from '../server/modules/twitchExtension/public.js';
@@ -102,6 +104,9 @@ const userAuth = (request: express.Request) => {
 };
 const setPrivateNoStore = (response: express.Response) => { response.set('Cache-Control', 'private, no-store'); };
 const errors: string[] = [];
+/** Site accounts an administrator blocked: their app tokens stay valid, their sessions do not. */
+const blocked = new Set<string>();
+const LINK_URL = `https://hearthpulse.net${TWITCH_ACCOUNT_PAGE}`;
 
 const buildApp = (configured: boolean) => {
   const app = express();
@@ -109,7 +114,7 @@ const buildApp = (configured: boolean) => {
   app.use(express.json({ limit: '1mb' }));
   app.use('/api/v1', createTwitchApiRouter({
     config: configured ? config : null, twitch: configured ? twitch : null, accessTokens, links, live,
-    linkUrl: 'https://hearthpulse.net/account/twitch', setPrivateNoStore, now: () => clock,
+    linkUrl: LINK_URL, setPrivateNoStore, now: () => clock, accountActive: userId => !blocked.has(userId),
     onError: (scope, error) => errors.push(`${scope}: ${error instanceof Error ? error.message : error}`),
   }));
   app.use('/api', createTwitchAccountRouter({
@@ -161,13 +166,13 @@ try {
   response = await fetch(`${bare.origin}/api/v1/twitch/status`, { headers: { Authorization: 'Bearer write-1' } });
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
-    configured: false, linked: false, login: null, displayName: null, linkUrl: 'https://hearthpulse.net/account/twitch',
+    configured: false, linked: false, login: null, displayName: null, linkUrl: LINK_URL,
   });
   response = await fetch(`${bare.origin}/api/v1/twitch/ext/snapshot`, { headers: { Authorization: `Bearer ${viewerJwt('4242')}` } });
   assert.equal(response.status, 503);
   response = await fetch(`${bare.origin}/api/account/twitch/connect`, { redirect: 'manual', headers: { 'x-test-user': 'user-1' } });
   assert.equal(response.status, 302);
-  assert.equal(response.headers.get('location'), '/profile/?twitch=not_configured#account-twitch');
+  assert.equal(response.headers.get('location'), '/?login&twitch=not_configured#account-twitch');
 
   // Authorization of the app's token.
   response = await postState(deckState(1), 'nope');
@@ -186,10 +191,10 @@ try {
   // Linking: the /account/twitch address, the OAuth start and the callback.
   response = await fetch(`${origin}/account/twitch`, { redirect: 'manual' });
   assert.equal(response.status, 302);
-  assert.equal(response.headers.get('location'), '/profile/#account-twitch');
+  assert.equal(response.headers.get('location'), TWITCH_ACCOUNT_PAGE);
   response = await fetch(`${origin}/api/account/twitch/connect`, { redirect: 'manual' });
   assert.equal(response.status, 302, 'a signed-out visitor goes to the account page');
-  assert.equal(response.headers.get('location'), '/profile/#account-twitch');
+  assert.equal(response.headers.get('location'), TWITCH_ACCOUNT_PAGE);
 
   const start = async (userId: string) => {
     const started = await fetch(`${origin}/api/account/twitch/connect`, { redirect: 'manual', headers: { 'x-test-user': userId } });
@@ -200,6 +205,7 @@ try {
     assert.equal(authorize.searchParams.get('redirect_uri'), ENV.TWITCH_OAUTH_REDIRECT_URI);
     assert.equal(authorize.searchParams.get('response_type'), 'code');
     assert.equal(authorize.searchParams.get('scope'), '', 'no scope is requested');
+    assert.equal(authorize.searchParams.get('force_verify'), 'true', 'Twitch always asks which account to link');
     const setCookie = String(started.headers.get('set-cookie'));
     assert.match(setCookie, /HttpOnly/);
     assert.match(setCookie, /SameSite=Lax/);
@@ -213,29 +219,29 @@ try {
 
   let flow = await start('user-1');
   response = await callback(`code=good-code&state=${flow.state}x`, flow.cookie, 'user-1');
-  assert.equal(response.headers.get('location'), '/profile/?twitch=error#account-twitch', 'state mismatch');
+  assert.equal(response.headers.get('location'), '/?login&twitch=error#account-twitch', 'state mismatch');
   response = await callback(`code=good-code&state=${flow.state}`, '', 'user-1');
-  assert.equal(response.headers.get('location'), '/profile/?twitch=error#account-twitch', 'no state cookie (CSRF)');
+  assert.equal(response.headers.get('location'), '/?login&twitch=error#account-twitch', 'no state cookie (CSRF)');
   response = await callback(`code=good-code&state=${flow.state}`, flow.cookie, 'user-2');
-  assert.equal(response.headers.get('location'), '/profile/?twitch=error#account-twitch', 'started by another account');
+  assert.equal(response.headers.get('location'), '/?login&twitch=error#account-twitch', 'started by another account');
   flow = await start('user-1');
   response = await callback(`error=access_denied&state=${flow.state}`, flow.cookie, 'user-1');
-  assert.equal(response.headers.get('location'), '/profile/?twitch=cancelled#account-twitch');
+  assert.equal(response.headers.get('location'), '/?login&twitch=cancelled#account-twitch');
   response = await callback(`code=good-code&state=${flow.state}`, flow.cookie, 'user-1');
-  assert.equal(response.headers.get('location'), '/profile/?twitch=error#account-twitch', 'a state is used once');
+  assert.equal(response.headers.get('location'), '/?login&twitch=error#account-twitch', 'a state is used once');
   flow = await start('user-1');
   clock += 11 * 60_000;
   response = await callback(`code=good-code&state=${flow.state}`, flow.cookie, 'user-1');
-  assert.equal(response.headers.get('location'), '/profile/?twitch=error#account-twitch', 'expired state');
+  assert.equal(response.headers.get('location'), '/?login&twitch=error#account-twitch', 'expired state');
   flow = await start('user-1');
   response = await callback(`code=bad-code&state=${flow.state}`, flow.cookie, 'user-1');
-  assert.equal(response.headers.get('location'), '/profile/?twitch=error#account-twitch', 'Twitch refused the code');
+  assert.equal(response.headers.get('location'), '/?login&twitch=error#account-twitch', 'Twitch refused the code');
   assert.equal(links.find('user-1'), null);
 
   calls.length = 0;
   flow = await start('user-1');
   response = await callback(`code=good-code&state=${flow.state}`, flow.cookie, 'user-1');
-  assert.equal(response.headers.get('location'), '/profile/?twitch=linked#account-twitch');
+  assert.equal(response.headers.get('location'), '/?login&twitch=linked#account-twitch');
   assert.match(String(response.headers.get('set-cookie')), /hp_twitch_oauth=;.*Max-Age=0/, 'the state cookie is spent');
   assert.equal(links.find('user-1')?.twitchUserId, '4242');
   const usersCall = calls.find(call => call.url === 'https://api.twitch.tv/helix/users');
@@ -251,7 +257,7 @@ try {
   assert.equal(response.status, 401);
   response = await fetch(`${origin}/api/v1/twitch/status`, { headers: { Authorization: 'Bearer write-1' } });
   assert.deepEqual(await response.json(), {
-    configured: true, linked: true, login: 'streamer', displayName: 'Streamer', linkUrl: 'https://hearthpulse.net/account/twitch',
+    configured: true, linked: true, login: 'streamer', displayName: 'Streamer', linkUrl: LINK_URL,
   });
 
   // Validation.
@@ -260,7 +266,17 @@ try {
     { ...deckState(1), seq: -1 },
     { ...deckState(1), mode: 'battlegrounds' },
     { ...deckState(1), deck: { ...deckState(1).deck, format: 'arena' } },
-    { ...deckState(1), deck: { ...deckState(1).deck, cards: [{ id: 'X', dbf: 1, cost: 1, name: '', left: 1, total: 1 }] } },
+    { ...deckState(1), deck: { ...deckState(1).deck, name: 7 } },
+    { ...deckState(1), deck: { ...deckState(1).deck, left: '22' } },
+    ...[
+      { id: 'bad id!', dbf: 1, cost: 1, name: 'A', left: 1, total: 1 },
+      { id: 'X', dbf: 1, cost: 1, name: 7, left: 1, total: 1 },
+      { id: 'X', dbf: 1, cost: 1, left: 1, total: 1 },
+      { id: 'X', dbf: 1, cost: 1000, name: 'A', left: 1, total: 1 },
+      { id: 'X', dbf: 1, cost: -1, name: 'A', left: 1, total: 1 },
+      { id: 'X', dbf: 1, cost: 1, name: 'A', left: '1', total: 1 },
+      { id: 'X', dbf: 1, cost: 1, name: 'A', left: 1, total: 1.5 },
+    ].map(card => ({ ...deckState(1), deck: { ...deckState(1).deck, cards: [card] } })),
     { ...deckState(1), game: { turn: 'five' } },
     [],
   ]) {
@@ -276,6 +292,35 @@ try {
   response = await postState({ ...deckState(1), deck: { ...deckState(1).deck, cards: noisyCards } });
   assert.equal(response.status, 413, 'compressed envelope above 5 KB');
   assert.equal(await errorCode(response), 'payload_too_large');
+
+  // Display fields are tolerant: a real card above the usual ranges (GDB_142 costs 100), a card whose name
+  // the app does not know, or copies shuffled past 30 must not hide the whole deck from viewers.
+  calls.length = 0;
+  clock += 5_000;
+  response = await postState({
+    ...deckState(41),
+    deck: {
+      ...deckState(41).deck,
+      name: '   ',
+      cards: [
+        { id: 'GDB_142', dbf: 111914, cost: 100, name: 'Бескрайний простор', left: 1, total: 1 },
+        { id: 'CORE_CS2_106', dbf: 69, cost: 1, name: '   ', left: 33, total: 33 },
+        { id: 'EX1_001', dbf: 1, cost: 0, name: '', left: -1, total: 120, order: 3 },
+      ],
+    },
+  });
+  assert.equal(response.status, 204, 'partly incomplete display data is normalised, not refused');
+  assert.deepEqual(decodeEnvelope(JSON.parse(String(calls[0].init.body)).message).state.deck, {
+    name: null,
+    hero: 'HERO_01',
+    format: 'standard',
+    left: 22,
+    cards: [
+      { id: 'GDB_142', dbf: 111914, cost: 100, name: 'Бескрайний простор', left: 1, total: 1 },
+      { id: 'CORE_CS2_106', dbf: 69, cost: 1, name: 'CORE_CS2_106', left: 33, total: 33 },
+      { id: 'EX1_001', dbf: 1, cost: 0, name: 'EX1_001', left: 0, total: 99 },
+    ],
+  }, 'an empty name becomes the card id, counts are clamped, an unknown field is dropped');
 
   // A valid state reaches Helix with an external JWT and becomes the snapshot.
   calls.length = 0;
@@ -364,17 +409,44 @@ try {
   response = await fetch(`${origin}/api/v1/twitch/ext/snapshot`, { headers: { Authorization: `Bearer ${viewerJwt('4242')}` } });
   assert.equal(response.status, 204);
 
-  // The same Twitch account linked by another site account moves there.
+  // The same Twitch account linked by another site account moves there, and the deck the former
+  // account sent leaves the channel with its link.
+  response = await postState(deckState(461));
+  assert.equal(response.status, 204);
+  response = await fetch(`${origin}/api/v1/twitch/ext/snapshot`, { headers: { Authorization: `Bearer ${viewerJwt('4242')}` } });
+  assert.equal(response.status, 200, 'a fresh snapshot of the former owner');
   flow = await start('user-2');
   response = await callback(`code=good-code&state=${flow.state}`, flow.cookie, 'user-2');
-  assert.equal(response.headers.get('location'), '/profile/?twitch=linked#account-twitch');
+  assert.equal(response.headers.get('location'), '/?login&twitch=linked#account-twitch');
   assert.equal(links.find('user-1'), null);
   assert.equal(links.find('user-2')?.twitchUserId, '4242');
+  response = await fetch(`${origin}/api/v1/twitch/ext/snapshot`, { headers: { Authorization: `Bearer ${viewerJwt('4242')}` } });
+  assert.equal(response.status, 204, 'the transfer forgets the former owner\'s snapshot');
 
-  // Unlinking stops relaying and forgets the snapshot.
+  // A blocked site account neither publishes nor stays on the channel; its token is answered as invalid.
   clock += 1_000;
   response = await postState(deckState(47), 'write-2');
   assert.equal(response.status, 204);
+  blocked.add('user-2');
+  response = await fetch(`${origin}/api/v1/twitch/ext/snapshot`, { headers: { Authorization: `Bearer ${viewerJwt('4242')}` } });
+  assert.equal(response.status, 204, 'a blocked owner\'s snapshot is not served');
+  calls.length = 0;
+  clock += 1_000;
+  response = await postState(deckState(470), 'write-2');
+  assert.equal(response.status, 401);
+  assert.equal(await errorCode(response), 'INVALID_ACCESS_TOKEN');
+  assert.equal(calls.length, 0, 'nothing reaches Twitch for a blocked account');
+  response = await fetch(`${origin}/api/v1/twitch/status`, { headers: { Authorization: 'Bearer write-2' } });
+  assert.equal(response.status, 401);
+  blocked.delete('user-2');
+  response = await fetch(`${origin}/api/v1/twitch/ext/snapshot`, { headers: { Authorization: `Bearer ${viewerJwt('4242')}` } });
+  assert.equal(response.status, 204, 'the snapshot was erased, not hidden');
+
+  // Unlinking stops relaying and forgets the snapshot.
+  response = await postState(deckState(471), 'write-2');
+  assert.equal(response.status, 204);
+  response = await fetch(`${origin}/api/v1/twitch/ext/snapshot`, { headers: { Authorization: `Bearer ${viewerJwt('4242')}` } });
+  assert.equal(response.status, 200);
   response = await fetch(`${origin}/api/account/twitch`, { method: 'DELETE' });
   assert.equal(response.status, 401);
   response = await fetch(`${origin}/api/account/twitch`, { method: 'DELETE', headers: { 'x-test-user': 'user-2' } });
@@ -398,6 +470,37 @@ try {
   assert.equal(links.find('user-3'), null);
   response = await fetch(`${origin}/api/v1/twitch/ext/snapshot`, { headers: { Authorization: `Bearer ${viewerJwt('4242')}` } });
   assert.equal(response.status, 204, 'the snapshot goes with the deleted account');
+
+  // Expired snapshots leave memory by the sweep, whatever the number of channels.
+  const idle = createTwitchLiveState(() => clock);
+  idle.store('1', 'first');
+  clock += 29 * 60_000;
+  idle.store('2', 'second');
+  assert.equal(idle.sweep(), 2);
+  clock += 2 * 60_000;
+  assert.equal(idle.sweep(), 1, 'the first one is past 30 minutes');
+  assert.equal(idle.snapshot('2'), 'second');
+  clock += 30 * 60_000;
+  assert.equal(idle.sweep(), 0);
+
+  // Deployment contract. The origin nginx serves listed documents only and ends with
+  // `location / { return 404; }`, so every address the linking flow sends a browser to must be the
+  // home document (the account opens as `/?login`), and `/account/twitch` must be listed there.
+  const nginx = readFileSync(new URL('../deploy/nginx/arena-html-routing.conf', import.meta.url), 'utf8');
+  assert.match(nginx, /\nlocation = \/ \{/, 'the home document is served');
+  const targets = [TWITCH_ACCOUNT_PAGE, ...['linked', 'cancelled', 'error', 'not_configured']
+    .map(result => `/?login&twitch=${result}#account-twitch`)];
+  for (const target of targets) {
+    const url = new URL(target, 'https://hearthpulse.net');
+    assert.equal(url.pathname, '/', `${target} must be the home document`);
+    assert.ok(url.searchParams.has('login'), `${target} must open the account`);
+    assert.equal(url.hash, '#account-twitch', `${target} must open the Twitch block`);
+  }
+  assert.equal(new URL(LINK_URL).pathname, '/', 'the app gets the account address itself');
+  const fallback = nginx.match(/\nlocation = \/account\/twitch \{([^}]*)\}/);
+  assert.ok(fallback, 'the app\'s fallback address /account/twitch is listed in the origin nginx');
+  assert.ok(fallback[1].includes(`return 302 "${TWITCH_ACCOUNT_PAGE}";`), 'and redirects to the account');
+  assert.match(fallback[1], /no-store/, 'a redirect to the account is not cached');
 } finally {
   server.close();
   bare.server.close();

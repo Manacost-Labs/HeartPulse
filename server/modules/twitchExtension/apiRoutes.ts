@@ -18,6 +18,11 @@ export type TwitchApiRouterDependencies = {
   accessTokens: Pick<ApplicationAuthManager, 'authenticate'>;
   links: TwitchLinkRepository;
   live: TwitchLiveState;
+  /**
+   * False for a blocked or missing site account. Its token is answered like an
+   * invalid one (the application API's rule) and its deck leaves the channel.
+   */
+  accountActive: (userId: string) => boolean;
   /** Absolute address of the page that links Twitch, handed to the app. */
   linkUrl: string;
   setPrivateNoStore: (response: Response) => void;
@@ -67,6 +72,14 @@ export function createTwitchApiRouter(dependencies: TwitchApiRouterDependencies)
     }
     if (token === 'FORBIDDEN') {
       response.status(403).json(apiError('INSUFFICIENT_SCOPE', `Access token does not grant ${scope}`));
+      return null;
+    }
+    if (!dependencies.accountActive(token.userId)) {
+      // Blocking removes browser sessions only; the app's token lives on, so the publication stops here.
+      const link = dependencies.links.find(token.userId);
+      if (link) dependencies.live.forget(link.twitchUserId);
+      response.set('WWW-Authenticate', 'Bearer realm="HearthPulse Tracker"');
+      response.status(401).json(apiError('INVALID_ACCESS_TOKEN', 'Access token is invalid or expired'));
       return null;
     }
     return token;
@@ -133,8 +146,10 @@ export function createTwitchApiRouter(dependencies: TwitchApiRouterDependencies)
     }
     const claims = verifyTwitchJwt(bearerToken(request), config.extensionSecret, now());
     if (!claims) return response.status(401).json(apiError('invalid_extension_token', 'Extension token is invalid or expired'));
-    // A deleted site account drops its link by cascade, without an unlink call: its snapshot must go with it.
-    if (!dependencies.links.hasChannel(claims.channelId)) {
+    // A deleted site account drops its link by cascade and a blocked one keeps it, both without an unlink
+    // call: the snapshot is served only while an active account owns the channel.
+    const owner = dependencies.links.findByChannel(claims.channelId);
+    if (!owner || !dependencies.accountActive(owner.userId)) {
       dependencies.live.forget(claims.channelId);
       return response.status(204).end();
     }

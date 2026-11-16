@@ -1,7 +1,8 @@
 import { TWITCH_SNAPSHOT_TTL_MS, TWITCH_STATE_MIN_INTERVAL_MS } from './model.js';
 
 /**
- * The last envelope of each channel and its send budget, in process memory.
+ * The last envelope of each channel and its send budget, in process memory:
+ * correct only while one server process answers every request.
  * A restart loses them on purpose: the app sends a keepalive every 15 s, so
  * the snapshot is back within seconds, and nothing here is worth a table.
  */
@@ -31,8 +32,16 @@ export function createTwitchLiveState(now: () => number = Date.now) {
       return { ok: true };
     },
     store(channelId: string, envelope: string): void {
-      if (snapshots.size > 1_000) sweep();
       snapshots.set(channelId, { envelope, storedAt: now() });
+    },
+    /**
+     * Drops every snapshot older than the TTL and every spent send slot; the
+     * owner runs it on a timer, so an idle channel's deck leaves memory on
+     * time and not only when a viewer asks. Returns the snapshots still kept.
+     */
+    sweep(): number {
+      sweep();
+      return snapshots.size;
     },
     snapshot(channelId: string): string | null {
       const entry = snapshots.get(channelId);

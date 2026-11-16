@@ -8,6 +8,7 @@ export { externalPubsubJwt, signTwitchJwt, verifyTwitchJwt } from './jwt.js';
 export { createTwitchLiveState, type TwitchLiveState } from './liveState.js';
 export {
   TWITCH_PUBSUB_MAX_MESSAGE_BYTES,
+  TWITCH_SNAPSHOT_SWEEP_MS,
   TWITCH_SNAPSHOT_TTL_MS,
   TWITCH_STATE_MAX_BODY_BYTES,
   buildTwitchEnvelope,

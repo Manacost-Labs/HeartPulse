@@ -39,9 +39,10 @@ export function createTwitchLinkRepository(getDatabase: () => DatabaseSync) {
       const row = getDatabase().prepare('SELECT * FROM twitch_links WHERE user_id = ?').get(userId) as Row | undefined;
       return row ? fromRow(row) : null;
     },
-    /** Whether some site account still has this Twitch channel linked. */
-    hasChannel(twitchUserId: string): boolean {
-      return Boolean(getDatabase().prepare('SELECT 1 FROM twitch_links WHERE twitch_user_id = ?').get(twitchUserId));
+    /** The site account that has this Twitch channel linked now, if any. */
+    findByChannel(twitchUserId: string): TwitchLink | null {
+      const row = getDatabase().prepare('SELECT * FROM twitch_links WHERE twitch_user_id = ?').get(twitchUserId) as Row | undefined;
+      return row ? fromRow(row) : null;
     },
     /**
      * Links the Twitch account to this site account. A Twitch account that was

@@ -692,6 +692,11 @@ for (const outside of ['/replay/short/', '/embed/hearthpulse-login-v1.js', '/emb
   assert.ok(!matchingRegexLocations(outside).some(location => location.body.includes('127.0.0.1:4321')),
     `${outside} is not a growth page`);
 }
+// The Hearthpulse app's fallback «Link Twitch» address opens the account's Twitch block (docs/specs/twitch-extension.md).
+const twitchLinkLocation = locations.find(location => location.modifier === '=' && location.pattern === '/account/twitch');
+assert.ok(twitchLinkLocation, 'the app\'s Twitch link address must not fall into the final 404');
+assert.match(twitchLinkLocation.body, /return 302 "\/\?login#account-twitch";/, 'it redirects to the account page');
+assert.match(twitchLinkLocation.body, /Cache-Control "no-cache, no-store, must-revalidate" always;/, 'the redirect is never cached');
 assert.ok(locations.some(location => location.modifier === '=' && location.pattern === '/download/'
   && location.body.includes('proxy_pass http://127.0.0.1:4321;')), 'the download landing reaches Next');
 
@@ -1922,6 +1927,10 @@ http {
       assert.equal(referral.headers['x-robots-tag'], 'noindex, nofollow', `${referralPath} robots policy`);
       assert.match(referral.headers['cache-control'] || '', /no-store/, `${referralPath} cache policy`);
     }
+    const twitchLink = await requestNginx(port, '/account/twitch');
+    assert.equal(twitchLink.status, 302, 'the app\'s Twitch link address must redirect, not 404');
+    assert.match(twitchLink.headers.location || '', /\/\?login#account-twitch$/, 'Twitch link redirect target');
+    assert.match(twitchLink.headers['cache-control'] || '', /no-store/, 'Twitch link redirect cache policy');
     const missingReferral = await requestNginx(port, '/r/missing');
     assert.equal(missingReferral.status, 404, 'missing referral must preserve the upstream 404');
     assert.match(missingReferral.body, /referral-upstream-404/, 'missing referral response body');

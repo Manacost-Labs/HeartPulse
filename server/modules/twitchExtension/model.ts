@@ -8,9 +8,14 @@ export const TWITCH_PUBSUB_MAX_MESSAGE_BYTES = 5 * 1024;
 export const TWITCH_STATE_MIN_INTERVAL_MS = 1_000;
 /** A viewer who opens the stream later gets the last envelope only while it is this fresh. */
 export const TWITCH_SNAPSHOT_TTL_MS = 30 * 60_000;
+/** How often expired snapshots are swept out of memory. */
+export const TWITCH_SNAPSHOT_SWEEP_MS = 60_000;
 
 const FORMATS = ['standard', 'wild', 'twist', 'classic', 'casual', 'other'] as const;
 const MAX_CARDS = 80;
+const MAX_CARD_COST = 999;
+const MAX_CARD_COPIES = 99;
+const MAX_DECK_LEFT = 999;
 const CARD_ID = /^[A-Za-z0-9_]{1,64}$/;
 
 export type TwitchDeckFormat = typeof FORMATS[number];
@@ -53,19 +58,28 @@ const isRecord = (value: unknown): value is Record<string, unknown> => (
 const isInt = (value: unknown, min: number, max: number): value is number => (
   Number.isSafeInteger(value) && (value as number) >= min && (value as number) <= max
 );
-const text = (value: unknown, max: number): string | null => {
-  if (typeof value !== 'string') return null;
-  const trimmed = value.trim();
-  return trimmed.length > 0 && trimmed.length <= max ? trimmed : null;
-};
 
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+/**
+ * Strict about what protects a viewer (types, the card id, the field list);
+ * tolerant about what is only displayed. Real data goes past the obvious
+ * ranges (GDB_142 costs 100, shuffled copies pass 30), and one such card must
+ * not hide the whole deck: counts are clamped, a missing name becomes the id.
+ */
 function validateCard(value: unknown): TwitchDeckCard | null {
   if (!isRecord(value)) return null;
-  const name = text(value.name, 80);
-  if (typeof value.id !== 'string' || !CARD_ID.test(value.id) || !name
-    || !isInt(value.dbf, 0, 10_000_000) || !isInt(value.cost, 0, 99)
-    || !isInt(value.left, 0, 30) || !isInt(value.total, 0, 30)) return null;
-  return { id: value.id, dbf: value.dbf, cost: value.cost, name, left: value.left, total: value.total };
+  if (typeof value.id !== 'string' || !CARD_ID.test(value.id) || typeof value.name !== 'string'
+    || !isInt(value.dbf, 0, 10_000_000) || !isInt(value.cost, 0, MAX_CARD_COST)
+    || !Number.isSafeInteger(value.left) || !Number.isSafeInteger(value.total)) return null;
+  return {
+    id: value.id,
+    dbf: value.dbf,
+    cost: value.cost,
+    name: value.name.trim().slice(0, 80) || value.id,
+    left: clamp(value.left as number, 0, MAX_CARD_COPIES),
+    total: clamp(value.total as number, 0, MAX_CARD_COPIES),
+  };
 }
 
 /** Validates the app's `POST twitch/state` body against the contract in docs/specs/twitch-extension.md. */
@@ -78,12 +92,12 @@ export function validateTwitchState(body: unknown): Validation {
 
   const deck = body.deck;
   if (!isRecord(deck)) return { ok: false, field: 'deck' };
-  const name = deck.name === null ? null : text(deck.name, 100);
-  if (name === null && deck.name !== null) return { ok: false, field: 'deck.name' };
+  if (deck.name !== null && typeof deck.name !== 'string') return { ok: false, field: 'deck.name' };
+  const name = typeof deck.name === 'string' ? deck.name.trim().slice(0, 100) || null : null;
   const hero = deck.hero === null ? null : (typeof deck.hero === 'string' && CARD_ID.test(deck.hero) ? deck.hero : undefined);
   if (hero === undefined) return { ok: false, field: 'deck.hero' };
   if (!FORMATS.includes(deck.format as TwitchDeckFormat)) return { ok: false, field: 'deck.format' };
-  if (!isInt(deck.left, 0, 100)) return { ok: false, field: 'deck.left' };
+  if (!Number.isSafeInteger(deck.left)) return { ok: false, field: 'deck.left' };
   if (!Array.isArray(deck.cards) || deck.cards.length > MAX_CARDS) return { ok: false, field: 'deck.cards' };
   const cards: TwitchDeckCard[] = [];
   for (const input of deck.cards) {
@@ -104,7 +118,7 @@ export function validateTwitchState(body: unknown): Validation {
       seq: body.seq,
       state: {
         mode: 'constructed',
-        deck: { name, hero, format: deck.format as TwitchDeckFormat, left: deck.left, cards },
+        deck: { name, hero, format: deck.format as TwitchDeckFormat, left: clamp(deck.left as number, 0, MAX_DECK_LEFT), cards },
         ...(game ? { game } : {}),
       },
     },

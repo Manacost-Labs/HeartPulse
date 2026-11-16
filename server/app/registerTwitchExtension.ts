@@ -11,6 +11,8 @@ import {
   createTwitchLinkRepository,
   createTwitchLiveState,
   readTwitchExtensionConfig,
+  TWITCH_ACCOUNT_PAGE,
+  TWITCH_SNAPSHOT_SWEEP_MS,
 } from '../modules/twitchExtension/public.js';
 
 type Environment = Record<string, string | undefined>;
@@ -34,6 +36,8 @@ type RegisterTwitchExtensionDependencies = {
   env: Environment;
   accessTokens: Pick<ApplicationAuthManager, 'authenticate'>;
   userAuth: (request: Request) => { id: string } | null;
+  /** False for a blocked or missing site account: it neither publishes nor is shown. */
+  accountActive: (userId: string) => boolean;
   setPrivateNoStore: (response: Response) => void;
   appUrl: string;
 };
@@ -49,6 +53,8 @@ export function registerTwitchExtension(dependencies: RegisterTwitchExtensionDep
   dependencies.app.use('/api/v1/twitch/state', rateLimit({ windowMs: 60_000, max: 240, standardHeaders: true, legacyHeaders: false }));
   dependencies.app.use('/api/account/twitch/connect', rateLimit({ windowMs: 10 * 60_000, max: 20, standardHeaders: true, legacyHeaders: false }));
   const live = createTwitchLiveState();
+  // Expired snapshots leave memory on time, not only when a viewer asks; the timer never holds the process.
+  setInterval(() => live.sweep(), TWITCH_SNAPSHOT_SWEEP_MS).unref();
   const twitch = config ? createTwitchApi(config, (url, init) => fetch(url, init)) : null;
   // Only the operation and Twitch's status reach the log, never a token or a body.
   const onError = (scope: string, error: unknown) => console.warn(
@@ -61,7 +67,9 @@ export function registerTwitchExtension(dependencies: RegisterTwitchExtensionDep
     accessTokens: dependencies.accessTokens,
     links,
     live,
-    linkUrl: `${dependencies.appUrl.replace(/\/$/, '')}/account/twitch`,
+    accountActive: dependencies.accountActive,
+    // Straight to the account: the address works with or without the `/account/twitch` redirect in front.
+    linkUrl: `${dependencies.appUrl.replace(/\/$/, '')}${TWITCH_ACCOUNT_PAGE}`,
     setPrivateNoStore: dependencies.setPrivateNoStore,
     onError,
   }));

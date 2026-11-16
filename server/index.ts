@@ -7183,7 +7183,7 @@ const trackerEvents = registerTrackerIngestion({ app, getDatabase: db, accessTok
   validatePayload: validateStatisticsPayload, onStored: playerStats.invalidate, userAuth, onDeleted: playerStats.invalidate,
   // The export reads the replays through a closure: their module is registered just below.
   exportReplays: userId => replayShares.exportRows(userId, Date.now()),
-  exportUsage: userId => appUsage.exportRows(userId), exportTwitch: registerTwitchExtension({ app, getDatabase: db, env: process.env, accessTokens: applicationAuth, userAuth, setPrivateNoStore, appUrl: APP_URL }).exportRows });
+  exportUsage: userId => appUsage.exportRows(userId), exportTwitch: registerTwitchExtension({ app, getDatabase: db, env: process.env, accessTokens: applicationAuth, userAuth, setPrivateNoStore, appUrl: APP_URL, accountActive: id => { const user = findAuthUserById(id); return Boolean(user && !user.blockedAt); } }).exportRows });
 const replayShares = registerReplayShares({ app, getDatabase: db, accessTokens: applicationAuth, setPrivateNoStore, userAuth,
   publicOrigin: APP_URL, resolveCardNames: ruCardNames, backgroundJobs: BACKGROUND_JOBS_ENABLED });
 registerCrashReports({ app, getDatabase: db, setPrivateNoStore, backgroundJobs: BACKGROUND_JOBS_ENABLED });
