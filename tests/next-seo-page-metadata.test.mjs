@@ -63,6 +63,42 @@ function jsonLdGraph(html) {
     .find(data => Array.isArray(data['@graph']));
 }
 
+describe('search console ownership codes come from config/search-verification.json', () => {
+  const SEARCH_VERIFICATION = JSON.parse(readFileSync('config/search-verification.json', 'utf8'));
+  // Verification tag already live on production since 2026-09-30 (fd8f222a).
+  const LIVE_GOOGLE_CODE = 'aGEyRvNTeG7FHSUUER0Tsfyyyd3sdRywc4qLycYIcpo';
+
+  it('lists only google and yandex, each a list of distinct codes without spaces or quotes', () => {
+    assert.deepEqual(Object.keys(SEARCH_VERIFICATION).sort(), ['google', 'yandex']);
+    for (const [engine, codes] of Object.entries(SEARCH_VERIFICATION)) {
+      assert.ok(Array.isArray(codes), `${engine} is a list`);
+      for (const code of codes) {
+        assert.match(code, /^[^\s"'<>&\\]+$/, `${engine} code ${JSON.stringify(code)}`);
+      }
+      assert.equal(new Set(codes).size, codes.length, `${engine} has duplicate codes`);
+    }
+  });
+
+  it('keeps the google code that production already serves', () => {
+    assert.equal(SEARCH_VERIFICATION.google[0], LIVE_GOOGLE_CODE);
+  });
+
+  it('prints every code as a meta tag on the home page and never an empty tag', async () => {
+    const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
+    try {
+      const home = await head(runtime.nextOrigin, '/');
+      for (const [engine, codes] of Object.entries(SEARCH_VERIFICATION)) {
+        const name = { google: 'google-site-verification', yandex: 'yandex-verification' }[engine];
+        const printed = [...home.matchAll(new RegExp(`<meta name="${name}" content="([^"]*)"/>`, 'g'))].map(match => match[1]);
+        assert.deepEqual(printed, codes, `${name} tags`);
+      }
+      assert.ok(!/name="[a-z-]*verification" content=""/.test(home), 'no empty verification tag');
+    } finally {
+      await runtime.close();
+    }
+  });
+});
+
 test('registry pages render canonical, robots, share metadata and JSON-LD from the SEO registries', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   try {
