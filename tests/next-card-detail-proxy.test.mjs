@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
@@ -213,6 +214,62 @@ test('a slow but live Express costs one 503 for a cold card and a cold catalog, 
       assert.equal(warm.response.status, 200, `${path} must be warmed by the read that outlived its deadline: ${next.output()}`);
       api.state.stalled = false;
     }
+  } finally {
+    if (next) await next.close();
+    await closeLocal(api.server);
+  }
+});
+
+// The outage page is a site page, not a bare stub: header, menu, search, text, footer, all without Express.
+test('the outage page is a full site page that needs neither script nor Express, and keeps its status and headers', async () => {
+  const api = await startStallingApi();
+  api.state.stalled = true;
+  let next;
+  try {
+    next = await startNextServer({ legacyOrigin: api.origin });
+    const { response, html } = await timed(`${next.origin}/standard/cards/`);
+    assert.equal(response.status, 503, next.output());
+    assert.equal(response.headers.get('retry-after'), '300');
+    assert.equal(response.headers.get('cache-control'), 'private, no-store');
+    assert.equal(response.headers.get('x-robots-tag'), null);
+    assert.doesNotMatch(html, /noindex|canonical|application\/ld\+json/);
+    assert.equal(html.match(/<h1[ >]/g)?.length, 1, 'exactly one h1');
+    assert.match(html, /<title>Данные временно недоступны \| HearthPulse<\/title>/);
+    assert.match(html, /<header class="topbar[^"]*">/);
+    assert.match(html, /<nav class="drawer-nav" aria-label="Разделы сайта">/);
+    assert.match(html, /<aside class="rail[^"]*">/);
+    assert.match(html, /<form id="site-search" class="search" role="search"/);
+    assert.match(html, /<footer class="footer"/);
+    assert.match(html, /<a class="btn" href="">Повторить<\/a>/);
+    for (const path of ['/tierlist/', '/standard/meta/', '/heroes/']) assert.ok(html.includes(`class="way" href="${path}"`), path);
+    assert.doesNotMatch(html, /backend|Express|на главную<\/a>/i, 'no technical words in the copy');
+    // Nothing on the page reads data: no script source, no request to the API, no fetch.
+    assert.doesNotMatch(html, /<script[^>]*src=|fetch\(|XMLHttpRequest|["'(]\/api\/(?!v1\/openapi\.json)/);
+    const head = await fetch(`${next.origin}/standard/cards/`, { method: 'HEAD' });
+    assert.equal(head.status, 503);
+    assert.equal(await head.text(), '');
+    // A client-side read is not a document: it never gets the page.
+    const script = await fetch(`${next.origin}/standard/cards/`, { headers: { rsc: '1', 'sec-fetch-dest': 'empty' } });
+    assert.notEqual(script.status, 503, 'an RSC or fetch read must keep its in-app error state');
+  } finally {
+    if (next) await next.close();
+    await closeLocal(api.server);
+  }
+});
+
+test('the outage page menu lists the same sections and paths as the site menu', async () => {
+  const api = await startStallingApi();
+  api.state.stalled = true;
+  let next;
+  try {
+    next = await startNextServer({ legacyOrigin: api.origin });
+    const { html } = await timed(`${next.origin}/standard/cards/`);
+    const definitions = readFileSync(new URL('../src/app/routing/navigationDefinitions.ts', import.meta.url), 'utf8');
+    const site = new Set([...definitions.matchAll(/label: '([^']+)'[^}]*?path: '(\/[^']*)'/g)].map(([, label, path]) => `${label} ${path.replace(/\/?$/, '/')}`));
+    const rail = html.slice(html.indexOf('<aside'), html.indexOf('</aside>'));
+    const links = [...rail.matchAll(/class="nav-link" href="([^"]+)">([^<]+)</g)].map(([, path, label]) => `${label} ${path}`);
+    assert.ok(links.length >= 20, `the rail lists ${links.length} links`);
+    for (const link of links) assert.ok(site.has(link), `${link} is not in the site menu`);
   } finally {
     if (next) await next.close();
     await closeLocal(api.server);
