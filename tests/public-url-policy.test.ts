@@ -121,9 +121,14 @@ await expectPolicy('/standard/cards/standard', {
 }, '?sort=winrate');
 
 const noindex = await resolvePublicUrlPolicy('/', '?login');
-const indexableAgain = await resolvePublicUrlPolicy('/articles');
+const indexableAgain = await resolvePublicUrlPolicy('/faq');
 assert.equal(noindex.indexPolicy, 'noindex-nofollow');
 assert.equal(indexableAgain.indexPolicy, 'index', 'policy resolution must not retain prior navigation state');
+// /articles is a collection of kolodahearthstone.com articles: noindex, follow, no canonical.
+const articlesPolicy = await resolvePublicUrlPolicy('/articles');
+assert.equal(articlesPolicy.indexPolicy, 'noindex-follow');
+assert.equal(articlesPolicy.robots, 'noindex, follow');
+assert.equal(articlesPolicy.canonicalUrl, null);
 
 // Next renders each route's metadata and JSON-LD through React, which removes
 // those nodes itself on navigation. A node taken out by this code makes that

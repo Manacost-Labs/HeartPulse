@@ -29,7 +29,7 @@
       "kind": "static",
       "owner": "editorial",
       "indexPolicy": "noindex-follow",
-      "canonicalPolicy": "clean-path",
+      "canonicalPolicy": "none",
       "sitemap": false,
       "htmlStrategy": "prerender",
       "expectedStatus": 200,
