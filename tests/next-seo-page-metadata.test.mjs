@@ -292,6 +292,7 @@ test('a card library listing shows its path above the same list of cards', async
 test('every SEO registry page takes its title, description and share metadata from the registry', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   const registryHeadings = new Map();
+  const registryTexts = new Map();
   try {
     for (const page of REGISTRY_PAGES) {
       const response = await fetch(`${runtime.nextOrigin}${page.url}`, { redirect: 'manual' });
@@ -299,6 +300,10 @@ test('every SEO registry page takes its title, description and share metadata fr
       const html = await response.text();
       assertOnce(html, /<title>([^<]*)<\/title>/g, page.title, `${page.path} title`);
       assertOnce(html, /<meta name="description" content="([^"]*)"/g, page.description, `${page.path} description`);
+      registryTexts.set(page.path, {
+        title: decoded(html.match(/<title>([^<]*)<\/title>/)[1]),
+        description: decoded(html.match(/<meta name="description" content="([^"]*)"/)[1]),
+      });
       assert.equal((html.match(/<h1[\s>]/g) ?? []).length, 1, `${page.path} must render exactly one H1`);
       registryHeadings.set(page.path, visibleText(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)[1]).replace(/\s+/g, ' ').trim());
       // The two Battlegrounds pages answer different queries and point at each other from the banner, in the server HTML.
@@ -352,6 +357,25 @@ test('every SEO registry page takes its title, description and share metadata fr
       '/cosmetics': 'Косметика Hearthstone',
     })) assert.equal(registryHeadings.get(path), heading, `${path} H1`);
 
+    // What a visitor and a crawler get: every page's own title (up to 60 characters) and description (70-160), none repeated.
+    for (const [path, { title, description }] of registryTexts) {
+      assert.ok(title.length <= 60, `${path} title is ${title.length} characters: ${title}`);
+      assert.ok(description.length >= 70 && description.length <= 160, `${path} description is ${description.length} characters`);
+      for (const [kind, text] of [['title', title], ['description', description], ['H1', registryHeadings.get(path)]]) {
+        assert.doesNotMatch(text, /(^|[^А-Яа-я])БГ([^А-Яа-я]|$)/, `${path} ${kind} says «БГ»`);
+        assert.ok(!text.includes('Сражений'), `${path} ${kind} spells «Полей сражений» with a capital`);
+      }
+    }
+    for (const kind of ['title', 'description']) {
+      const byText = new Map();
+      for (const [path, texts] of registryTexts) byText.set(texts[kind], [...(byText.get(texts[kind]) ?? []), path]);
+      assert.deepEqual([...byText].filter(([, paths]) => paths.length > 1), [], `pages with the same ${kind}`);
+    }
+    // Two queries, two pages: the tier list of compositions never targets the hero query.
+    const tierList = registryTexts.get('/battlegrounds/tier-list');
+    assert.doesNotMatch(`${tierList.title} ${tierList.description} ${registryHeadings.get('/battlegrounds/tier-list')}`, /геро/i);
+    assert.ok(registryTexts.get('/heroes').title.startsWith('Герои Полей сражений'), 'the hero page owns the hero query');
+
     const shareAlt = async path => (await head(runtime.nextOrigin, path)).match(/<meta property="og:image:alt" content="([^"]*)"/)?.[1];
     assert.notEqual(await shareAlt('/cosmetics/'), await shareAlt('/cosmetics/heroes/'),
       'the cosmetics hub is not the hero skins listing');
@@ -374,34 +398,6 @@ test('every SEO registry page takes its title, description and share metadata fr
   } finally {
     await runtime.close();
   }
-});
-
-test('registry titles fit 60 characters in any month, descriptions 70-160, and none repeats', () => {
-  const raw = Object.entries(JSON.parse(readFileSync('config/public-seo-pages.json', 'utf8')).pages);
-  // The longest month name that a data template can put in: «сентябрь 2026».
-  const texts = raw.flatMap(([path, page]) => [
-    { path, kind: 'title', value: page.title.replaceAll('{year}', '2026') },
-    { path, kind: 'description', value: page.description.replaceAll('{year}', '2026') },
-    ...(page.dataTitle ? [{ path, kind: 'dataTitle', value: page.dataTitle.replaceAll('{month}', 'сентябрь 2026') }] : []),
-  ]);
-  for (const { path, kind, value } of texts) {
-    if (kind === 'description') assert.ok(value.length >= 70 && value.length <= 160, `${path} description is ${value.length} characters`);
-    else assert.ok(value.length <= 60, `${path} ${kind} is ${value.length} characters: ${value}`);
-  }
-  for (const kind of ['title', 'description']) {
-    const seen = new Map();
-    for (const text of texts.filter(entry => entry.kind === kind)) seen.set(text.value, [...(seen.get(text.value) ?? []), text.path]);
-    assert.deepEqual([...seen].filter(([, paths]) => paths.length > 1), [], `registry ${kind}s must be unique`);
-  }
-  // «БГ» is not a word of the site: Battlegrounds is written out, with a lower-case second word.
-  for (const { path, kind, value } of texts) {
-    assert.doesNotMatch(value, /(^|[^А-Яа-я])БГ([^А-Яа-я]|$)/, `${path} ${kind} says «БГ»`);
-    assert.ok(!value.includes('Сражений'), `${path} ${kind} spells «Полей сражений» with a capital`);
-  }
-  // Two pages, two queries: the hero list and the tier list of compositions.
-  const [heroes, tierList] = ['/heroes', '/battlegrounds/tier-list'].map(path => raw.find(([key]) => key === path)[1]);
-  assert.ok(!/геро/i.test(`${tierList.title} ${tierList.description}`), 'the BG tier list does not target the hero query');
-  assert.match(heroes.title, /^Герои Полей сражений/);
 });
 
 test('registry pages without request input stay prerendered', () => {
@@ -490,7 +486,7 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     assertOnce(html, /<meta name="twitter:title" content="([^"]*)"/g, title, `${path} twitter:title`);
     assertOnce(html, /<meta property="og:description" content="([^"]*)"/g, description, `${path} og:description`);
     assert.equal((html.match(/<h1[\s>]/g) ?? []).length, 1, `${path} renders exactly one H1`);
-    assert.ok(title.length <= 65, `${path} title is ${title.length} characters`);
+    assert.ok(title.length <= 60, `${path} title is ${title.length} characters`);
     assert.ok(description.length <= 160, `${path} description is ${description.length} characters`);
     return { html, title, description, text: visibleText(html).replaceAll(' ', ' ') };
   };
