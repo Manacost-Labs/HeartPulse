@@ -399,6 +399,20 @@ test('with the staging bridge both clients are named by their own interaction', 
   } finally { await harness.close(); }
 });
 
+test('Manacost Studio is named on the login card and the consent page without remembered login', async () => {
+  const harness = await startConsentHarness({ deployment: 'production', issuer: PRODUCTION_ISSUER,
+    clientId: 'manacost-studio', redirectUri: 'https://studio.hearthpulse.net/auth/callback' });
+  try {
+    const interactionUrl = await harness.startInteraction();
+    assert.equal(await (await harness.request(`${interactionUrl.pathname}/client`)).text(),
+      '{"name":"Манакост Студия","host":"studio.hearthpulse.net"}');
+    harness.login();
+    const html = await (await harness.request(interactionUrl)).text();
+    assert.ok(html.includes('в Манакост Студия <span class="host">(studio.hearthpulse.net)</span>'));
+    assert.ok(!html.includes('до 30 дней'));
+  } finally { await harness.close(); }
+});
+
 test('consent page escapes every special character of the profile name and names a nameless reader', async () => {
   const special = await startConsentHarness({ deployment: 'production', issuer: PRODUCTION_ISSUER,
     clientId: 'manacost-reader-production', redirectUri: PRODUCTION_CALLBACK, userName: `A&B "q" 'z' <i>` });
