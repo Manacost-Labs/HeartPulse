@@ -163,7 +163,7 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     }
     assert.equal(articles.status, 200, runtime.output());
     assert.match(articlesHtml, /Публичная статья Next/);
-    assert.match(articlesHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/articles\/"/);
+    assert.match(articlesHtml, /<meta name="robots" content="noindex, follow"\/>/);
     assert.equal((articlesHtml.match(/<main\b/g) || []).length, 1);
     assert.doesNotMatch(articlesHtml, /card-reader@example|manacost_auth_token/);
     // One prerendered HTML serves every query; the policy arrives as a header.

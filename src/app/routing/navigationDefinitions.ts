@@ -42,7 +42,7 @@ export const NAVIGATION_ROUTES = [
     id: 'home', label: 'Главная', icon: Home, path: '/', group: 'home', entitlement: null,
   },
   {
-    id: 'articles', label: 'Статьи', icon: BookOpenText, path: '/articles', group: 'top', entitlement: null,
+    id: 'articles', label: 'Подборка', icon: BookOpenText, path: '/articles', group: 'top', entitlement: null,
   },
   {
     id: 'faq', label: 'FAQ', icon: CircleHelp, path: '/faq', group: 'top', entitlement: null,
