@@ -115,10 +115,11 @@ This slice must not open private API responses to indexing or shared caches.
   открытого слоя нет, страница отвечает 200 без него, а разметка остаётся.
 - **Лицензия.** У платного Dataset нет поля `license` (`"license": null` в
   `config/public-seo-structured-data.json` означает «не писать»).
-- **Свежесть после деплоя.** Страница предрисована; её адрес входит в список
-  `DATA_PAGES` (`app/health/next/revalidate/route.ts`) и в
-  `scripts/warm-prerendered-pages.mjs`, чтобы после деплоя открытый слой
-  появлялся сразу, а не через пять минут.
+- **Свежесть после деплоя.** `/tierlist/` — пятиминутная ISR-страница и не
+  входит в `DATA_PAGES` (`app/health/next/revalidate/route.ts`) и прогрев
+  (`scripts/warm-prerendered-pages.mjs`): список этих страниц сверяется с
+  nginx-правилом. Поэтому после деплоя копия сборки без среза заменяется при
+  первой регенерации (до пяти минут Next и до пяти минут кеша nginx).
 
 Что держит правило тестами: `tests/tierlist-public-teaser.test.ts`
 (проекция, маршрут, JSON-LD) и `tests/next-tierlist-teaser.test.mjs`

@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
 import express from 'express';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
@@ -58,16 +60,31 @@ const guestHtml = async (origin, headers = {}) => {
 
 test('the guest HTML of /tierlist/ carries the open slice and nothing closed', async () => {
   assert.equal(existsSync('apps/public-web/.next/BUILD_ID'), true, 'run build:next before this test');
-  const state = { reads: [], down: false };
+  // The build copy of the page is made without Express: it has no slice.
+  const state = { reads: [], down: true };
   const legacy = startLegacy(state);
   const legacyServer = legacy.listen(0, '127.0.0.1');
   await once(legacyServer, 'listening');
-  const next = await startNextServer({ legacyOrigin: `http://127.0.0.1:${legacyServer.address().port}` });
-  // The page is prerendered: as after a deploy, mark it stale so the next request regenerates it from this Express.
-  const regenerate = async () => assert.equal((await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).status, 200);
+  const next = await startNextServer({ legacyOrigin: `http://127.0.0.1:${legacyServer.address().port}`,
+    env: { NODE_OPTIONS: `--require=${resolve('tests/helpers/shiftableClock.cjs')}` } });
+  // /tierlist/ is a five-minute ISR page. Move the server's clock past that window, then request until the
+  // regenerated copy (stale-while-revalidate: the first answer is the old one) satisfies `ready`.
+  const regenerated = async (ready, headers = { 'User-Agent': BROWSER_UA, Cookie: 'session=guest-fixture' }) => {
+    process.kill(next.pid, 'SIGUSR2');
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      const html = await guestHtml(next.origin, headers);
+      if (ready(html)) return html;
+      await delay(250);
+    }
+    return assert.fail('the page was not regenerated');
+  };
+  const hasSlice = html => html.includes('class="tierlist-public-teaser"');
   try {
-    await regenerate();
-    const html = await guestHtml(next.origin, { 'User-Agent': BROWSER_UA, Cookie: 'session=guest-fixture' });
+    const buildCopy = await guestHtml(next.origin);
+    assert.equal(hasSlice(buildCopy), false, 'the copy made without Express has no slice but is a 200 page');
+    assert.match(buildCopy, /class="paywalled-tierlist"/);
+    state.down = false;
+    const html = await regenerated(hasSlice);
 
     const start = html.indexOf('class="tierlist-public-teaser"');
     const slice = html.slice(start, html.indexOf('</section>', start));
@@ -107,8 +124,7 @@ test('the guest HTML of /tierlist/ carries the open slice and nothing closed', a
 
     // No data: a 200 page, with its text and markup but without the slice.
     state.down = true;
-    await regenerate();
-    const empty = await guestHtml(next.origin, { 'User-Agent': BROWSER_UA });
+    const empty = await regenerated(page => !hasSlice(page));
     assert.doesNotMatch(empty, /tierlist-public-teaser/, 'no slice without data');
     assert.match(empty, /class="paywalled-tierlist"/);
     assert.match(empty, /class="seo-page-intro"/, 'the page text stays');

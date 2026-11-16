@@ -125,6 +125,10 @@ last-known-good fallback as the full endpoint.
 - It carries no `winrate`, `deckWinrate`, `playedWinrate`, `totalGames` per
   card or card outside the slice. Without data the route answers 502 and the
   page renders without the slice (still HTTP 200).
+- `/tierlist/` is a five-minute ISR page. The copy made at build time has no
+  slice (the build has no Express); after a deploy it is replaced on the first
+  regeneration, up to five minutes in Next plus up to five in the nginx cache.
+  The page is not in the post-deploy warm-up list.
 - The closed list sits in `.paywalled-tierlist`, the container named by the
   page's JSON-LD. Subscribers see the full list as before.
 
