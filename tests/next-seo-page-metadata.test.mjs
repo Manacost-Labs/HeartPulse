@@ -144,6 +144,15 @@ test('registry pages render canonical, robots, share metadata and JSON-LD from t
       assert.doesNotMatch(articles, /<link rel="canonical"/, `${path} has no canonical`);
       assert.match(articles, /<title>Подборка статей Hearthstone[^<]*<\/title>/, `${path} title`);
     }
+
+    // The menu and the footer a visitor gets name the section a collection.
+    const articlesHtml = await (await fetch(`${runtime.nextOrigin}/articles/`)).text();
+    const footer = articlesHtml.match(/<footer class="arena-footer"[\s\S]*?<\/footer>/)?.[0] ?? '';
+    assert.match(footer, /<a href="\/articles\/"[^>]*>Подборка<\/a>/, 'footer link to /articles/');
+    const articlesLinks = [...articlesHtml.matchAll(/<a href="\/articles\/"[^>]*>([\s\S]*?)<\/a>/g)]
+      .map(match => match[1].replace(/<[^>]*>/g, '').trim());
+    assert.ok(articlesLinks.filter(text => text === 'Подборка').length >= 2, 'menu and footer links to /articles/');
+    assert.ok(!articlesLinks.includes('Статьи'), 'no link still calls /articles/ «Статьи»');
   } finally {
     await runtime.close();
   }

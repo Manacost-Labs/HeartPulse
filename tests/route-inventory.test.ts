@@ -265,8 +265,6 @@ assert.ok(articlesPage.description.split(/\s+/).map(word => word.replace(/[.,;:!
   '/articles must say where the articles live');
 const articlesNav = TABS.find(tab => tab.id === 'articles');
 assert.equal(articlesNav?.label, 'Подборка', 'the menu calls /articles a collection');
-assert.match(readFileSync(new URL('../src/components/SiteFooter.tsx', import.meta.url), 'utf8'),
-  /label: 'Подборка', href: '\/articles\/'/, 'the footer calls /articles a collection');
 
 // ?version=X patch pages (46 URLs with one title) canonicalise to the clean path.
 const patchPolicy = await resolvePublicUrlPolicy('/standard/patches/', '?version=33.0.2');
