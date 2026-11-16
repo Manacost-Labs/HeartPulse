@@ -69,7 +69,8 @@ viewer's account or paid data to another.
   a document's key.
 - A copy is fresh for 60 seconds; the ISR pages whose HTML holds no server
   data (`revalidate = 300`, except the post-deploy data pages
-  `/standard/meta/` and `/articles/`) for 300 seconds. An expired copy is
+  `/standard/meta/`, `/articles/`, `/tierlist/` and `/classes/`) for 300
+  seconds. An expired copy is
   answered at once while one background request refreshes it. The key carries a
   ten-minute epoch of the edge clock, so no copy is answered more than ten
   minutes after it was stored: a removed page, a lost marker or an origin

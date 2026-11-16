@@ -94,8 +94,8 @@ was stored, and the first request of every epoch, a miss, sees the origin's
 own answer. A removed page or marker therefore stops being served within
 10 min, and an origin outage shows its error after at most 10 min. The ISR
 pages whose HTML holds no server data (`revalidate = 300` without
-`/standard/meta/` and `/articles/`, whose build copy is empty until
-`/health/next/revalidate/` runs after a deploy) stay fresh for 300 s, the
+`/standard/meta/`, `/articles/`, `/tierlist/` and `/classes/`, whose build
+copy is empty until `/health/next/revalidate/` runs after a deploy) stay fresh for 300 s, the
 others for 60 s. Immutable assets and
 public media keep serving stale copies on origin errors. Content-hashed Next assets of
 earlier releases stay on the origin for 35 days, so a document cached just

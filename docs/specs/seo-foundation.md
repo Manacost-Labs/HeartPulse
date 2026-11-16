@@ -118,11 +118,13 @@ This slice must not open private API responses to indexing or shared caches.
   открытого слоя нет, страница отвечает 200 без него, а разметка остаётся.
 - **Лицензия.** У платного Dataset нет поля `license` (`"license": null` в
   `config/public-seo-structured-data.json` означает «не писать»).
-- **Свежесть после деплоя.** `/tierlist/` — пятиминутная ISR-страница и не
-  входит в `DATA_PAGES` (`app/health/next/revalidate/route.ts`) и прогрев
-  (`scripts/warm-prerendered-pages.mjs`): список этих страниц сверяется с
-  nginx-правилом. Поэтому после деплоя копия сборки без среза заменяется при
-  первой регенерации (до пяти минут Next и до пяти минут кеша nginx).
+- **Свежесть после деплоя.** `/tierlist/` входит в `DATA_PAGES`
+  (`app/health/next/revalidate/route.ts`) и прогрев
+  (`scripts/warm-prerendered-pages.mjs`), а на edge-узле держит копию
+  минуту, а не пять: правило пятиминутных ISR-страниц в
+  `deploy/nginx/hearthpulse-shadow-app.conf` — только страницы без серверных
+  данных (список сверяет `tests/hearthpulse-shadow-nginx.test.mjs`). Копия
+  сборки без среза заменяется сразу после деплоя (#404).
 
 Что держит правило тестами: `tests/tierlist-public-teaser.test.ts`
 (проекция, маршрут, JSON-LD) и `tests/next-tierlist-teaser.test.mjs`
@@ -163,9 +165,9 @@ This slice must not open private API responses to indexing or shared caches.
   Закрытая часть (`ArenaClassesResults` с заглушкой) обёрнута в
   `.paywalled-classes`, как и называет JSON-LD (`hasPart.cssSelector`);
   `license` у Dataset `/classes` не пишется.
-- **Свежесть.** `/classes/` остаётся пятиминутной ISR-страницей и не входит в
-  `DATA_PAGES` и прогрев: после деплоя копия сборки без таблицы заменяется
-  при первой регенерации (известное ограничение, follow-up #404).
+- **Свежесть.** `/classes/` входит в `DATA_PAGES` и прогрев и держит копию
+  на edge-узле минуту, как `/tierlist/`: после деплоя копия сборки без
+  таблицы заменяется сразу (#404).
 
 Тесты: `tests/classes-public-teaser.test.ts` (проекция, маршрут, JSON-LD) и
 `tests/next-classes-teaser.test.mjs` (собранная страница: HTML, RSC-payload,

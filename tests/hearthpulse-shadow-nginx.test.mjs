@@ -145,7 +145,11 @@ assert.equal(isrLocation[2].trim().split('\n').map(line => line.trim()).join('\n
   const isr = new RegExp(isrLocation[1]);
   assert.deepEqual(pages.map(urlOf).filter(url => isr.test(url)).sort(), expected,
     'the five-minute pages must be exactly the ISR pages without server data');
-  assert.ok(expected.includes('/tierlist/') && !expected.includes('/standard/meta/') && !expected.includes('/articles/'));
+  assert.ok(expected.includes('/heroes/'));
+  for (const page of ['/tierlist/', '/classes/', '/standard/meta/', '/articles/']) {
+    assert.ok(dataPages.includes(page), `${page} is regenerated after a deploy`);
+    assert.ok(!expected.includes(page), `${page} must not keep a five-minute copy of its build seed`);
+  }
   assert.equal(isr.test('/heroes/123/'), false, 'a dynamic page below an ISR index keeps the minute');
 }
 assert.doesNotMatch(canonicalApplicationLocation, /proxy_ignore_headers[^;]*Set-Cookie/,
@@ -501,8 +505,19 @@ ${serverHeaders}
     assert.equal((await get('/collision/?_rsc=&x=|1')).body, html.body, 'the HTML entry is untouched');
     assert.equal((await get('/collision/', { RSC: 'yes' })).headers['x-proxy-cache'], 'BYPASS');
 
-    const isr = await get('/classes/');
-    assert.equal((await get('/classes/')).body, isr.body, 'an ISR page is stored as well');
+    const isr = await get('/heroes/');
+    assert.equal((await get('/heroes/')).body, isr.body, 'an ISR page is stored as well');
+    // The Arena pages that carry the open data layer: a guest's copy is shared,
+    // a visitor with a cookie or a credential never reads or fills it.
+    for (const path of ['/classes/', '/tierlist/']) {
+      const guest = await get(path);
+      assert.equal((await get(path)).headers['x-proxy-cache'], 'HIT', `${path} is shared between guests`);
+      const reader = await get(path, { Cookie: '__Host-manacost_auth_token=reader' });
+      assert.equal(reader.headers['x-proxy-cache'], 'BYPASS', `${path} is never answered to a signed-in visitor from the shared copy`);
+      assert.match(reader.body, /reader #\d+$/);
+      assert.equal((await get(path)).body, guest.body, `${path}: a signed-in rendering never replaces the shared copy`);
+      assert.equal((await get(path, { Authorization: 'Bearer x' })).headers['x-proxy-cache'], 'BYPASS');
+    }
 
     const epoch = (await get('/_epoch')).headers['x-epoch'];
     assert.match(epoch, /^\d{4}-\d\d-\d\dT\d\d:\d[-+]\d\d:\d\d$/, 'nginx evaluates the shipped epoch map');
@@ -523,7 +538,11 @@ ${serverHeaders}
     later.set('/unmarked-later/', 'unmarked');
     later.set('/failing/', 'failing');
     await expire();
-    const classes = await get('/classes/');
+    for (const path of ['/classes/', '/tierlist/']) {
+      assert.equal((await get(path)).headers['x-proxy-cache'], 'STALE',
+        `${path} holds server data: its copy lives a minute, not five`);
+    }
+    const classes = await get('/heroes/');
     assert.equal(classes.headers['x-proxy-cache'], 'HIT', 'an ISR page keeps its copy past the minute');
     assert.equal(classes.body, isr.body);
     assert.equal(classes.headers['x-hearthpulse-edge-cache'], undefined, 'the ISR location hides the marker as well');
