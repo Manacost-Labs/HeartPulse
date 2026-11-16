@@ -12,7 +12,8 @@ export type FooterLink = { label: string; href: string; external?: boolean };
 export type FooterColumn = { title: string; /** Set when the list is a navigation landmark. */ navLabel?: string; links: readonly FooterLink[] };
 
 const navigationLink = (id: NavigationId, label?: string): FooterLink => {
-  const route = NAVIGATION_DATA.find(item => item.id === id)!;
+  const route = NAVIGATION_DATA.find(item => item.id === id);
+  if (!route) throw new Error(`Unknown navigation item ${id}`);
   return { label: label ?? route.label, href: canonicalPagePath(route.path) };
 };
 
