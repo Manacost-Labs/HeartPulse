@@ -1015,32 +1015,6 @@
         ]
       }
     ],
-    "/articles": [
-      {
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Главная",
-            "item": "https://hearthpulse.net"
-          },
-          {
-            "@type": "ListItem",
-            "position": 2,
-            "name": "Статьи",
-            "item": "https://hearthpulse.net/articles/"
-          }
-        ]
-      },
-      {
-        "@type": "CollectionPage",
-        "@id": "https://hearthpulse.net/articles/#collection",
-        "name": "Статьи и гайды по Арене Hearthstone",
-        "description": "Гайды, разборы и советы по режиму Арена в Hearthstone от команды Manacost.",
-        "url": "https://hearthpulse.net/articles/"
-      }
-    ],
     "/gallery": [
       {
         "@type": "BreadcrumbList",

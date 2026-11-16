@@ -23,5 +23,23 @@ Allow: /fonts/
 # robot treats such URLs as one. Functional parameters (format, q, class,
 # period) change the content and are deliberately not listed.
 Clean-param: utm_source&utm_medium&utm_campaign&utm_content&utm_term&yclid&fbclid&gclid&ref /
+# /standard/patches/?version=X are one page per patch with a shared title and
+# layout; Yandex folds them into /standard/patches/.
+Clean-param: version /standard/patches/
+
+# Training crawlers are closed (owner decision 2026-11-15). Search and answer
+# robots (OAI-SearchBot, ChatGPT-User, PerplexityBot, Claude-SearchBot,
+# Claude-User, Bingbot, Googlebot, YandexBot) have no group and read the rules above.
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
 
 Sitemap: https://hearthpulse.net/sitemap.xml

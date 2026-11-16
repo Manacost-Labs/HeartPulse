@@ -115,10 +115,10 @@ export function ArticlesTab({
 
   return (
     <div className="articles-page">
-      <SectionBanner title="Статьи" subtitle="Гайды, разборы мета и советы по режиму Арена" />
+      <SectionBanner title="Подборка статей" subtitle="Гайды, разборы мета и советы по Арене. Сами статьи лежат на kolodahearthstone.com" />
       <Breadcrumbs items={[
         { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
-        { name: 'Статьи', href: '/articles/' },
+        { name: 'Подборка', href: '/articles/' },
       ]} />
 
       <ArticlesToolbar articleSearch={articleSearch} articleTag={articleTag} articleTags={articleTags}

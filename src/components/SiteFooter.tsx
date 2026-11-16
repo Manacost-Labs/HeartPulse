@@ -5,7 +5,7 @@ const FOOTER_NAV_LINKS = [
   { label: 'Классы', href: '/classes/', tab: 'winrates' },
   { label: 'Тир-лист', href: '/tierlist/', tab: 'tierlist' },
   { label: 'Легендарки', href: '/legendaries/', tab: 'legendaries' },
-  { label: 'Статьи', href: '/articles/', tab: 'articles' },
+  { label: 'Подборка', href: '/articles/', tab: 'articles' },
   { label: 'Галерея', href: '/gallery/', tab: 'gallery' },
 ] as const;
 
