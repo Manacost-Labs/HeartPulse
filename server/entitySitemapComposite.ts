@@ -115,9 +115,11 @@ export type IndexedSegment = { pathname: string; document: { entries: DatedLocat
  * The records of `/sitemap.xml`: each sitemap dated by the latest `lastmod`
  * among its addresses. A segment whose stored addresses carry no day (state
  * written before the store dated every address) takes the day its state was
- * last written. Null when any record would have no day (a segment that could
- * not be loaded and has no stored state), so the caller answers 503 instead of
- * a 200 with a partial index.
+ * last written. A segment that has no day at all (it could not be loaded and
+ * has no stored state) is left out: there is nothing to serve at its address,
+ * and one failing segment must not take the whole index from crawlers; the
+ * production monitor compares the exact set of segments. Null only when no
+ * record has a day, so the caller answers 503.
  */
 export function sitemapIndexEntries(
   origin: string,
@@ -131,7 +133,8 @@ export function sitemapIndexEntries(
       lastmod: document ? latestDay(document.entries.map(entry => entry.lastmod)) ?? (document.lastModified ? new Date(document.lastModified).toISOString().slice(0, 10) : undefined) : undefined,
     })),
   ];
-  return records.every(record => record.lastmod) ? records : null;
+  const dated = records.filter((record): record is DatedLocation & { lastmod: string } => Boolean(record.lastmod));
+  return dated.length > 0 ? dated : null;
 }
 
 /** The answer to a request that cannot be served now; a crawler or the monitor retries. */

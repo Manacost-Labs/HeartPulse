@@ -660,10 +660,17 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal, sitemapWarnM
   assertXmlResponse(indexResponse, 'sitemap index');
   const indexEntries = sitemapEntries(indexXml, 'sitemapindex', 'sitemap index');
   const indexLocations = indexEntries.map(entry => entry.location);
-  ensure(JSON.stringify(indexLocations) === JSON.stringify([
+  const expectedLocations = [
     `${origin}/sitemaps/static.xml`,
     ...ENTITY_SITEMAP_SEGMENTS.map(segment => `${origin}${segment.path}`),
-  ]), 'sitemap index does not contain the exact public segment set');
+  ];
+  // The server leaves a sitemap it cannot date out of the index, so a missing record is how an outage shows here.
+  const missingFromIndex = expectedLocations.filter(location => !indexLocations.includes(location));
+  const unexpectedInIndex = indexLocations.filter(location => !expectedLocations.includes(location));
+  ensure(JSON.stringify(indexLocations) === JSON.stringify(expectedLocations),
+    `sitemap index does not contain the exact public segment set (missing: ${
+      missingFromIndex.map(location => new URL(location).pathname).join(', ') || 'none'}; unexpected: ${
+      unexpectedInIndex.join(', ') || 'none'})`);
 
   const staticStartedAt = Date.now();
   const { response: staticResponse, body: staticXml } = await fetchBoundedText(

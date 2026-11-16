@@ -259,7 +259,7 @@ export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDepen
     ), maxAgeSeconds);
   });
   // The index dates each sitemap by the latest `lastmod` among its addresses (see `sitemapIndexEntries`).
-  // An index with an undated record is not served: crawlers retry rather than keep a partial one.
+  // A sitemap that cannot be dated is left out; with nothing to list the index answers 503.
   router.get('/sitemap.xml', async (request, response) => {
     const results = await loadSegments();
     const entries = sitemapIndexEntries(origin, await staticEntries(), definitions.map((definition, position) => {

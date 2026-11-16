@@ -746,8 +746,9 @@ try {
   rmSync(datedDirectory, { recursive: true, force: true });
 }
 
-// The index is never served with an undated record. A segment that cannot be built is dated from the state
-// the store saved earlier (it survives a restart); with no state at all the index answers 503, not a partial 200.
+// Every record of the index has a day. A segment that cannot be built is dated from the state the store saved
+// earlier (it survives a restart); with no state at all it is left out, so one failing source does not take the
+// index from crawlers. The index answers 503 only when no record can be dated.
 const outageDirectory = mkdtempSync(join(tmpdir(), 'arena-sitemap-outage-'));
 try {
   const down = async () => { throw new Error('source down'); };
@@ -776,11 +777,13 @@ try {
   const recordsOf = (text: string) => sitemapEntries(text, 'sitemapindex', 'index', { requireLastmod: false })
     .map(({ location, lastmod }) => [new URL(location).pathname, lastmod]);
 
-  const unavailable = await indexOf(down);
-  assert.equal(unavailable.response.status, 503, 'no date for a sitemap: not a 200 with a partial record');
-  assert.ok(Number(unavailable.response.headers.get('retry-after')) > 0);
-  assert.equal(unavailable.response.headers.get('cache-control'), 'no-cache, no-store, must-revalidate');
-  assert.ok(unavailable.elapsedMs < 2_000, `the index answers within 2 s, took ${unavailable.elapsedMs} ms`);
+  const withoutState = await indexOf(down);
+  assert.equal(withoutState.response.status, 200, 'one undatable sitemap does not take the index down');
+  assert.deepEqual(recordsOf(withoutState.text), [
+    ['/sitemaps/static.xml', '2026-11-10'],
+    ['/sitemaps/standard-cards.xml', '2026-11-10'],
+  ], 'the sitemap with no day and no source is not listed; every listed one has a day');
+  assert.ok(withoutState.elapsedMs < 2_000, `the index answers within 2 s, took ${withoutState.elapsedMs} ms`);
 
   assert.equal((await indexOf(async () => [archetype])).response.status, 200);
   const fromState = await indexOf(down);
@@ -808,5 +811,29 @@ try {
   assert.deepEqual(recordsOf(legacy.text).at(-1), ['/sitemaps/archetypes.xml', '2026-11-03']);
 } finally {
   rmSync(outageDirectory, { recursive: true, force: true });
+}
+
+// Nothing to list: no source delivers and the store cannot hold a day (its directory is a file).
+const brokenStore = mkdtempSync(join(tmpdir(), 'arena-sitemap-broken-'));
+try {
+  const blocker = join(brokenStore, 'not-a-directory');
+  writeFileSync(blocker, 'x', 'utf8');
+  const app = await startDated({
+    directory: blocker,
+    now: () => Date.parse('2026-11-10T08:00:00.000Z'),
+    fingerprints: new Map(),
+    staticUrls: ['https://hearthpulse.net/'],
+    loadStandardCards: async () => { throw new Error('source down'); },
+  });
+  try {
+    const response = await fetch(`${app.origin}/sitemap.xml`);
+    assert.equal(response.status, 503, 'no record has a day: nothing to list, a retryable 503');
+    assert.ok(Number(response.headers.get('retry-after')) > 0);
+    assert.equal(response.headers.get('cache-control'), 'no-cache, no-store, must-revalidate');
+  } finally {
+    await app.close();
+  }
+} finally {
+  rmSync(brokenStore, { recursive: true, force: true });
 }
 console.log('entity sitemap lastmod contracts passed');

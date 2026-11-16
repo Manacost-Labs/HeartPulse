@@ -73,10 +73,12 @@ each entity sitemap. The monitor fails on a `<url>` or `<sitemap>` without one
 (`<label>: entry N has no lastmod`), on a malformed date, and when an index
 date is not the latest date of its sitemap
 (`sitemap index lastmod … is not the latest entry lastmod …`). A segment the
-server could not build and has no stored copy for is not listed undated: the
-server answers the index with 503 and `Retry-After`, so the first message is
-the index's HTTP 503; look at the segment's refresh error in the
-service log. The rules of the dates are in `docs/specs/seo-foundation.md`
+server could not build and has no stored copy for is left out of the index
+rather than listed undated (the index answers 503 only when nothing at all
+can be listed). The monitor sees it as
+`sitemap index does not contain the exact public segment set (missing:
+<path>; …)`; look at that segment's refresh error in the service log.
+The rules of the dates are in `docs/specs/seo-foundation.md`
 («`lastmod` semantics»). The edge caches the index and each segment
 separately, so a difference between them right after an update is asked again
 with a cache-busting query (`lastmod-recheck`): it is a warning («the edge

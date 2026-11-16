@@ -608,7 +608,7 @@ try {
     ['malformed-comment', /XML|well-formed|comment/i],
     ['trailing-xml-garbage', /XML|well-formed|trailing/i],
     ['unexpected-xml-structure', /XML|structure|url/i],
-    ['index-without-archetypes', /exact public segment set/i],
+    ['index-without-archetypes', /exact public segment set \(missing: \/sitemaps\/archetypes\.xml;/i],
     ['index-without-lastmod', /sitemap index: entry 1 has no lastmod/i],
     ['index-stale-lastmod', /sitemap index lastmod 2026-11-12 is not the latest entry lastmod 2026-11-16/i],
     ['static-without-lastmod', /static sitemap: entry 1 has no lastmod/i],

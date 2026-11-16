@@ -115,8 +115,12 @@ are cache busters (card image `?v=`) or upstream sync stamps (cosmetics
   dated from the state the store saved earlier (the last-known-good copy,
   which survives a restart); if that state holds no day for any address, the
   day its state was last written stands in. When no day can be had for any
-  record (a segment that cannot be built and has no stored state), the index
-  answers `503` with `Retry-After`, never a `200` with an undated record.
+  record, that sitemap is left out of the index: it has nothing to serve and
+  its own address answers with an error, while one failing segment must not
+  take every sitemap from crawlers. Every record that is listed has a
+  `lastmod`. The index answers `503` with `Retry-After` only when no record
+  at all can be dated. The production monitor compares the exact set of
+  segments, so a missing one is reported by name.
 - **Monitor and the edge cache.** The edge caches `/sitemap.xml` and every
   segment separately, each by `$request_uri` with its query string, for five
   minutes (`deploy/nginx/arena-edge-static-cache.conf`), so right after an
