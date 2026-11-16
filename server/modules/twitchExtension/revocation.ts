@@ -47,6 +47,8 @@ export function createTwitchChannelRevoker(dependencies: TwitchChannelRevokerDep
     const { visible, lastSeq } = live.revoke(channelId);
     if (!twitch || (reason === 'detected' && !visible)) return;
     void live.run(channelId, async () => {
+      // Nothing to ask again after this wait: the clear stores nothing, the link it ends cannot come back,
+      // and a later owner's states are behind it in the queue.
       await paceTwitchChannelSend(live, channelId, dependencies.wait);
       // Taken now, in the queue: later than every message sent to the channel before, earlier than the next.
       const at = live.stamp(channelId);

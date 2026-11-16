@@ -35,15 +35,23 @@ export async function relayTwitchState(
 ): Promise<TwitchStateRelayOutcome> {
   const { live, twitch } = dependencies;
   const generation = live.generation(channelId);
-  const sending = live.runState<TwitchStateRelayOutcome>(channelId, async () => {
-    // Asked again when the turn comes, not only by generation: a block or a delete that reached the
-    // database without a revocation must still stop a state that was already accepted.
+  // Whether the state may still be published, asked not only by generation: a block or a delete that
+  // reached the database without a revocation must still stop a state that was already accepted.
+  const refused = (): 'revoked' | 'inactive' | null => {
     if (live.generation(channelId) !== generation || dependencies.links.find(userId)?.twitchUserId !== channelId) return 'revoked';
-    if (!dependencies.accountActive(userId)) {
-      dependencies.revoke(channelId, 'detected');
-      return 'inactive';
-    }
+    if (dependencies.accountActive(userId)) return null;
+    dependencies.revoke(channelId, 'detected');
+    return 'inactive';
+  };
+  const sending = live.runState<TwitchStateRelayOutcome>(channelId, async () => {
+    // Asked when the turn comes, so nothing waits out the channel's second for a link that is already gone...
+    const refusedOnTurn = refused();
+    if (refusedOnTurn) return refusedOnTurn;
     await paceTwitchChannelSend(live, channelId, dependencies.wait);
+    // ...and asked again after that wait: the link may end during it. From here to `store` and the call to
+    // Twitch nothing is awaited, so a state that passes is stored and sent under the link it was checked for.
+    const refusedAfterWait = refused();
+    if (refusedAfterWait) return refusedAfterWait;
     // Built here, with the time the message is sent: see `TwitchLiveState.stamp`.
     const envelope = buildTwitchEnvelope(state, live.stamp(channelId));
     // Stored before the broadcast: a viewer who opens the stream gets it even when one PubSub send failed.

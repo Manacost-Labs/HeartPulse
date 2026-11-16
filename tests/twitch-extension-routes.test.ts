@@ -198,7 +198,15 @@ const nextQueued = () => new Promise<void>(resolve => {
 });
 /** The waits a clear asked for instead of sleeping: the channel's one-a-second budget. */
 const waits: number[] = [];
-const wait = async (milliseconds: number) => { waits.push(milliseconds); };
+/** While set, a send that has to wait out the channel's second stays waiting; `waiting` tells it started to. */
+let paceGate: { open: Promise<void>; waiting: () => void } | null = null;
+const wait = async (milliseconds: number) => {
+  waits.push(milliseconds);
+  if (paceGate) {
+    paceGate.waiting();
+    await paceGate.open;
+  }
+};
 const twitch = createTwitchApi(config, fakeFetch, () => clock);
 const token = (userId: string, scopes: ApplicationAuthScope[]): ApplicationToken => ({
   id: `token-${userId}`, familyId: 'family', clientId: 'manacost-tracker', userId, scopes,
@@ -788,6 +796,82 @@ try {
   assert.equal((await postState(deckState(ahead + 2))).status, 204);
   assert.deepEqual(viewer.shown, { seq: ahead + 2, mode: 'constructed' }, 'the next seq brings the deck back');
 
+  // The wait for the channel's second is a gap inside a send: the state has passed its checks and is not
+  // stored or sent yet. A link that ends in that gap must not be published after all. The wait itself is
+  // held here (not the broadcast: a message already at Twitch cannot be taken back, that is another case).
+  const holdPace = () => {
+    let open = () => {};
+    let started = () => {};
+    const waiting = new Promise<void>(resolve => { started = resolve; });
+    paceGate = { open: new Promise<void>(resolve => { open = resolve; }), waiting: started };
+    return { waiting, release: () => { paceGate = null; open(); } };
+  };
+  // A clear sent this very millisecond, then the link again: the owner's next state has to wait a second.
+  const linkRightAfterAClear = async () => {
+    clock += 1_000;
+    assert.equal((await unlink('user-1')).status, 200);
+    await live.idle('4242');
+    flow = await start('user-1');
+    await callback(`code=good-code&state=${flow.state}`, flow.cookie, 'user-1');
+    assert.equal(links.find('user-1')?.twitchUserId, '4242');
+    await live.idle('4242');
+    calls.length = 0;
+  };
+
+  // Unlinked during the wait.
+  await linkRightAfterAClear();
+  let pace = holdPace();
+  let stale = postState(deckState(ahead + 3));
+  await pace.waiting;
+  assert.equal((await unlink('user-1')).status, 200);
+  assert.equal(await snapshotStatus(), 204);
+  pace.release();
+  response = await stale;
+  assert.equal(response.status, 404, 'a state whose link ended while it waited for the channel\'s second is not sent');
+  assert.equal(await errorCode(response), 'twitch_not_linked');
+  await live.idle('4242');
+  assert.deepEqual(pubsubSent().map(message => message.state.mode), ['none'], 'Twitch gets the clear and not the old deck');
+  assert.equal(live.tracks('4242'), false, 'and the snapshot is not brought back');
+  assert.equal(await snapshotStatus(), 204);
+  flow = await start('user-1');
+  await callback(`code=good-code&state=${flow.state}`, flow.cookie, 'user-1');
+
+  // Moved to another site account during the wait: the new owner's viewers never get the former owner's deck.
+  await linkRightAfterAClear();
+  pace = holdPace();
+  stale = postState(deckState(ahead + 4));
+  await pace.waiting;
+  flow = await start('user-4');
+  response = await callback(`code=good-code&state=${flow.state}`, flow.cookie, 'user-4');
+  assert.equal(links.find('user-4')?.twitchUserId, '4242');
+  assert.equal(await snapshotStatus(), 204, 'nothing for the new owner\'s viewers while the old state still waits');
+  pace.release();
+  response = await stale;
+  assert.equal(response.status, 404);
+  await live.idle('4242');
+  assert.deepEqual(pubsubSent().map(message => message.state.mode), ['none']);
+  assert.equal(live.tracks('4242'), false, 'the new owner\'s channel holds no deck of the former owner');
+  assert.equal(await snapshotStatus(), 204, 'and its viewers get one only when the new owner publishes');
+  flow = await start('user-1');
+  await callback(`code=good-code&state=${flow.state}`, flow.cookie, 'user-1');
+  assert.equal(links.find('user-1')?.twitchUserId, '4242');
+  await live.idle('4242');
+
+  // Blocked during the wait.
+  await linkRightAfterAClear();
+  pace = holdPace();
+  stale = postState(deckState(ahead + 5));
+  await pace.waiting;
+  blocked.add('user-1');
+  pace.release();
+  response = await stale;
+  assert.equal(response.status, 401, 'an account blocked while its state waited does not publish it');
+  assert.equal(await errorCode(response), 'INVALID_ACCESS_TOKEN');
+  await live.idle('4242');
+  assert.deepEqual(pubsubSent(), [], 'nothing reached Twitch');
+  assert.equal(live.tracks('4242'), false);
+  blocked.delete('user-1');
+
   // A bounded queue. Twitch does not answer channel 4242: one state is at Twitch, one waits, and every
   // further one is refused at once instead of holding an open request. Channel 5151 is not held up.
   let release = () => {};
@@ -804,7 +888,13 @@ try {
   await inQueue;
   for (const seq of [ahead + 12, ahead + 13, ahead + 14]) {
     clock += 1_000;
-    response = await postState(deckState(seq));
+    // Answered or queued, whichever happens first: a state that got into the queue would never answer here.
+    const becameQueued = nextQueued().then(() => 'queued');
+    const third = postState(deckState(seq));
+    assert.equal(await Promise.race([third.then(() => 'answered'), becameQueued]), 'answered',
+      'a third state is refused at once, not queued behind the two the channel already holds');
+    onQueued = null;
+    response = await third;
     assert.equal(response.status, 429, 'no third state is held for a channel');
     assert.equal(response.headers.get('retry-after'), '1');
     assert.equal(await errorCode(response), 'rate_limited');
