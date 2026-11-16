@@ -126,9 +126,9 @@
     "/articles": {
       "policyRouteId": "articles",
       "navigationRouteId": "articles",
-      "title": "Статьи и гайды по Арене Hearthstone | HearthPulse",
-      "description": "Гайды, разборы мета и советы по режиму Арена в Hearthstone от команды Manacost. Актуальные статьи для игроков всех уровней.",
-      "sitemap": true
+      "title": "Подборка статей Hearthstone | HearthPulse",
+      "description": "Подборка статей Hearthstone: гайды, разборы мета и советы по Арене. Сами статьи лежат на kolodahearthstone.com, карточки ведут туда.",
+      "sitemap": false
     },
     "/gallery": {
       "policyRouteId": "gallery",

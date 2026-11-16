@@ -172,7 +172,7 @@ test('a page stays usable when the optional support prompt cannot load', async (
   try {
     browser = await launchChromium();
     const chunk = await chunkHolding(browser, runtime.origin, '/articles/', 'manacost_support_prompt_closed_at');
-    for (const [path, heading] of [['/articles/', 'Статьи'], ['/classes/', 'Классы']]) {
+    for (const [path, heading] of [['/articles/', 'Подборка статей'], ['/classes/', 'Классы']]) {
       const { page, state } = await openWithoutChunk(browser, runtime.origin, path, chunk);
       assert.equal(await page.$('[data-app-error]'), null, `${path} must not turn into an error page`);
       assert.equal(await page.$eval('h1', element => element.textContent.trim()), heading);

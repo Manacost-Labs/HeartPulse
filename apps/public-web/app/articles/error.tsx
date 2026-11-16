@@ -9,7 +9,7 @@ import { useRouteErrorRecovery } from '@/apps/public-web/ui/useRouteErrorRecover
 export default function ArticlesError({ error, retry }: { error: Error & { digest?: string }; retry: () => void }) {
   const access = usePublicAccess();
   const recovery = useRouteErrorRecovery(error, retry, 'route:articles', {
-    heading: 'Статьи временно недоступны',
+    heading: 'Подборка статей временно недоступна',
     text: 'Попробуйте загрузить раздел ещё раз.',
   });
   return <PublicPageShell activeTab="articles" pathname="/articles/" access={access}

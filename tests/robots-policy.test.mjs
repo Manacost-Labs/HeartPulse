@@ -10,6 +10,7 @@ const htmlRouting = readFileSync(join(projectRoot, 'deploy/nginx/arena-html-rout
 function parseGroups(source) {
   const groups = [];
   let current = null;
+  let collecting = false;
   for (const rawLine of source.split(/\r?\n/)) {
     const line = rawLine.replace(/\s+#.*$/, '').trim();
     if (!line) continue;
@@ -18,10 +19,13 @@ function parseGroups(source) {
     const name = line.slice(0, separator).trim().toLowerCase();
     const value = line.slice(separator + 1).trim();
     if (name === 'user-agent') {
-      current = { userAgent: value.toLowerCase(), rules: [] };
-      groups.push(current);
+      // Consecutive User-agent lines share one rule set (RFC 9309 group).
+      if (!collecting || !current) { current = { userAgents: [], rules: [] }; groups.push(current); }
+      current.userAgents.push(value.toLowerCase());
+      collecting = true;
     } else if (current && (name === 'allow' || name === 'disallow')) {
       current.rules.push({ type: name, value });
+      collecting = false;
     }
   }
   return groups;
@@ -36,11 +40,11 @@ function cleanParamDirectives(source) {
 }
 
 const groups = parseGroups(robots);
-const wildcard = groups.find(group => group.userAgent === '*');
+const wildcard = groups.find(group => group.userAgents.includes('*'));
 assert.ok(wildcard, 'robots.txt must define a wildcard crawler policy');
 
 function effectiveRules(userAgent) {
-  return groups.find(group => group.userAgent === userAgent.toLowerCase())?.rules
+  return groups.find(group => group.userAgents.includes(userAgent.toLowerCase()))?.rules
     ?? wildcard.rules;
 }
 
@@ -105,7 +109,7 @@ assert.doesNotMatch(robots, /^\s*noindex\s*:/im,
 // Yandex Clean-param: advertising labels are folded into the clean URL, while
 // every parameter that changes what a page shows must stay distinct.
 const cleanParams = cleanParamDirectives(robots);
-assert.equal(cleanParams.length, 1, 'robots.txt must carry exactly one Clean-param line');
+assert.equal(cleanParams.length, 2, 'robots.txt must carry the global and the patches Clean-param lines');
 assert.deepEqual(cleanParams[0], [
   'utm_source&utm_medium&utm_campaign&utm_content&utm_term&yclid&fbclid&gclid&ref',
   '/',
@@ -120,6 +124,34 @@ for (const parameter of functionalParameters) {
   assert.ok(!cleanedParameters.includes(parameter),
     `Clean-param must not fold ${parameter}: it changes what the page shows`);
 }
+
+// AI crawler policy (owner decision 2026-11-15): training bots are closed by their
+// own groups; search and answer robots keep the general rules. A robot obeys only
+// its own group (names compared case-insensitively), so the check resolves groups
+// instead of searching for a substring: `ClaudeBot` must not close `Claude-SearchBot`.
+for (const trainingBot of ['GPTBot', 'ClaudeBot', 'Google-Extended', 'CCBot']) {
+  const own = groups.filter(group => group.userAgents.includes(trainingBot.toLowerCase()));
+  assert.equal(own.length, 1, `${trainingBot} must have exactly one group`);
+  assert.deepEqual(own[0].rules, [{ type: 'disallow', value: '/' }], `${trainingBot} must be disallowed everywhere`);
+  for (const path of ['/', '/tierlist/', '/standard/patches/', '/articles/']) {
+    assert.equal(isAllowed(path, effectiveRules(trainingBot)), false, `${trainingBot} must not crawl ${path}`);
+  }
+}
+for (const searchBot of ['OAI-SearchBot', 'ChatGPT-User', 'PerplexityBot', 'Claude-SearchBot', 'Claude-User',
+  'Bingbot', 'Googlebot', 'YandexBot']) {
+  assert.equal(groups.some(group => group.userAgents.includes(searchBot.toLowerCase())), false,
+    `${searchBot} must stay under the general rules, not get a group of its own`);
+  assert.equal(effectiveRules(searchBot), wildcard.rules, `${searchBot} reads the wildcard group`);
+  for (const path of ['/', '/tierlist/', '/standard/patches/', '/articles/', '/standard/cards/standard/']) {
+    assert.equal(isAllowed(path, effectiveRules(searchBot)), true, `${searchBot} must be able to crawl ${path}`);
+  }
+}
+assert.equal(effectiveRules('GPTBOT'), groups.find(group => group.userAgents.includes('gptbot')).rules,
+  'robot names are compared without case');
+
+// ?version=X patch pages share one title: Yandex folds them into the clean path.
+assert.ok(cleanParamDirectives(robots).some(([parameters, path]) => parameters === 'version' && path === '/standard/patches/'),
+  'robots.txt must fold ?version= on /standard/patches/ with Clean-param');
 
 // Adding Clean-param leaves the crawl policy and the sitemap pointer as they were.
 assert.deepEqual(wildcard.rules, [

@@ -19,10 +19,11 @@ async function head(origin, path) {
   return (await response.text()).match(/<head>([\s\S]*?)<\/head>/)?.[1] ?? '';
 }
 
+const INVENTORY_ROUTES = JSON.parse(readFileSync('src/shared/seo/publicRouteInventory.json', 'utf8')).routes;
 const YEAR = String(new Date().getUTCFullYear());
 const REGISTRY_PAGES = Object.entries(JSON.parse(readFileSync('config/public-seo-pages.json', 'utf8')).pages)
   .map(([path, page]) => ({
-    path, url: path === '/' ? '/' : `${path}/`, sitemap: page.sitemap,
+    path, url: path === '/' ? '/' : `${path}/`, sitemap: page.sitemap, policyRouteId: page.policyRouteId,
     title: page.title.replaceAll('{year}', YEAR), description: page.description.replaceAll('{year}', YEAR),
   }));
 
@@ -134,10 +135,24 @@ test('registry pages render canonical, robots, share metadata and JSON-LD from t
         types.includes('Dataset') ? ['Organization', ...types] : types, `${path} JSON-LD`);
     }
 
-    // /articles/ is prerendered, so every query gets the same HTML with the
-    // canonical page; Nginx marks the paginated URL noindex (nginx-html-routing test).
-    const filtered = await head(runtime.nextOrigin, '/articles/?page=2');
-    assert.match(filtered, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/articles\/"\/>/);
+    // /articles/ is a collection of kolodahearthstone.com articles: noindex, follow
+    // and no canonical or share tags, since it is outside the sitemap. The prerendered
+    // HTML is the same for every query; Nginx marks the paginated URL noindex.
+    for (const path of ['/articles/', '/articles/?page=2']) {
+      const articles = await head(runtime.nextOrigin, path);
+      assert.match(articles, /<meta name="robots" content="noindex, follow"\/>/, `${path} robots`);
+      assert.doesNotMatch(articles, /<link rel="canonical"/, `${path} has no canonical`);
+      assert.match(articles, /<title>Подборка статей Hearthstone[^<]*<\/title>/, `${path} title`);
+    }
+
+    // The menu and the footer a visitor gets name the section a collection.
+    const articlesHtml = await (await fetch(`${runtime.nextOrigin}/articles/`)).text();
+    const footer = articlesHtml.match(/<footer class="arena-footer"[\s\S]*?<\/footer>/)?.[0] ?? '';
+    assert.match(footer, /<a href="\/articles\/"[^>]*>Подборка<\/a>/, 'footer link to /articles/');
+    const articlesLinks = [...articlesHtml.matchAll(/<a href="\/articles\/"[^>]*>([\s\S]*?)<\/a>/g)]
+      .map(match => visibleText(match[1]).trim());
+    assert.ok(articlesLinks.filter(text => text === 'Подборка').length >= 2, 'menu and footer links to /articles/');
+    assert.ok(!articlesLinks.includes('Статьи'), 'no link still calls /articles/ «Статьи»');
   } finally {
     await runtime.close();
   }
@@ -283,7 +298,10 @@ test('every SEO registry page takes its title, description and share metadata fr
       assertOnce(html, /<meta name="description" content="([^"]*)"/g, page.description, `${page.path} description`);
       assert.equal((html.match(/<h1[\s>]/g) ?? []).length, 1, `${page.path} must render exactly one H1`);
       if (!page.sitemap) {
-        assertOnce(html, /<meta name="robots" content="([^"]*)"/g, 'noindex, nofollow', `${page.path} robots`);
+        // Outside the sitemap means noindex; the inventory decides whether links are followed.
+        const robots = INVENTORY_ROUTES.find(route => route.id === page.policyRouteId)?.indexPolicy === 'noindex-follow'
+          ? 'noindex, follow' : 'noindex, nofollow';
+        assertOnce(html, /<meta name="robots" content="([^"]*)"/g, robots, `${page.path} robots`);
         assert.doesNotMatch(html, /<link rel="canonical"/, `${page.path} must not expose a canonical URL`);
         assert.doesNotMatch(html, /<meta property="og:url"/, `${page.path} must not expose og:url`);
         assert.doesNotMatch(html, /application\/ld\+json/, `${page.path} must not carry structured data`);
