@@ -9,7 +9,8 @@ export type SeoStructuredDataGraph = { '@context': 'https://schema.org'; '@graph
 
 const URL_KEYS = new Set(['@id', 'item', 'url']);
 const LANGUAGE_TYPES = new Set(['WebSite', 'WebPage', 'CollectionPage', 'ItemPage', 'Dataset', 'ItemList', 'FAQPage']);
-const BREADCRUMB_LINKED_TYPES = new Set(['WebPage', 'CollectionPage', 'ItemPage', 'Dataset', 'ItemList']);
+// `breadcrumb` is a property of a page (WebPage and its subtypes), not of a Dataset or a list.
+const BREADCRUMB_LINKED_TYPES = new Set(['WebPage', 'CollectionPage', 'ItemPage']);
 /** An `ItemList` names at most this many entries; the page shows no more in its first screen of results. */
 export const ITEM_LIST_LIMIT = 100;
 // The page types whose text is the data the page shows, so the date of that data dates them.

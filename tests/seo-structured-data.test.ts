@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { seoPageForExactPath } from '../src/seo/registry';
 import { parseSeoPageCopy, seoCopyPieces, seoPageCopy } from '../src/seo/pageCopy';
-import { seoStructuredDataGraph } from '../src/seo/structuredData';
+import { seoStructuredDataGraph, seoStructuredDataGraphOf } from '../src/seo/structuredData';
 import { buildCollectionStructuredData, buildEntityStructuredData } from '../shared/entitySeoStructuredData';
 import { buildCosmeticStructuredData } from '../shared/cosmeticsSeoStructuredData';
 import { ORGANIZATION_ID, organizationNode } from '../shared/seoOrganization';
@@ -284,6 +284,31 @@ test('a cosmetic page is a graph of page, item, breadcrumb and organization, wit
   assert.deepEqual(steps.map(step => step.item), [`${ORIGIN}/`, `${ORIGIN}/cosmetics/`, `${ORIGIN}/cosmetics/coins/`, url]);
   assert.equal(steps.at(-1)!.item, page.url, 'the last step is the canonical address of the page');
   assert.deepEqual(steps.map(step => step.name), ['Главная', 'Косметика', 'Косметические монеты', 'Gallant Coin']);
+});
+
+test('only a page node links a breadcrumb: a dataset or a list has no such property, and a cosmetics listing has a trail', async () => {
+  const PAGE_TYPES = ['WebPage', 'CollectionPage', 'ItemPage'];
+  for (const path of Object.keys(registry.pages)) {
+    for (const node of (await seoStructuredDataGraph(path, { items: [{ name: 'Х', url: 'https://hearthpulse.net/cosmetics/heroes/H/' }] }))!['@graph']) {
+      if ('breadcrumb' in node) assert.ok(PAGE_TYPES.includes(String(node['@type'])), `${path} ${String(node['@type'])} has no breadcrumb property`);
+    }
+  }
+  const archetype = (await seoStructuredDataGraphOf('/standard/archetypes/standard/pure-paladin/', [
+    { '@type': 'ItemPage', url: 'https://hearthpulse.net/standard/archetypes/standard/pure-paladin/' },
+    { '@type': 'Dataset', name: 'Д', description: 'Д', url: 'https://hearthpulse.net/standard/archetypes/standard/pure-paladin/' },
+    { '@type': 'BreadcrumbList', itemListElement: [{ '@type': 'ListItem', position: 1, name: 'А', item: 'https://hearthpulse.net/standard/archetypes/' }] },
+  ]))!['@graph'];
+  assert.ok('breadcrumb' in byType(archetype, 'ItemPage')!);
+  assert.equal('breadcrumb' in byType(archetype, 'Dataset')!, false);
+  for (const [kind, section] of [['heroes', 'Скины героев'], ['coins', 'Косметические монеты'], ['pets', 'Питомцы']]) {
+    const graph = (await seoStructuredDataGraph(`/cosmetics/${kind}/`))!['@graph'];
+    const trail = byType(graph, 'BreadcrumbList')!;
+    assert.deepEqual((trail.itemListElement as Array<Record<string, unknown>>).map(step => [step.position, step.name, step.item]), [
+      [1, 'Главная', 'https://hearthpulse.net/'], [2, 'Косметика', 'https://hearthpulse.net/cosmetics/'],
+      [3, section, `https://hearthpulse.net/cosmetics/${kind}/`],
+    ]);
+    assert.deepEqual(byType(graph, 'CollectionPage')!.breadcrumb, { '@id': trail['@id'] });
+  }
 });
 
 test('a page that is not indexable prints no graph at all, organization included', async () => {

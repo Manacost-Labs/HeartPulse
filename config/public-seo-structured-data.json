@@ -1043,6 +1043,29 @@
     ],
     "/cosmetics/heroes": [
       {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Главная",
+            "item": "https://hearthpulse.net"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Косметика",
+            "item": "https://hearthpulse.net/cosmetics/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": "Скины героев",
+            "item": "https://hearthpulse.net/cosmetics/heroes/"
+          }
+        ]
+      },
+      {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/cosmetics/heroes/#collection",
         "name": "Скины героев Hearthstone",
@@ -1053,6 +1076,29 @@
     ],
     "/cosmetics/coins": [
       {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Главная",
+            "item": "https://hearthpulse.net"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Косметика",
+            "item": "https://hearthpulse.net/cosmetics/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": "Косметические монеты",
+            "item": "https://hearthpulse.net/cosmetics/coins/"
+          }
+        ]
+      },
+      {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/cosmetics/coins/#collection",
         "name": "Косметические монеты Hearthstone",
@@ -1062,6 +1108,29 @@
       }
     ],
     "/cosmetics/pets": [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Главная",
+            "item": "https://hearthpulse.net"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Косметика",
+            "item": "https://hearthpulse.net/cosmetics/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": "Питомцы",
+            "item": "https://hearthpulse.net/cosmetics/pets/"
+          }
+        ]
+      },
       {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/cosmetics/pets/#collection",

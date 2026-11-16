@@ -30,6 +30,8 @@ export async function CardCatalogPage({ format, pathname, searchParams }: { form
   const query = await catalogSearch(searchParams);
   const catalog = await loadPublicCatalog(format, query);
   const canonical = `${ORIGIN}${pathname}`;
+  // A page that is not indexable (a filtered or paginated copy) prints no graph, like every other page.
+  const indexable = (await resolvePublicUrlPolicy(pathname, query)).indexPolicy === 'index';
   // The page shows no breadcrumb, so the steps use its own words: the footer link «Главная», the heading «Карты» and the format switch.
   const breadcrumbs = [
     { name: 'Главная', item: `${ORIGIN}/` },
@@ -50,8 +52,8 @@ export async function CardCatalogPage({ format, pathname, searchParams }: { form
   });
   return <>
     <PageBannerPreload />
-    <script type="application/ld+json" data-server-entity-jsonld data-entity-path={pathname}
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(structured).replace(/</g, '\\u003c') }} />
+    {indexable && <script type="application/ld+json" data-server-entity-jsonld data-entity-path={pathname}
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(structured).replace(/</g, '\\u003c') }} />}
     <LegacyCardPage catalog={catalog} pathname={pathname} initialSearch={query} />
   </>;
 }
