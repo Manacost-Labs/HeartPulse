@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import { once } from 'node:events';
+import { createServer } from 'node:http';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -136,5 +138,98 @@ test('the guest HTML of /tierlist/ carries the open slice and nothing closed', a
     await next.close();
     legacyServer.closeAllConnections();
     await new Promise(done => legacyServer.close(done));
+  }
+});
+
+// The deploy warm-up against the real built page and the real revalidate route.
+async function warmStand({ articlesReadyAfterMs = 0, expressRecoversAfterFirstRevalidation = false }) {
+  assert.equal(existsSync('apps/public-web/.next/BUILD_ID'), true, 'run build:next before this test');
+  const state = { reads: [], down: true };
+  const legacyServer = startLegacy(state).listen(0, '127.0.0.1');
+  await once(legacyServer, 'listening');
+  const legacyOrigin = `http://127.0.0.1:${legacyServer.address().port}`;
+  const next = await startNextServer({ legacyOrigin });
+  const revalidations = [];
+  const opened = Date.now();
+  // The tier-list projection answers from the start, unless the test brings it up after the first regeneration.
+  state.down = expressRecoversAfterFirstRevalidation;
+  // One public address for the warm-up: Express under /api, Next for everything else.
+  const gateway = createServer(async (incoming, response) => {
+    if (incoming.url === '/api/articles') {
+      response.writeHead(Date.now() - opened >= articlesReadyAfterMs ? 200 : 503, { 'Content-Type': 'application/json' }).end('[]');
+      return;
+    }
+    const target = incoming.url.startsWith('/api/') ? legacyOrigin : next.origin;
+    const answer = await fetch(`${target}${incoming.url}`, { method: incoming.method, redirect: 'manual' });
+    const body = await answer.text();
+    if (incoming.method === 'POST' && incoming.url === '/health/next/revalidate/') {
+      revalidations.push(JSON.parse(body).revalidated);
+      // Express recovers only after the first regeneration has already run on nothing.
+      if (expressRecoversAfterFirstRevalidation && revalidations.length === 1) setTimeout(() => { state.down = false; }, 600);
+    }
+    response.writeHead(answer.status, { 'Content-Type': answer.headers.get('content-type') ?? 'text/html',
+      'X-Nextjs-Cache': answer.headers.get('x-nextjs-cache') ?? 'none' }).end(body);
+  });
+  gateway.listen(0, '127.0.0.1');
+  await once(gateway, 'listening');
+  const address = `http://127.0.0.1:${gateway.address().port}`;
+  const warm = async env => {
+    const child = spawn(process.execPath, ['scripts/warm-prerendered-pages.mjs'], { env: { PATH: process.env.PATH,
+      PRODUCTION_BASE_URL: address, NEXT_LOCAL_ORIGIN: address, WARM_ONLY: '/tierlist/', WARM_DELAY_MS: '300', ...env } });
+    let output = '';
+    child.stdout.on('data', chunk => { output += chunk; });
+    child.stderr.on('data', chunk => { output += chunk; });
+    const [code] = await once(child, 'exit');
+    return { code, output };
+  };
+  const close = async () => {
+    gateway.closeAllConnections();
+    await new Promise(done => gateway.close(done));
+    await next.close();
+    legacyServer.closeAllConnections();
+    await new Promise(done => legacyServer.close(done));
+  };
+  return { next, revalidations, warm, close };
+}
+
+test('the post-deploy warm-up revalidates again until /tierlist/ carries its slice', async () => {
+  const stand = await warmStand({ expressRecoversAfterFirstRevalidation: true });
+  try {
+    const before = await guestHtml(stand.next.origin);
+    assert.equal(before.includes('class="tierlist-public-teaser"'), false, 'the build copy has no slice');
+    const { code, output } = await stand.warm({ WARM_TOTAL_MS: '30000' });
+    assert.equal(code, 0, output);
+    assert.ok(stand.revalidations.length >= 2, `a page left without data is revalidated again: ${output}`);
+    assert.deepEqual([...stand.revalidations[0]].sort(), ['/articles', '/classes', '/standard/meta', '/tierlist'],
+      'the real route regenerates exactly the pages that render data');
+    assert.match(output, /\[warm\] \/tierlist\/: with data/, output);
+    // What a visitor gets right after the warm-up, with no clock shifted and no second request needed.
+    const after = await guestHtml(stand.next.origin);
+    assert.match(after, /class="tierlist-public-teaser"/, 'the slice is in the served HTML');
+    assert.match(after, /Карта mage-s0 — тир S/, 'with its cards');
+  } finally {
+    await stand.close();
+  }
+});
+
+test('the post-deploy warm-up waits for a cold Express and warns for every page when it never comes', async () => {
+  const stand = await warmStand({ articlesReadyAfterMs: 1500 });
+  try {
+    const late = await stand.warm({ WARM_API_WAIT_MS: '20000', WARM_TOTAL_MS: '30000' });
+    assert.equal(late.code, 0, late.output);
+    assert.match(late.output, /\[warm\] \/tierlist\/: with data/, 'Express came up after the runner started: it waited');
+    assert.doesNotMatch(late.output, /::warning::/);
+  } finally {
+    await stand.close();
+  }
+  const absent = await warmStand({ articlesReadyAfterMs: 1e9 });
+  try {
+    const { code, output } = await absent.warm({ WARM_ONLY: '/tierlist/,/classes/', WARM_API_WAIT_MS: '1200', WARM_TOTAL_MS: '5000' });
+    assert.equal(code, 0, 'the deploy is never failed');
+    assert.deepEqual(absent.revalidations, [], 'nothing is regenerated while Express is down');
+    for (const path of ['/tierlist/', '/classes/']) assert.match(output, new RegExp(`\\[warm\\] ${path}: without data`), `${path} is named`);
+    assert.match(output, /::warning::pages without data after the deploy warm-up: \/tierlist\/, \/classes\//, output);
+  } finally {
+    await absent.close();
   }
 });
