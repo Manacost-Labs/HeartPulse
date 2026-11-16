@@ -103,6 +103,18 @@ async function startStallingApi() {
   return { server, state, origin: await listenLocal(server) };
 }
 
+// The text of a fragment without its markup. Tags are removed until none is left, so that a tag which only
+// appears once another one is cut out cannot survive.
+function textOf(markup) {
+  let text = markup;
+  let previous;
+  do {
+    previous = text;
+    text = text.replace(/<[^>]*>/g, '');
+  } while (text !== previous);
+  return text.trim();
+}
+
 // A landmark of a rendered document: the element `tag` named by `aria-label` (any, when no label), and its links
 // as the reader sees them (text without markup, address).
 function landmark(html, tag, label) {
@@ -111,7 +123,7 @@ function landmark(html, tag, label) {
   const end = html.indexOf(`</${tag}>`, open.index);
   const inner = html.slice(open.index, end);
   const links = [...inner.matchAll(/<a\b[^>]*?href="([^"]*)"[^>]*>([^]*?)<\/a>/g)]
-    .map(([, href, body]) => ({ text: body.replace(/<[^>]*>/g, '').trim(), href }));
+    .map(([, href, body]) => ({ text: textOf(body), href }));
   return { html: inner, links };
 }
 
