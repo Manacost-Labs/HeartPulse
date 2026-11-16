@@ -67,16 +67,18 @@ test('the guest HTML of /tierlist/ carries the open slice and nothing closed', a
   await once(legacyServer, 'listening');
   const next = await startNextServer({ legacyOrigin: `http://127.0.0.1:${legacyServer.address().port}`,
     env: { NODE_OPTIONS: `--require=${resolve('tests/helpers/shiftableClock.cjs')}` } });
-  // /tierlist/ is a five-minute ISR page. Move the server's clock past that window, then request until the
+  // /tierlist/ is a five-minute ISR page. Move the server's clock past that window and request until the
   // regenerated copy (stale-while-revalidate: the first answer is the old one) satisfies `ready`.
-  const regenerated = async (ready, headers = { 'User-Agent': BROWSER_UA, Cookie: 'session=guest-fixture' }) => {
-    process.kill(next.pid, 'SIGUSR2');
+  const regenerated = async (ready, phase, headers = { 'User-Agent': BROWSER_UA, Cookie: 'session=guest-fixture' }) => {
     for (let attempt = 0; attempt < 40; attempt += 1) {
+      // Every attempt moves the clock again: a regeneration still running from an earlier request stamps its copy
+      // with the shifted time, and that copy must not count as fresh.
+      process.kill(next.pid, 'SIGUSR2');
       const html = await guestHtml(next.origin, headers);
       if (ready(html)) return html;
       await delay(250);
     }
-    return assert.fail('the page was not regenerated');
+    return assert.fail(`the page was not regenerated: ${phase}; reads ${JSON.stringify(state.reads.map(read => read.path))}; ${next.output().slice(-300)}`);
   };
   const hasSlice = html => html.includes('class="tierlist-public-teaser"');
   try {
@@ -84,7 +86,7 @@ test('the guest HTML of /tierlist/ carries the open slice and nothing closed', a
     assert.equal(hasSlice(buildCopy), false, 'the copy made without Express has no slice but is a 200 page');
     assert.match(buildCopy, /class="paywalled-tierlist"/);
     state.down = false;
-    const html = await regenerated(hasSlice);
+    const html = await regenerated(hasSlice, 'slice appears');
 
     const start = html.indexOf('class="tierlist-public-teaser"');
     const slice = html.slice(start, html.indexOf('</section>', start));
@@ -124,7 +126,7 @@ test('the guest HTML of /tierlist/ carries the open slice and nothing closed', a
 
     // No data: a 200 page, with its text and markup but without the slice.
     state.down = true;
-    const empty = await regenerated(page => !hasSlice(page));
+    const empty = await regenerated(page => !hasSlice(page), 'slice disappears without data');
     assert.doesNotMatch(empty, /tierlist-public-teaser/, 'no slice without data');
     assert.match(empty, /class="paywalled-tierlist"/);
     assert.match(empty, /class="seo-page-intro"/, 'the page text stays');
