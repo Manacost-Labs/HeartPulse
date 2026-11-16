@@ -99,9 +99,12 @@ copy is empty until `/health/next/revalidate/` runs after a deploy) stay fresh f
 others for 60 s. After a deploy `scripts/warm-prerendered-pages.mjs` also
 requests the dynamic pages that render Express data on the local Next origin
 until each has its data (the table with the marker of each page's data is
-`scripts/lib/post-deploy-data-pages.mjs`): a first-paint read that misses its
-600 ms budget on a cold or busy server ships the page without the data, and
-the edge would keep that copy for a minute. The runner waits up to two
+`scripts/lib/post-deploy-data-pages.mjs`): a freshly started server has no last
+good copy of the data (see [public document
+caching](../specs/public-document-caching.md#data-pages-and-the-last-good-copy)).
+A page without data is a 503 (or, for the home page, a copy without the edge
+marker) and the edge never keeps it, but the warm-up still fills the copies so
+that the first visitors and crawlers get the pages. The runner waits up to two
 minutes for Express (`WARM_API_WAIT_MS`), revalidates the prerendered pages
 again while any of them lacks its data, and gives up after five minutes
 (`WARM_TOTAL_MS`). A page that stays without data is reported per page and as

@@ -2,8 +2,7 @@ import 'server-only';
 import { cache } from 'react';
 import type { CosmeticKind } from '@/src/modules/cosmetics/public';
 import { cosmeticsCatalogSeed, cosmeticsCatalogSeedRequest } from './publicCosmeticsCatalogData';
-import { fetchPublicExpress } from './expressApi';
-import { FIRST_PAINT_READ_BUDGET_MS, readFirstPaintJson } from './publicFirstPaintRead';
+import { readPublicJsonOrNull } from './firstPaintStore';
 
 /**
  * First page of a public cosmetics listing for the server-rendered grid, so
@@ -11,6 +10,6 @@ import { FIRST_PAINT_READ_BUDGET_MS, readFirstPaintJson } from './publicFirstPai
  */
 export const loadPublicCosmeticsCatalog = cache(async (kind: CosmeticKind, search: string) => {
   const request = cosmeticsCatalogSeedRequest(kind, search);
-  const raw = await readFirstPaintJson(signal => fetchPublicExpress(request.url, signal), Date.now() + FIRST_PAINT_READ_BUDGET_MS);
+  const raw = await readPublicJsonOrNull(request.url);
   return raw === null ? null : cosmeticsCatalogSeed(kind, request.url, raw);
 });

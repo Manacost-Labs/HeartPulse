@@ -60,10 +60,16 @@ async function startGateway(nextOrigin) {
 // 90 at once cost a phone (CPU x4) about 0.55 s of blocking time; rows outside
 // the viewport now skip style, layout and paint until they approach it.
 test('the archetype catalog renders only the rows near the viewport', { timeout: 90_000 }, async () => {
-  const legacy = http.createServer(answerApi);
+  // What the server reads (the gateway answers the browser itself): the catalog can be switched off for it.
+  let serverCatalogDown = false;
+  const legacy = http.createServer((request, response) => {
+    if (serverCatalogDown && request.url.startsWith('/api/constructed-archetypes/teaser')) return response.writeHead(503).end('{}');
+    return answerApi(request, response);
+  });
   let next, gateway, browser;
   try {
-    next = await startNextServer({ legacyOrigin: await listenLocal(legacy) });
+    const legacyOrigin = await listenLocal(legacy);
+    next = await startNextServer({ legacyOrigin });
     gateway = await startGateway(next.origin);
     browser = await launchBrowser({ executablePath: chromiumPath,
       headless: true, args: ['--no-sandbox'] });
@@ -133,10 +139,20 @@ test('the archetype catalog renders only the rows near the viewport', { timeout:
       releaseAuth();
       await pending.close();
     } finally { releaseAuth(); }
-    delayNextCatalog = true; failNextBrowserCatalog = true;
+    // The server keeps the last good catalog, so every document is seeded from it. The recovery needs a
+    // server with none and with no catalog to read: a restarted one, reached by a client-side navigation
+    // (only documents are probed and answered with a 503).
+    await page.close();
+    await next.close();
+    await closeLocal(gateway.server);
+    next = await startNextServer({ legacyOrigin });
+    gateway = await startGateway(next.origin);
+    serverCatalogDown = true;
     const recovery = await browser.newPage(); const recoveryReads = [];
     recovery.on('request', request => { if (new URL(request.url()).pathname === '/api/constructed-archetypes/teaser') recoveryReads.push(request.url()); });
-    await recovery.goto(`${gateway.origin}/standard/archetypes/`, { waitUntil: 'domcontentloaded' });
+    await recovery.goto(`${gateway.origin}/faq/`, { waitUntil: 'networkidle0' });
+    failNextBrowserCatalog = true;
+    await recovery.evaluate(() => window.next.router.push('/standard/archetypes/'));
     await recovery.waitForSelector('.archetypes-state [role="alert"], .archetypes-state[role="alert"]');
     await recovery.click('.archetypes-state button');
     await recovery.waitForSelector('.archetype-row');
@@ -153,7 +169,6 @@ test('the archetype catalog renders only the rows near the viewport', { timeout:
     await new Promise(resolve => setTimeout(resolve, 100));
     assert.equal(recoveryReads.length, 3, 'retry must not invalidate other fresh format snapshots');
     await recovery.close();
-    await page.close();
   } finally {
     if (browser) await browser.close();
     if (gateway) await closeLocal(gateway.server);

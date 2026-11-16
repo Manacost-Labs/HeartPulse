@@ -43,11 +43,20 @@ export function createPatchNotesReader({
 }: PatchNotesReaderOptions) {
   const entries = new Map<string, { value: unknown; at: number }>();
   const pending = new Map<string, Promise<unknown>>();
+  // Paths Express refused (a 4xx), newest last: an unknown version is not an outage.
+  const missing = new Set<string>();
 
   function refresh(path: string, parse: (value: unknown) => unknown): Promise<unknown> {
     let read = pending.get(path);
     if (!read) {
-      read = readFirstPaintJson(signal => request(path, signal), Date.now() + refreshBudgetMs)
+      read = readFirstPaintJson(signal => request(path, signal).then(response => {
+        missing.delete(path);
+        if (response.status >= 400 && response.status < 500 && response.status !== 408 && response.status !== 429) {
+          missing.add(path);
+          if (missing.size > maxEntries) missing.delete(missing.values().next().value as string);
+        }
+        return response;
+      }), Date.now() + refreshBudgetMs)
         .then(raw => {
           const value = parse(raw);
           if (value !== null) {
@@ -63,21 +72,29 @@ export function createPatchNotesReader({
     return read;
   }
 
-  async function read<T>(path: string, parse: (value: unknown) => T | null, deadline: number): Promise<T | null> {
+  async function read<T>(path: string, parse: (value: unknown) => T | null, deadline: number, coldDeadline: number): Promise<T | null> {
     const hit = entries.get(path);
-    if (!hit) return (await withinDeadline(refresh(path, parse), deadline)) as T | null;
+    if (!hit) return (await withinDeadline(refresh(path, parse), coldDeadline)) as T | null;
     entries.delete(path);
     entries.set(path, hit);
     if (now() - hit.at >= freshMs) void refresh(path, parse);
     return hit.value as T;
   }
 
-  /** The patch (`null` for the newest) and the archive, each `null` when not read in time. */
-  return async function load(version: string | null, deadline: number): Promise<PublicPatchNotes> {
+  const patchPath = (version: string | null) => `/api/patch-notes/${encodeURIComponent(version ?? 'latest')}`;
+
+  /**
+   * The patch (`null` for the newest) and the archive, each `null` when not read in time. A part never
+   * read before waits until `coldDeadline` (default: `deadline`); one the process holds is served at once.
+   */
+  async function load(version: string | null, deadline: number, coldDeadline = deadline): Promise<PublicPatchNotes> {
     const [patch, archive] = await Promise.all([
-      read(`/api/patch-notes/${encodeURIComponent(version ?? 'latest')}`, patchDetail, deadline),
-      read('/api/patch-notes', patchArchive, deadline),
+      read(patchPath(version), patchDetail, deadline, coldDeadline),
+      read('/api/patch-notes', patchArchive, deadline, coldDeadline),
     ]);
     return { patch, archive };
-  };
+  }
+  /** Whether Express last refused this version (404 or another 4xx), as opposed to failing. */
+  load.isMissing = (version: string | null) => missing.has(patchPath(version));
+  return load;
 }

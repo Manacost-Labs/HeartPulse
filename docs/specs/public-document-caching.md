@@ -89,6 +89,53 @@ viewer's account or paid data to another.
   for documents, including the `s-maxage` of prerendered pages.
 - Install, check and roll back: `docs/runbooks/hearthpulse-edge-caching.md`.
 
+## Data pages and the last good copy
+
+Pages that print data read from Express (home, `/leaderboards/`,
+`/cosmetics/`, `/cosmetics/<kind>/`, `/streamers/`, `/streamers/<slug>/`,
+`/standard/patches/`, `/standard/archetypes/`, `/standard/fun-decks/`) must not
+ship, or let the edge keep, a document that lacks the data because Express was
+slow.
+
+- The server reads go through `apps/public-web/lib/firstPaintStore.ts`. A read
+  that does not answer within the first-paint budget (600 ms, unchanged for a
+  healthy Express) is answered from the last good copy of the same path, and
+  the read goes on in the background and refreshes the copy. The patch notes
+  keep their own cache (`patchNotesStore.ts`) with the same rules.
+- The copy is the anonymous answer of Express, stored by its path with the
+  query. Server reads send no cookie and no authorization header, so the key
+  has no viewer part, and what a subscriber's request causes is read
+  anonymously as well: the copy is the open layer, the same for everybody. The
+  document of a viewer is not stored anywhere on the server; the edge does not
+  store a request with a cookie.
+- A copy is kept for 6 hours at most, 200 copies at most and 16 Mi characters
+  of JSON text in all (at most 32 MiB of heap; a streamer profile is
+  estimated at 60-100 KB, so the 160-270 most recently read profiles stay);
+  the oldest idle copy goes first. The text is parsed on every
+  read, so no page changes a stored copy. A `404` is never stored and drops the
+  copy of that path.
+- A success is reused for 2 seconds (the proxy, the metadata and the page of one
+  visit share one read). After a failure or a slow answer the copy answers for
+  one more second, and with no copy a failure is remembered for one second (the
+  proxy and the page of a visit do not both hit a failing Express); then
+  Express is asked again, so a recovered Express is
+  noticed by the next visit and the copy does not outlive it.
+- `proxy.ts` decides before the page renders, because a page cannot set its own
+  status or headers. With no copy it waits for Express for two seconds (a
+  page then waits no more than the first-paint budget since the read began).
+  If nothing came, the answer is `503` with `Retry-After: 60` and
+  `Cache-Control: private, no-store`, with the outage page (menu, footer) and
+  without `noindex`: the outage is transient, as for the cards. Unknown
+  streamers and patch versions are not an outage and stay the page's own 404 or
+  empty state. The read continues and the next visit is served.
+- The home page is useful without its feeds, so it renders (200, no wait beyond
+  600 ms) but without `X-HearthPulse-Edge-Cache`: the edge does not keep it.
+- `/standard/meta/`, `/articles/`, `/tierlist/` and `/classes/` are ISR pages
+  with their own regeneration and are not part of this.
+
+Tests: `tests/next-card-detail-proxy.test.mjs` (a real Next in front of a
+stand Express that answers late or not at all).
+
 ## Back/forward cache blockers
 
 Checked in Chromium on production (release `51d3637b`) with

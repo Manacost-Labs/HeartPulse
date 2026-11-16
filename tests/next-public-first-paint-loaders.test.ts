@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { readFirstPaintJson } from '../apps/public-web/lib/publicFirstPaintRead';
+import { CatalogUnavailableError, PublicDataMissingError, createDefaultCatalogCache } from '../apps/public-web/lib/publicCatalogCache';
 import { loadStandardMetaTeaserSeed, standardMetaPublicPath } from '../apps/public-web/lib/publicStandardMetaTeaserData';
 import { publicArchetypeCatalog } from '../apps/public-web/lib/publicArchetypeCatalogTeaserData';
 import { cosmeticsCatalogSeed, cosmeticsCatalogSeedRequest } from '../apps/public-web/lib/publicCosmeticsCatalogData';
@@ -243,9 +244,54 @@ assert.equal(publicFunDecksPreview({ error: 'upstream' }), null);
   assert.ok(reads.includes('/api/patch-notes/1.0.0'), 'the oldest version was dropped at the bound');
 }
 
-// The loaders are server-only, anonymous (fetchPublicExpress) and bounded.
-for (const loader of ['publicStandardMetaTeaser', 'publicArchetypeCatalogTeaser', 'publicCosmeticsCatalog',
-  'publicFunDecksPreview']) {
+// The last good store of the data pages: bounded in copies, size and age, never serving a removed page.
+{
+  let clock = 0;
+  const now = () => clock;
+  let down = false;
+  const missing = new Set<string>();
+  const sizes = new Map<string, number>();
+  const options = { maxEntries: 3, maxBytes: 100, staleLimitMs: 1000, freshMs: 10, size: (value: unknown) => (value as string).length };
+  const store = createDefaultCatalogCache<string>(async key => {
+    if (missing.has(key)) throw new PublicDataMissingError();
+    if (down) throw new Error('Express down');
+    return 'x'.repeat(sizes.get(key) ?? 10);
+  }, now, value => value, options);
+
+  // Copies: the oldest idle one goes first, by count and by size.
+  for (const key of ['a', 'b', 'c', 'd']) { await store(key); clock += 20; }
+  down = true;
+  await assert.rejects(store('a'), CatalogUnavailableError, 'the fourth copy pushed the oldest one out');
+  assert.equal(await store('d'), 'x'.repeat(10), 'the newest copy is still there');
+  down = false;
+  sizes.set('big', 70);
+  await store('big');
+  clock += 20;
+  down = true;
+  assert.equal(await store('big'), 'x'.repeat(70));
+  await assert.rejects(store('b'), CatalogUnavailableError, 'a big copy pushed out older ones to stay within the size bound');
+  down = false;
+
+  // Age: a copy older than the limit is not served in an outage.
+  await store('d');
+  clock += 5000;
+  down = true;
+  await assert.rejects(store('d'), CatalogUnavailableError, 'a copy past its age limit is not served');
+  down = false;
+
+  // A 404 is told as it is, stores nothing and drops the copy of that path.
+  await store('gone');
+  clock += 20;
+  missing.add('gone');
+  await assert.rejects(store('gone'), PublicDataMissingError);
+  down = true;
+  missing.delete('gone');
+  await assert.rejects(store('gone'), CatalogUnavailableError, 'the removed page is not served from memory');
+  down = false;
+}
+
+// The loaders are server-only and read anonymously through `readFirstPaintJson`.
+for (const loader of ['publicStandardMetaTeaser']) {
   const source = readFileSync(new URL(`../apps/public-web/lib/${loader}.ts`, import.meta.url), 'utf8');
   assert.match(source, /^import 'server-only';/, `${loader} never reaches the browser bundle`);
   assert.match(source, /fetchPublicExpress\(/, `${loader} reads without viewer cookies`);
