@@ -61,3 +61,42 @@ assert.match(sanitizer.sanitizeHtml('<a href="/large.jpg"><img src="/small.jpg" 
 assert.equal(sanitizer.sanitizeHtml('<a href="/old"><img src="/design/user/bolt.png"></a>'), '');
 
 console.log('guide archive sanitizer tests passed');
+
+// Open part of a guide: where the cut falls and what it leaves out.
+{
+  const { addGuideHeadingIds, buildGuideExcerpt, guideToc } = await import('../server/guides/excerpt.js');
+  const { countWords, words } = await import('./helpers/guideExcerptFixture.js');
+
+  const wrapped = buildGuideExcerpt(`<div><p>${words(160, 'a')}</p><p>${words(20, 'b')}</p></div>`);
+  assert.equal(wrapped.html, `<div><p>${words(160, 'a')}</p></div>`, 'cut at a paragraph; the wrapper is closed');
+  assert.equal(wrapped.hasPaid, true);
+
+  // The first block longer than 200 words is cut at a sentence.
+  const sentence = buildGuideExcerpt(`<p>${words(300, 'c')}</p>`);
+  assert.equal(countWords(sentence.html), 200);
+  assert.ok(sentence.html.endsWith('c199.</p>'));
+
+  // No sentence ends in the range: the cut is at a word, marked with an ellipsis.
+  const unpunctuated = buildGuideExcerpt(`<p>${Array.from({ length: 250 }, (_, i) => `w${i}`).join(' ')}</p>`);
+  assert.equal(unpunctuated.words, 200);
+  assert.ok(unpunctuated.html.endsWith('w199…</p>'));
+
+  // A heading is never cut in half: the open part ends before it.
+  const heading = buildGuideExcerpt(`<p>${words(100, 'd')}</p><h2>${Array.from({ length: 120 }, (_, i) => `h${i}`).join(' ')}</h2>`);
+  assert.equal(heading.html, `<p>${words(100, 'd')}</p>`);
+
+  // Deck pictures, deck codes and figures are the paid part; small inline icons stay.
+  const media = buildGuideExcerpt('<p>Текст <img class="guide-inline-image" src="https://x.test/i.png" alt="i"></p>'
+    + '<figure><img src="https://x.test/deck.png" alt="d"><figcaption>Колода</figcaption></figure>'
+    + '<p><code class="guide-deck-code">AAEBAZICAA8PAAAAAAAAAA==</code></p>');
+  assert.equal(media.html, '<p>Текст <img class="guide-inline-image" src="https://x.test/i.png" alt="i"></p>');
+  assert.equal(media.hasPaid, true);
+  assert.equal(buildGuideExcerpt('<p>Только текст.</p>').hasPaid, false);
+
+  assert.equal(addGuideHeadingIds('<h2>A</h2><h3 id="guide-section-x">B</h3><h3>C</h3>'),
+    '<h2 id="guide-heading-1">A</h2><h3 id="guide-section-x">B</h3><h3 id="guide-heading-3">C</h3>');
+  assert.deepEqual(guideToc('<h2 id="a">Ловкость &amp; <em>сила</em></h2><p>x</p><h3 id="b"> </h3><h3 id="c">Конец</h3>'), [
+    { id: 'a', text: 'Ловкость & сила', level: 2 },
+    { id: 'c', text: 'Конец', level: 3 },
+  ]);
+}

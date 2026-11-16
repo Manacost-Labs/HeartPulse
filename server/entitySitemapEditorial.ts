@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { isGuideArchiveIndexable } from './guides/excerpt.js';
 import type { SitemapSemanticEntry } from './entitySitemapTypes.js';
 
 /**
@@ -94,10 +95,17 @@ export async function loadCosmeticsSitemapRows(loadCatalog: CosmeticsCatalogLoad
   return rows;
 }
 
-/** The columns the public guide teaser renders; the archive itself is frozen. */
+/**
+ * The columns the public guide teaser renders; the archive itself is frozen. Only guides
+ * the page indexes are listed. The text columns decide that and never leave this function.
+ */
 export function loadGuideArchiveSitemapRows(database: GuideSitemapDatabase): unknown[] {
   return database.prepare(`
-    SELECT slug, title, description, image, published_iso, published_at, menu_name, kind, kind_slug
+    SELECT slug, title, description, image, published_iso, published_at, menu_name, kind, kind_slug,
+           free_html, body_html, short_html
     FROM guides
-  `).all();
+  `).all().filter(row => isGuideArchiveIndexable(record(row))).map(row => {
+    const { free_html: _free, body_html: _body, short_html: _short, ...guide } = record(row);
+    return guide;
+  });
 }

@@ -10,6 +10,8 @@ import {
   projectCosmeticsSitemapCatalog,
   projectGuideArchiveSitemapCatalog,
 } from '../server/entitySitemapEditorial.js';
+import { createGuidesArchiveRouter } from '../server/guidesArchiveRoutes.js';
+import { createGuideExcerptDatabase, words } from './helpers/guideExcerptFixture.js';
 import { SemanticSitemapStore } from '../server/entitySitemapStore.js';
 import { createEntitySitemapRouter } from '../server/entitySitemapRoutes.js';
 
@@ -47,13 +49,37 @@ assert.notEqual(heroHash(hero('HERO_1')), heroHash(hero('HERO_1', { name: { ru: 
 assert.throws(() => projectCosmeticsSitemapCatalog([{ kind: 'cards', item: hero('HERO_1') }], ORIGIN), /invalid/);
 assert.throws(() => projectCosmeticsSitemapCatalog([{ kind: 'heroes', item: hero('../x') }], ORIGIN), /invalid/);
 
-const guides = projectGuideArchiveSitemapCatalog(loadGuideArchiveSitemapRows({ prepare: sql => ({
-  all: () => {
-    assert.doesNotMatch(sql, /body_html|body_text/, 'the sitemap does not read guide bodies');
-    return [{ slug: 'guide-230', title: 'Гайд' }, { slug: 'guide-216', title: 'Гайд' }];
-  },
-}) }), ORIGIN);
+const longGuide = { free_html: `<p>${words(170, 'слово')}</p>`, body_html: '', short_html: '' };
+const guideRows = [{ slug: 'guide-230', title: 'Гайд', ...longGuide }, { slug: 'guide-216', title: 'Гайд', ...longGuide }];
+const guides = projectGuideArchiveSitemapCatalog(loadGuideArchiveSitemapRows({ prepare: () => ({ all: () => guideRows }) }), ORIGIN);
 assert.deepEqual(guides.map(entry => entry.location), [`${ORIGIN}/guides-archive/guide-216/`, `${ORIGIN}/guides-archive/guide-230/`]);
+// The text columns only decide indexability: they never reach the rows, so lastmod does not move.
+assert.deepEqual(loadGuideArchiveSitemapRows({ prepare: () => ({ all: () => guideRows }) })[0], { slug: 'guide-230', title: 'Гайд' });
+
+// One predicate for page and sitemap: a guide is outside the sitemap exactly when its page is noindex.
+{
+  const database = createGuideExcerptDatabase();
+  const app = express();
+  app.use('/api', createGuidesArchiveRouter({
+    getDatabase: () => database, accessGuard: (_request, _response, next) => next(),
+    publicUrl: 'https://legacy.example.test', logError: () => {},
+  }));
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise<void>(resolve => server.once('listening', resolve));
+  try {
+    const port = (server.address() as AddressInfo).port;
+    const listed = new Set(projectGuideArchiveSitemapCatalog(loadGuideArchiveSitemapRows(database), ORIGIN).map(entry => entry.key));
+    assert.equal(listed.has('short-guide'), false);
+    assert.equal(listed.has('sentinel-guide'), true);
+    for (const { slug } of database.prepare('SELECT slug FROM guides').all() as Array<{ slug: string }>) {
+      const projection = await (await fetch(`http://127.0.0.1:${port}/api/guides-archive/teaser/${slug}`)).json() as { indexable: boolean };
+      assert.equal(listed.has(slug), projection.indexable, `${slug}: sitemap and page robots agree`);
+    }
+  } finally {
+    await new Promise<void>(resolve => server.close(() => resolve()));
+    database.close();
+  }
+}
 assert.throws(() => projectGuideArchiveSitemapCatalog([{ slug: 'a/b' }], ORIGIN), /invalid/);
 
 // The store accepts the editorial keys and locations and keeps lastmod stable.

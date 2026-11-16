@@ -600,3 +600,43 @@
   .guide-archive-grid { grid-template-columns: minmax(0, 1fr); }
   .guide-archive-reader { padding-inline: 0.875rem; }
 }
+
+.guide-archive-toc {
+  width: 100%;
+  max-width: min(100%, 80ch);
+  margin: 0 auto 1rem;
+  border: 1px solid rgba(185, 139, 60, 0.3);
+  border-radius: 16px;
+  background: rgba(255, 250, 238, 0.9);
+  color: #5b4428;
+  padding: 0.9rem 1.2rem;
+}
+
+.guide-archive-toc h2 {
+  margin: 0 0 0.4rem;
+  font-size: 1.05rem;
+}
+
+.guide-archive-toc ol {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.guide-archive-toc li {
+  margin: 0.2rem 0;
+}
+
+.guide-archive-toc li[data-level="3"] {
+  margin-left: 1rem;
+  list-style: circle;
+}
+
+.guide-archive-toc a {
+  color: inherit;
+}
+
+.guide-archive-paid {
+  width: 100%;
+  max-width: min(100%, 80ch);
+  margin: 1rem auto 0;
+}
