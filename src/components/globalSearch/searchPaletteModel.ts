@@ -58,7 +58,7 @@ const SECTION_LABELS: Record<(typeof NAVIGATION_ROUTES)[number]['group'], string
   top: '',
   standard: 'Традиционный режим',
   arena: 'Арена',
-  'bg-primary': 'Поля Сражений',
+  'bg-primary': 'Поля сражений',
   'bg-builder': 'Конструкторы',
   misc: 'Разное',
   footer: 'Справка',
@@ -126,7 +126,7 @@ function articleModeLabel(mode: string): string {
   if (mode === 'standard') return 'Стандарт';
   if (mode === 'wild') return 'Вольный';
   if (mode === 'arena') return 'Арена';
-  if (mode === 'battlegrounds') return 'Поля Сражений';
+  if (mode === 'battlegrounds') return 'Поля сражений';
   return 'Статья';
 }
 

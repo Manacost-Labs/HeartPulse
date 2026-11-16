@@ -118,7 +118,7 @@ test('Next cosmetics catalogs and details preserve status, metadata, media and m
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
     const listings = [
-      ['/cosmetics/', 'Скины героев', 'Контрольный герой'],
+      ['/cosmetics/', 'Косметика Hearthstone', 'Контрольный герой'],
       ['/cosmetics/heroes/?class=mage', 'Скины героев', 'Контрольный герой'],
       ['/cosmetics/coins/', 'Косметические монеты', 'Fixture Coin'],
       ['/cosmetics/pets/', 'Питомцы', 'Контрольный питомец'],

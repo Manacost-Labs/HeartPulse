@@ -46,7 +46,7 @@ export type PublicNavigationProps = {
 const SECTIONS = {
   standard: { title: 'Традиционный режим', context: 'Традиционный', icon: Layers },
   arena: { title: 'Арена', context: 'Арена', icon: Ticket },
-  battlegrounds: { title: 'Поля Сражений', context: 'Поля Сражений', icon: Castle },
+  battlegrounds: { title: 'Поля сражений', context: 'Поля сражений', icon: Castle },
 } as const;
 
 function NavigationTree({ variant, activeTab, appIsContestAdmin, badges, openGroups, onNavigate, onToggleGroup, visibleArenaTabs, visibleMiscTabs }: {

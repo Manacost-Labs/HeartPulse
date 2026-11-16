@@ -37,14 +37,19 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.match(html, /application\/ld\+json/);
     assert.match(html, /"identifier":"blizzard:12345"/);
     assert.doesNotMatch(html, /"deckWinrate":53|card-reader@example|manacost_auth_token/);
-    for (const catalogPath of ['/standard/cards/', '/standard/cards/standard/', '/standard/cards/wild/']) {
+    const catalogHeadings = {
+      '/standard/cards/': 'Карты Hearthstone',
+      '/standard/cards/standard/': 'Карты Hearthstone: Стандарт',
+      '/standard/cards/wild/': 'Карты Hearthstone: Вольный формат',
+    };
+    for (const [catalogPath, heading] of Object.entries(catalogHeadings)) {
       const catalog = await fetch(runtime.origin + catalogPath);
       assert.equal(catalog.status, 200, runtime.output());
       // Anonymous catalog HTML may be restored from the back/forward cache (apps/public-web/documentCaching.mjs).
       assert.equal(catalog.headers.get('cache-control'), 'private, no-cache');
       assert.equal(catalog.headers.get('x-hearthpulse-edge-cache'), 'anonymous');
       const catalogHtml = await catalog.text();
-      assert.match(catalogHtml, /<h1>Карты<\/h1>/);
+      assert.ok(catalogHtml.includes(`<h1>${heading}</h1>`), `${catalogPath} H1`);
       assert.match(catalogHtml, /Публичная карта 1/);
       assert.match(catalogHtml, /application\/ld\+json/);
       assert.ok(catalogHtml.includes(`rel="canonical" href="https://hearthpulse.net${catalogPath}"`));
@@ -185,7 +190,7 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     const classes = await fetch(`${runtime.origin}/classes/`, { headers: cookie });
     assert.equal(classes.status, 200, runtime.output());
     const classesHtml = await classes.text();
-    assert.match(classesHtml, /<h1>Классы<\/h1>/);
+    assert.match(classesHtml, /<h1>Винрейт классов на Арене<\/h1>/);
     assert.doesNotMatch(classesHtml, /Винрейт классов на Арене Hearthstone/);
     assert.match(classesHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/classes\/"/);
     assert.equal((classesHtml.match(/<main\b/g) || []).length, 1);
@@ -196,7 +201,7 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     const tierlist = await fetch(`${runtime.origin}/tierlist/`, { headers: cookie });
     assert.equal(tierlist.status, 200, runtime.output());
     const tierlistHtml = await tierlist.text();
-    assert.match(tierlistHtml, /<h1>Тир-лист карт<\/h1>/);
+    assert.match(tierlistHtml, /<h1>Тир-лист карт Арены Hearthstone<\/h1>/);
     assert.match(tierlistHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/tierlist\/"/);
     assert.equal((tierlistHtml.match(/<main\b/g) || []).length, 1);
     assert.doesNotMatch(tierlistHtml, /CARD_1|card-reader@example|manacost_auth_token/);
@@ -204,7 +209,7 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     const legendaries = await fetch(`${runtime.origin}/legendaries/`, { headers: cookie });
     assert.equal(legendaries.status, 200, runtime.output());
     const legendariesHtml = await legendaries.text();
-    assert.match(legendariesHtml, /<h1>Легендарки<\/h1>/);
+    assert.match(legendariesHtml, /<h1>Легендарки Арены Hearthstone<\/h1>/);
     assert.match(legendariesHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/legendaries\/"/);
     assert.equal((legendariesHtml.match(/<main\b/g) || []).length, 1);
     assert.doesNotMatch(legendariesHtml, /CARD_1|card-reader@example|manacost_auth_token/);

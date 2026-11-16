@@ -19,7 +19,7 @@ const MENU_BLOCKS: readonly { groups: readonly NavigationGroupId[]; title?: stri
   { groups: ['home', 'top'] },
   { groups: ['standard'], title: 'Традиционный режим' },
   { groups: ['arena'], title: 'Арена' },
-  { groups: ['bg-primary'], title: 'Поля Сражений' },
+  { groups: ['bg-primary'], title: 'Поля сражений' },
   { groups: ['bg-builder'], title: 'Конструкторы' },
   { groups: ['misc'], title: 'Разное' },
 ];
@@ -35,7 +35,7 @@ const UNAVAILABLE_PAGE_NAVIGATION: readonly Section[] = MENU_BLOCKS.map(block =>
 const WAYS: readonly (Link & { hint: string })[] = [
   { label: 'Тир-лист Арены', path: '/tierlist/', hint: 'Оценки карт для каждого класса' },
   { label: 'Мета', path: '/standard/meta/', hint: 'Сильные колоды традиционного режима' },
-  { label: 'Поля Сражений', path: '/heroes/', hint: 'Герои, библиотека и тир-лист' },
+  { label: 'Поля сражений', path: '/heroes/', hint: 'Герои, библиотека и тир-лист' },
 ];
 
 const TELEGRAM = 'https://t.me/manacost_ru';

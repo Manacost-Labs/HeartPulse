@@ -10,6 +10,9 @@ import {
   seoPageForExactPath,
   seoPageForNavigationRoute,
 } from '../src/seo/registry';
+import {
+  battlegroundCardTitle, brandedTitle, constructedCardDescription, constructedCardTitle, cosmeticDescription, cosmeticTitle,
+} from '../shared/entityPageTitles';
 import { resolvePublicUrlPolicy } from '../src/shared/seo/publicUrlPolicy';
 import { subscriptionPaywallHeading } from '../src/components/subscriptionPaywallHeading';
 import { assertSeoDataTemplate, renderSeoDataTemplate } from '../src/seo/dataTemplate';
@@ -96,17 +99,17 @@ const intentContracts = [
   },
   {
     pathname: '/battlegrounds/tier-list',
-    title: /Тир-лист БГ Hearthstone/,
-    description: /стратег/i,
+    title: /^Тир-лист Полей сражений Hearthstone, \d{4} \| HearthPulse$/,
+    description: /составов/i,
   },
   {
     pathname: '/battlegrounds/strategies',
-    title: /Конструктор стратегий БГ/,
+    title: /^Конструктор стратегий Полей сражений \| HearthPulse$/,
     description: /собир/i,
   },
   {
     pathname: '/standard/meta',
-    title: /^Мета Hearthstone \d{4}: тир-лист колод \| HearthPulse$/,
+    title: /^Мета Hearthstone, \d{4}: колоды и винрейты \| HearthPulse$/,
     description: /Данные HSGuru\.$/,
   },
   {
@@ -124,7 +127,6 @@ for (const contract of intentContracts) {
 }
 
 const deferredRoutesSource = readFileSync(new URL('../src/features/DeferredRoutes.tsx', import.meta.url), 'utf8');
-assert.match(deferredRoutesSource, /SectionBanner title="Тир-лист карт"/);
 assert.doesNotMatch(deferredRoutesSource, /<ArenaTierListSearchIntro \/>/);
 
 const battlegroundsSource = readFileSync(new URL('../src/features/Battlegrounds.tsx', import.meta.url), 'utf8');
@@ -133,17 +135,12 @@ assert.match(battlegroundsSource, /<BattlegroundsStrategyBuilderSearchIntro \/>/
 assert.match(battlegroundsSource, /герой Полей сражений \| HearthPulse/);
 assert.doesNotMatch(battlegroundsSource, /герой Полей сражений \| Manacost Stats/);
 
-const constructedCardsSource = readFileSync(new URL('../src/features/StandardCardDetail.tsx', import.meta.url), 'utf8');
-assert.match(constructedCardsSource, /карта Hearthstone.*\| HearthPulse/);
-assert.doesNotMatch(constructedCardsSource, /карта Hearthstone.*\| Manacost Stats/);
 
 // One brand in every public title: the canonical domain is hearthpulse.net.
 const seoPagesSource = readFileSync('config/public-seo-pages.json', 'utf8');
 assert.doesNotMatch(seoPagesSource, /\| Manacost Stats"/, 'public page titles end with | HearthPulse');
 
 const battlegroundsLibrarySource = readFileSync(new URL('../src/features/BgLibrary.tsx', import.meta.url), 'utf8');
-assert.match(battlegroundsLibrarySource, /библиотека BG Hearthstone \| HearthPulse/);
-assert.match(battlegroundsLibrarySource, /shortTitle} BG Hearthstone \| HearthPulse/);
 assert.doesNotMatch(battlegroundsLibrarySource, /BG Hearthstone \| HS-Manacost/);
 
 const paywallGateSource = readFileSync(new URL('../src/components/PaywallGate.tsx', import.meta.url), 'utf8');
@@ -152,12 +149,12 @@ assert.match(paywallGateSource, /<Heading[^>]*id="paywall-gate-title"/);
 assert.match(paywallGateSource, /subscriptionPaywallHeading\(title\)/);
 assert.doesNotMatch(paywallGateSource, /<h1 style=\{\{ margin: 0/);
 assert.equal(subscriptionPaywallHeading('Тир-лист доступны подписчикам', '/tierlist/'), 'Тир-лист карт');
-assert.equal(subscriptionPaywallHeading('Тир-лист доступны подписчикам', '/battlegrounds/tier-list/'), 'Тир-лист БГ');
+assert.equal(subscriptionPaywallHeading('Тир-лист доступны подписчикам', '/battlegrounds/tier-list/'), 'Тир-лист Полей сражений');
 assert.equal(
   subscriptionPaywallHeading(
     'Библиотека доступны подписчикам',
     '/library/minions/electric-synthesizer-100026/',
-    'Электрический синтезатор — существо Полей сражений Hearthstone | HearthPulse',
+    'Электрический синтезатор — существо Полей сражений | HearthPulse',
   ),
   'Электрический синтезатор',
 );
@@ -173,15 +170,12 @@ assert.equal(subscriptionPaywallHeading('Мета доступна подпис�
 
 
 const battlegroundsLandingSource = readFileSync(new URL('../src/modules/searchLanding/ui/BattlegroundsSearchIntros.tsx', import.meta.url), 'utf8');
-assert.match(battlegroundsLandingSource, /<SectionBanner title="Тир-лист БГ"/);
-assert.match(battlegroundsLandingSource, /<SectionBanner title="Конструктор стратегий БГ"/);
 assert.doesNotMatch(battlegroundsLandingSource, /<nav/);
 
 const standardMetaSource = readFileSync(new URL('../src/features/StandardMeta.tsx', import.meta.url), 'utf8');
 assert.match(standardMetaSource, /<StandardMetaSearchIntro \/>/);
 assert.doesNotMatch(standardMetaSource, /StandardMetaRelatedLinks/);
 const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLanding/ui/StandardMetaSearchIntro.tsx', import.meta.url), 'utf8');
-assert.match(standardMetaLandingSource, /<h1>Мета<\/h1>/);
 
 
 // ── Data templates (E9 S1): titles and descriptions that carry the date of the data ──
@@ -245,7 +239,7 @@ assert.match(standardMetaLandingSource, /<h1>Мета<\/h1>/);
 
   // Meta: month in the title, full date, leader and source in the description.
   assert.deepEqual(await metaText(metaSeed(FRESH, TOP_ROWS)), {
-    title: 'Мета Hearthstone октябрь 2026: тир-лист колод | HearthPulse',
+    title: 'Мета Hearthstone, октябрь 2026: колоды и винрейты',
     description: 'Мета Хартстоуна (хс) на 29 октября 2026: тир-лист колод Стандарта. Лидер — Зоолок, 61% побед. Винрейт и популярность архетипов. Данные HSGuru.',
   });
   // Only a row with at least 1000 games is a leader; a noisy first row does not shadow it.
@@ -267,18 +261,18 @@ assert.match(standardMetaLandingSource, /<h1>Мета<\/h1>/);
   for (const seed of [null, metaSeed(null, TOP_ROWS), metaSeed('сломано', TOP_ROWS)]) {
     assert.deepEqual(await metaText(seed), { title: staticPage(META).title, description: staticPage(META).description });
   }
-  // Limits in every month, with the longest leader: title 65, description 160, one «(хс)», the source and the date stay.
+  // Limits in every month, with the longest leader: title 60, description 160, one «(хс)», the source and the date stay.
   for (let month = 1; month <= 12; month += 1) {
     const stamp = `2026-${String(month).padStart(2, '0')}-15T10:00:00.000Z`;
     const text = await metaText(metaSeed(stamp, [metaRow(longLeader, 61.25, 14800)]), Date.parse(stamp) + 3600_000);
-    assert.ok(text.title.length <= 65, `title of month ${month}: ${text.title.length}`);
+    assert.ok(text.title.length <= 60, `title of month ${month}: ${text.title.length}`);
     assert.ok(text.description.length <= 160, `description of month ${month}: ${text.description.length}`);
     assert.ok(text.title.includes('Hearthstone') && !text.title.includes('HSGuru'), `title of month ${month}`);
     assert.ok(text.description.includes(' на 15 ') && text.description.endsWith('Данные HSGuru.'), `description of month ${month}`);
     assert.equal(text.description.split('(хс)').length - 1, 1, `one «(хс)» in month ${month}`);
   }
   for (const text of [staticPage(META), staticPage(CATALOG)]) {
-    assert.ok(text.title.length <= 65 && text.description.length <= 160, `${text.pathname} static text fits`);
+    assert.ok(text.title.length <= 60 && text.description.length <= 160, `${text.pathname} static text fits`);
     assert.equal(text.description.split('(хс)').length - 1, 1);
   }
 
@@ -346,12 +340,12 @@ assert.match(standardMetaLandingSource, /<h1>Мета<\/h1>/);
   for (const label of ['Колода-завоеватель с очень длинным названием', 'Колода-завоеватель с очень-очень длинным названием архетипа Стандарта',
     'Нечто '.repeat(25).trim()]) {
     const text = archetypeDetailSeoText(detailOf({}, { archetypeLabel: label }), NOW);
-    assert.ok(text.title.length <= 65, `title ${text.title.length}: ${text.title}`);
+    assert.ok(text.title.length <= 60, `title ${text.title.length}: ${text.title}`);
     assert.ok(text.title.includes('Hearthstone'), text.title);
     assert.ok(text.description.length <= 160, `description ${text.description.length}`);
   }
   assert.equal(archetypeDetailSeoText(detailOf({}, { archetypeLabel: 'Колода-завоеватель с очень длинным названием' }), NOW).title,
-    'Колода-завоеватель с очень длинным названием — колода Hearthstone', 'a name too long for the brand drops the brand, then the month');
+    'Колода-завоеватель с очень длинным… — колода Hearthstone', 'a name too long for the brand drops the brand, then the month, then is cut');
   assert.equal(archetypeDetailSeoText(detailOf({}, { archetypeLabel: 'Колода-завоеватель с очень длинным названием' }), NOW).description
     .startsWith('Колода-завоеватель с очень длинным названием в Стандарте (хс) на 29 октября 2026: винрейт 61,2%'), true);
   assert.ok(archetypeDetailSeoText(detailOf({}, { archetypeLabel: 'Нечто '.repeat(25).trim() }), NOW).description.includes('HSGuru'));
@@ -418,11 +412,11 @@ assert.match(standardMetaLandingSource, /<h1>Мета<\/h1>/);
   const zoolock = row('zoolock', 'Зоолок', 'Zoolock', { classKey: 'warlock' });
   const names = catalogOf([pure, archmage, zoolock]);
   assert.equal(archetypeDetailSeoText(detailOf(pure), CLOCK, names).title,
-    'Чистый Паладин (Pure Paladin) — колода Hearthstone, октябрь 2026');
+    'Чистый Паладин (Pure Paladin) — колода Hearthstone', 'a title over 60 characters gives up the month');
   assert.equal(archetypeDetailSeoText(detailOf(archmage), CLOCK, names).title,
     'Чистый Паладин (Archmage Paladin) — колода Hearthstone', 'the longer name gives up the month first');
   assert.equal(archetypeDetailSeoText(detailOf(zoolock), CLOCK, names).title, 'Зоолок — колода Hearthstone, октябрь 2026 | HearthPulse');
-  assert.equal(archetypeDetailSeoText(detailOf(pure), CLOCK, null).title, 'Чистый Паладин — колода Hearthstone, октябрь 2026 | HearthPulse',
+  assert.equal(archetypeDetailSeoText(detailOf(pure), CLOCK, null).title, 'Чистый Паладин — колода Hearthstone, октябрь 2026',
     'without a catalog the title is the plain name');
   assert.equal(archetypeDetailSeoText(detailOf(pure), CLOCK, names).description, archetypeDetailSeoText(detailOf(pure), CLOCK, null).description,
     'the description does not change');
@@ -443,7 +437,7 @@ assert.match(standardMetaLandingSource, /<h1>Мета<\/h1>/);
     const catalog = catalogOf(rows);
     const titles = catalog.items.map(item => archetypeDetailSeoText(detailOf(item as ReturnType<typeof row>), CLOCK, catalog).title);
     catalog.items.forEach((item, index) => {
-      assert.ok(titles[index].length <= 65 && titles[index].includes('Hearthstone'), titles[index]);
+      assert.ok(titles[index].length <= 60 && titles[index].includes('Hearthstone'), titles[index]);
       catalog.items.forEach((other, otherIndex) => {
         if (otherIndex > index && other.archetypeLabel === item.archetypeLabel) assert.notEqual(titles[index], titles[otherIndex]);
       });
@@ -483,7 +477,7 @@ assert.match(standardMetaLandingSource, /<h1>Мета<\/h1>/);
   // The graph of an indexable archetype: the teaser's numbers as they are, the date of the data, no paid word.
   const graphFacts = {
     family: 'archetypes' as const, format: 'standard' as const, slug: 'pure-paladin', label: 'Чистый Паладин', englishName: 'Pure Paladin',
-    formatLabel: 'Стандарт', period: 'Баны', title: 'Чистый Паладин — колода Hearthstone, октябрь 2026 | HearthPulse',
+    formatLabel: 'Стандарт', period: 'Баны', title: 'Чистый Паладин — колода Hearthstone, октябрь 2026',
     description: 'Чистый Паладин в Стандарте (хс) на 29 октября 2026.', winrate: 51.2, popularity: 1.7, games: 53208,
     dateModified: '2026-10-29T11:00:03.937811+00:00', sourceUrl: 'https://www.hsguru.com/archetype/Pure%20Paladin',
   };
@@ -523,6 +517,85 @@ assert.match(standardMetaLandingSource, /<h1>Мета<\/h1>/);
   assert.equal(JSON.stringify(sparse).includes('isBasedOn'), false);
   // The old family is noindex: no graph.
   assert.equal(await archetypeStructuredDataGraph({ ...graphFacts, family: 'meta' }), null);
+}
+
+// ── Detail page titles and descriptions: one builder for Express, Next and the browser ──
+{
+  type CardFixture = { id: string; format: 'standard' | 'wild'; name: string; text: string };
+  type SkinFixture = { id: string; name: string; class: string; rarity: string };
+  const catalog = JSON.parse(readFileSync(new URL('./fixtures/seo-title-catalog.json', import.meta.url), 'utf8')) as {
+    cards: CardFixture[]; heroSkins: SkinFixture[]; coins: string[]; pets: string[];
+  };
+  const unique = (values: string[], label: string) => {
+    const repeated = values.filter((value, index) => values.indexOf(value) !== index);
+    assert.deepEqual(repeated, [], `${label} must not repeat`);
+  };
+
+  // A card: the first variant that fits 60 characters; the format and the ID stay in every one.
+  assert.equal(constructedCardTitle({ name: 'Ягуар', id: 'BE_572', format: 'standard' }),
+    'Ягуар — карта Hearthstone (Стандарт, BE_572) | HearthPulse');
+  assert.equal(constructedCardTitle({ name: 'Огненный шар', id: 'CORE_CS2_029', format: 'standard' }),
+    'Огненный шар — карта Hearthstone (Стандарт, CORE_CS2_029)', 'the brand goes first');
+  assert.equal(constructedCardTitle({ name: 'Огненный шар', id: 'CORE_CS2_029', format: 'wild' }),
+    'Огненный шар — карта (Вольный формат, CORE_CS2_029)', 'then the filler words');
+  const titles = catalog.cards.map(card => ({ card, title: constructedCardTitle(card) }));
+  for (const { card, title } of titles) {
+    assert.ok(title.length <= 60, `${title.length}: ${title}`);
+    assert.ok(title.startsWith(card.name) && title.includes(card.id), title);
+    assert.ok(title.includes(card.format === 'wild' ? 'Вольный' : 'Стандарт'), `the format stays in: ${title}`);
+  }
+  unique(titles.map(({ title }) => title), 'card titles of the catalog sample');
+  // The same card in both formats is two pages with two titles and two descriptions, even under a long rules text.
+  const longRules = 'Боевой клич: '.concat('добавьте в руку случайную карту и получите бонус. '.repeat(8));
+  for (const id of ['CORE_CS2_029', 'EX1_001_with_a_long_identifier_of_a_card']) {
+    const standard = { name: 'Очень длинное название карты Хартстоуна', id, rulesText: longRules };
+    assert.notEqual(constructedCardTitle({ ...standard, format: 'standard' }), constructedCardTitle({ ...standard, format: 'wild' }));
+    assert.notEqual(constructedCardDescription({ ...standard, format: 'standard' }), constructedCardDescription({ ...standard, format: 'wild' }));
+  }
+  const descriptions = catalog.cards.map(card => constructedCardDescription({ ...card, rulesText: card.text }));
+  for (const description of descriptions) assert.ok(description.length >= 70 && description.length <= 160, `${description.length}: ${description}`);
+  unique(descriptions, 'card descriptions of the catalog sample (reprints share name and text, not the ID)');
+  assert.ok(constructedCardDescription({ name: 'Монетка', id: 'GAME_005', format: 'wild' }).length >= 70, 'a card without rules text');
+
+  // A property over any name: it fits, or even the shortest variant cannot hold it.
+  assertProperty(fc.property(fc.string({ minLength: 1, maxLength: 80 }), name => {
+    const title = constructedCardTitle({ name, id: 'CORE_X_1', format: 'wild' });
+    assert.ok(title.length <= 60 || title === `${name} (Вольный, CORE_X_1)`, title);
+  }));
+
+  // Cosmetics: skins share names across classes and versions, so a hero skin keeps its class and ID.
+  const skinTitles = catalog.heroSkins.map(skin => cosmeticTitle({ kind: 'heroes', name: skin.name, id: skin.id, className: skin.class }));
+  const skinDescriptions = catalog.heroSkins.map(skin => cosmeticDescription({
+    kind: 'heroes', name: skin.name, id: skin.id, className: skin.class, rarity: skin.rarity }));
+  for (const [index, title] of skinTitles.entries()) {
+    assert.ok(title.length <= 60 && title.startsWith(catalog.heroSkins[index].name) && title.includes(catalog.heroSkins[index].id), title);
+    assert.ok(skinDescriptions[index].length >= 70 && skinDescriptions[index].length <= 160, skinDescriptions[index]);
+    assert.ok(skinDescriptions[index].includes(catalog.heroSkins[index].name), 'a skin description names the skin');
+  }
+  unique(skinTitles, 'hero skin titles');
+  unique(skinDescriptions, 'hero skin descriptions');
+  assert.equal(cosmeticTitle({ kind: 'heroes', name: 'Нова', id: 'HERO_09x', className: 'Жрец' }),
+    'Нова — скин героя (Жрец, HERO_09x) | HearthPulse');
+  assert.equal(cosmeticTitle({ kind: 'heroes', name: 'Тюремщик Старого города', id: 'HERO_11bv', className: 'Рыцарь смерти' }),
+    'Тюремщик Старого города — скин героя (HERO_11bv)', 'the class goes before the ID');
+  const coinTitles = catalog.coins.map(name => cosmeticTitle({ kind: 'coins', name }));
+  const petTitles = catalog.pets.map(name => cosmeticTitle({ kind: 'pets', name }));
+  for (const title of [...coinTitles, ...petTitles]) assert.ok(title.length <= 60, title);
+  unique(coinTitles, 'coin titles');
+  unique(petTitles, 'pet titles');
+  assert.ok(coinTitles[0].includes('монета') && petTitles[0].includes('питомец'), 'the title names the kind');
+  assert.notEqual(cosmeticDescription({ kind: 'coins', name: 'Золотая монета' }), cosmeticDescription({ kind: 'pets', name: 'Золотая монета' }));
+
+  // Battlegrounds cards and guides: the brand and the filler go first, the archive says so.
+  assert.equal(battlegroundCardTitle({ name: 'Хромакрылая тень', type: 'Существо' }), 'Хромакрылая тень — существо Полей сражений | HearthPulse');
+  assert.equal(battlegroundCardTitle({ name: 'Хромакрылая тень', type: 'Существо', archive: true }),
+    'Хромакрылая тень — существо Полей сражений (архив)');
+  assert.equal(battlegroundCardTitle({ name: 'Ягуар', type: 'Существо', archive: true }), 'Ягуар — существо Полей сражений (архив) | HearthPulse');
+  const longBgName = 'Электрический синтезатор повышенной мощности';
+  assert.ok(battlegroundCardTitle({ name: longBgName, type: 'заклинание', archive: true }).length <= 60);
+  assert.equal(brandedTitle('Гайд по колоде'), 'Гайд по колоде | HearthPulse');
+  assert.equal(brandedTitle('Подробный гайд по колоде Охотника на демонов для начинающих игроков'),
+    'Подробный гайд по колоде Охотника на демонов для начинающих игроков', 'a long title loses the brand');
 }
 
 console.log(`SEO registry assertions passed (${pages.length} pages, ${sitemapPages.length} sitemap URLs)`);

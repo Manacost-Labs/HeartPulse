@@ -1044,7 +1044,7 @@ const authenticatedRoutes = [
   { path: '/battlegrounds/tier-list?list=spells', expected: 'Тир-лист заклинаний', selector: '.bg-tier-list-page', tour: { minSteps: 2 } },
   { path: '/heroes', expected: 'Контрольный герой', selector: '.battleground-hero-card', tour: { expectedSteps: 3 } },
   { path: '/heroes/9001', expected: 'Контрольный герой', selector: '.bg-hero-detail-page', tour: { minSteps: 5 } },
-  { path: '/library', expected: 'Библиотека Полей Сражений', selector: '.bg-library-page', tour: { expectedSteps: 4 } },
+  { path: '/library', expected: 'Библиотека Полей сражений', selector: '.bg-library-page', tour: { expectedSteps: 4 } },
   { path: '/library/minions/kontrolnoe-sushchestvo-9101', expected: 'Контрольное существо', selector: '.bg-library-detail-page', tour: { expectedSteps: 4 } },
   { path: '/battlegrounds/strategies', expected: 'Готовые сборки', selector: '[data-tour-id="bg-strategy-builder-presets"]', tour: { expectedSteps: 7 } },
   { path: '/battlegrounds/tier-builder', expected: 'Поиск по картам', selector: '[data-tour-id="bg-tier-builder-board"]', tour: { expectedSteps: 7 } },
@@ -3654,7 +3654,7 @@ for (const [device, viewport] of [
       };
     });
     if (constructedCardsState.cards !== 8 || constructedCardsState.filters < 8 || constructedCardsState.menuLinks < 1
-      || !constructedCardsState.controlsVisible || constructedCardsState.rankText.trim() !== 'Карты'
+      || !constructedCardsState.controlsVisible || constructedCardsState.rankText.trim() !== 'Карты Hearthstone'
       || constructedCardsState.coveragePresent || constructedCardsState.resultsHeaderPresent
       || constructedCardsState.formatControls !== 1 || constructedCardsState.setMetricLabels !== 8 || constructedCardsState.defaultSort !== 'Новые дополнения'
       || constructedCardsState.formatIcons !== 2 || constructedCardsState.formatLabels.join(',') !== 'Стандарт,Вольный'
@@ -5373,7 +5373,7 @@ for (const [device, viewport] of [
   });
   try {
     await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.$eval('[data-home-deferred-section="Последние статьи"]', element => element.scrollIntoView({ block: 'center' }));
+    await page.$eval('[data-home-deferred-section="Подборка статей"]', element => element.scrollIntoView({ block: 'center' }));
     await page.waitForSelector('[data-home-error]', { visible: true, timeout: 15_000 });
     await page.waitForSelector('.home-bg-directory', { visible: true });
     await page.waitForSelector('.home-arena-directory', { visible: true });
@@ -5391,7 +5391,7 @@ for (const [device, viewport] of [
         horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth,
       };
     });
-    if (!recoveryState.text.includes('Последние статьи')
+    if (!recoveryState.text.includes('Подборка статей')
       || recoveryState.role !== 'alert'
       || recoveryState.minHeight !== '288px'
       || recoveryState.buttonHeight < 44

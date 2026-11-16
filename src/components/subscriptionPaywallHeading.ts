@@ -13,7 +13,7 @@ export function subscriptionPaywallHeading(
 ): string {
   const normalizedPath = pathname?.replace(/\/$/, '') || '/';
   if (normalizedPath === '/tierlist') return 'Тир-лист карт';
-  if (normalizedPath === '/battlegrounds/tier-list') return 'Тир-лист БГ';
+  if (normalizedPath === '/battlegrounds/tier-list') return 'Тир-лист Полей сражений';
   if (ENTITY_DETAIL_PATH.test(normalizedPath)) return entityNameFromDocumentTitle(documentTitle) ?? title;
   return title;
 }

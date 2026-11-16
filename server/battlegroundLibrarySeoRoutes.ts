@@ -1,4 +1,5 @@
 import { Router, type Request, type RequestHandler, type Response } from 'express';
+import { battlegroundCardTitle } from '../shared/entityPageTitles.js';
 import { extractConstructedCardFrontendAssets } from './constructedCardSeoRoutes.js';
 import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
 import { shareImageUrl } from '../shared/shareImages.js';
@@ -352,7 +353,7 @@ function renderCardDocument(
   const path = `/library/${kindPath(card.kind)}/${canonicalBattlegroundCardSlug(card.nameRu)}-${card.dbfId}`;
   const canonical = new URL(`${path}/`, origin).href;
   const image = safePrimaryImageUrl(card.images.card ?? card.images.framed, origin);
-  const title = `${card.nameRu} — ${kindTitle(card.kind)} Полей сражений Hearthstone | HearthPulse`;
+  const title = battlegroundCardTitle({ name: card.nameRu, type: kindTitle(card.kind) });
   const description = descriptionForCard(card);
   const structuredData = buildEntityStructuredData({
     canonical, title, description, origin, image, entityFragment: 'card',
@@ -414,8 +415,8 @@ function renderCardDocument(
       ${galleryHtml}
       <nav class="bg-library-seo__links" aria-label="Связанные разделы">
         <a href="/library/${kindPath(card.kind)}/">Библиотека ${card.kind === 'minion' ? 'существ' : 'заклинаний'}</a>
-        <a href="/battlegrounds/tier-list/">Тир-лист БГ</a>
-        <a href="/heroes/">Герои БГ</a>
+        <a href="/battlegrounds/tier-list/">Тир-лист Полей сражений</a>
+        <a href="/heroes/">Герои Полей сражений</a>
       </nav>
     </main>`;
   return renderDocument({

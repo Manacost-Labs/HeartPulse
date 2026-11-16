@@ -318,7 +318,7 @@ function Pagination({ page, totalPages, total, perPage, onPage }: { page: number
   );
 }
 
-function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigatePath, statsAccess, statsAccessLoading, statsAccessUnavailable, authUser, onRefreshSubscription }: Pick<StandardCardsProps, 'initialCatalog' | 'initialSearch' | 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'statsAccessUnavailable' | 'authUser' | 'onRefreshSubscription'> & { initialFormat: CardFormat }) {
+function CardsListPage({ initialFormat, isLibraryRoot, initialCatalog, initialSearch, navigatePath, statsAccess, statsAccessLoading, statsAccessUnavailable, authUser, onRefreshSubscription }: Pick<StandardCardsProps, 'initialCatalog' | 'initialSearch' | 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'statsAccessUnavailable' | 'authUser' | 'onRefreshSubscription'> & { initialFormat: CardFormat; isLibraryRoot: boolean }) {
   const { state, update, updateFilter, reset, clearSearch } = useCatalogLocation(initialFormat, initialSearch);
   const { format, period, rank, view, filters, perPage } = state;
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
@@ -356,7 +356,7 @@ function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigateP
 
   return (
     <div className="constructed-cards">
-      <ConstructedCardsBanner />
+      <ConstructedCardsBanner title={isLibraryRoot ? 'Карты Hearthstone' : `Карты Hearthstone: ${format === 'wild' ? 'Вольный формат' : 'Стандарт'}`} />
 
       <section className="constructed-cards__controls" aria-label="Фильтры библиотеки карт" data-loading={loading || undefined}>
         <ConstructedCardCatalogSearch
@@ -463,5 +463,6 @@ function CardsListPage({ initialFormat, initialCatalog, initialSearch, navigateP
 
 /** The card catalog; the card page is the separate StandardCardDetail bundle. */
 export default function StandardCards(props: StandardCardsProps) {
-  return <CardsListPage initialFormat={routeState(props.currentPath).format} {...props} />;
+  return <CardsListPage initialFormat={routeState(props.currentPath).format}
+    isLibraryRoot={/^\/standard\/cards\/?$/.test(props.currentPath.replace(/[?#].*$/, ''))} {...props} />;
 }

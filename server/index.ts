@@ -3637,7 +3637,7 @@ function requireEntitlementAccess(entitlement: SubscriptionEntitlementKey | null
 }
 
 const requireArenaAccess = requireEntitlementAccess('arena', 'разделам Арены');
-const requireBattlegroundsAccess = requireEntitlementAccess('battlegrounds', 'разделам Полей Сражений');
+const requireBattlegroundsAccess = requireEntitlementAccess('battlegrounds', 'разделам Полей сражений');
 const requireStandardAccess = requireEntitlementAccess('standard', 'разделу Стандарт');
 const requireGuidesArchiveAccess = requireEntitlementAccess('guidesArchive', 'архиву гайдов');
 
@@ -5391,7 +5391,7 @@ async function loadBattlegroundSpotlightForHomeSummary() {
 
     return {
       dbfId: Number(selected.hero.dbfId),
-      name: String(selected.hero.hero || 'Герой Полей Сражений'),
+      name: String(selected.hero.hero || 'Герой Полей сражений'),
       image: String(selected.hero.image || ''),
       tier: String(selected.hero.tier || '—'),
       avgPlacement: selected.avgPlacement,

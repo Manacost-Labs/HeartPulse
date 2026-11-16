@@ -195,7 +195,7 @@ try {
   assert.equal(occurrences(html, /<link rel="canonical"/gi), 1);
   assert.equal(occurrences(html, /<h1(?:\s[^>]*)?>/gi), 1);
   assert.match(html, /<html lang="ru">/);
-  assert.match(html, /<title>Баюбот alert\(&quot;x&quot;\) — существо Полей сражений Hearthstone \| HearthPulse<\/title>/);
+  assert.match(html, /<title>Баюбот alert\(&quot;x&quot;\) — существо Полей сражений \| HearthPulse<\/title>/);
   assert.match(html, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/library\/minions\/%D0%B1%D0%B0%D1%8E%D0%B1%D0%BE%D1%82-alert-x-98582\/">/);
   assert.match(html, /<meta property="og:type" content="website">/);
   assert.match(html, /<meta property="og:site_name" content="HearthPulse">/);
@@ -210,8 +210,8 @@ try {
   assert.match(html, /<dt>Атака<\/dt><dd>2<\/dd>/);
   assert.match(html, /<dt>Здоровье<\/dt><dd>2<\/dd>/);
   assert.match(html, /<dt>Статус<\/dt><dd>В активном пуле<\/dd>/);
-  assert.match(html, /href="\/battlegrounds\/tier-list\/">Тир-лист БГ<\/a>/);
-  assert.match(html, /href="\/heroes\/">Герои БГ<\/a>/);
+  assert.match(html, /href="\/battlegrounds\/tier-list\/">Тир-лист Полей сражений<\/a>/);
+  assert.match(html, /href="\/heroes\/">Герои Полей сражений<\/a>/);
   assert.match(html, /Магнетизм/);
   assert.equal(occurrences(html, />Магнетизм</g), 1, 'duplicate mechanics must collapse');
   assert.match(html, /Магнетизм\. В конце хода получает \+1 к здоровью\./);

@@ -19,8 +19,11 @@ async function catalogSearch(searchParams: CatalogSearch) {
   return query.toString();
 }
 export async function catalogMetadata(format: CardFormat, pathname: string, searchParams: CatalogSearch): Promise<Metadata> {
-  const title = `Карты Hearthstone — ${format === 'wild' ? 'Вольный формат' : 'Стандарт'} | HearthPulse`;
-  const description = 'Библиотека карт Hearthstone: поиск, дополнения, классы, характеристики и статистика.';
+  const wild = format === 'wild';
+  const title = `Карты Hearthstone — ${wild ? 'Вольный формат' : 'Стандарт'} | HearthPulse`;
+  const description = wild
+    ? 'Все карты Вольного формата Hearthstone: поиск, дополнения, классы, характеристики и статистика карт.'
+    : 'Все карты Стандарта Hearthstone: поиск, дополнения, классы, характеристики и статистика карт.';
   const canonical = `https://hearthpulse.net${pathname}`;
   const policy = await resolvePublicUrlPolicy(pathname, await catalogSearch(searchParams));
   return { title, description, alternates: { canonical }, robots: policy.robots, openGraph: { title, description, url: canonical } };

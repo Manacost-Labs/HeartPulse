@@ -96,7 +96,7 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
         violations: (await axe.run(document,
           { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } })).violations.map(item => item.id),
       }));
-      assert.deepEqual(state.headings, ['Тир-лист БГ']);
+      assert.deepEqual(state.headings, ['Тир-лист Полей сражений']);
       assert.equal(state.canonical, 'https://hearthpulse.net/battlegrounds/tier-list/');
       assert.equal(state.teaser, true);
       assert.equal(state.overflow, false);

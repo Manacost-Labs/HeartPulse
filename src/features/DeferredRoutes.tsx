@@ -1376,7 +1376,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
 
   return (
     <div className="arena-tierlist-page">
-      <SectionBanner title="Тир-лист карт" subtitle="Оценки карт для каждого класса — текущий патч" />
+      <SectionBanner title="Тир-лист карт Арены Hearthstone" subtitle="Оценки карт для каждого класса — текущий патч" />
       <Breadcrumbs items={[
         { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
         { name: 'Тир-лист', href: '/tierlist/' },
@@ -1752,7 +1752,7 @@ export function Legendaries({ data, loading, error, onRetry, legendarySource, on
 
   return (
     <div className="arena-legendaries-page">
-      <SectionBanner title="Легендарки" subtitle="Наборы карт для выбора первой легендарки на Арене" />
+      <SectionBanner title="Легендарки Арены Hearthstone" subtitle="Наборы карт для выбора первой легендарки на Арене" />
       <Breadcrumbs items={[
         { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
         { name: 'Легендарки', href: '/legendaries/' },

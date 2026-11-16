@@ -2,6 +2,7 @@ import { Router, type RequestHandler, type Response } from 'express';
 import type { CosmeticKind, CosmeticsDataService } from './cosmeticsRoutes.js';
 import { buildCosmeticStructuredData } from '../shared/cosmeticsSeoStructuredData.js';
 import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
+import { cosmeticDescription, cosmeticTitle } from '../shared/entityPageTitles.js';
 
 type JsonRecord = Record<string, any>;
 
@@ -48,10 +49,14 @@ function text(value: unknown, maximum = 300): string | null {
 
 function detailProjection(kind: CosmeticKind, detail: JsonRecord) {
   if (kind === 'heroes') {
+    const name = text(detail?.name?.ru) ?? text(detail?.name?.en) ?? text(detail?.cardId) ?? 'Скин героя';
+    const id = text(detail?.cardId) ?? undefined;
+    const className = text(detail?.class?.nameRu);
     return {
-      name: text(detail?.name?.ru) ?? text(detail?.name?.en) ?? text(detail?.cardId) ?? 'Скин героя',
+      name,
       englishName: text(detail?.name?.en),
-      description: `Скин героя Hearthstone: ${text(detail?.class?.nameRu) ?? 'класс не указан'}, ${text(detail?.rarity?.nameRu) ?? 'редкость не указана'}. Анимация, полный арт и звуковые дорожки.`,
+      title: cosmeticTitle({ kind, name, id, className }),
+      description: cosmeticDescription({ kind, name, id, className, rarity: text(detail?.rarity?.nameRu) }),
       image: text(detail?.images?.static ?? detail?.images?.fullArt, 2_000),
       typeLabel: 'Скин героя',
     };
@@ -61,7 +66,8 @@ function detailProjection(kind: CosmeticKind, detail: JsonRecord) {
     return {
       name,
       englishName: null,
-      description: `Косметическая монета Hearthstone «${name}»: изображение карты, crop-арт и связанные карты.`,
+      title: cosmeticTitle({ kind, name }),
+      description: cosmeticDescription({ kind, name }),
       image: text(detail?.images?.crop ?? detail?.images?.card, 2_000),
       typeLabel: 'Косметическая монета',
     };
@@ -70,7 +76,8 @@ function detailProjection(kind: CosmeticKind, detail: JsonRecord) {
   return {
     name,
     englishName: null,
-    description: `Питомец Hearthstone «${name}»: карточка, End Screen, дополнительные арты и другие раскраски семейства.`,
+    title: cosmeticTitle({ kind, name }),
+    description: cosmeticDescription({ kind, name }),
     image: text(detail?.images?.card ?? detail?.images?.endScreen, 2_000),
     typeLabel: 'Питомец',
   };
@@ -118,14 +125,13 @@ function renderDetailDocument(options: {
 }) {
   const projection = detailProjection(options.kind, options.detail);
   const canonical = `${options.origin}/cosmetics/${options.kind}/${encodeURIComponent(options.cardId)}/`;
-  const title = `${projection.name} — косметика Hearthstone | HearthPulse`;
   const image = sameOriginPublicResourceUrl(projection.image, options.origin);
   const structuredData = buildCosmeticStructuredData({
     origin: options.origin, kind: options.kind, cardId: options.cardId, dbf: options.detail?.dbf,
     name: projection.name, englishName: projection.englishName, description: projection.description, image,
   });
   return baseDocument({
-    title,
+    title: projection.title,
     description: projection.description,
     robots: INDEX_ROBOTS,
     canonical,

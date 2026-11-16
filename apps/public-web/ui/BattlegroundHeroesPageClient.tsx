@@ -17,6 +17,10 @@ export function BattlegroundHeroesPageClient() {
       <header className="traditional-mode-banner">
         <div className="traditional-mode-banner__copy">
           <h1>Герои Полей сражений</h1>
+          <p>Способности героев и тиры.</p>
+          <div className="traditional-mode-banner__related">
+            <a href="/battlegrounds/tier-list/">Тир-лист Полей сражений</a>
+          </div>
         </div>
       </header>
       {allowed

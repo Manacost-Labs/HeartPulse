@@ -5,7 +5,7 @@ import { SHARE_IMAGE_HEIGHT, SHARE_IMAGE_WIDTH, shareImagePath } from '@/shared/
 import { searchParamsQuery } from './searchParams';
 
 const headings: Record<string, string> = {
-  '/library': 'Библиотека Полей Сражений',
+  '/library': 'Библиотека Полей сражений',
   '/library/minions': 'Существа Полей сражений',
   '/library/spells': 'Заклинания Полей сражений',
   '/library/anomalies': 'Аномалии Полей сражений',

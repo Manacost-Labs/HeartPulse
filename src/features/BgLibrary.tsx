@@ -5,6 +5,7 @@ import { createBattlegroundLibraryResource, fetchBattlegroundMinionStats, useBat
 import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
+import { battlegroundCardTitle } from '../../shared/entityPageTitles';
 import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import { publicResourceImageUrl, publicResourceUrl } from '../publicResourceUrl';
 import { CardVariantImages, CardVariantSwitch } from '../shared/ui/CardVariantSwitch';
@@ -942,9 +943,9 @@ function LibraryListPage({ kind, pool, navigatePath, cacheScope }: { kind: Libra
     const kindLabel = kind === 'spell' ? 'заклинаний' : 'существ';
     const title = isBaseLibraryKind(kind)
       ? (pool === 'archive'
-        ? `Архив ${kindLabel} Полей сражений — BG Hearthstone | HearthPulse`
-        : `${kind === 'spell' ? 'Заклинания' : 'Существа'} Полей сражений — библиотека BG Hearthstone | HearthPulse`)
-      : `${pool === 'archive' ? 'Архив · ' : ''}${section.title} Полей сражений — BG Hearthstone | HearthPulse`;
+        ? `Архив ${kindLabel} Полей сражений Hearthstone | HearthPulse`
+        : `${kind === 'spell' ? 'Заклинания' : 'Существа'} Полей сражений: библиотека | HearthPulse`)
+      : `${pool === 'archive' ? 'Архив · ' : ''}${section.title} Полей сражений | HearthPulse`;
     const description = pool === 'archive' ? section.archiveDescription : section.description;
     setLibraryMeta(title, description, sectionHref(kind, pool));
   }, [kind, pool]);
@@ -1054,7 +1055,7 @@ function LibraryListPage({ kind, pool, navigatePath, cacheScope }: { kind: Libra
 
   return (
     <div className="bg-library-page space-y-6 text-[#26374f]">
-      <SectionBanner title="Библиотека Полей Сражений" />
+      <SectionBanner title="Библиотека Полей сражений" />
       <p className="text-sm text-[#5e708a]">
         {pool === 'archive' ? 'Архив' : 'Актуальный пул'} · {activeSection.shortTitle}
       </p>
@@ -1169,7 +1170,6 @@ function DetailPage({ kind, pool, dbfId, navigatePath, teaser }: { kind: Library
     let alive = true;
     setLoading(true);
     setError('');
-    const section = sectionFor(kind);
     const cardRequest = isBaseLibraryKind(kind)
       ? fetchJson<LibraryCard>(versionedLibraryUrl(`/api/bg/library/cards/by-dbf/${dbfId}`))
       : fetchAuxiliaryLibraryCards(kind, pool, { dbf: dbfId, per_page: 1 }).then(items => {
@@ -1236,9 +1236,7 @@ function DetailPage({ kind, pool, dbfId, navigatePath, teaser }: { kind: Library
           setMinionStats('missing');
         }
         const loadedCardName = cardRuName(normalCard);
-        const title = pool === 'archive'
-          ? `${loadedCardName} — архив · ${section.shortTitle} BG Hearthstone | HearthPulse`
-          : `${loadedCardName} — ${section.shortTitle} BG Hearthstone | HearthPulse`;
+        const title = battlegroundCardTitle({ name: loadedCardName, type: kind === 'minion' ? 'существо' : kind === 'spell' ? 'заклинание' : 'карта', archive: pool === 'archive' });
         const description = pool === 'archive'
           ? `${loadedCardName}: архивная карта Полей сражений Hearthstone вне активного пула.`
           : `${loadedCardName}: ${cardGroupName(normalCard)}, ${cardRulesText(normalCard) || 'подробная карточка Полей сражений.'}`;

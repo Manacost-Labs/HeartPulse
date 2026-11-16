@@ -22,7 +22,7 @@ export function BattlegroundTierListPageClient() {
         <BattlegroundsTierListSearchIntro />
         {pending
           ? <PaywallPending>Проверяем доступ к тир-листу...</PaywallPending>
-          : <PaywallGate active title="Тир-лист БГ доступен подписчикам"
+          : <PaywallGate active title="Тир-лист Полей сражений доступен подписчикам"
             headingLevel="h2" authUser={access.user} subscriptionStatus={access.subscription}
             subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />}
       </section>}

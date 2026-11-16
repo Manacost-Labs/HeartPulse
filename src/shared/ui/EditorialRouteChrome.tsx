@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { type ReactNode } from 'react';
 
 export function Breadcrumbs({
   items,
@@ -53,16 +53,19 @@ export function SectionBanner({
   title,
   subtitle,
   titleId,
+  children,
 }: {
   title: string;
   subtitle?: string;
   titleId?: string;
+  children?: ReactNode;
 }) {
   return (
     <header className="section-banner-modern">
       <div className="traditional-mode-banner__copy">
         <h1 id={titleId}>{title}</h1>
         {subtitle && <p>{subtitle}</p>}
+        {children}
       </div>
     </header>
   );
