@@ -15,6 +15,15 @@ export async function readCatalog(format: CardFormat, url: string, signal?: Abor
 }
 
 type Catalog = Awaited<ReturnType<typeof readCatalog>>;
+
+/**
+ * The last good catalog is shown as the Express route does for its own: `dataStatus: 'stale'` and
+ * a `warning`, which the page prints as its data notice. The stored copy stays `fresh`.
+ */
+export const STALE_CATALOG_WARNING = 'Источник данных временно недоступен. Показывается последняя проверенная версия каталога.';
+export function markStaleCatalog(catalog: Catalog): Catalog {
+  return { ...catalog, dataStatus: 'stale', warning: catalog.warning ?? STALE_CATALOG_WARNING };
+}
 const STORE_KEY = Symbol.for('hearthpulse.defaultCatalogStore');
 
 /**
@@ -28,6 +37,6 @@ export function cachedCatalog(format: CardFormat, search: string): Promise<Catal
   holder[STORE_KEY] ??= createDefaultCatalogCache<Catalog>((key, signal) => {
     const split = key.indexOf('|');
     return readCatalog(key.slice(0, split) as CardFormat, key.slice(split + 1), signal);
-  });
+  }, Date.now, markStaleCatalog);
   return holder[STORE_KEY](`${format}|${catalogRequest(format, search)}`);
 }

@@ -29,10 +29,12 @@ type Entry<T> = { good?: { value: T; storedAt: number }; inflight?: Promise<void
  * source fails or is too slow the last good version is served (stale), and only
  * without one the read throws `CatalogUnavailableError`.
  */
-export function createDefaultCatalogCache<T>(read: (key: string, signal: AbortSignal) => Promise<T>, now = Date.now) {
+export function createDefaultCatalogCache<T>(read: (key: string, signal: AbortSignal) => Promise<T>, now = Date.now,
+  /** Presents the stored copy as stale; it must return a new value and leave the stored one untouched. */
+  markStale: (value: T) => T = value => value) {
   const entries = new Map<string, Entry<T>>();
   const stale = (entry: Entry<T>, error: unknown): T => {
-    if (entry.good && now() - entry.good.storedAt <= STALE_LIMIT_MS) return entry.good.value;
+    if (entry.good && now() - entry.good.storedAt <= STALE_LIMIT_MS) return markStale(entry.good.value);
     throw error instanceof CatalogUnavailableError ? error : new CatalogUnavailableError();
   };
   const start = (key: string, entry: Entry<T>) => {

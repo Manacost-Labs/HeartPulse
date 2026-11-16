@@ -1,40 +1,84 @@
-# Default public card catalog response cache
+# Public card catalog response cache
 
-The Next catalog loader owns two process-local entries: the validated anonymous
-Standard and Wild default seeds. A normalized API request matching the default
-shares its seed for 30 seconds after a successful read. This includes a switch
-between table and gallery, whose data request is identical.
+The Next catalog loader owns a bounded process-local store of validated
+anonymous catalog seeds and of the last good projection of each card. It
+belongs to the Node process (`globalThis`, `lib/defaultCatalogStore.ts`), so
+`proxy.ts` and the pages, which are bundled apart, see the same data. It is
+discarded on process or release restart.
 
-An in-flight default read is shared for at most ten seconds. The cache owns an
-independent settlement deadline and passes its AbortSignal to the transport;
-even a transport that ignores cancellation cannot keep every waiter pending.
-A timeout cancels and evicts that read, so the next request can recover. Late
-completion or failure from an expired read cannot alter a replacement entry.
-The completed seed's 30-second TTL still starts after successful validation.
-After expiry, the next request must read
-Express again; errors and invalid projections are never cached, and expired
-data never disguises an outage. Express requests retain their timeout and
-anonymous headers. No viewer cookies or paid statistics enter the cache.
-Filtered searches, non-default ranks/periods/sorts and later pages read Express
-directly. There is no unbounded map of user queries or persistent cache file.
-The cache is discarded on process/release restart. Source updates can appear
-up to 30 seconds later in an already warm default seed.
+## Catalog seeds
 
-`tests/next-public-card-seed.test.ts` verifies overlapping reads, reuse,
-format separation, expiry, outage visibility, stalled reads, late settlement
-and recovery. Existing Next pilot
-checks verify guest SSR, filters, empty results and retryable failures.
-Browser review compares full RSC navigation, history and pending feedback;
-no page transition, prefetch, document caching or permission policy changes.
+- Key: format plus the normalized API request. The default list of each
+  format, filtered, ranked, sorted and paged lists all have their own entry
+  (at most 100; the oldest idle entry goes first, an entry with a read in
+  flight is never dropped). A switch between table and gallery shares one
+  entry, because the data request is identical.
+- A successful read stays fresh for 30 seconds. No viewer cookies or paid
+  statistics enter the store; Express requests keep their anonymous headers.
+  Errors and invalid projections are never stored as data.
+- Response deadline, 2 seconds (`CATALOG_READ_DEADLINE_MS`): a caller waits
+  for Express that long. The read itself goes on for up to 10 seconds and
+  warms the entry when it succeeds, so a slow but live Express costs one slow
+  answer, not an outage. Callers arriving within the 2 seconds join the read
+  in flight; one that has already missed its deadline is not joined again, so
+  a recovered source is tried at once.
+- On a failure or a missed deadline the last good version of that key is
+  served for up to 6 hours. It is a new projection with `dataStatus: stale`
+  and a `warning` (the same fields the Express route uses for its own LKG),
+  so the page prints its existing data notice; the stored copy stays `fresh`.
+  While such a copy exists, a failed source is left alone for 5 seconds
+  before the next try. With no stored version, the read throws
+  `CatalogUnavailableError` and every visit tries Express again.
+- `proxy.ts` probes the same store for catalog documents
+  (`/standard/cards/`, `/standard/cards/{standard,wild}/`, with their query).
+  Without any version the answer is `503` with `Retry-After` and no
+  `noindex`, as a page component cannot set a status. The probe is skipped for
+  script fetches, told by `rsc: 1` or `Sec-Fetch-Dest: empty`, so a menu
+  prefetch or client-side navigation gets the in-app error state instead of a
+  503 in the console.
 
-Documentation impact: this spec, `apps/public-web/README.md` and `CHANGELOG.md`.
+## Cards
+
+`proxy.ts` reads the card projection for at most 2 seconds. The read goes on
+(up to 10 seconds) and keeps the last good projection of up to 500 cards for 6
+hours (`lib/cardLastGood.ts`, projections over 256 KiB are not kept). That
+copy is independent of the 4 KiB request header that normally hands the
+projection to the page; the page reads Express for 2 seconds and then the
+same copy when the header could not carry it. A card seed holds only static
+facts (name, text, stats `null`), so it has no freshness field to mark. With
+no copy, the answer is a `503` with `Retry-After` and no `noindex`, in the
+header and in the HTML. A `404` stays `noindex`.
+
+## Edge
+
+nginx adds no `X-Robots-Tag: noindex, nofollow` to a `503` on
+`/standard/cards/*` (`$arena_next_cards_robots_header`), so a crawler comes
+back after `Retry-After` instead of dropping the page. Other statuses and all
+other Next routes keep their policy.
+
+## Verification
+
+- `tests/next-public-card-seed.test.ts`: overlapping reads, reuse, format
+  separation, expiry, the last good copy through an outage, the stale
+  projection (`stale` plus warning, stored copy `fresh`), the 2-second
+  deadline, a late answer warming the entry, backoff, the 6-hour limit.
+- `tests/next-card-detail-proxy.test.mjs`: a stalled or slow Express against
+  the real Next server: last good card and catalog within 2 seconds, 503
+  without noindex and without a last good version, filtered and paged
+  addresses, a card over the header limit.
+- `tests/nginx-html-routing.test.mjs`: real nginx, 503 of the card pages
+  without noindex, the deck builder unchanged.
+- Existing Next pilot checks cover guest SSR, filters, empty results and
+  retryable failures; the browser suites cover navigation and prefetch.
+
+Documentation impact: this spec, `apps/public-web/README.md`,
+`deploy/nginx/README.md` and `changelog.d/`.
 
 The backend's anonymous catalog reader now skips statistics retrieval and
 history recording. Entitled browser requests retain the full statistics reader
 and its separate cache. The anonymous `updatedAt` describes catalog publication;
 period/rank descriptors remain available. This removes an unrelated source
-from the SSR critical path without extending the 30-second seed lifetime or
-serving an expired seed after a failure.
+from the SSR critical path.
 
 ## Backend identity refresh
 
@@ -62,9 +106,10 @@ that was verified minutes earlier. HTTP 4xx pages are not retried. A page that
 fails twice still produces the `stale`/`LKG` result above. The failure reason
 is logged as `[constructed-cards] <format> catalog refresh failed`.
 
-The Next seed's separate 30-second lifetime and validation stay unchanged.
-It never renews an expired seed on failure; any backend LKG result arrives
-through a new validated read with truthful source metadata.
+The Next seed keeps its own 30-second freshness and validation. When Express
+itself cannot be read, Next serves its stored copy marked stale (see above);
+a backend LKG result arrives through a new validated read with truthful source
+metadata.
 
 ## Express read deadlines
 

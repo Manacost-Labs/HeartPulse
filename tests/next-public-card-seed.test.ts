@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { publicCardSeed } from '../apps/public-web/lib/publicCardSeed';
 import { publicCatalogSeed } from '../apps/public-web/lib/publicCatalogSeed';
+import { markStaleCatalog, STALE_CATALOG_WARNING } from '../apps/public-web/lib/defaultCatalogStore';
+import { lastGoodCardProjection, rememberCardProjection } from '../apps/public-web/lib/cardLastGood';
 const seed = publicCardSeed({ card: { id: 'CARD_1', name: '<script>test</script>', image: 'https://hearthpulse.net/arena-logo-icon.webp', stats: { private: 53 } }, account: 'PRIVATE_ACCOUNT', decks: ['PRIVATE_DECK'] }, 'CARD_1');
 assert.equal(seed.card_id, 'CARD_1');
 assert.equal(seed.images.card, '/arena-logo-icon.webp');
@@ -136,4 +138,40 @@ test('a slow but live source costs one 503, then the late answer serves the next
   await new Promise(resolve => setImmediate(resolve));
   assert.equal(await recover('standard'), 'late but good', 'the late answer warmed the cache');
   assert.equal(calls, 1);
+});
+
+test('an outage shows the last good catalog as stale with a warning, and the stored copy stays fresh', async () => {
+  let time = 0;
+  let up = true;
+  const recover = createDefaultCatalogCache(async () => {
+    if (!up) throw new Error('down');
+    return publicCatalog;
+  }, () => time, markStaleCatalog);
+  const fresh = await recover('wild');
+  assert.equal(fresh.dataStatus, 'fresh');
+  assert.equal(fresh.warning, null);
+  up = false;
+  time = 31_000;
+  const fallback = await recover('wild');
+  assert.equal(fallback.dataStatus, 'stale', 'the visitor is told the catalog is old, as the Express route does');
+  assert.equal(fallback.warning, STALE_CATALOG_WARNING);
+  assert.equal(fallback.statsAccess, false, 'the stale projection stays anonymous');
+  assert.notEqual(fallback, publicCatalog, 'a new projection, not the stored object');
+  assert.equal(publicCatalog.dataStatus, 'fresh', 'the original good copy is not mutated');
+  assert.equal(publicCatalog.warning, null);
+  up = true;
+  time = 40_000;
+  assert.equal((await recover('wild')).dataStatus, 'fresh', 'a recovered source is shown as fresh again');
+  assert.equal(markStaleCatalog({ ...publicCatalog, warning: 'Источник: своё предупреждение' }).warning, 'Источник: своё предупреждение',
+    'a warning that Express already set is kept');
+});
+
+test('the last good card projection is returned as stored and never altered by its readers', () => {
+  const projection = { card: { id: 'CARD_LKG', name: 'Карта' }, classCode: 'MAGE', dbf: 1 };
+  const before = JSON.stringify(projection);
+  rememberCardProjection('standard', 'CARD_LKG', projection);
+  const seed = publicCardSeed(lastGoodCardProjection('standard', 'CARD_LKG'), 'CARD_LKG');
+  assert.equal(seed.name.ru, 'Карта');
+  assert.equal(JSON.stringify(projection), before);
+  assert.equal(Object.hasOwn(seed, 'dataStatus'), false, 'a card seed carries only static facts, so it has no freshness to mark');
 });
