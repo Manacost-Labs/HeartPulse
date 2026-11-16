@@ -69,27 +69,60 @@ export function createTwitchChannelRevoker(dependencies: TwitchChannelRevokerDep
  * Revocation by site account, for the places that block or delete accounts.
  * The application API refuses a blocked or deleted account before any Twitch
  * route sees its request, so nothing here can wait for the app to come back.
+ *
+ * Both places call in from inside their database transaction, which may still
+ * roll back. So nothing is revoked at the call: the work is deferred until the
+ * synchronous transaction is over (`defer`, a microtask) and then asks the
+ * database what happened. A rolled-back block or delete finds the account
+ * active or the link in place and sends nothing.
  */
 export function createTwitchAccountRevoker(dependencies: {
   links: Pick<TwitchLinkRepository, 'find' | 'all'>;
   revoke: ReturnType<typeof createTwitchChannelRevoker>;
+  accountActive: (userId: string) => boolean;
+  /** Runs `work` once the caller's synchronous transaction has committed or rolled back. */
+  defer?: (work: () => void) => void;
 }) {
+  const defer = dependencies.defer ?? queueMicrotask;
+  // Blocked accounts whose channel was already cleared: saving a blocked account again clears nothing.
+  const cleared = new Set<string>();
   return {
-    /** The account was blocked: its link stays, its channel is taken away. */
+    /** The account is being blocked: its link stays, its channel is taken away once the block is committed. */
     account(userId: string): void {
-      const link = dependencies.links.find(userId);
-      if (link) dependencies.revoke(link.twitchUserId, 'ended');
+      defer(() => {
+        if (dependencies.accountActive(userId)) {
+          cleared.delete(userId);
+          return;
+        }
+        const link = dependencies.links.find(userId);
+        if (!link || cleared.has(userId)) return;
+        cleared.add(userId);
+        dependencies.revoke(link.twitchUserId, 'ended');
+      });
+    },
+    /** The account is active (it published or was seen so): a later block clears its channel again. */
+    seenActive(userId: string): void {
+      cleared.delete(userId);
     },
     /**
      * Every account but these is about to be deleted. Call it before the
      * delete: the links go by cascade, and after it nobody knows which channel
-     * to clear.
+     * to clear. The channels are read now and cleared once the delete is
+     * committed, each only if its link is really gone.
      */
     accountsOutside(keepUserIds: readonly string[]): void {
+      const links = dependencies.links.all();
+      if (links.length === 0) return;
       const keep = new Set(keepUserIds);
-      for (const link of dependencies.links.all()) {
-        if (!keep.has(link.userId)) dependencies.revoke(link.twitchUserId, 'ended');
-      }
+      const doomed = links.filter(link => !keep.has(link.userId));
+      if (doomed.length === 0) return;
+      defer(() => {
+        for (const link of doomed) {
+          if (dependencies.links.find(link.userId)) continue;
+          cleared.delete(link.userId);
+          dependencies.revoke(link.twitchUserId, 'ended');
+        }
+      });
     },
   };
 }

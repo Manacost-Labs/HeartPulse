@@ -51,8 +51,10 @@ type RegisterTwitchExtensionDependencies = {
  * account store in `server/index.ts`) take the account's channel away through
  * these two. They are module-level because those places are defined long
  * before the extension is registered; before that, and without a link, both
- * do nothing. A failure is logged and never reaches the caller: saving
- * accounts must not depend on the Twitch extension.
+ * do nothing. Both are called inside a database transaction: the channel is
+ * cleared only after it, and only if the block or the delete was committed
+ * (`createTwitchAccountRevoker`). A failure is logged and never reaches the
+ * caller: saving accounts must not depend on the Twitch extension.
  */
 let accounts: ReturnType<typeof createTwitchAccountRevoker> | null = null;
 const guarded = (operation: string, work: () => void): void => {
@@ -62,7 +64,7 @@ const guarded = (operation: string, work: () => void): void => {
     console.warn(`[twitch-extension] ${operation} failed:`, error instanceof Error ? error.message : 'unknown error');
   }
 };
-/** The account has just been blocked. */
+/** The account is being blocked. */
 export const revokeTwitchAccount = (userId: string): void => guarded('revoke-account', () => accounts?.account(userId));
 /** Every account but these is about to be deleted; call it before the delete, while the links still exist. */
 export const revokeTwitchAccountsOutside = (keepUserIds: readonly string[]): void => (
@@ -88,14 +90,26 @@ export function registerTwitchExtension(dependencies: RegisterTwitchExtensionDep
     `[twitch-extension] ${scope} failed:`,
     error instanceof Error ? error.message : 'unknown error',
   );
-  accounts = createTwitchAccountRevoker({ links, revoke: createTwitchChannelRevoker({ live, twitch, onError }) });
+  const revoker = createTwitchAccountRevoker({
+    links,
+    revoke: createTwitchChannelRevoker({ live, twitch, onError }),
+    accountActive: dependencies.accountActive,
+    defer: work => queueMicrotask(() => guarded('revoke-after-transaction', work)),
+  });
+  accounts = revoker;
+  // Every request of an account passes this check; an active one may be cleared again at its next block.
+  const accountActive = (userId: string) => {
+    const active = dependencies.accountActive(userId);
+    if (active) revoker.seenActive(userId);
+    return active;
+  };
   dependencies.app.use('/api/v1', createTwitchApiRouter({
     config: config,
     twitch,
     accessTokens: dependencies.accessTokens,
     links,
     live,
-    accountActive: dependencies.accountActive,
+    accountActive,
     // The account itself: the origin nginx serves listed documents only, and the account is `/?login`.
     linkUrl: `${dependencies.appUrl.replace(/\/$/, '')}${TWITCH_ACCOUNT_PAGE}`,
     setPrivateNoStore: dependencies.setPrivateNoStore,

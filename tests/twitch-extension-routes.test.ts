@@ -972,7 +972,15 @@ try {
     config, twitch, accessTokens: realAuth, links, live, linkUrl: LINK_URL, setPrivateNoStore, now: () => clock,
     accountActive: userId => !blocked.has(userId), wait, onError: onRealError,
   }));
-  const accountRevoker = createTwitchAccountRevoker({ links, revoke: createTwitchChannelRevoker({ live, twitch, wait, onError: onRealError }) });
+  // The blocking route and the account store call the revoker inside their transaction; what it defers
+  // runs when that transaction is over. Here the test ends the transaction and then runs it.
+  const afterTransaction: Array<() => void> = [];
+  const transactionOver = () => { for (const work of afterTransaction.splice(0)) work(); };
+  const accountRevoker = createTwitchAccountRevoker({
+    links, revoke: createTwitchChannelRevoker({ live, twitch, wait, onError: onRealError }),
+    accountActive: userId => !blocked.has(userId) && Boolean(database.prepare('SELECT 1 FROM users WHERE id = ?').get(userId)),
+    defer: work => { afterTransaction.push(work); },
+  });
   const authSite = await listen(realApp);
   try {
     flow = await start('user-4');
@@ -984,16 +992,35 @@ try {
     assert.equal((await postState(deckState(ahead + 20), bearer, authSite.origin)).status, 204, 'a real token publishes');
     assert.deepEqual(viewer.shown, { seq: ahead + 20, mode: 'constructed' });
 
-    // Blocked, with Twitch refusing the clear and no viewer asking for anything.
+    // A block that is rolled back: the revoker was called inside the transaction, the account stays
+    // active, and nothing is cleared or erased.
     calls.length = 0;
+    blocked.add('user-4');
+    accountRevoker.account('user-4');
+    assert.equal(live.tracks('4242'), true, 'nothing happens inside the transaction');
+    blocked.delete('user-4');
+    transactionOver();
+    await live.idle('4242');
+    assert.deepEqual(pubsubSent(), [], 'a rolled-back block clears nothing');
+    assert.equal(live.tracks('4242'), true, 'and the snapshot stays');
+    assert.equal(await snapshotStatus(), 200);
+
+    // Blocked and committed, with Twitch refusing the clear and no viewer asking for anything.
     pubsubStatus = 500;
     blocked.add('user-4');
     accountRevoker.account('user-4');
+    transactionOver();
     await live.idle('4242');
     pubsubStatus = 204;
     assert.deepEqual(pubsubSent().map(message => [message.channel, message.state.mode]), [['4242', 'none']], 'the clear was tried at the block itself');
     assert.deepEqual(logged, ['pubsub-clear: Twitch pubsub failed with 500']);
     assert.equal(live.tracks('4242'), false, 'the snapshot is gone although Twitch refused the clear');
+    // The blocked account is saved again (its role changed, say): no second clear.
+    accountRevoker.account('user-4');
+    accountRevoker.account('user-4');
+    transactionOver();
+    await live.idle('4242');
+    assert.equal(pubsubSent().length, 1, 'saving an account that is already blocked clears nothing again');
     clock += 1_000;
     response = await postState(deckState(ahead + 21), bearer, authSite.origin);
     assert.equal(response.status, 401, 'the real authenticate refuses the blocked account');
@@ -1004,15 +1031,48 @@ try {
     await live.idle('4242');
     assert.equal(pubsubSent().length, 1, 'nothing else reached Twitch');
 
+    // Unblocked, publishing again, blocked again: that is a new block and it clears again.
+    accountRevoker.account('user-4');
+    transactionOver();
+    bearer = appToken('user-4');
+    clock += 1_000;
+    assert.equal((await postState(deckState(ahead + 25), bearer, authSite.origin)).status, 204);
+    calls.length = 0;
+    blocked.add('user-4');
+    accountRevoker.account('user-4');
+    transactionOver();
+    await live.idle('4242');
+    assert.deepEqual(pubsubSent().map(message => message.state.mode), ['none'], 'a block after the account was active again');
+    blocked.delete('user-4');
+    accountRevoker.account('user-4');
+    transactionOver();
+
     // Deleted. The channel is read before the delete: the link goes by cascade with the account.
     bearer = appToken('user-4');
     clock += 1_000;
-    assert.equal((await postState(deckState(ahead + 23), bearer, authSite.origin)).status, 204);
+    assert.equal((await postState(deckState(ahead + 26), bearer, authSite.origin)).status, 204);
     assert.equal(await snapshotStatus(), 200);
     calls.length = 0;
     const keep = (database.prepare("SELECT id FROM users WHERE id <> 'user-4'").all() as Array<{ id: string }>).map(row => row.id);
+    const deleteOthers = () => database.prepare(`DELETE FROM users WHERE id NOT IN (${keep.map(() => '?').join(',')})`).run(...keep);
+    // The delete is rolled back: the account and its link are still there, nothing is cleared.
+    database.exec('BEGIN IMMEDIATE');
     accountRevoker.accountsOutside(keep);
-    database.prepare(`DELETE FROM users WHERE id NOT IN (${keep.map(() => '?').join(',')})`).run(...keep);
+    deleteOthers();
+    assert.equal(links.find('user-4'), null, 'gone inside the transaction');
+    database.exec('ROLLBACK');
+    transactionOver();
+    await live.idle('4242');
+    assert.deepEqual(pubsubSent(), [], 'a rolled-back delete clears nothing');
+    assert.equal(links.find('user-4')?.twitchUserId, '4242', 'the data is intact');
+    assert.equal(await snapshotStatus(), 200, 'and so is the snapshot');
+    // The delete is committed: exactly one clear, after the commit.
+    database.exec('BEGIN IMMEDIATE');
+    accountRevoker.accountsOutside(keep);
+    deleteOthers();
+    assert.deepEqual(pubsubSent(), [], 'nothing leaves before the commit');
+    database.exec('COMMIT');
+    transactionOver();
     assert.equal(links.find('user-4'), null);
     assert.equal(links.find('user-2')?.twitchUserId, '5151', 'the accounts that stay keep their links');
     await live.idle('4242');
@@ -1092,7 +1152,7 @@ try {
   composed.use(express.json({ limit: '1mb' }));
   registerTwitchExtension({
     app: composed, getDatabase: () => database, env: ENV, accessTokens: accessTokens as Pick<ApplicationAuthManager, 'authenticate'>,
-    userAuth, accountActive: () => true, setPrivateNoStore, appUrl: 'https://hearthpulse.net', twitchFetch: fakeFetch,
+    userAuth, accountActive: userId => !blocked.has(userId), setPrivateNoStore, appUrl: 'https://hearthpulse.net', twitchFetch: fakeFetch,
   });
   // The two places that end an account are wired in server/index.ts: the blocking route's store and the
   // account store's delete, the latter before the rows go.
@@ -1103,18 +1163,35 @@ try {
   const userDelete = root.indexOf('database.prepare(`DELETE FROM users WHERE id NOT IN');
   assert.ok(beforeDelete > 0 && beforeDelete < userDelete && userDelete - beforeDelete < 200, 'the channels are read right before the delete');
   assert.equal(root.split('DELETE FROM users').length, 2, 'and that is the only place accounts are deleted');
-  // ...and they reach Twitch through the registration made above.
+  // ...and they reach Twitch through the registration made above, after the caller's transaction and
+  // only if it was committed. A microtask is that moment for the synchronous transactions of the site.
+  const afterMicrotasks = () => new Promise<void>(resolve => { setImmediate(resolve); });
   assert.equal(links.find('user-2')?.twitchUserId, '5151');
   calls.length = 0;
-  let cleared = nextPubsub();
   revokeTwitchAccount('user-2');
-  assert.equal(await cleared, '5151');
   revokeTwitchAccount('user-1');
-  cleared = nextPubsub();
   revokeTwitchAccountsOutside(['user-1']);
+  await afterMicrotasks();
+  assert.deepEqual(pubsubSent(), [], 'an active account, an account without a link and a delete that did not happen send nothing');
+  let cleared = nextPubsub();
+  blocked.add('user-2');
+  revokeTwitchAccount('user-2');
+  assert.deepEqual(pubsubSent(), [], 'not inside the transaction');
   assert.equal(await cleared, '5151');
-  assert.deepEqual(pubsubSent().map(message => [message.channel, message.state.mode]), [['5151', 'none'], ['5151', 'none']],
-    'an account without a link sends nothing');
+  revokeTwitchAccount('user-2');
+  await afterMicrotasks();
+  blocked.delete('user-2');
+  database.exec("INSERT INTO users(id) VALUES ('user-9')");
+  links.link({ userId: 'user-9', twitchUserId: '6161', login: 'third', displayName: 'Third', linkedAt: new Date(clock).toISOString() });
+  cleared = nextPubsub();
+  database.exec('BEGIN IMMEDIATE');
+  revokeTwitchAccountsOutside(['user-1', 'user-2', 'user-3', 'user-4']);
+  database.exec("DELETE FROM users WHERE id = 'user-9'");
+  database.exec('COMMIT');
+  assert.equal(await cleared, '6161');
+  await afterMicrotasks();
+  assert.deepEqual(pubsubSent().map(message => [message.channel, message.state.mode]), [['5151', 'none'], ['6161', 'none']],
+    'one clear for the committed block, none for saving it again, one for the committed delete');
   const real = await listen(composed);
   try {
     response = await fetch(`${real.origin}/api/v1/twitch/ext/snapshot`, {
