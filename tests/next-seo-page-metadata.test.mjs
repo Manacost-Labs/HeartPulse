@@ -150,7 +150,7 @@ test('registry pages render canonical, robots, share metadata and JSON-LD from t
     const footer = articlesHtml.match(/<footer class="arena-footer"[\s\S]*?<\/footer>/)?.[0] ?? '';
     assert.match(footer, /<a href="\/articles\/"[^>]*>Подборка<\/a>/, 'footer link to /articles/');
     const articlesLinks = [...articlesHtml.matchAll(/<a href="\/articles\/"[^>]*>([\s\S]*?)<\/a>/g)]
-      .map(match => match[1].replace(/<[^>]*>/g, '').trim());
+      .map(match => visibleText(match[1]).trim());
     assert.ok(articlesLinks.filter(text => text === 'Подборка').length >= 2, 'menu and footer links to /articles/');
     assert.ok(!articlesLinks.includes('Статьи'), 'no link still calls /articles/ «Статьи»');
   } finally {
