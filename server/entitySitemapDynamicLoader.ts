@@ -59,7 +59,7 @@ export function createDynamicDocumentLoader<Document>(options: Options<Document>
   let cache: Cached | null = null;
   let inflight: Promise<Cached> | null = null;
   const fallback = (ttlMs: number): Cached | null => {
-    const lastKnownGood = store.readLastKnownGood();
+    const lastKnownGood = store.readDatedLastKnownGood();
     return lastKnownGood ? options.toDocument(lastKnownGood, 'last-known-good', now() + ttlMs) : null;
   };
   const wait = async (running: Promise<Cached>): Promise<Cached> => {
@@ -72,9 +72,8 @@ export function createDynamicDocumentLoader<Document>(options: Options<Document>
       return last;
     }
   };
-  return async (): Promise<Cached> => {
-    if (cache && cache.expiresAt > now()) return cache;
-    if (inflight) return wait(inflight);
+  const start = (): Promise<Cached> => {
+    if (inflight) return inflight;
     const job = (async () => {
       try {
         cache = options.toDocument(store.publish(
@@ -100,6 +99,23 @@ export function createDynamicDocumentLoader<Document>(options: Options<Document>
       if (inflight === job) inflight = null;
     });
     inflight = job;
-    return wait(job);
+    return job;
   };
+  const load = async (): Promise<Cached> => {
+    if (cache && cache.expiresAt > now()) return cache;
+    return wait(start());
+  };
+  /**
+   * An answer that never waits for a rebuild: the cached document while it is
+   * fresh, else, in a process that has built nothing yet, the saved state with
+   * the rebuild started behind it. Null when there is nothing to answer from
+   * (the caller then waits on `load`). Only a sitemap index needs this.
+   */
+  load.peek = (): Cached | null => {
+    if (cache) return cache.expiresAt > now() ? cache : null;
+    const saved = fallback(Math.min(cacheTtlMs, FALLBACK_TTL_MS));
+    if (saved) setImmediate(() => start().catch(() => undefined));
+    return saved;
+  };
+  return load;
 }

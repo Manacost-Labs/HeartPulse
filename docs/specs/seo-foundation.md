@@ -86,6 +86,14 @@ are cache busters (card image `?v=`) or upstream sync stamps (cosmetics
      or a deploy does not move it;
   3. an address whose hash did not change keeps the stored date.
   An address that leaves the segment and returns is a new address.
+  State saved before the store dated every address has addresses without a
+  day. When a segment is served from that state (a rebuild did not finish in
+  2 s, or the index reads it), each such address takes the day the store first
+  sees it, as in rule 2 without the source's own dates (they are not at hand),
+  and the completed state is written back. The rebuild that catches up then
+  keeps that stored day (rule 3), so the day shown from the saved copy and the
+  day the store keeps are one. No served document has a `<url>` without
+  `lastmod`.
 - **Static pages** (`static.xml`). The build gives each page a content
   fingerprint (`scripts/lib/public-seo-model.mjs`, `staticPageFingerprints`,
   written to `dist/sitemaps/static-fingerprints.json`): a hash of its registry
@@ -109,10 +117,13 @@ are cache busters (card image `?v=`) or upstream sync stamps (cosmetics
   fingerprint alone: its `lastmod` follows the page's registry record, not the
   daily refresh of its figures (a known gap, issue 427).
 - **Index.** The `lastmod` of a `<sitemap>` is the latest `lastmod` of the
-  addresses of that sitemap. The index is built per request from the
-  segments' cached documents (the same 2 s answer deadline and the 30 s
-  last-known-good copy as the segments). A segment that cannot be built is
-  dated from the state the store saved earlier (the last-known-good copy,
+  addresses of that sitemap. The index is built per request and never waits
+  for a rebuild when it can avoid it: a segment's fresh document is used when
+  the process has one, and in a process that has built nothing yet the saved
+  state is read (a file read) while the rebuild starts behind it. Only a
+  segment with no document and no state is waited for, once, for at most the
+  2 s answer deadline, so the index answers within 2 s. A segment that
+  cannot be built is dated from the state the store saved earlier (the last-known-good copy,
   which survives a restart); if that state holds no day for any address, the
   day its state was last written stands in. When no day can be had for any
   record, that sitemap is left out of the index: it has nothing to serve and

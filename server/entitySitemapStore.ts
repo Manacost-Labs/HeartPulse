@@ -96,6 +96,35 @@ export class SemanticSitemapStore {
     return documents.sort((left, right) => Date.parse(right.updatedAt) - Date.parse(left.updatedAt))[0] ?? null;
   }
 
+  /**
+   * The last known good document with a day on every address, for serving
+   * while a rebuild runs. State written before the store dated every address
+   * has entries without one; they take the day the store first sees them, as
+   * `publish` does for an address it has no date for (the source's own date
+   * is not at hand here). The completed document is written back, so the day
+   * served now is the day `publish` keeps when the rebuild catches up.
+   */
+  readDatedLastKnownGood(): SemanticSitemapDocument | null {
+    const current = this.readLastKnownGood();
+    if (!current || current.entries.every(entry => entry.lastmod)) return current;
+    const today = new Date(this.now()).toISOString().slice(0, 10);
+    const unsigned: Omit<SemanticSitemapDocument, 'contentHash'> = {
+      schemaVersion: 1,
+      segment: this.segment,
+      updatedAt: current.updatedAt,
+      entryCount: current.entries.length,
+      entries: current.entries.map(entry => (entry.lastmod ? entry : { ...entry, lastmod: today })),
+    };
+    const document: SemanticSitemapDocument = { ...unsigned, contentHash: sitemapContentHash(unsigned) };
+    try {
+      writeJsonAtomically(this.directory, this.recovery, document);
+      writeJsonAtomically(this.directory, this.filename, document);
+    } catch {
+      // The days are still served; a later read dates the same entries again.
+    }
+    return document;
+  }
+
   publish(candidateEntries: SitemapSemanticEntry[]): SemanticSitemapDocument {
     const entries = normalizeSitemapCandidate(candidateEntries, this.origin, this.segment);
     if (entries.length < this.minimumEntryCount) {

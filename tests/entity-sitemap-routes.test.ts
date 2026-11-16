@@ -808,7 +808,8 @@ try {
   }
   const legacy = await indexOf(down);
   assert.equal(legacy.response.status, 200);
-  assert.deepEqual(recordsOf(legacy.text).at(-1), ['/sitemaps/archetypes.xml', '2026-11-03']);
+  assert.deepEqual(recordsOf(legacy.text).at(-1), ['/sitemaps/archetypes.xml', '2026-11-10'],
+    'state without days: its addresses take the day the store first sees them, like any address it has no date for');
 } finally {
   rmSync(outageDirectory, { recursive: true, force: true });
 }
@@ -836,4 +837,117 @@ try {
 } finally {
   rmSync(brokenStore, { recursive: true, force: true });
 }
+// State written before the store dated every address, a source that does not answer: every served address still has
+// a day, and the day does not move when the rebuild catches up (not even across midnight).
+const legacyDirectory = mkdtempSync(join(tmpdir(), 'arena-sitemap-legacy-'));
+const releases: Array<() => void> = [];
+try {
+  const cards = [1, 2, 3, 4].map(number => ({
+    ...publicCard, card_id: `CARD_${number}`, name: { ru: `Карта ${number}`, en: `Card ${number}` },
+  }));
+  const seedDay = Date.parse('2026-11-10T08:00:00.000Z');
+  const seed = await startDated({
+    directory: legacyDirectory, now: () => seedDay, fingerprints: new Map(),
+    staticUrls: ['https://hearthpulse.net/'], loadStandardCards: async () => cards,
+  });
+  try {
+    assert.equal((await fetch(`${seed.origin}/sitemaps/standard-cards.xml`)).status, 200);
+  } finally {
+    await seed.close();
+  }
+  for (const filename of ['seo-standard-cards-sitemap-v1.json', 'seo-standard-cards-sitemap-v1.lkg.json']) {
+    const file = join(legacyDirectory, filename);
+    const saved = JSON.parse(readFileSync(file, 'utf8'));
+    const unsigned = {
+      ...saved,
+      entries: saved.entries.map(({ lastmod: _lastmod, ...entry }: { lastmod?: string }, position: number) => (
+        position % 2 === 0 ? entry : { ...entry, lastmod: '2026-10-01' }
+      )),
+    };
+    delete unsigned.contentHash;
+    writeFileSync(file, JSON.stringify({ ...unsigned, contentHash: sitemapContentHash(unsigned) }), 'utf8');
+  }
+
+  let legacyNow = Date.parse('2026-11-12T08:00:00.000Z');
+  const hung = new Promise<void>(resolve => releases.push(resolve));
+  const app = await startDated({
+    directory: legacyDirectory, now: () => legacyNow, fingerprints: new Map(),
+    staticUrls: ['https://hearthpulse.net/'], loadStandardCards: async () => { await hung; return cards; },
+  });
+  try {
+    const entriesOf = async () => {
+      const response = await fetch(`${app.origin}/sitemaps/standard-cards.xml`);
+      return { source: response.headers.get('x-sitemap-source'), entries: datedEntries(await response.text()) };
+    };
+    const served = await entriesOf();
+    assert.equal(served.source, 'last-known-good', 'the source does not answer: the saved copy is served');
+    assert.deepEqual(served.entries.map(([, lastmod]) => lastmod),
+      ['2026-11-12', '2026-10-01', '2026-11-12', '2026-10-01'],
+      'every address has a day; the ones the state dated keep it');
+
+    legacyNow = Date.parse('2026-11-13T08:00:00.000Z'); // the rebuild catches up the next day
+    releases.forEach(release => release());
+    let caughtUp = await entriesOf();
+    for (let attempt = 0; attempt < 40 && caughtUp.source !== 'catalog'; attempt += 1) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      caughtUp = await entriesOf();
+    }
+    assert.equal(caughtUp.source, 'catalog', 'the rebuild replaced the saved copy');
+    assert.deepEqual(caughtUp.entries, served.entries, 'a day shown from the saved copy is the day the store keeps');
+  } finally {
+    await app.close();
+  }
+} finally {
+  releases.forEach(release => release());
+  rmSync(legacyDirectory, { recursive: true, force: true });
+}
+
+// The index answers from the saved state without waiting for a rebuild, and asks a hung source only once.
+const coldIndexDirectory = mkdtempSync(join(tmpdir(), 'arena-sitemap-cold-index-'));
+try {
+  const gate = new Promise<void>(resolve => releases.push(resolve));
+  const indexRequest = async (loadStandardCards: () => Promise<any[]>, loadArchetypes: () => Promise<any[]>) => {
+    const app = await startDated({
+      directory: coldIndexDirectory, now: () => Date.parse('2026-11-10T08:00:00.000Z'), fingerprints: new Map(),
+      staticUrls: ['https://hearthpulse.net/'], loadStandardCards, loadArchetypes,
+    });
+    try {
+      const startedAt = Date.now();
+      const response = await fetch(`${app.origin}/sitemap.xml`);
+      const text = await response.text();
+      return { status: response.status, elapsedMs: Date.now() - startedAt, text };
+    } finally {
+      await app.close();
+    }
+  };
+  const archetypeRow = {
+    item: { slug: 'pure-paladin', archetype: 'Pure Paladin', format: 'standard', games: 5_000, deckCount: 2, popularity: 2 },
+    updatedAt: '2026-11-08T05:00:00+00:00',
+    period: 'black_empire',
+  };
+  const slow = async () => { await gate; return [publicCard]; };
+  const slowArchetypes = async () => { await gate; return [archetypeRow]; };
+
+  const noState = await indexRequest(slow, slowArchetypes);
+  assert.equal(noState.status, 200);
+  assert.ok(noState.elapsedMs < 900, `a hung source with no state is waited for once (500 ms), took ${noState.elapsedMs} ms`);
+
+  assert.equal((await indexRequest(async () => [publicCard], async () => [archetypeRow])).status, 200);
+  const restarted = await indexRequest(slow, slowArchetypes);
+  assert.equal(restarted.status, 200);
+  assert.ok(restarted.elapsedMs < 400, `the index does not wait for slow sources, took ${restarted.elapsedMs} ms`);
+  assert.deepEqual(
+    sitemapEntries(restarted.text, 'sitemapindex', 'index').map(({ location, lastmod }) => [new URL(location).pathname, lastmod]),
+    [
+      ['/sitemaps/static.xml', '2026-11-10'],
+      ['/sitemaps/standard-cards.xml', '2026-11-10'],
+      ['/sitemaps/archetypes.xml', '2026-11-08'],
+    ],
+    'the dates come from the saved state',
+  );
+} finally {
+  releases.forEach(release => release());
+  rmSync(coldIndexDirectory, { recursive: true, force: true });
+}
+
 console.log('entity sitemap lastmod contracts passed');

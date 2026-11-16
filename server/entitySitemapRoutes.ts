@@ -234,22 +234,23 @@ export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDepen
   })] as const);
   const dynamicLoaders = new Map(segmentLoaders.map(([definition, load]) => [definition.pathname, load]));
   // A segment that cannot be loaded leaves a static page on its own day.
-  const loadSegments = async () => Promise.allSettled(segmentLoaders.map(async ([definition, load]) => (
-    [definition, await load()] as const
+  // `saved`: answer from the saved state instead of waiting for a rebuild (see `peek`).
+  const loadSegments = async (saved: boolean) => Promise.allSettled(segmentLoaders.map(async ([definition, load]) => (
+    [definition, (saved ? load.peek() : null) ?? await load()] as const
   )));
   const staticPageDays = createStaticPageDays({
     urls: dependencies.staticUrls, fingerprints: dependencies.staticFingerprints ?? new Map(),
     origin, now, cacheTtlMs, stateDirectory: dependencies.stateDirectory,
   });
-  const staticEntries = async (): Promise<DatedLocation[]> => datedStaticLocations(
-    dependencies.staticUrls,
-    await staticPageDays(),
-    new Map((await loadSegments()).flatMap(result => (
+  const staticPages = async (saved = false) => {
+    const [days, results] = await Promise.all([staticPageDays(), loadSegments(saved)]);
+    const loaded = new Map(results.flatMap(result => (
       result.status === 'fulfilled' ? [[result.value[0].segment, result.value[1].entries] as const] : []
-    ))),
-  );
+    )));
+    return { results, entries: datedStaticLocations(dependencies.staticUrls, days, loaded) };
+  };
   router.get('/sitemaps/static.xml', async (request, response) => {
-    const entries = await staticEntries();
+    const { entries } = await staticPages();
     return sendDocument(request, response, documentFromXml(
       renderSitemapUrlset(entries),
       'static',
@@ -261,8 +262,8 @@ export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDepen
   // The index dates each sitemap by the latest `lastmod` among its addresses (see `sitemapIndexEntries`).
   // A sitemap that cannot be dated is left out; with nothing to list the index answers 503.
   router.get('/sitemap.xml', async (request, response) => {
-    const results = await loadSegments();
-    const entries = sitemapIndexEntries(origin, await staticEntries(), definitions.map((definition, position) => {
+    const { results, entries: pages } = await staticPages(true);
+    const entries = sitemapIndexEntries(origin, pages, definitions.map((definition, position) => {
       const result = results[position];
       return { pathname: definition.pathname, document: result.status === 'fulfilled' ? result.value[1] : null };
     }));
