@@ -6,8 +6,8 @@ example percentages belong exclusively to Storybook fixtures. The existing
 server subscription checks and browser permission gate remain authoritative.
 The Next.js route server-renders the public heading, the description and the
 open slice of the ranking (see below); account identity, subscription state
-and anything beyond that slice are never embedded in shared HTML. The browser loads statistics only after entitlement or
-administrator access succeeds.
+and anything beyond that slice are never embedded in shared HTML. The browser
+loads statistics only after entitlement or administrator access succeeds.
 
 Ranking meters use the actual 0–100% winrate, including a zero-width fill for
 zero wins. The expandable «График классов и скачивание» reuses the shared bar
