@@ -86,6 +86,7 @@ const token = (userId: string, scopes: ApplicationAuthScope[]): ApplicationToken
 const tokens: Record<string, ApplicationToken> = {
   'write-1': token('user-1', ['tracker.write', 'profile.read']),
   'write-2': token('user-2', ['tracker.write', 'profile.read']),
+  'write-3': token('user-3', ['tracker.write', 'profile.read']),
   'read-only': token('user-1', ['profile.read']),
 };
 const accessTokens = {
@@ -388,8 +389,15 @@ try {
   flow = await start('user-3');
   await callback(`code=good-code&state=${flow.state}`, flow.cookie, 'user-3');
   assert.ok(links.find('user-3'));
+  clock += 1_000;
+  response = await postState(deckState(49), 'write-3');
+  assert.equal(response.status, 204);
+  response = await fetch(`${origin}/api/v1/twitch/ext/snapshot`, { headers: { Authorization: `Bearer ${viewerJwt('4242')}` } });
+  assert.equal(response.status, 200);
   database.exec("DELETE FROM users WHERE id = 'user-3'");
   assert.equal(links.find('user-3'), null);
+  response = await fetch(`${origin}/api/v1/twitch/ext/snapshot`, { headers: { Authorization: `Bearer ${viewerJwt('4242')}` } });
+  assert.equal(response.status, 204, 'the snapshot goes with the deleted account');
 } finally {
   server.close();
   bare.server.close();

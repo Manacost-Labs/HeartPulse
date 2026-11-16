@@ -163,10 +163,7 @@ import { createCardImageRouter, normalizeCardImageId } from './cardImageRoutes.j
 import { createCardImageDependencies } from './app/createCardImageDependencies.js';
 import { installProcessLifecycle } from './app/lifecycle/processLifecycle.js';
 import { registerApplicationAuth } from './app/registerApplicationAuth.js';
-import {
-  registerTrackerIngestion,
-  registerTrackerIngestionRateLimit,
-} from './app/registerTrackerIngestion.js';
+import { registerTrackerIngestion, registerTrackerIngestionRateLimit } from './app/registerTrackerIngestion.js';
 import { registerReplayShares, registerReplaySharesRateLimit } from './app/registerReplayShares.js';
 import { registerAppUsage, registerAppUsageRateLimit } from './app/registerAppUsage.js';
 import { registerCrashReports, registerCrashReportsRateLimit } from './app/registerCrashReports.js';

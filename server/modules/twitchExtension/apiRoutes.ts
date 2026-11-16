@@ -133,6 +133,11 @@ export function createTwitchApiRouter(dependencies: TwitchApiRouterDependencies)
     }
     const claims = verifyTwitchJwt(bearerToken(request), config.extensionSecret, now());
     if (!claims) return response.status(401).json(apiError('invalid_extension_token', 'Extension token is invalid or expired'));
+    // A deleted site account drops its link by cascade, without an unlink call: its snapshot must go with it.
+    if (!dependencies.links.hasChannel(claims.channelId)) {
+      dependencies.live.forget(claims.channelId);
+      return response.status(204).end();
+    }
     const envelope = dependencies.live.snapshot(claims.channelId);
     if (!envelope) return response.status(204).end();
     return response.type('application/json').send(envelope);
