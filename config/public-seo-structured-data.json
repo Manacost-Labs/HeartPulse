@@ -895,9 +895,15 @@
         "@type": "Dataset",
         "@id": "https://hearthpulse.net/classes/#dataset",
         "name": "Винрейт классов Арены Hearthstone",
-        "description": "Процент побед (винрейт) классов в режиме Арена Hearthstone по данным HSReplay и Firestone. Значения доступны по подписке; на открытой странице — описание того, как читать рейтинг, откуда берутся данные и как они обновляются.",
+        "description": "Процент побед (винрейт) классов в режиме Арена Hearthstone по данным HSReplay и Firestone. Разбивки, история и сравнение классов доступны по подписке; на открытой странице — порядок классов с винрейтом до десятых долей процента, число игр по классу, дата обновления и источник, а также описание того, как читать рейтинг.",
         "url": "https://hearthpulse.net/classes/",
         "isAccessibleForFree": false,
+        "hasPart": {
+          "@type": "WebPageElement",
+          "isAccessibleForFree": false,
+          "cssSelector": ".paywalled-classes"
+        },
+        "license": null,
         "isBasedOn": [
           {
             "@type": "Dataset",

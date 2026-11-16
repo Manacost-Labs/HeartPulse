@@ -9,8 +9,12 @@ import { navigate, navigateTab } from './navigation';
 
 const ignoreUpdatedAt = (_value: string | null) => undefined;
 
-/** `children` is server-rendered content (the page's text) shown below the page, inside the shell's `<main>`. */
-export function ClassesPageClient({ children }: { children?: ReactNode }) {
+/**
+ * `children` is server-rendered content (the page's text) shown below the page, inside the shell's `<main>`.
+ * `teaser` is the server-rendered open slice of the ranking, shown next to the H1 to everyone who has no
+ * access; a subscriber has the full ranking instead.
+ */
+export function ClassesPageClient({ children, teaser }: { children?: ReactNode; teaser?: ReactNode }) {
   const access = usePublicAccess();
   const { allowed, pending } = paidAccess(access, 'arena');
   const { state, retry } = useArenaClasses(access.user?.id, allowed, ignoreUpdatedAt);
@@ -23,6 +27,9 @@ export function ClassesPageClient({ children }: { children?: ReactNode }) {
   return <PublicPageShell activeTab="winrates" pathname="/classes/" parchmentPreload="tablet-up" access={access}
     navigate={navigate} updatedAtLabel={updatedAtLabel}>
     <ArenaClassesPage onNavigate={navigateTab}>
+      <div hidden={allowed}>{teaser}</div>
+      {/* The closed part, named by the page's JSON-LD (`hasPart.cssSelector`); a wrapper without a box of its own. */}
+      <div className="paywalled-classes" style={{ display: 'contents' }}>
       <PaywallGate active={!pending && !allowed}
         title="Подтвердите подписку Манакоста для доступа к классам"
         headingLevel="h2"
@@ -30,6 +37,7 @@ export function ClassesPageClient({ children }: { children?: ReactNode }) {
         subscriptionLoading={access.checking} onRefreshSubscription={access.refresh}>
         <ArenaClassesResults state={state} onRetry={retry} />
       </PaywallGate>
+      </div>
     </ArenaClassesPage>
     {children}
   </PublicPageShell>;
