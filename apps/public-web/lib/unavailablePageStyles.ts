@@ -66,11 +66,12 @@ h2{margin:28px 0 12px;color:var(--ink);font:400 1.375rem/1.2 var(--display)}
 .code{margin:28px 0 0;padding-top:14px;border-top:1px solid rgba(107,76,42,.35);color:var(--ink-soft);font-size:.8125rem}
 .footer{margin-top:24px;padding:24px 16px 28px;color:var(--on-rail);background:linear-gradient(180deg,rgba(30,3,5,.55),rgba(30,3,5,.7)),url(/wallpaper/arena-rail-red.jpg) center/375px 172px repeat var(--wood)}
 .footer-in{display:grid;gap:20px;max-width:70rem;margin:0 auto}
-.footer h2{margin:0 0 6px;color:var(--gold);font:700 .75rem/1.3 var(--body);letter-spacing:.08em;text-transform:uppercase}
+.foot-title{margin:0 0 6px;color:var(--gold);font:700 .75rem/1.3 var(--body);letter-spacing:.08em;text-transform:uppercase}
 .footer ul{margin:0;padding:0;list-style:none}
-.footer a{display:inline-flex;align-items:center;min-height:32px;color:var(--on-rail)}
+.footer a{display:inline-flex;align-items:center;min-height:44px;color:var(--on-rail)}
 .legal{max-width:70rem;margin:20px auto 0;padding-top:14px;border-top:1px solid rgba(246,227,180,.22);font-size:.8125rem}
 .legal p{margin:0 0 6px}
+.legal p:nth-child(2){display:flex;flex-wrap:wrap;align-items:center;gap:0 10px}
 @media(min-width:640px){main{padding:12px 20px 20px}.panel{padding:32px 32px 36px;border-width:4px}.footer-in{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(min-width:1024px){
 .topbar{display:none}

@@ -9,7 +9,6 @@ import {
   Grid3X3,
   Home,
   Image as ImageIcon,
-  LayoutGrid,
   LibraryBig,
   List,
   ListChecks,
@@ -24,101 +23,43 @@ import {
   Trophy,
   type LucideIcon,
 } from 'lucide-react';
-import type { SubscriptionEntitlementKey } from '../../modules/subscriptions/public';
+import { NAVIGATION_DATA } from './navigationData';
 
-type NavigationRouteDefinition = {
-  id: string;
-  label: string;
-  icon: LucideIcon;
-  path: `/${string}`;
-  group: 'home' | 'top' | 'standard' | 'arena' | 'bg-primary' | 'bg-builder' | 'misc' | 'footer' | 'admin';
-  // The subscription the section sells; the page itself enforces access.
-  entitlement: SubscriptionEntitlementKey | null;
-  adminOnly?: boolean;
+/** Icons of the menu items, by id; labels, paths and groups live in `navigationData.ts`. */
+const NAVIGATION_ICONS: Record<(typeof NAVIGATION_DATA)[number]['id'], LucideIcon> = {
+  'home': Home,
+  'articles': BookOpenText,
+  'faq': CircleHelp,
+  'developer-api': CircleHelp,
+  'privacy': CircleHelp,
+  'terms': CircleHelp,
+  'leaderboards': Medal,
+  'gallery': ImageIcon,
+  'cosmetics': Sparkles,
+  'guides-archive': Scroll,
+  'contests': Gift,
+  'streamers': Radio,
+  'standard-matchups': Swords,
+  'standard-meta': ChartNoAxesCombined,
+  'fun-decks': Gem,
+  'constructed-archetypes': ListTree,
+  'standard-vicious-gold': Crown,
+  'standard-cards': LibraryBig,
+  'patch-notes': ScrollText,
+  'winrates': Trophy,
+  'tierlist': ListChecks,
+  'legendaries': Gem,
+  'bg-heroes': CircleUserRound,
+  'bg-library': LibraryBig,
+  'bg-tier-list': ListTree,
+  'bg-strategies': Grid3X3,
+  'deck-builder': LibraryBig,
+  'bg-tier-builder': List,
+  'admin-panel': ShieldCheck,
 };
 
-export const NAVIGATION_ROUTES = [
-  {
-    id: 'home', label: 'Главная', icon: Home, path: '/', group: 'home', entitlement: null,
-  },
-  {
-    id: 'articles', label: 'Подборка', icon: BookOpenText, path: '/articles', group: 'top', entitlement: null,
-  },
-  {
-    id: 'faq', label: 'FAQ', icon: CircleHelp, path: '/faq', group: 'top', entitlement: null,
-  },
-  {
-    id: 'developer-api', label: 'API', icon: CircleHelp, path: '/developers/api', group: 'footer', entitlement: null,
-  },
-  { id: 'privacy', label: 'Конфиденциальность', icon: CircleHelp, path: '/privacy', group: 'footer', entitlement: null },
-  { id: 'terms', label: 'Условия использования', icon: CircleHelp, path: '/terms', group: 'footer', entitlement: null },
-  {
-    id: 'leaderboards', label: 'Таблицы лидеров', icon: Medal, path: '/leaderboards', group: 'misc', entitlement: null,
-  },
-  {
-    id: 'gallery', label: 'Галерея', icon: ImageIcon, path: '/gallery', group: 'misc', entitlement: null,
-  },
-  {
-    id: 'cosmetics', label: 'Косметика', icon: Sparkles, path: '/cosmetics', group: 'misc', entitlement: null,
-  },
-  {
-    id: 'guides-archive', label: 'Архив гайдов', icon: Scroll, path: '/guides-archive', group: 'misc', entitlement: 'guidesArchive',
-  },
-  {
-    id: 'contests', label: 'Конкурсы', icon: Gift, path: '/contests', group: 'misc', entitlement: null,
-  },
-  {
-    id: 'streamers', label: 'Стримеры', icon: Radio, path: '/streamers', group: 'misc', entitlement: null,
-  },
-  {
-    id: 'standard-matchups', label: 'Матчапы', icon: Swords, path: '/standard/matchups', group: 'standard', entitlement: 'standard',
-  },
-  {
-    id: 'standard-meta', label: 'Мета', icon: ChartNoAxesCombined, path: '/standard/meta', group: 'standard', entitlement: 'standard',
-  },
-  {
-    id: 'fun-decks', label: 'Фан-колоды', icon: Gem, path: '/standard/fun-decks', group: 'standard', entitlement: 'standard',
-  },
-  {
-    id: 'constructed-archetypes', label: 'Архетипы', icon: ListTree, path: '/standard/archetypes', group: 'standard', entitlement: 'standard',
-  },
-  {
-    id: 'standard-vicious-gold', label: 'Vicious Syndicate Gold', icon: Crown, path: '/standard/vicious-gold', group: 'standard', entitlement: 'standard',
-  },
-  {
-    id: 'standard-cards', label: 'Карты', icon: LibraryBig, path: '/standard/cards', group: 'standard', entitlement: null,
-  },
-  {
-    id: 'patch-notes', label: 'Патчноуты', icon: ScrollText, path: '/standard/patches', group: 'standard', entitlement: null,
-  },
-  {
-    id: 'winrates', label: 'Классы', icon: Trophy, path: '/classes', group: 'arena', entitlement: 'arena',
-  },
-  {
-    id: 'tierlist', label: 'Тир-лист', icon: ListChecks, path: '/tierlist', group: 'arena', entitlement: 'arena',
-  },
-  {
-    id: 'legendaries', label: 'Легендарки', icon: Gem, path: '/legendaries', group: 'arena', entitlement: 'arena',
-  },
-  {
-    id: 'bg-heroes', label: 'Герои', icon: CircleUserRound, path: '/heroes', group: 'bg-primary', entitlement: 'battlegrounds',
-  },
-  {
-    id: 'bg-library', label: 'Библиотека', icon: LibraryBig, path: '/library', group: 'bg-primary', entitlement: 'battlegrounds',
-  },
-  {
-    id: 'bg-tier-list', label: 'Тир-лист', icon: ListTree, path: '/battlegrounds/tier-list', group: 'bg-primary', entitlement: 'battlegrounds',
-  },
-  {
-    id: 'bg-strategies', label: 'Конструктор стратегий', icon: Grid3X3, path: '/battlegrounds/strategies', group: 'bg-builder', entitlement: 'battlegrounds',
-  },
-  {
-    id: 'deck-builder', label: 'Конструктор колод', icon: LibraryBig, path: '/standard/deck-builder', group: 'bg-builder', entitlement: null,
-  },
-  {
-    id: 'bg-tier-builder', label: 'Конструктор тир-листов', icon: List, path: '/battlegrounds/tier-builder', group: 'bg-builder', entitlement: 'battlegrounds',
-  },
-  {
-    id: 'admin-panel', label: 'Админ панель', icon: ShieldCheck, path: '/admin', group: 'admin', entitlement: null,
-  },
-] as const satisfies readonly NavigationRouteDefinition[];
+type WithIcon<T> = T extends unknown ? T & { readonly icon: LucideIcon } : never;
+
+export const NAVIGATION_ROUTES: readonly WithIcon<(typeof NAVIGATION_DATA)[number]>[] = NAVIGATION_DATA.map(
+  route => ({ ...route, icon: NAVIGATION_ICONS[route.id] }),
+);

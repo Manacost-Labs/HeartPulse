@@ -257,19 +257,34 @@ test('the outage page is a full site page that needs neither script nor Express,
   }
 });
 
-test('the outage page menu lists the same sections and paths as the site menu', async () => {
+test('the outage page menu and footer match the site menu in both directions, in order', async () => {
   const api = await startStallingApi();
   api.state.stalled = true;
   let next;
   try {
     next = await startNextServer({ legacyOrigin: api.origin });
     const { html } = await timed(`${next.origin}/standard/cards/`);
-    const definitions = readFileSync(new URL('../src/app/routing/navigationDefinitions.ts', import.meta.url), 'utf8');
-    const site = new Set([...definitions.matchAll(/label: '([^']+)'[^}]*?path: '(\/[^']*)'/g)].map(([, label, path]) => `${label} ${path.replace(/\/?$/, '/')}`));
+    // The expectation is read from the menu data file itself, not from the module the page imports.
+    const data = readFileSync(new URL('../src/app/routing/navigationData.ts', import.meta.url), 'utf8');
+    const routes = [...data.matchAll(/\{ id: '([^']+)', label: '([^']+)', path: '(\/[^']*)', group: '([^']+)'/g)]
+      .map(([, id, label, path, group]) => ({ id, label, path: path.replace(/\/?$/, '/'), group }));
+    assert.ok(routes.length >= 25, 'the menu data is parsed');
+    const shown = group => routes.filter(route => route.group === group && route.id !== 'faq');
+    const expected = ['home', 'top', 'standard', 'arena', 'bg-primary', 'bg-builder', 'misc'].flatMap(shown).map(route => `${route.label} ${route.path}`);
     const rail = html.slice(html.indexOf('<aside'), html.indexOf('</aside>'));
     const links = [...rail.matchAll(/class="nav-link" href="([^"]+)">([^<]+)</g)].map(([, path, label]) => `${label} ${path}`);
-    assert.ok(links.length >= 20, `the rail lists ${links.length} links`);
-    for (const link of links) assert.ok(site.has(link), `${link} is not in the site menu`);
+    assert.deepEqual(links, expected, 'same items, labels, paths and order as the site menu');
+    const drawer = html.slice(html.indexOf('<nav class="drawer-nav"'), html.indexOf('</header>'));
+    assert.equal([...drawer.matchAll(/class="nav-link"/g)].length, expected.length, 'the phone drawer lists the same items');
+    const footer = html.slice(html.indexOf('<footer'), html.indexOf('</footer>'));
+    for (const id of ['home', 'winrates', 'tierlist', 'legendaries', 'articles', 'gallery', 'privacy', 'terms']) {
+      const route = routes.find(item => item.id === id);
+      assert.ok(footer.includes(`href="${route.path}">${route.label}</a>`), `the footer names ${id} as the menu does`);
+    }
+    assert.doesNotMatch(footer, /<h[1-6]/, 'the footer has no heading tags');
+    // Without JavaScript the search field is replaced by a plain explanation: nothing submits to a page that cannot answer.
+    assert.match(html, /<noscript><style>\.utility \.search\{display:none\}<\/style><\/noscript>/);
+    assert.match(html, /<noscript><p class="search-note">Поиск по разделам работает только с включённым JavaScript/);
   } finally {
     if (next) await next.close();
     await closeLocal(api.server);
