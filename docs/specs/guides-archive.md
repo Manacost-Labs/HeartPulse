@@ -92,7 +92,9 @@ Every h2/h3 gets an id in the full text (`guide-section-…` from the source,
 else `guide-heading-N`); `toc` carries the same ids, so a subscriber's links
 work. For a guest, headings that are not in the open part get an empty anchor
 at the top of the closed block, so a contents link lands on the paywall and
-not nowhere. The contents never take text from paid elements: a deck code button inside
+not nowhere.
+
+The contents never take text from paid elements: a deck code button inside
 a heading (a `code` element after sanitizing) or a figure is skipped, the same
 element list the open part leaves out, and attributes such as `alt` or `title`
 are never read. A heading left without text (only a picture or a code) is not
