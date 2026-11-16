@@ -112,7 +112,7 @@ import {
   type ConstructedArchetypeFormat,
   type ConstructedArchetypeHistoryPoint,
 } from './constructedArchetypeRoutes.js';
-import { loadArchetypeCatalog, readArchetypeCatalogPeriods } from './constructedArchetypeCatalogPeriod.js';
+import { loadArchetypeCatalog, loadArchetypeCatalogWindows, readArchetypeCatalogPeriods } from './constructedArchetypeCatalogPeriod.js';
 import { createArchetypeHsguruStatsRouter } from './constructedArchetypeHsguruStats.js';
 import { assertArchetypeCatalogSource, createArchetypeCatalogCache, createArchetypeRankMatrixLoader, createMetaSliceCache, disambiguateArchetypeLabels, layerArchetypeTranslations, loadWithRetiredPatchFallback, warmMetaEntrySlices, archetypeFallbackTranslations, archetypeLabel, archetypeTranslationKey } from './modules/constructedArchetypes/public.js';
 import {
@@ -7382,7 +7382,7 @@ if (staticSitemapArtifact) {
       // Called per refresh, after start-up has created the service below.
       loadCosmeticsCatalog: (kind, query) => cosmeticsDataService.loadCatalog(kind, query),
       getGuidesDatabase: oldGuidesDatabase,
-    }),
+    }, { loadCatalogs: format => loadArchetypeCatalogWindows(constructedArchetypeCatalogCache.load, format) }),
     staticUrls: staticSitemapArtifact.urls,
     staticLastModifiedMs: staticSitemapArtifact.modifiedAt,
     stateDirectory: DATA_DIR,

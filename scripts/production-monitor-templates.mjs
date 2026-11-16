@@ -25,13 +25,10 @@ export const SAMPLE_SOURCES = {
   'bg-library-kind': [{ path: '/library/minions/' }],
   'bg-library-detail': [{ segment: 'battlegroundMinions' }, { segment: 'battlegroundSpells' }],
   'bg-library-archive': [{ path: '/library/archive/minions/' }],
-  // #299 adds the `archetypes` sitemap segment; its record becomes
-  // { segment: 'archetypes' } here and this template leaves UNMONITORED_TEMPLATES.
+  'constructed-archetype-detail': [{ segment: 'archetypes' }],
 };
 
 export const UNMONITORED_TEMPLATES = {
-  'constructed-archetype-detail':
-    'no sitemap segment yet; #299 adds the archetypes segment, then add { segment: \'archetypes\' }',
   'bg-library-archive-detail':
     '/library/archive/<kind>/<slug>/ exists only for retired cards (the first minion of the sitemap answers 404) and no sitemap lists them; see #371',
   'bg-library-additional-detail':

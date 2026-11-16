@@ -44,6 +44,7 @@ const KNOWN_DATASET_ISSUES = {
 };
 const PRIVATE_PAYLOAD_PATTERN = /QA_PRIVATE|\b(?:deckCode|statsAccess|subscriptionPayload|privateSentinel)\b/i;
 const MONITOR_PROFILES = new Set(['full', 'release', 'freshness']);
+const DEFAULT_SAMPLE_COUNT = 3;
 const ENTITY_SITEMAP_SEGMENTS = [
   {
     key: 'standard',
@@ -109,6 +110,22 @@ const ENTITY_SITEMAP_SEGMENTS = [
     pathPattern: /^\/guides-archive\/[A-Za-z0-9][A-Za-z0-9._~-]{0,159}\/$/,
     identityFromPath: pathname => pathname.split('/').filter(Boolean).at(-1),
     identityFragment: null,
+  },
+  // Standard archetypes that pass the indexing rule (`isIndexableArchetype`, about
+  // 70 of 200 today; the floor equals the server's `SITEMAP_ARCHETYPES_MIN`). A
+  // page is Next.js-rendered, its JSON-LD is the ItemPage/Dataset graph of the
+  // page itself (no entity identifier), and the list moves with the period, so
+  // five URLs are sampled.
+  {
+    key: 'archetypes',
+    path: '/sitemaps/archetypes.xml',
+    label: 'archetype sitemap',
+    minimumUrls: 30,
+    pathPattern: /^\/standard\/archetypes\/standard\/[a-z0-9-]{1,90}\/$/,
+    identityFromPath: pathname => pathname.split('/').filter(Boolean).at(-1),
+    identityFragment: null,
+    pageJsonLd: true,
+    sampleCount: 5,
   },
 ];
 
@@ -481,7 +498,30 @@ function structuredDataHasEntityIdentity(value, canonical, identity, identityFra
   ));
 }
 
-function assertIndexableEntityHtml(html, response, canonical, identity, identityFragment, label) {
+function structuredDataDescribesUrl(value, canonical) {
+  if (Array.isArray(value)) return value.some(item => structuredDataDescribesUrl(item, canonical));
+  if (!value || typeof value !== 'object') return false;
+  return value.url === canonical || Object.values(value).some(item => structuredDataDescribesUrl(item, canonical));
+}
+
+// A page without an entity identifier still has to describe itself in JSON-LD.
+function assertPageJsonLd(html, canonical, label) {
+  const scripts = [...html.matchAll(/<script\b(?=[^>]*\btype=["']application\/ld\+json["'])[^>]*>([\s\S]*?)<\/script>/gi)];
+  ensure(scripts.length > 0, `${label}: JSON-LD is missing`);
+  let describesPage = false;
+  for (const script of scripts) {
+    let parsed;
+    try {
+      parsed = JSON.parse(script[1]);
+    } catch {
+      throw new Error(`${label}: JSON-LD is invalid`);
+    }
+    if (structuredDataDescribesUrl(parsed, canonical)) describesPage = true;
+  }
+  ensure(describesPage, `${label}: JSON-LD does not describe the page`);
+}
+
+function assertIndexableEntityHtml(html, response, canonical, identity, identityFragment, label, options = {}) {
   ensure(response.status === 200, `${label} ${identity}: HTTP ${response.status}`);
   ensure((response.headers.get('content-type') || '').includes('text/html'),
     `${label} ${identity}: response is not HTML`);
@@ -497,7 +537,10 @@ function assertIndexableEntityHtml(html, response, canonical, identity, identity
   const robots = htmlAttributeValues(html, 'meta', 'name', 'robots');
   ensure(robots.length === 1 && /(?:^|,)\s*index\b/i.test(robots[0]) && !/noindex/i.test(robots[0]),
     `${label} ${identity}: index robots metadata is missing`);
-  if (identityFragment === null) return;
+  if (identityFragment === null) {
+    if (options.pageJsonLd) assertPageJsonLd(html, canonical, `${label} ${identity}`);
+    return;
+  }
   const scripts = [...html.matchAll(/<script\b(?=[^>]*\btype=["']application\/ld\+json["'])(?=[^>]*\bdata-server-entity-jsonld\b)[^>]*>([\s\S]*?)<\/script>/gi)];
   ensure(scripts.length > 0, `${label} ${identity}: entity JSON-LD is missing`);
   let identityFound = false;
@@ -618,7 +661,12 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal, sitemapWarnM
         && segment.pathPattern.test(parsed.pathname),
       `${segment.label} contains a non-canonical URL`);
     }
-    const sampleIndices = [...new Set([0, Math.floor((locations.length - 1) / 2), locations.length - 1])];
+    // First, middle and last for most segments; evenly spread when a segment asks for more.
+    const sampleCount = segment.sampleCount ?? DEFAULT_SAMPLE_COUNT;
+    const sampleIndices = [...new Set(Array.from(
+      { length: sampleCount },
+      (_value, position) => Math.floor(position * (locations.length - 1) / (sampleCount - 1)),
+    ))];
     for (const index of sampleIndices) {
       const canonical = locations[index];
       const identity = segment.identityFromPath(new URL(canonical).pathname);
@@ -639,6 +687,7 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal, sitemapWarnM
         identity,
         segment.identityFragment,
         sampleLabel,
+        { pageJsonLd: segment.pageJsonLd === true },
       );
     }
     entityCounts[segment.key] = locations.length;

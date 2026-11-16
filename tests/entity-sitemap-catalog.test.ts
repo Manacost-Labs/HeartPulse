@@ -7,6 +7,7 @@ import {
   renderSitemapIndex,
   renderSitemapUrlset,
 } from '../server/entitySitemapRoutes.js';
+import { projectConstructedArchetypeSitemapCatalog } from '../server/entitySitemapProjections.js';
 
 const publicCard = {
   card_id: 'CARD_1',
@@ -228,5 +229,79 @@ assert.throws(
   () => renderSitemapUrlset([{ location: `https://arena.hs-manacost.ru/${'a'.repeat(2_000)}/` }], { maxBytes: 512 }),
   /bytes|size/i,
 );
+
+const archetypeRow = (overrides: Record<string, unknown> = {}, catalog: Record<string, unknown> = {}) => ({
+  item: {
+    slug: 'pure-paladin',
+    archetype: 'Pure Paladin',
+    archetypeLabel: 'Чистый Паладин',
+    translated: true,
+    classKey: 'paladin',
+    format: 'standard',
+    games: 12_345,
+    winrate: 52.4,
+    popularity: 3.1,
+    turns: 8.2,
+    durationMinutes: 7.9,
+    climbingSpeed: 1.4,
+    deckCount: 2,
+    builds: [{ deckCode: 'QA_PRIVATE_DECK_CODE', games: 900, winrate: 55 }],
+    sourceUrl: 'https://www.hsguru.com/archetype/Pure%20Paladin',
+    ...overrides,
+  },
+  updatedAt: '2026-10-29T11:00:03.937811+00:00',
+  period: 'black_empire_ban',
+  ...catalog,
+});
+
+const archetypes = projectConstructedArchetypeSitemapCatalog([
+  archetypeRow(),
+  archetypeRow({ slug: 'egg-priest', archetype: 'Egg Priest', archetypeLabel: 'Жрец с яйцами' }),
+], 'https://hearthpulse.net');
+assert.deepEqual(archetypes.map(entry => [entry.key, entry.location, entry.dataDate]), [
+  ['egg-priest', 'https://hearthpulse.net/standard/archetypes/standard/egg-priest/', '2026-10-29'],
+  ['pure-paladin', 'https://hearthpulse.net/standard/archetypes/standard/pure-paladin/', '2026-10-29'],
+], 'the entry is the canonical archetypes family and carries the day of the catalog data');
+assert.ok(archetypes.every(entry => /^[a-f0-9]{64}$/.test(entry.semanticHash)));
+assert.doesNotMatch(JSON.stringify(archetypes), /QA_PRIVATE|deckCode|builds/,
+  'builds and deck codes never reach the sitemap projection');
+
+const archetypeHash = (overrides: Record<string, unknown> = {}, catalog: Record<string, unknown> = {}) => (
+  projectConstructedArchetypeSitemapCatalog([archetypeRow(overrides, catalog)], 'https://hearthpulse.net')[0]?.semanticHash
+);
+const baseArchetypeHash = archetypeHash();
+assert.equal(archetypeHash({ builds: [] }), baseArchetypeHash, 'paid builds are not public data');
+assert.equal(archetypeHash({}, { updatedAt: '2026-10-30T09:00:00+00:00' }), baseArchetypeHash,
+  'a newer catalog stamp with the same numbers is not a change of the page');
+for (const change of [
+  { games: 12_346 }, { winrate: 52.5 }, { popularity: 3.2 }, { turns: 8.3 }, { durationMinutes: 8 },
+  { climbingSpeed: 1.5 }, { deckCount: 3 }, { archetypeLabel: 'Чистый Паладин (новый)' }, { classKey: 'mage' },
+]) {
+  assert.notEqual(archetypeHash(change), baseArchetypeHash, `${Object.keys(change)[0]} is printed on the page`);
+}
+assert.notEqual(archetypeHash({}, { period: 'patch_37.0.1' }), baseArchetypeHash, 'the period is printed on the page');
+
+for (const [label, row] of [
+  ['a weak archetype', archetypeRow({ games: 999 })],
+  ['a Wild archetype', archetypeRow({ format: 'wild' })],
+  ['an archetype without builds', archetypeRow({ deckCount: 0 })],
+  ['an archetype nobody plays', archetypeRow({ popularity: 0 })],
+  ['a slug the page route rejects', archetypeRow({ slug: 'Pure Paladin' })],
+  ['a row that is not an object', null],
+] as const) {
+  assert.throws(
+    () => projectConstructedArchetypeSitemapCatalog([row], 'https://hearthpulse.net'),
+    /not indexable/,
+    `${label} must reject the whole candidate instead of listing a noindex page`,
+  );
+}
+for (const updatedAt of [null, '', 'not a date']) {
+  assert.throws(
+    () => projectConstructedArchetypeSitemapCatalog([archetypeRow({}, { updatedAt })], 'https://hearthpulse.net'),
+    /data date/,
+    `a catalog without a data date (${JSON.stringify(updatedAt)}) cannot date lastmod`,
+  );
+}
+assert.deepEqual(projectConstructedArchetypeSitemapCatalog([], 'https://hearthpulse.net'), []);
 
 console.log('entity sitemap catalog and XML contracts passed');
