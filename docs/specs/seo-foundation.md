@@ -126,7 +126,7 @@ This slice must not open private API responses to indexing or shared caches.
   данных (список сверяет `tests/hearthpulse-shadow-nginx.test.mjs`). Копия
   сборки без среза заменяется сразу после деплоя (#404).
   Прогрев после деплоя проверяет и динамические страницы с данными
-  (`scripts/lib/post-deploy-data-pages.mjs`: перечень и минимум слов).
+  (`scripts/lib/post-deploy-data-pages.mjs`: перечень и признак данных в HTML).
 
 Что держит правило тестами: `tests/tierlist-public-teaser.test.ts`
 (проекция, маршрут, JSON-LD) и `tests/next-tierlist-teaser.test.mjs`

@@ -1,37 +1,72 @@
 /**
  * Indexable pages whose server HTML carries data read from Express, and the
- * fewest words that HTML has when the data is there. A copy without the data
- * is shorter (measured 2026-11-16 against a build made without Express, or a
- * first-paint read that missed its 600 ms budget): `copy` below. The warm-up
- * after a deploy (`scripts/warm-prerendered-pages.mjs`) waits for `minWords`,
- * and a production monitor can use the same table.
+ * `marker` that only the HTML with that data has: a CSS class of the data
+ * block, which does not depend on how much data there is (a word count does).
+ * The copy without the data is what the build makes without Express, or what
+ * a first-paint read that missed its 600 ms budget ships. `copyWords` and
+ * `dataWords` are only what a stand measured on 2026-11-16 (the copy against
+ * the page with live data) and show the size of the difference.
+ * The warm-up after a deploy (`scripts/warm-prerendered-pages.mjs`) waits for
+ * the marker, and a production monitor can use the same table.
  *
  * `isr` pages are prerendered at build time (the build has no Express), so
  * their copy is replaced through `/health/next/revalidate/`
  * (`DATA_PAGES` in apps/public-web/app/health/next/revalidate/route.ts must
  * list exactly these). Dynamic pages have no build copy; they ship without the
  * data when their first-paint read misses its budget (a cold or busy server).
+ * Library lists carry no server data (identical with and without Express).
  */
 export const DATA_PAGES = [
-  { path: '/standard/meta/', isr: true, minWords: 280, copy: 213, data: 345 },
-  { path: '/articles/', isr: true, minWords: 500, copy: 144, data: 895 },
-  { path: '/tierlist/', isr: true, minWords: 700, copy: 557, data: 831 },
-  { path: '/classes/', isr: true, minWords: 510, copy: 469, data: 554 },
-  { path: '/leaderboards/', minWords: 500, copy: 197, data: 811 },
-  { path: '/cosmetics/', minWords: 260, copy: 192, data: 314 },
-  { path: '/cosmetics/coins/', minWords: 300, copy: 133, data: 437 },
-  { path: '/streamers/', minWords: 500, copy: 144, data: 786 },
-  { path: '/standard/patches/', minWords: 1000, copy: 132, data: 4102 },
-  { path: '/standard/archetypes/', minWords: 1000, copy: 186, data: 3603 },
-  { path: '/standard/fun-decks/', minWords: 340, copy: 279, data: 410 },
-  { path: '/', minWords: 400, copy: 363, data: 433 },
+  { path: '/standard/meta/', isr: true, marker: 'standard-meta__results', copyWords: 213, dataWords: 345 },
+  { path: '/articles/', isr: true, marker: 'article-card-modern', copyWords: 144, dataWords: 895 },
+  { path: '/tierlist/', isr: true, marker: 'tierlist-public-teaser', copyWords: 557, dataWords: 831 },
+  { path: '/classes/', isr: true, marker: 'classes-public-teaser', copyWords: 469, dataWords: 554 },
+  { path: '/leaderboards/', marker: 'leaderboards-table__rank', copyWords: 197, dataWords: 811 },
+  { path: '/cosmetics/', marker: 'cosmetics-hero-card', copyWords: 192, dataWords: 314 },
+  { path: '/cosmetics/heroes/', marker: 'cosmetics-hero-card', copyWords: 193, dataWords: 315 },
+  { path: '/cosmetics/coins/', marker: 'cosmetics-grid-coins', copyWords: 133, dataWords: 437 },
+  { path: '/cosmetics/pets/', marker: 'cosmetics-pet-card', copyWords: 134, dataWords: 234 },
+  { path: '/streamers/', marker: 'streamers-toolbar', copyWords: 144, dataWords: 786 },
+  { path: '/standard/patches/', marker: 'hp-patch-hero__plate', copyWords: 132, dataWords: 4102 },
+  { path: '/standard/archetypes/', marker: 'archetype-row__rank', copyWords: 186, dataWords: 3603 },
+  { path: '/standard/fun-decks/', marker: 'fun-deck-card__why', copyWords: 279, dataWords: 410 },
+  { path: '/', marker: 'home-orbit-class__copy', copyWords: 363, dataWords: 433 },
 ];
 
 /** A streamer profile (`/streamers/<slug>/`): the slug is taken from the list page. */
-export const STREAMER_PROFILE_PAGE = { minWords: 400, copy: 127, data: 766 };
+export const STREAMER_PROFILE_PAGE = { marker: 'streamers-profile__identity', copyWords: 127, dataWords: 766 };
 
-/** Visible words of an HTML document: scripts, styles and tags do not count. */
+/** Whether the HTML has an element whose `class` names the marker. */
+export function hasMarker(html, marker) {
+  for (let from = html.indexOf('class="'); from !== -1; from = html.indexOf('class="', from + 7)) {
+    const value = html.slice(from + 7, html.indexOf('"', from + 7));
+    if (value.split(' ').includes(marker)) return true;
+  }
+  return false;
+}
+
+/** The text of an HTML document: tags are walked over one by one, `script` and `style` elements are skipped whole. */
+export function visibleText(html) {
+  const lower = html.toLowerCase();
+  const parts = [];
+  let position = 0;
+  while (position < html.length) {
+    const open = html.indexOf('<', position);
+    if (open === -1) { parts.push(html.slice(position)); break; }
+    parts.push(html.slice(position, open), ' ');
+    const tagEnd = html.indexOf('>', open);
+    if (tagEnd === -1) break;
+    position = tagEnd + 1;
+    for (const raw of ['script', 'style']) {
+      if (!lower.startsWith(`<${raw}`, open) || !/[\s>/]/.test(lower[open + raw.length + 1] ?? '>')) continue;
+      const close = lower.indexOf(`</${raw}`, position);
+      position = close === -1 ? html.length : (html.indexOf('>', close) + 1 || html.length);
+    }
+  }
+  return parts.join('');
+}
+
+/** Visible words of an HTML document. */
 export function countWords(html) {
-  return html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, ' ').replace(/<[^>]+>/g, ' ')
-    .split(/\s+/).filter(Boolean).length;
+  return visibleText(html).split(/\s+/).filter(Boolean).length;
 }
