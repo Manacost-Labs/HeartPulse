@@ -261,7 +261,7 @@ assert.deepEqual(
 assert.ok(!indexedRegistryPaths.includes('/articles'), '/articles must not be a sitemap page');
 const articlesPage = seoRegistry.pages['/articles'];
 assert.match(`${articlesPage.title} ${articlesPage.description}`, /подборка/i, '/articles must be called a collection');
-assert.match(articlesPage.description, /kolodahearthstone\.com/, '/articles must say where the articles live');
+assert.ok(articlesPage.description.includes('kolodahearthstone.com'), '/articles must say where the articles live');
 const articlesNav = TABS.find(tab => tab.id === 'articles');
 assert.equal(articlesNav?.label, 'Подборка', 'the menu calls /articles a collection');
 assert.match(readFileSync(new URL('../src/components/SiteFooter.tsx', import.meta.url), 'utf8'),
