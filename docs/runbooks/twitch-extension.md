@@ -35,8 +35,9 @@
 1. `GET /api/v1/twitch/ext/snapshot` без токена → `401` (не `404`: код
    выложен; не `503`: переменные заданы).
 2. `GET /api/v1/twitch/status` с токеном приложения → `configured: true`.
-3. `https://hearthpulse.net/account/twitch` → `302` на
-   `/?login#account-twitch`, и эта страница открывается (не `404`).
+3. `linkUrl` из ответа (`https://hearthpulse.net/?login#account-twitch`)
+   открывается в браузере (не `404`). Адреса `/account/twitch` у сайта нет
+   (`docs/specs/twitch-extension.md`).
 4. Кабинет → «Персональные данные» → «Twitch-расширение» → «Привязать
    Twitch» → Twitch спрашивает аккаунт → возврат на
    `/?login&twitch=linked#account-twitch`.

@@ -350,10 +350,6 @@
         {
           "method": "DELETE",
           "path": "/api/account/twitch"
-        },
-        {
-          "method": "GET",
-          "path": "/account/twitch"
         }
       ],
       "contracts": [

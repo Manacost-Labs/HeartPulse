@@ -21,12 +21,16 @@ PubSub не попадают. Порядок `cards` — порядок спис
 - Кабинет — главный документ сайта с `?login`; блок «Twitch-расширение» на
   вкладке «Персональные данные» открывает `/?login#account-twitch`. Этот адрес
   сайт и отдаёт приложению в `linkUrl`. Страницы `/profile/` у сайта нет.
-- `GET /account/twitch` — запасной адрес приложения (когда `linkUrl` не
-  получен): `302` на `/?login#account-twitch`. В production его отдаёт origin
-  nginx (`deploy/nginx/arena-html-routing.conf`, `location = /account/twitch`):
-  там белый список документов, остальное — `404`. Express отвечает так же без
-  nginx. Тест `tests/twitch-extension-routes.test.ts` сверяет цели всех
-  редиректов привязки с этим списком.
+- Адреса `/account/twitch` у сайта нет (`404`): origin nginx
+  (`deploy/nginx/arena-html-routing.conf`) — белый список документов, и
+  `/account/*` в нём нет. `location` для него не добавляли: это меняет
+  nginx-контракт выкладки (`docs/runbooks/production-deployer-contract.md`) и
+  требует ручной установки конфига на origin до релиза. Запасной адрес в
+  приложении Hearthpulse (когда `linkUrl` не получен) должен быть
+  `/?login#account-twitch`.
+- Тест `tests/twitch-extension-routes.test.ts` проверяет, что все адреса,
+  которые сайт отдаёт сам (`linkUrl` и цели редиректов привязки), — главный
+  документ с `?login`.
 - `GET /api/account/twitch` (сессия сайта) →
   `{configured, linked, login, displayName, linkedAt}`; без входа `401`.
 - `GET /api/account/twitch/connect` (сессия) — OAuth authorization code flow
@@ -83,9 +87,10 @@ PubSub не попадают. Порядок `cards` — порядок спис
   0…999 (есть карта за 100 маны, `GDB_142`). Ошибка — `400 invalid_state`.
 - Поля, которые только показываются, нормализуются, а не отклоняют состояние:
   `left` и `total` карты (целые) зажимаются в 0…99, `deck.left` — в 0…999;
-  пустое имя карты
-  заменяется её `id`, длинное обрезается до 80 знаков; пустое `deck.name`
-  становится `null`, длинное обрезается до 100 знаков.
+  пустое имя карты заменяется её `id`, длинное обрезается до 80 знаков;
+  пустое `deck.name` становится `null`, длинное обрезается до 100 знаков.
+  Нормализация ничего не добавляет: лимиты тела 16 КБ и конверта 5 КБ и
+  список пересылаемых полей прежние.
 - Порядок проверок и ответы:
   1. `401 INVALID_ACCESS_TOKEN` (нет токена, он истёк или аккаунт
      заблокирован);

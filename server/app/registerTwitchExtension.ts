@@ -7,7 +7,6 @@ import {
   createTwitchApi,
   createTwitchApiRouter,
   createTwitchExtensionCors,
-  createTwitchLinkPageRouter,
   createTwitchLinkRepository,
   createTwitchLiveState,
   readTwitchExtensionConfig,
@@ -68,7 +67,7 @@ export function registerTwitchExtension(dependencies: RegisterTwitchExtensionDep
     links,
     live,
     accountActive: dependencies.accountActive,
-    // Straight to the account: the address works with or without the `/account/twitch` redirect in front.
+    // The account itself: the origin nginx serves listed documents only, and the account is `/?login`.
     linkUrl: `${dependencies.appUrl.replace(/\/$/, '')}${TWITCH_ACCOUNT_PAGE}`,
     setPrivateNoStore: dependencies.setPrivateNoStore,
     onError,
@@ -83,6 +82,5 @@ export function registerTwitchExtension(dependencies: RegisterTwitchExtensionDep
     secureCookies: dependencies.appUrl.startsWith('https://'),
     onError,
   }));
-  dependencies.app.use(createTwitchLinkPageRouter());
   return { exportRows: userId => links.exportRows(userId) };
 }

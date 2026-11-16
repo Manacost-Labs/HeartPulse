@@ -10,7 +10,6 @@ import {
   createTwitchApi,
   createTwitchApiRouter,
   createTwitchExtensionCors,
-  createTwitchLinkPageRouter,
   createTwitchLinkRepository,
   createTwitchLiveState,
   readTwitchExtensionConfig,
@@ -121,7 +120,6 @@ const buildApp = (configured: boolean) => {
     config: configured ? config : null, twitch: configured ? twitch : null, links, live, userAuth,
     setPrivateNoStore, secureCookies: true, now: () => clock,
   }));
-  app.use(createTwitchLinkPageRouter());
   return app;
 };
 
@@ -188,10 +186,9 @@ try {
   assert.equal(response.status, 404);
   assert.equal(await errorCode(response), 'twitch_not_linked');
 
-  // Linking: the /account/twitch address, the OAuth start and the callback.
+  // Linking: the OAuth start and the callback. The site has no `/account/twitch` page.
   response = await fetch(`${origin}/account/twitch`, { redirect: 'manual' });
-  assert.equal(response.status, 302);
-  assert.equal(response.headers.get('location'), TWITCH_ACCOUNT_PAGE);
+  assert.equal(response.status, 404);
   response = await fetch(`${origin}/api/account/twitch/connect`, { redirect: 'manual' });
   assert.equal(response.status, 302, 'a signed-out visitor goes to the account page');
   assert.equal(response.headers.get('location'), TWITCH_ACCOUNT_PAGE);
@@ -321,6 +318,24 @@ try {
       { id: 'EX1_001', dbf: 1, cost: 0, name: 'EX1_001', left: 0, total: 99 },
     ],
   }, 'an empty name becomes the card id, counts are clamped, an unknown field is dropped');
+  // The deck counter is clamped to 0..999 the same way; the 16 KB body and 5 KB envelope limits still apply.
+  for (const [sent, relayed] of [[1500, 999], [-5, 0], [999, 999]]) {
+    calls.length = 0;
+    clock += 1_000;
+    response = await postState({ ...deckState(41), deck: { ...deckState(41).deck, left: sent } });
+    assert.equal(response.status, 204);
+    assert.equal(decodeEnvelope(JSON.parse(String(calls[0].init.body)).message).state.deck.left, relayed);
+  }
+  calls.length = 0;
+  clock += 1_000;
+  response = await postState({
+    ...deckState(41),
+    deck: { ...deckState(41).deck, cards: [{ id: 'X', dbf: 1, cost: 999, name: 'x'.repeat(200), left: 99, total: 100 }] },
+  });
+  assert.equal(response.status, 204);
+  assert.deepEqual(decodeEnvelope(JSON.parse(String(calls[0].init.body)).message).state.deck.cards, [
+    { id: 'X', dbf: 1, cost: 999, name: 'x'.repeat(80), left: 99, total: 99 },
+  ], 'the upper bounds: cost 999, copies 99, a name of 80 characters');
 
   // A valid state reaches Helix with an external JWT and becomes the snapshot.
   calls.length = 0;
@@ -484,8 +499,8 @@ try {
   assert.equal(idle.sweep(), 0);
 
   // Deployment contract. The origin nginx serves listed documents only and ends with
-  // `location / { return 404; }`, so every address the linking flow sends a browser to must be the
-  // home document (the account opens as `/?login`), and `/account/twitch` must be listed there.
+  // `location / { return 404; }`, so every address the site itself sends a browser or the app to
+  // must be the home document (the account opens as `/?login`).
   const nginx = readFileSync(new URL('../deploy/nginx/arena-html-routing.conf', import.meta.url), 'utf8');
   assert.match(nginx, /\nlocation = \/ \{/, 'the home document is served');
   const targets = [TWITCH_ACCOUNT_PAGE, ...['linked', 'cancelled', 'error', 'not_configured']
@@ -497,10 +512,7 @@ try {
     assert.equal(url.hash, '#account-twitch', `${target} must open the Twitch block`);
   }
   assert.equal(new URL(LINK_URL).pathname, '/', 'the app gets the account address itself');
-  const fallback = nginx.match(/\nlocation = \/account\/twitch \{([^}]*)\}/);
-  assert.ok(fallback, 'the app\'s fallback address /account/twitch is listed in the origin nginx');
-  assert.ok(fallback[1].includes(`return 302 "${TWITCH_ACCOUNT_PAGE}";`), 'and redirects to the account');
-  assert.match(fallback[1], /no-store/, 'a redirect to the account is not cached');
+  assert.match(nginx, /\nlocation \/ \{\s*(?:[^}]*\s)?return 404;/, 'an unlisted path is a real 404');
 } finally {
   server.close();
   bare.server.close();

@@ -3,8 +3,8 @@
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
     "sourceFiles": 110,
-    "routeRegistrations": 297,
-    "middlewareRegistrations": 153,
+    "routeRegistrations": 296,
+    "middlewareRegistrations": 152,
     "explicitGuardRouteRegistrations": 73,
     "unresolvedPaths": 0
   },
@@ -1365,19 +1365,6 @@
       "guardSignals": [],
       "source": "server/app/registerTwitchExtension.ts",
       "sourceOrder": 4
-    },
-    {
-      "kind": "middleware",
-      "paths": [
-        "/"
-      ],
-      "receiver": "dependencies.app",
-      "handlers": [
-        "createTwitchLinkPageRouter()"
-      ],
-      "guardSignals": [],
-      "source": "server/app/registerTwitchExtension.ts",
-      "sourceOrder": 5
     },
     {
       "kind": "route",
@@ -5400,18 +5387,6 @@
       "guardSignals": [],
       "source": "server/modules/twitchExtension/accountRoutes.ts",
       "sourceOrder": 3
-    },
-    {
-      "kind": "route",
-      "method": "GET",
-      "path": "/account/twitch",
-      "pathKind": "string",
-      "receiver": "router",
-      "middleware": [],
-      "handler": "<inline-handler>",
-      "guardSignals": [],
-      "source": "server/modules/twitchExtension/accountRoutes.ts",
-      "sourceOrder": 4
     },
     {
       "kind": "route",

@@ -25,7 +25,7 @@ const MAX_PENDING_STATES = 10_000;
  * The Twitch block in the account. The account is the home document opened
  * with `?login` (as Patreon's `/?login&patreon=linked`); the site has no
  * `/profile/` page and the origin nginx answers 404 for an unlisted path.
- * `/account/twitch` (the app's fallback link) redirects here.
+ * The site has no `/account/twitch` page either: nginx would not pass it on.
  */
 export const TWITCH_ACCOUNT_PAGE = '/?login#account-twitch';
 const page = (result: string) => `/?login&twitch=${result}#account-twitch`;
@@ -144,12 +144,5 @@ export function createTwitchAccountRouter(dependencies: TwitchAccountRouterDepen
     return response.json({ linked: false });
   });
 
-  return router;
-}
-
-/** `linkUrl` of the app: a stable address that opens the account's Twitch block. */
-export function createTwitchLinkPageRouter(): Router {
-  const router = Router();
-  router.get('/account/twitch', (_request, response) => response.redirect(302, TWITCH_ACCOUNT_PAGE));
   return router;
 }

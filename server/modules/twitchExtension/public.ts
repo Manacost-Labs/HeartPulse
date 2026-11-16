@@ -18,7 +18,7 @@ export {
 export { TWITCH_LINK_TABLES_SQL, createTwitchLinkRepository, type TwitchLink, type TwitchLinkRepository } from './repository.js';
 export { TwitchApiError, createTwitchApi, type TwitchApi, type TwitchFetch } from './twitchApi.js';
 export { createTwitchApiRouter, createTwitchExtensionCors } from './apiRoutes.js';
-export { TWITCH_ACCOUNT_PAGE, createTwitchAccountRouter, createTwitchLinkPageRouter } from './accountRoutes.js';
+export { TWITCH_ACCOUNT_PAGE, createTwitchAccountRouter } from './accountRoutes.js';
 export {
   TWITCH_EXTENSION_OPENAPI_PATHS,
   TWITCH_EXTENSION_OPENAPI_SCHEMAS,
