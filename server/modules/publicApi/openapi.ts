@@ -1580,7 +1580,11 @@ export const PUBLIC_API_OPENAPI = {
             properties: {
               id: { type: 'string' },
               publicProfileId: { type: 'string', pattern: '^[1-9][0-9]{0,9}$' },
-              profileUrl: { type: 'string' },
+              profileUrl: {
+                type: 'string',
+                format: 'uri',
+                description: 'The account page: the site\'s home document with ?login. A client may append a section anchor.',
+              },
               email: { type: 'string', format: 'email' },
               name: { type: 'string' },
               avatarInitials: { type: 'string' },
