@@ -225,17 +225,15 @@ export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDepen
   const retryAfterSeconds = Math.max(1, Math.floor(dependencies.retryAfterSeconds ?? 300));
   assertValidStaticSitemapUrls(dependencies.staticUrls, origin);
   const definitions = dynamicSitemapDefinitions(dependencies, origin);
-  const dynamicLoaders = new Map(definitions.map(definition => [
-    definition.pathname,
-    createDynamicDocumentLoader({
-      definition, origin, now, cacheTtlMs, stateDirectory: dependencies.stateDirectory,
-      responseDeadlineMs: dependencies.responseDeadlineMs, loadDeadlineMs: dependencies.loadDeadlineMs,
-      onError: dependencies.onError, toDocument: dynamicDocument,
-    }),
-  ]));
+  const segmentLoaders = definitions.map(definition => [definition, createDynamicDocumentLoader({
+    definition, origin, now, cacheTtlMs, stateDirectory: dependencies.stateDirectory,
+    responseDeadlineMs: dependencies.responseDeadlineMs, loadDeadlineMs: dependencies.loadDeadlineMs,
+    onError: dependencies.onError, toDocument: dynamicDocument,
+  })] as const);
+  const dynamicLoaders = new Map(segmentLoaders.map(([definition, load]) => [definition.pathname, load]));
   // A segment that cannot be loaded leaves a static page on its own day.
-  const loadSegments = async () => Promise.allSettled(definitions.map(async definition => (
-    [definition, await dynamicLoaders.get(definition.pathname)!()] as const
+  const loadSegments = async () => Promise.allSettled(segmentLoaders.map(async ([definition, load]) => (
+    [definition, await load()] as const
   )));
   const staticPageDays = createStaticPageDays({
     urls: dependencies.staticUrls, fingerprints: dependencies.staticFingerprints ?? new Map(),
