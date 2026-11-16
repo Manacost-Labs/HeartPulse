@@ -23,7 +23,8 @@ export type SitemapSemanticEntry = {
   dataDate?: string;
   /**
    * UTC day the entity itself came into being (a guide's publication day).
-   * It dates an address the store sees for the first time and nothing else:
+   * It dates an address the store sees for the first time when the source
+   * states no `dataDate` (which is the later day and wins when both are set);
    * a later change of the entity is dated by `dataDate` or the day it is seen.
    */
   createdOn?: string;

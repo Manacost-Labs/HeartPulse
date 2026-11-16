@@ -73,11 +73,15 @@ each entity sitemap. The monitor fails on a `<url>` or `<sitemap>` without one
 (`<label>: entry N has no lastmod`), on a malformed date, and when an index
 date is not the latest date of its sitemap
 (`sitemap index lastmod … is not the latest entry lastmod …`). A segment the
-server could not build and has no stored copy for stays in the index without a
-date, so the first message names that segment; look at its refresh error in
-the service log. The rules of the dates are in `docs/specs/seo-foundation.md`
-(«`lastmod` semantics»). The index and its segments are two requests, so a
-refresh between them can fail one attempt; the retry settles it.
+server could not build and has no stored copy for is not listed undated: the
+server answers the index with 503 and `Retry-After`, so the first message is
+the index's HTTP 503; look at the segment's refresh error in the
+service log. The rules of the dates are in `docs/specs/seo-foundation.md`
+(«`lastmod` semantics»). The edge caches the index and each segment
+separately, so a difference between them right after an update is asked again
+with a cache-busting query (`lastmod-recheck`): it is a warning («the edge
+caches differ, a fresh pair agrees») when the fresh pair agrees and an error
+only when it does not.
 
 Thresholds: a page slower than 1 s or a sitemap slower than 2 s is a warning
 (`MONITOR_PAGE_WARN_MS`, `MONITOR_SITEMAP_WARN_MS`); 10 s is a timeout and a

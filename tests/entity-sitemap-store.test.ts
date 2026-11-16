@@ -395,6 +395,26 @@ try {
   assert.equal(lastmods(edited)[0][1], '2026-12-01',
     'an edit of a guide is dated by the day it was seen, not by its old publication day');
   assert.equal(lastmods(edited)[2][1], '2019-05-05');
+
+  // An address that states both days takes the day its data was produced: the later, and the one a
+  // change would also be dated by. Either alone dates it; the day of first sight is the last resort.
+  const both = (key: string, hash: string, days: { dataDate?: string; createdOn?: string }): SitemapSemanticEntry => ({
+    key, location: `https://hearthpulse.net/guides-archive/${key}/`, semanticHash: hash.repeat(64), ...days,
+  });
+  const stated = new SemanticSitemapStore({
+    directory: mkdtempSync(join(datingDirectory, 'stated-')), segment: 'guides-archive', now: () => datingNow, minimumEntryCount: 1,
+  }).publish([
+    both('both-days', '1', { dataDate: '2026-10-05', createdOn: '2026-09-01' }),
+    both('data-day', '2', { dataDate: '2026-10-06' }),
+    both('creation-day', '3', { createdOn: '2026-09-02' }),
+    both('neither', '4', {}),
+  ]);
+  assert.deepEqual(lastmods(stated), [
+    ['both-days', '2026-10-05'],
+    ['creation-day', '2026-09-02'],
+    ['data-day', '2026-10-06'],
+    ['neither', '2026-12-01'],
+  ]);
 } finally {
   rmSync(datingDirectory, { recursive: true, force: true });
 }

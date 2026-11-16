@@ -130,6 +130,13 @@ assert.throws(() => projectGuideArchiveSitemapCatalog([{ slug: 'a/b' }], ORIGIN)
   }
 }
 
+// The index is served only when every sitemap can be dated, so the standard cards need a source too.
+const standardCard = {
+  card_id: 'CARD_1', name: { ru: 'Карта', en: 'Card' }, text: { ru: 'Получает +1/+1.' }, card_set: 'CORE',
+  card_type: { slug: 'MINION', name_ru: 'Существо' }, class: 'MAGE', rarity: 'COMMON', mana_cost: 1, attack: 1, health: 1,
+  images: { card: 'https://cdn.example.test/CARD_1.png' },
+};
+
 // The store accepts the editorial keys and locations and keeps lastmod stable.
 const directory = mkdtempSync(join(tmpdir(), 'arena-sitemap-editorial-'));
 try {
@@ -143,7 +150,7 @@ try {
   const app = express();
   app.use(createEntitySitemapRouter({
     canonicalOrigin: ORIGIN, stateDirectory: directory, staticUrls: [`${ORIGIN}/`],
-    loadStandardCards: async () => [], loadCosmetics: async () => rows, loadGuidesArchive: async () => [{ slug: 'guide-216' }],
+    loadStandardCards: async () => [standardCard], minimumStandardCardCount: 1, loadCosmetics: async () => rows, loadGuidesArchive: async () => [{ slug: 'guide-216' }],
     minimumCosmeticsCount: 1, minimumGuideCount: 1,
   }));
   const server = app.listen(0, '127.0.0.1');

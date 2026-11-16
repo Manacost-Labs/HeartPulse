@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import type { Response } from 'express';
 import { createDynamicDocumentLoader } from './entitySitemapDynamicLoader.js';
 import type { SitemapSegment, SitemapSemanticEntry } from './entitySitemapTypes.js';
 
@@ -105,4 +106,38 @@ export function datedStaticLocations(
     const lastmod = latestDay([ledgerDays.get(location), ...listed]);
     return lastmod ? { location, lastmod } : { location };
   });
+}
+
+/** A loaded sitemap document as the index sees it: its dated addresses and when its state was last written. */
+export type IndexedSegment = { pathname: string; document: { entries: DatedLocation[]; lastModified: string | null } | null };
+
+/**
+ * The records of `/sitemap.xml`: each sitemap dated by the latest `lastmod`
+ * among its addresses. A segment whose stored addresses carry no day (state
+ * written before the store dated every address) takes the day its state was
+ * last written. Null when any record would have no day (a segment that could
+ * not be loaded and has no stored state), so the caller answers 503 instead of
+ * a 200 with a partial index.
+ */
+export function sitemapIndexEntries(
+  origin: string,
+  staticEntries: DatedLocation[],
+  segments: IndexedSegment[],
+): DatedLocation[] | null {
+  const records = [
+    { location: `${origin}/sitemaps/static.xml`, lastmod: latestDay(staticEntries.map(entry => entry.lastmod)) },
+    ...segments.map(({ pathname, document }) => ({
+      location: `${origin}${pathname}`,
+      lastmod: document ? latestDay(document.entries.map(entry => entry.lastmod)) ?? (document.lastModified ? new Date(document.lastModified).toISOString().slice(0, 10) : undefined) : undefined,
+    })),
+  ];
+  return records.every(record => record.lastmod) ? records : null;
+}
+
+/** The answer to a request that cannot be served now; a crawler or the monitor retries. */
+export function sendUnavailable(response: Response, retryAfterSeconds: number): Response {
+  response.set('Content-Type', 'text/plain; charset=utf-8');
+  response.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+  response.set('Retry-After', String(retryAfterSeconds));
+  return response.status(503).send('Sitemap temporarily unavailable');
 }

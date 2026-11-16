@@ -10,6 +10,7 @@
  */
 import { chmodSync, cpSync, existsSync, lstatSync, mkdirSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve, sep } from 'node:path';
+import { renderPublicPageTexts } from './lib/public-page-texts.mjs';
 import { createPublicSeoModel } from './lib/public-seo-model.mjs';
 
 const root = process.cwd();
@@ -40,7 +41,7 @@ const generated = [
   ['sitemap.xml', seo.sitemapIndexXml()],
   ['sitemaps/static.xml', seo.staticSitemapXml()],
   // Read by the server only (nginx hands /sitemaps/ to it): the content fingerprints that date the static pages.
-  ['sitemaps/static-fingerprints.json', `${JSON.stringify(seo.staticPageFingerprints(), null, 2)}\n`],
+  ['sitemaps/static-fingerprints.json', `${JSON.stringify(seo.staticPageFingerprints(renderPublicPageTexts(root)), null, 2)}\n`],
 ];
 rmSync(outDir, { recursive: true, force: true });
 // The generated files come first: the copy below never replaces them, and

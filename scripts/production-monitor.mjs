@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
@@ -478,6 +479,50 @@ function assertIndexLastmod(indexEntries, location, entries, label) {
   ensure(listed === latest, `${label}: sitemap index lastmod ${listed} is not the latest entry lastmod ${latest}`);
 }
 
+const LASTMOD_RECHECKS = 2;
+
+/**
+ * Checks the index date against the segment, tolerating the edge cache. The edge
+ * caches `/sitemap.xml` and each segment separately, keyed by `$request_uri`
+ * with its query string (`deploy/nginx/arena-edge-static-cache.conf`, location
+ * `@arena_mutable_static_origin`, five minutes), so right after an update one
+ * may legitimately hold yesterday's date while the other is already current.
+ * A disagreement is therefore asked again, for a pair that cannot come from
+ * the cache: the same two documents under a query string no cache holds. The
+ * origin (Express) ignores the query, and nothing in front of it keys without
+ * it. Only a disagreement that survives is an error.
+ */
+async function assertIndexLastmodOrRecheck(context, location, entries, label, segmentLimit) {
+  const { origin, indexEntries, fetchImpl, timeoutMs, signal, warnings } = context;
+  try {
+    return assertIndexLastmod(indexEntries, location, entries, label);
+  } catch (cachedError) {
+    for (let attempt = 1; attempt <= LASTMOD_RECHECKS; attempt += 1) {
+      const fresh = path => {
+        const url = new URL(path, origin);
+        url.searchParams.set('lastmod-recheck', randomUUID());
+        return url;
+      };
+      const index = await fetchBoundedText(fresh('/sitemap.xml'), fetchImpl, timeoutMs,
+        MAX_SITEMAP_INDEX_BYTES, 'sitemap index', signal);
+      const segment = await fetchBoundedText(fresh(new URL(location).pathname), fetchImpl, timeoutMs,
+        segmentLimit, label, signal);
+      assertXmlResponse(index.response, 'sitemap index');
+      assertXmlResponse(segment.response, label);
+      try {
+        assertIndexLastmod(sitemapEntries(index.body, 'sitemapindex', 'sitemap index'), location,
+          sitemapEntries(segment.body, 'urlset', label), label);
+      } catch (freshError) {
+        if (attempt === LASTMOD_RECHECKS) throw freshError;
+        continue;
+      }
+      warnings.push({ label, message: `${cachedError.message}; the edge caches differ, a fresh pair agrees` });
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
 function assertXmlResponse(response, label) {
   ensure(response.status === 200, `${label}: HTTP ${response.status}`);
   ensure(/^application\/xml(?:;|$)/i.test(response.headers.get('content-type') || ''),
@@ -633,7 +678,9 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal, sitemapWarnM
   assertXmlResponse(staticResponse, 'static sitemap');
   const staticEntries = sitemapEntries(staticXml, 'urlset', 'static sitemap');
   const staticLocations = staticEntries.map(entry => entry.location);
-  assertIndexLastmod(indexEntries, `${origin}/sitemaps/static.xml`, staticEntries, 'static sitemap');
+  const lastmodContext = { origin, indexEntries, fetchImpl, timeoutMs, signal, warnings };
+  await assertIndexLastmodOrRecheck(lastmodContext, `${origin}/sitemaps/static.xml`, staticEntries,
+    'static sitemap', MAX_STATIC_SITEMAP_BYTES);
   ensure(
     staticLocations.length === EXPECTED_STATIC_SITEMAP_URL_COUNT,
     `static sitemap contains ${staticLocations.length}/${EXPECTED_STATIC_SITEMAP_URL_COUNT} URLs`,
@@ -674,7 +721,8 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal, sitemapWarnM
     ensure(!PRIVATE_PAYLOAD_PATTERN.test(body), `${segment.label} contains private payload fields`);
     const segmentEntries = sitemapEntries(body, 'urlset', segment.label);
     const locations = segmentEntries.map(entry => entry.location);
-    assertIndexLastmod(indexEntries, `${origin}${segment.path}`, segmentEntries, segment.label);
+    await assertIndexLastmodOrRecheck(lastmodContext, `${origin}${segment.path}`, segmentEntries,
+      segment.label, MAX_CARD_SITEMAP_BYTES);
     ensure(locations.length >= segment.minimumUrls && locations.length <= 50_000,
       `${segment.label} has invalid entry count ${locations.length}`);
     for (const location of locations) {

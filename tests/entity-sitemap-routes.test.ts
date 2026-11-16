@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import express from 'express';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { request as httpRequest } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -10,6 +10,7 @@ import {
   createEntitySitemapRouter,
   loadStaticSitemapArtifact,
 } from '../server/entitySitemapRoutes.js';
+import { sitemapContentHash } from '../server/entitySitemapValidation.js';
 import { createEntitySitemapRuntimeOptions } from '../server/entitySitemapSources.js';
 import { isIndexableArchetype } from '../shared/constructedArchetypeIndexing.js';
 import { sitemapEntries } from '../scripts/production-monitor.mjs';
@@ -745,31 +746,67 @@ try {
   rmSync(datedDirectory, { recursive: true, force: true });
 }
 
-// A segment that cannot be built and has no last known good copy stays in the index, undated, for the monitor to flag.
-const brokenDirectory = mkdtempSync(join(tmpdir(), 'arena-sitemap-broken-'));
+// The index is never served with an undated record. A segment that cannot be built is dated from the state
+// the store saved earlier (it survives a restart); with no state at all the index answers 503, not a partial 200.
+const outageDirectory = mkdtempSync(join(tmpdir(), 'arena-sitemap-outage-'));
 try {
-  const app = await startDated({
-    directory: brokenDirectory,
-    now: () => Date.parse('2026-11-10T08:00:00.000Z'),
-    fingerprints: new Map(),
-    staticUrls: ['https://hearthpulse.net/'],
-    loadStandardCards: async () => [publicCard],
-    loadArchetypes: async () => { throw new Error('source down'); },
-  });
-  try {
-    const index = await fetch(`${app.origin}/sitemap.xml`);
-    assert.equal(index.status, 200);
-    const text = await index.text();
-    assert.deepEqual(sitemapEntries(text, 'sitemapindex', 'index', { requireLastmod: false })
-      .map(({ location, lastmod }) => [new URL(location).pathname, lastmod]), [
-      ['/sitemaps/static.xml', '2026-11-10'],
-      ['/sitemaps/standard-cards.xml', '2026-11-10'],
-      ['/sitemaps/archetypes.xml', undefined],
-    ]);
-  } finally {
-    await app.close();
+  const down = async () => { throw new Error('source down'); };
+  const archetype = {
+    item: { slug: 'pure-paladin', archetype: 'Pure Paladin', format: 'standard', games: 5_000, deckCount: 2, popularity: 2 },
+    updatedAt: '2026-11-08T05:00:00+00:00',
+    period: 'black_empire',
+  };
+  const indexOf = async (loadArchetypes: () => Promise<any[]>) => {
+    const app = await startDated({
+      directory: outageDirectory,
+      now: () => Date.parse('2026-11-10T08:00:00.000Z'),
+      fingerprints: new Map(),
+      staticUrls: ['https://hearthpulse.net/'],
+      loadStandardCards: async () => [publicCard],
+      loadArchetypes,
+    });
+    try {
+      const startedAt = Date.now();
+      const response = await fetch(`${app.origin}/sitemap.xml`);
+      return { response, text: await response.text(), elapsedMs: Date.now() - startedAt };
+    } finally {
+      await app.close();
+    }
+  };
+  const recordsOf = (text: string) => sitemapEntries(text, 'sitemapindex', 'index', { requireLastmod: false })
+    .map(({ location, lastmod }) => [new URL(location).pathname, lastmod]);
+
+  const unavailable = await indexOf(down);
+  assert.equal(unavailable.response.status, 503, 'no date for a sitemap: not a 200 with a partial record');
+  assert.ok(Number(unavailable.response.headers.get('retry-after')) > 0);
+  assert.equal(unavailable.response.headers.get('cache-control'), 'no-cache, no-store, must-revalidate');
+  assert.ok(unavailable.elapsedMs < 2_000, `the index answers within 2 s, took ${unavailable.elapsedMs} ms`);
+
+  assert.equal((await indexOf(async () => [archetype])).response.status, 200);
+  const fromState = await indexOf(down);
+  assert.equal(fromState.response.status, 200, 'the saved state dates the sitemap the source cannot deliver');
+  assert.deepEqual(recordsOf(fromState.text), [
+    ['/sitemaps/static.xml', '2026-11-10'],
+    ['/sitemaps/standard-cards.xml', '2026-11-10'],
+    ['/sitemaps/archetypes.xml', '2026-11-08'],
+  ]);
+
+  // State written before every address had a day: the sitemap takes the day the state was last written.
+  for (const filename of ['seo-archetypes-sitemap-v1.json', 'seo-archetypes-sitemap-v1.lkg.json']) {
+    const file = join(outageDirectory, filename);
+    const saved = JSON.parse(readFileSync(file, 'utf8'));
+    const unsigned = {
+      ...saved,
+      updatedAt: '2026-11-03T05:00:00.000Z',
+      entries: saved.entries.map(({ lastmod: _lastmod, ...entry }: { lastmod?: string }) => entry),
+    };
+    delete unsigned.contentHash;
+    writeFileSync(file, JSON.stringify({ ...unsigned, contentHash: sitemapContentHash(unsigned) }), 'utf8');
   }
+  const legacy = await indexOf(down);
+  assert.equal(legacy.response.status, 200);
+  assert.deepEqual(recordsOf(legacy.text).at(-1), ['/sitemaps/archetypes.xml', '2026-11-03']);
 } finally {
-  rmSync(brokenDirectory, { recursive: true, force: true });
+  rmSync(outageDirectory, { recursive: true, force: true });
 }
 console.log('entity sitemap lastmod contracts passed');

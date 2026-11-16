@@ -15,7 +15,9 @@ import {
   projectStandardCardSitemapCatalog,
 } from './entitySitemapProjections.js';
 import { projectCosmeticsSitemapCatalog, projectGuideArchiveSitemapCatalog } from './entitySitemapEditorial.js';
-import { createStaticPageDays, datedStaticLocations, latestDay, type DatedLocation } from './entitySitemapComposite.js';
+import {
+  createStaticPageDays, datedStaticLocations, sendUnavailable, sitemapIndexEntries, type DatedLocation,
+} from './entitySitemapComposite.js';
 import {
   loadStaticSitemapArtifact,
   renderSitemapIndex,
@@ -256,20 +258,15 @@ export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDepen
       entries,
     ), maxAgeSeconds);
   });
-  // The index dates each sitemap by the latest `lastmod` among its addresses; a segment
-  // that cannot be loaded stays listed, undated, so the monitor flags it instead of crawlers losing the index.
+  // The index dates each sitemap by the latest `lastmod` among its addresses (see `sitemapIndexEntries`).
+  // An index with an undated record is not served: crawlers retry rather than keep a partial one.
   router.get('/sitemap.xml', async (request, response) => {
     const results = await loadSegments();
-    const entries = [
-      { location: `${origin}/sitemaps/static.xml`, lastmod: latestDay((await staticEntries()).map(entry => entry.lastmod)) },
-      ...definitions.map((definition, position) => {
-        const result = results[position];
-        return {
-          location: `${origin}${definition.pathname}`,
-          lastmod: result.status === 'fulfilled' ? latestDay(result.value[1].entries.map(entry => entry.lastmod)) : undefined,
-        };
-      }),
-    ];
+    const entries = sitemapIndexEntries(origin, await staticEntries(), definitions.map((definition, position) => {
+      const result = results[position];
+      return { pathname: definition.pathname, document: result.status === 'fulfilled' ? result.value[1] : null };
+    }));
+    if (!entries) return sendUnavailable(response, retryAfterSeconds);
     return sendDocument(request, response, documentFromXml(
       renderSitemapIndex(entries), 'static', null, Number.POSITIVE_INFINITY,
     ), maxAgeSeconds);
@@ -280,10 +277,7 @@ export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDepen
     try {
       return sendDocument(request, response, await loadDocument(), maxAgeSeconds);
     } catch {
-      response.set('Content-Type', 'text/plain; charset=utf-8');
-      response.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-      response.set('Retry-After', String(retryAfterSeconds));
-      return response.status(503).send('Sitemap temporarily unavailable');
+      return sendUnavailable(response, retryAfterSeconds);
     }
   });
   router.all(/^\/sitemaps\/.*$/, (_request, response) => {
