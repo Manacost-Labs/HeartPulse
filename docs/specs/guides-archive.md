@@ -92,8 +92,21 @@ Every h2/h3 gets an id in the full text (`guide-section-…` from the source,
 else `guide-heading-N`); `toc` carries the same ids, so a subscriber's links
 work. For a guest, headings that are not in the open part get an empty anchor
 at the top of the closed block, so a contents link lands on the paywall and
-not nowhere. Headings that hold only a picture have no text and are not in the
-contents; a guide with no headings simply has no contents block.
+not nowhere. The contents never take text from paid elements: a deck code button inside
+a heading (a `code` element after sanitizing) or a figure is skipped, the same
+element list the open part leaves out, and attributes such as `alt` or `title`
+are never read. A heading left without text (only a picture or a code) is not
+in the contents; a guide with no headings simply has no contents block. The
+outline is capped at 300 entries (the longest guide today has 63); the Next
+server shortens a longer one instead of failing the page.
+
+### Links to cut pictures
+
+Pictures are removed from the open part, and a link left without content
+(`<a href="…jpg"></a>`) is removed with it, together with its address: a
+screen reader gets no nameless link and the address of a picture that may be a
+deck image does not leave the server. Links with text, and anchors that only
+carry an `id`, stay.
 
 ### Guide that fits the open part
 

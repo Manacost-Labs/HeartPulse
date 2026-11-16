@@ -93,6 +93,15 @@ console.log('guide archive sanitizer tests passed');
   assert.equal(media.hasPaid, true);
   assert.equal(buildGuideExcerpt('<p>Только текст.</p>').hasPaid, false);
 
+  // A link whose picture was cut leaves neither the link nor the picture's address.
+  const linked = buildGuideExcerpt(createOldGuideSanitizer('https://legacy.example.test/').sanitizeHtml(
+    '<p>Текст</p><p><a href="/design/user/deck-spoiler.jpg"><img src="/design/user/deck-spoiler.jpg"></a></p>'
+    + '<p><a href="https://example.com/x">живая ссылка</a></p>'));
+  assert.equal(linked.html.includes('deck-spoiler'), false);
+  assert.equal(linked.html, '<p>Текст</p><p><a href="https://example.com/x" target="_blank" rel="noopener noreferrer">живая ссылка</a></p>');
+  assert.deepEqual(guideToc(createOldGuideSanitizer('').sanitizeHtml(
+    '<h2 id="a">Раздел <img data-clipboard-text="AAEBAZICAA8PAAAAAAAAAA==" title="AAEBAZICAA8PAAAAAAAAAA=="></h2><h3 id="b"><img data-clipboard-text="AAEBAZICAA8PAAAAAAAAAA=="></h3>')),
+  [{ id: 'guide-section-a', text: 'Раздел', level: 2 }], 'deck code is not a heading');
   assert.equal(addGuideHeadingIds('<h2>A</h2><h3 id="guide-section-x">B</h3><h3>C</h3>'),
     '<h2 id="guide-heading-1">A</h2><h3 id="guide-section-x">B</h3><h3 id="guide-heading-3">C</h3>');
   assert.deepEqual(guideToc('<h2 id="a">Ловкость &amp; <em>сила</em></h2><p>x</p><h3 id="b"> </h3><h3 id="c">Конец</h3>'), [

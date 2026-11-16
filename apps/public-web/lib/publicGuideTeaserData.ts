@@ -18,7 +18,7 @@ export type PublicGuideTeaser = {
 export type PublicGuideTocEntry = { id: string; text: string; level: 2 | 3 };
 
 const MAX_EXCERPT_LENGTH = 60_000;
-const MAX_TOC_ENTRIES = 120;
+const MAX_TOC_ENTRIES = 300;
 // The tags and attributes the Express sanitizer can emit; anything else is not its output.
 const EXCERPT_TAGS = /^(?:a|b|blockquote|br|div|em|h2|h3|h4|hr|i|img|li|ol|p|pre|span|strong|table|tbody|td|th|thead|tr|u|ul)$/;
 const EXCERPT_ATTRIBUTES = /^(?:id|href|target|rel|src|alt|loading|decoding|class|colspan|rowspan|scope)$/;
@@ -75,8 +75,9 @@ function excerptHtml(value: unknown): string {
 
 function tocEntries(value: unknown): PublicGuideTocEntry[] {
   if (value === undefined) return [];
-  if (!Array.isArray(value) || value.length > MAX_TOC_ENTRIES) throw new Error('Invalid public guide teaser');
-  return value.map(entry => {
+  if (!Array.isArray(value)) throw new Error('Invalid public guide teaser');
+  // A long outline is shortened, never a reason for the page to fail.
+  return value.slice(0, MAX_TOC_ENTRIES).map(entry => {
     const item = entry && typeof entry === 'object' ? entry as Record<string, unknown> : {};
     if (typeof item.id !== 'string' || !/^[\w-]{1,120}$/.test(item.id) || typeof item.text !== 'string'
       || !item.text.trim() || item.text.length > 200 || (item.level !== 2 && item.level !== 3)) {

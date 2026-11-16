@@ -26,6 +26,10 @@ const GUIDES: Array<[number, string, string, string, string, string]> = [
   [3, 'long-first-paragraph', 'Один длинный абзац', `<p>${words(300, 'длинный')}</p>`, '', ''],
   [4, 'short-guide', 'Короткий гайд', `<p>${words(95, 'коротко')}</p>`, '', ''],
   [5, 'fits-with-deck', 'Гайд с колодой', `<p>${words(170, 'колода')}</p><p><img src="/deck.png"></p>`, '', ''],
+  [6, 'toc-code-guide', 'Гайд с кодами в заголовках',
+    `<p>${words(170, 'оглавление')}</p><h2>Раздел <img data-clipboard-text="AAEBAZICAA8PAAAAAAAAAA=="></h2>`
+    + '<h3><img data-clipboard-text="AAECAQcE0gKS+AKgAAAAAAAAAAAAAA=="></h3><h3>Колода <code>AAEBAZICAA8PAAAAAAAAAB==</code> дня</h3>',
+    '', ''],
 ];
 
 export function createGuideExcerptDatabase(): DatabaseSync {

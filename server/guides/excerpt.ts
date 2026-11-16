@@ -9,7 +9,7 @@ import { createOldGuideSanitizer, type OldGuideSanitizer } from './sanitize.js';
 
 export const GUIDE_EXCERPT_MIN_WORDS = 150;
 export const GUIDE_EXCERPT_MAX_WORDS = 200;
-const MAX_TOC_ENTRIES = 120;
+const MAX_TOC_ENTRIES = 300;
 const MAX_TOC_TEXT = 160;
 
 export type GuideTocEntry = { id: string; text: string; level: 2 | 3 };
@@ -82,8 +82,13 @@ export function addGuideHeadingIds(html: string): string {
 export function guideToc(html: string): GuideTocEntry[] {
   const entries: GuideTocEntry[] = [];
   let current: { level: 2 | 3; id: string; text: string } | null = null;
+  // Text inside a paid element (a deck code button) is not a name: the same tags the open part leaves out.
+  let paidDepth = 0;
   for (const token of tokenize(html)) {
-    if (token.kind === 'open' && (token.tag === 'h2' || token.tag === 'h3')) {
+    if (PAID_ONLY_TAGS.has(token.tag) && (token.kind === 'open' || token.kind === 'close')) {
+      paidDepth = Math.max(0, paidDepth + (token.kind === 'open' ? 1 : -1));
+    } else if (paidDepth > 0) continue;
+    else if (token.kind === 'open' && (token.tag === 'h2' || token.tag === 'h3')) {
       current = { level: token.tag === 'h2' ? 2 : 3, id: attributeValue(token.raw, 'id') ?? '', text: '' };
     } else if (token.kind === 'close' && current && token.tag === `h${current.level}`) {
       const text = decodeGuideEntities(current.text).replace(/\s+/g, ' ').trim().slice(0, MAX_TOC_TEXT);
@@ -110,6 +115,8 @@ function removeEmptyElements(html: string): string {
   do {
     previous = html;
     html = html.replace(/<(p|div|span|em|i|b|strong|li|ul|ol|blockquote|table|tr|td|th)>\s*<\/\1>/gi, '');
+    // A link left without content (its picture was cut) is dropped with its address.
+    html = html.replace(/<a(?:\s[^>]*)?\shref="[^"]*"[^>]*>\s*<\/a>/gi, '');
     // A heading that held only a picture is left with its anchor: nothing to read, nothing to keep.
     html = html.replace(/<(h[2-4])(?:\s[^>]*)?>(?:\s|<a(?:\s[^>]*)?><\/a>)*<\/\1>/gi, '');
   } while (html !== previous);

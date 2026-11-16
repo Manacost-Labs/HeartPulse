@@ -97,6 +97,14 @@ try {
   assert.deepEqual((ld[1] as { itemListElement: Array<{ name: string }> }).itemListElement.map(item => item.name),
     ['Главная', 'Архив гайдов', 'Гайд с платной частью']);
 
+  // No deck code in any open field, whichever way it reaches a heading; headings keep only their words.
+  const toc = JSON.parse((await teaserOf('toc-code-guide')).text);
+  assert.deepEqual(toc.toc.map((entry: { text: string }) => entry.text), ['Раздел', 'Колода дня']);
+  for (const slug of ['sentinel-guide', 'fits-guide', 'long-first-paragraph', 'short-guide', 'fits-with-deck', 'toc-code-guide']) {
+    const open = JSON.parse((await teaserOf(slug)).text);
+    assert.equal(/AAE[A-Za-z0-9+/=]{20,}/.test(JSON.stringify([open.toc, open.excerptHtml, open.description])), false, slug);
+  }
+
   // The Next side refuses an open part that carries anything the sanitizer cannot emit.
   for (const excerptHtml of ['<script>x</script>', '<p onclick="x">a</p>', '<a href="javascript:x">a</a>', '<p>a < b</p>']) {
     assert.throws(() => publicGuideTeaser({ ...projection, excerptHtml }, 'sentinel-guide'), /Invalid public guide teaser/, excerptHtml);
