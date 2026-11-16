@@ -598,7 +598,7 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Мета Hearthstone",
+            "name": "Мета Hearthstone: колоды и винрейты",
             "item": "https://hearthpulse.net/standard/meta/"
           }
         ]
@@ -854,7 +854,7 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Классы",
+            "name": "Винрейт классов на Арене",
             "item": "https://hearthpulse.net/classes/"
           }
         ]
@@ -915,7 +915,7 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Тир-лист",
+            "name": "Тир-лист карт Арены Hearthstone",
             "item": "https://hearthpulse.net/tierlist/"
           }
         ]
@@ -981,7 +981,7 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Легендарки",
+            "name": "Легендарки Арены Hearthstone",
             "item": "https://hearthpulse.net/legendaries/"
           }
         ]
@@ -1190,7 +1190,7 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Конструктор стратегий",
+            "name": "Конструктор стратегий Полей сражений",
             "item": "https://hearthpulse.net/battlegrounds/strategies/"
           }
         ]
@@ -1198,7 +1198,7 @@
       {
         "@type": "WebPage",
         "@id": "https://hearthpulse.net/battlegrounds/strategies/#page",
-        "name": "Конструктор стратегий БГ",
+        "name": "Конструктор стратегий Полей сражений",
         "description": "Инструмент для сборки и визуализации собственного плана на Полях сражений Hearthstone.",
         "url": "https://hearthpulse.net/battlegrounds/strategies/",
         "inLanguage": "ru"
@@ -1225,7 +1225,7 @@
       {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/heroes/#collection",
-        "name": "Герои Полей Сражений Hearthstone",
+        "name": "Герои Полей сражений Hearthstone",
         "description": "Тир-лист героев Hearthstone Battlegrounds с отдельными страницами героев.",
         "url": "https://hearthpulse.net/heroes/",
         "inLanguage": "ru"
@@ -1252,7 +1252,7 @@
       {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/library/#collection",
-        "name": "Библиотека Полей Сражений Hearthstone",
+        "name": "Библиотека Полей сражений Hearthstone",
         "description": "Актуальные и архивные карты Hearthstone Battlegrounds с фильтрами и детальными страницами.",
         "url": "https://hearthpulse.net/library/",
         "inLanguage": "ru"
@@ -1262,7 +1262,7 @@
       {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/library/minions/#collection",
-        "name": "Существа Полей Сражений Hearthstone",
+        "name": "Существа Полей сражений Hearthstone",
         "description": "Актуальные существа Hearthstone Battlegrounds с фильтрами и статистикой.",
         "url": "https://hearthpulse.net/library/minions/",
         "inLanguage": "ru"
@@ -1272,7 +1272,7 @@
       {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/library/spells/#collection",
-        "name": "Заклинания Полей Сражений Hearthstone",
+        "name": "Заклинания Полей сражений Hearthstone",
         "description": "Актуальные заклинания Hearthstone Battlegrounds с фильтрами и статистикой.",
         "url": "https://hearthpulse.net/library/spells/",
         "inLanguage": "ru"
@@ -1282,7 +1282,7 @@
       {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/library/archive/#collection",
-        "name": "Архив карт Полей Сражений Hearthstone",
+        "name": "Архив карт Полей сражений Hearthstone",
         "description": "Архивные карты Hearthstone Battlegrounds.",
         "url": "https://hearthpulse.net/library/archive/",
         "inLanguage": "ru"
@@ -1292,7 +1292,7 @@
       {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/library/archive/minions/#collection",
-        "name": "Архив существ Полей Сражений Hearthstone",
+        "name": "Архив существ Полей сражений Hearthstone",
         "description": "Существа Hearthstone Battlegrounds вне активного пула.",
         "url": "https://hearthpulse.net/library/archive/minions/",
         "inLanguage": "ru"
@@ -1302,7 +1302,7 @@
       {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/library/archive/spells/#collection",
-        "name": "Архив заклинаний Полей Сражений Hearthstone",
+        "name": "Архив заклинаний Полей сражений Hearthstone",
         "description": "Заклинания Hearthstone Battlegrounds вне активного пула.",
         "url": "https://hearthpulse.net/library/archive/spells/",
         "inLanguage": "ru"
@@ -1321,7 +1321,7 @@
           {
             "@type": "ListItem",
             "position": 2,
-            "name": "Тир-лист",
+            "name": "Тир-лист Полей сражений",
             "item": "https://hearthpulse.net/battlegrounds/tier-list/"
           }
         ]
@@ -1329,7 +1329,7 @@
       {
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/battlegrounds/tier-list/#collection",
-        "name": "Тир-лист Полей Сражений Hearthstone",
+        "name": "Тир-лист Полей сражений Hearthstone",
         "description": "Существа, стратегии, заклинания и аксессуары Hearthstone Battlegrounds.",
         "url": "https://hearthpulse.net/battlegrounds/tier-list/",
         "inLanguage": "ru"
@@ -1356,7 +1356,7 @@
       {
         "@type": "WebPage",
         "@id": "https://hearthpulse.net/battlegrounds/tier-builder/#page",
-        "name": "Конструктор тир-листов Полей Сражений",
+        "name": "Конструктор тир-листов Полей сражений",
         "description": "Инструмент для создания собственных тир-листов Hearthstone Battlegrounds.",
         "url": "https://hearthpulse.net/battlegrounds/tier-builder/",
         "inLanguage": "ru"

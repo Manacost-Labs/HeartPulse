@@ -114,6 +114,8 @@ test('the guest HTML of /tierlist/ carries the open slice and nothing closed', a
     assert.equal(dataset.isAccessibleForFree, false);
     assert.deepEqual(dataset.hasPart, { '@type': 'WebPageElement', isAccessibleForFree: false, cssSelector: '.paywalled-tierlist' });
     assert.equal('license' in dataset, false, 'no license on the dataset');
+    assert.equal('creator' in dataset, false, 'the site is no creator of the data');
+    assert.equal(dataset.dateModified, '2026-11-15T17:00:03.639Z', 'dated by the data the page prints');
 
     // The server reads the projection anonymously.
     const reads = state.reads.filter(read => read.path.startsWith('/api/tierlist'));
