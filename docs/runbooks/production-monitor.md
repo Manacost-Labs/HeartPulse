@@ -75,9 +75,9 @@ failure. A sitemap served from the last-known-good copy
 report and the run summary and never open an alert.
 
 Not sampled today: `constructed-archetype-detail` (no sitemap segment until
-#299), `bg-library-archive-detail` (exists only for retired cards, no sitemap
-lists them) and `bg-library-additional-detail` (no public source of a stable
-URL).
+the archetype segment of issue 299 lands), `bg-library-archive-detail` (exists
+only for retired cards, no sitemap lists them) and
+`bg-library-additional-detail` (no public source of a stable URL).
 
 ## Data freshness
 
