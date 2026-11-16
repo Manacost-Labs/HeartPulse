@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
+import { pageTemplateSamples } from './production-monitor-templates.mjs';
 
 const publicSeoRegistry = JSON.parse(readFileSync(
   new URL('../config/public-seo-pages.json', import.meta.url),
@@ -29,6 +30,18 @@ const MAX_HEALTH_JSON_BYTES = 256 * 1024;
 const MAX_CONSTRUCTED_JSON_BYTES = 4 * 1024 * 1024;
 const MAX_EMPTY_RESPONSE_BYTES = 64 * 1024;
 const DEFAULT_MONITOR_DEADLINE_MS = 4 * 60 * 1000;
+// Slow answers are a warning; only the request timeout (10 s) is an error.
+const DEFAULT_PAGE_WARN_MS = 1_000;
+const DEFAULT_SITEMAP_WARN_MS = 2_000;
+const DEFAULT_REQUEST_PAUSE_MS = 150;
+// A required dataset that only reports `stale` on last-known-good for less
+// than this is a warning; older is a failure. Real staleness (8 h) always fails.
+const DEFAULT_LKG_MAX_AGE_MS = 30 * 60 * 1000;
+// Non-required datasets (they never block readiness) are reported, not failed.
+// A known problem stays visible in every report with a link to its issue.
+const KNOWN_DATASET_ISSUES = {
+  'hs-data-api': '#398',
+};
 const PRIVATE_PAYLOAD_PATTERN = /QA_PRIVATE|\b(?:deckCode|statsAccess|subscriptionPayload|privateSentinel)\b/i;
 const MONITOR_PROFILES = new Set(['full', 'release', 'freshness']);
 const ENTITY_SITEMAP_SEGMENTS = [
@@ -167,7 +180,7 @@ async function fetchBoundedText(
   if (parentSignal.aborted) onParentAbort();
   else parentSignal.addEventListener('abort', onParentAbort, { once: true });
   const timeout = setTimeout(
-    () => abort(new Error(`${label}: request timed out after ${timeoutMs}ms`)),
+    () => abort(new Error(`${label} ${new URL(url).pathname}: request timed out after ${timeoutMs}ms`)),
     timeoutMs,
   );
 
@@ -175,7 +188,7 @@ async function fetchBoundedText(
     response = await fetchImpl(url, {
       redirect,
       signal: controller.signal,
-      headers: { 'User-Agent': 'hs-arena-external-monitor/1.0' },
+      headers: { 'User-Agent': 'hs-arena-external-monitor/1.1 (+https://hearthpulse.net; read-only GET)' },
     });
     const body = await readBoundedText(response, maximumBytes, label, controller.signal);
     return { response, body };
@@ -500,9 +513,15 @@ function assertIndexableEntityHtml(html, response, canonical, identity, identity
   ensure(identityFound, `${label} ${identity}: JSON-LD identity mismatch`);
 }
 
-async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
+function slowWarning(warnings, label, path, startedAt, limitMs) {
+  const elapsed = Date.now() - startedAt;
+  if (elapsed > limitMs) warnings.push({ label, message: `${path} answered in ${elapsed} ms (warning above ${limitMs} ms)` });
+}
+
+async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal, sitemapWarnMs = DEFAULT_SITEMAP_WARN_MS) {
   const startedAt = Date.now();
   const origin = new URL(baseUrl).origin;
+  const warnings = [];
 
   const { response: robotsResponse, body: robots } = await fetchBoundedText(
     new URL('/robots.txt', origin),
@@ -523,6 +542,7 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
   ensure(new RegExp(`^Sitemap:\\s*${origin.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\/sitemap\\.xml\\s*$`, 'mi').test(robots),
     'robots.txt: canonical sitemap pointer is missing');
 
+  const indexStartedAt = Date.now();
   const { response: indexResponse, body: indexXml } = await fetchBoundedText(
     new URL('/sitemap.xml', origin),
     fetchImpl,
@@ -531,6 +551,7 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
     'sitemap index',
     signal,
   );
+  slowWarning(warnings, 'sitemap index', '/sitemap.xml', indexStartedAt, sitemapWarnMs);
   assertXmlResponse(indexResponse, 'sitemap index');
   const indexLocations = sitemapLocations(indexXml, 'sitemapindex', 'sitemap index');
   ensure(JSON.stringify(indexLocations) === JSON.stringify([
@@ -538,6 +559,7 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
     ...ENTITY_SITEMAP_SEGMENTS.map(segment => `${origin}${segment.path}`),
   ]), 'sitemap index does not contain the exact public segment set');
 
+  const staticStartedAt = Date.now();
   const { response: staticResponse, body: staticXml } = await fetchBoundedText(
     new URL('/sitemaps/static.xml', origin),
     fetchImpl,
@@ -546,6 +568,7 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
     'static sitemap',
     signal,
   );
+  slowWarning(warnings, 'static sitemap', '/sitemaps/static.xml', staticStartedAt, sitemapWarnMs);
   assertXmlResponse(staticResponse, 'static sitemap');
   const staticLocations = sitemapLocations(staticXml, 'urlset', 'static sitemap');
   ensure(
@@ -564,6 +587,7 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
   let firstStandardCanonical = '';
   let sampledDetails = 0;
   for (const segment of ENTITY_SITEMAP_SEGMENTS) {
+    const segmentStartedAt = Date.now();
     const { response, body } = await fetchBoundedText(
       new URL(segment.path, origin),
       fetchImpl,
@@ -572,6 +596,7 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
       segment.label,
       signal,
     );
+    slowWarning(warnings, segment.label, segment.path, segmentStartedAt, sitemapWarnMs);
     assertXmlResponse(response, segment.label);
     // Nginx correctly weakens an upstream strong validator when it compresses
     // the representation, so both strong and weak SHA-256 validators are valid.
@@ -580,6 +605,9 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
     const sitemapSource = response.headers.get('x-sitemap-source') || '';
     ensure(['catalog', 'last-known-good'].includes(sitemapSource),
       `${segment.label}: invalid X-Sitemap-Source`);
+    if (sitemapSource === 'last-known-good') {
+      warnings.push({ label: segment.label, message: `${segment.path} is served from the last-known-good copy` });
+    }
     ensure(!PRIVATE_PAYLOAD_PATTERN.test(body), `${segment.label} contains private payload fields`);
     const locations = sitemapLocations(body, 'urlset', segment.label);
     ensure(locations.length >= segment.minimumUrls && locations.length <= 50_000,
@@ -680,6 +708,7 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal) {
     sampledDetails,
     unknownCard,
     sitemapSources,
+    warnings,
   };
 }
 
@@ -706,7 +735,9 @@ async function retryCheck(label, check, attempts, retryDelayMs, signal) {
       }
     }
   }
-  throw new Error(`${label}: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
+  const failure = new Error(`${label}: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
+  if (Array.isArray(lastError?.failures)) failure.failures = lastError.failures;
+  throw failure;
 }
 
 function sanitizedFailureMessage(error) {
@@ -833,6 +864,157 @@ async function checkConstructedCards(baseUrl, fetchImpl, timeoutMs, signal) {
   return checks;
 }
 
+function assertIndexablePage(response, body) {
+  ensure(response.status === 200, `HTTP ${response.status}`);
+  ensure((response.headers.get('content-type') || '').includes('text/html'), 'response is not HTML');
+  ensure(/<html[\s>]/i.test(body), 'HTML document marker is missing');
+  ensure(!/application error|internal server error/i.test(body), 'error document returned');
+  ensure(!/noindex/i.test(response.headers.get('x-robots-tag') || ''), 'X-Robots-Tag is noindex');
+  ensure(!htmlAttributeValues(body, 'meta', 'name', 'robots').some(value => /noindex/i.test(value)),
+    'robots metadata is noindex');
+}
+
+async function sitemapSampleLocations(origin, segmentKey, fetchImpl, timeoutMs, signal) {
+  const segment = ENTITY_SITEMAP_SEGMENTS.find(item => item.key === segmentKey);
+  ensure(segment, `unknown sitemap segment ${segmentKey}`);
+  const { response, body } = await fetchBoundedText(
+    new URL(segment.path, origin),
+    fetchImpl,
+    timeoutMs,
+    MAX_CARD_SITEMAP_BYTES,
+    `${segment.label} (template sample)`,
+    signal,
+  );
+  ensure(response.status === 200, `${segment.path}: HTTP ${response.status}`);
+  const locations = sitemapLocations(body, 'urlset', segment.label);
+  ensure(locations.length > 0, `${segment.path} has no URLs`);
+  return locations;
+}
+
+// One GET per sample, one at a time with a pause, so the monitor never loads
+// the origin. Every failed template is reported with its URL, status and time.
+async function checkPageTemplates(baseUrl, fetchImpl, timeoutMs, signal, settings) {
+  const startedAt = Date.now();
+  const origin = new URL(baseUrl).origin;
+  const { samples, uncovered } = pageTemplateSamples();
+  const warnings = uncovered.map(id => ({
+    label: `page template ${id}`,
+    message: 'indexable template has no monitor sample (add it to production-monitor-templates.mjs)',
+  }));
+  const failures = [];
+  const segmentLocations = new Map();
+  const probe = async (label, resolveUrl) => {
+    const url = await resolveUrl();
+    const pageStartedAt = Date.now();
+    try {
+      const { response, body } = await fetchBoundedText(
+        url, fetchImpl, timeoutMs, MAX_ENTITY_HTML_BYTES, label, signal,
+      );
+      assertIndexablePage(response, body);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`${url.pathname}: ${message} (${Date.now() - pageStartedAt} ms)`);
+    }
+    const elapsed = Date.now() - pageStartedAt;
+    if (elapsed > settings.pageWarnMs) {
+      warnings.push({ label, message: `${url.pathname} answered in ${elapsed} ms (warning above ${settings.pageWarnMs} ms)` });
+    }
+    return { status: 200, durationMs: elapsed };
+  };
+
+  for (const [index, sample] of samples.entries()) {
+    if (signal.aborted) throw signal.reason;
+    if (index > 0 && settings.pauseMs > 0) await delay(settings.pauseMs, undefined, { signal });
+    const label = `page template ${sample.id}`;
+    const resolveUrl = async () => {
+      if (sample.path) return new URL(sample.path, origin);
+      if (!segmentLocations.has(sample.segment)) {
+        segmentLocations.set(sample.segment, sitemapSampleLocations(
+          origin, sample.segment, fetchImpl, timeoutMs, signal,
+        ).catch(error => {
+          segmentLocations.delete(sample.segment);
+          throw error;
+        }));
+      }
+      const locations = await segmentLocations.get(sample.segment);
+      return new URL(locations[0]);
+    };
+    try {
+      await retryCheck(label, () => probe(label, resolveUrl), settings.attempts, settings.retryDelayMs, signal);
+    } catch (error) {
+      if (signal.aborted) throw error;
+      failures.push({ label, message: error.message.slice(label.length + 2) });
+    }
+  }
+  if (failures.length) {
+    const failure = new Error(`${failures.length} of ${samples.length} page templates failed`);
+    failure.failures = failures;
+    throw failure;
+  }
+  return {
+    status: 200,
+    durationMs: Date.now() - startedAt,
+    templates: new Set(samples.map(sample => sample.id)).size,
+    urls: samples.length,
+    unmonitored: uncovered.length,
+    warnings,
+  };
+}
+
+// /api/health/data answers 503 when ANY dataset is not fresh, including the
+// optional Data API one (#398), so the status code alone cannot tell a broken
+// storefront from a degraded upstream. Judge the required datasets by their
+// own state; report the rest as warnings (known ones with their issue).
+function evaluateDataHealth(status, payload, lkgMaxAgeMs) {
+  const datasets = Array.isArray(payload?.datasets) ? payload.datasets : [];
+  const problems = [];
+  const warnings = [];
+  const knownIssues = [];
+  if (payload?.ready !== true) problems.push('service reports it is not ready');
+  for (const name of REQUIRED_DATASETS) {
+    const dataset = datasets.find(item => item?.name === name);
+    if (!dataset) {
+      problems.push(`${name} is missing from the report`);
+    } else if (!(Number(dataset.records) > 0)) {
+      problems.push(`${name} is empty`);
+    } else if (dataset.state !== 'fresh') {
+      const ageMs = Number(dataset.ageMs);
+      const minutes = Number.isFinite(ageMs) ? Math.round(ageMs / 60_000) : null;
+      if (dataset.state === 'stale' && dataset.cacheSource === 'LKG' && Number.isFinite(ageMs) && ageMs <= lkgMaxAgeMs) {
+        warnings.push({ label: 'data freshness', message: `${name} is served from last-known-good (${minutes} min)` });
+      } else {
+        problems.push(`${name} is ${dataset.state}${minutes === null ? '' : ` (${minutes} min old)`}`);
+      }
+    }
+  }
+  for (const dataset of datasets) {
+    if (REQUIRED_DATASETS.includes(dataset?.name) || dataset?.state === 'fresh') continue;
+    const issue = KNOWN_DATASET_ISSUES[dataset?.name];
+    const detail = `${dataset?.name} is ${dataset?.state}${dataset?.warning ? `: ${dataset.warning}` : ''}`;
+    warnings.push({ label: 'data freshness', message: `${detail}${issue ? ` (known issue ${issue})` : ''}` });
+    if (issue) knownIssues.push({ dataset: dataset.name, issue });
+  }
+  if (problems.length) throw new Error(`HTTP ${status}: ${problems.join('; ')}`);
+  return { warnings, knownIssues };
+}
+
+async function checkDataFreshness(baseUrl, fetchImpl, timeoutMs, signal, lkgMaxAgeMs) {
+  const startedAt = Date.now();
+  const { response, body } = await fetchBoundedText(
+    new URL('/api/health/data', baseUrl), fetchImpl, timeoutMs, MAX_HEALTH_JSON_BYTES, '/api/health/data', signal,
+  );
+  ensure([200, 503].includes(response.status), `HTTP ${response.status}`);
+  let payload;
+  try {
+    payload = JSON.parse(body);
+  } catch {
+    throw new Error(`HTTP ${response.status}: response is not valid JSON`);
+  }
+  ensure((response.headers.get('cache-control') || '').includes('no-store'), 'missing Cache-Control: no-store');
+  const verdict = evaluateDataHealth(response.status, payload, lkgMaxAgeMs);
+  return { status: response.status, durationMs: Date.now() - startedAt, ...verdict };
+}
+
 export async function runProductionMonitor(options = {}) {
   const parsedBaseUrl = new URL(String(options.baseUrl || DEFAULT_BASE_URL));
   ensure(['http:', 'https:'].includes(parsedBaseUrl.protocol)
@@ -844,17 +1026,26 @@ export async function runProductionMonitor(options = {}) {
   const attempts = Number(options.attempts ?? 2);
   const retryDelayMs = Number(options.retryDelayMs ?? 5_000);
   const deadlineMs = Number(options.deadlineMs ?? DEFAULT_MONITOR_DEADLINE_MS);
+  const pageWarnMs = Number(options.pageWarnMs ?? DEFAULT_PAGE_WARN_MS);
+  const sitemapWarnMs = Number(options.sitemapWarnMs ?? DEFAULT_SITEMAP_WARN_MS);
+  const requestPauseMs = Number(options.requestPauseMs ?? DEFAULT_REQUEST_PAUSE_MS);
+  const lkgMaxAgeMs = Number(options.lkgMaxAgeMs ?? DEFAULT_LKG_MAX_AGE_MS);
   const profile = String(options.profile || 'full').trim().toLowerCase();
   const expectedRelease = String(options.expectedRelease || '').trim().toLowerCase();
   ensure(Number.isFinite(timeoutMs) && timeoutMs > 0, 'invalid request timeout');
   ensure(Number.isInteger(attempts) && attempts > 0, 'invalid monitor attempt count');
   ensure(Number.isFinite(retryDelayMs) && retryDelayMs >= 0, 'invalid retry delay');
   ensure(Number.isFinite(deadlineMs) && deadlineMs > 0, 'invalid monitor deadline');
+  for (const [name, value] of Object.entries({ pageWarnMs, sitemapWarnMs, requestPauseMs, lkgMaxAgeMs })) {
+    ensure(Number.isFinite(value) && value >= 0, `invalid ${name}`);
+  }
   ensure(MONITOR_PROFILES.has(profile), `invalid production monitor profile: ${profile}`);
   ensure(!expectedRelease || /^[a-f0-9]{7,40}$/.test(expectedRelease), 'invalid expected release SHA');
   const routes = options.routes || DEFAULT_ROUTES;
   const checks = [];
   const failures = [];
+  const warnings = [];
+  const knownIssues = [];
   const deadlineController = new AbortController();
   const deadline = setTimeout(() => {
     deadlineController.abort(new Error(`global monitor deadline exceeded after ${deadlineMs}ms`));
@@ -898,27 +1089,12 @@ export async function runProductionMonitor(options = {}) {
     {
       label: 'data freshness',
       profiles: ['full', 'freshness'],
-      operation: () => checkJsonEndpoint(
-        baseUrl,
-        '/api/health/data',
-        fetchImpl,
-        timeoutMs,
-        signal,
-        payload => {
-          ensure(payload?.status === 'ok' && payload?.fresh === true, 'datasets are not fresh');
-          const datasets = Array.isArray(payload?.datasets) ? payload.datasets : [];
-          for (const name of REQUIRED_DATASETS) {
-            const dataset = datasets.find(item => item?.name === name);
-            ensure(dataset?.state === 'fresh', `${name} is not fresh`);
-            ensure(Number(dataset?.records) > 0, `${name} is empty`);
-          }
-        },
-      ),
+      operation: () => checkDataFreshness(baseUrl, fetchImpl, timeoutMs, signal, lkgMaxAgeMs),
     },
     {
       label: 'SEO crawl contract',
       profiles: ['full', 'release'],
-      operation: () => checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal),
+      operation: () => checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal, sitemapWarnMs),
     },
     {
       label: 'constructed cards',
@@ -935,6 +1111,14 @@ export async function runProductionMonitor(options = {}) {
       profiles: ['full', 'release'],
       operation: () => checkHtmlRoute(baseUrl, route, fetchImpl, timeoutMs, signal),
     })),
+    {
+      label: 'page templates',
+      profiles: ['full', 'release'],
+      attempts: 1, // retries are per template inside the check
+      operation: () => checkPageTemplates(baseUrl, fetchImpl, timeoutMs, signal, {
+        attempts, retryDelayMs, pageWarnMs, pauseMs: requestPauseMs,
+      }),
+    },
   ].filter(group => group.profiles.includes(profile));
 
   try {
@@ -943,7 +1127,7 @@ export async function runProductionMonitor(options = {}) {
         const result = await retryCheck(
           group.label,
           group.operation,
-          attempts,
+          group.attempts ?? attempts,
           retryDelayMs,
           signal,
         );
@@ -952,14 +1136,28 @@ export async function runProductionMonitor(options = {}) {
           : [result];
         return { checks: groupChecks };
       } catch (error) {
+        if (Array.isArray(error?.failures)) {
+          return {
+            failures: error.failures.map(failure => ({
+              label: failure.label,
+              message: sanitizedFailureMessage(failure.message),
+            })),
+          };
+        }
         return {
-          failure: { label: group.label, message: sanitizedFailureMessage(error) },
+          failures: [{ label: group.label, message: sanitizedFailureMessage(error) }],
         };
       }
     }));
     for (const outcome of outcomes) {
-      if (outcome.failure) failures.push(outcome.failure);
-      else checks.push(...outcome.checks);
+      if (outcome.failures) failures.push(...outcome.failures);
+      else {
+        for (const { warnings: found = [], knownIssues: known = [], ...check } of outcome.checks) {
+          checks.push(check);
+          warnings.push(...found);
+          knownIssues.push(...known);
+        }
+      }
     }
   } finally {
     clearTimeout(deadline);
@@ -971,10 +1169,18 @@ export async function runProductionMonitor(options = {}) {
     baseUrl,
     checkedAt: new Date().toISOString(),
     checks,
+    warnings,
+    knownIssues,
     failures,
   };
   if (failures.length) throw new ProductionMonitorFailure(report);
   return report;
+}
+
+// The workflow reads this file to decide on the alert (production-monitor-alert.mjs).
+function writeReportFile(report) {
+  const file = process.env.MONITOR_REPORT_FILE;
+  if (file) writeFileSync(file, `${JSON.stringify(report)}\n`);
 }
 
 async function main() {
@@ -987,12 +1193,18 @@ async function main() {
       attempts: process.env.MONITOR_ATTEMPTS,
       retryDelayMs: process.env.MONITOR_RETRY_DELAY_MS,
       deadlineMs: process.env.MONITOR_DEADLINE_MS,
+      pageWarnMs: process.env.MONITOR_PAGE_WARN_MS,
+      sitemapWarnMs: process.env.MONITOR_SITEMAP_WARN_MS,
+      requestPauseMs: process.env.MONITOR_REQUEST_PAUSE_MS,
+      lkgMaxAgeMs: process.env.MONITOR_LKG_MAX_AGE_MS,
     });
+    writeReportFile(report);
     console.log(JSON.stringify(report, null, 2));
   } catch (error) {
     const diagnostic = error instanceof ProductionMonitorFailure
       ? error.report
       : { status: 'error', failures: [{ label: 'monitor', message: sanitizedFailureMessage(error) }] };
+    writeReportFile(diagnostic);
     console.error(`[production-monitor] ${JSON.stringify(diagnostic)}`);
     process.exitCode = 1;
   }
