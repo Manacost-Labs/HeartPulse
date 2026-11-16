@@ -65,13 +65,28 @@ export function projectCosmeticsSitemapCatalog(rows: unknown[], origin: string):
   }), 'Cosmetics');
 }
 
+/** The UTC day a guide was published, from the column the guide page prints; undefined when neither column reads. */
+function guidePublishedDay(guide: JsonRecord): string | undefined {
+  const iso = typeof guide.published_iso === 'string' ? Date.parse(guide.published_iso) : Number.NaN;
+  const unix = Number(guide.published_at);
+  const milliseconds = Number.isFinite(iso) ? iso : (unix > 0 ? unix * 1000 : Number.NaN);
+  const day = new Date(milliseconds);
+  return Number.isNaN(day.getTime()) ? undefined : day.toISOString().slice(0, 10);
+}
+
 export function projectGuideArchiveSitemapCatalog(rows: unknown[], origin: string): SitemapSemanticEntry[] {
   if (!Array.isArray(rows)) return [];
   return uniqueSorted(rows.map(raw => {
     const guide = record(raw);
     const slug = typeof guide.slug === 'string' ? guide.slug : '';
     if (!GUIDE_SLUG_PATTERN.test(slug)) throw new Error('Guide archive sitemap catalog contains an invalid entity');
-    return { key: slug, location: `${origin}/guides-archive/${slug}/`, semanticHash: hash(guide) };
+    const createdOn = guidePublishedDay(guide);
+    return {
+      key: slug,
+      location: `${origin}/guides-archive/${slug}/`,
+      semanticHash: hash(guide),
+      ...(createdOn ? { createdOn } : {}),
+    };
   }), 'Guide archive');
 }
 

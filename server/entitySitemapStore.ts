@@ -34,7 +34,8 @@ type StoreOptions = {
    * turns the check off. Archetypes default to off: their number follows the
    * catalog's period (72 can become 40 after a patch and grow back), so a drop
    * is a change of the data, not a truncation, and `minimumEntryCount` alone
-   * guards that segment.
+   * guards that segment. The static pages follow the registry, which may drop
+   * several at once, so they too have no relative check.
    */
   collapseRatio?: number | null;
   minimumEntryCount?: number;
@@ -73,7 +74,7 @@ export class SemanticSitemapStore {
     this.recovery = recoveryFilename(this.filename);
     this.origin = normalizedOrigin(options.canonicalOrigin);
     this.now = options.now ?? Date.now;
-    const defaultRatio = this.segment === 'archetypes' ? null : 0.9;
+    const defaultRatio = this.segment === 'archetypes' || this.segment === 'static-pages' ? null : 0.9;
     const ratio = options.collapseRatio === undefined ? defaultRatio : options.collapseRatio;
     this.collapseRatio = ratio === null ? null : Math.max(0.5, Math.min(0.95, ratio));
     this.minimumEntryCount = Math.max(1, Math.min(MAX_SITEMAP_ENTRIES, Math.floor(options.minimumEntryCount ?? 1)));
@@ -112,20 +113,26 @@ export class SemanticSitemapStore {
 
     const previousByKey = new Map(current?.entries.map(entry => [entry.key, entry]) ?? []);
     const today = new Date(this.now()).toISOString().slice(0, 10);
+    const notAhead = (day: string): string => (day < today ? day : today);
     // A source that states the date of its data dates a change by it; the day
     // the server noticed the change is the fallback. The date never lies ahead
     // of today and never moves an entry's lastmod back.
     const changedOn = (dataDate: string | undefined, previous: StoredSitemapEntry | undefined): string => {
       if (dataDate === undefined) return today;
-      const notAhead = dataDate < today ? dataDate : today;
-      return previous?.lastmod && previous.lastmod > notAhead ? previous.lastmod : notAhead;
+      const day = notAhead(dataDate);
+      return previous?.lastmod && previous.lastmod > day ? previous.lastmod : day;
     };
-    const nextEntries: StoredSitemapEntry[] = entries.map(({ dataDate, ...entry }) => {
+    // An address the store has no date for yet (new, or kept from before the
+    // store dated every entry) takes the date its own entity states, else the day
+    // the store first saw it. The date is stored, so a restart, rebuild or
+    // deploy keeps it.
+    const firstDate = (createdOn: string | undefined): string => notAhead(createdOn ?? today);
+    const nextEntries: StoredSitemapEntry[] = entries.map(({ dataDate, createdOn, ...entry }) => {
       const previous = previousByKey.get(entry.key);
-      if (!previous) return dataDate === undefined ? entry : { ...entry, lastmod: changedOn(dataDate, previous) };
-      if (previous.semanticHash === entry.semanticHash) {
-        return { ...entry, ...(previous.lastmod ? { lastmod: previous.lastmod } : {}) };
+      if (!previous || (previous.semanticHash === entry.semanticHash && !previous.lastmod)) {
+        return { ...entry, lastmod: firstDate(dataDate ?? createdOn) };
       }
+      if (previous.semanticHash === entry.semanticHash) return { ...entry, lastmod: previous.lastmod };
       return { ...entry, lastmod: changedOn(dataDate, previous) };
     });
 

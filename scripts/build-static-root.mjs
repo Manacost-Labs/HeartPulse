@@ -39,6 +39,8 @@ const generated = [
   ['index.html', PLACEHOLDER_ENTRY],
   ['sitemap.xml', seo.sitemapIndexXml()],
   ['sitemaps/static.xml', seo.staticSitemapXml()],
+  // Read by the server only (nginx hands /sitemaps/ to it): the content fingerprints that date the static pages.
+  ['sitemaps/static-fingerprints.json', `${JSON.stringify(seo.staticPageFingerprints(), null, 2)}\n`],
 ];
 rmSync(outDir, { recursive: true, force: true });
 // The generated files come first: the copy below never replaces them, and

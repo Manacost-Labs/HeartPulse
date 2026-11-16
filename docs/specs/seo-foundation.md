@@ -52,12 +52,62 @@ This slice must not open private API responses to indexing or shared caches.
   The `/standard/meta` title deliberately leads with «HSGuru» for that query.
 - Every URL in JSON-LD, sitemaps and internal links is the canonical
   trailing-slash form; a slash-less page URL costs a `301`.
-- An entity sitemap `lastmod` moves only when the page content changes. Cache
-  busters (card image `?v=`) and upstream sync stamps (cosmetics `updatedAt`)
-  stay out of the semantic hash. The archetypes segment dates a change by the
-  catalog's own `updatedAt` instead of the day the server saw it. `static.xml`
-  has no `lastmod`: its pages are data-driven and no source dates their content
-  honestly.
+- Every `<url>` of every `/sitemaps/*.xml` and every `<sitemap>` of
+  `/sitemap.xml` carries a `lastmod` (`YYYY-MM-DD`, UTC). The production
+  monitor fails on an entry without one, on a malformed one, and on an index
+  date that is not the latest date of its sitemap. The rules are in
+  «`lastmod` semantics» below.
+
+## `lastmod` semantics
+
+`lastmod` is the day the content a visitor sees in the main part of the page
+(figures, composition, text) last changed. The day of a build, a deploy or a
+request never goes into it. Only a change of that content moves it: the line
+«данные обновлены <дата>» with the same figures is not a change, and neither
+are cache busters (card image `?v=`) or upstream sync stamps (cosmetics
+`updatedAt`, `sourceAddedAt`); the semantic hash of an entity leaves them out.
+
+- **Entity segments** (`SemanticSitemapStore`, one durable file per segment in
+  `SERVER_DATA_DIR`, which lives in the `shared/` directory of the server and
+  so survives a deploy; the `*.lkg.json` mirror guards a torn write). The store
+  dates every address, by this order:
+  1. an address whose semantic hash changed: the date its source states for the
+     data (`dataDate`: archetypes take the catalog's `updatedAt`), else the day
+     the store saw the change; never ahead of today, never before the stored
+     date;
+  2. an address the store has no date for (new, or kept from before the store
+     dated every address): the day its entity states it came into being
+     (`createdOn`: a guide's publication day, `published_iso`), else `dataDate`,
+     else the day the store first saw it. That day is stored, so a rebuild, a
+     restart or a deploy does not move it;
+  3. an address whose hash did not change keeps the stored date.
+  An address that leaves the segment and returns is a new address.
+- **Static pages** (`static.xml`). The build gives each page a content
+  fingerprint (`scripts/lib/public-seo-model.mjs`, `staticPageFingerprints`,
+  written to `dist/sitemaps/static-fingerprints.json`): a hash of its registry
+  record (`config/public-seo-pages.json`) and, for the text pages (`/faq`,
+  `/privacy`, `/terms`, `/developers/api`), of the source files of the text
+  (`PAGE_CONTENT_SOURCES`). It depends on nothing else, so a rebuild of the
+  same content repeats it. The server keeps those fingerprints in the same
+  store (internal segment `static-pages`, no sitemap of its own) and dates a
+  page by the day it first saw the current fingerprint. A page that lists the
+  entities of a segment (cards, archetypes, BG heroes and library, cosmetics
+  by kind, guides archive) has the later of that date and the latest `lastmod`
+  of the entities it lists (`STATIC_PAGE_LISTINGS`), because its figures are
+  those entities. A data page whose data this router does not load (meta,
+  matchups, tier lists, classes, leaderboards and the like) is dated by its
+  fingerprint alone: its `lastmod` follows the page's text and registry
+  record, not the daily refresh of its figures.
+- **Index.** The `lastmod` of a `<sitemap>` is the latest `lastmod` of the
+  addresses of that sitemap. The index is built per request from the
+  segments' cached documents (the same 2 s answer deadline and the 30 s
+  last-known-good copy as the segments). A segment that cannot be built and
+  has no stored copy stays in the index without a date; the monitor reports
+  it, crawlers keep the rest of the index.
+- The date of first sight is the date of the first successful request after the
+  change reaches production, a few minutes after a deploy at the latest while
+  the monitor polls the sitemaps. If the state file is lost, every address is
+  dated by the day it is first seen again.
 - Every indexable detail route has a sitemap segment: cards, BG cards and
   heroes, plus `cosmetics.xml` and `guides-archive.xml`, whose listings do not
   link the detail pages in server HTML. `archetypes.xml` lists only the

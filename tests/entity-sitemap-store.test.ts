@@ -8,6 +8,7 @@ import {
   SitemapCandidateRejectedError,
   type SitemapSemanticEntry,
 } from '../server/entitySitemapStore.js';
+import { sitemapContentHash } from '../server/entitySitemapValidation.js';
 import { assertProperty } from './helpers/propertyRuns.js';
 
 const directory = mkdtempSync(join(tmpdir(), 'arena-sitemap-store-'));
@@ -39,8 +40,8 @@ try {
   const store = new SemanticSitemapStore({ directory, filename, now: clock });
   const first = store.publish(baseEntries);
   assert.equal(first.schemaVersion, 1);
-  assert.deepEqual(first.entries.map(entry => entry.lastmod), [undefined, undefined, undefined],
-    'first observation must not invent entity freshness');
+  assert.deepEqual(first.entries.map(entry => entry.lastmod), ['2026-07-21', '2026-07-21', '2026-07-21'],
+    'an address the store sees for the first time takes the day of first sight, and stores it');
   assert.ok(/^[a-f0-9]{64}$/.test(first.contentHash));
   assert.equal(readFileSync(primary, 'utf8'), readFileSync(recovery, 'utf8'),
     'the recovery LKG must survive primary-file corruption');
@@ -50,14 +51,15 @@ try {
   const unchanged = restarted.publish([...baseEntries].reverse());
   assert.equal(unchanged.updatedAt, first.updatedAt,
     'an unchanged semantic projection must not rewrite document freshness');
-  assert.deepEqual(unchanged.entries.map(entry => entry.lastmod), [undefined, undefined, undefined]);
+  assert.deepEqual(unchanged.entries.map(entry => entry.lastmod), ['2026-07-21', '2026-07-21', '2026-07-21'],
+    'a restart over unchanged content keeps the stored day');
 
   now = Date.parse('2026-07-23T10:30:00.000Z');
   const changed = restarted.publish(baseEntries.map(entry => entry.key === 'CARD_2'
     ? { ...entry, semanticHash: 'a'.repeat(64) }
     : entry));
   assert.equal(changed.entries.find(entry => entry.key === 'CARD_2')?.lastmod, '2026-07-23');
-  assert.equal(changed.entries.find(entry => entry.key === 'CARD_1')?.lastmod, undefined);
+  assert.equal(changed.entries.find(entry => entry.key === 'CARD_1')?.lastmod, '2026-07-21');
 
   now = Date.parse('2026-07-24T11:45:00.000Z');
   const unchangedAgain = restarted.publish(baseEntries.map(entry => entry.key === 'CARD_2'
@@ -335,3 +337,95 @@ assertProperty(fc.property(snapshotArbitrary, snapshots => {
 }));
 
 console.log('entity sitemap archetype store contracts passed');
+
+// Every address has a lastmod: the entity's own creation day, else the day of first sight; a change moves it.
+const datingDirectory = mkdtempSync(join(tmpdir(), 'arena-sitemap-dating-'));
+try {
+  let datingNow = Date.parse('2026-11-16T08:00:00.000Z');
+  const guideEntry = (slug: string, hash: string, createdOn?: string): SitemapSemanticEntry => ({
+    key: slug,
+    location: `https://hearthpulse.net/guides-archive/${slug}/`,
+    semanticHash: hash.repeat(64),
+    ...(createdOn === undefined ? {} : { createdOn }),
+  });
+  const guides = () => new SemanticSitemapStore({
+    directory: datingDirectory, segment: 'guides-archive', now: () => datingNow, minimumEntryCount: 1,
+  });
+  const lastmods = (document: { entries: Array<{ key: string; lastmod?: string }> }) => (
+    document.entries.map(entry => [entry.key, entry.lastmod])
+  );
+
+  const first = guides().publish([
+    guideEntry('dated', 'a', '2019-03-04'),
+    guideEntry('undated', 'b'),
+    guideEntry('from-the-future', 'c', '2027-01-01'),
+    guideEntry('unreadable-date', 'd', '04.03.2019'),
+  ]);
+  assert.deepEqual(lastmods(first), [
+    ['dated', '2019-03-04'],
+    ['from-the-future', '2026-11-16'],
+    ['undated', '2026-11-16'],
+    ['unreadable-date', '2026-11-16'],
+  ], 'a guide takes its publication day, any other takes the day it was first seen; never a day ahead');
+  assert.equal(JSON.stringify(first).includes('createdOn'), false, 'the creation day is a hint and is never stored');
+
+  datingNow = Date.parse('2026-12-01T08:00:00.000Z');
+  const restarted = guides().publish([
+    guideEntry('dated', 'a', '2019-03-04'),
+    guideEntry('undated', 'b'),
+    guideEntry('from-the-future', 'c', '2027-01-01'),
+    guideEntry('unreadable-date', 'd'),
+    guideEntry('new-after-deploy', 'e', '2019-05-05'),
+  ]);
+  assert.deepEqual(lastmods(restarted), [
+    ['dated', '2019-03-04'],
+    ['from-the-future', '2026-11-16'],
+    ['new-after-deploy', '2019-05-05'],
+    ['undated', '2026-11-16'],
+    ['unreadable-date', '2026-11-16'],
+  ], 'a rebuild, a restart or a deploy over unchanged content moves no date');
+
+  const edited = guides().publish([
+    guideEntry('dated', 'f', '2019-03-04'),
+    guideEntry('undated', 'b'),
+    guideEntry('from-the-future', 'c'),
+    guideEntry('unreadable-date', 'd'),
+    guideEntry('new-after-deploy', 'e', '2019-05-05'),
+  ]);
+  assert.equal(lastmods(edited)[0][1], '2026-12-01',
+    'an edit of a guide is dated by the day it was seen, not by its old publication day');
+  assert.equal(lastmods(edited)[2][1], '2019-05-05');
+} finally {
+  rmSync(datingDirectory, { recursive: true, force: true });
+}
+
+// A document saved before every entry was dated: the entries that lack a day get one and keep it.
+const legacyDirectory = mkdtempSync(join(tmpdir(), 'arena-sitemap-legacy-'));
+try {
+  const legacyEntries = [
+    { key: 'CARD_1', location: 'https://hearthpulse.net/standard/cards/standard/CARD_1/', semanticHash: '1'.repeat(64) },
+    {
+      key: 'CARD_2',
+      location: 'https://hearthpulse.net/standard/cards/standard/CARD_2/',
+      semanticHash: '2'.repeat(64),
+      lastmod: '2026-07-01',
+    },
+  ];
+  const unsigned = {
+    schemaVersion: 1 as const,
+    segment: 'standard-cards' as const,
+    updatedAt: '2026-07-02T00:00:00.000Z',
+    entryCount: 2,
+    entries: legacyEntries,
+  };
+  const legacy = { ...unsigned, contentHash: sitemapContentHash(unsigned) };
+  writeFileSync(join(legacyDirectory, 'seo-standard-cards-sitemap-v1.json'), JSON.stringify(legacy), 'utf8');
+  const store = new SemanticSitemapStore({ directory: legacyDirectory, now: () => Date.parse('2026-11-16T08:00:00.000Z') });
+  const migrated = store.publish(legacyEntries.map(({ key, location, semanticHash }) => ({ key, location, semanticHash })));
+  assert.deepEqual(migrated.entries.map(entry => [entry.key, entry.lastmod]), [
+    ['CARD_1', '2026-11-16'],
+    ['CARD_2', '2026-07-01'],
+  ], 'an entry saved without a day is dated once; one with a day keeps it');
+} finally {
+  rmSync(legacyDirectory, { recursive: true, force: true });
+}

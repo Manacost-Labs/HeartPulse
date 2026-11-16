@@ -105,6 +105,31 @@ assert.deepEqual(guides.map(entry => entry.location), [`${ORIGIN}/guides-archive
 }
 assert.throws(() => projectGuideArchiveSitemapCatalog([{ slug: 'a/b' }], ORIGIN), /invalid/);
 
+// A guide is dated by the day it was published, from the column the guide page prints.
+{
+  const publishedDirectory = mkdtempSync(join(tmpdir(), 'arena-sitemap-guide-dates-'));
+  try {
+    const store = new SemanticSitemapStore({
+      directory: publishedDirectory, segment: 'guides-archive', canonicalOrigin: ORIGIN,
+      now: () => Date.parse('2026-11-16T08:00:00Z'), minimumEntryCount: 1,
+    });
+    const document = store.publish(projectGuideArchiveSitemapCatalog([
+      { slug: 'iso', published_iso: '2019-03-04T21:30:00+03:00', published_at: 1 },
+      { slug: 'unix-only', published_iso: null, published_at: 1_551_657_600 },
+      { slug: 'no-date', published_iso: null, published_at: null },
+      { slug: 'garbage', published_iso: 'not a date', published_at: 'x' },
+    ], ORIGIN));
+    assert.deepEqual(document.entries.map(entry => [entry.key, entry.lastmod]), [
+      ['garbage', '2026-11-16'],
+      ['iso', '2019-03-04'],
+      ['no-date', '2026-11-16'],
+      ['unix-only', '2019-03-04'],
+    ]);
+  } finally {
+    rmSync(publishedDirectory, { recursive: true, force: true });
+  }
+}
+
 // The store accepts the editorial keys and locations and keeps lastmod stable.
 const directory = mkdtempSync(join(tmpdir(), 'arena-sitemap-editorial-'));
 try {

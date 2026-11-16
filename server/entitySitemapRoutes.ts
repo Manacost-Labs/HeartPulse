@@ -15,6 +15,7 @@ import {
   projectStandardCardSitemapCatalog,
 } from './entitySitemapProjections.js';
 import { projectCosmeticsSitemapCatalog, projectGuideArchiveSitemapCatalog } from './entitySitemapEditorial.js';
+import { createStaticPageDays, datedStaticLocations, latestDay, type DatedLocation } from './entitySitemapComposite.js';
 import {
   loadStaticSitemapArtifact,
   renderSitemapIndex,
@@ -36,6 +37,7 @@ type CachedDocument = {
   lastModified: string | null;
   source: 'catalog' | 'last-known-good' | 'static';
   expiresAt: number;
+  entries: DatedLocation[];
 };
 
 export type EntitySitemapRouterDependencies = {
@@ -48,6 +50,8 @@ export type EntitySitemapRouterDependencies = {
   loadGuidesArchive?: () => Promise<unknown[]>;
   loadArchetypes?: () => Promise<unknown[]>;
   staticUrls: string[];
+  /** Content fingerprint by address of each static page, written by the build. The store dates a page by when it first saw one. */
+  staticFingerprints?: ReadonlyMap<string, string>;
   stateDirectory: string;
   canonicalOrigin?: string;
   stateFilename?: string;
@@ -62,7 +66,7 @@ export type EntitySitemapRouterDependencies = {
   minimumArchetypeCount?: number;
   staticLastModifiedMs?: number;
   retryAfterSeconds?: number;
-  /** A request waits this long for a sitemap rebuild before it gets the last known good document. Default 2 s. */
+  /** A request waits this long for a rebuild before it gets the last known good document. Default 2 s. */
   responseDeadlineMs?: number;
   /** A rebuild that has not settled by then is abandoned, so the next request starts a new one. Default 25 s. */
   loadDeadlineMs?: number;
@@ -96,6 +100,7 @@ function documentFromXml(
   source: CachedDocument['source'],
   modifiedAt: number | null,
   expiresAt: number,
+  entries: DatedLocation[] = [],
 ): CachedDocument {
   const digest = createHash('sha256').update(xml).digest('hex');
   return {
@@ -104,6 +109,7 @@ function documentFromXml(
     lastModified: modifiedAt === null ? null : new Date(modifiedAt).toUTCString(),
     source,
     expiresAt,
+    entries,
   };
 }
 
@@ -117,6 +123,7 @@ function dynamicDocument(
     source,
     Date.parse(state.updatedAt),
     expiresAt,
+    state.entries,
   );
 }
 
@@ -218,21 +225,6 @@ export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDepen
   const retryAfterSeconds = Math.max(1, Math.floor(dependencies.retryAfterSeconds ?? 300));
   assertValidStaticSitemapUrls(dependencies.staticUrls, origin);
   const definitions = dynamicSitemapDefinitions(dependencies, origin);
-  const indexDocument = documentFromXml(renderSitemapIndex([
-    `${origin}/sitemaps/static.xml`,
-    ...definitions.map(definition => `${origin}${definition.pathname}`),
-  ]), 'static', null, Number.POSITIVE_INFINITY);
-  const staticDocument = documentFromXml(
-    renderSitemapUrlset(dependencies.staticUrls.map(location => ({ location }))),
-    'static',
-    Number.isFinite(dependencies.staticLastModifiedMs) ? dependencies.staticLastModifiedMs! : null,
-    Number.POSITIVE_INFINITY,
-  );
-  const fixedHandler = (document: CachedDocument): RequestHandler => (request, response) => (
-    sendDocument(request, response, document, maxAgeSeconds)
-  );
-  router.get('/sitemap.xml', fixedHandler(indexDocument));
-  router.get('/sitemaps/static.xml', fixedHandler(staticDocument));
   const dynamicLoaders = new Map(definitions.map(definition => [
     definition.pathname,
     createDynamicDocumentLoader({
@@ -241,6 +233,49 @@ export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDepen
       onError: dependencies.onError, toDocument: dynamicDocument,
     }),
   ]));
+  // A segment that cannot be loaded leaves a static page on its own day.
+  const loadSegments = async () => Promise.allSettled(definitions.map(async definition => (
+    [definition, await dynamicLoaders.get(definition.pathname)!()] as const
+  )));
+  const staticPageDays = createStaticPageDays({
+    urls: dependencies.staticUrls, fingerprints: dependencies.staticFingerprints ?? new Map(),
+    origin, now, cacheTtlMs, stateDirectory: dependencies.stateDirectory,
+  });
+  const staticEntries = async (): Promise<DatedLocation[]> => datedStaticLocations(
+    dependencies.staticUrls,
+    await staticPageDays(),
+    new Map((await loadSegments()).flatMap(result => (
+      result.status === 'fulfilled' ? [[result.value[0].segment, result.value[1].entries] as const] : []
+    ))),
+  );
+  router.get('/sitemaps/static.xml', async (request, response) => {
+    const entries = await staticEntries();
+    return sendDocument(request, response, documentFromXml(
+      renderSitemapUrlset(entries),
+      'static',
+      Number.isFinite(dependencies.staticLastModifiedMs) ? dependencies.staticLastModifiedMs! : null,
+      Number.POSITIVE_INFINITY,
+      entries,
+    ), maxAgeSeconds);
+  });
+  // The index dates each sitemap by the latest `lastmod` among its addresses; a segment
+  // that cannot be loaded stays listed, undated, so the monitor flags it instead of crawlers losing the index.
+  router.get('/sitemap.xml', async (request, response) => {
+    const results = await loadSegments();
+    const entries = [
+      { location: `${origin}/sitemaps/static.xml`, lastmod: latestDay((await staticEntries()).map(entry => entry.lastmod)) },
+      ...definitions.map((definition, position) => {
+        const result = results[position];
+        return {
+          location: `${origin}${definition.pathname}`,
+          lastmod: result.status === 'fulfilled' ? latestDay(result.value[1].entries.map(entry => entry.lastmod)) : undefined,
+        };
+      }),
+    ];
+    return sendDocument(request, response, documentFromXml(
+      renderSitemapIndex(entries), 'static', null, Number.POSITIVE_INFINITY,
+    ), maxAgeSeconds);
+  });
   router.get(ENTITY_SITEMAP_PATHS, async (request, response, next) => {
     const loadDocument = dynamicLoaders.get(request.path as DynamicSitemapDefinition['pathname']);
     if (!loadDocument) return next();

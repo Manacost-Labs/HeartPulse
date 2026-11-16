@@ -26,9 +26,10 @@ will index every submitted URL or rank it for a particular query.
 - A missing, malformed or materially collapsed upstream catalog never replaces
   the last known good sitemap snapshot.
 - `lastmod` changes only when the public semantic projection of an entity
-  changes. The first observation does not invent a historical modification
-  date. The one exception is a segment whose source states the date of its
-  data (archetypes, below): that day is the date of a first observation too.
+  changes; every address has one (rules: `docs/specs/seo-foundation.md`,
+  «`lastmod` semantics»). A first observation takes the date its source
+  states (archetypes: the catalog's `updatedAt`; guides: the publication day),
+  else the day of first sight.
 - The archetypes segment lists only Standard archetype pages that pass
   `isIndexableArchetype` (see «Archetype pages»); Wild, the legacy
   `/standard/meta/…` family and archetypes below the threshold never enter it.

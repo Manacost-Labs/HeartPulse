@@ -16,11 +16,14 @@ const COSMETICS_KEY_PATTERN = /^(?:heroes|coins|pets)\/[A-Za-z0-9_-]{1,100}$/;
 const GUIDE_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._~-]{0,159}$/;
 // Archetype pages are keyed by their slug, exactly as the page route accepts it.
 const ARCHETYPE_KEY_PATTERN = /^[a-z0-9-]{1,90}$/;
+// A static page is keyed by its canonical path: `/`, or segments that end in a slash.
+const STATIC_PAGE_KEY_PATTERN = /^(?:\/|(?:\/[a-z0-9_-]{1,60}){1,6}\/)$/;
 
 function keyIsValid(key: string, segment: SitemapSegment): boolean {
   if (segment === 'cosmetics') return COSMETICS_KEY_PATTERN.test(key);
   if (segment === 'guides-archive') return GUIDE_KEY_PATTERN.test(key);
   if (segment === 'archetypes') return ARCHETYPE_KEY_PATTERN.test(key);
+  if (segment === 'static-pages') return STATIC_PAGE_KEY_PATTERN.test(key);
   return KEY_PATTERN.test(key);
 }
 
@@ -59,6 +62,7 @@ function entryPathIsValid(pathname: string, key: string, segment: SitemapSegment
   if (segment === 'cosmetics') return pathname === `/cosmetics/${key}/`;
   if (segment === 'guides-archive') return pathname === `/guides-archive/${key}/`;
   if (segment === 'archetypes') return pathname === `/standard/archetypes/standard/${key}/`;
+  if (segment === 'static-pages') return pathname === key;
   const libraryKind = segment === 'battleground-minions' ? 'minions' : 'spells';
   return pathname.startsWith(`/library/${libraryKind}/`)
     && pathname.endsWith(`-${key}/`)
@@ -101,6 +105,8 @@ export function normalizeSitemapCandidate(
     location: String(entry?.location ?? ''),
     semanticHash: String(entry?.semanticHash ?? ''),
     ...(entry?.dataDate === undefined ? {} : { dataDate: entry.dataDate }),
+    // A hint, not a promise: an unreadable creation day falls back to the day of first sight.
+    ...(typeof entry?.createdOn === 'string' && validDataDate(entry.createdOn) ? { createdOn: entry.createdOn } : {}),
   }));
   for (const entry of normalized) {
     if (entry.dataDate !== undefined && !validDataDate(entry.dataDate)) {
