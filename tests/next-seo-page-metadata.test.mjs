@@ -175,7 +175,7 @@ const crumbs = breadcrumb => breadcrumb.itemListElement.map(({ '@type': type, po
 test('a card page describes the card, its site and its path in one JSON-LD graph', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   try {
-    for (const [format, formatName, formatLabel, crumbName] of [['standard', 'Стандарт', 'Стандарте', 'Стандарт'], ['wild', 'Вольный формат', 'Вольном формате', 'Вольный']]) {
+    for (const [format, formatName, crumbName] of [['standard', 'Стандарт', 'Стандарт'], ['wild', 'Вольный формат', 'Вольный']]) {
       const path = `/standard/cards/${format}/CARD_QA_0002/`;
       const canonical = `https://hearthpulse.net${path}`;
       const response = await fetch(`${runtime.nextOrigin}${path}`);
@@ -187,8 +187,9 @@ test('a card page describes the card, its site and its path in one JSON-LD graph
 
       assert.deepEqual(page, {
         '@type': 'WebPage', '@id': `${canonical}#webpage`, url: canonical,
-        name: `Публичная карта 2 — карта Hearthstone (${formatName}, CARD_QA_0002) | HearthPulse`,
-        description: `Публичная карта 2: Боевой клич: возьмите карту. Статистика и колоды с картой в ${formatLabel} на HearthPulse.`,
+        // The title is the first variant of the ladder up to 60 characters (shared/entityPageTitles.ts).
+        name: `Публичная карта 2 — карта (${formatName}, CARD_QA_0002)`,
+        description: `Публичная карта 2 (${formatName}, CARD_QA_0002): Боевой клич: возьмите карту. Статистика и колоды с картой на HearthPulse.`,
         inLanguage: 'ru',
         isPartOf: { '@type': 'WebSite', '@id': 'https://hearthpulse.net/#website', name: 'HearthPulse', url: 'https://hearthpulse.net/' },
         primaryImageOfPage: { '@type': 'ImageObject', contentUrl: 'https://hearthpulse.net/arena-logo-icon.webp' },
@@ -199,7 +200,7 @@ test('a card page describes the card, its site and its path in one JSON-LD graph
         '@type': 'CreativeWork', '@id': `${canonical}#card`, url: canonical,
         name: 'Публичная карта 2', alternateName: 'Public Card 2', identifier: 'CARD_QA_0002',
         image: 'https://hearthpulse.net/arena-logo-icon.webp',
-        description: `Публичная карта 2: Боевой клич: возьмите карту. Статистика и колоды с картой в ${formatLabel} на HearthPulse.`,
+        description: `Публичная карта 2 (${formatName}, CARD_QA_0002): Боевой клич: возьмите карту. Статистика и колоды с картой на HearthPulse.`,
         inLanguage: 'ru', isPartOf: { '@type': 'VideoGame', name: 'Hearthstone' },
         additionalProperty: [
           { '@type': 'PropertyValue', name: 'Формат', value: formatName },
@@ -266,7 +267,9 @@ test('a card library listing shows its path above the same list of cards', async
 
       // The page shows no breadcrumb: its steps are named with the words it does show.
       assert.match(html, /<a\b[^>]*href="\/"[^>]*>Главная<\/a>/, `${path} shows the home link`);
-      assert.equal(html.match(/<h1\b[^>]*>([^<]*)<\/h1>/)?.[1], trail[1].name, `${path} heading`);
+      const heading = html.match(/<h1\b[^>]*>([^<]*)<\/h1>/)?.[1];
+      assert.ok(heading.startsWith(trail[1].name), `${path} heading ${heading}`);
+      if (trail.length === 3) assert.ok(heading.includes(trail[2].name), `${path} heading names its format`);
       if (trail.length === 3) {
         assert.equal(html.match(/<button\b[^>]*aria-label="([^"]*)"[^>]*aria-pressed="true"/)?.[1], trail[2].name, `${path} format switch`);
       }
@@ -288,6 +291,7 @@ test('a card library listing shows its path above the same list of cards', async
 
 test('every SEO registry page takes its title, description and share metadata from the registry', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
+  const registryHeadings = new Map();
   try {
     for (const page of REGISTRY_PAGES) {
       const response = await fetch(`${runtime.nextOrigin}${page.url}`, { redirect: 'manual' });
@@ -296,6 +300,7 @@ test('every SEO registry page takes its title, description and share metadata fr
       assertOnce(html, /<title>([^<]*)<\/title>/g, page.title, `${page.path} title`);
       assertOnce(html, /<meta name="description" content="([^"]*)"/g, page.description, `${page.path} description`);
       assert.equal((html.match(/<h1[\s>]/g) ?? []).length, 1, `${page.path} must render exactly one H1`);
+      registryHeadings.set(page.path, visibleText(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)[1]).replace(/\s+/g, ' ').trim());
       if (!page.sitemap) {
         // Outside the sitemap means noindex; the inventory decides whether links are followed.
         const robots = INVENTORY_ROUTES.find(route => route.id === page.policyRouteId)?.indexPolicy === 'noindex-follow'
@@ -323,6 +328,22 @@ test('every SEO registry page takes its title, description and share metadata fr
         `${page.path} twitter:description`);
     }
 
+    // Every page answers its own query: no two registry pages share an H1, and the key pages say what they list.
+    const byHeading = new Map();
+    for (const [path, heading] of registryHeadings) byHeading.set(heading, [...(byHeading.get(heading) ?? []), path]);
+    assert.deepEqual([...byHeading].filter(([, paths]) => paths.length > 1), [], 'registry pages with the same H1');
+    for (const [path, heading] of Object.entries({
+      '/': 'Мета Hearthstone на сегодня',
+      '/standard/meta': 'Мета Hearthstone: колоды и винрейты',
+      '/classes': 'Винрейт классов на Арене',
+      '/tierlist': 'Тир-лист карт Арены Hearthstone',
+      '/legendaries': 'Легендарки Арены Hearthstone',
+      '/heroes': 'Герои Полей сражений',
+      '/battlegrounds/tier-list': 'Тир-лист Полей сражений',
+      '/battlegrounds/strategies': 'Конструктор стратегий Полей сражений',
+      '/cosmetics': 'Косметика Hearthstone',
+    })) assert.equal(registryHeadings.get(path), heading, `${path} H1`);
+
     const shareAlt = async path => (await head(runtime.nextOrigin, path)).match(/<meta property="og:image:alt" content="([^"]*)"/)?.[1];
     assert.notEqual(await shareAlt('/cosmetics/'), await shareAlt('/cosmetics/heroes/'),
       'the cosmetics hub is not the hero skins listing');
@@ -345,6 +366,34 @@ test('every SEO registry page takes its title, description and share metadata fr
   } finally {
     await runtime.close();
   }
+});
+
+test('registry titles fit 60 characters in any month, descriptions 70-160, and none repeats', () => {
+  const raw = Object.entries(JSON.parse(readFileSync('config/public-seo-pages.json', 'utf8')).pages);
+  // The longest month name that a data template can put in: «сентябрь 2026».
+  const texts = raw.flatMap(([path, page]) => [
+    { path, kind: 'title', value: page.title.replaceAll('{year}', '2026') },
+    { path, kind: 'description', value: page.description.replaceAll('{year}', '2026') },
+    ...(page.dataTitle ? [{ path, kind: 'dataTitle', value: page.dataTitle.replaceAll('{month}', 'сентябрь 2026') }] : []),
+  ]);
+  for (const { path, kind, value } of texts) {
+    if (kind === 'description') assert.ok(value.length >= 70 && value.length <= 160, `${path} description is ${value.length} characters`);
+    else assert.ok(value.length <= 60, `${path} ${kind} is ${value.length} characters: ${value}`);
+  }
+  for (const kind of ['title', 'description']) {
+    const seen = new Map();
+    for (const text of texts.filter(entry => entry.kind === kind)) seen.set(text.value, [...(seen.get(text.value) ?? []), text.path]);
+    assert.deepEqual([...seen].filter(([, paths]) => paths.length > 1), [], `registry ${kind}s must be unique`);
+  }
+  // «БГ» is not a word of the site: Battlegrounds is written out, with a lower-case second word.
+  for (const { path, kind, value } of texts) {
+    assert.doesNotMatch(value, /(^|[^А-Яа-я])БГ([^А-Яа-я]|$)/, `${path} ${kind} says «БГ»`);
+    assert.ok(!value.includes('Сражений'), `${path} ${kind} spells «Полей сражений» with a capital`);
+  }
+  // Two pages, two queries: the hero list and the tier list of compositions.
+  const [heroes, tierList] = ['/heroes', '/battlegrounds/tier-list'].map(path => raw.find(([key]) => key === path)[1]);
+  assert.ok(!/геро/i.test(`${tierList.title} ${tierList.description}`), 'the BG tier list does not target the hero query');
+  assert.match(heroes.title, /^Герои Полей сражений/);
 });
 
 test('registry pages without request input stay prerendered', () => {
@@ -442,7 +491,7 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     const updatedAt = new Date(Date.now() - 3 * HOUR).toISOString();
     state.meta = metaTeaser(updatedAt, TOP_ROWS);
     const meta = await page('/standard/meta/');
-    const [, titleMonth] = meta.title.match(new RegExp(`^Мета Hearthstone (${MONTH_NAMES}) \\d{4}: тир-лист колод \\| HearthPulse$`));
+    const [, titleMonth] = meta.title.match(new RegExp(`^Мета Hearthstone, (${MONTH_NAMES}) \\d{4}: колоды и винрейты$`));
     const [, date, dateMonth, dateYear] = meta.description.match(new RegExp(
       `^Мета Хартстоуна \\(хс\\) на (\\d{1,2} (${GENITIVE_MONTHS}) (\\d{4})): тир-лист колод Стандарта\\. Лидер — Зоолок, 61% побед\\. .*Данные HSGuru\\.$`));
     assert.equal(titleMonth, MONTHS[dateMonth], 'the title names the month of the date in the description');
@@ -475,7 +524,7 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     // Older than a week: no month in the title, «обновлено» and the date in the description, the line stays.
     state.meta = metaTeaser('2026-09-01T09:00:00.000Z', TOP_ROWS);
     const stale = await page('/standard/meta/');
-    assert.equal(stale.title, `Мета Hearthstone ${YEAR}: тир-лист колод | HearthPulse`);
+    assert.equal(stale.title, `Мета Hearthstone, ${YEAR}: колоды и винрейты | HearthPulse`);
     assert.equal(stale.description,
       'Мета Хартстоуна (хс), обновлено 1 сентября 2026: тир-лист колод Стандарта. Лидер — Зоолок, 61% побед. Винрейт и популярность архетипов. Данные HSGuru.');
     assert.ok(stale.text.includes('Данные на 1 сентября 2026, 12:00 МСК'));
@@ -483,7 +532,7 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     // No data: the static text with the year, no date and no numbers, a normal page and a quiet log.
     state.meta = null;
     const none = await page('/standard/meta/');
-    assert.equal(none.title, `Мета Hearthstone ${YEAR}: тир-лист колод | HearthPulse`);
+    assert.equal(none.title, `Мета Hearthstone, ${YEAR}: колоды и винрейты | HearthPulse`);
     assert.equal(none.description, REGISTRY_PAGES.find(entry => entry.path === '/standard/meta').description);
     assert.doesNotMatch(none.text, /Данные на /);
     assert.doesNotMatch(next.output(), /error/i, 'a missing teaser is not an error');

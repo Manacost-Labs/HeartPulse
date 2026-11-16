@@ -14,6 +14,7 @@ import {
   type ConstructedRelatedCardGroup,
 } from '../src/features/constructedRelatedCards.js';
 import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js';
+import { constructedCardDescription, constructedCardTitle } from '../shared/entityPageTitles.js';
 
 type JsonRecord = Record<string, unknown>;
 export function projectPublicConstructedCardSeoData(card: JsonRecord, origin?: string): PublicConstructedCardSeoData {
@@ -245,14 +246,7 @@ export function extractConstructedCardFrontendAssets(shellHtml: string): string 
 }
 
 function descriptionForCard(card: PublicConstructedCardSeoData, format: ConstructedCardFormat): string {
-  if (card.rulesText) return `${card.name} (${FORMAT_LABELS[format]}, ID ${card.id}): ${card.rulesText}`.slice(0, 300);
-  const facts = [
-    card.type,
-    card.className,
-    card.mana === null ? null : `${card.mana} маны`,
-    card.set,
-  ].filter((value): value is string => Boolean(value));
-  return `${card.name} — карта Hearthstone (${FORMAT_LABELS[format]}, ID ${card.id}). ${facts.join(', ') || 'Публичный профиль карты'}.`.slice(0, 300);
+  return constructedCardDescription({ name: card.name, id: card.id, format, rulesText: card.rulesText });
 }
 
 function renderFacts(card: PublicConstructedCardSeoData, format: ConstructedCardFormat): string {
@@ -371,7 +365,7 @@ export function renderConstructedCardSeoDocument(options: {
   const origin = canonicalOrigin(options.canonicalOrigin);
   const canonical = `${origin}/standard/cards/${options.format}/${encodeURIComponent(card.id)}/`;
   const image = safeImageUrl(card.image, origin);
-  const title = `${card.name} — карта Hearthstone (${FORMAT_LABELS[options.format]}, ${card.id}) | HearthPulse`;
+  const title = constructedCardTitle({ name: card.name, id: card.id, format: options.format });
   const description = descriptionForCard(card, options.format);
   const additionalProperty = [
     ['Формат', FORMAT_LABELS[options.format]],

@@ -10,7 +10,7 @@ export type ArenaClassesPageProps = {
 
 export function ArenaClassesPage({ onNavigate, children }: ArenaClassesPageProps) {
   return <div className="arena-classes-page">
-    <SectionBanner title="Классы" subtitle="Статистика побед на Арене — текущий патч" />
+    <SectionBanner title="Винрейт классов на Арене" subtitle="Статистика побед на Арене — текущий патч" />
     <Breadcrumbs items={[
       { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
       { name: 'Классы', href: '/classes/' },

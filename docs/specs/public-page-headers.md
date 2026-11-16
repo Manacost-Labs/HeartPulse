@@ -8,7 +8,9 @@ right and the page's primary title on the left. The home page retains its
 original hero, combining its title, paladin, navigation actions and class summary
 in one frame. Admin screens keep their workspace headers.
 
-Visible headings use concise labels: «Мета», «Тир-лист карт» and «Тир-лист БГ».
+Visible headings name the query the page answers: «Мета Hearthstone: колоды и
+винрейты», «Тир-лист карт Арены Hearthstone» and «Тир-лист Полей сражений»
+(the full list is in `seo-query-clusters.md`).
 The Fun decks banner omits its update date; the Vicious Syndicate Gold banner
 omits its source/update line. Data freshness and provider contracts are unchanged.
 Battlegrounds parchment typography must exclude banner descendants so its dark

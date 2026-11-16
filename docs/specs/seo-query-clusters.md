@@ -12,10 +12,14 @@ third-party data source.
 
 - `/tierlist` owns `тир-лист Арены Hearthstone`, supported by card-tier and
   best-card intent. It does not target Battlegrounds tiers.
-- `/battlegrounds/tier-list` owns `тир-лист БГ Hearthstone`, supported by
-  strategy, minion, spell and trinket tiers. It does not target the builder.
-- `/battlegrounds/strategies` owns `конструктор стратегий БГ`, supported by
-  composing and visualising a plan. It does not rank strategies.
+- `/battlegrounds/tier-list` owns `тир-лист Полей сражений Hearthstone`,
+  supported by composition, minion, spell and trinket tiers. It does not target
+  the builder and does not use the word «герои» (that query belongs to
+  `/heroes`).
+- `/battlegrounds/strategies` owns `конструктор стратегий Полей сражений`,
+  supported by composing and visualising a plan. It does not rank strategies.
+- `/heroes` owns `герои Полей сражений`, supported by hero powers and tiers.
+  The two pages link to each other in their HTML; there is no redirect.
 - `/standard/meta` owns `мета Hearthstone` and `мета хартстоун` with the month of
   the data, supported by deck tiers, win rate and popularity. HSGuru is named
   only as the source in the description and on the page, never at the start of
@@ -27,9 +31,52 @@ third-party data source.
 - `/standard/matchups` owns the Hearthstone matchup matrix, supported by HSGuru
   statistics. It does not own the broad meta tier-list intent.
 
-Query spelling variants such as `тир лист`, `тирлист`, `БГ`, `Battlegrounds`
-and `стратеги` are natural-language variants. They belong in readable Russian
+Query spelling variants such as `тир лист`, `тирлист`, `Battlegrounds`
+and `стратеги` are natural-language variants. The site writes «Поля сражений»
+in full (second word in lower case); «БГ» is not used in titles,
+descriptions, headings or labels. They belong in readable Russian
 copy where useful, not in repeated keyword blocks.
+
+## Query to page
+
+Title is at most 60 characters in any month; description is 70–160; no two
+pages of the registry share a title, a description or an H1
+(`tests/next-seo-page-metadata.test.mjs`).
+
+- Query «мета Hearthstone»: `/` (H1 «Мета Hearthstone на сегодня») and
+  `/standard/meta` (H1 «Мета Hearthstone: колоды и винрейты», title
+  `Мета Hearthstone, {month}: колоды и винрейты`, no brand when it does not
+  fit).
+- «винрейт классов Арены»: `/classes`, H1 «Винрейт классов на Арене».
+- «тир-лист Арены»: `/tierlist`, H1 «Тир-лист карт Арены Hearthstone».
+- «легендарки Арены»: `/legendaries`, H1 «Легендарки Арены Hearthstone».
+- «герои Полей сражений»: `/heroes`, H1 «Герои Полей сражений», title
+  `Герои Полей сражений Hearthstone: способности и тиры`.
+- «тир-лист Полей сражений»: `/battlegrounds/tier-list`, H1 «Тир-лист Полей
+  сражений», title `Тир-лист Полей сражений Hearthstone, {year} | HearthPulse`.
+- «конструктор стратегий»: `/battlegrounds/strategies`, H1 «Конструктор
+  стратегий Полей сражений».
+- «косметика Hearthstone»: `/cosmetics`, H1 «Косметика Hearthstone»;
+  «скины героев»: `/cosmetics/heroes`, H1 «Скины героев».
+- «карты Hearthstone»: `/standard/cards` (H1 «Карты Hearthstone»),
+  `/standard/cards/standard` («…: Стандарт»), `/standard/cards/wild`
+  («…: Вольный формат»), each with its own title and description.
+
+## Detail page titles
+
+One builder (`shared/entityPageTitles.ts`) serves Express, Next and the
+browser. A title is a ladder of variants: the first one up to 60 characters
+wins, the brand goes first, then the filler words; the format and the ID of a
+card, and the ID of a hero skin, stay in every variant. A name too long for
+every variant keeps the shortest one.
+
+- Card: `<Название> — карта Hearthstone (<формат>, <ID>) | HearthPulse`.
+- Hero skin: `<Название> — скин героя (<класс>, <ID>) | HearthPulse`.
+- Coin, pet: `<Название> — монета Hearthstone | HearthPulse`, `… — питомец …`.
+- Battlegrounds card: `<Название> — существо Полей сражений | HearthPulse`,
+  `(архив)` after «Полей сражений» for the archive.
+- Archetype, guide: the name; the brand and the month go first when it is
+  too long.
 
 ## Page contract
 

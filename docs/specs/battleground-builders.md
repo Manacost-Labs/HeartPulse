@@ -24,7 +24,8 @@ slots, annotations and PNG/WebP exports remain available.
 - Export reports unavailable images and never silently omits a placed card.
   Export feedback is separate from draft-save feedback.
 - Both builders fill the available desktop workspace beside the site sidebar,
-  including ultrawide screens. The strategy heading is «Конструктор стратегий БГ».
+  including ultrawide screens. The strategy heading is
+  «Конструктор стратегий Полей сражений».
 - Desktop library width is adjustable with a range, draggable divider or arrow
   keys. Width persists locally; narrow screens keep the tabbed layout. Library
   search, width and filter controls stay outside the independently scrolling

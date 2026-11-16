@@ -21,7 +21,7 @@ export default function SiteFooter(_props: { onNavigate?: (tab: string) => void 
       <div className="arena-footer__columns">
         {FOOTER_COLUMNS.map(column => (
           <div className="arena-footer__section" key={column.title}>
-            <h2 className="arena-footer__heading">{column.title}</h2>
+            <p className="arena-footer__heading">{column.title}</p>
             {column.navLabel
               ? <nav aria-label={column.navLabel}>{footerList(column)}</nav>
               : footerList(column)}

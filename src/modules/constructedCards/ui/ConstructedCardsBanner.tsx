@@ -1,7 +1,7 @@
-export function ConstructedCardsBanner() {
+export function ConstructedCardsBanner({ title = 'Карты' }: { title?: string }) {
   return (
     <header className="constructed-cards__header">
-      <div className="traditional-mode-banner__copy"><h1>Карты</h1></div>
+      <div className="traditional-mode-banner__copy"><h1>{title}</h1></div>
     </header>
   );
 }

@@ -30,6 +30,7 @@ import '../route-parchment.css';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
 import { LightboxImage } from '../components/ModalSurface/LightboxImage';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
+import { cosmeticDescription, cosmeticTitle } from '../../shared/entityPageTitles';
 import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import {
   cosmeticsCatalogControls,
@@ -887,13 +888,12 @@ function DetailView({
       : kind === 'coins'
         ? (detail as CoinDetail).images.crop
         : (detail as PetDetail).images.card;
+    const hero = kind === 'heroes' ? detail as HeroDetail : null;
     void applyDocumentPageMeta({
-      title: `${displayName} — косметика Hearthstone | HearthPulse`,
-      description: kind === 'heroes'
-        ? `Скин героя «${displayName}»: редкость, класс, художник, анимация, полный арт и звуковые дорожки.`
-        : kind === 'coins'
-          ? `Косметическая монета «${displayName}»: ID, DBF, изображение карты, crop-арт и связанные карты.`
-          : `Питомец «${displayName}»: карточка, End Screen, дополнительные арты и другие раскраски семейства.`,
+      title: cosmeticTitle({ kind, name: displayName, id: hero?.cardId, className: hero?.class.nameRu }),
+      description: cosmeticDescription({
+        kind, name: displayName, id: hero?.cardId, className: hero?.class.nameRu, rarity: hero?.rarity.nameRu,
+      }),
       pathname: `/cosmetics/${kind}/${cardId}`,
       image,
     });
@@ -926,11 +926,13 @@ function DetailView({
 export default function Cosmetics({ currentPath, navigatePath, initialSearch, initialDetail, initialCatalog }: CosmeticsProps) {
   const route = routeState(currentPath);
   const meta = KIND_META[route.kind];
+  // `/cosmetics/` lists the skins like `/cosmetics/heroes/`, but answers the wider query.
+  const isHub = !/^\/cosmetics\/(?:heroes|coins|pets)/.test(normalizedPath(currentPath));
   const search = initialSearch ?? (typeof window === 'undefined' ? '' : window.location.search);
   return (
     <div className="route-parchment-page cosmetics-page">
       {!route.cardId && (
-        <SectionBanner title={meta.title} />
+        <SectionBanner title={isHub ? 'Косметика Hearthstone' : meta.title} />
       )}
       <CatalogTabs active={route.kind} navigatePath={navigatePath} />
       <section className="cosmetics-surface" aria-label="Каталог косметики Hearthstone">

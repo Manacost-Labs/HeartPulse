@@ -15,7 +15,7 @@ test('a guest finds a card by name, opens it, views the art full size and closes
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(`${runtime.origin}/standard/cards/`, { waitUntil: 'domcontentloaded' });
-    await findByRole(page, 'heading', 'Карты');
+    await findByRole(page, 'heading', 'Карты Hearthstone');
 
     await typeByRole(page, 'searchbox', 'Поиск карт', 'карта 2999');
     await page.waitForSelector(`${role('region', 'Фильтры библиотеки карт')} ::-p-text(Найдено: 1)`);

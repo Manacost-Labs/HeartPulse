@@ -178,8 +178,8 @@ try {
   assert.match(html, /<img[^>]+src="https:\/\/hearthpulse\.net\/images\/heroes\/TB_BaconShop_HERO_16\.png"/);
   assert.match(html, /<dt>DBF ID<\/dt><dd><code>57944<\/code><\/dd>/);
   assert.match(html, /<dt>ID карты<\/dt><dd><code>TB_BaconShop_HERO_16<\/code><\/dd>/);
-  assert.match(html, /href="\/battlegrounds\/tier-list\/">Тир-лист БГ<\/a>/);
-  assert.match(html, /href="\/library\/">Библиотека БГ<\/a>/);
+  assert.match(html, /href="\/battlegrounds\/tier-list\/">Тир-лист Полей сражений<\/a>/);
+  assert.match(html, /href="\/library\/">Библиотека Полей сражений<\/a>/);
   assert.match(html, /<h2>Сила героя<\/h2>/);
   assert.match(html, /Прокрастинация &amp; польза/);
   assert.match(html, /Пропустите первые два хода\. Начните с существа 3-го уровня\./,

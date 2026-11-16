@@ -1,0 +1,12 @@
+{
+  "reason": "Срез S6 «Заголовки» (#380, #412): новые H1 ключевых страниц и подписи лежат в клиентских чанках; общий построитель заголовков карт, косметики и библиотеки (shared/entityPageTitles.ts) подключён к клиентским страницам косметики и карт. Рост по затронутым маршрутам — только измеренный перерасход.",
+  "routes": {
+    "/battlegrounds/tier-list/": { "jsGzipBytes": 190 },
+    "/cosmetics/": { "jsGzipBytes": 643 },
+    "/heroes/": { "jsGzipBytes": 96 },
+    "/standard/cards/standard/": { "jsGzipBytes": 76 },
+    "/standard/cards/": { "jsGzipBytes": 77 },
+    "/standard/meta/": { "jsGzipBytes": 86 },
+    "/tierlist/": { "jsGzipBytes": 9 }
+  }
+}

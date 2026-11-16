@@ -5373,7 +5373,7 @@ for (const [device, viewport] of [
   });
   try {
     await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.$eval('[data-home-deferred-section="Последние статьи"]', element => element.scrollIntoView({ block: 'center' }));
+    await page.$eval('[data-home-deferred-section="Подборка статей"]', element => element.scrollIntoView({ block: 'center' }));
     await page.waitForSelector('[data-home-error]', { visible: true, timeout: 15_000 });
     await page.waitForSelector('.home-bg-directory', { visible: true });
     await page.waitForSelector('.home-arena-directory', { visible: true });
@@ -5391,7 +5391,7 @@ for (const [device, viewport] of [
         horizontalOverflow: document.documentElement.scrollWidth > window.innerWidth,
       };
     });
-    if (!recoveryState.text.includes('Последние статьи')
+    if (!recoveryState.text.includes('Подборка статей')
       || recoveryState.role !== 'alert'
       || recoveryState.minHeight !== '288px'
       || recoveryState.buttonHeight < 44
