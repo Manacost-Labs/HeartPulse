@@ -3,7 +3,7 @@ import test from 'node:test';
 import { createArchetypeCatalogCache } from '../server/modules/constructedArchetypes/public.js';
 import { currentStandardMetaPatchPeriod } from '../shared/standardMetaPeriods.js';
 import {
-  loadArchetypeCatalogForPeriod, loadArchetypeCatalogForSlug, readArchetypeCatalogPeriods,
+  loadArchetypeCatalogForPeriod, loadArchetypeCatalogForSlug, loadArchetypeCatalogWindows, readArchetypeCatalogPeriods,
 } from '../server/constructedArchetypeCatalogPeriod.js';
 
 type Catalog = { format: 'standard' | 'wild'; period: string | null; availablePeriods: string[]; updatedAt: null };
@@ -161,4 +161,17 @@ test('an archetype without builds in the Bans window borrows the default window 
   ]);
   // The cached source catalog is not mutated.
   assert.deepEqual(bans.items[0].builds, []);
+});
+
+test('the sitemap reads the windows in the order a slug is looked up, skipping one that fails', async () => {
+  const periods = ['patch_37.0.2', 'black_empire_ban', 'black_empire'];
+  const fallback = catalog('black_empire', periods);
+  const patch = catalog('patch_37.0.2', periods);
+  const bans = catalog('black_empire_ban', periods);
+  const all = source({ 'patch_37.0.2': patch, black_empire_ban: bans }, fallback);
+  assert.deepEqual(await loadArchetypeCatalogWindows(all.load, 'standard'), [patch, bans, fallback]);
+  const brokenPatch = source({ 'patch_37.0.2': new Error('Upstream HTTP 500'), black_empire_ban: bans }, fallback);
+  assert.deepEqual(await loadArchetypeCatalogWindows(brokenPatch.load, 'standard'), [bans, fallback]);
+  const only = source({}, catalog('black_empire', ['black_empire']));
+  assert.equal((await loadArchetypeCatalogWindows(only.load, 'standard')).length, 1);
 });
