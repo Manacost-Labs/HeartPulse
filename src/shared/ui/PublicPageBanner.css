@@ -118,6 +118,40 @@
   text-shadow: 0 2px 8px rgba(25, 0, 5, 0.6);
 }
 
+/* A link from the banner to the sibling page: cream on the red cloth, underlined
+   and followed by an arrow so it never relies on colour alone. */
+.traditional-mode-banner__related {
+  margin: 0.45rem 0 0;
+}
+
+.traditional-mode-banner__related a {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  min-height: 2rem;
+  color: #fff2ca;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: #e8b94f;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.2em;
+  text-shadow: 0 2px 8px rgba(25, 0, 5, 0.6);
+}
+
+.traditional-mode-banner__related a::after {
+  content: '\2192' / '';
+}
+
+.traditional-mode-banner__related a:hover {
+  color: #fff;
+  text-decoration-color: #fff2ca;
+}
+
+.traditional-mode-banner__related a:focus-visible {
+  outline: 2px solid #f8d06d;
+  outline-offset: 3px;
+}
+
 .traditional-mode-banner__summary {
   z-index: 1;
   display: grid;

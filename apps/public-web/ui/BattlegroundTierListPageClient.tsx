@@ -20,7 +20,6 @@ export function BattlegroundTierListPageClient() {
       ? <BattlegroundTierList key={access.user?.id} />
       : <section className="space-y-5">
         <BattlegroundsTierListSearchIntro />
-        <p><a href="/heroes/">Герои Полей сражений: способности и тиры</a></p>
         {pending
           ? <PaywallPending>Проверяем доступ к тир-листу...</PaywallPending>
           : <PaywallGate active title="Тир-лист Полей сражений доступен подписчикам"

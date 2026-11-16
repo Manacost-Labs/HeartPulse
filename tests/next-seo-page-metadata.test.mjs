@@ -301,6 +301,14 @@ test('every SEO registry page takes its title, description and share metadata fr
       assertOnce(html, /<meta name="description" content="([^"]*)"/g, page.description, `${page.path} description`);
       assert.equal((html.match(/<h1[\s>]/g) ?? []).length, 1, `${page.path} must render exactly one H1`);
       registryHeadings.set(page.path, visibleText(html.match(/<h1[^>]*>([\s\S]*?)<\/h1>/)[1]).replace(/\s+/g, ' ').trim());
+      // The two Battlegrounds pages answer different queries and point at each other from the banner, in the server HTML.
+      const sibling = { '/heroes': ['/battlegrounds/tier-list/', 'Тир-лист'], '/battlegrounds/tier-list': ['/heroes/', 'Герои Полей сражений'] }[page.path];
+      if (sibling) {
+        const afterHeading = html.slice(html.indexOf('</h1>'), html.indexOf('</h1>') + 1500);
+        const link = [...afterHeading.matchAll(/<a\b[^>]*href="([^"]*)"[^>]*>([^<]*)<\/a>/g)].find(([, href]) => href === sibling[0]);
+        assert.ok(link, `${page.path} links to ${sibling[0]} from its banner`);
+        assert.ok(link[2].includes(sibling[1]), `${page.path} link text ${link[2]}`);
+      }
       if (!page.sitemap) {
         // Outside the sitemap means noindex; the inventory decides whether links are followed.
         const robots = INVENTORY_ROUTES.find(route => route.id === page.policyRouteId)?.indexPolicy === 'noindex-follow'
