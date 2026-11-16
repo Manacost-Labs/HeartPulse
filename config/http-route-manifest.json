@@ -3,7 +3,7 @@
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
     "sourceFiles": 107,
-    "routeRegistrations": 288,
+    "routeRegistrations": 289,
     "middlewareRegistrations": 147,
     "explicitGuardRouteRegistrations": 73,
     "unresolvedPaths": 0
@@ -5816,6 +5816,18 @@
       ],
       "source": "server/winrateRoutes.ts",
       "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/winrates/public-teaser",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/winrateRoutes.ts",
+      "sourceOrder": 1
     }
   ]
 }
