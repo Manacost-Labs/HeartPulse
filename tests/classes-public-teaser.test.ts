@@ -25,18 +25,19 @@ test('the sentinel list is not vacuous: it holds long winrates and breakdown val
   assert.deepEqual(leaks(JSON.stringify(buildClassesFixture())).length > 80, true, 'the raw dataset leaks them all');
 });
 
-test('the projection is the order of the classes with winrate to 0.1, games, date and source', () => {
+test('the projection is the order of the classes with winrate to 0.1, sample, date, unit and source', () => {
   const teaser = projectWinratesPublicTeaser(buildClassesFixture())!;
   assert.deepEqual(teaser.classes, OPEN_ROWS, 'best first, whatever the stored order is');
-  assert.deepEqual(Object.keys(teaser.classes[0]).sort(), ['games', 'id', 'name', 'place', 'winrate']);
-  assert.deepEqual(Object.keys(teaser).sort(), ['classes', 'source', 'updatedAt']);
+  assert.deepEqual(Object.keys(teaser.classes[0]).sort(), ['id', 'name', 'place', 'sample', 'winrate']);
+  assert.deepEqual(Object.keys(teaser).sort(), ['classes', 'sampleUnit', 'source', 'updatedAt']);
+  assert.equal(teaser.sampleUnit, 'drafts', 'HSReplay counts drafts (num_drafts), not games');
   assert.equal(teaser.updatedAt, UPDATED_AT);
   assert.equal(teaser.source, 'HSReplay');
   assert.equal(teaser.classes[0].winrate, 57.3, 'rounded to 0.1, not the exact 57.34821');
   assert.deepEqual(leaks(JSON.stringify(teaser)), [], 'no exact winrate, wins, pick rate, breakdown or history');
 });
 
-test('a missing date or games is null, a synthetic or empty dataset is no projection, a bad row is skipped', () => {
+test('a missing date or sample is null, a synthetic or empty dataset is no projection, a bad row is skipped', () => {
   assert.equal(projectWinratesPublicTeaser(null), null);
   assert.equal(projectWinratesPublicTeaser({ classes: [] }), null);
   assert.equal(projectWinratesPublicTeaser({ ...buildClassesFixture(), source: 'initial' }), null);
@@ -48,8 +49,9 @@ test('a missing date or games is null, a synthetic or empty dataset is no projec
   const teaser = projectWinratesPublicTeaser(stripped)!;
   assert.equal(teaser.updatedAt, null);
   assert.equal(teaser.source, 'Firestone');
+  assert.equal(teaser.sampleUnit, 'games', 'Firestone counts games');
   assert.equal(teaser.classes.length, 11);
-  assert.ok(teaser.classes.every(item => item.games === null));
+  assert.ok(teaser.classes.every(item => item.sample === null));
 });
 
 test('the page parser copies only the whitelisted fields, rounds again and caps the list', () => {
@@ -62,11 +64,17 @@ test('the page parser copies only the whitelisted fields, rounds again and caps 
   dirty.history = [{ date: 'sentinel-history' }];
   const parsed = parsePublicClassesTeaser(dirty) as PublicClassesTeaser;
   assert.equal(parsed.classes.length, 20, 'no more than twenty rows');
-  assert.deepEqual(Object.keys(parsed.classes[0]).sort(), ['games', 'id', 'name', 'place', 'winrate']);
+  assert.deepEqual(Object.keys(parsed.classes[0]).sort(), ['id', 'name', 'place', 'sample', 'winrate']);
   assert.equal(parsed.classes[0].winrate, 57.3, 'a winrate with more digits is rounded again');
   assert.deepEqual(parsed.classes.slice(0, 3).map(item => item.place), [1, 2, 3], 'the place is the position, not a field of the answer');
   assert.equal(JSON.stringify(parsed).match(/wins|pickRate|byPeriod|history|sentinel|4281773|13\.37041|57\.34821/), null);
-  assert.equal(parsePublicClassesTeaser({ ...teaser, classes: [{ ...teaser.classes[0], games: 1.5 }] })!.classes[0].games, null, 'an odd games figure is dropped');
+  assert.equal(parsePublicClassesTeaser({ ...teaser, classes: [{ ...teaser.classes[0], sample: 1.5 }] })!.classes[0].sample, null, 'an odd sample figure is dropped');
+  assert.equal(parsePublicClassesTeaser(teaser)!.sampleUnit, 'drafts');
+  for (const unit of ['minutes', null, 7]) {
+    const odd = parsePublicClassesTeaser({ ...teaser, sampleUnit: unit })!;
+    assert.equal(odd.sampleUnit, null, `an unknown unit is dropped: ${unit}`);
+    assert.ok(odd.classes.every(item => item.sample === null), 'and so is the number without a unit');
+  }
   for (const bad of [null, [], 'x', {}, { classes: [] }, { classes: [{ id: 'a', name: 'b', winrate: '57.3' }] }]) {
     assert.equal(parsePublicClassesTeaser(bad), null, JSON.stringify(bad));
   }

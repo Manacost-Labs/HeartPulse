@@ -11,7 +11,7 @@ import { buildClassesFixture, closedValues, OPEN_ROWS } from './helpers/classesT
 
 // The built /classes/ page against an Express that serves the real open-slice
 // projection: a guest and a robot get the same HTML with the order of the
-// classes (place, winrate to 0.1, games), the date and the source, and no
+// classes (place, winrate to 0.1, sample), the date and the source, and no
 // closed value (an exact winrate, wins, a breakdown) is in the HTML, the RSC
 // payload (`self.__next_f`) or the JSON-LD. Without data the page is a 200.
 
@@ -85,10 +85,10 @@ test('the guest HTML of /classes/ carries the open order of the classes and noth
     const slice = html.slice(start, html.indexOf('</section>', start));
     assert.ok(slice.length > 100, 'the open slice is in the server HTML');
     const rows = [...slice.matchAll(/<tr><td>(\d+)<\/td><th scope="row">([^<]+)<\/th><td>([^<]+)<\/td><td>([^<]+)<\/td><\/tr>/g)]
-      .map(match => ({ place: Number(match[1]), name: match[2], winrate: match[3], games: match[4].replace(/\s/g, '') }));
+      .map(match => ({ place: Number(match[1]), name: match[2], winrate: match[3], sample: match[4].replace(/\s/g, '') }));
     assert.deepEqual(rows, OPEN_ROWS.map(row => ({
-      place: row.place, name: row.name, winrate: `${row.winrate.toFixed(1).replace('.', ',')}%`, games: String(row.games),
-    })), 'all eleven classes in order, with the winrate to one decimal and the games');
+      place: row.place, name: row.name, winrate: `${row.winrate.toFixed(1).replace('.', ',')}%`, sample: String(row.sample),
+    })), 'all eleven classes in order, with the winrate to one decimal and the sample');
     assert.match(slice, /Данные на <time dateTime="2026-11-15T17:00:03\.639Z">15 ноября 2026, 20:00 МСК<\/time> · источник HSReplay\./, 'date and source');
     assert.ok(html.indexOf('<h1') < start && start < html.indexOf('class="paywalled-classes"'), 'the table stands after the H1 and before the closed part');
     assert.match(html, /class="paywalled-classes"/, 'the closed part has the class the JSON-LD names');

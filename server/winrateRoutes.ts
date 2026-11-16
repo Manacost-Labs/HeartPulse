@@ -48,13 +48,17 @@ export type WinratesTeaserClass = {
   name: string;
   /** Rounded to 0.1 percentage point; a more precise winrate is a closed value. */
   winrate: number;
-  /** Games (drafts for HSReplay) of the class in the dataset; `null` when the source gives none. */
-  games: number | null;
+  /** The size of the class's sample, in the unit of `sampleUnit`; `null` when the source gives none. */
+  sample: number | null;
 };
+
+/** What `sample` counts: HSReplay publishes drafts (`num_drafts`), Firestone games (`totalGames`). */
+export type WinratesSampleUnit = 'drafts' | 'games';
 
 export type WinratesPublicTeaser = {
   updatedAt: string | null;
   source: string;
+  sampleUnit: WinratesSampleUnit;
   classes: WinratesTeaserClass[];
 };
 
@@ -63,7 +67,7 @@ const record = (value: unknown): Record<string, unknown> => value && typeof valu
 
 /**
  * The open slice of a class winrate dataset: the order of the classes with a
- * winrate rounded to 0.1, the games of the class, the date and the source.
+ * winrate rounded to 0.1, the sample size of the class, the date and the source.
  * Classes are ranked by the dataset's own winrate (used only for the order).
  * `null` when no class has a usable winrate or the dataset is synthetic.
  */
@@ -71,26 +75,28 @@ export function projectWinratesPublicTeaser(dataset: unknown): WinratesPublicTea
   const data = record(dataset);
   const source = text(data.source);
   if (source === 'initial' || !Array.isArray(data.classes)) return null;
-  const ranked: Array<{ id: string; name: string; exact: number; games: number | null }> = [];
+  const ranked: Array<{ id: string; name: string; exact: number; sample: number | null }> = [];
   for (const entry of data.classes as unknown[]) {
     const row = record(entry);
     const id = text(row.id);
     const name = text(row.name);
     const exact = typeof row.winrate === 'number' ? row.winrate : Number.NaN;
     if (!id || !name || !Number.isFinite(exact) || exact < 0 || exact > 100) continue;
-    const games = typeof row.games === 'number' && Number.isFinite(row.games) && row.games > 0 ? Math.floor(row.games) : null;
-    ranked.push({ id, name, exact, games });
+    const sample = typeof row.games === 'number' && Number.isFinite(row.games) && row.games > 0 ? Math.floor(row.games) : null;
+    ranked.push({ id, name, exact, sample });
   }
   if (!ranked.length) return null;
   ranked.sort((a, b) => b.exact - a.exact);
   const updatedAt = text(data.updatedAt);
+  const firestone = /firestone/i.test(source);
   return {
     updatedAt: updatedAt && Number.isFinite(Date.parse(updatedAt)) ? updatedAt : null,
     // The teaser reads the default source only: a Firestone dataset says so, the rest is HSReplay's
     // (its dataset arrives as `api.kolodahearthstone.com`, a snapshot as `cached`).
-    source: /firestone/i.test(source) ? 'Firestone' : 'HSReplay',
+    source: firestone ? 'Firestone' : 'HSReplay',
+    sampleUnit: firestone ? 'games' : 'drafts',
     classes: ranked.map((item, index) => ({
-      place: index + 1, id: item.id, name: item.name, winrate: Math.round(item.exact * 10) / 10, games: item.games,
+      place: index + 1, id: item.id, name: item.name, winrate: Math.round(item.exact * 10) / 10, sample: item.sample,
     })),
   };
 }

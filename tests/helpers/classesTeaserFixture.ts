@@ -41,9 +41,9 @@ export function buildClassesFixture(): { classes: Row[]; updatedAt: string; sour
   return { classes, updatedAt: UPDATED_AT, source: 'api.kolodahearthstone.com', dataPoints: 8_765_431, timePeriod: 'sentinel-last-patch' };
 }
 
-/** What the open table says, best class first: the rounded winrate and the exact games. */
+/** What the open table says, best class first: the rounded winrate and the sample size. */
 export const OPEN_ROWS = CLASS_IDS.map((id, rank) => ({
-  place: rank + 1, id, name: `Класс ${id}`, winrate: Math.round(exactWinrate(rank) * 10) / 10, games: 120_000 + rank * 1_337 + 11,
+  place: rank + 1, id, name: `Класс ${id}`, winrate: Math.round(exactWinrate(rank) * 10) / 10, sample: 120_000 + rank * 1_337 + 11,
 }));
 
 /** The figures and words that must never reach a guest's page. */

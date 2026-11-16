@@ -212,7 +212,7 @@ test('the contents lists of the tier lists are gone, and no description counts t
   const classes = byType((await seoStructuredDataGraph('/classes/'))!['@graph'], 'Dataset')!;
   assert.equal(classes.description, 'Процент побед (винрейт) классов в режиме Арена Hearthstone по данным HSReplay и Firestone. '
     + 'Разбивки, история и сравнение классов доступны по подписке; на открытой странице — порядок классов с винрейтом до десятых долей процента, '
-    + 'число игр по классу, дата обновления и источник, а также описание того, как читать рейтинг.');
+    + 'размер выборки по классу, дата обновления и источник, а также описание того, как читать рейтинг.');
 });
 
 test('lists describe what the page shows: true counts, distinct targets', async () => {
