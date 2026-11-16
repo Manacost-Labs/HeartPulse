@@ -103,10 +103,11 @@ It stays in the development story bundle and requires no live image API.
 
 `GET /api/tierlist` stays closed (entitlement `arena`). The page `/tierlist/`
 shows guests and robots, in server HTML, an open slice: the top ten cards and
-the top three of each class with their tier, the update date and the sample
-size ("по N играм"). It comes from a separate anonymous projection,
-`GET /api/tierlist/public-teaser` (`server/tierlistRoutes.ts`), built on the
-same data, cache and last-known-good fallback as the full endpoint.
+the top three of each class with their tier, the update date and a lower
+bound of the sample ("по данным более N игр"). It comes from a separate
+anonymous projection, `GET /api/tierlist/public-teaser`
+(`server/tierlistRoutes.ts`), built on the same data, cache and
+last-known-good fallback as the full endpoint.
 
 - The projection reads the default source (HSReplay) only and ignores `source`,
   `t` and `bust`: a guest cannot fan out origin reads.
@@ -115,8 +116,12 @@ same data, cache and last-known-good fallback as the full endpoint.
   by the dataset's own score; the score is used for the order and never sent.
   Cards without a letter tier ("Без тира") and the neutral class (for the
   per-class lists) are not part of the slice.
-- `sampleGames` is the largest per-card game count of the dataset, or `null`
-  when the source gives none (HearthArena). It is the only game count sent.
+- No source (HSReplay, HearthArena, Firestone) publishes a total game count
+  for the dataset, so `sampleGamesAtLeast` is a lower bound: the largest
+  per-card game count rounded down to two significant digits (987654 becomes
+  980000), or `null` when the source gives none (HearthArena) or it is under
+  1000. It is the only game figure sent, and it is not the exact sample size.
+  Rounding is done in Express; the Next loader drops any other value.
 - It carries no `winrate`, `deckWinrate`, `playedWinrate`, `totalGames` per
   card or card outside the slice. Without data the route answers 502 and the
   page renders without the slice (still HTTP 200).

@@ -5,7 +5,9 @@
 export const CLASS_IDS = ['death-knight', 'demon-hunter', 'druid', 'hunter', 'mage', 'paladin', 'priest', 'rogue', 'shaman',
   'warlock', 'warrior'] as const;
 export const UPDATED_AT = '2026-11-15T17:00:03.639Z';
+// Not round on purpose: the exact figure is closed, its two-digit lower bound is what a guest may see.
 export const MAX_GAMES = 987_654;
+export const MAX_GAMES_AT_LEAST = 980_000;
 
 type Row = Record<string, unknown>;
 export type FixtureCard = { row: Row; classId: string; tier: string };
@@ -74,7 +76,7 @@ export function closedValues(visible: ReadonlySet<string>, cards = buildFixtureC
   const values: string[] = [];
   for (const { row } of cards) {
     for (const key of ['score', 'winrate', 'deckWinrate', 'playedWinrate', 'pickRate', 'inDecks', 'arenaScore']) values.push(String(row[key]));
-    if (row.totalGames !== MAX_GAMES) values.push(String(row.totalGames));
+    values.push(String(row.totalGames), Number(row.totalGames).toLocaleString('ru-RU'));
     if (!visible.has(String(row.cardId))) values.push(String(row.cardId), String(row.name));
   }
   return values;

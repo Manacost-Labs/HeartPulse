@@ -79,7 +79,7 @@ test('the guest HTML of /tierlist/ carries the open slice and nothing closed', a
       assert.match(slice, new RegExp(`<h4>Класс ${classId}</h4><ol>(<li>[^<]*</li>){3}</ol>`), `three cards for ${classId}`);
     }
     assert.match(slice, /Карта mage-s0 — тир S, Класс mage/, 'a top card names its tier and class');
-    assert.match(slice, /Данные на <time dateTime="2026-11-15T17:00:03\.639Z">15 ноября 2026, 20:00 МСК<\/time> · по 987\s654 играм · источник HSReplay\./, 'date, sample and source');
+    assert.match(slice, /Данные на <time dateTime="2026-11-15T17:00:03\.639Z">15 ноября 2026, 20:00 МСК<\/time> · по данным более 980\s000 игр · источник HSReplay\./, 'date, sample and source');
     assert.match(html, /class="paywalled-tierlist"/, 'the closed part has the class the JSON-LD names');
 
     // Nothing closed in the HTML, in the RSC payload and in the JSON-LD: each is checked on its own.

@@ -951,7 +951,7 @@
         "@type": "Dataset",
         "@id": "https://hearthpulse.net/tierlist/#dataset",
         "name": "Тир-лист карт Арены Hearthstone",
-        "description": "Тир-лист карт Арены Hearthstone по классам с оценками от S до F по данным HSReplay, HearthArena и Firestone. Полный список и оценки доступны по подписке; на открытой странице — лучшие карты Арены и лучшие карты каждого класса с тиром, дата обновления, размер выборки, описание шкалы и источников.",
+        "description": "Тир-лист карт Арены Hearthstone по классам с оценками от S до F по данным HSReplay, HearthArena и Firestone. Полный список и оценки доступны по подписке; на открытой странице — лучшие карты Арены и лучшие карты каждого класса с тиром, дата обновления, нижняя граница числа игр, описание шкалы и источников.",
         "url": "https://hearthpulse.net/tierlist/",
         "isAccessibleForFree": false,
         "hasPart": {

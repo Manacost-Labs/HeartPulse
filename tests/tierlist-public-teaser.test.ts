@@ -3,10 +3,10 @@ import { once } from 'node:events';
 import type { Server } from 'node:http';
 import test from 'node:test';
 import express, { type RequestHandler } from 'express';
-import { createTierlistRouter, projectTierlistPublicTeaser } from '../server/tierlistRoutes';
+import { createTierlistRouter, projectTierlistPublicTeaser, sampleGamesLowerBound } from '../server/tierlistRoutes';
 import { seoStructuredDataGraph } from '../src/seo/structuredData';
 import { parsePublicTierlistTeaser, type PublicTierlistTeaser } from '../apps/public-web/lib/publicTierlistTeaserData';
-import { buildTierlistFixture, closedValues, CLASS_IDS, MAX_GAMES, UPDATED_AT } from './helpers/tierlistTeaserFixture';
+import { buildTierlistFixture, closedValues, CLASS_IDS, MAX_GAMES_AT_LEAST, UPDATED_AT } from './helpers/tierlistTeaserFixture';
 
 // The open slice of /tierlist/: what a guest and a robot may read, and the
 // sentinel check that nothing closed leaves with it. The fixture gives every
@@ -34,7 +34,7 @@ test('the projection is the top ten and the top three of each class, with tier, 
   }
   assert.equal(teaser.updatedAt, UPDATED_AT);
   assert.equal(teaser.source, 'HSReplay');
-  assert.equal(teaser.sampleGames, MAX_GAMES, 'the sample is the largest game count of the dataset');
+  assert.equal(teaser.sampleGamesAtLeast, MAX_GAMES_AT_LEAST, 'a lower bound of two digits, not the exact largest game count');
   assert.deepEqual(Object.keys(teaser.top[0]).sort(), ['cardId', 'classKey', 'className', 'image', 'name', 'tier']);
   assert.equal(teaser.top[0].image, '/api/card-image/FX_mage-s0/thumb.webp?v=1', 'only our own card image address');
   const json = JSON.stringify(teaser);
@@ -54,7 +54,16 @@ test('no cards with a tier, or no dataset, gives no projection; a missing date o
   })) };
   const teaser = projectTierlistPublicTeaser(stripped)!;
   assert.equal(teaser.updatedAt, null);
-  assert.equal(teaser.sampleGames, null);
+  assert.equal(teaser.sampleGamesAtLeast, null);
+});
+
+test('the sample is a lower bound of two significant digits, never an exact count', () => {
+  assert.equal(sampleGamesLowerBound(987_654), 980_000);
+  assert.equal(sampleGamesLowerBound(201_188), 200_000);
+  assert.equal(sampleGamesLowerBound(12_345), 12_000);
+  assert.equal(sampleGamesLowerBound(1000), 1000);
+  assert.equal(sampleGamesLowerBound(999), null, 'a small count would be an exact figure');
+  assert.equal(sampleGamesLowerBound(Number.NaN), null);
 });
 
 test('the page parser copies only the whitelisted fields and caps the lists', () => {
@@ -69,6 +78,9 @@ test('the page parser copies only the whitelisted fields and caps the lists', ()
   assert.equal(parsed.top.length, 10, 'no more than ten');
   assert.deepEqual(Object.keys(parsed.top[0]).sort(), ['cardId', 'className', 'name', 'tier']);
   assert.equal(JSON.stringify(parsed).match(/winrate|Winrate|totalGames|123456789|61\.2345/i), null);
+  const withSample = (value: unknown) => parsePublicTierlistTeaser({ ...teaser, sampleGamesAtLeast: value })!.sampleGamesAtLeast;
+  assert.equal(withSample(980_000), 980_000);
+  for (const exact of [987_654, 999, 0, -1, 980_000.5, '980000x']) assert.equal(withSample(exact), null, `an exact or odd figure is dropped: ${exact}`);
   for (const bad of [null, [], 'x', {}, { top: [] }, { top: [{ cardId: 'a', name: 'b', className: 'c', tier: 'Z' }] }]) {
     assert.equal(parsePublicTierlistTeaser(bad), null, JSON.stringify(bad));
   }
@@ -116,7 +128,7 @@ test('GET /api/tierlist/public-teaser answers a guest with the projection and no
     const text = await response.text();
     assert.deepEqual(leaks(text), [], 'the answer carries no winrate, score, per-card games or hidden card');
     assert.deepEqual(JSON.parse(text).top.map((item: { cardId: string }) => item.cardId), TOP_IDS);
-    assert.equal(JSON.parse(text).sampleGames, MAX_GAMES);
+    assert.equal(JSON.parse(text).sampleGamesAtLeast, MAX_GAMES_AT_LEAST);
 
     const sameForARobot = await fetch(`${harness.origin}/tierlist/public-teaser`, { headers: { 'User-Agent': 'Googlebot/2.1', Cookie: 'session=x' } });
     assert.equal(await sameForARobot.text(), text, 'no branch on the visitor');

@@ -13,7 +13,8 @@ export type PublicTierlistTeaserCard = { cardId: string; name: string; className
 export type PublicTierlistTeaser = {
   updatedAt: string | null;
   source: string;
-  sampleGames: number | null;
+  /** A rounded lower bound (two significant digits), never an exact game count. */
+  sampleGamesAtLeast: number | null;
   top: PublicTierlistTeaserCard[];
   classes: Array<{ id: string; name: string; cards: PublicTierlistTeaserCard[] }>;
 };
@@ -33,6 +34,13 @@ function card(value: unknown): PublicTierlistTeaserCard | null {
 const cards = (value: unknown, limit: number): PublicTierlistTeaserCard[] =>
   (Array.isArray(value) ? value : []).slice(0, limit).flatMap(item => card(item) ?? []);
 
+/** Only a figure rounded down to two significant digits and not below 1000 passes: an exact count is dropped. */
+function isRoundedLowerBound(games: number): boolean {
+  if (!Number.isInteger(games) || games < 1000) return false;
+  const step = 10 ** (Math.floor(Math.log10(games)) - 1);
+  return games % step === 0;
+}
+
 /** `null` when the answer is not a teaser or has no top cards: the page then renders without the slice. */
 export function parsePublicTierlistTeaser(raw: unknown): PublicTierlistTeaser | null {
   const data = record(raw);
@@ -40,11 +48,11 @@ export function parsePublicTierlistTeaser(raw: unknown): PublicTierlistTeaser | 
   const top = cards(data.top, TIERLIST_TEASER_TOP_COUNT);
   if (!top.length) return null;
   const updatedAt = text(data.updatedAt);
-  const games = Number(data.sampleGames);
+  const games = Number(data.sampleGamesAtLeast);
   return {
     updatedAt: updatedAt && Number.isFinite(Date.parse(updatedAt)) ? updatedAt : null,
     source: text(data.source),
-    sampleGames: Number.isInteger(games) && games > 0 ? games : null,
+    sampleGamesAtLeast: isRoundedLowerBound(games) ? games : null,
     top,
     classes: (Array.isArray(data.classes) ? data.classes : []).flatMap(item => {
       const entry = record(item);

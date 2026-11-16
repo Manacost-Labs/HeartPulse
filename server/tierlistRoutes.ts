@@ -31,6 +31,14 @@ const TEASER_CLASS_COUNT = 3;
 // Letter tiers only: a card without a tier (HSReplay's `U`) is not "top" of anything.
 const TEASER_TIER_ORDER = ['S', 'A', 'B', 'C', 'D', 'E', 'F'];
 const NEUTRAL_CLASS_ID = 'any';
+const MIN_PUBLIC_SAMPLE = 1000;
+
+/** `987654` → `980000`: two significant digits, rounded down; `null` below the smallest figure worth showing. */
+export function sampleGamesLowerBound(games: number): number | null {
+  if (!Number.isFinite(games) || games < MIN_PUBLIC_SAMPLE) return null;
+  const step = 10 ** (Math.floor(Math.log10(games)) - 1);
+  return Math.floor(games / step) * step;
+}
 
 /**
  * What the anonymous projection may say about a card. Every field is listed
@@ -49,8 +57,13 @@ export type TierlistTeaserCard = {
 export type TierlistPublicTeaser = {
   updatedAt: string | null;
   source: string;
-  /** The largest per-card game count in the dataset, or null when the source gives none. */
-  sampleGames: number | null;
+  /**
+   * A lower bound of the sample, never an exact figure: the largest per-card
+   * game count of the dataset rounded down to two significant digits (987654
+   * becomes 980000), or null when the source gives none or it is under 1000.
+   * No source publishes a total of its own, and a per-card count is closed.
+   */
+  sampleGamesAtLeast: number | null;
   top: TierlistTeaserCard[];
   classes: Array<{ id: string; name: string; cards: TierlistTeaserCard[] }>;
 };
@@ -70,7 +83,7 @@ type RankedCard = { card: TierlistTeaserCard; tierIndex: number; score: number }
 export function projectTierlistPublicTeaser(dataset: unknown): TierlistPublicTeaser | null {
   const data = record(dataset);
   const lookup = record(data.cards);
-  let sampleGames = 0;
+  let largestGames = 0;
   const perClass = new Map<string, { name: string; cards: RankedCard[] }>();
   const all: RankedCard[] = [];
 
@@ -87,7 +100,7 @@ export function projectTierlistPublicTeaser(dataset: unknown): TierlistPublicTea
       for (const rowEntry of list(group.cards)) {
         const row = record(rowEntry);
         const games = Number(row.totalGames);
-        if (Number.isFinite(games) && games > sampleGames) sampleGames = Math.floor(games);
+        if (Number.isFinite(games) && games > largestGames) largestGames = Math.floor(games);
         const cardId = text(row.cardId);
         const name = text(row.name);
         if (tierIndex < 0 || !cardId || !name) continue;
@@ -111,7 +124,7 @@ export function projectTierlistPublicTeaser(dataset: unknown): TierlistPublicTea
   return {
     updatedAt: updatedAt && Number.isFinite(Date.parse(updatedAt)) ? updatedAt : null,
     source: text(data.source),
-    sampleGames: sampleGames > 0 ? sampleGames : null,
+    sampleGamesAtLeast: sampleGamesLowerBound(largestGames),
     top,
     classes: [...perClass].map(([id, entry]) => ({
       id, name: entry.name, cards: entry.cards.sort(byRank).slice(0, TEASER_CLASS_COUNT).map(item => item.card),
