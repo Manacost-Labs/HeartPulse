@@ -49,12 +49,35 @@ assert.notEqual(heroHash(hero('HERO_1')), heroHash(hero('HERO_1', { name: { ru: 
 assert.throws(() => projectCosmeticsSitemapCatalog([{ kind: 'cards', item: hero('HERO_1') }], ORIGIN), /invalid/);
 assert.throws(() => projectCosmeticsSitemapCatalog([{ kind: 'heroes', item: hero('../x') }], ORIGIN), /invalid/);
 
-const longGuide = { free_html: `<p>${words(170, 'слово')}</p>`, body_html: '', short_html: '' };
-const guideRows = [{ slug: 'guide-230', title: 'Гайд', ...longGuide }, { slug: 'guide-216', title: 'Гайд', ...longGuide }];
-const guides = projectGuideArchiveSitemapCatalog(loadGuideArchiveSitemapRows({ prepare: () => ({ all: () => guideRows }) }), ORIGIN);
+// A fake guides table: the listing query carries a text signature, the per-slug query the texts.
+const longText = { free_html: `<p>${words(170, 'слово')}</p>`, body_html: '', short_html: '' };
+let textReads = 0;
+const fakeGuides = (texts: Record<string, typeof longText>) => ({
+  prepare: (sql: string) => ({
+    all: (...params: unknown[]) => {
+      if (/text_signature/.test(sql)) {
+        return Object.entries(texts).map(([slug, text]) => ({
+          slug, title: 'Гайд', text_signature: `${text.free_html.length}:0:0`,
+        }));
+      }
+      textReads += 1;
+      return [texts[String(params[0])]];
+    },
+  }),
+});
+const texts = { 'guide-230': longText, 'guide-216': longText, 'guide-short': { ...longText, free_html: `<p>${words(95, 'мало')}</p>` } };
+const first = loadGuideArchiveSitemapRows(fakeGuides(texts));
+assert.deepEqual(first, [{ slug: 'guide-230', title: 'Гайд' }, { slug: 'guide-216', title: 'Гайд' }],
+  'the short guide is out, and the signature never reaches the rows');
+assert.equal(textReads, 3, 'a first build reads each text once');
+assert.deepEqual(loadGuideArchiveSitemapRows(fakeGuides(texts)), first);
+assert.equal(textReads, 3, 'a repeat build reads no text');
+// A changed text (another signature) is judged again.
+const edited = loadGuideArchiveSitemapRows(fakeGuides({ ...texts, 'guide-short': { ...longText, free_html: `<p>${words(180, 'много')}</p>` } }));
+assert.equal(textReads, 4);
+assert.equal(edited.length, 3);
+const guides = projectGuideArchiveSitemapCatalog(first, ORIGIN);
 assert.deepEqual(guides.map(entry => entry.location), [`${ORIGIN}/guides-archive/guide-216/`, `${ORIGIN}/guides-archive/guide-230/`]);
-// The text columns only decide indexability: they never reach the rows, so lastmod does not move.
-assert.deepEqual(loadGuideArchiveSitemapRows({ prepare: () => ({ all: () => guideRows }) })[0], { slug: 'guide-230', title: 'Гайд' });
 
 // One predicate for page and sitemap: a guide is outside the sitemap exactly when its page is noindex.
 {

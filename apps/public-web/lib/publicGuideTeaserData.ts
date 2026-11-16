@@ -37,16 +37,39 @@ function safeImage(value: unknown): string | null {
   throw new Error('Invalid public guide teaser');
 }
 
+const TAG_OPEN = /<(\/?)([a-z][a-z0-9]*)/y;
+const TAG_ATTRIBUTE = /\s+([a-z][a-z-]*)(?:="([^"<>]*)")?/y;
+const TAG_END = /\s*(\/?)>/y;
+const SAFE_HREF = /^(?:https?:\/\/|mailto:|tel:|#)/i;
+const SAFE_SRC = /^https?:\/\//i;
+
+/**
+ * One pass: every `<` must open a tag of the sanitizer's vocabulary with whole name="value"
+ * attributes (the sanitizer escapes `<`, `>` and quotes inside values), else the text is refused.
+ * Attribute values are read as values, never as names.
+ */
 function excerptHtml(value: unknown): string {
   if (value === undefined) return '';
   if (typeof value !== 'string' || value.length > MAX_EXCERPT_LENGTH) throw new Error('Invalid public guide teaser');
-  for (const tag of value.matchAll(/<\/?([a-z0-9]+)((?:\s+[a-z-]+(?:="[^"]*")?)*)\s*\/?>/gi)) {
-    const attributes = [...tag[2].matchAll(/\s+([a-z-]+)=?/gi)].map(match => match[1].toLowerCase());
-    if (!EXCERPT_TAGS.test(tag[1].toLowerCase()) || attributes.some(name => !EXCERPT_ATTRIBUTES.test(name))
-      || /\s(?:href|src)="\s*(?!https?:|mailto:|tel:|#)/i.test(tag[0])) throw new Error('Invalid public guide teaser');
+  const invalid = () => new Error('Invalid public guide teaser');
+  for (let at = value.indexOf('<'); at >= 0; at = value.indexOf('<', TAG_END.lastIndex)) {
+    TAG_OPEN.lastIndex = at;
+    const open = TAG_OPEN.exec(value);
+    if (!open || !EXCERPT_TAGS.test(open[2])) throw invalid();
+    let position = TAG_OPEN.lastIndex;
+    for (;;) {
+      TAG_ATTRIBUTE.lastIndex = position;
+      const attribute = TAG_ATTRIBUTE.exec(value);
+      if (!attribute) break;
+      const [, name, attributeValue] = attribute;
+      if (!EXCERPT_ATTRIBUTES.test(name)) throw invalid();
+      if (name === 'href' && !SAFE_HREF.test(attributeValue ?? '')) throw invalid();
+      if (name === 'src' && !SAFE_SRC.test(attributeValue ?? '')) throw invalid();
+      position = TAG_ATTRIBUTE.lastIndex;
+    }
+    TAG_END.lastIndex = position;
+    if (!TAG_END.exec(value)) throw invalid();
   }
-  // Every `<` that opens something must have matched a tag above.
-  if (value.replace(/<\/?[a-z0-9]+(?:\s+[a-z-]+(?:="[^"]*")?)*\s*\/?>/gi, '').includes('<')) throw new Error('Invalid public guide teaser');
   return value;
 }
 

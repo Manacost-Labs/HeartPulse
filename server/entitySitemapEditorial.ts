@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { isGuideArchiveIndexable } from './guides/excerpt.js';
+import { isGuideArchiveIndexableCached } from './guides/excerpt.js';
 import type { SitemapSemanticEntry } from './entitySitemapTypes.js';
 
 /**
@@ -96,16 +96,23 @@ export async function loadCosmeticsSitemapRows(loadCatalog: CosmeticsCatalogLoad
 }
 
 /**
- * The columns the public guide teaser renders; the archive itself is frozen. Only guides
- * the page indexes are listed. The text columns decide that and never leave this function.
+ * The columns the public guide teaser renders; the archive itself is frozen. Only guides the
+ * page indexes are listed. A guide's text is read (and judged by `isGuideArchiveIndexable`) only
+ * when its text signature is new; every other build is a SELECT without text.
  */
 export function loadGuideArchiveSitemapRows(database: GuideSitemapDatabase): unknown[] {
-  return database.prepare(`
+  const rows = database.prepare(`
     SELECT slug, title, description, image, published_iso, published_at, menu_name, kind, kind_slug,
-           free_html, body_html, short_html
+           COALESCE(length(free_html), 0) || ':' || COALESCE(length(body_html), 0) || ':'
+             || COALESCE(length(short_html), 0) AS text_signature
     FROM guides
-  `).all().filter(row => isGuideArchiveIndexable(record(row))).map(row => {
-    const { free_html: _free, body_html: _body, short_html: _short, ...guide } = record(row);
+  `).all();
+  const textOf = database.prepare('SELECT free_html, body_html, short_html FROM guides WHERE slug = ?');
+  return rows.filter(row => {
+    const { slug, text_signature: signature } = record(row);
+    return isGuideArchiveIndexableCached(String(slug), String(signature), () => record(textOf.all(slug)[0]));
+  }).map(row => {
+    const { text_signature: _signature, ...guide } = record(row);
     return guide;
   });
 }

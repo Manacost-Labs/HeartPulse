@@ -29,3 +29,21 @@ assert.equal(publicGuideTeaser(raw, '1').slug, 'arena-100-percent');
 assert.throws(() => publicGuideTeaser({ ...raw, toc: [{ id: 'a b', text: 'x', level: 2 }] }, 'arena-100-percent'), /Invalid/);
 assert.throws(() => publicGuideTeaser(raw, 'different'), /Invalid/);
 assert.throws(() => publicGuideTeaser({ ...raw, image: 'javascript:alert(1)' }, 'arena-100-percent'), /Invalid/);
+
+// The sanitizer's own output must pass: external links carry rel="noopener noreferrer", icons a two-word alt.
+{
+  const { createOldGuideSanitizer } = await import('../server/guides/sanitize.js');
+  const { buildGuideExcerpt } = await import('../server/guides/excerpt.js');
+  const sanitized = createOldGuideSanitizer('https://legacy.example.test').sanitizeHtml(
+    '<p>Смотрите <a href="https://example.com/a?x=1&y=2">внешнюю ссылку</a>, <a href="/guides/next">гайд</a> и '
+    + '<img width="20" src="/design/user/mana.png" alt="Mana icon > 3 &quot;x&quot;"> иконку.</p>');
+  assert.match(sanitized, /rel="noopener noreferrer"/);
+  const excerpt = buildGuideExcerpt(sanitized).html;
+  assert.match(excerpt, /alt="Mana icon/);
+  assert.equal(publicGuideTeaser({ ...raw, excerptHtml: excerpt }, 'arena-100-percent').excerptHtml, excerpt);
+}
+for (const bad of ['<script>x</script>', '<scr<script>ipt>x</scr</script>ipt>', 'a < b', '<p', '<p onclick="x">a</p>',
+  '<a href="javascript:x">a</a>', '<img src="//evil.test/a.png">', '<img src="data:image/png;base64,AA==">',
+  '<p title="a">a</p>', '<p id="x>y">a</p><p onclick="z">']) {
+  assert.throws(() => publicGuideTeaser({ ...raw, excerptHtml: bad }, 'arena-100-percent'), /Invalid/, bad);
+}
