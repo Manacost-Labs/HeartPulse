@@ -51,6 +51,8 @@ async function startGateway(nextOrigin) {
     if (request.url.startsWith('/api/')) return answerApi(request, response);
     const upstream = http.request(next, { method: request.method, path: request.url, headers: request.headers },
       answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
+    // A page still open while the server is restarted must not crash the test with its aborted request.
+    upstream.on('error', () => response.destroy());
     request.pipe(upstream);
   });
   return { server, origin: await listenLocal(server) };
