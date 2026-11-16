@@ -10,7 +10,8 @@ import {
   validateTwitchState,
 } from './model.js';
 import type { TwitchLinkRepository } from './repository.js';
-import { createTwitchChannelRevoker } from './revocation.js';
+import { createTwitchChannelRevoker, type TwitchSendWait } from './revocation.js';
+import { relayTwitchState } from './stateRelay.js';
 import type { TwitchApi } from './twitchApi.js';
 
 export type TwitchApiRouterDependencies = {
@@ -29,8 +30,8 @@ export type TwitchApiRouterDependencies = {
   setPrivateNoStore: (response: Response) => void;
   onError?: (scope: string, error: unknown) => void;
   now?: () => number;
-  /** Waits out the channel's send budget before a clear; a test supplies its own. */
-  wait?: (milliseconds: number) => Promise<void>;
+  /** Waits out the channel's one-a-second budget before a send; a test supplies its own. */
+  wait?: TwitchSendWait;
 };
 
 const apiError = (code: string, message: string) => ({ error: { code, message } });
@@ -82,7 +83,8 @@ export function createTwitchApiRouter(dependencies: TwitchApiRouterDependencies)
       return null;
     }
     if (!dependencies.accountActive(token.userId)) {
-      // Blocking removes browser sessions only; the app's token lives on, so the publication stops here.
+      // A second line of defence. The site's own `authenticate` already refuses a blocked or deleted
+      // account (and revokes its tokens), and the place that blocks or deletes it revokes the channel.
       const link = dependencies.links.find(token.userId);
       if (link) revoke(link.twitchUserId, 'detected');
       response.set('WWW-Authenticate', 'Bearer realm="HearthPulse Tracker"');
@@ -115,30 +117,22 @@ export function createTwitchApiRouter(dependencies: TwitchApiRouterDependencies)
     if (Buffer.byteLength(buildTwitchEnvelope(validation.value, now())) > TWITCH_PUBSUB_MAX_MESSAGE_BYTES) {
       return response.status(413).json(apiError('payload_too_large', 'Compressed state exceeds 5 KB'));
     }
-    const slot = dependencies.live.acquire(link.twitchUserId);
+    const channelId = link.twitchUserId;
+    const slot = dependencies.live.acquire(channelId);
     if (slot.ok === false) {
       response.set('Retry-After', String(slot.retryAfterSeconds));
       return response.status(429).json(apiError('rate_limited', 'One state per second per channel'));
     }
-    const channelId = link.twitchUserId;
-    const state = validation.value;
-    // The link as it is now. The send waits its turn behind the channel's earlier messages; if the link is
-    // unlinked, moved or blocked meanwhile, this state belongs to the old link and must not follow its clear.
-    const generation = dependencies.live.generation(channelId);
-    const outcome = await dependencies.live.run(channelId, async () => {
-      if (dependencies.live.generation(channelId) !== generation) return 'revoked';
-      const envelope = buildTwitchEnvelope(state, dependencies.live.stamp(channelId));
-      // Stored before the broadcast: a viewer who opens the stream gets it even when one PubSub send failed.
-      dependencies.live.store(channelId, envelope, { seq: state.seq, visible: state.state.mode !== 'none' });
-      try {
-        await twitch.broadcast(channelId, envelope);
-        return 'sent';
-      } catch (error) {
-        dependencies.onError?.('pubsub', error);
-        return 'unavailable';
-      }
-    });
+    const outcome = await relayTwitchState({ ...dependencies, twitch, revoke }, token.userId, channelId, validation.value);
+    if (outcome === 'full') {
+      response.set('Retry-After', '1');
+      return response.status(429).json(apiError('rate_limited', 'The channel is still sending its previous states'));
+    }
     if (outcome === 'revoked') return response.status(404).json(apiError('twitch_not_linked', 'Link Twitch on the site first'));
+    if (outcome === 'inactive') {
+      response.set('WWW-Authenticate', 'Bearer realm="HearthPulse Tracker"');
+      return response.status(401).json(apiError('INVALID_ACCESS_TOKEN', 'Access token is invalid or expired'));
+    }
     if (outcome === 'unavailable') {
       return response.status(503).json(apiError('twitch_unavailable', 'Twitch did not accept the message'));
     }

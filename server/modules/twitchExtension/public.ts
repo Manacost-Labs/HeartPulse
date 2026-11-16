@@ -7,6 +7,7 @@ export { readTwitchExtensionConfig, twitchExtensionOrigin, type TwitchExtensionC
 export { externalPubsubJwt, signTwitchJwt, verifyTwitchJwt } from './jwt.js';
 export { createTwitchLiveState, type TwitchLiveState } from './liveState.js';
 export {
+  TWITCH_CHANNEL_MAX_PENDING_STATES,
   TWITCH_PUBSUB_MAX_MESSAGE_BYTES,
   TWITCH_SNAPSHOT_SWEEP_MS,
   TWITCH_SNAPSHOT_TTL_MS,
@@ -15,7 +16,12 @@ export {
   validateTwitchState,
   type TwitchStreamState,
 } from './model.js';
-export { createTwitchChannelRevoker, type TwitchRevocationReason } from './revocation.js';
+export {
+  createTwitchAccountRevoker,
+  createTwitchChannelRevoker,
+  type TwitchRevocationReason,
+  type TwitchSendWait,
+} from './revocation.js';
 export { TWITCH_LINK_TABLES_SQL, createTwitchLinkRepository, type TwitchLink, type TwitchLinkRepository } from './repository.js';
 export { TwitchApiError, createTwitchApi, type TwitchApi, type TwitchFetch } from './twitchApi.js';
 export { createTwitchApiRouter, createTwitchExtensionCors } from './apiRoutes.js';

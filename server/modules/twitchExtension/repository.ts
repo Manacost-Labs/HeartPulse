@@ -64,6 +64,10 @@ export function createTwitchLinkRepository(getDatabase: () => DatabaseSync) {
         throw error;
       }
     },
+    /** Every link; there is at most one per streamer account. */
+    all(): TwitchLink[] {
+      return (getDatabase().prepare('SELECT * FROM twitch_links').all() as Row[]).map(fromRow);
+    },
     /** The link for the account's data export: what is stored, nothing else. */
     *exportRows(userId: string): Iterable<string> {
       const link = this.find(userId);

@@ -8,6 +8,11 @@ export const TWITCH_PUBSUB_MAX_MESSAGE_BYTES = 5 * 1024;
 export const TWITCH_STATE_MIN_INTERVAL_MS = 1_000;
 /** A viewer who opens the stream later gets the last envelope only while it is this fresh. */
 export const TWITCH_SNAPSHOT_TTL_MS = 30 * 60_000;
+/**
+ * States of one channel the site holds at a time: one on its way to Twitch
+ * (a send may take 8 s) and one waiting behind it. A third is refused.
+ */
+export const TWITCH_CHANNEL_MAX_PENDING_STATES = 2;
 /** How often expired snapshots are swept out of memory. */
 export const TWITCH_SNAPSHOT_SWEEP_MS = 60_000;
 
@@ -127,9 +132,11 @@ export function validateTwitchState(body: unknown): Validation {
 
 /**
  * The PubSub message and the snapshot body: `z` is the gzip of the state JSON
- * (without `v`/`seq`) in base64; `at` is the site's receive time for debugging.
+ * (without `v`/`seq`) in base64; `at` is the site's time when the message is
+ * sent to the channel, strictly growing per channel (`TwitchLiveState.stamp`):
+ * the extension orders frames by it when `seq` goes back.
  */
-export function buildTwitchEnvelope(input: TwitchStateInput, receivedAt: number): string {
+export function buildTwitchEnvelope(input: TwitchStateInput, sentAt: number): string {
   const z = gzipSync(Buffer.from(JSON.stringify(input.state), 'utf8')).toString('base64');
-  return JSON.stringify({ v: 1, seq: input.seq, at: receivedAt, z });
+  return JSON.stringify({ v: 1, seq: input.seq, at: sentAt, z });
 }

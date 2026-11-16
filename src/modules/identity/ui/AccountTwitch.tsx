@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Twitch } from 'lucide-react';
 import { fetchTwitchLink, TWITCH_CONNECT_URL, unlinkTwitch, type TwitchLinkState } from '../api/twitchLinkApi';
+import { abandonSectionScroll } from '../model/accountSectionScroll';
 import AccountSectionHead from './AccountSectionHead';
 
 /** What the OAuth callback reported in `?twitch=`; read once on mount. */
@@ -18,6 +19,14 @@ function callbackResult(): { type: 'ok' | 'err'; text: string } | null {
 }
 
 /**
+ * Whether the block renders nothing: its answer did not come, or the site has
+ * no extension configured, nothing is linked and no OAuth result is to be shown.
+ */
+export function twitchBlockHidden(link: TwitchLinkState | null, hasResult: boolean): boolean {
+  return !link || (!link.configured && !link.linked && !hasResult);
+}
+
+/**
  * The streamer's Twitch link for the Hearthpulse extension: the desktop app
  * sends the remaining deck through the site to the linked channel. Hidden
  * while the site has no extension configured and nothing is linked.
@@ -32,12 +41,15 @@ export default function AccountTwitch({ initial }: { initial?: TwitchLinkState |
     if (initial !== undefined) return undefined;
     const controller = new AbortController();
     void fetchTwitchLink(controller.signal).then(result => {
-      if (!controller.signal.aborted) setLink(result);
+      if (controller.signal.aborted) return;
+      setLink(result);
+      // The app's «Link Twitch» address asks for this block; when it stays hidden, the page stops waiting for it.
+      if (twitchBlockHidden(result, callbackResult() !== null)) abandonSectionScroll('account-twitch');
     });
     return () => controller.abort();
   }, [initial]);
 
-  if (!link || (!link.configured && !link.linked && !status)) return null;
+  if (twitchBlockHidden(link, status !== null)) return null;
   const unlink = () => {
     setBusy(true);
     setStatus(null);

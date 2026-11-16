@@ -3,7 +3,7 @@ import { Router, type Request, type Response } from 'express';
 import type { TwitchExtensionConfig } from './config.js';
 import type { TwitchLiveState } from './liveState.js';
 import type { TwitchLinkRepository } from './repository.js';
-import { createTwitchChannelRevoker } from './revocation.js';
+import { createTwitchChannelRevoker, type TwitchSendWait } from './revocation.js';
 import type { TwitchApi } from './twitchApi.js';
 
 export type TwitchAccountRouterDependencies = {
@@ -17,8 +17,8 @@ export type TwitchAccountRouterDependencies = {
   secureCookies: boolean;
   onError?: (scope: string, error: unknown) => void;
   now?: () => number;
-  /** Waits out the channel's send budget before a clear; a test supplies its own. */
-  wait?: (milliseconds: number) => Promise<void>;
+  /** Waits out the channel's one-a-second budget before a clear; a test supplies its own. */
+  wait?: TwitchSendWait;
 };
 
 const STATE_COOKIE = 'hp_twitch_oauth';
@@ -122,11 +122,11 @@ export function createTwitchAccountRouter(dependencies: TwitchAccountRouterDepen
       const twitchUser = await twitch.identify(code);
       const previous = dependencies.links.find(user.id);
       // The account leaves its former channel: that channel's viewers lose the deck.
-      if (previous && previous.twitchUserId !== twitchUser.id) revoke(previous.twitchUserId, 'unlinked');
+      if (previous && previous.twitchUserId !== twitchUser.id) revoke(previous.twitchUserId, 'ended');
       // The channel moves from another site account: the deck that account sent must not outlive its link,
       // and nothing it still has on the way may follow the new owner's first deck.
       const formerOwner = dependencies.links.findByChannel(twitchUser.id);
-      if (formerOwner && formerOwner.userId !== user.id) revoke(twitchUser.id, 'unlinked');
+      if (formerOwner && formerOwner.userId !== user.id) revoke(twitchUser.id, 'ended');
       dependencies.links.link({
         userId: user.id,
         twitchUserId: twitchUser.id,
@@ -147,7 +147,7 @@ export function createTwitchAccountRouter(dependencies: TwitchAccountRouterDepen
     if (!user) return response.status(401).json(apiError('LOGIN_REQUIRED', 'Sign in first'));
     const removed = dependencies.links.unlink(user.id);
     // The answer does not wait for Twitch: the link and the snapshot are gone whether or not the clear arrives.
-    if (removed) revoke(removed.twitchUserId, 'unlinked');
+    if (removed) revoke(removed.twitchUserId, 'ended');
     return response.json({ linked: false });
   });
 

@@ -37,7 +37,7 @@ export const TWITCH_EXTENSION_OPENAPI_PATHS = {
         '404': error('twitch_not_linked: the account has no linked Twitch channel'),
         '413': error('payload_too_large: the body exceeds 16 KB or the compressed envelope exceeds 5 KB'),
         '429': {
-          description: 'rate_limited: one state per second per channel',
+          description: 'rate_limited: one state per second per channel, and at most two states of a channel waiting for Twitch',
           headers: { 'Retry-After': { schema: { type: 'integer', minimum: 1 } } },
         },
         '503': error('twitch_not_configured: the site has no extension credentials; twitch_unavailable: Twitch refused the broadcast'),

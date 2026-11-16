@@ -16,31 +16,38 @@ import './AccountTabs.css';
 export default function AccountTabs({ panels }: { panels: Record<AccountTab, ReactNode> }) {
   const [active, setActive] = useState<AccountTab>('personal');
   const tabRefs = useRef<Partial<Record<AccountTab, HTMLButtonElement | null>>>({});
+  // The scroll still waiting for its section. Any other choice of the visitor ends it: another anchor,
+  // an address that names no section, a tab picked by hand (`replaceState` fires no `hashchange`).
+  const pendingScroll = useRef<(() => void) | null>(null);
+  const endPendingScroll = useCallback(() => {
+    pendingScroll.current?.();
+    pendingScroll.current = null;
+  }, []);
 
   useEffect(() => {
-    let cancelScroll = () => {};
     const follow = () => {
+      endPendingScroll();
       const tab = accountTabFromHash(window.location.hash);
       if (!tab) return;
       setActive(tab);
-      cancelScroll();
       const section = window.location.hash.slice(1);
-      cancelScroll = section.startsWith('account-') ? scrollToSectionWhenShown(section, browserSectionScrollHost) : () => {};
+      if (section.startsWith('account-')) pendingScroll.current = scrollToSectionWhenShown(section, browserSectionScrollHost);
     };
     follow();
     window.addEventListener('hashchange', follow);
     return () => {
-      cancelScroll();
+      endPendingScroll();
       window.removeEventListener('hashchange', follow);
     };
-  }, []);
+  }, [endPendingScroll]);
 
   const select = useCallback((tab: AccountTab, focus = false) => {
+    endPendingScroll();
     setActive(tab);
     // replaceState: switching tabs is not a navigation the Back button should undo.
     window.history.replaceState(window.history.state, '', `${window.location.pathname}${window.location.search}#${tab}`);
     if (focus) tabRefs.current[tab]?.focus();
-  }, []);
+  }, [endPendingScroll]);
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     const index = ACCOUNT_TABS.findIndex(tab => tab.id === active);

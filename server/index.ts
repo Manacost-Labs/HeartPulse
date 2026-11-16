@@ -168,7 +168,7 @@ import { registerReplayShares, registerReplaySharesRateLimit } from './app/regis
 import { registerAppUsage, registerAppUsageRateLimit } from './app/registerAppUsage.js';
 import { registerCrashReports, registerCrashReportsRateLimit } from './app/registerCrashReports.js';
 import { TRACKER_MAX_BATCH_BYTES } from './modules/trackerIngestion/public.js';
-import { registerTwitchExtension, twitchExtensionPreflight, twitchStateStreamRequest } from './app/registerTwitchExtension.js';
+import { registerTwitchExtension, revokeTwitchAccount, revokeTwitchAccountsOutside, twitchExtensionPreflight, twitchStateStreamRequest } from './app/registerTwitchExtension.js';
 import { registerBrowserIdentity } from './app/registerBrowserIdentity.js';
 import { registerPlayerGames, registerPlayerGamesRateLimit } from './app/registerPlayerGames.js';
 import { createPlayerGamesGlobalSources } from './app/playerGamesGlobalSources.js';
@@ -1667,6 +1667,7 @@ function saveAuthStore(
         SET user_id = NULL, account_state = 'former', former_at = COALESCE(former_at, ?), updated_at = ?
         WHERE user_id IS NOT NULL AND user_id NOT IN (${keepIds.map(() => '?').join(',')})
       `).run(nowIso, nowIso, ...keepIds);
+      revokeTwitchAccountsOutside(keepIds); // before the delete: the Twitch links go by cascade, with the channel to clear
       database.prepare(`DELETE FROM users WHERE id NOT IN (${keepIds.map(() => '?').join(',')})`).run(...keepIds);
     }
     for (const user of store.users) upsertUserRow(database, user);
@@ -8937,6 +8938,7 @@ app.use('/api', createAdminUserMutationRouter({
       },
       deleteUserSessions: (targetId, email) => {
         database.prepare('DELETE FROM sessions WHERE user_id = ? OR email = ?').run(targetId, email);
+        revokeTwitchAccount(targetId); // the account is blocked: its deck leaves the Twitch channel with its sessions
       },
       setManualAccess: (targetId, access, grantedBy, timestamp) => {
         if (access.enabled) {

@@ -1,3 +1,4 @@
+import { createTwitchChannelQueues } from './channelQueue.js';
 import { TWITCH_SNAPSHOT_TTL_MS, TWITCH_STATE_MIN_INTERVAL_MS } from './model.js';
 
 type Snapshot = { envelope: string; storedAt: number; seq: number; visible: boolean };
@@ -10,19 +11,22 @@ type Snapshot = { envelope: string; storedAt: number; seq: number; visible: bool
  * the snapshot is back within seconds, and nothing here is worth a table.
  */
 export function createTwitchLiveState(now: () => number = Date.now) {
-  const lastSendAt = new Map<string, number>();
+  const lastAcceptedAt = new Map<string, number>();
+  const lastSentAt = new Map<string, number>();
+  const lastStamp = new Map<string, number>();
   const snapshots = new Map<string, Snapshot>();
   const generations = new Map<string, number>();
-  const lastStamp = new Map<string, number>();
-  const queues = new Map<string, Promise<void>>();
+  const queue = createTwitchChannelQueues(channelId => generations.get(channelId) ?? 0);
 
   const sweep = () => {
     const current = now();
     for (const [channel, entry] of snapshots) {
       if (current - entry.storedAt > TWITCH_SNAPSHOT_TTL_MS) snapshots.delete(channel);
     }
-    for (const [channel, at] of lastSendAt) {
-      if (current - at > TWITCH_STATE_MIN_INTERVAL_MS) lastSendAt.delete(channel);
+    for (const times of [lastAcceptedAt, lastSentAt]) {
+      for (const [channel, at] of times) {
+        if (current - at > TWITCH_STATE_MIN_INTERVAL_MS) times.delete(channel);
+      }
     }
     // A stamp in the past no longer shapes the next one: the clock alone is already later.
     for (const [channel, at] of lastStamp) {
@@ -31,24 +35,28 @@ export function createTwitchLiveState(now: () => number = Date.now) {
   };
 
   return {
-    /** Takes the channel's send slot; returns the seconds to wait when it is taken. */
+    /** Takes the channel's one-a-second slot for a state; returns the seconds to wait when it is taken. */
     acquire(channelId: string): { ok: true } | { ok: false; retryAfterSeconds: number } {
       const current = now();
-      const previous = lastSendAt.get(channelId);
+      const previous = lastAcceptedAt.get(channelId);
       if (previous !== undefined && current - previous < TWITCH_STATE_MIN_INTERVAL_MS) {
         return { ok: false, retryAfterSeconds: Math.max(1, Math.ceil((TWITCH_STATE_MIN_INTERVAL_MS - (current - previous)) / 1000)) };
       }
-      lastSendAt.set(channelId, current);
+      lastAcceptedAt.set(channelId, current);
       return { ok: true };
     },
-    /** Milliseconds until the channel's one-a-second budget allows a message the site sends itself. */
+    /**
+     * Milliseconds until the channel may be sent its next message: Twitch
+     * allows one a second, and messages that waited behind a slow one would
+     * otherwise leave back to back.
+     */
     sendDelayMs(channelId: string): number {
-      const previous = lastSendAt.get(channelId);
+      const previous = lastSentAt.get(channelId);
       return previous === undefined ? 0 : Math.max(0, TWITCH_STATE_MIN_INTERVAL_MS - (now() - previous));
     },
-    /** Spends the channel's send slot for a message the site sends itself. */
+    /** Records that a message is leaving for the channel now. */
     markSent(channelId: string): void {
-      lastSendAt.set(channelId, now());
+      lastSentAt.set(channelId, now());
     },
     /**
      * The `at` of the channel's next message: the clock, but always later than
@@ -88,7 +96,7 @@ export function createTwitchLiveState(now: () => number = Date.now) {
     },
     /** Whether anything of the channel is in memory or on its way to Twitch. */
     tracks(channelId: string): boolean {
-      return snapshots.has(channelId) || queues.has(channelId);
+      return snapshots.has(channelId) || queue.busy(channelId);
     },
     /** The generation of the channel's link; a state read under an older one must not be sent. */
     generation(channelId: string): number {
@@ -105,24 +113,10 @@ export function createTwitchLiveState(now: () => number = Date.now) {
       generations.set(channelId, (generations.get(channelId) ?? 0) + 1);
       return { visible: Boolean(entry?.visible), lastSeq: entry?.seq ?? 0 };
     },
-    /**
-     * Runs the channel's sends one after another, in the order they were
-     * asked for: a clear queued at an unlink reaches Twitch before the next
-     * owner's first deck and after the former owner's last one.
-     */
-    run<Result>(channelId: string, job: () => Promise<Result>): Promise<Result> {
-      const result = (queues.get(channelId) ?? Promise.resolve()).then(job);
-      const settled = result.then(() => undefined, () => undefined);
-      queues.set(channelId, settled);
-      void settled.then(() => {
-        if (queues.get(channelId) === settled) queues.delete(channelId);
-      });
-      return result;
-    },
-    /** Resolves when everything queued for the channel so far has been sent or dropped. */
-    idle(channelId: string): Promise<void> {
-      return queues.get(channelId) ?? Promise.resolve();
-    },
+    /** The channel's send order: see `createTwitchChannelQueues`. */
+    run: queue.run,
+    runState: queue.runState,
+    idle: queue.idle,
   };
 }
 
