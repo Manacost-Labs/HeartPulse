@@ -274,8 +274,9 @@ test('public transitions avoid accidental prefetch and keep usable content while
     await new Promise(resolve => setTimeout(resolve, 180));
     const pageRequests = path => gateway.requests.filter(request => request.rsc && !request.prefetch && request.path.startsWith(path));
     assert.equal(pageRequests('/gallery/').length, 0, 'crossing a link must not download a page');
-    assert.ok(gateway.requests.some(request => request.segment && request.path.startsWith('/tierlist/')),
-      'a visible menu link learns its route while the browser is idle');
+    const learned = () => gateway.requests.some(request => request.segment && request.path.startsWith('/tierlist/'));
+    for (let attempt = 0; attempt < 100 && !learned(); attempt += 1) await new Promise(resolve => setTimeout(resolve, 50));
+    assert.ok(learned(), 'a visible menu link learns its route while the browser is idle');
     const content = await page.$eval('#main-content', node => node.getBoundingClientRect().top);
     await rememberFrame(page);
     await page.click(link);

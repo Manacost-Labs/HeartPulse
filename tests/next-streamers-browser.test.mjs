@@ -77,7 +77,7 @@ test('the streamers pages render live streams, streamer cards and one streamer w
 
     await page.goto(`${pilot.origin}/streamers/${slug}/`, { waitUntil: 'networkidle2' });
     const before = await page.$$eval('.streamers-decks--full .streamers-deck', nodes => nodes.length);
-    const [wild] = await page.$$('xpath/.//button[contains(., "Вольный")]');
+    const [wild] = await page.$$('xpath/.//*[@id="main-content"]//button[contains(., "Вольный")]');
     if (wild) {
       await wild.click();
       await page.waitForFunction(() => [...document.querySelectorAll('.streamers-chip[aria-pressed="true"]')]
