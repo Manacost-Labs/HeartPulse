@@ -98,15 +98,6 @@ function tierList() {
     cards: Object.fromEntries(cards.map(card => [card.cardId, { cost: 3, type: 'MINION', imageHa: '', imageRu: media(512, 776, card.cardId) }])) };
 }
 
-// Real names run 4–31 (key card) and 5–29 (companions) characters; most groups have three companions.
-function legendaryGroups(variant) {
-  const legendary = (cardId, name) => ({ cardId, name, imageRu: media(512, 776, cardId), imageHa: '' });
-  return { source: 'hsreplay.net', updatedAt: NOW, groups: Array.from({ length: 9 }, (_, index) => ({
-    keyCard: legendary(`LEG_KEY_${index + 1}`, pick(variant, 'Изера Неспящая, Аспект Сновидений', 'Рагнарос')),
-    cards: [0, 1, 2].map(slot => legendary(`LEG_${index + 1}_${slot + 1}`, pick(variant, 'Повелительница Небесной выси', 'Огонь'))),
-    winRate: 58.6 - index, pickRate: 21.4, offerRate: 33.2, score: 74, classKey: 'any' })) };
-}
-
 const json = body => ({ body });
 const unavailable = { status: 503, body: { error: 'Fixture first-paint read unavailable' } };
 
@@ -242,17 +233,7 @@ export const SKELETON_ROUTES = [
       { name: 'card 1', skeleton: '.tierlist-skeleton-cell', loaded: '.tierlist-card-grid > .anim-scale-in', check: 'fixed' },
     ],
   },
-  {
-    id: 'arena-legendaries', path: '/legendaries/', textVariants: true,
-    respond: (url, { variant }) => url.pathname === '/api/legendaries' ? json(legendaryGroups(variant)) : undefined,
-    hold: (url, { browser }) => browser && url.pathname === '/api/legendaries',
-    skeleton: '.legendary-group-card--loading', loaded: '.legendary-groups-grid > .legendary-group-card',
-    parts: [
-      { name: 'grid', skeleton: '.loading-surface__blocks.legendary-groups-grid', loaded: '.legendary-groups-grid', check: 'viewport' },
-      ...[0, 1, 2].map(index => ({ name: `group ${index + 1}`, index, check: 'text', top: index === 0,
-        skeleton: '.legendary-group-card--loading', loaded: '.legendary-groups-grid > .legendary-group-card' })),
-      { name: 'group 1 key card', skeleton: '.legendary-group-card--loading .legendary-skeleton-key-card', loaded: '.legendary-group-card .legendary-card-button', check: 'fixed', top: false },
-      { name: 'group 1 metrics', skeleton: '.legendary-group-card--loading .legendary-stats-footer', loaded: '.legendary-group-card .legendary-stats-footer', check: 'fixed', top: false },
-    ],
-  },
+  // `/legendaries/` has no client list fetch to hold: the open groups arrive in the
+  // server HTML from /api/legendaries/public (#437/#438), and subscriber metrics fill
+  // in without swapping the list, so the route has no loading skeleton to measure.
 ];
