@@ -9,9 +9,12 @@
 }
 
 .seo-page-intro > summary {
-  display: inline-flex;
-  align-items: center;
+  /* Keeps the native disclosure marker (as «График классов и скачивание» on /classes): not inline-flex. */
+  display: list-item;
+  inline-size: fit-content;
   min-block-size: 2.75rem;
+  padding-block: 0.75rem;
+  box-sizing: border-box;
   color: var(--arena-muted-ink);
   font-size: 0.9375rem;
   cursor: pointer;
