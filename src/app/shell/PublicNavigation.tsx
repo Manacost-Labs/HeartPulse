@@ -1,16 +1,15 @@
 import { isPlainNavigationClick } from '../routing/isPlainNavigationClick';
 import {
-  NavigationRouteLinks, NavigationSection, NavigationGroupControl,
+  NavigationRouteLinks, NavigationGroupControl,
   type NavigationBadges, type NavigationRoute, type NavigationGroup,
 } from './NavigationItems';
 import type { ReactNode, RefObject } from 'react';
-import { Castle, Layers, Menu, PanelLeftClose, PanelLeftOpen, Ticket, X } from 'lucide-react';
+import { Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
 import {
   ADMIN_TABS,
-  BG_BUILDER_TABS,
-  BG_PRIMARY_TABS,
+  BATTLEGROUNDS_TABS,
+  HOME_TABS,
   STANDARD_TABS,
-  TOP_LEVEL_TABS,
   type TabId,
 } from '../routing/navigationRoutes';
 
@@ -24,7 +23,7 @@ export type PublicNavigationProps = {
   compact: boolean;
   badges: NavigationBadges;
   visibleArenaTabs: readonly NavigationRoute[];
-  visibleMiscTabs: readonly NavigationRoute[];
+  visibleCommunityTabs: readonly NavigationRoute[];
   appIsContestAdmin: boolean;
   wantsLogin: boolean;
   updatedAtLabel: string;
@@ -42,14 +41,15 @@ export type PublicNavigationProps = {
   onToggleCompact: () => void;
 };
 
-/** Game modes of the menu, each with its own emblem; the tooltip of a compact item names its mode. */
-const SECTIONS = {
-  standard: { title: 'Традиционный режим', context: 'Традиционный', icon: Layers },
-  arena: { title: 'Арена', context: 'Арена', icon: Ticket },
-  battlegrounds: { title: 'Поля сражений', context: 'Поля сражений', icon: Castle },
-} as const;
+/** Modes and topics of the menu; the tooltip of a compact item names its group. */
+const GROUPS: Record<NavigationGroup, { title: string }> = {
+  standard: { title: 'Стандарт и Вольный' },
+  arena: { title: 'Арена' },
+  battlegrounds: { title: 'Поля сражений' },
+  community: { title: 'Сообщество' },
+};
 
-function NavigationTree({ variant, activeTab, appIsContestAdmin, badges, openGroups, onNavigate, onToggleGroup, visibleArenaTabs, visibleMiscTabs }: {
+function NavigationTree({ variant, activeTab, appIsContestAdmin, badges, openGroups, onNavigate, onToggleGroup, visibleArenaTabs, visibleCommunityTabs }: {
   variant: 'mobile' | 'sidebar';
   activeTab: TabId;
   appIsContestAdmin: boolean;
@@ -58,28 +58,24 @@ function NavigationTree({ variant, activeTab, appIsContestAdmin, badges, openGro
   onNavigate: (tab: TabId) => void;
   onToggleGroup: (group: NavigationGroup) => void;
   visibleArenaTabs: readonly NavigationRoute[];
-  visibleMiscTabs: readonly NavigationRoute[];
+  visibleCommunityTabs: readonly NavigationRoute[];
 }) {
   const linkProps = { activeTab, variant, badges, onNavigate };
-  const groupRoutes = { constructors: BG_BUILDER_TABS, misc: visibleMiscTabs };
-  const section = (key: keyof typeof SECTIONS, routes: readonly NavigationRoute[]) => <>
-    <NavigationSection title={SECTIONS[key].title} icon={SECTIONS[key].icon} variant={variant} />
-    <NavigationRouteLinks routes={routes} context={SECTIONS[key].context} {...linkProps} />
-  </>;
-  const group = (key: NavigationGroup, title: string) => (
-    <NavigationGroupControl active={groupRoutes[key].some(tab => tab.id === activeTab)} group={key}
-      isOpen={openGroups.has(key)} onToggle={() => onToggleGroup(key)} title={title} variant={variant}>
-      <NavigationRouteLinks routes={groupRoutes[key]} context={title} {...linkProps} sublink />
+  const groupRoutes: Record<NavigationGroup, readonly NavigationRoute[]> = {
+    standard: STANDARD_TABS, arena: visibleArenaTabs, battlegrounds: BATTLEGROUNDS_TABS, community: visibleCommunityTabs,
+  };
+  const group = (key: NavigationGroup) => (
+    <NavigationGroupControl key={key} active={groupRoutes[key].some(tab => tab.id === activeTab)} group={key}
+      isOpen={openGroups.has(key)} onToggle={() => onToggleGroup(key)} title={GROUPS[key].title} variant={variant}>
+      <NavigationRouteLinks routes={groupRoutes[key]} context={GROUPS[key].title} {...linkProps} />
     </NavigationGroupControl>
   );
   return <>
-    <NavigationRouteLinks routes={TOP_LEVEL_TABS} {...linkProps} />
-    {appIsContestAdmin && <NavigationRouteLinks routes={ADMIN_TABS} {...linkProps} />}
-    {section('standard', STANDARD_TABS)}
-    {section('arena', visibleArenaTabs)}
-    {section('battlegrounds', BG_PRIMARY_TABS)}
-    {group('constructors', 'Конструкторы')}
-    {group('misc', 'Разное')}
+    <NavigationRouteLinks routes={HOME_TABS} {...linkProps} />
+    {(Object.keys(GROUPS) as NavigationGroup[]).map(group)}
+    {appIsContestAdmin && <div className={`arena-${variant === 'mobile' ? 'mobile-menu' : 'sidebar'}-admin`}>
+      <NavigationRouteLinks routes={ADMIN_TABS} {...linkProps} />
+    </div>}
   </>;
 }
 

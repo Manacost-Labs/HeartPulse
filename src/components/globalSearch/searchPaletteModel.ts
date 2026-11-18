@@ -55,18 +55,16 @@ const RECENT_LIMIT = 5;
 
 const SECTION_LABELS: Record<(typeof NAVIGATION_ROUTES)[number]['group'], string> = {
   home: '',
-  top: '',
-  standard: 'Традиционный режим',
+  standard: 'Стандарт и Вольный',
   arena: 'Арена',
-  'bg-primary': 'Поля сражений',
-  'bg-builder': 'Конструкторы',
-  misc: 'Разное',
+  battlegrounds: 'Поля сражений',
+  community: 'Сообщество',
   footer: 'Справка',
   admin: 'Администрирование',
 };
 
 /** Sections in the order of the menu; help and legal pages last. */
-const GROUP_ORDER: (typeof NAVIGATION_ROUTES)[number]['group'][] = ['home', 'top', 'standard', 'arena', 'bg-primary', 'bg-builder', 'misc', 'admin', 'footer'];
+const GROUP_ORDER: (typeof NAVIGATION_ROUTES)[number]['group'][] = ['home', 'standard', 'arena', 'battlegrounds', 'community', 'admin', 'footer'];
 
 /** Case- and «ё»-insensitive form of a query or a label. */
 export function normalizeSearchText(value: string): string {

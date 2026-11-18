@@ -86,13 +86,21 @@
 .global-search__shortcut {
   display: grid;
   place-items: center;
-  width: 22px;
+  min-width: 22px;
   height: 21px;
+  padding-inline: 0.4rem;
   border: 1px solid rgba(111, 67, 29, 0.38);
   color: #785133;
   background: rgba(255, 248, 225, 0.74);
   font: 800 0.68rem/1 var(--font-body);
   box-shadow: 0 1px 2px rgba(75, 41, 17, 0.12);
+}
+
+.global-search__shortcut { white-space: nowrap; }
+
+/* A phone has no Ctrl key: the field itself is the invitation. */
+@media (hover: none) {
+  .global-search__shortcut { display: none; }
 }
 
 .global-search__clear {

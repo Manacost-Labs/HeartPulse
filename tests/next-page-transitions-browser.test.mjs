@@ -89,6 +89,18 @@ async function assertSameFrame(page) {
 
 // Groups open independently: opening the second never collapses the first,
 // so no control moves under the pointer, and a closed group releases its
+
+/** Opens the menu group holding a link: groups start closed except the one of the current page. */
+async function openGroupFor(page, linkSelector) {
+  await page.evaluate(async selector => {
+    const panel = document.querySelector(selector)?.closest('[id^="arena-"]');
+    if (panel && getComputedStyle(panel).display === 'none') {
+      document.querySelector(`[aria-controls="${panel.id}"]`).click();
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    }
+  }, linkSelector);
+}
+
 // layout in the same commit (no delayed collapse after an exit animation).
 async function assertGroupSwitchHasNoDelayedCollapse(page, root) {
   const result = await page.evaluate(async selector => {
@@ -96,25 +108,25 @@ async function assertGroupSwitchHasNoDelayedCollapse(page, root) {
     const buttons = [...nav.querySelectorAll('button[aria-controls]')];
     const frame = () => new Promise(resolve => requestAnimationFrame(resolve));
     const panel = button => document.getElementById(button.getAttribute('aria-controls'));
-    if (buttons[0].getAttribute('aria-expanded') === 'true') buttons[0].click();
-    if (buttons[1].getAttribute('aria-expanded') === 'true') buttons[1].click();
+    if (buttons[2].getAttribute('aria-expanded') === 'true') buttons[2].click();
+    if (buttons[3].getAttribute('aria-expanded') === 'true') buttons[3].click();
     await frame();
-    buttons[0].click();
+    buttons[2].click();
     await new Promise(resolve => setTimeout(resolve, 250));
-    const secondY = buttons[1].getBoundingClientRect().y;
-    buttons[1].click();
+    const secondY = buttons[3].getBoundingClientRect().y;
+    buttons[3].click();
     await frame();
     await frame();
-    const bothOpen = panel(buttons[0]).getBoundingClientRect().height > 0 && panel(buttons[1]).getBoundingClientRect().height > 0;
-    const stayedY = buttons[1].getBoundingClientRect().y;
-    buttons[0].click();
+    const bothOpen = panel(buttons[2]).getBoundingClientRect().height > 0 && panel(buttons[3]).getBoundingClientRect().height > 0;
+    const stayedY = buttons[3].getBoundingClientRect().y;
+    buttons[2].click();
     await frame();
     await frame();
-    const height = panel(buttons[0]).getBoundingClientRect().height;
-    const firstY = buttons[1].getBoundingClientRect().y;
+    const height = panel(buttons[2]).getBoundingClientRect().height;
+    const firstY = buttons[3].getBoundingClientRect().y;
     await new Promise(resolve => setTimeout(resolve, 180));
     // Leaves the second group open, as the scenarios after this expect.
-    return { bothOpen, moved: Math.abs(stayedY - secondY), height, firstY, lastY: buttons[1].getBoundingClientRect().y };
+    return { bothOpen, moved: Math.abs(stayedY - secondY), height, firstY, lastY: buttons[3].getBoundingClientRect().y };
   }, root);
   assert.equal(result.bothOpen, true, 'opening a group keeps the other one open');
   assert.ok(result.moved < 0.5, 'the opened control stays under the pointer');
@@ -160,7 +172,7 @@ test('public navigation preserves the frame, sidebar state and native link behav
     assert.equal(await page.evaluate(() => document.activeElement?.id), 'main-content', 'focus continues at the new page');
     await assertSameFrame(page);
     assert.equal(await page.$eval('.arena-sidebar', node => node.scrollTop), scroll);
-    assert.equal(await page.$eval('.arena-sidebar button[aria-controls="arena-sidebar-misc"]', node => node.getAttribute('aria-expanded')), 'true');
+    assert.equal(await page.$eval('.arena-sidebar button[aria-controls="arena-sidebar-community"]', node => node.getAttribute('aria-expanded')), 'true');
     assert.equal(gateway.requests.filter(request => request.destination === 'document').length, documentCount);
     assert.ok(gateway.requests.some(request => request.rsc === '1' && request.path.startsWith('/guides-archive/')));
     assert.equal(await page.evaluate(() => document.querySelector('script[type="speculationrules"]') === null
@@ -198,6 +210,7 @@ test('public navigation preserves the frame, sidebar state and native link behav
     await assertSameFrame(page);
     const popupReady = browser.waitForTarget(target => target.type() === 'page' && target.url() === `${gateway.origin}/tierlist/`, { timeout: 10_000 });
     await page.keyboard.down('Control');
+    await openGroupFor(page, '.arena-sidebar a[href="/tierlist/"]');
     await page.click('.arena-sidebar a[href="/tierlist/"]');
     await page.keyboard.up('Control');
     const popup = await (await popupReady).page();
@@ -207,6 +220,7 @@ test('public navigation preserves the frame, sidebar state and native link behav
     await popup.close();
     await page.bringToFront();
     // The navigation stays usable while the content box is still fading in.
+    await openGroupFor(page, '.arena-sidebar a[href="/tierlist/"]');
     await visitByClick(page, '.arena-sidebar a[href="/tierlist/"]', '/tierlist/');
     assert.equal(await page.evaluate(transitionRunning), true, 'fixture must click during the transition');
     await visitByClick(page, '.arena-sidebar a[href="/guides-archive/"]', '/guides-archive/');
@@ -220,6 +234,7 @@ test('public navigation preserves the frame, sidebar state and native link behav
     await page.waitForFunction(() => document.querySelector('#arena-mobile-menu').matches(':popover-open'));
     await assertGroupSwitchHasNoDelayedCollapse(page, '#arena-mobile-menu');
     await watchRouteMotion(page);
+    await openGroupFor(page, '#arena-mobile-menu a[href="/tierlist/"]');
     await visitByClick(page, '#arena-mobile-menu a[href="/tierlist/"]', '/tierlist/');
     assert.deepEqual(await routeMotion(page), [], 'reduced motion skips the route animation on phones');
     await page.waitForFunction(() => !document.querySelector('#arena-mobile-menu').matches(':popover-open') && document.body.style.position !== 'fixed');
@@ -250,16 +265,18 @@ test('public transitions avoid accidental prefetch and keep usable content while
     await page.goto(`${gateway.origin}/faq/`, { waitUntil: 'networkidle2' });
     // A dynamic page: a visible menu link learns only its route tree.
     const link = '.arena-sidebar a[href="/gallery/"]';
-    await page.click('.arena-sidebar button[aria-controls="arena-sidebar-misc"]');
-    await page.waitForFunction(() => document.getElementById('arena-sidebar-misc').getAnimations().length === 0);
+    await page.click('.arena-sidebar button[aria-controls="arena-sidebar-community"]');
+    await openGroupFor(page, '.arena-sidebar a[href="/tierlist/"]');
+    await page.waitForFunction(() => document.getElementById('arena-sidebar-community').getAnimations().length === 0);
     await page.evaluate(() => { document.querySelector('.arena-sidebar').scrollTop = 180; });
     await page.hover(link);
     await page.mouse.move(800, 100);
     await new Promise(resolve => setTimeout(resolve, 180));
     const pageRequests = path => gateway.requests.filter(request => request.rsc && !request.prefetch && request.path.startsWith(path));
     assert.equal(pageRequests('/gallery/').length, 0, 'crossing a link must not download a page');
-    assert.ok(gateway.requests.some(request => request.segment && request.path.startsWith('/tierlist/')),
-      'a visible menu link learns its route while the browser is idle');
+    const learned = () => gateway.requests.some(request => request.segment && request.path.startsWith('/tierlist/'));
+    for (let attempt = 0; attempt < 100 && !learned(); attempt += 1) await new Promise(resolve => setTimeout(resolve, 50));
+    assert.ok(learned(), 'a visible menu link learns its route while the browser is idle');
     const content = await page.$eval('#main-content', node => node.getBoundingClientRect().top);
     await rememberFrame(page);
     await page.click(link);
@@ -286,6 +303,7 @@ test('public transitions avoid accidental prefetch and keep usable content while
     await new Promise(resolve => setTimeout(resolve, 1100));
     assert.equal(await page.evaluate(() => location.pathname), '/gallery/', 'a slow earlier route cannot replace the newer destination');
     // A dynamic page: /articles/ is prerendered and opens without a pending route.
+    await openGroupFor(page, '.arena-sidebar a[href="/standard/fun-decks/"]');
     await page.click('.arena-sidebar a[href="/standard/fun-decks/"]');
     await page.waitForSelector('[data-navigation-progress="pending"]', { timeout: 800 });
     await page.goBack();
@@ -312,7 +330,7 @@ test('hover prepares a complete dynamic page before click, including its route c
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900 });
     await page.goto(`${gateway.origin}/faq/`, { waitUntil: 'networkidle2' });
-    await page.click('.arena-sidebar button[aria-controls="arena-sidebar-misc"]');
+    await page.click('.arena-sidebar button[aria-controls="arena-sidebar-community"]');
     await page.$eval('.arena-sidebar', node => { node.scrollTop = 180; });
     const link = '.arena-sidebar a[href="/gallery/"]';
     const pageRequests = path => gateway.requests.filter(request => request.rsc && !request.prefetch && request.path.startsWith(path));
@@ -333,6 +351,7 @@ test('hover prepares a complete dynamic page before click, including its route c
     assert.equal(pageRequests('/contests/').length, 1, 'the click reuses the prefetch that was still downloading');
     // Back while a click waits for its prefetch wins at once, and the late prefetch never navigates.
     const funDecks = '.arena-sidebar a[href="/standard/fun-decks/"]';
+    await openGroupFor(page, funDecks);
     await page.hover(funDecks);
     for (let attempt = 0; attempt < 100 && pageRequests('/standard/fun-decks/').length === 0; attempt += 1) {
       await new Promise(resolve => setTimeout(resolve, 10));

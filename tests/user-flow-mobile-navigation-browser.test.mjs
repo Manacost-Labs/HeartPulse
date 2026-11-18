@@ -24,7 +24,7 @@ test('on a 390 px phone a guest opens the menu, keeps focus inside it, closes it
     await clickByRole(page, 'button', 'Открыть меню');
     await findByRole(page, 'navigation', MENU);
     assert.equal(await ariaState(page, role('button', 'Закрыть меню'), 'aria-expanded'), 'true');
-    await waitForFocus(page, 'link', 'Подборка');
+    await waitForFocus(page, 'link', 'Главная');
     assert.equal(await ariaState(page, inMenu('link', 'Карты'), 'aria-current'), 'page', 'the menu marks the open section');
     await page.keyboard.down('Shift');
     await page.keyboard.press('Tab');

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { ARENA_TABS, MISC_TABS, type TabId } from '../routing/navigationRoutes';
+import { ARENA_TABS, COMMUNITY_TABS, type TabId } from '../routing/navigationRoutes';
 import '../../parchment-theme.css';
 import { PublicNavigation } from './PublicNavigation';
 import type { NavigationBadges, NavigationGroup } from './NavigationItems';
@@ -56,7 +56,7 @@ function PublicNavigationPreview({
       badges={badges}
       onToggleCompact={() => setCompact(value => !value)}
       visibleArenaTabs={ARENA_TABS}
-      visibleMiscTabs={MISC_TABS}
+      visibleCommunityTabs={COMMUNITY_TABS}
       appIsContestAdmin={false}
       wantsLogin={false}
       updatedAtLabel="14 сентября 2026, 12:00"
@@ -96,7 +96,7 @@ export const DesktopCurrentPage: Story = {
     activeTab: 'standard-meta',
     mobileMenuOpen: false,
     mobileNavGroup: null,
-    sidebarNavGroup: 'misc',
+    sidebarNavGroup: 'standard',
   },
 };
 
@@ -109,12 +109,12 @@ export const MobileDrawer: Story = {
   },
 };
 
-export const ExpandedConstructors: Story = {
+export const BattlegroundsOpen: Story = {
   args: {
     activeTab: 'bg-strategies',
     mobileMenuOpen: false,
     mobileNavGroup: null,
-    sidebarNavGroup: 'constructors',
+    sidebarNavGroup: 'battlegrounds',
   },
 };
 
@@ -157,15 +157,15 @@ export const IndependentGroups: Story = {
     activeTab: 'gallery',
     mobileMenuOpen: false,
     mobileNavGroup: null,
-    sidebarNavGroup: 'misc',
+    sidebarNavGroup: 'community',
   },
   play: async ({ canvasElement }) => {
     const sidebar = within(canvasElement.querySelector('.arena-sidebar') as HTMLElement);
-    const misc = sidebar.getByRole('button', { name: /Разное/ });
-    const before = misc.getBoundingClientRect().top;
-    await userEvent.click(sidebar.getByRole('button', { name: /Конструкторы/ }));
-    await expect(misc).toHaveAttribute('aria-expanded', 'true');
+    const community = sidebar.getByRole('button', { name: /Сообщество/ });
+    const before = community.getBoundingClientRect().top;
+    await userEvent.click(sidebar.getByRole('button', { name: /Стандарт и Вольный/ }));
+    await expect(community).toHaveAttribute('aria-expanded', 'true');
     // Opening a group pushes the groups below it once and never pulls a control back.
-    await expect(misc.getBoundingClientRect().top).toBeGreaterThan(before);
+    await expect(community.getBoundingClientRect().top).toBeGreaterThan(before);
   },
 };

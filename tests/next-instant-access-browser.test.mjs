@@ -542,6 +542,17 @@ async function signIn(page, origin, signin = '') {
   }
 }
 
+/** Opens the menu group holding a link: groups start closed except the one of the current page. */
+async function openGroupFor(page, linkSelector) {
+  await page.evaluate(async selector => {
+    const panel = document.querySelector(selector)?.closest('[id^="arena-"]');
+    if (panel && getComputedStyle(panel).display === 'none') {
+      document.querySelector(`[aria-controls="${panel.id}"]`).click();
+      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    }
+  }, linkSelector);
+}
+
 test('a sign-in whose subscription answers late shows no lock on the next paid page', async () => {
   await withBrowser(async ({ browser, gateway }) => {
     const context = await browser.createBrowserContext();
@@ -550,6 +561,7 @@ test('a sign-in whose subscription answers late shows no lock on the next paid p
     await page.evaluateOnNewDocument(recordFrames);
     await signIn(page, gateway.origin, 'statusdelay');
     await page.evaluate(() => { window.__frames.length = 0; });
+    await openGroupFor(page, '.arena-sidebar a[href="/battlegrounds/tier-list/"]');
     await page.click('.arena-sidebar a[href="/battlegrounds/tier-list/"]');
     await page.waitForSelector('.bg-tier-list-page', { timeout: READY_MS });
     const frames = await page.evaluate(() => window.__frames);

@@ -236,7 +236,7 @@ export default function GlobalUtilityHeader({
               <X size={15} aria-hidden="true" />
             </button>
           )}
-          {!loading && !query && <kbd className="global-search__shortcut" aria-hidden="true">/</kbd>}
+          {!loading && !query && <kbd className="global-search__shortcut" aria-hidden="true">Ctrl K</kbd>}
 
           {searchOpen && (
             <Suspense fallback={null}>

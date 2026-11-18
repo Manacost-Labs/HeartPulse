@@ -30,13 +30,13 @@ export const Desktop: Story = {
     const sidebar = canvasElement.querySelector<HTMLElement>('.arena-sidebar');
     if (!sidebar) throw new Error('Persistent sidebar is missing');
     const canvas = within(sidebar as HTMLElement);
-    await userEvent.click(canvas.getByRole('button', { name: /Конструкторы/ }));
-    await userEvent.click(canvas.getByRole('button', { name: /Разное/ }));
+    await userEvent.click(canvas.getByRole('button', { name: /Арена/ }));
+    await userEvent.click(canvas.getByRole('button', { name: /Сообщество/ }));
     // Groups open independently: the first stays open under the second.
-    await expect(canvasElement.querySelector('#arena-sidebar-constructors')).toBeVisible();
+    await expect(canvasElement.querySelector('#arena-sidebar-arena')).toBeVisible();
     await userEvent.click(canvas.getByRole('link', { name: 'Архив гайдов' }));
     await expect(canvasElement.querySelector('.arena-sidebar')).toBe(sidebar);
-    await expect(canvas.getByRole('button', { name: /Разное/ })).toHaveAttribute('aria-expanded', 'true');
+    await expect(canvas.getByRole('button', { name: /Сообщество/ })).toHaveAttribute('aria-expanded', 'true');
     await expect(args.navigate).toHaveBeenCalledWith('/guides-archive');
     await expect(within(canvasElement).getByRole('heading', { name: 'Другая страница' })).toBeVisible();
   },
@@ -47,9 +47,8 @@ export const Mobile: Story = {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('button', { name: 'Открыть меню' }));
     const menu = within(canvasElement.querySelector('#arena-mobile-menu') as HTMLElement);
-    await userEvent.click(menu.getByRole('button', { name: /Конструкторы/ }));
-    await userEvent.click(menu.getByRole('button', { name: /Разное/ }));
-    await expect(canvasElement.querySelector('#arena-mobile-constructors')).toBeVisible();
+    await userEvent.click(menu.getByRole('button', { name: /Арена/ }));
+    await expect(canvasElement.querySelector('#arena-mobile-arena')).toBeVisible();
     const destination = canvasElement.querySelector<HTMLAnchorElement>('#arena-mobile-menu a[href="/tierlist/"]');
     if (!destination) throw new Error('Arena tier-list link is missing');
     await userEvent.click(destination);

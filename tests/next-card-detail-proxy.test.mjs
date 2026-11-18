@@ -282,7 +282,7 @@ test('the outage page is a full site page that needs neither script nor Express,
 // The outage page is a stand-in for the site shell, so its menu and footer are compared with the shell the
 // same server renders for an ordinary page. Differences are named: the stand-in lists «Главная» (the site
 // shows the logo instead) and, for the footer, nothing else.
-test('the outage page menu and footer list the same links as the site shell, apart from the home link', async () => {
+test('the outage page menu and footer list the same links as the site shell', async () => {
   const api = await startStallingApi();
   api.state.stalled = true;
   let next;
@@ -293,8 +293,8 @@ test('the outage page menu and footer list the same links as the site shell, apa
     const siteMenu = landmark(site, 'nav', 'Разделы сайта').links;
     const outageMenu = landmark(outage, 'nav', 'Основная навигация').links;
     assert.ok(siteMenu.length >= 20, `the site shell lists its menu (${siteMenu.length} links)`);
-    assert.deepEqual(outageMenu[0], { text: 'Главная', href: '/' }, 'the stand-in adds the home link');
-    assert.deepEqual(outageMenu.slice(1), siteMenu, 'same items, labels, paths and order as the site menu');
+    assert.deepEqual(siteMenu[0], { text: 'Главная', href: '/' }, 'the site menu starts with the home link');
+    assert.deepEqual(outageMenu, siteMenu, 'same items, labels, paths and order as the site menu');
     assert.deepEqual(landmark(outage, 'nav', 'Разделы сайта').links, outageMenu, 'the phone drawer lists the same items');
     const siteFooter = landmark(site, 'footer', 'Подвал сайта');
     assert.ok(siteFooter.links.length >= 8, 'the site footer lists its links');

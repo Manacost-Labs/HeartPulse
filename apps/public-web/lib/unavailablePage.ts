@@ -16,12 +16,11 @@ type Section = { title?: string; links: readonly Link[] };
 
 /** Menu blocks in the order of the site menu (`PublicNavigation`); a group missing here is not shown. */
 const MENU_BLOCKS: readonly { groups: readonly NavigationGroupId[]; title?: string }[] = [
-  { groups: ['home', 'top'] },
-  { groups: ['standard'], title: 'Традиционный режим' },
+  { groups: ['home'] },
+  { groups: ['standard'], title: 'Стандарт и Вольный' },
   { groups: ['arena'], title: 'Арена' },
-  { groups: ['bg-primary'], title: 'Поля сражений' },
-  { groups: ['bg-builder'], title: 'Конструкторы' },
-  { groups: ['misc'], title: 'Разное' },
+  { groups: ['battlegrounds'], title: 'Поля сражений' },
+  { groups: ['community'], title: 'Сообщество' },
 ];
 
 /** The site menu, built from the shared navigation data: the help page (FAQ) lives in the header and the admin items stay out. */

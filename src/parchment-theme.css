@@ -123,24 +123,16 @@
 
 .arena-mobile-menu-link-icon {
   display: grid;
-  width: 30px;
-  height: 30px;
+  width: 22px;
+  height: 22px;
   place-items: center;
-  flex: 0 0 30px;
-  border: 1px solid rgba(229, 179, 77, 0.28);
-  border-radius: 4px;
-  color: #edbd54;
-  background: rgba(44, 4, 8, 0.28);
-  box-shadow: inset 0 1px rgba(255, 239, 194, 0.06);
+  flex: 0 0 22px;
+  color: #e3bb62;
 }
 
 .arena-mobile-menu-link-icon svg { display: block; }
 
-.arena-mobile-menu-link-active .arena-mobile-menu-link-icon {
-  border-color: rgba(242, 200, 93, 0.58);
-  color: #f8cf68;
-  background: rgba(31, 3, 7, 0.44);
-}
+.arena-mobile-menu-link-active .arena-mobile-menu-link-icon { color: #ffd877; }
 
 .arena-mobile-menu-link-active,
 .arena-mobile-menu-link:active {
@@ -151,39 +143,41 @@
 
 .arena-mobile-menu-link-active::before { display: none; }
 
-.arena-mobile-menu-section {
+.arena-mobile-menu-group {
   display: grid;
-  gap: 0.08rem;
-  margin-top: 0.65rem;
+  gap: 0.1rem;
+  margin-top: 0.35rem;
 }
 
-.arena-mobile-menu-section-title,
-.arena-sidebar-section-title {
-  color: #dfb65f;
-  font-size: 0.6875rem;
+/* A group title is a quiet label that doubles as the toggle: no icon, no plate. */
+.arena-mobile-menu-group-trigger,
+.arena-sidebar-group-trigger {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  padding: 0.5rem 0.68rem;
+  border: 0;
+  border-radius: 2px;
+  color: #e3bd6a;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 0.75rem;
   font-weight: 800;
-  letter-spacing: 0.11em;
+  letter-spacing: 0.1em;
+  text-align: left;
   text-transform: uppercase;
 }
 
-.arena-mobile-menu-group {
-  display: grid;
-  gap: 0.16rem;
-}
-
-.arena-mobile-menu-group--misc {
-  margin-top: 0.55rem;
-  padding-top: 0.55rem;
-  border-top: 1px solid rgba(232, 192, 103, 0.22);
-}
-
-.arena-mobile-menu-group-trigger {
-  width: 100%;
-  cursor: pointer;
-  text-align: left;
-}
+.arena-mobile-menu-group-trigger:hover,
+.arena-sidebar-group-trigger:hover,
+:is(.arena-mobile-menu-group-trigger, .arena-sidebar-group-trigger)[data-current] { color: #fff1c8; }
 
 .arena-mobile-menu-link:focus-visible,
+.arena-mobile-menu-group-trigger:focus-visible,
+.arena-sidebar-group-trigger:focus-visible,
 .arena-sidebar-link:focus-visible,
 .arena-mobile-nav-toggle:focus-visible,
 .arena-sidebar-brand:focus-visible {
@@ -203,35 +197,15 @@
 
 .arena-mobile-menu-group-items {
   display: grid;
-  gap: 0.12rem;
-  padding: 0.18rem 0 0.28rem;
-  background: rgba(41, 3, 6, 0.22);
-  box-shadow: inset 0 1px rgba(239, 202, 119, 0.1), inset 0 -1px rgba(239, 202, 119, 0.08);
+  gap: 0.08rem;
+  padding-bottom: 0.2rem;
 }
 
-/* Collapse in the same commit as the next group opens. Delaying display would
-   leave both groups in layout, then move the controls again after the fade. */
-.arena-mobile-menu-group-items,
-.arena-sidebar-nav-group-items {
-  transition: var(--motion-base) var(--motion-ease);
-  transition-property: opacity, translate;
-}
-
-.arena-mobile-menu-group-items[hidden],
-.arena-sidebar-nav-group-items[hidden] {
+/* A closed group is simply not rendered: no fade, so opening one never leaves a
+   half-faded list and the next group does not slide twice. */
+.arena-mobile-menu-group-items[data-closed],
+.arena-sidebar-group-items[data-closed] {
   display: none;
-  opacity: 0;
-  translate: 0 var(--motion-drop);
-  transition-duration: var(--motion-instant);
-  transition-timing-function: var(--motion-ease-exit);
-}
-
-@starting-style {
-  .arena-mobile-menu-group-items:not([hidden]),
-  .arena-sidebar-nav-group-items:not([hidden]) {
-    opacity: 0;
-    translate: 0 var(--motion-drop);
-  }
 }
 
 @media (min-width: 1024px) {
@@ -295,12 +269,6 @@
     border-color: rgba(232, 192, 103, 0.2);
   }
 
-  .arena-sidebar-section {
-    display: grid;
-    gap: 0.1rem;
-    margin: 0.72rem 0.55rem 0.25rem;
-  }
-
   .arena-sidebar-link {
     min-height: 40px;
     gap: 0.62rem;
@@ -321,15 +289,11 @@
 
   .arena-sidebar-link-icon {
     display: grid;
-    width: 28px;
-    height: 28px;
+    width: 22px;
+    height: 22px;
     place-items: center;
-    flex: 0 0 28px;
-    border: 1px solid rgba(224, 171, 66, 0.25);
-    border-radius: 4px;
-    color: #e8b84d;
-    background: rgba(43, 4, 8, 0.24);
-    box-shadow: inset 0 1px rgba(255, 239, 194, 0.05);
+    flex: 0 0 22px;
+    color: #e3bb62;
   }
 
   .arena-sidebar-link-icon svg { display: block; }
@@ -341,12 +305,7 @@
     box-shadow: inset 0 1px rgba(255, 235, 188, 0.07);
   }
 
-  .arena-sidebar-link-active .arena-sidebar-link-icon {
-    border-color: rgba(242, 200, 93, 0.55);
-    color: #f5c85c;
-    background: rgba(28, 2, 6, 0.4);
-    box-shadow: inset 0 1px rgba(255, 241, 203, 0.08);
-  }
+  .arena-sidebar-link-active .arena-sidebar-link-icon { color: #ffd877; }
 
   .arena-sidebar-link-active::before { display: none; }
 
@@ -356,30 +315,18 @@
     background: rgba(50, 4, 7, 0.22);
   }
 
-  .arena-sidebar-nav-group {
+  .arena-sidebar-group {
     display: grid;
     gap: 0.1rem;
+    margin-top: 0.4rem;
   }
 
-  .arena-sidebar-nav-group--misc {
-    margin-top: 0.52rem;
-    padding-top: 0.52rem;
-    border-top: 1px solid rgba(232, 192, 103, 0.22);
-  }
+  .arena-sidebar-group-trigger { min-height: 36px; }
 
-  .arena-sidebar-nav-group-trigger {
-    width: 100%;
-    cursor: pointer;
-    text-align: left;
-  }
-
-  .arena-sidebar-nav-group-items {
+  .arena-sidebar-group-items {
     display: grid;
     gap: 0.08rem;
-    margin: 0 0.22rem 0.2rem;
-    padding: 0.18rem 0;
-    background: rgba(39, 3, 6, 0.24);
-    box-shadow: inset 0 1px rgba(239, 202, 119, 0.09), inset 0 -1px rgba(239, 202, 119, 0.07);
+    padding-bottom: 0.2rem;
   }
 
   .arena-sidebar-profile {

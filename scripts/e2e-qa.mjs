@@ -5281,6 +5281,8 @@ for (const [device, viewport] of [
     await auditAccessibility(page, 'home lazy sections and support prompt');
     if (runtimeErrors.length) failures.push(`home lazy sections: ${runtimeErrors.join(' | ')}`);
     await page.click('.support-prompt__close');
+    // Home opens only the Standard group; the reader opens Arena to reach its pages.
+    await page.click('.arena-sidebar [aria-controls="arena-sidebar-arena"]');
     await page.click('.arena-sidebar a[href="/classes/"]');
     await page.waitForFunction(() => document.title.startsWith('Винрейт классов'), { timeout: 5_000 });
     const seoRegistryState = await page.evaluate(() => ({
@@ -5463,7 +5465,7 @@ for (const [device, viewport] of [
       const brand = sidebar?.querySelector('.arena-sidebar-brand');
       const brandName = brand?.querySelector('strong');
       const nav = sidebar?.querySelector('.arena-sidebar-nav');
-      const section = sidebar?.querySelector('.arena-sidebar-section');
+      const section = sidebar?.querySelector('.arena-sidebar-group-trigger');
       const inactiveLink = sidebar?.querySelector('a.arena-sidebar-link:not(.arena-sidebar-link-active)');
       const activeLink = sidebar?.querySelector('.arena-sidebar-link-active');
       const inactiveIcon = inactiveLink?.querySelector('.arena-sidebar-link-icon');
@@ -5525,8 +5527,9 @@ for (const [device, viewport] of [
         navMarginTop: navStyles?.marginTop || '',
         navPadding: navStyles?.padding || '',
         navBorderColor: navStyles?.borderTopColor || '',
-        sectionText: section?.querySelector('.arena-sidebar-section-title')?.textContent?.trim() || '',
-        sectionMargin: sectionStyles?.margin || '',
+        sectionText: section?.textContent?.trim() || '',
+        coinCount: sidebar ? sidebar.querySelectorAll('.arena-nav-section-icon').length : -1,
+        openGroups: [...(sidebar?.querySelectorAll('.arena-sidebar-group-trigger[aria-expanded="true"]') ?? [])].map(item => item.getAttribute('aria-controls')),
         sectionColor: sectionStyles?.color || '',
         sectionSize: sectionStyles?.fontSize || '',
         sectionWeight: sectionStyles?.fontWeight || '',
@@ -5549,10 +5552,12 @@ for (const [device, viewport] of [
         iconRadius: inactiveIconStyles?.borderRadius || '',
         iconColor: inactiveIconStyles?.color || '',
         iconBackground: inactiveIconStyles?.backgroundColor || '',
+        iconSvgSize: inactiveIcon?.querySelector('svg')?.getAttribute('width') || '',
+        iconSvgStroke: inactiveIcon?.querySelector('svg')?.getAttribute('stroke-width') || '',
         activeBorder: activeStyles?.borderLeftColor || '',
         // The current item's gold bar is drawn by ::after (transform/opacity only).
         activeIndicator: activeLink ? getComputedStyle(activeLink, '::after').opacity : '',
-        activeIconBackground: activeLink ? getComputedStyle(activeLink.querySelector('.arena-sidebar-link-icon')).backgroundImage : '',
+        activeIconColor: activeLink ? getComputedStyle(activeLink.querySelector('.arena-sidebar-link-icon')).color : '',
         activeColor: activeStyles?.color || '',
         activeBackground: activeStyles?.backgroundImage || '',
         activeShadow: activeStyles?.boxShadow || '',
@@ -5592,7 +5597,9 @@ for (const [device, viewport] of [
         mainPaddingTop: mainStyles?.paddingTop || '',
       };
     });
-    if (!sidebarState.sectionText.startsWith('Традиционный режим')) failures.push(`desktop sidebar: unexpected first section label ${sidebarState.sectionText}`);
+    if (!sidebarState.sectionText.startsWith('Стандарт и Вольный')) failures.push(`desktop sidebar: unexpected first group label ${sidebarState.sectionText}`);
+    if (sidebarState.coinCount !== 0) failures.push('desktop sidebar: group titles must carry no coin emblems');
+    if (JSON.stringify(sidebarState.openGroups) !== '["arena-sidebar-arena"]') failures.push(`desktop sidebar: only the group of the current page opens (${JSON.stringify(sidebarState.openGroups)})`);
     if (Math.abs(sidebarState.width - 258) > 0.1
       || sidebarState.height < sidebarState.viewportHeight
       || sidebarState.padding !== '14.4px 11.52px'
@@ -5613,10 +5620,9 @@ for (const [device, viewport] of [
       || sidebarState.navMarginTop !== '7.2px'
       || sidebarState.navPadding !== '7.2px 0px'
       || sidebarState.navBorderColor !== 'rgba(232, 192, 103, 0.2)'
-      || sidebarState.sectionMargin !== '11.2px 6.4px 3.2px'
-      || sidebarState.sectionColor !== 'rgb(234, 210, 161)'
-      || sidebarState.sectionSize !== '16px'
-      || sidebarState.sectionWeight !== '400'
+      || sidebarState.sectionColor !== 'rgb(227, 189, 106)'
+      || sidebarState.sectionSize !== '12px'
+      || sidebarState.sectionWeight !== '800'
       || sidebarState.linkMinHeight !== '40px'
       || sidebarState.linkGap !== '9.92px'
       || sidebarState.linkPadding !== '8.32px 9.92px'
@@ -5629,16 +5635,18 @@ for (const [device, viewport] of [
       || sidebarState.linkWeight !== '700'
       || sidebarState.linkShadow === 'none'
       || sidebarState.linkBoxShadow !== 'none'
-      || sidebarState.iconWidth !== '28px'
-      || sidebarState.iconHeight !== '28px'
-      || sidebarState.iconFlexBasis !== '28px'
-      || sidebarState.iconBorder !== '1px'
-      || sidebarState.iconRadius !== '4px'
-      || sidebarState.iconColor !== 'rgb(232, 184, 77)'
-      || sidebarState.iconBackground !== 'rgba(43, 4, 8, 0.24)'
+      || sidebarState.iconWidth !== '22px'
+      || sidebarState.iconHeight !== '22px'
+      || sidebarState.iconFlexBasis !== '22px'
+      || sidebarState.iconBorder !== '0px'
+      || sidebarState.iconRadius !== '0px'
+      || sidebarState.iconColor !== 'rgb(227, 187, 98)'
+      || sidebarState.iconBackground !== 'rgba(0, 0, 0, 0)'
+      || sidebarState.iconSvgSize !== '22'
+      || sidebarState.iconSvgStroke !== '1.7'
       || sidebarState.activeBorder !== 'rgba(0, 0, 0, 0)'
       || sidebarState.activeIndicator !== '1'
-      || !sidebarState.activeIconBackground.includes('linear-gradient')
+      || sidebarState.activeIconColor !== 'rgb(255, 216, 119)'
       || sidebarState.activeColor !== 'rgb(255, 247, 223)'
       || sidebarState.activeBackground === 'none'
       || sidebarState.activeShadow === 'none'
@@ -5691,41 +5699,53 @@ for (const [device, viewport] of [
       || hoveredLink.background !== 'rgba(50, 4, 7, 0.22)') {
       failures.push(`desktop sidebar: hover treatment changed (${JSON.stringify(hoveredLink)})`);
     }
-    const constructorsTrigger = '[aria-controls="arena-sidebar-constructors"]';
-    await page.hover(constructorsTrigger);
+    const standardTrigger = '[aria-controls="arena-sidebar-standard"]';
+    await page.hover(standardTrigger);
     await new Promise(resolve => setTimeout(resolve, 220));
-    const hoverGroup = await page.$eval(constructorsTrigger, element => ({
+    const hoverGroup = await page.$eval(standardTrigger, element => ({
       expanded: element.getAttribute('aria-expanded'),
-      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hidden,
+      hidden: getComputedStyle(document.getElementById(element.getAttribute('aria-controls') || '')).display === 'none',
     }));
-    if (hoverGroup.expanded !== 'false' || hoverGroup.hidden !== true) failures.push('desktop sidebar: constructors group expanded on hover instead of click');
-    await page.click(constructorsTrigger);
-    const expandedGroup = await page.$eval(constructorsTrigger, element => ({
+    if (hoverGroup.expanded !== 'false' || hoverGroup.hidden !== true) failures.push('desktop sidebar: standard group expanded on hover instead of click');
+    await page.click(standardTrigger);
+    const expandedGroup = await page.$eval(standardTrigger, element => ({
       expanded: element.getAttribute('aria-expanded'),
-      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hidden,
+      hidden: getComputedStyle(document.getElementById(element.getAttribute('aria-controls') || '')).display === 'none',
     }));
-    if (expandedGroup.expanded !== 'true' || expandedGroup.hidden !== false) failures.push('desktop sidebar: constructors group did not expand');
+    if (expandedGroup.expanded !== 'true' || expandedGroup.hidden !== false) failures.push('desktop sidebar: standard group did not expand');
     await page.$eval(hoverTarget, element => element.focus());
-    const persistedGroup = await page.$eval(constructorsTrigger, element => ({
+    const persistedGroup = await page.$eval(standardTrigger, element => ({
       expanded: element.getAttribute('aria-expanded'),
-      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hidden,
+      hidden: getComputedStyle(document.getElementById(element.getAttribute('aria-controls') || '')).display === 'none',
     }));
-    if (persistedGroup.expanded !== 'true' || persistedGroup.hidden !== false) failures.push('desktop sidebar: constructors group closed without a click');
-    await page.click(constructorsTrigger);
-    const collapsedGroup = await page.$eval(constructorsTrigger, element => ({
+    if (persistedGroup.expanded !== 'true' || persistedGroup.hidden !== false) failures.push('desktop sidebar: standard group closed without a click');
+    await page.click(standardTrigger);
+    const collapsedGroup = await page.$eval(standardTrigger, element => ({
       expanded: element.getAttribute('aria-expanded'),
-      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hidden,
+      hidden: getComputedStyle(document.getElementById(element.getAttribute('aria-controls') || '')).display === 'none',
     }));
-    if (collapsedGroup.expanded !== 'false' || collapsedGroup.hidden !== true) failures.push('desktop sidebar: constructors group did not collapse on the second click');
-    const miscTrigger = '[aria-controls="arena-sidebar-misc"]';
-    await page.focus(miscTrigger);
+    if (collapsedGroup.expanded !== 'false' || collapsedGroup.hidden !== true) failures.push('desktop sidebar: standard group did not collapse on the second click');
+    const communityTrigger = '[aria-controls="arena-sidebar-community"]';
+    await page.focus(communityTrigger);
+    // Public behaviour, not attributes: a group the reader opened by keyboard shows its link, and the link
+    // still shows after the click took the reader to that page.
+    const visibleLink = href => page.evaluate(target => {
+      const link = document.querySelector(`.arena-sidebar a[href="${target}"]`);
+      const box = link?.getBoundingClientRect();
+      return Boolean(link && box && box.width > 0 && box.height > 0 && getComputedStyle(link).visibility === 'visible');
+    }, href);
+    if (await visibleLink('/streamers/')) failures.push('desktop sidebar: community link is visible before its group is opened');
     await page.keyboard.press('Enter');
-    const keyboardGroup = await page.$eval(miscTrigger, element => ({
-      expanded: element.getAttribute('aria-expanded'),
-      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hidden,
+    if (!await visibleLink('/streamers/')) failures.push('desktop sidebar: community group did not show its links after Enter');
+    await page.click('.arena-sidebar a[href="/streamers/"]');
+    await page.waitForFunction(() => location.pathname === '/streamers/' || location.pathname === '/streamers', { timeout: 15_000 });
+    await page.waitForFunction(() => document.querySelector('.arena-sidebar a[href="/streamers/"][aria-current="page"]'), { timeout: 15_000 });
+    const afterVisit = await page.evaluate(() => ({
+      expanded: document.querySelector('[aria-controls="arena-sidebar-community"]')?.getAttribute('aria-expanded'),
+      sameSidebar: Boolean(document.querySelector('.arena-sidebar')),
     }));
-    if (keyboardGroup.expanded !== 'true' || keyboardGroup.hidden !== false) failures.push('desktop sidebar: misc group did not expand from the keyboard');
-    await page.keyboard.press('Enter');
+    if (!await visibleLink('/streamers/') || afterVisit.expanded !== 'true') failures.push(`desktop sidebar: the group opened by the reader closed after navigating (${JSON.stringify(afterVisit)})`);
+    if (!await visibleLink('/classes/')) failures.push('desktop sidebar: the Arena group opened earlier closed after navigating');
     await auditAccessibility(page, 'desktop sidebar');
     await page.screenshot({ path: `${OUT}/desktop-sidebar.png`, fullPage: false });
     console.log('✓ desktop sidebar frame, click-only expandable navigation');
@@ -5771,7 +5791,7 @@ for (const [device, viewport] of [
         menu.append(activeFixture);
         activeLink = activeFixture;
       }
-      const section = menu?.querySelector('.arena-mobile-menu-section');
+      const section = menu?.querySelector('.arena-mobile-menu-group-trigger');
       const rect = profile?.getBoundingClientRect();
       const topbarStyles = topbar ? getComputedStyle(topbar) : null;
       const toggleStyles = toggle ? getComputedStyle(toggle) : null;
@@ -5793,14 +5813,16 @@ for (const [device, viewport] of [
         profileWidth: rect?.width || 0,
         profileRight: rect?.right || 0,
         viewportWidth: innerWidth,
-        constructors: Boolean(document.querySelector('[aria-controls="arena-mobile-constructors"]')),
-        misc: Boolean(document.querySelector('[aria-controls="arena-mobile-misc"]')),
+        groupTriggers: ['standard', 'arena', 'battlegrounds', 'community'].filter(group => document.querySelector(`[aria-controls="arena-mobile-${group}"]`)).length,
+        coinCount: menu ? menu.querySelectorAll('.arena-nav-section-icon').length : -1,
+        openGroups: [...(menu?.querySelectorAll('.arena-mobile-menu-group-trigger[aria-expanded="true"]') ?? [])].map(item => item.getAttribute('aria-controls')),
+        iconSizes: [...new Set([...(menu?.querySelectorAll('.arena-mobile-menu-link-icon svg') ?? [])].map(svg => `${svg.getAttribute('width')}/${svg.getAttribute('stroke-width')}`))],
         avatarFallback: document.querySelector('.auth-avatar > span')?.textContent || '',
         avatarImageHidden: getComputedStyle(document.querySelector('.auth-avatar img')).display === 'none',
         avatarFrame: getComputedStyle(document.querySelector('.auth-avatar')).backgroundImage,
         avatarSurface: getComputedStyle(document.querySelector('.auth-avatar > span')).backgroundImage,
         missingRoutes: [
-          '/articles', '/standard/matchups', '/classes', '/tierlist', '/legendaries',
+          '/articles', '/standard/matchups', '/standard/deck-builder', '/classes', '/tierlist', '/legendaries',
           '/heroes', '/library', '/battlegrounds/tier-list', '/battlegrounds/strategies',
           '/battlegrounds/tier-builder', '/gallery', '/guides-archive', '/contests',
         ].filter(path => !document.querySelector(`#arena-mobile-menu a[href="${path}/"]`)),
@@ -5848,8 +5870,7 @@ for (const [device, viewport] of [
         activeBackground: activeContract.background,
         activeBeforeDisplay: activeContract.beforeDisplay,
         activeIndicator: activeContract.indicator,
-        sectionText: section?.querySelector('.arena-mobile-menu-section-title')?.textContent?.trim() || '',
-        sectionMarginTop: section ? getComputedStyle(section).marginTop : '',
+        sectionText: section?.textContent?.trim() || '',
         sectionColor: section ? getComputedStyle(section).color : '',
         sectionSize: section ? getComputedStyle(section).fontSize : '',
         profilePosition: profileStyles?.position || '',
@@ -5863,16 +5884,19 @@ for (const [device, viewport] of [
         profileShadow: profileStyles?.boxShadow || '',
         profileAfterDisplay: profile ? getComputedStyle(profile, '::after').display : '',
         undersizedControls: [...document.querySelectorAll('#arena-mobile-menu a[href], #arena-mobile-menu button:not([disabled])')]
-          .filter(element => !element.closest('[hidden]'))
+          .filter(element => !element.closest('[hidden], [data-closed]'))
           .map(element => element.getBoundingClientRect())
           .filter(rect => rect.width < 44 || rect.height < 44)
           .length,
       };
     });
     if (openState.bodyPosition !== 'fixed' || openState.htmlOverflow !== 'hidden') failures.push('mobile menu: background is not scroll-locked');
-    if (!openState.sectionText.startsWith('Традиционный режим')) failures.push(`mobile menu: unexpected first section label ${openState.sectionText}`);
+    if (!openState.sectionText.startsWith('Стандарт и Вольный')) failures.push(`mobile menu: unexpected first group label ${openState.sectionText}`);
+    if (openState.coinCount !== 0) failures.push('mobile menu: group titles must carry no coin emblems');
+    if (JSON.stringify(openState.openGroups) !== '["arena-mobile-standard"]') failures.push(`mobile menu: on Home only Standard is open (${JSON.stringify(openState.openGroups)})`);
+    if (openState.iconSizes.length !== 1 || openState.iconSizes[0] !== '22/1.7') failures.push(`mobile menu: icons must share one size and stroke (${openState.iconSizes})`);
     if (!openState.profileWidth || openState.profileRight > openState.viewportWidth + 1) failures.push('mobile menu: profile control frame overflows');
-    if (!openState.constructors || !openState.misc) failures.push('mobile menu: grouped navigation controls are missing');
+    if (openState.groupTriggers !== 4) failures.push('mobile menu: grouped navigation controls are missing');
     if (openState.missingRoutes.length) failures.push(`mobile menu: missing routes ${openState.missingRoutes.join(', ')}`);
     if (openState.avatarFallback !== 'QS' || !openState.avatarImageHidden) failures.push('mobile menu: broken avatar did not fall back to user initials');
     if (!openState.avatarFrame.includes('conic-gradient') || !openState.avatarSurface.includes('radial-gradient')) failures.push('mobile menu: branded avatar frame or personalized surface is missing');
@@ -5903,7 +5927,7 @@ for (const [device, viewport] of [
       || !openState.menuBackground.includes('arena-rail-red.jpg')
       || openState.menuShadow === 'none'
       || openState.menuBackdrop !== 'none'
-      || openState.linkMinHeight !== '48px'
+      || openState.linkMinHeight !== '46px'
       || openState.linkPadding !== '9.28px 10.88px'
       || openState.linkBorderTop !== '0px'
       || openState.linkBorderLeft !== '3px'
@@ -5918,9 +5942,8 @@ for (const [device, viewport] of [
       || openState.activeColor !== 'rgb(255, 247, 223)'
       || openState.activeBackground !== 'rgba(40, 3, 6, 0.38)'
       || openState.activeBeforeDisplay !== 'none'
-      || openState.sectionMarginTop !== '12.8px'
-      || openState.sectionColor !== 'rgb(159, 177, 202)'
-      || openState.sectionSize !== '11px'
+      || openState.sectionColor !== 'rgb(227, 189, 106)'
+      || openState.sectionSize !== '12px'
       || openState.profilePosition !== 'relative'
       || openState.profileMinHeight !== '50px'
       || openState.profilePadding !== '10.88px 12.8px'
@@ -5940,7 +5963,7 @@ for (const [device, viewport] of [
     await page.evaluate(() => {
       const menu = document.querySelector('#arena-mobile-menu');
       const visible = [...menu.querySelectorAll('a[href], button:not([disabled])')]
-        .filter(element => !element.closest('[hidden]'));
+        .filter(element => !element.closest('[hidden], [data-closed]'));
       visible.at(-1)?.focus();
     });
     await page.keyboard.press('Tab');
@@ -5951,7 +5974,7 @@ for (const [device, viewport] of [
     await page.keyboard.up('Shift');
     const cycledToLast = await page.evaluate(() => {
       const visible = [...document.querySelectorAll('#arena-mobile-menu a[href], #arena-mobile-menu button:not([disabled])')]
-        .filter(element => !element.closest('[hidden]'));
+        .filter(element => !element.closest('[hidden], [data-closed]'));
       return document.activeElement === visible.at(-1);
     });
     if (!cycledToLast) failures.push('mobile menu: Shift+Tab escaped instead of cycling to the last control');
