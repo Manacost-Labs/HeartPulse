@@ -18,7 +18,8 @@ HTML with the real groups. Only two figures are paid.
 | Paid | `offerRate` («Частота предложения») and `score` («Оценка ArenaSmith»), overall and per class, and sorting by them | `GET /api/legendaries` (Arena entitlement) |
 <!-- markdownlint-enable MD013 -->
 
-- The public endpoint is an allowlist projection (contract below). Its top-level `paidMetrics: { offerRate, score }` only says
+- The public endpoint is an allowlist projection (contract below). Its
+  top-level `paidMetrics: { offerRate, score }` only says
   whether the source has the figure at all; it carries no value. Groups come
   sorted by `winRate` descending, then `cardId`, so the order does not reveal
   the paid ranking.

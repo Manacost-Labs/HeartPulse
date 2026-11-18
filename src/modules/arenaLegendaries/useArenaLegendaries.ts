@@ -37,7 +37,7 @@ export function useArenaLegendaries(accountId: string | undefined, enabled: bool
   const [view, setView] = useState<ViewState>(EMPTY_VIEW);
   const [request, setRequest] = useState({ sequence: 0, bust: false });
   const openRef = useRef(open);
-  openRef.current = open;
+  useEffect(() => { openRef.current = open; }, [open]);
   // A server snapshot marked stale/fallback is read again once; a failed read keeps it.
   const refreshed = useRef<Partial<Record<LegendarySource, boolean>>>({});
 

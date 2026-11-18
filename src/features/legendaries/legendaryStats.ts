@@ -42,9 +42,11 @@ export function legendarySortValue(group: LegendaryGroup, key: LegendarySortKey,
   return typeof raw === 'number' && Number.isFinite(raw) ? raw : Number.NEGATIVE_INFINITY;
 }
 
+const MOSCOW_DATE = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit',
+  year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+
 /** Moscow time, as the other open pages print it: the same text on the server and in the browser. */
 export function formatLegendaryDate(iso: string | null): string | null {
   if (!iso || !Number.isFinite(Date.parse(iso))) return null;
-  return `${new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit', year: 'numeric',
-    hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(iso)).replace(',', '')} МСК`;
+  return `${MOSCOW_DATE.format(new Date(iso)).replace(',', '')} МСК`;
 }
