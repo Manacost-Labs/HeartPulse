@@ -13,7 +13,7 @@ const card = (cardId: string, name: string, extra: Record<string, unknown> = {})
 });
 
 const GROUPS = [
-  { id: 'LEG_A', name: 'Ярость Альфа', companions: ['Спутник Первый', 'Спутник Второй'], classKey: 'mage', winRate: 61.4, pickRate: 33.3, totalGames: 4210 },
+  { id: 'LEG_A', name: 'Изера Неспящая, Аспект Сновидений', companions: ['Спутник Первый', 'Повелительница Небесной выси', 'Спутник Второй'], classKey: 'mage', winRate: 61.4, pickRate: 33.3, totalGames: 4210 },
   { id: 'LEG_B', name: 'Бета Властелин', companions: ['Спутник Третий'], classKey: 'any', winRate: 58.2, pickRate: 21.5, totalGames: 3120 },
   { id: 'LEG_C', name: 'Гамма Страж', companions: [], classKey: 'priest', winRate: 52.9, pickRate: 12.7, totalGames: 1800 },
 ];

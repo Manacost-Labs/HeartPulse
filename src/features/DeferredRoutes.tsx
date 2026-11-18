@@ -1625,6 +1625,13 @@ const LEGEND_CLASSES: Array<{ id: string; name: string; color: string }> = [
   { id: 'warrior',       name: 'Воин',               color: '#7a1e1e' },
 ];
 
+/** The page address that keeps the chosen class and group (the same query the page writes). */
+const legendariesAddress = (activeClass: string, groupId: string | null) => {
+  const query = new URLSearchParams();
+  if (activeClass !== 'all') query.set('class', activeClass);
+  if (groupId) query.set('group', groupId);
+  return `/legendaries/${query.size ? `?${query}` : ''}`;
+};
 const LEGEND_CLASS_IDS = LEGEND_CLASSES.map(cls => cls.id);
 // The offer is opened by a tap: its dialog and purchase buttons load then, not with the page.
 const LegendariesPaidOffer = lazy(() => import('./legendaries/LegendariesPaidOffer').then(module => ({ default: module.LegendariesPaidOffer })));
@@ -1775,12 +1782,14 @@ export function Legendaries({ data, loading, error, onRetry, legendarySource, on
             );
           })}
         </div>
-        {/* The count is data: while groups load it keeps its place but shows no number. */}
-        <div className={`legendary-count-pill text-sm font-bold px-3 py-1.5 rounded-full flex-shrink-0${loading ? ' invisible' : ''}`}
-          aria-hidden={loading || undefined}
-          style={{ background: 'linear-gradient(135deg,#ede0c0,#e0cc9e)', border: '1.5px solid #c4a46a' }}>
-          {filtered.length} групп
-        </div>
+        {/* The count is data: while groups load it keeps its place but shows no number; with no groups there is none. */}
+        {(loading || hasGroups) && (
+          <div className={`legendary-count-pill text-sm font-bold px-3 py-1.5 rounded-full flex-shrink-0${loading ? ' invisible' : ''}`}
+            aria-hidden={loading || undefined}
+            style={{ background: 'linear-gradient(135deg,#ede0c0,#e0cc9e)', border: '1.5px solid #c4a46a' }}>
+            {filtered.length} групп
+          </div>
+        )}
       </div>
       {!loading && hasGroups && (
         <p className="legendary-provenance mb-4 -mt-2 text-xs text-[#735e49]" data-testid="legendary-provenance">
@@ -2056,7 +2065,7 @@ export function Legendaries({ data, loading, error, onRetry, legendarySource, on
       )}
       {offer && !paidUnlocked && (
         <Suspense fallback={null}>
-          <LegendariesPaidOffer groupName={offerGroup?.keyCard.name ?? null} signedIn={Boolean(authUser)}
+          <LegendariesPaidOffer groupName={offerGroup?.keyCard.name ?? null} returnTo={legendariesAddress(activeClass, groupId)} signedIn={Boolean(authUser)}
             checking={subscriptionLoading} onRefresh={onRefreshSubscription} onClose={() => setOffer(false)} />
         </Suspense>
       )}

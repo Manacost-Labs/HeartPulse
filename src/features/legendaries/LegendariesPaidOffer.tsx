@@ -1,5 +1,6 @@
 import { useId, useRef } from 'react';
 import ModalSurface from '../../components/ModalSurface/ModalSurface';
+import { loginUrlReturningTo } from '../../modules/identity/public';
 import SubscriptionPurchaseButtons from '../../components/SubscriptionPurchaseButtons';
 import './LegendariesPaidOffer.css';
 
@@ -8,8 +9,10 @@ import './LegendariesPaidOffer.css';
  * page (the class and the chosen group are in the address), so paying and
  * pressing «Проверить доступ» unlocks the same group where it stands.
  */
-export function LegendariesPaidOffer({ groupName, signedIn, checking, onRefresh, onClose }: {
+export function LegendariesPaidOffer({ groupName, returnTo, signedIn, checking, onRefresh, onClose }: {
   groupName: string | null;
+  /** The page address with the class and the group, for the sign-in to come back to. */
+  returnTo: string;
   signedIn: boolean;
   checking: boolean;
   onRefresh: () => Promise<unknown>;
@@ -35,7 +38,7 @@ export function LegendariesPaidOffer({ groupName, signedIn, checking, onRefresh,
       <div className="legendaries-offer__actions">
         {signedIn
           ? <button type="button" disabled={checking} onClick={() => { void onRefresh(); }}>{checking ? 'Проверяем...' : 'Проверить доступ'}</button>
-          : <a href="/?login">Уже подписаны? Войти</a>}
+          : <a href={loginUrlReturningTo(returnTo)}>Уже подписаны? Войти</a>}
       </div>
     </div>
   </ModalSurface>;

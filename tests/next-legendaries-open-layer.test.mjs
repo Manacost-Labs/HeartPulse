@@ -62,13 +62,13 @@ test('the guest HTML of /legendaries/ carries the open groups and no paid value'
     // No snapshot: a 200 page with a «temporarily unavailable» message, never an empty table.
     const unavailable = await regenerated(html => html.includes('Данные временно недоступны'), 'unavailable message');
     assert.equal(hasGroups(unavailable), false);
-    assert.doesNotMatch(unavailable, /0 групп/, 'no snapshot is not «0 groups»');
+    assert.doesNotMatch(unavailable.replaceAll('<!-- -->', ''), /\d+ групп/, 'no snapshot shows no group count, and is not «0 groups»');
     assert.match(unavailable, /class="seo-page-intro"/, 'the page text stays');
 
     state.down = false;
     const raw = await regenerated(hasGroups, 'groups appear');
     const html = raw.replaceAll('<!-- -->', '');
-    for (const name of ['Ярость Альфа', 'Бета Властелин', 'Гамма Страж', 'Спутник Первый', 'Спутник Третий']) {
+    for (const name of ['Изера Неспящая, Аспект Сновидений', 'Бета Властелин', 'Гамма Страж', 'Спутник Первый', 'Спутник Третий']) {
       assert.ok(html.includes(name), `${name} is in the server HTML`);
     }
     assert.match(html, /61\.4%/, 'winrate');

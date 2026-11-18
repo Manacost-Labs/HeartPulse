@@ -33,6 +33,13 @@ async function startStack() {
       .end(JSON.stringify(payload));
     if (url.pathname === '/api/auth/me') return json(200, { user: reader ? READER : null });
     if (url.pathname === '/api/auth/logout' && request.method === 'POST') { sessions.delete(name); return json(200, { ok: true }); }
+    if (url.pathname === '/api/auth/login' && request.method === 'POST') {
+      request.resume();
+      sessions.add('reader');
+      response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Set-Cookie': 'ol_session=reader; Path=/' });
+      return void response.end(JSON.stringify({ success: true, message: 'ok', authenticated: true, user: READER,
+        adminAllowed: false, contestAdminAllowed: false }));
+    }
     if (url.pathname === '/api/subscription/status') return reader ? json(200, SUBSCRIBED) : json(401, { error: 'guest' });
     if (url.pathname === '/api/legendaries/public') {
       return json(200, openAnswer({ noise: true, sourceId: url.searchParams.get('source') === 'firestone' ? 'firestone' : 'hsreplay' }));
@@ -99,7 +106,7 @@ test('a guest and a subscriber on /legendaries/ in a real browser', async () => 
     await bare.setJavaScriptEnabled(false);
     await bare.goto(`${stack.origin}/legendaries/`, { waitUntil: 'load' });
     const bareCells = await cells(bare);
-    assert.deepEqual(bareCells.map(card => card.name), ['Ярость Альфа', 'Бета Властелин', 'Гамма Страж']);
+    assert.deepEqual(bareCells.map(card => card.name), ['Изера Неспящая, Аспект Сновидений', 'Бета Властелин', 'Гамма Страж']);
     assert.ok(bareCells.every(card => card.paid.offerRate.state === 'locked' && card.paid.score.state === 'locked'));
     assert.ok(await bare.$eval('body', body => body.textContent.includes('Спутник Первый')), 'the companions are there');
     const bareHtml = await bare.content();
@@ -122,7 +129,7 @@ test('a guest and a subscriber on /legendaries/ in a real browser', async () => 
           const box = selector => card.querySelector(selector)?.getBoundingClientRect().bottom ?? Infinity;
           return { name: box('.font-hs'), winrate: box('.legendary-winrate-badge'), lineup: box('.legendary-group-composition') };
         });
-        assert.ok(first.name <= viewport.height && first.winrate <= viewport.height && first.lineup <= viewport.height,
+        assert.ok(first.name <= viewport.height && first.winrate <= viewport.height && first.lineup <= viewport.height - 16,
           `the first group is not in the first screen: ${JSON.stringify(first)}`);
       }
 
@@ -132,7 +139,7 @@ test('a guest and a subscriber on /legendaries/ in a real browser', async () => 
       await page.$eval('#legendary-search', input => { input.value = ''; });
       await page.type('#legendary-search', ' ');
       await page.click('.legendary-class-tabs button[title="Маг"]');
-      assert.deepEqual((await cells(page)).map(card => card.name), ['Ярость Альфа', 'Бета Властелин']);
+      assert.deepEqual((await cells(page)).map(card => card.name), ['Изера Неспящая, Аспект Сновидений', 'Бета Властелин']);
       assert.match(await page.evaluate(() => location.search), /class=mage/);
 
       // Tapping a paid figure opens the offer for that group; the address keeps the class and the group.
@@ -166,7 +173,7 @@ test('a guest and a subscriber on /legendaries/ in a real browser', async () => 
     await page.waitForFunction(() => document.querySelector('.legendary-group-card [data-metric="score"]')?.dataset.state === 'open'
       && !document.querySelector('.legendary-group-card [data-metric="score"]').textContent.includes('…'), { timeout: 15000 });
     const open1 = await cells(page);
-    assert.deepEqual(open1.map(card => card.name), ['Ярость Альфа', 'Бета Властелин'], 'the class stays');
+    assert.deepEqual(open1.map(card => card.name), ['Изера Неспящая, Аспект Сновидений', 'Бета Властелин'], 'the class stays');
     assert.match(open1[0].paid.offerRate.text, /66\.7%|91\.2%/);
     assert.match(open1[0].paid.score.text, /87\.7/);
     assert.match(open1[1].paid.score.text, /40\.2/);
@@ -176,9 +183,9 @@ test('a guest and a subscriber on /legendaries/ in a real browser', async () => 
     // Sorting by the paid score works for a subscriber.
     await page.evaluate(() => [...document.querySelectorAll('.legendary-sort-bar button')].find(button => button.getAttribute('aria-expanded') !== null).click());
     await page.evaluate(() => [...document.querySelectorAll('.legendary-sort-bar button')].find(button => button.textContent.includes('Оценка ArenaSmith')).click());
-    assert.deepEqual((await cells(page)).map(card => card.name), ['Ярость Альфа', 'Бета Властелин']);
+    assert.deepEqual((await cells(page)).map(card => card.name), ['Изера Неспящая, Аспект Сновидений', 'Бета Властелин']);
     await page.click('.legendary-class-tabs button[title="Все"]');
-    assert.deepEqual((await cells(page)).map(card => card.name), ['Гамма Страж', 'Ярость Альфа', 'Бета Властелин'], 'ordered by the paid score');
+    assert.deepEqual((await cells(page)).map(card => card.name), ['Гамма Страж', 'Изера Неспящая, Аспект Сновидений', 'Бета Властелин'], 'ordered by the paid score');
     assert.equal(await page.$('[data-testid="legendaries-offer"]'), null);
 
     // Signing out takes the paid figures away.
@@ -196,6 +203,25 @@ test('a guest and a subscriber on /legendaries/ in a real browser', async () => 
     assert.ok(!(await page.evaluate(() => document.body.textContent)).match(/91\.2|87\.7|66\.7/), 'no paid value after sign-out');
     assert.deepEqual(errors, []);
     await page.close();
+
+    // The offer's «Войти» brings the visitor back to the same class and group, with the paid figures.
+    const returning = await open(browser, stack.origin, { path: '/legendaries/?class=mage' });
+    await returning.page.click('.legendary-group-card[data-rank="2"] .legendary-paid-stat__lock');
+    await returning.page.waitForSelector('[data-testid="legendaries-offer"] a[href^="/?login"]');
+    const login = await returning.page.$eval('[data-testid="legendaries-offer"] a[href^="/?login"]', link => link.getAttribute('href'));
+    assert.equal(new URLSearchParams(login.split('?')[1]).get('returnTo'), '/legendaries/?class=mage&group=LEG_B');
+    await Promise.all([returning.page.waitForNavigation({ waitUntil: 'load' }), returning.page.click('[data-testid="legendaries-offer"] a[href^="/?login"]')]);
+    const email = await returning.page.waitForSelector('.login-field input[type="email"]', { timeout: 15000 });
+    await email.type('reader@example.test');
+    await returning.page.type('input[autocomplete="current-password"]', 'secret-password');
+    await Promise.all([returning.page.waitForFunction(() => location.pathname === '/legendaries/', { timeout: 20000 }), returning.page.click('.login-submit')]);
+    await returning.page.waitForSelector('.legendary-group-card[data-selected="true"]', { timeout: 15000 });
+    assert.match(await returning.page.evaluate(() => location.search), /class=mage&group=LEG_B/);
+    assert.equal(await returning.page.$eval('.legendary-group-card[data-selected="true"]', card => card.querySelector('.font-hs').textContent), 'Бета Властелин');
+    await returning.page.waitForFunction(() => document.querySelector('.legendary-group-card[data-selected="true"] [data-metric="score"]')?.dataset.state === 'open'
+      && /40\.2/.test(document.querySelector('.legendary-group-card[data-selected="true"] [data-metric="score"]').textContent), { timeout: 15000 });
+    assert.deepEqual(returning.errors, []);
+    await returning.page.close();
   } finally {
     if (browser) await browser.close();
     await next.close();
