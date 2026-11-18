@@ -206,11 +206,7 @@
     background: rgba(232, 192, 103, 0.2);
   }
 
-  html[data-nav-compact] .arena-sidebar-group-items[data-closed] {
-    display: grid;
-    opacity: 1;
-    translate: none;
-  }
+  html[data-nav-compact] .arena-sidebar-group-items[data-closed] { display: grid; }
 
   html[data-nav-compact] .arena-sidebar-group { margin-top: 0; gap: 0.13rem; }
   html[data-nav-compact] .arena-sidebar-admin { margin-top: 0.4rem; padding-top: 0.4rem; }
