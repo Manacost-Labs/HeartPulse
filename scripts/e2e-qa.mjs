@@ -5633,15 +5633,15 @@ for (const [device, viewport] of [
       || sidebarState.linkWeight !== '700'
       || sidebarState.linkShadow === 'none'
       || sidebarState.linkBoxShadow !== 'none'
-      || sidebarState.iconWidth !== '20px'
-      || sidebarState.iconHeight !== '20px'
-      || sidebarState.iconFlexBasis !== '20px'
+      || sidebarState.iconWidth !== '22px'
+      || sidebarState.iconHeight !== '22px'
+      || sidebarState.iconFlexBasis !== '22px'
       || sidebarState.iconBorder !== '0px'
       || sidebarState.iconRadius !== '0px'
       || sidebarState.iconColor !== 'rgb(227, 187, 98)'
       || sidebarState.iconBackground !== 'rgba(0, 0, 0, 0)'
-      || sidebarState.iconSvgSize !== '20'
-      || sidebarState.iconSvgStroke !== '1.6'
+      || sidebarState.iconSvgSize !== '22'
+      || sidebarState.iconSvgStroke !== '1.7'
       || sidebarState.activeBorder !== 'rgba(0, 0, 0, 0)'
       || sidebarState.activeIndicator !== '1'
       || sidebarState.activeIconColor !== 'rgb(255, 216, 119)'
@@ -5892,7 +5892,7 @@ for (const [device, viewport] of [
     if (!openState.sectionText.startsWith('Стандарт и Вольный')) failures.push(`mobile menu: unexpected first group label ${openState.sectionText}`);
     if (openState.coinCount !== 0) failures.push('mobile menu: group titles must carry no coin emblems');
     if (JSON.stringify(openState.openGroups) !== '["arena-mobile-standard"]') failures.push(`mobile menu: on Home only Standard is open (${JSON.stringify(openState.openGroups)})`);
-    if (openState.iconSizes.length !== 1 || openState.iconSizes[0] !== '20/1.6') failures.push(`mobile menu: icons must share one size and stroke (${openState.iconSizes})`);
+    if (openState.iconSizes.length !== 1 || openState.iconSizes[0] !== '22/1.7') failures.push(`mobile menu: icons must share one size and stroke (${openState.iconSizes})`);
     if (!openState.profileWidth || openState.profileRight > openState.viewportWidth + 1) failures.push('mobile menu: profile control frame overflows');
     if (openState.groupTriggers !== 4) failures.push('mobile menu: grouped navigation controls are missing');
     if (openState.missingRoutes.length) failures.push(`mobile menu: missing routes ${openState.missingRoutes.join(', ')}`);

@@ -8,11 +8,11 @@ import type { ComponentType, ReactNode, SVGProps } from 'react';
  */
 export type MenuIcon = ComponentType<SVGProps<SVGSVGElement> & { size?: number; strokeWidth?: number }>;
 
-const FILL = { fill: 'currentColor', fillOpacity: 0.24 } as const;
+const FILL = { fill: 'currentColor', fillOpacity: 0.36 } as const;
 
 /** Wraps shapes into one icon; every path with `{...FILL}` is the soft second tone. */
 function icon(shapes: ReactNode): MenuIcon {
-  return function Icon({ size = 20, strokeWidth = 1.6, ...rest }) {
+  return function Icon({ size = 22, strokeWidth = 1.7, ...rest }) {
     return (
       <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
         strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...rest}>
@@ -29,7 +29,7 @@ export const ArticlesIcon = icon(<><path {...FILL} d="M6 3h9l3 3v15H6z" /><path 
 // Meta: rising bars, the tallest one the strongest deck.
 export const MetaIcon = icon(<><path {...FILL} d="M4 14h3.5v6H4zM10.25 9h3.5v11h-3.5zM16.5 4H20v16h-3.5z" /><path d="M3 20.5h18" /></>);
 // Matchups: two swords crossed.
-export const MatchupsIcon = icon(<><path {...FILL} d="M12 9.4l2.6 2.6-2.6 2.6L9.4 12z" /><path d="M4 4l13 13M20 4 7 17M11.5 16.5l5-5M12.5 16.5l-5-5M17 17l3 3M7 17l-3 3" /></>);
+export const MatchupsIcon = icon(<><path {...FILL} d="M4 4l3.2.7 9.1 9.1-2.5 2.5L4.7 7.2zM20 4l-3.2.7-9.1 9.1 2.5 2.5 9.1-9.1z" /><path d="M12 18.4 18.4 12M12 18.4 5.6 12M16.3 16.3l3.2 3.2M7.7 16.3l-3.2 3.2" /></>);
 // Archetypes: a family tree of decks.
 export const ArchetypesIcon = icon(<><circle {...FILL} cx="12" cy="5.2" r="2.6" /><circle {...FILL} cx="5.8" cy="18.8" r="2.6" /><circle {...FILL} cx="18.2" cy="18.8" r="2.6" /><path d="M12 7.8V11m0 0-6.2 5.2M12 11l6.2 5.2" /></>);
 // Fun decks: a tilted joker card with a star.

@@ -10,8 +10,8 @@ export type NavigationRoute = (typeof TABS)[number];
 export type NavigationGroup = 'standard' | 'arena' | 'battlegrounds' | 'community';
 
 /** Every icon of the menu shares one size and one stroke, so no item outweighs another. */
-export const NAV_ICON_SIZE = 20;
-export const NAV_ICON_STROKE = 1.6;
+export const NAV_ICON_SIZE = 22;
+export const NAV_ICON_STROKE = 1.7;
 
 /** One coat of arms per group, drawn in the icons' own style. */
 const GROUP_EMBLEMS: Record<NavigationGroup, MenuIcon> = {
