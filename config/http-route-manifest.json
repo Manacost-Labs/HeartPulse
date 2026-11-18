@@ -3,7 +3,7 @@
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
     "sourceFiles": 110,
-    "routeRegistrations": 296,
+    "routeRegistrations": 297,
     "middlewareRegistrations": 152,
     "explicitGuardRouteRegistrations": 73,
     "unresolvedPaths": 0
@@ -3982,6 +3982,18 @@
     {
       "kind": "route",
       "method": "GET",
+      "path": "/legendaries/public",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/legendaryRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
       "path": "/legendaries",
       "pathKind": "string",
       "receiver": "router",
@@ -3993,7 +4005,7 @@
         "dependencies.accessGuard"
       ],
       "source": "server/legendaryRoutes.ts",
-      "sourceOrder": 0
+      "sourceOrder": 1
     },
     {
       "kind": "route",
