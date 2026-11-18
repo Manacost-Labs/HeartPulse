@@ -3,7 +3,7 @@
 import type { ReactNode } from 'react';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
-import { BattlegroundHeroesRoute, loadBattlegrounds, usePaidViewPrefetch } from './lazyBattlegrounds';
+import { BattlegroundHeroesRoute, loadBattlegrounds, useBattlegroundsModuleLoaded, usePaidViewPrefetch } from './lazyBattlegrounds';
 import { BattlegroundHeroesRangeLocks } from './BattlegroundHeroesRangeLocks';
 import { navigate } from './navigation';
 
@@ -15,6 +15,8 @@ export function BattlegroundHeroesPageClient({ ranking }: { ranking: ReactNode }
   const access = usePublicAccess();
   usePaidViewPrefetch(loadBattlegrounds);
   const { allowed } = paidAccess(access, 'battlegrounds');
+  // The open ranking stays (with its height) until the paid view is loaded and can replace it in one render.
+  const paidViewReady = useBattlegroundsModuleLoaded(allowed);
   return <PublicPageShell activeTab="bg-heroes" pathname="/heroes/"
     access={access} navigate={navigate} wide>
     <section className="space-y-5">
@@ -27,7 +29,7 @@ export function BattlegroundHeroesPageClient({ ranking }: { ranking: ReactNode }
           </div>
         </div>
       </header>
-      {allowed
+      {allowed && paidViewReady
         ? <BattlegroundHeroesRoute key={access.user?.id} path="/heroes/" onNavigate={navigate} />
         : <>
           {ranking}

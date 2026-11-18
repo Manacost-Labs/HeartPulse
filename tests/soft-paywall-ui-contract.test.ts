@@ -350,10 +350,7 @@ test('pages pass the access decision to their gates and reserve the gate height'
     assert.match(source, /pending\s*\?\s*<PaywallPending\b/, `${pageClient} must reserve the gate while access is pending`);
     assert.ok(!/<p[^>]*aria-busy/.test(source), `${pageClient} must not render a bare pending line`);
   }
-  // /heroes/ has an open ranking: until a subscriber is confirmed everyone gets the server-rendered table and the
-  // locked ranges (no data in them), so there is no gate to reserve and no pending placeholder (E21 OL2a, #305).
-  const heroes = read('../apps/public-web/ui/BattlegroundHeroesPageClient.tsx');
-  assert.match(heroes, /const \{ allowed \} = paidAccess\(access, 'battlegrounds'\);/, 'the heroes page decides with paidAccess');
-  assert.match(heroes, /allowed\s*\?\s*<BattlegroundHeroesRoute\b[\s\S]*\{ranking\}/, 'a subscriber gets the interactive view in place of the ranking');
-  assert.ok(!/PaywallPending/.test(heroes), 'the open ranking needs no pending placeholder');
+  // /heroes/ is not in the list: it has an open ranking and no gate to reserve. Its behaviour (open tables for a
+  // guest, no placeholder, no layout shift when a subscriber's view replaces them) is checked in a browser by
+  // tests/next-paywall-access-check-browser.test.mjs.
 });

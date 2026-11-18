@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import type { Server } from 'node:http';
-import test from 'node:test';
+import test, { after } from 'node:test';
 import express, { type RequestHandler } from 'express';
 import { createBattlegroundHeroRankingRouter } from '../server/battlegroundHeroRankingRoutes';
 import { createBattlegroundHeroCatalogLoader } from '../server/battlegroundHeroRankingSource';
@@ -20,8 +20,12 @@ import { buildHeroCatalog, closedValues, HERO_COUNT, OPEN_ROWS, UPDATED_AT } fro
 const CLOSED = closedValues();
 const leaks = (text: string) => CLOSED.filter(value => text.includes(value));
 
+// Every server is closed after the tests, so a failed assertion cannot leave one open and hang `node --test`.
+const opened: Server[] = [];
+after(async () => { await Promise.all(opened.map(server => close(server))); });
 const listen = async (app: express.Express) => {
   const server = app.listen(0, '127.0.0.1');
+  opened.push(server);
   await once(server, 'listening');
   return { server, origin: `http://127.0.0.1:${(server.address() as { port: number }).port}` };
 };
