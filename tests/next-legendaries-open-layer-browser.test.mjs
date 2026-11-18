@@ -32,6 +32,9 @@ async function startStack() {
     const json = (status, payload) => response.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store' })
       .end(JSON.stringify(payload));
     if (url.pathname === '/api/auth/me') return json(200, { user: reader ? READER : null });
+    if (url.pathname === '/api/auth/telegram/config') {
+      return json(200, { enabled: false, socialProviders: [{ provider: 'google', authUrl: '/api/auth/google/start' }] });
+    }
     if (url.pathname === '/api/auth/logout' && request.method === 'POST') { sessions.delete(name); return json(200, { ok: true }); }
     if (url.pathname === '/api/auth/login' && request.method === 'POST') {
       request.resume();
@@ -211,6 +214,11 @@ test('a guest and a subscriber on /legendaries/ in a real browser', async () => 
     const login = await returning.page.$eval('[data-testid="legendaries-offer"] a[href^="/?login"]', link => link.getAttribute('href'));
     assert.equal(new URLSearchParams(login.split('?')[1]).get('returnTo'), '/legendaries/?class=mage&group=LEG_B');
     await Promise.all([returning.page.waitForNavigation({ waitUntil: 'load' }), returning.page.click('[data-testid="legendaries-offer"] a[href^="/?login"]')]);
+    // An external provider carries the same return address to its OAuth start.
+    const google = await returning.page.waitForSelector('a.login-provider--google', { timeout: 15000 });
+    const googleHref = new URL(await google.evaluate(link => link.href));
+    assert.equal(googleHref.pathname, '/api/auth/google/start');
+    assert.equal(googleHref.searchParams.get('returnTo'), '/legendaries/?class=mage&group=LEG_B');
     const email = await returning.page.waitForSelector('.login-field input[type="email"]', { timeout: 15000 });
     await email.type('reader@example.test');
     await returning.page.type('input[autocomplete="current-password"]', 'secret-password');

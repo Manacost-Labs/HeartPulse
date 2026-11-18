@@ -489,6 +489,12 @@ export function LoginPanel({
 
   const telegramLoginUrl = authUrlWithReturnTo(telegramMode === 'legacy-widget' ? telegramCallbackUrl : telegramAuthUrl, coverSsoReturnTo() || (typeof window === 'undefined' ? '' : pageReturnTo(window.location.search)) || '/?login&telegram=ok');
   const patreonLinkUrl = authUrlWithReturnTo('/api/auth/patreon/start', '/?login&patreon=linked');
+  // Google, Discord, Yandex ID and Patreon sign-in bring the visitor back to the page that sent them
+  // here as well; the server checks the address again (safeAuthReturnTo) before it redirects.
+  const pageReturn = typeof window === 'undefined' ? '' : pageReturnTo(window.location.search);
+  const socialSignInProviders = pageReturn
+    ? parseSocialLoginProviders(socialLoginProviders).map(item => ({ ...item, authUrl: authUrlWithReturnTo(item.authUrl, pageReturn) }))
+    : socialLoginProviders;
 
   // While the session is checked or the card's lazy stylesheet loads, the
   // card's fitted skeleton holds its place (its own eager stylesheet).
@@ -595,7 +601,7 @@ export function LoginPanel({
           <React.Suspense fallback={null}>
             <SocialLoginLinks
               disabled={loading}
-              providers={socialLoginProviders}
+              providers={socialSignInProviders}
               telegramAuthUrl={telegramEnabled && telegramMode !== 'legacy-widget' ? telegramLoginUrl || '/api/auth/telegram/start' : ''}
               withDivider={!(telegramEnabled && telegramMode === 'legacy-widget' && telegramBotUsername)}
             />
