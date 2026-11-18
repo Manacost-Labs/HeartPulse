@@ -5702,36 +5702,48 @@ for (const [device, viewport] of [
     await new Promise(resolve => setTimeout(resolve, 220));
     const hoverGroup = await page.$eval(standardTrigger, element => ({
       expanded: element.getAttribute('aria-expanded'),
-      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hasAttribute('data-closed'),
+      hidden: getComputedStyle(document.getElementById(element.getAttribute('aria-controls') || '')).display === 'none',
     }));
     if (hoverGroup.expanded !== 'false' || hoverGroup.hidden !== true) failures.push('desktop sidebar: standard group expanded on hover instead of click');
     await page.click(standardTrigger);
     const expandedGroup = await page.$eval(standardTrigger, element => ({
       expanded: element.getAttribute('aria-expanded'),
-      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hasAttribute('data-closed'),
+      hidden: getComputedStyle(document.getElementById(element.getAttribute('aria-controls') || '')).display === 'none',
     }));
     if (expandedGroup.expanded !== 'true' || expandedGroup.hidden !== false) failures.push('desktop sidebar: standard group did not expand');
     await page.$eval(hoverTarget, element => element.focus());
     const persistedGroup = await page.$eval(standardTrigger, element => ({
       expanded: element.getAttribute('aria-expanded'),
-      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hasAttribute('data-closed'),
+      hidden: getComputedStyle(document.getElementById(element.getAttribute('aria-controls') || '')).display === 'none',
     }));
     if (persistedGroup.expanded !== 'true' || persistedGroup.hidden !== false) failures.push('desktop sidebar: standard group closed without a click');
     await page.click(standardTrigger);
     const collapsedGroup = await page.$eval(standardTrigger, element => ({
       expanded: element.getAttribute('aria-expanded'),
-      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hasAttribute('data-closed'),
+      hidden: getComputedStyle(document.getElementById(element.getAttribute('aria-controls') || '')).display === 'none',
     }));
     if (collapsedGroup.expanded !== 'false' || collapsedGroup.hidden !== true) failures.push('desktop sidebar: standard group did not collapse on the second click');
     const communityTrigger = '[aria-controls="arena-sidebar-community"]';
     await page.focus(communityTrigger);
+    // Public behaviour, not attributes: a group the reader opened by keyboard shows its link, and the link
+    // still shows after the click took the reader to that page.
+    const visibleLink = href => page.evaluate(target => {
+      const link = document.querySelector(`.arena-sidebar a[href="${target}"]`);
+      const box = link?.getBoundingClientRect();
+      return Boolean(link && box && box.width > 0 && box.height > 0 && getComputedStyle(link).visibility === 'visible');
+    }, href);
+    if (await visibleLink('/streamers/')) failures.push('desktop sidebar: community link is visible before its group is opened');
     await page.keyboard.press('Enter');
-    const keyboardGroup = await page.$eval(communityTrigger, element => ({
-      expanded: element.getAttribute('aria-expanded'),
-      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hasAttribute('data-closed'),
+    if (!await visibleLink('/streamers/')) failures.push('desktop sidebar: community group did not show its links after Enter');
+    await page.click('.arena-sidebar a[href="/streamers/"]');
+    await page.waitForFunction(() => location.pathname === '/streamers/' || location.pathname === '/streamers', { timeout: 15_000 });
+    await page.waitForFunction(() => document.querySelector('.arena-sidebar a[href="/streamers/"][aria-current="page"]'), { timeout: 15_000 });
+    const afterVisit = await page.evaluate(() => ({
+      expanded: document.querySelector('[aria-controls="arena-sidebar-community"]')?.getAttribute('aria-expanded'),
+      sameSidebar: Boolean(document.querySelector('.arena-sidebar')),
     }));
-    if (keyboardGroup.expanded !== 'true' || keyboardGroup.hidden !== false) failures.push('desktop sidebar: community group did not expand from the keyboard');
-    await page.keyboard.press('Enter');
+    if (!await visibleLink('/streamers/') || afterVisit.expanded !== 'true') failures.push(`desktop sidebar: the group opened by the reader closed after navigating (${JSON.stringify(afterVisit)})`);
+    if (!await visibleLink('/classes/')) failures.push('desktop sidebar: the Arena group opened earlier closed after navigating');
     await auditAccessibility(page, 'desktop sidebar');
     await page.screenshot({ path: `${OUT}/desktop-sidebar.png`, fullPage: false });
     console.log('✓ desktop sidebar frame, click-only expandable navigation');
