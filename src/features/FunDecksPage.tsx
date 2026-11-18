@@ -309,7 +309,6 @@ export default function FunDecksPage({
       <header className="traditional-mode-banner">
         <div className="traditional-mode-banner__copy">
           <h1>Фан-колоды</h1>
-          <p>Необычные сборки Стандарта и Вольного режима для новых впечатлений от игры.</p>
         </div>
         <dl className="traditional-mode-banner__summary" aria-label="Сводка подборки">
           <div><dt>Колод</dt><dd>{data.stats.total || '—'}</dd></div>
@@ -325,7 +324,6 @@ export default function FunDecksPage({
         <div className="fun-decks-method__intro">
           <span>Как читаются оценки</span>
           <h2 id="fun-decks-method-title">Почему колода считается фановой</h2>
-          <p>Обе оценки пересчитываются автоматически при обновлении подборки.</p>
         </div>
         <dl className="fun-decks-method__scores">
           <div>
@@ -350,9 +348,9 @@ export default function FunDecksPage({
           </div>
         </dl>
         <p className="fun-decks-method__gate">
-          В подборку проходят колоды с индексом от {score(data.methodology?.minFunScore ?? 0.55)}
-          {' '}и сходством с метой не выше {score(data.methodology?.maxMetaSimilarity ?? 0.42)}.
-          {' '}Рядом с винрейтом стоит 95%-й интервал: чем меньше игр, тем он шире.
+          Индекс от {score(data.methodology?.minFunScore ?? 0.55)},
+          {' '}сходство с метой не выше {score(data.methodology?.maxMetaSimilarity ?? 0.42)}.
+          {' '}Рядом с винрейтом — 95%-й интервал, шире при малом числе игр.
         </p>
       </section>
 

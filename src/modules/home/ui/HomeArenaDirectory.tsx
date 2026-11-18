@@ -6,13 +6,12 @@ const ARENA_HOME_CARDS: Array<{
   href: string;
   title: string;
   desc: string;
-  label: string;
 }> = [
-  { id: 'winrates', href: '/classes/', title: 'Классы', desc: 'Текущие винрейты всех классов и лидер меты перед началом драфта.', label: 'мета классов' },
-  { id: 'tierlist', href: '/tierlist/', title: 'Тир-лист карт', desc: 'Оценки карт от S до F для быстрых решений во время каждого выбора.', label: 'главный инструмент' },
-  { id: 'legendaries', href: '/legendaries/', title: 'Легендарки', desc: 'Сравнение легендарных групп по реальному винрейту.', label: 'первый выбор' },
-  { id: 'articles', href: '/articles/', title: 'Мета-отчёты', desc: 'Разборы патчей, классов и актуальных стратегий Арены.', label: 'аналитика' },
-  { id: 'guides-archive', href: '/guides-archive/', title: 'Архив гайдов', desc: 'Сохранённые материалы и полезные руководства Manacost.', label: 'база знаний' },
+  { id: 'winrates', href: '/classes/', title: 'Классы', desc: 'Текущие винрейты всех классов и лидер меты перед началом драфта.' },
+  { id: 'tierlist', href: '/tierlist/', title: 'Тир-лист карт', desc: 'Оценки карт от S до F для быстрых решений во время каждого выбора.' },
+  { id: 'legendaries', href: '/legendaries/', title: 'Легендарки', desc: 'Сравнение легендарных групп по реальному винрейту.' },
+  { id: 'articles', href: '/articles/', title: 'Мета-отчёты', desc: 'Разборы патчей, классов и актуальных стратегий Арены.' },
+  { id: 'guides-archive', href: '/guides-archive/', title: 'Архив гайдов', desc: 'Сохранённые материалы и полезные руководства Manacost.' },
 ];
 
 export default function HomeArenaDirectory({ onNavigate }: { onNavigate: (tab: string) => void }) {
@@ -23,7 +22,6 @@ export default function HomeArenaDirectory({ onNavigate }: { onNavigate: (tab: s
           <span>Hearthstone</span>
           <h2 id="home-arena-directory-heading">Арена</h2>
         </div>
-        <p>Класс, карты и аналитика — все основные инструменты драфта в одном месте.</p>
       </div>
       <nav className="home-arena-directory__links" aria-label="Разделы Арены">
         {ARENA_HOME_CARDS.map((card, index) => (
@@ -35,7 +33,6 @@ export default function HomeArenaDirectory({ onNavigate }: { onNavigate: (tab: s
             data-featured={index < 2 ? 'true' : 'false'}
           >
             <span>
-              <small>{card.label}</small>
               <strong>{card.title}</strong>
               <span>{card.desc}</span>
             </span>

@@ -34,7 +34,6 @@ export function StandardMatchupsPageClient() {
         <header className="traditional-mode-banner">
           <div className="traditional-mode-banner__copy">
             <h1>Матчапы</h1>
-            <p>Сравнение силы актуальных архетипов против каждого соперника.</p>
           </div>
         </header>
         {pending

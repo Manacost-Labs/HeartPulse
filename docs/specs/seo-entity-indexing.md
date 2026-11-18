@@ -343,12 +343,15 @@ teaser. Without text of their own they weigh less than the 404 page in the HTML,
 while «тир лист арены», «арена хс какой класс» and «легендарки арены» are among
 the queries the site wants to answer.
 
-- Each page renders a server-side block of 250–400 words
+- Each page renders a server-side block of 100–180 words in a single
+  collapsed `<details>` with the summary «О странице»
   (`apps/public-web/ui/SeoPageIntro.tsx`, passed to the client page as
   `children`, so the client bundle only grows by the pass-through), inside
-  `<main>` below the H1. Every section is headed by a question («Что показывает
-  тир-лист Арены Hearthstone (хс)?», «Как читать оценки от S до F?», «Откуда
-  берутся оценки и как они обновляются?», «Что доступно без подписки?»).
+  `<main>` below the H1. A guest sees one quiet line; the text is in the HTML
+  without the `open` attribute. There are two or three sections, each headed by
+  a question («Что показывает тир-лист Арены Hearthstone (хс)?», «Откуда берутся
+  оценки и как они обновляются?», «Что доступно без подписки?»). The block was
+  250–400 words with six sections until E22 (#450).
 - The text is data, not code: `config/public-seo-page-copy.json`, read through
   `src/seo/pageCopy.ts` (`parseSeoPageCopy` rejects a page outside the SEO
   registry, a heading that is no question, an empty block and a link that is not

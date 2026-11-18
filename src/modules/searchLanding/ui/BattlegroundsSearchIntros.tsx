@@ -2,7 +2,7 @@ import { SectionBanner } from '../../../shared/ui/EditorialRouteChrome';
 
 export function BattlegroundsTierListSearchIntro() {
   return (
-    <SectionBanner title="Тир-лист Полей сражений" subtitle="Существа, составы, заклинания и аксессуары по текущему патчу">
+    <SectionBanner title="Тир-лист Полей сражений">
       <div className="traditional-mode-banner__related">
         <a href="/heroes/">Герои Полей сражений</a>
       </div>

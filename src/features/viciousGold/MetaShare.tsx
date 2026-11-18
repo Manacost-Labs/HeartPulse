@@ -20,7 +20,6 @@ export function MetaShare({ classes, decks, selectedClass, onSelectClass, minimu
       <header className="vsgold-section__head">
         <div>
           <h2 id="vsgold-share-title">Доли меты</h2>
-          <p>Доля класса в партиях и его архетипы. Нажмите на класс, чтобы оставить в списке ниже только его колоды.</p>
         </div>
       </header>
       <ClassShareBars classes={classes} decks={decks} selectedClass={selectedClass} onSelectClass={onSelectClass} minimumFrequency={minimumFrequency} />

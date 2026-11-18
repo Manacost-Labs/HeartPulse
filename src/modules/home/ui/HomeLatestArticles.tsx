@@ -74,7 +74,6 @@ export default function HomeLatestArticles({ articles, loading, onNavigate }: {
           <span>Новые материалы</span>
           <h2 id="home-articles-heading">Подборка статей</h2>
         </div>
-        <p>Свежие мета-отчёты, разборы патчей и практические гайды редакции.</p>
       </div>
 
       {initialLoading && <span className="sr-only" role="status">Загружаем подборку статей</span>}

@@ -49,7 +49,7 @@ export function PatchNotesPageClient({ version, initial }: { version: string | n
   return <PublicPageShell activeTab="patch-notes" pathname="/standard/patches/" access={access} navigate={navigate} wide>
     <section className="space-y-5">
       {/* The skeleton carries the page heading itself, so only the missing and failed states show the route banner. */}
-      {!state.patch && state.error && <SectionBanner title="Патчноуты Hearthstone" subtitle="Что изменилось в картах Стандарта, Арены и Полей сражений: было → стало, усиления и ослабления" />}
+      {!state.patch && state.error && <SectionBanner title="Патчноуты Hearthstone" />}
       {state.patch
         ? <PatchNotesView patch={state.patch} archive={state.archive ?? []} onSelectVersion={navigate} />
         : state.error === 'missing'

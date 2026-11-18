@@ -11,8 +11,7 @@ export function LeaderboardsPageClient({ initial }: { initial: LeaderboardsIniti
   const access = usePublicAccess();
   return <PublicPageShell activeTab="leaderboards" pathname="/leaderboards/" access={access} navigate={navigate} wide>
     <section className="leaderboards-page space-y-4">
-      <SectionBanner title="Таблицы лидеров"
-        subtitle="Официальные рейтинги Blizzard по режимам и регионам: места, рейтинг и история игроков" />
+      <SectionBanner title="Таблицы лидеров" />
       <LeaderboardsView initial={initial} />
     </section>
   </PublicPageShell>;

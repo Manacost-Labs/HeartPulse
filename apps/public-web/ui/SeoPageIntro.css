@@ -1,26 +1,39 @@
-/* The server-rendered text under a page whose data is closed to a guest: how to read the page, where its data comes from. */
+/* The server-rendered «О странице» block under a page: collapsed by default, quiet, body font, no panel. */
 .seo-page-intro {
   max-inline-size: 72rem;
-  margin: 1.75rem auto 0;
-  padding-top: 1.25rem;
-  border-top: 1px solid var(--arena-paper-line);
+  margin: 1.5rem auto 0;
   color: var(--arena-ink);
   font-family: var(--font-body);
   font-size: 1rem;
   line-height: 1.65;
 }
 
-.seo-page-intro h2 {
-  margin: 1.5rem 0 0.5rem;
-  color: var(--arena-red);
-  font-family: var(--font-hs);
-  font-size: clamp(1.15rem, 1rem + 0.6vw, 1.4rem);
-  font-weight: 400;
-  line-height: 1.25;
+.seo-page-intro > summary {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 2.75rem;
+  color: var(--arena-muted-ink);
+  font-size: 0.9375rem;
+  cursor: pointer;
 }
 
-.seo-page-intro h2:first-child {
-  margin-top: 0;
+.seo-page-intro > summary:hover,
+.seo-page-intro[open] > summary {
+  color: var(--arena-ink);
+}
+
+.seo-page-intro > summary:focus-visible {
+  outline: 2px solid var(--arena-red);
+  outline-offset: 2px;
+}
+
+.seo-page-intro h2 {
+  margin: 1rem 0 0.375rem;
+  color: var(--arena-ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
 }
 
 .seo-page-intro p,

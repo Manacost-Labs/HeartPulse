@@ -11,7 +11,8 @@ function Inline({ text }: { text: string }) {
 /**
  * The text a reader without JavaScript (and a search engine) gets on a page
  * whose data is closed to a guest: what the page shows, how to read it, where
- * the data comes from and how often it is collected. A server component fed
+ * the data comes from and how often it is collected. It sits in one collapsed
+ * «О странице» block, so it stays in the HTML without taking the screen. A server component fed
  * from `config/public-seo-page-copy.json`, passed to the client page as
  * `children` so it adds no client JavaScript. It prints no statistics.
  */
@@ -20,13 +21,14 @@ export function SeoPageIntro({ path }: { path: string }) {
   // A page that asks for its text must have it: fail the build, not the search snippet.
   if (!copy) throw new Error(`No SEO page copy for ${path}`);
   return (
-    <section className="seo-page-intro">
+    <details className="seo-page-intro">
+      <summary>О странице</summary>
       {copy.sections.map(section => <Fragment key={section.question}>
         <h2>{section.question}</h2>
         {section.body.map(block => typeof block === 'string'
           ? <p key={block}><Inline text={block} /></p>
           : <ul key={block.join('\n')}>{block.map(item => <li key={item}><Inline text={item} /></li>)}</ul>)}
       </Fragment>)}
-    </section>
+    </details>
   );
 }

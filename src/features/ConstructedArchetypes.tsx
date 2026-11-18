@@ -306,7 +306,6 @@ function ArchetypeCatalogPage({ navigatePath, initialSearch, embedded, initialCa
       <section className="traditional-mode-banner">
         <div className="traditional-mode-banner__copy">
           <h1>Архетипы</h1>
-          <p>Актуальные архетипы, готовые сборки и история их результатов.</p>
         </div>
         <dl className="traditional-mode-banner__summary" aria-label="Сводка каталога">
           <div><dt>Архетипов</dt><dd>{catalog?.items.length ?? '—'}</dd></div>
