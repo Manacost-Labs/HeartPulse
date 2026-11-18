@@ -17,6 +17,37 @@
 /* A group title is the toggle; its chevron turns instead of the label changing. */
 .arena-nav-group-chevron { margin-left: auto; }
 
+/* Group emblem: a small gold coat of arms in front of the title, never a coin. */
+.arena-nav-group-emblem {
+  display: grid;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  place-items: center;
+  color: #e3bb62;
+}
+
+.arena-nav-group-emblem svg { display: block; }
+
+:is(.arena-sidebar-group-trigger, .arena-mobile-menu-group-trigger)[data-current] .arena-nav-group-emblem { color: #ffd877; }
+
+/* Icons lift and warm up on hover; only transform and colour move. */
+:is(.arena-sidebar-link, .arena-mobile-menu-link) :is(.arena-sidebar-link-icon, .arena-mobile-menu-link-icon) {
+  transition: transform var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+}
+
+@media (hover: hover) {
+  :is(.arena-sidebar-link, .arena-mobile-menu-link):hover :is(.arena-sidebar-link-icon, .arena-mobile-menu-link-icon) {
+    color: #ffd877;
+    transform: translateY(-1px) scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is(.arena-sidebar-link, .arena-mobile-menu-link) :is(.arena-sidebar-link-icon, .arena-mobile-menu-link-icon) { transition: none; }
+  :is(.arena-sidebar-link, .arena-mobile-menu-link):hover :is(.arena-sidebar-link-icon, .arena-mobile-menu-link-icon) { transform: none; }
+}
+
 /* The administrator's panel sits apart, below the last group. */
 .arena-sidebar-admin,
 .arena-mobile-menu-admin {
@@ -81,12 +112,14 @@
   background:
     linear-gradient(90deg, rgba(246, 218, 160, 0.17), rgba(246, 218, 160, 0.04) 70%, transparent),
     rgba(40, 3, 6, 0.38);
-  box-shadow: inset 0 1px rgba(255, 235, 188, 0.1), inset 0 -1px rgba(20, 2, 4, 0.25);
+  /* An embossed plaque: a gold hairline, a lit top edge and a dark lower lip. */
+  box-shadow: inset 0 0 0 1px rgba(246, 218, 160, 0.2), inset 0 1px rgba(255, 235, 188, 0.18), inset 0 -2px rgba(20, 2, 4, 0.32);
 }
 
 .arena-sidebar :is(.arena-sidebar-link-active, [data-nav-pressed]) .arena-sidebar-link-icon,
 .arena-mobile-menu :is(.arena-mobile-menu-link-active, [data-nav-pressed]) .arena-mobile-menu-link-icon {
-  color: #f8cf68;
+  color: #ffd877;
+  filter: drop-shadow(0 0 5px rgba(255, 207, 99, 0.5));
 }
 
 :is(.arena-sidebar-nav, .arena-mobile-menu):has([data-nav-pressed]) :is(.arena-sidebar-link-active, .arena-mobile-menu-link-active):not([data-nav-pressed]):not(.arena-mobile-menu-profile) {
@@ -101,7 +134,8 @@
 }
 
 :is(.arena-sidebar-nav, .arena-mobile-menu):has([data-nav-pressed]) :is(.arena-sidebar-link-active, .arena-mobile-menu-link-active):not([data-nav-pressed]) :is(.arena-sidebar-link-icon, .arena-mobile-menu-link-icon) {
-  color: #dcb25a;
+  color: #e3bb62;
+  filter: none;
 }
 
 .arena-sidebar-link:active,

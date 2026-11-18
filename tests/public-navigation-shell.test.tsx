@@ -48,12 +48,13 @@ assert.match(html, /aria-expanded="true"/);
 assert.match(html, /id="arena-mobile-battlegrounds"/);
 assert.match(html, /id="arena-sidebar-community"/);
 assert.doesNotMatch(html, /arena-sidebar-status|Дата обновления данных|Обновлено/);
-// No decorative captions under groups, no emblem coins: the title says it.
+// No decorative captions under groups and no gold coins; each group carries a coat of arms instead.
 assert.doesNotMatch(html, /Мета и колоды|Драфт и выборы|Герои и тактика|Создавайте и сравнивайте|Материалы и события/);
 assert.doesNotMatch(html, /arena-nav-section-icon|arena-(?:sidebar|mobile-menu)-section/, 'group titles carry no coins');
 // A group title is a button tied to its list; the links of a closed group stay in the HTML for crawlers and no-JS readers.
 assert.match(html, /<button[^>]*aria-expanded="false"[^>]*aria-controls="arena-sidebar-standard"/);
 assert.match(html, /id="arena-sidebar-standard"[^>]*data-closed=""[^>]*>[\s\S]*?href="\/standard\/deck-builder\/"/, 'the deck builder is in the Standard group');
+assert.equal(html.match(/class="arena-nav-group-emblem"/g)?.length, 8, 'every group title has its own emblem');
 assert.equal(html.match(/arena-(?:sidebar|mobile-menu)-group-trigger/g)?.length, 8, 'four collapsible groups in the drawer and four in the sidebar');
 // Groups open independently: opening one never collapses another under the pointer.
 const bothOpen = renderToStaticMarkup(<PublicNavigation {...props} sidebarNavGroups={new Set(['standard', 'community'] as const)} />);

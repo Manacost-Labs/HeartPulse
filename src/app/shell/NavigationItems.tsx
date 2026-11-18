@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { canonicalPagePath } from '../routing/canonicalPagePath';
 import type { TABS, TabId } from '../routing/navigationRoutes';
+import { ArenaEmblem, BattlegroundsEmblem, CommunityEmblem, StandardEmblem, type MenuIcon } from './menuIcons';
 
 import { isPlainNavigationClick } from '../routing/isPlainNavigationClick';
 
@@ -9,8 +10,13 @@ export type NavigationRoute = (typeof TABS)[number];
 export type NavigationGroup = 'standard' | 'arena' | 'battlegrounds' | 'community';
 
 /** Every icon of the menu shares one size and one stroke, so no item outweighs another. */
-export const NAV_ICON_SIZE = 18;
-export const NAV_ICON_STROKE = 1.75;
+export const NAV_ICON_SIZE = 20;
+export const NAV_ICON_STROKE = 1.6;
+
+/** One coat of arms per group, drawn in the icons' own style. */
+const GROUP_EMBLEMS: Record<NavigationGroup, MenuIcon> = {
+  standard: StandardEmblem, arena: ArenaEmblem, battlegrounds: BattlegroundsEmblem, community: CommunityEmblem,
+};
 /** A short honest marker next to a menu item, e.g. «Новый» for a patch published since the last visit. */
 export type NavigationBadges = Partial<Record<TabId, { label: string; title: string }>>;
 
@@ -82,6 +88,7 @@ export function NavigationGroupControl({
 }) {
   const classPrefix = variant === 'mobile' ? 'arena-mobile-menu' : 'arena-sidebar';
   const groupId = `arena-${variant}-${group}`;
+  const Emblem = GROUP_EMBLEMS[group];
   return (
     <div className={`${classPrefix}-group`}>
       <button
@@ -92,8 +99,9 @@ export function NavigationGroupControl({
         data-current={active ? '' : undefined}
         onClick={onToggle}
       >
+        <span className="arena-nav-group-emblem" aria-hidden="true"><Emblem size={NAV_ICON_SIZE} strokeWidth={NAV_ICON_STROKE} /></span>
         <span className="arena-nav-label">{title}</span>
-        <ChevronDown size={NAV_ICON_SIZE - 2} strokeWidth={NAV_ICON_STROKE} aria-hidden="true" className="arena-nav-group-chevron" />
+        <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" className="arena-nav-group-chevron" />
       </button>
       <div id={groupId} className={`${classPrefix}-group-items`} data-closed={isOpen ? undefined : ''}>
         {children}
