@@ -8,15 +8,24 @@ import { useNavigationBadges } from './patchNotesBadge';
 import { usePageScrollLock } from '../../hooks/usePageScrollLock';
 import { PublicNavigation } from './PublicNavigation';
 import { HeaderProfileButton } from './HeaderProfileButton';
-import { ADMIN_ONLY_TAB_IDS, ARENA_TABS, BG_BUILDER_TABS, MISC_TABS, TABS, type TabId } from '../routing/navigationRoutes';
+import { ADMIN_ONLY_TAB_IDS, ARENA_TABS, BATTLEGROUNDS_TABS, COMMUNITY_TABS, STANDARD_TABS, TABS, type TabId } from '../routing/navigationRoutes';
 import type { AuthUser } from '../../modules/identity/public';
 import type { NavigationGroup } from './NavigationItems';
 
-/** The group holding the current page starts open, so its item is visible on arrival. */
+/** The group holding the current page, open on arrival so its item is visible. Home opens the main mode, Standard. */
 function groupOf(tab: TabId): NavigationGroup | null {
-  if (BG_BUILDER_TABS.some(route => route.id === tab)) return 'constructors';
-  if (MISC_TABS.some(route => route.id === tab)) return 'misc';
+  if (tab === 'home') return 'standard';
+  if (STANDARD_TABS.some(route => route.id === tab)) return 'standard';
+  if (ARENA_TABS.some(route => route.id === tab)) return 'arena';
+  if (BATTLEGROUNDS_TABS.some(route => route.id === tab)) return 'battlegrounds';
+  if (COMMUNITY_TABS.some(route => route.id === tab)) return 'community';
   return null;
+}
+
+/** Adds the group of the current page to the open ones; a group the reader opened stays open. */
+function withCurrentGroup(groups: ReadonlySet<NavigationGroup>, tab: TabId): ReadonlySet<NavigationGroup> {
+  const current = groupOf(tab);
+  return current && !groups.has(current) ? new Set(groups).add(current) : groups;
 }
 
 function toggled(groups: ReadonlySet<NavigationGroup>, group: NavigationGroup): ReadonlySet<NavigationGroup> {
@@ -44,6 +53,10 @@ export function PublicNavigationController({ activeTab, pathname, access, naviga
   usePressedNavigationLink(activeTab);
   useNavigationTooltip(compact);
   useEffect(() => { setMenu(false); }, [pathname]);
+  useEffect(() => {
+    setMobileGroups(current => withCurrentGroup(current, activeTab));
+    setSidebarGroups(current => withCurrentGroup(current, activeTab));
+  }, [activeTab]);
   const visit = (path: string) => {
     // Next must save the reading position after the drawer releases its lock.
     if (menu) flushSync(() => setMenu(false));
@@ -52,7 +65,7 @@ export function PublicNavigationController({ activeTab, pathname, access, naviga
   return <PublicNavigation activeTab={activeTab} mobileMenuOpen={menu} mobileNavGroups={mobileGroups} sidebarNavGroups={sidebarGroups}
     compact={compact} badges={badges}
     visibleArenaTabs={ARENA_TABS.filter(tab => !ADMIN_ONLY_TAB_IDS.has(tab.id) || access.admin)}
-    visibleMiscTabs={MISC_TABS.filter(tab => !ADMIN_ONLY_TAB_IDS.has(tab.id) || access.admin)}
+    visibleCommunityTabs={COMMUNITY_TABS.filter(tab => !ADMIN_ONLY_TAB_IDS.has(tab.id) || access.admin)}
     appIsContestAdmin={access.contestAdmin} wantsLogin={false} updatedAtLabel={updatedAtLabel} mobileMenuRef={menuRef}
     mobileMenuToggleRef={toggleRef} mobileProfile={<HeaderProfileButton user={access.user} checking={access.checking} variant="mobile" />}
     sidebarProfile={<HeaderProfileButton user={access.user} checking={access.checking} />} profileLabel={access.user || access.checking ? 'Открыть профиль' : 'Войти'}

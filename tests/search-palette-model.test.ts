@@ -15,7 +15,7 @@ test('pages match every word of the query in their name or mode, ignoring case a
   assert.equal(normalizeSearchText('  Тир-ЛИСТ  Ёлка '), 'тир-лист елка');
   const tierLists = matchPages('тир-лист', false).map(pathOf);
   assert.deepEqual(tierLists, ['/tierlist/', '/battlegrounds/tier-list/', '/battlegrounds/tier-builder/']);
-  assert.deepEqual(matchPages('тир поля', false).map(pathOf), ['/battlegrounds/tier-list/']);
+  assert.deepEqual(matchPages('тир поля', false).map(pathOf), ['/battlegrounds/tier-list/', '/battlegrounds/tier-builder/']);
   assert.ok(matchPages('', false).length > 15, 'an empty query offers every section');
   assert.ok(matchPages('', false).every(entry => pathOf(entry).endsWith('/')), 'section links carry the canonical slash');
   assert.equal(matchPages('админ', false).length, 0, 'admin pages stay hidden from readers');
@@ -23,6 +23,10 @@ test('pages match every word of the query in their name or mode, ignoring case a
   assert.equal(metas['/standard/meta/'], '', 'a unique section name needs no mode');
   assert.equal(metas['/tierlist/'], 'Арена', 'a repeated name carries its mode');
   assert.equal(matchPages('админ', true).length, 1);
+  // The palette names the groups as the menu does.
+  assert.ok(matchPages('сообщество', false).map(pathOf).includes('/leaderboards/'));
+  assert.ok(matchPages('стандарт и вольный', false).map(pathOf).includes('/standard/deck-builder/'));
+  assert.equal(matchPages('разное', false).length, 0, 'the old «Разное» group is gone');
 });
 
 test('archetypes link to their own pages by format', () => {

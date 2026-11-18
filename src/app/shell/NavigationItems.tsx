@@ -1,12 +1,16 @@
 import type { ReactNode } from 'react';
-import { ChevronDown, Gift, Grid3X3, type LucideIcon } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { canonicalPagePath } from '../routing/canonicalPagePath';
 import type { TABS, TabId } from '../routing/navigationRoutes';
 
 import { isPlainNavigationClick } from '../routing/isPlainNavigationClick';
 
 export type NavigationRoute = (typeof TABS)[number];
-export type NavigationGroup = 'constructors' | 'misc';
+export type NavigationGroup = 'standard' | 'arena' | 'battlegrounds' | 'community';
+
+/** Every icon of the menu shares one size and one stroke, so no item outweighs another. */
+export const NAV_ICON_SIZE = 18;
+export const NAV_ICON_STROKE = 1.75;
 /** A short honest marker next to a menu item, e.g. «Новый» for a patch published since the last visit. */
 export type NavigationBadges = Partial<Record<TabId, { label: string; title: string }>>;
 
@@ -14,7 +18,6 @@ type NavigationRouteLinksProps = {
   routes: readonly NavigationRoute[];
   activeTab: TabId;
   variant: 'mobile' | 'sidebar';
-  sublink?: boolean;
   /** Section name the compact rail's tooltip adds, so the two «Тир-лист» items stay distinguishable. */
   context?: string;
   badges?: NavigationBadges;
@@ -25,13 +28,11 @@ export function NavigationRouteLinks({
   routes,
   activeTab,
   variant,
-  sublink = false,
   context,
   badges,
   onNavigate,
 }: NavigationRouteLinksProps) {
   const classPrefix = variant === 'mobile' ? 'arena-mobile-menu' : 'arena-sidebar';
-  const iconSize = sublink ? 17 : variant === 'mobile' ? 19 : 18;
   return routes.map(tab => {
     const Icon = tab.icon;
     const active = activeTab === tab.id;
@@ -48,11 +49,11 @@ export function NavigationRouteLinks({
         aria-current={active ? 'page' : undefined}
         data-nav-link=""
         data-nav-tip={context ? `${tab.label} · ${context}` : tab.label}
-        className={`${classPrefix}-link ${sublink ? `${classPrefix}-sublink ` : ''}${active ? `${classPrefix}-link-active` : ''}`}
+        className={`${classPrefix}-link ${active ? `${classPrefix}-link-active` : ''}`}
         style={variant === 'sidebar' ? { textDecoration: 'none' } : undefined}
       >
         <span className={`${classPrefix}-link-icon flex-shrink-0`} aria-hidden="true">
-          <Icon size={iconSize} strokeWidth={1.8} />
+          <Icon size={NAV_ICON_SIZE} strokeWidth={NAV_ICON_STROKE} />
         </span>
         <span className="arena-nav-label">{tab.label}</span>
         {badge && <span className="arena-nav-badge" title={badge.title}>{badge.label}</span>}
@@ -61,24 +62,7 @@ export function NavigationRouteLinks({
   });
 }
 
-export function NavigationSection({
-  title,
-  icon: Icon,
-  variant,
-}: {
-  title: string;
-  icon: LucideIcon;
-  variant: 'mobile' | 'sidebar';
-}) {
-  const classPrefix = variant === 'mobile' ? 'arena-mobile-menu' : 'arena-sidebar';
-  return (
-    <div className={`${classPrefix}-section`}>
-      <span className="arena-nav-section-icon" aria-hidden="true"><Icon size={14} strokeWidth={2} /></span>
-      <span className={`${classPrefix}-section-title`}>{title}</span>
-    </div>
-  );
-}
-
+/** A collapsible mode of the menu: the title is the button, its links stay in the server HTML while it is closed. */
 export function NavigationGroupControl({
   active,
   children,
@@ -97,30 +81,21 @@ export function NavigationGroupControl({
   variant: 'mobile' | 'sidebar';
 }) {
   const classPrefix = variant === 'mobile' ? 'arena-mobile-menu' : 'arena-sidebar';
-  const groupClass = variant === 'mobile' ? 'arena-mobile-menu-group' : 'arena-sidebar-nav-group';
-  const groupItemsClass = variant === 'mobile' ? 'arena-mobile-menu-group-items' : 'arena-sidebar-nav-group-items';
-  const groupTriggerClass = variant === 'mobile' ? 'arena-mobile-menu-group-trigger' : 'arena-sidebar-nav-group-trigger';
-  const iconSize = variant === 'mobile' ? 19 : 18;
-  const chevronSize = variant === 'mobile' ? 16 : 15;
-  const groupId = `arena-${variant === 'mobile' ? 'mobile' : 'sidebar'}-${group}`;
-
+  const groupId = `arena-${variant}-${group}`;
   return (
-    <div className={`${groupClass} ${group === 'misc' ? `${groupClass}--misc` : ''}`}>
+    <div className={`${classPrefix}-group`}>
       <button
         type="button"
-        className={`${classPrefix}-link ${groupTriggerClass} ${active ? `${classPrefix}-link-active` : ''}`}
+        className={`${classPrefix}-group-trigger`}
         aria-expanded={isOpen}
         aria-controls={groupId}
-        data-nav-tip={title}
+        data-current={active ? '' : undefined}
         onClick={onToggle}
       >
-        <span className={`${classPrefix}-link-icon flex-shrink-0`} aria-hidden="true">
-          {group === 'constructors' ? <Grid3X3 size={iconSize} strokeWidth={1.8} /> : <Gift size={iconSize} strokeWidth={1.8} />}
-        </span>
         <span className="arena-nav-label">{title}</span>
-        <ChevronDown size={chevronSize} className="arena-nav-group-chevron" />
+        <ChevronDown size={NAV_ICON_SIZE - 2} strokeWidth={NAV_ICON_STROKE} aria-hidden="true" className="arena-nav-group-chevron" />
       </button>
-      <div id={groupId} className={groupItemsClass} hidden={!isOpen}>
+      <div id={groupId} className={`${classPrefix}-group-items`} hidden={!isOpen}>
         {children}
       </div>
     </div>

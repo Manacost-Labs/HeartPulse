@@ -1,5 +1,5 @@
 /*
- * Public menu: current-page indicator, pressed feedback, mode emblems, badges,
+ * Public menu: current-page indicator, pressed feedback, group titles, badges,
  * the compact desktop rail and the phone drawer. Loaded by the root layout
  * after parchment-theme.css, whose menu surfaces it refines. Motion uses the
  * site tokens only (src/styles/tokens.css); reduced motion is global (index.css).
@@ -14,26 +14,17 @@
   white-space: nowrap;
 }
 
-.arena-sidebar-section,
-.arena-mobile-menu-section {
-  display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
-  column-gap: 0.55rem;
-  align-items: center;
-}
+/* A group title is the toggle; its chevron turns instead of the label changing. */
+.arena-nav-group-chevron { margin-left: auto; }
 
-.arena-nav-section-icon {
+/* The administrator's panel sits apart, below the last group. */
+.arena-sidebar-admin,
+.arena-mobile-menu-admin {
   display: grid;
-  width: 22px;
-  height: 22px;
-  place-items: center;
-  border-radius: 50%;
-  color: #3b0609;
-  background: radial-gradient(circle at 35% 30%, #fff0c2, #e2b24e 58%, #94621d);
-  box-shadow: 0 0 0 1px rgba(255, 231, 163, 0.45), 0 2px 4px rgba(30, 3, 5, 0.45);
+  margin-top: 0.7rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid rgba(232, 192, 103, 0.18);
 }
-
-.arena-nav-section-icon svg { display: block; }
 
 .arena-nav-badge {
   flex: 0 0 auto;
@@ -95,10 +86,7 @@
 
 .arena-sidebar :is(.arena-sidebar-link-active, [data-nav-pressed]) .arena-sidebar-link-icon,
 .arena-mobile-menu :is(.arena-mobile-menu-link-active, [data-nav-pressed]) .arena-mobile-menu-link-icon {
-  border-color: #ffe7a3;
-  color: #45080c;
-  background: linear-gradient(150deg, #fff0c2, #e2b24e 55%, #b07a26);
-  box-shadow: 0 0 0 1px rgba(45, 4, 7, 0.55), 0 0 12px rgba(242, 200, 93, 0.38);
+  color: #f8cf68;
 }
 
 :is(.arena-sidebar-nav, .arena-mobile-menu):has([data-nav-pressed]) :is(.arena-sidebar-link-active, .arena-mobile-menu-link-active):not([data-nav-pressed]):not(.arena-mobile-menu-profile) {
@@ -113,10 +101,7 @@
 }
 
 :is(.arena-sidebar-nav, .arena-mobile-menu):has([data-nav-pressed]) :is(.arena-sidebar-link-active, .arena-mobile-menu-link-active):not([data-nav-pressed]) :is(.arena-sidebar-link-icon, .arena-mobile-menu-link-icon) {
-  border-color: rgba(224, 171, 66, 0.25);
-  color: #e8b84d;
-  background: rgba(43, 4, 8, 0.24);
-  box-shadow: none;
+  color: #dcb25a;
 }
 
 .arena-sidebar-link:active,
@@ -169,19 +154,13 @@
     outline-offset: 2px;
   }
 
-  .arena-sidebar-section {
-    margin: 0.7rem 0.4rem 0.2rem;
-    padding-top: 0.6rem;
-    border-top: 1px solid rgba(232, 192, 103, 0.16);
-  }
-
   .arena-sidebar .arena-sidebar-link { min-height: 40px; }
 
   .arena-sidebar .arena-sidebar-link:is(.arena-sidebar-link-active, [data-nav-pressed]):hover {
     color: #fff7df;
   }
 
-  /* Rail: icons, mode emblems as dividers and one shared tooltip. Applied
+  /* Rail: icons, group titles as dividers and one shared tooltip. Applied
      before first paint from the remembered choice (navigationPreference.ts). */
   html[data-nav-compact] .arena-sidebar {
     width: 84px;
@@ -190,7 +169,7 @@
 
   html[data-nav-compact] .arena-workspace { margin-left: 84px; }
 
-  html[data-nav-compact] .arena-sidebar :is(.arena-nav-label, .arena-nav-group-chevron, .arena-sidebar-section-title, .arena-sidebar-profile-copy) {
+  html[data-nav-compact] .arena-sidebar :is(.arena-nav-label, .arena-nav-group-chevron, .arena-sidebar-profile-copy) {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -217,14 +196,24 @@
     padding-inline: 0;
   }
 
-  html[data-nav-compact] .arena-sidebar-section {
-    grid-template-columns: 1fr;
-    justify-items: center;
-    margin: 0.5rem 0 0.15rem;
-    padding-top: 0.5rem;
+  /* Every item shows in the rail: the group title becomes a hairline and its closed list opens. */
+  html[data-nav-compact] .arena-sidebar-group-trigger { display: none; }
+
+  html[data-nav-compact] .arena-sidebar-group::before {
+    content: '';
+    height: 1px;
+    margin: 0.35rem 0.4rem 0.25rem;
+    background: rgba(232, 192, 103, 0.2);
   }
 
-  html[data-nav-compact] .arena-sidebar-nav-group-items { margin-inline: 0; }
+  html[data-nav-compact] .arena-sidebar-group-items[hidden] {
+    display: grid;
+    opacity: 1;
+    translate: none;
+  }
+
+  html[data-nav-compact] .arena-sidebar-group { margin-top: 0; gap: 0.13rem; }
+  html[data-nav-compact] .arena-sidebar-admin { margin-top: 0.4rem; padding-top: 0.4rem; }
 
   html[data-nav-compact] .arena-sidebar .arena-nav-badge {
     position: absolute;
@@ -314,7 +303,5 @@
     .arena-mobile-menu.arena-mobile-menu:is([data-open], :popover-open) { translate: -100% 0; }
   }
 
-  .arena-mobile-menu .arena-mobile-menu-link:not(.arena-mobile-menu-profile) { min-height: 48px; }
-
-  .arena-mobile-menu .arena-mobile-menu-section { margin-top: 0.8rem; }
+  .arena-mobile-menu .arena-mobile-menu-link:not(.arena-mobile-menu-profile) { min-height: 46px; }
 }

@@ -541,3 +541,32 @@ independent groups, rail toggle), `tests/navigation-badges.test.ts`,
 `tests/next-page-transitions-browser.test.mjs`, and the Storybook stories
 `App shell/Public navigation` (compact rail, badge, independent groups) and
 `App shell/Search palette`.
+
+### Clean menu structure (2026-11-18)
+
+The owner found the menu hard to scan: every icon sat in its own box, group
+titles wore gold coins, several items shared an icon, the deck builder hid
+among the Battlegrounds builders and «Разное» was a dump.
+
+1. Groups follow what the reader plays. After the search (the header field,
+   now with a `Ctrl K` hint on devices with a keyboard) and «Главная» come
+   «Стандарт и Вольный» (the deck builder is here), «Арена», «Поля сражений»
+   (both builders are ordinary items) and «Сообщество». «Стандарт и Вольный»
+   replaces «Традиционный режим» because the filters, the palette and the
+   articles already say «Стандарт» and «Вольный». The administrator panel is a
+   separate link at the bottom, shown only when `appIsContestAdmin`.
+2. Every group is a collapsible block: the title is a button with
+   `aria-expanded` and `aria-controls`; the links of a closed group stay in the
+   server HTML (`hidden`). The group of the current page is added to the open
+   ones on every navigation; Home opens «Стандарт и Вольный». A group opened by
+   the reader is never closed by navigation.
+3. One icon per item from `lucide-react`, 18 px, `strokeWidth` 1.75, without a
+   plate. Repeats are rejected by `tests/routes.test.ts`, so the palette (which
+   shows the same icons) stays readable too. FAQ lives in the group `footer`
+   with the other help pages and in the header's Help menu.
+4. Group ids became `standard`, `arena`, `battlegrounds`, `community`, `home`,
+   `footer`, `admin`; item ids, paths, entitlements and `tabFromPath` did not
+   change. The palette (`SECTION_LABELS`) and the 503 page (`MENU_BLOCKS`) use
+   the same titles. «Подборка» keeps its name: the SEO decision of #400.
+5. The compact rail shows every item (a closed group is shown in full there)
+   and replaces group titles with hairlines; the tooltip reads «Пункт · Группа».

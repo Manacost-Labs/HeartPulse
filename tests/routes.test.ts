@@ -3,47 +3,48 @@ import {
   ADMIN_ONLY_TAB_IDS,
   ADMIN_TABS,
   ARENA_TABS,
-  BG_BUILDER_TABS,
-  BG_PRIMARY_TABS,
+  BATTLEGROUNDS_TABS,
   BG_TAB_IDS,
-  MISC_TABS,
+  COMMUNITY_TABS,
+  HOME_TABS,
   STANDARD_TABS,
   tabFromPath,
   TABS,
-  TOP_LEVEL_TABS,
   type TabId,
 } from '../src/app/routing/navigationRoutes';
+import { NAVIGATION_ROUTES } from '../src/app/routing/navigationDefinitions';
 import { seoPageForNavigationRoute } from '../src/seo/registry';
 
+// The order is the order of the menu: home, Standard, Arena, Battlegrounds, community, then the pages outside the menu.
 const EXPECTED_ROUTE_PATHS = [
   ['home', '/'],
-  ['articles', '/articles'],
-  ['faq', '/faq'],
-  ['developer-api', '/developers/api'],
-  ['privacy', '/privacy'],
-  ['terms', '/terms'],
-  ['leaderboards', '/leaderboards'],
-  ['gallery', '/gallery'],
-  ['cosmetics', '/cosmetics'],
-  ['guides-archive', '/guides-archive'],
-  ['contests', '/contests'],
-  ['streamers', '/streamers'],
-  ['standard-matchups', '/standard/matchups'],
   ['standard-meta', '/standard/meta'],
-  ['fun-decks', '/standard/fun-decks'],
+  ['standard-matchups', '/standard/matchups'],
   ['constructed-archetypes', '/standard/archetypes'],
+  ['fun-decks', '/standard/fun-decks'],
   ['standard-vicious-gold', '/standard/vicious-gold'],
   ['standard-cards', '/standard/cards'],
+  ['deck-builder', '/standard/deck-builder'],
   ['patch-notes', '/standard/patches'],
   ['winrates', '/classes'],
   ['tierlist', '/tierlist'],
   ['legendaries', '/legendaries'],
   ['bg-heroes', '/heroes'],
-  ['bg-library', '/library'],
   ['bg-tier-list', '/battlegrounds/tier-list'],
+  ['bg-library', '/library'],
   ['bg-strategies', '/battlegrounds/strategies'],
-  ['deck-builder', '/standard/deck-builder'],
   ['bg-tier-builder', '/battlegrounds/tier-builder'],
+  ['articles', '/articles'],
+  ['leaderboards', '/leaderboards'],
+  ['streamers', '/streamers'],
+  ['contests', '/contests'],
+  ['gallery', '/gallery'],
+  ['cosmetics', '/cosmetics'],
+  ['guides-archive', '/guides-archive'],
+  ['faq', '/faq'],
+  ['developer-api', '/developers/api'],
+  ['privacy', '/privacy'],
+  ['terms', '/terms'],
   ['admin-panel', '/admin'],
 ] as const satisfies readonly (readonly [TabId, `/${string}`])[];
 
@@ -53,11 +54,19 @@ assert.equal(new Set(TABS.map(route => route.id)).size, TABS.length, 'route ids 
 assert.equal(new Set(TABS.map(route => route.path)).size, TABS.length, 'route paths must be unique');
 const entitlementOf = (id: TabId) => TABS.find(route => route.id === id)?.entitlement ?? null;
 
-// Every surface except the home page and the footer links belongs to exactly one menu group.
-const grouped = [TOP_LEVEL_TABS, STANDARD_TABS, ARENA_TABS, BG_PRIMARY_TABS, BG_BUILDER_TABS, MISC_TABS, ADMIN_TABS]
+// Every surface except the footer pages belongs to exactly one menu block; FAQ lives in the header's Help menu.
+const grouped = [HOME_TABS, STANDARD_TABS, ARENA_TABS, BATTLEGROUNDS_TABS, COMMUNITY_TABS, ADMIN_TABS]
   .flatMap(group => group.map(route => route.id));
-assert.deepEqual([...grouped].sort(),
-  TABS.filter(route => !['home', 'footer'].includes(route.group) && route.id !== 'faq').map(route => route.id).sort());
+assert.deepEqual([...grouped].sort(), TABS.filter(route => route.group !== 'footer').map(route => route.id).sort());
+assert.equal(grouped.includes('faq'), false, 'FAQ must stay out of primary sidebar and drawer navigation');
+assert.deepEqual(STANDARD_TABS.map(route => route.id).filter(id => id === 'deck-builder'), ['deck-builder'], 'the deck builder is a Standard item');
+assert.deepEqual(BATTLEGROUNDS_TABS.map(route => route.id), ['bg-heroes', 'bg-tier-list', 'bg-library', 'bg-strategies', 'bg-tier-builder'],
+  'Battlegrounds builders are plain items of the group');
+
+// Every item has an icon of its own: two look-alike rows are what made the menu hard to scan.
+const iconUsers = new Map<unknown, string[]>();
+for (const route of NAVIGATION_ROUTES) iconUsers.set(route.icon, [...(iconUsers.get(route.icon) ?? []), route.id]);
+assert.deepEqual([...iconUsers.values()].filter(ids => ids.length > 1), [], 'menu icons must not repeat');
 
 for (const route of TABS) {
   const seo = seoPageForNavigationRoute(route.id);
@@ -72,7 +81,6 @@ assert.equal(tabFromPath('/battlegrounds/tier-list?list=spells'), 'bg-tier-list'
 assert.equal(tabFromPath('/faq'), 'faq', 'FAQ must be available as a standalone public page');
 assert.equal(tabFromPath('/privacy'), 'privacy', 'privacy policy must be a standalone public page');
 assert.equal(tabFromPath('/terms'), 'terms', 'terms of use must be a standalone public page');
-assert.equal(TOP_LEVEL_TABS.map(route => String(route.id)).includes('faq'), false, 'FAQ must stay out of primary sidebar and drawer navigation');
 assert.equal(tabFromPath('/decks/legacy'), 'home', 'a removed page highlights no section');
 assert.equal(tabFromPath('/connect'), 'home');
 assert.equal(tabFromPath('/definitely-unknown'), 'home');
