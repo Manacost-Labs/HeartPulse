@@ -1,0 +1,56 @@
+/* The subscription offer a guest opens from a paid cell (LegendariesPaidOffer.tsx); loaded with it, on a tap. */
+.legendaries-offer {
+  z-index: 10070;
+  display: grid;
+  place-items: center;
+  padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right))
+    max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
+}
+.legendaries-offer__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: rgb(20 9 10 / 72%);
+}
+.legendaries-offer__panel {
+  position: relative;
+  z-index: 1;
+  inline-size: min(100%, 34rem);
+  max-block-size: 100%;
+  overflow-y: auto;
+  border: 0.2rem solid #9d6d32;
+  border-radius: 0.55rem;
+  background: #f4e8cc;
+  color: #3d2208;
+}
+.legendaries-offer__body { padding: 1.25rem 1rem 1rem; text-align: center; }
+.legendaries-offer__body h2 { margin: 0 2rem 0.5rem; font-family: var(--font-display); font-size: 1.15rem; line-height: 1.25; }
+.legendaries-offer__body p { margin: 0 0 0.875rem; font-size: 0.8125rem; line-height: 1.5; }
+.legendaries-offer__close {
+  position: absolute;
+  inset-block-start: 0.25rem;
+  inset-inline-end: 0.25rem;
+  inline-size: 2.75rem;
+  block-size: 2.75rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+.legendaries-offer__actions { display: flex; justify-content: center; }
+.legendaries-offer__actions a,
+.legendaries-offer__actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-block-size: 2.75rem;
+  padding: 0.5rem 1rem;
+  border: 1px solid #8d171d;
+  border-radius: 0.5rem;
+  background: #8d171d;
+  color: #fff0c8;
+  font-size: 0.8125rem;
+  text-decoration: none;
+  cursor: pointer;
+}

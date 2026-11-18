@@ -146,6 +146,18 @@ export const fixtures = {
     updatedAt: '2026-07-11T00:00:00.000Z',
     source: 'hsreplay.net',
   },
+  // The open layer (GET /api/legendaries/public): the same groups without the paid figures.
+  '/api/legendaries/public': {
+    groups: [
+      { keyCard: qaCard, cards: [], winRate: 66.3, pickRate: 41.2, totalGames: 5200, classKey: 'priest' },
+      { keyCard: { ...qaCard, cardId: 'TIME_890_BLUE', name: 'Медив Освященный II' }, cards: [], winRate: 55.2, pickRate: 30.1, totalGames: 3100, classKey: 'mage' },
+      { keyCard: { ...qaCard, cardId: 'TIME_890_RED', name: 'Медив Освященный III' }, cards: [], winRate: 42.1, pickRate: 12.4, totalGames: 900, classKey: 'warrior' },
+    ],
+    updatedAt: '2026-07-11T00:00:00.000Z',
+    source: 'hsreplay.net',
+    sourceId: 'hsreplay',
+    paidMetrics: { offerRate: true, score: true },
+  },
   '/api/bg/tier-lists': {
     list: 'spells',
     source: 'qa-fixture',

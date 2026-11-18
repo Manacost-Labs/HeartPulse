@@ -42,9 +42,10 @@
         "assertions": [{ "selector": ".arena-paywall", "minCount": 1 }]
       },
       {
-        "id": "arena-legendaries-paywall",
+        "id": "arena-legendaries-open-layer",
         "path": "/legendaries",
-        "assertions": [{ "selector": ".arena-paywall", "minCount": 1 }]
+        "assertions": [{ "selector": ".legendary-group-card", "minCount": 1 }],
+        "forbiddenSelectors": [".arena-paywall"]
       },
       {
         "id": "battlegrounds-heroes-open-ranking",

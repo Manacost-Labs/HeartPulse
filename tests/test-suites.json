@@ -38,6 +38,12 @@
     "tests/next-classes-teaser.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
+    "tests/next-legendaries-open-layer.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
+    "tests/next-legendaries-open-layer-browser.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
     "tests/hsreplay-tierlist.test.ts": {
       "TIERLIST_TEST_SKIP_HANDLER": "1"
     }
@@ -99,6 +105,7 @@
         "tests/parser-control-idempotence-property.test.ts",
         "tests/arena-classes-data.test.ts",
         "tests/arena-legendaries-client.test.ts",
+        "tests/arena-legendaries-open-layer.test.ts",
         "tests/arena-tierlist-client.test.ts",
         "tests/arena-draft-advisor.test.ts",
         "tests/arena-draft-assistant-ui.test.ts",
@@ -536,6 +543,8 @@
         "tests/next-first-paint-data-browser.test.mjs",
         "tests/next-tierlist-teaser.test.mjs",
         "tests/next-classes-teaser.test.mjs",
+        "tests/next-legendaries-open-layer.test.mjs",
+        "tests/next-legendaries-open-layer-browser.test.mjs",
         "tests/next-admin-browser.test.mjs",
         "tests/admin-console-layout-browser.test.mjs",
         "tests/admin-subscription-analytics-browser.test.mjs",

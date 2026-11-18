@@ -5,14 +5,20 @@ import { TableSurface } from '../shared/ui/analytics/TableSurface';
  */
 
 import type { LegendaryCard, LegendaryGroup, LegendariesData, LegendarySource } from '../modules/arenaLegendaries/public';
-import React, { useState, useEffect, useCallback, useRef, useMemo, memo, useDeferredValue } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useCallback, useRef, useMemo, memo, useDeferredValue } from 'react';
 import { createPortal } from 'react-dom';
 import '../route-parchment.css';
 import './TraditionalModeBanner.css';
 import './DeferredRoutes.css';
-import { RefreshCw, AlertTriangle, X, Search, Star, BookOpen, ThumbsUp, ThumbsDown, ArrowDown, ArrowUp, ChevronDown } from 'lucide-react';
+import { RefreshCw, AlertTriangle, X, Search, Star, LockKeyhole, BookOpen, ThumbsUp, ThumbsDown, ArrowDown, ArrowUp, ChevronDown } from 'lucide-react';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import PaywallGate from '../components/PaywallGate';
+import { LegendaryPaidStat } from './legendaries/LegendaryPaidStat';
+import { useLegendariesLocation } from './legendaries/useLegendariesLocation';
+import {
+  LEGENDARY_SORT_OPTIONS, formatLegendaryDate, formatLegendaryStat, isPaidSort, legendaryGroupStats, legendarySortValue, paidAvailable,
+  type LegendaryPaidKey, type LegendarySortKey,
+} from './legendaries/legendaryStats';
 import { canAccessAdminWorkspace, type AuthUser } from '../modules/identity/public';
 import {
   TIERLIST_SOURCES,
@@ -77,14 +83,6 @@ const CLASS_ICON: Record<string, string> = {
   warrior:        '/class_icon/ui/warrior-96.webp',
   any:            '/class_icon/neutral.webp',
 };
-
-type LegendarySortKey = 'winRate' | 'pickRate' | 'offerRate' | 'score';
-const LEGENDARY_SORT_OPTIONS: Array<{ id: LegendarySortKey; label: string }> = [
-  { id: 'winRate', label: 'Винрейт' },
-  { id: 'pickRate', label: 'Частота выбора' },
-  { id: 'offerRate', label: 'Частота предложения' },
-  { id: 'score', label: 'Очки ArenaSmith' },
-];
 
 interface ArenaDeckCard {
   cardId: string;
@@ -1627,36 +1625,11 @@ const LEGEND_CLASSES: Array<{ id: string; name: string; color: string }> = [
   { id: 'warrior',       name: 'Воин',               color: '#7a1e1e' },
 ];
 
-function legendaryGroupStats(group: LegendaryGroup, activeClass = 'all') {
-  const classStats =
-    activeClass !== 'all'
-      ? group.byClass?.[activeClass]
-      : (group.byClass?.all ?? null);
-  return {
-    winRate: classStats?.winRate ?? group.winRate,
-    pickRate: classStats?.pickRate ?? group.pickRate ?? group.keyCard.pickRate ?? null,
-    offerRate: classStats?.offerRate ?? group.offerRate ?? group.keyCard.offerRate ?? null,
-    score: classStats?.score ?? group.score ?? group.keyCard.arenaScore ?? null,
-  };
-}
+const LEGEND_CLASS_IDS = LEGEND_CLASSES.map(cls => cls.id);
+// The offer is opened by a tap: its dialog and purchase buttons load then, not with the page.
+const LegendariesPaidOffer = lazy(() => import('./legendaries/LegendariesPaidOffer').then(module => ({ default: module.LegendariesPaidOffer })));
 
-function formatLegendaryStat(value: number | null | undefined, kind: 'pct' | 'score'): string {
-  if (value == null || !Number.isFinite(value)) return '—';
-  if (kind === 'score') return Number.isInteger(value) ? String(value) : value.toFixed(1);
-  return `${value.toFixed(1)}%`;
-}
-
-function legendarySortValue(group: LegendaryGroup, key: LegendarySortKey, activeClass = 'all'): number {
-  const stats = legendaryGroupStats(group, activeClass);
-  const raw =
-    key === 'winRate' ? stats.winRate
-    : key === 'pickRate' ? stats.pickRate
-    : key === 'offerRate' ? stats.offerRate
-    : stats.score;
-  return typeof raw === 'number' && Number.isFinite(raw) ? raw : Number.NEGATIVE_INFINITY;
-}
-
-export function Legendaries({ data, loading, error, onRetry, legendarySource, onLegendarySourceChange, switchingLegendarySource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, accessGranted }: {
+export function Legendaries({ data, loading, error, onRetry, legendarySource, onLegendarySourceChange, switchingLegendarySource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, accessGranted, paidLoading = false, paidFailed = false }: {
   data: LegendariesData; loading: boolean; error: boolean;
   /** Repeats a failed request; without it the failure has no retry action. */
   onRetry?: () => void;
@@ -1670,8 +1643,12 @@ export function Legendaries({ data, loading, error, onRetry, legendarySource, on
   onRefreshSubscription: () => Promise<SubscriptionStatus | null>;
   /** Access decided by the page (e.g. administrators); defaults to the Arena entitlement. */
   accessGranted?: boolean;
+  /** A subscriber's protected figures are on their way / could not be loaded. */
+  paidLoading?: boolean;
+  paidFailed?: boolean;
 }) {
-  const [activeClass, setActiveClass] = useState<string>('all');
+  const { activeClass, groupId, addressGroup, setActiveClass, selectGroup } = useLegendariesLocation(LEGEND_CLASS_IDS);
+  const [offer, setOffer] = useState(false);
   const [sortBy, setSortBy] = useState<LegendarySortKey>('winRate');
   const [sortDir, setSortDir] = useState<'desc' | 'asc'>('desc');
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
@@ -1746,9 +1723,28 @@ export function Legendaries({ data, loading, error, onRetry, legendarySource, on
     imageHa:  lc.imageHa,
     imageRu:  lc.imageRu ?? null,
   }), []);
-  const paywallActive = !subscriptionLoading
-    && !(accessGranted ?? hasSubscriptionEntitlement(subscriptionStatus, 'arena'));
+  // The groups are open to everyone; only the two paid figures need the entitlement.
+  const paidUnlocked = Boolean(accessGranted ?? hasSubscriptionEntitlement(subscriptionStatus, 'arena'));
   const hasGroups = (data.groups?.length ?? 0) > 0;
+  const paidFlags = data.paidMetrics;
+  const openOffer = useCallback((group: LegendaryGroup | null) => {
+    if (group) selectGroup(group.keyCard.cardId);
+    setOffer(true);
+  }, [selectGroup]);
+  useEffect(() => { if (paidUnlocked) setOffer(false); }, [paidUnlocked]);
+  // Leaving the account drops a paid sort with the paid figures.
+  useEffect(() => { if (!paidUnlocked && !subscriptionLoading && isPaidSort(sortBy)) setSortBy('winRate'); }, [paidUnlocked, subscriptionLoading, sortBy]);
+  const scrolledTo = useRef<string | null>(null);
+  useEffect(() => {
+    if (!addressGroup || scrolledTo.current === addressGroup || loading) return;
+    const node = document.querySelector(`[data-group-id="${CSS.escape(addressGroup)}"]`);
+    if (!node) return;
+    scrolledTo.current = addressGroup;
+    node.scrollIntoView({ block: 'center' });
+  }, [addressGroup, loading, filtered.length]);
+  const sourceLabel = LEGENDARY_SOURCE_LABEL[legendarySource];
+  const updatedAt = formatLegendaryDate(data.updatedAt);
+  const offerGroup = groupId ? data.groups.find(group => group.keyCard.cardId === groupId) ?? null : null;
 
   return (
     <div className="arena-legendaries-page">
@@ -1757,15 +1753,7 @@ export function Legendaries({ data, loading, error, onRetry, legendarySource, on
         { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
         { name: 'Легендарки', href: '/legendaries/' },
       ]} />
-      <PaywallGate
-        active={paywallActive}
-        title="Подтвердите подписку Манакоста для доступа к легендаркам"
-        headingLevel="h2"
-        authUser={authUser}
-        subscriptionStatus={subscriptionStatus}
-        subscriptionLoading={subscriptionLoading}
-        onRefreshSubscription={onRefreshSubscription}
-      >
+      <>
       {/* Source toggle + count row */}
       <div
         className="legendary-toolbar flex items-center justify-between mb-4 -mt-2 flex-wrap gap-2"
@@ -1794,6 +1782,13 @@ export function Legendaries({ data, loading, error, onRetry, legendarySource, on
           {filtered.length} групп
         </div>
       </div>
+      {!loading && hasGroups && (
+        <p className="legendary-provenance mb-4 -mt-2 text-xs text-[#735e49]" data-testid="legendary-provenance">
+          Источник: {sourceLabel}
+          {updatedAt ? <> · обновлено <time dateTime={data.updatedAt ?? undefined}>{updatedAt}</time></> : ' · дата обновления неизвестна'}
+          <span className="legendary-provenance__note">. Винрейт и частота выбора открыты, частота предложения и оценка ArenaSmith — по подписке.</span>
+        </p>
+      )}
 
       <div className="legendary-sort-bar mb-4 flex flex-wrap items-center gap-2" data-tour-id="arena-legendaries-sort">
         <span className="text-sm font-semibold text-[#6b4c2a]">Сортировка:</span>
@@ -1821,9 +1816,16 @@ export function Legendaries({ data, loading, error, onRetry, legendarySource, on
                     key={opt.id}
                     className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm ${active ? 'font-bold text-[#5d0d13]' : 'text-[#3d2208] hover:bg-[#ead6a7]'}`}
                     style={active ? { background: 'rgba(141,23,29,0.12)' } : undefined}
-                    onClick={() => { setSortBy(opt.id); setSortMenuOpen(false); }}
+                    onClick={() => {
+                      setSortMenuOpen(false);
+                      if (isPaidSort(opt.id) && !paidUnlocked) { openOffer(null); return; }
+                      setSortBy(opt.id);
+                    }}
                   >
-                    <span>{opt.label}</span>
+                    <span className="inline-flex items-center gap-1.5">
+                      {opt.label}
+                      {isPaidSort(opt.id) && !paidUnlocked && <LockKeyhole size={12} aria-label="По подписке" />}
+                    </span>
                     <span
                       className="h-3.5 w-3.5 rounded-full border"
                       style={{
@@ -1933,44 +1935,46 @@ export function Legendaries({ data, loading, error, onRetry, legendarySource, on
         </div>
       </div>
 
-      {error && (hasGroups ? (
+      {error && hasGroups && (
         <div className="flex items-center gap-2 text-[#8b6c42] text-xs mb-5 px-3 py-2 rounded-lg bg-[#8b4513]/10 border border-[#8b4513]/20">
           <AlertTriangle size={13} /><span>Не удалось обновить легендарные группы. Показываем то, что есть.</span>
         </div>
-      ) : (
-        <AsyncSurfaceState variant="error" className="mb-5" title="Не удалось загрузить легендарные группы"
-          message="Проверьте соединение и попробуйте ещё раз." actionLabel="Повторить" onAction={onRetry} />
-      ))}
+      )}
 
       {data.warning && !loading && (
         <div className="flex items-center gap-2 text-[#8b6c42] text-xs mb-5 px-3 py-2 rounded-lg bg-[#1a2a3a]/10 border border-[#60a5fa]/20">
-          <AlertTriangle size={13} /><span>Внешний источник временно недоступен — показан последний сохраненный срез</span>
+          <AlertTriangle size={13} /><span>Источник временно недоступен — показан последний сохранённый снимок{updatedAt ? ` от ${updatedAt}` : ''}</span>
         </div>
       )}
 
       {loading ? (
         <LegendariesSkeleton />
-      ) : filtered.length === 0 ? (error && !hasGroups ? null : (
+      ) : !hasGroups ? (
+        // No groups at all is a missing snapshot, never an empty ranking.
+        <AsyncSurfaceState variant="error" className="mb-5" title="Данные временно недоступны"
+          message="Обновим автоматически. Можно повторить сейчас." actionLabel="Повторить" onAction={onRetry} />
+      ) : filtered.length === 0 ? (
         <div className="legendary-empty text-center py-14 rounded-2xl"
           style={{ background: 'linear-gradient(135deg,#ede0c0,#e0cc9e)', border: '2px dashed #c4a46a' }}>
           <div className="text-4xl mb-3" aria-hidden="true">⭐</div>
-          <p className="text-xl font-hs text-[#8b4513] tracking-wide">Легендарных групп пока нет</p>
-          <p className="text-[#8b6c42] mt-2 text-sm">Данные появятся после следующего обновления статистики. Попробуйте выбрать другой класс или зайдите позже.</p>
+          <p className="text-xl font-hs text-[#8b4513] tracking-wide">Групп по этому запросу нет</p>
+          <p className="text-[#8b6c42] mt-2 text-sm">Попробуйте другое название карты или выберите другой класс.</p>
         </div>
-      )) : (
+      ) : (
         <div className="legendary-groups-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {filtered.map((group, idx) => {
             const stats = legendaryGroupStats(group, activeClass);
             const footer = [
               { label: 'Винрейт', value: formatLegendaryStat(stats.winRate, 'pct'), tone: metricTone(stats.winRate, 'pct') },
               { label: 'Частота выбора', value: formatLegendaryStat(stats.pickRate, 'pct'), tone: metricTone(stats.pickRate, 'pct') },
-              { label: 'Частота предложения', value: formatLegendaryStat(stats.offerRate, 'pct'), tone: metricTone(stats.offerRate, 'pct') },
-              { label: 'Очки ArenaSmith', value: formatLegendaryStat(stats.score, 'score'), tone: metricTone(stats.score, 'score') },
             ];
+            const paidProps = { unlocked: paidUnlocked, loading: paidLoading, failed: paidFailed, onLocked: () => openOffer(group) };
             return (
             <div
               key={`${group.keyCard.cardId}-${idx}`}
               data-rank={idx + 1}
+              data-group-id={group.keyCard.cardId}
+              data-selected={groupId === group.keyCard.cardId ? 'true' : undefined}
               data-tour-id={idx === 0 ? 'arena-legendaries-results' : undefined}
               className="legendary-group-card card-hover rounded-2xl flex flex-col items-center p-4 gap-3 cursor-default"
               style={{
@@ -1979,20 +1983,29 @@ export function Legendaries({ data, loading, error, onRetry, legendarySource, on
               }}
             >
               <span className="legendary-group-rank" aria-label={`Место ${idx + 1}`}>{idx + 1}</span>
+              <div className="legendary-group-main flex flex-col items-center gap-3 w-full">
               <LegendaryCardThumb
                 card={group.keyCard}
                 size="lg"
                 onClick={() => setModalCard({ card: toLegendaryCardData(group.keyCard), tier: 'S' })}
               />
 
-              <div className="flex flex-col items-center gap-1 w-full">
+              <div className="legendary-group-heading flex flex-col items-center gap-1 w-full">
                 <span className="font-hs text-[#3d2208] text-base text-center leading-tight">{group.keyCard.name}</span>
                 <span
                   className="legendary-winrate-badge px-3 py-1 rounded-full text-white text-xs font-bold shadow-md"
                   style={{ background: winRateBadgeColor(stats.winRate) }}
                 >
-                  {stats.winRate != null ? `${stats.winRate.toFixed(1)}%` : '—'} винрейт
+                  {stats.winRate != null ? `${stats.winRate.toFixed(1)}%` : 'Нет данных'} винрейт
                 </span>
+                <span className="legendary-sample text-[11px] text-[#735e49]">
+                  {group.totalGames ? `Выборка: ${group.totalGames.toLocaleString('ru-RU')} игр` : 'Выборка: нет данных'}
+                </span>
+                {/* A phone's first screen shows the line-up as text; the card renders below carry the same names. */}
+                {group.cards.length > 0 && <span className="legendary-group-composition" aria-hidden="true">
+                  Состав: {group.cards.map(card => card.name).join(', ')}
+                </span>}
+              </div>
               </div>
 
               {group.cards.length > 0 && (
@@ -2027,6 +2040,10 @@ export function Legendaries({ data, loading, error, onRetry, legendarySource, on
                     <div className={`text-sm font-black leading-tight ${stat.tone}`}>{stat.value}</div>
                   </div>
                 ))}
+                <LegendaryPaidStat metric="offerRate" value={stats.offerRate} tone={metricTone(stats.offerRate, 'pct')}
+                  available={paidAvailable(paidFlags, 'offerRate')} {...paidProps} />
+                <LegendaryPaidStat metric="score" value={stats.score} tone={metricTone(stats.score, 'score')}
+                  available={paidAvailable(paidFlags, 'score')} {...paidProps} />
               </div>
             </div>
             );
@@ -2037,8 +2054,13 @@ export function Legendaries({ data, loading, error, onRetry, legendarySource, on
       {modalCard && (
         <CardModal card={modalCard.card} tier={modalCard.tier} onClose={() => setModalCard(null)} />
       )}
-
-      </PaywallGate>
+      {offer && !paidUnlocked && (
+        <Suspense fallback={null}>
+          <LegendariesPaidOffer groupName={offerGroup?.keyCard.name ?? null} signedIn={Boolean(authUser)}
+            checking={subscriptionLoading} onRefresh={onRefreshSubscription} onClose={() => setOffer(false)} />
+        </Suspense>
+      )}
+      </>
     </div>
   );
 }

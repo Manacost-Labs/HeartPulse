@@ -32,20 +32,27 @@ export interface LegendaryGroup {
   cards: LegendaryCard[];
   winRate: number | null;
   pickRate?: number | null;
+  /** Sample behind the group's winrate; only the open layer carries it. */
+  totalGames?: number | null;
   offerRate?: number | null;
   score?: number | null;
   byClass?: Record<string, {
     winRate: number | null;
     pickRate: number | null;
-    offerRate: number | null;
-    score: number | null;
+    offerRate?: number | null;
+    score?: number | null;
   }>;
   classKey: string;
 }
+
+/** Which paid figures the source has at all: a flag, never a value. */
+export interface LegendaryPaidMetrics { offerRate: boolean; score: boolean }
 
 export interface LegendariesData {
   groups: LegendaryGroup[];
   updatedAt: string | null;
   source: string;
+  sourceId?: LegendarySource;
   warning?: string;
+  paidMetrics?: LegendaryPaidMetrics;
 }
