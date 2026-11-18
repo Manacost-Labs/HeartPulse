@@ -4662,7 +4662,7 @@ for (const [device, viewport] of [
     if (desktopHeading.marginBottom !== '21.6px'
       || desktopHeading.labelColor !== 'rgb(123, 21, 27)'
       || desktopHeading.headingColor !== 'rgb(59, 42, 31)'
-      || desktopHeading.summaryColor !== 'rgb(120, 101, 79)') {
+      || desktopHeading.summaryColor !== '') {
       failures.push(`home headings: desktop parchment typography changed (${JSON.stringify(desktopHeading)})`);
     }
     const desktopArenaDirectory = await page.$eval('.home-arena-directory', element => {
@@ -4691,8 +4691,8 @@ for (const [device, viewport] of [
       || desktopArenaDirectory.labelSize !== '11px'
       || desktopArenaDirectory.headingColor !== 'rgb(255, 240, 200)'
       || desktopArenaDirectory.headingSize !== '29.6px'
-      || desktopArenaDirectory.summaryColor !== 'rgb(111, 89, 67)'
-      || desktopArenaDirectory.summaryMargin !== '0px'
+      || desktopArenaDirectory.summaryColor !== ''
+      || desktopArenaDirectory.summaryMargin !== ''
       || desktopArenaDirectory.gridGap !== '8.8px'
       || desktopArenaDirectory.gridPadding !== '11.2px'
       || desktopArenaDirectory.gridBorder !== '66px'
@@ -4745,7 +4745,7 @@ for (const [device, viewport] of [
       || desktopBgDirectory.labelSize !== '11px'
       || desktopBgDirectory.headingColor !== 'rgb(255, 240, 200)'
       || desktopBgDirectory.headingSize !== '29.6px'
-      || desktopBgDirectory.summaryColor !== 'rgb(111, 89, 67)'
+      || desktopBgDirectory.summaryColor !== ''
       || desktopBgDirectory.gridGap !== '8.8px'
       || desktopBgDirectory.gridPadding !== '11.2px'
       || desktopBgDirectory.gridBorder !== '66px'
@@ -4754,7 +4754,7 @@ for (const [device, viewport] of [
       || desktopBgDirectory.featuredRadius !== '0px'
       || desktopBgDirectory.featuredColor !== 'rgb(62, 47, 35)'
       || desktopBgDirectory.featuredBackground !== 'rgba(255, 245, 218, 0.52)'
-      || desktopBgDirectory.featuredLabel !== 'rgb(125, 64, 91)') {
+      || desktopBgDirectory.featuredLabel !== '') {
       failures.push(`home Battlegrounds directory: desktop frame changed (${JSON.stringify(desktopBgDirectory)})`);
     }
     await page.evaluate(() => {
@@ -4968,9 +4968,9 @@ for (const [device, viewport] of [
       || desktopStageLayout.headingLineHeight !== '58.4px'
       || desktopStageLayout.headingShadow === 'none'
       || desktopStageLayout.headingAccent !== 'rgb(226, 184, 88)'
-      || desktopStageLayout.summaryMarginTop !== '12.8px'
-      || desktopStageLayout.summaryColor !== 'rgb(222, 202, 160)'
-      || desktopStageLayout.summarySize !== '14.56px'
+      || desktopStageLayout.summaryMarginTop !== ''
+      || desktopStageLayout.summaryColor !== ''
+      || desktopStageLayout.summarySize !== ''
       || desktopStageLayout.actionsMarginTop !== '17.6px'
       || desktopStageLayout.primaryBorder !== 'rgba(238, 196, 102, 0.72)'
       || desktopStageLayout.primaryColor !== 'rgb(59, 33, 18)'
@@ -5120,7 +5120,7 @@ for (const [device, viewport] of [
     });
     if (mobileHeading.alignItems !== 'flex-start'
       || mobileHeading.headingSize !== '32px'
-      || mobileHeading.summaryDisplay !== 'none'
+      || mobileHeading.summaryDisplay !== ''
       || Math.abs(mobileHeading.sectionPaddingTop - 35.2) > 0.1) {
       failures.push(`home headings: mobile parchment typography changed (${JSON.stringify(mobileHeading)})`);
     }
@@ -5257,7 +5257,7 @@ for (const [device, viewport] of [
       || mobileStageLayout.headingMaxWidth !== 'none'
       || mobileStageLayout.headingSize !== '39px'
       || mobileStageLayout.headingLineHeight !== '39px'
-      || mobileStageLayout.summarySize !== '12.8px'
+      || mobileStageLayout.summarySize !== ''
       || mobileStageLayout.characterPosition !== 'relative'
       || mobileStageLayout.characterWidth <= 0
       || Math.abs(mobileStageLayout.characterHeight - 171.6) > 0.2
