@@ -153,7 +153,8 @@ const paidGroup = (cardId: string, winRate: number, score: number) => ({
 });
 // Order by score is the reverse of the order by winRate.
 const paidDataset = () => ({
-  groups: [paidGroup('A', 50, 99), paidGroup('C', 60, 10), paidGroup('B', 60, 50), paidGroup('D', 70, 1)],
+  // Group A has no sample size of its own: the public field must be absent, not null.
+  groups: [{ ...paidGroup('A', 50, 99), totalGames: undefined }, paidGroup('C', 60, 10), paidGroup('B', 60, 50), paidGroup('D', 70, 1)],
   updatedAt: '2026-11-18', source: 'HSReplay', futureMetric: 'futureSentinel',
 });
 const publicState = { fail: false, loadFallback: true };
@@ -185,7 +186,8 @@ try {
     timestamp = 10_000;
     publicState.fail = false;
     publicCache.clear();
-    const fresh = await fetch(`${publicOrigin}/legendaries/public?source=${source}`);
+    // `bust` and `t` must not let an anonymous caller bypass the cache.
+    const fresh = await fetch(`${publicOrigin}/legendaries/public?source=${source}&bust=1&t=1`);
     assert.equal(fresh.status, 200);
     assert.equal(fresh.headers.get('cache-control'), 'public, max-age=300, stale-while-revalidate=600');
     const freshText = await fresh.text();
@@ -199,6 +201,8 @@ try {
       'cardId', 'classKey', 'cost', 'count', 'imageHa', 'imageRu', 'name', 'rarity', 'type',
     ]);
     assert.equal(body.groups[0].winRate, 70);
+    assert.equal(body.groups[0].totalGames, 5000);
+    assert.equal('totalGames' in body.groups[3], false);
     assert.ok(publicCache.has(`legendaries-public:${source}`));
     assert.equal(publicGetCalls.every(bypass => bypass === false), true);
 

@@ -21,7 +21,8 @@ export type PublicLegendaryGroup = {
   classKey: string | null;
   winRate: number | null;
   pickRate: number | null;
-  totalGames: number | null;
+  /** Present only when the group row itself carries a sample size. */
+  totalGames?: number;
   keyCard: PublicLegendaryCard;
   cards: PublicLegendaryCard[];
   byClass?: Record<string, { winRate: number | null; pickRate: number | null }>;
@@ -92,10 +93,11 @@ export function projectLegendariesPublic(
       classKey: str(raw.classKey),
       winRate: num(raw.winRate),
       pickRate: num(raw.pickRate),
-      totalGames: num(raw.totalGames),
       keyCard,
       cards: list(raw.cards).map(projectCard).filter((card): card is PublicLegendaryCard => card !== null),
     };
+    const totalGames = num(raw.totalGames);
+    if (totalGames !== null) group.totalGames = totalGames;
     const byClass = projectByClass(raw.byClass);
     if (byClass) group.byClass = byClass;
     groups.push(group);
