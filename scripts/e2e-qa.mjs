@@ -5281,6 +5281,8 @@ for (const [device, viewport] of [
     await auditAccessibility(page, 'home lazy sections and support prompt');
     if (runtimeErrors.length) failures.push(`home lazy sections: ${runtimeErrors.join(' | ')}`);
     await page.click('.support-prompt__close');
+    // Home opens only the Standard group; the reader opens Arena to reach its pages.
+    await page.click('.arena-sidebar [aria-controls="arena-sidebar-arena"]');
     await page.click('.arena-sidebar a[href="/classes/"]');
     await page.waitForFunction(() => document.title.startsWith('Винрейт классов'), { timeout: 5_000 });
     const seoRegistryState = await page.evaluate(() => ({
