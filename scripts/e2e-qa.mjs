@@ -5702,25 +5702,25 @@ for (const [device, viewport] of [
     await new Promise(resolve => setTimeout(resolve, 220));
     const hoverGroup = await page.$eval(standardTrigger, element => ({
       expanded: element.getAttribute('aria-expanded'),
-      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hidden,
+      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hasAttribute('data-closed'),
     }));
     if (hoverGroup.expanded !== 'false' || hoverGroup.hidden !== true) failures.push('desktop sidebar: standard group expanded on hover instead of click');
     await page.click(standardTrigger);
     const expandedGroup = await page.$eval(standardTrigger, element => ({
       expanded: element.getAttribute('aria-expanded'),
-      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hidden,
+      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hasAttribute('data-closed'),
     }));
     if (expandedGroup.expanded !== 'true' || expandedGroup.hidden !== false) failures.push('desktop sidebar: standard group did not expand');
     await page.$eval(hoverTarget, element => element.focus());
     const persistedGroup = await page.$eval(standardTrigger, element => ({
       expanded: element.getAttribute('aria-expanded'),
-      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hidden,
+      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hasAttribute('data-closed'),
     }));
     if (persistedGroup.expanded !== 'true' || persistedGroup.hidden !== false) failures.push('desktop sidebar: standard group closed without a click');
     await page.click(standardTrigger);
     const collapsedGroup = await page.$eval(standardTrigger, element => ({
       expanded: element.getAttribute('aria-expanded'),
-      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hidden,
+      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hasAttribute('data-closed'),
     }));
     if (collapsedGroup.expanded !== 'false' || collapsedGroup.hidden !== true) failures.push('desktop sidebar: standard group did not collapse on the second click');
     const communityTrigger = '[aria-controls="arena-sidebar-community"]';
@@ -5728,7 +5728,7 @@ for (const [device, viewport] of [
     await page.keyboard.press('Enter');
     const keyboardGroup = await page.$eval(communityTrigger, element => ({
       expanded: element.getAttribute('aria-expanded'),
-      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hidden,
+      hidden: document.getElementById(element.getAttribute('aria-controls') || '')?.hasAttribute('data-closed'),
     }));
     if (keyboardGroup.expanded !== 'true' || keyboardGroup.hidden !== false) failures.push('desktop sidebar: community group did not expand from the keyboard');
     await page.keyboard.press('Enter');
@@ -5870,7 +5870,7 @@ for (const [device, viewport] of [
         profileShadow: profileStyles?.boxShadow || '',
         profileAfterDisplay: profile ? getComputedStyle(profile, '::after').display : '',
         undersizedControls: [...document.querySelectorAll('#arena-mobile-menu a[href], #arena-mobile-menu button:not([disabled])')]
-          .filter(element => !element.closest('[hidden]'))
+          .filter(element => !element.closest('[hidden], [data-closed]'))
           .map(element => element.getBoundingClientRect())
           .filter(rect => rect.width < 44 || rect.height < 44)
           .length,
@@ -5949,7 +5949,7 @@ for (const [device, viewport] of [
     await page.evaluate(() => {
       const menu = document.querySelector('#arena-mobile-menu');
       const visible = [...menu.querySelectorAll('a[href], button:not([disabled])')]
-        .filter(element => !element.closest('[hidden]'));
+        .filter(element => !element.closest('[hidden], [data-closed]'));
       visible.at(-1)?.focus();
     });
     await page.keyboard.press('Tab');
@@ -5960,7 +5960,7 @@ for (const [device, viewport] of [
     await page.keyboard.up('Shift');
     const cycledToLast = await page.evaluate(() => {
       const visible = [...document.querySelectorAll('#arena-mobile-menu a[href], #arena-mobile-menu button:not([disabled])')]
-        .filter(element => !element.closest('[hidden]'));
+        .filter(element => !element.closest('[hidden], [data-closed]'));
       return document.activeElement === visible.at(-1);
     });
     if (!cycledToLast) failures.push('mobile menu: Shift+Tab escaped instead of cycling to the last control');

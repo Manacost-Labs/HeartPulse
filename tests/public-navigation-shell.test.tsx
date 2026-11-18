@@ -53,12 +53,12 @@ assert.doesNotMatch(html, /Мета и колоды|Драфт и выборы|�
 assert.doesNotMatch(html, /arena-nav-section-icon|arena-(?:sidebar|mobile-menu)-section/, 'group titles carry no coins');
 // A group title is a button tied to its list; the links of a closed group stay in the HTML for crawlers and no-JS readers.
 assert.match(html, /<button[^>]*aria-expanded="false"[^>]*aria-controls="arena-sidebar-standard"/);
-assert.match(html, /id="arena-sidebar-standard"[^>]*hidden=""[^>]*>[\s\S]*?href="\/standard\/deck-builder\/"/, 'the deck builder is in the Standard group');
+assert.match(html, /id="arena-sidebar-standard"[^>]*data-closed=""[^>]*>[\s\S]*?href="\/standard\/deck-builder\/"/, 'the deck builder is in the Standard group');
 assert.equal(html.match(/arena-(?:sidebar|mobile-menu)-group-trigger/g)?.length, 8, 'four collapsible groups in the drawer and four in the sidebar');
 // Groups open independently: opening one never collapses another under the pointer.
 const bothOpen = renderToStaticMarkup(<PublicNavigation {...props} sidebarNavGroups={new Set(['standard', 'community'] as const)} />);
-assert.match(bothOpen, /id="arena-sidebar-standard"(?![^>]*hidden)/);
-assert.match(bothOpen, /id="arena-sidebar-community"(?![^>]*hidden)/);
+assert.match(bothOpen, /id="arena-sidebar-standard"(?![^>]*data-closed)/);
+assert.match(bothOpen, /id="arena-sidebar-community"(?![^>]*data-closed)/);
 // The administrator panel hangs below the groups, and only when the access allows it.
 assert.doesNotMatch(html, /href="\/admin\/"/);
 const adminHtml = renderToStaticMarkup(<PublicNavigation {...props} appIsContestAdmin />);

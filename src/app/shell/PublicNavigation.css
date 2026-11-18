@@ -206,7 +206,7 @@
     background: rgba(232, 192, 103, 0.2);
   }
 
-  html[data-nav-compact] .arena-sidebar-group-items[hidden] {
+  html[data-nav-compact] .arena-sidebar-group-items[data-closed] {
     display: grid;
     opacity: 1;
     translate: none;

@@ -62,7 +62,7 @@ export function NavigationRouteLinks({
   });
 }
 
-/** A collapsible mode of the menu: the title is the button, its links stay in the server HTML while it is closed. */
+/** A collapsible mode of the menu: the title is the button, its links stay in the server HTML while it is closed (`data-closed`, not `hidden`: Tailwind's preflight makes `[hidden]` unoverridable, and the compact rail must show every item). */
 export function NavigationGroupControl({
   active,
   children,
@@ -95,7 +95,7 @@ export function NavigationGroupControl({
         <span className="arena-nav-label">{title}</span>
         <ChevronDown size={NAV_ICON_SIZE - 2} strokeWidth={NAV_ICON_STROKE} aria-hidden="true" className="arena-nav-group-chevron" />
       </button>
-      <div id={groupId} className={`${classPrefix}-group-items`} hidden={!isOpen}>
+      <div id={groupId} className={`${classPrefix}-group-items`} data-closed={isOpen ? undefined : ''}>
         {children}
       </div>
     </div>
