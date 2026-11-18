@@ -1,16 +1,20 @@
 'use client';
 
-import PaywallGate from '@/src/components/PaywallGate';
-import PaywallPending from '@/src/components/PaywallPending';
+import type { ReactNode } from 'react';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { BattlegroundHeroesRoute, loadBattlegrounds, usePaidViewPrefetch } from './lazyBattlegrounds';
+import { BattlegroundHeroesRangeLocks } from './BattlegroundHeroesRangeLocks';
 import { navigate } from './navigation';
 
-export function BattlegroundHeroesPageClient() {
+/**
+ * `ranking` is the server-rendered open ranking: everyone without access sees it (a guest, a robot, a
+ * signed-in visitor without a subscription), a subscriber has the interactive view in its place.
+ */
+export function BattlegroundHeroesPageClient({ ranking }: { ranking: ReactNode }) {
   const access = usePublicAccess();
   usePaidViewPrefetch(loadBattlegrounds);
-  const { allowed, pending } = paidAccess(access, 'battlegrounds');
+  const { allowed } = paidAccess(access, 'battlegrounds');
   return <PublicPageShell activeTab="bg-heroes" pathname="/heroes/"
     access={access} navigate={navigate} wide>
     <section className="space-y-5">
@@ -25,11 +29,14 @@ export function BattlegroundHeroesPageClient() {
       </header>
       {allowed
         ? <BattlegroundHeroesRoute key={access.user?.id} path="/heroes/" onNavigate={navigate} />
-        : pending
-          ? <PaywallPending>Проверяем доступ к героям...</PaywallPending>
-          : <PaywallGate active title="Герои Полей сражений доступны подписчикам"
-            headingLevel="h2" authUser={access.user} subscriptionStatus={access.subscription}
-            subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />}
+        : <>
+          {ranking}
+          {/* The closed part, named by the page's JSON-LD (`hasPart.cssSelector`); a wrapper without a box of its own. */}
+          <div className="paywalled-heroes" style={{ display: 'contents' }}>
+            <BattlegroundHeroesRangeLocks authUser={access.user} subscriptionStatus={access.subscription}
+              subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />
+          </div>
+        </>}
     </section>
   </PublicPageShell>;
 }

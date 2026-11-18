@@ -341,7 +341,7 @@ test('pages pass the access decision to their gates and reserve the gate height'
   assert.ok(/\.arena-paywall-pending,\s*\.arena-paid-view \{\s*min-height: var\(--subscription-gate-min-height\);\s*\}/.test(paywallCss),
     'the placeholder and a mounting paid view must reserve the gate height token');
   assert.match(read('../src/styles/tokens.css'), /--subscription-gate-min-height: 760px;/);
-  for (const pageClient of ['BattlegroundHeroesPageClient', 'BattlegroundHeroDetailPageClient', 'BattlegroundLibraryPageClient',
+  for (const pageClient of ['BattlegroundHeroDetailPageClient', 'BattlegroundLibraryPageClient',
     'BattlegroundLibraryDetailPageClient', 'BattlegroundTierListPageClient', 'BattlegroundTierBuilderPageClient',
     'BattlegroundStrategiesPageClient', 'GuidesArchivePageClient', 'GuideArchiveDetailPageClient']) {
     const source = read(`../apps/public-web/ui/${pageClient}.tsx`);
@@ -350,4 +350,10 @@ test('pages pass the access decision to their gates and reserve the gate height'
     assert.match(source, /pending\s*\?\s*<PaywallPending\b/, `${pageClient} must reserve the gate while access is pending`);
     assert.ok(!/<p[^>]*aria-busy/.test(source), `${pageClient} must not render a bare pending line`);
   }
+  // /heroes/ has an open ranking: until a subscriber is confirmed everyone gets the server-rendered table and the
+  // locked ranges (no data in them), so there is no gate to reserve and no pending placeholder (E21 OL2a, #305).
+  const heroes = read('../apps/public-web/ui/BattlegroundHeroesPageClient.tsx');
+  assert.match(heroes, /const \{ allowed \} = paidAccess\(access, 'battlegrounds'\);/, 'the heroes page decides with paidAccess');
+  assert.match(heroes, /allowed\s*\?\s*<BattlegroundHeroesRoute\b[\s\S]*\{ranking\}/, 'a subscriber gets the interactive view in place of the ranking');
+  assert.ok(!/PaywallPending/.test(heroes), 'the open ranking needs no pending placeholder');
 });

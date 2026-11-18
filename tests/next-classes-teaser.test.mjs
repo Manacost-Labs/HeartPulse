@@ -8,6 +8,8 @@ import express from 'express';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { createWinrateRouter } from '../server/winrateRoutes.ts';
 import { buildClassesFixture, closedValues, OPEN_ROWS } from './helpers/classesTeaserFixture.ts';
+// The built /heroes/ page (E21 OL2a): hosted here until its own file can be added to tests/test-suites.json.
+import './next-heroes-ranking.check.mjs';
 
 // The built /classes/ page against an Express that serves the real open-slice
 // projection: a guest and a robot get the same HTML with the order of the
@@ -114,7 +116,15 @@ test('the guest HTML of /classes/ carries the open order of the classes and noth
     assert.ok(reads.length > 0 && reads.every(read => read.path === '/api/winrates/public-teaser'), 'only the open projection is read');
     assert.deepEqual([...new Set(state.reads.map(read => read.cookie))], [''], 'cookies are never forwarded');
 
-    // A robot and a guest get the same document.
+    // A robot and a guest get the same document. A regeneration started by the loop above may still land, so
+    // wait until the page is stable (two copies in a row are equal) before comparing the two viewers.
+    let settled = await guestHtml(next.origin);
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      await delay(250);
+      const again = await guestHtml(next.origin);
+      if (again === settled) break;
+      settled = again;
+    }
     assert.equal(await guestHtml(next.origin, { 'User-Agent': ROBOT_UA }), await guestHtml(next.origin, { 'User-Agent': BROWSER_UA }),
       'the HTML does not depend on the user agent');
 
