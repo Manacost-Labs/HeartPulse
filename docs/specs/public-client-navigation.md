@@ -557,12 +557,14 @@ among the Battlegrounds builders and «Разное» was a dump.
    separate link at the bottom, shown only when `appIsContestAdmin`.
 2. Every group is a collapsible block: the title is a button with
    `aria-expanded` and `aria-controls`; the links of a closed group stay in the
-   server HTML (`hidden`). The group of the current page is added to the open
+   server HTML (`data-closed`). The group of the current page is added to the open
    ones on every navigation; Home opens «Стандарт и Вольный». A group opened by
    the reader is never closed by navigation.
-3. One icon per item from `lucide-react`, 18 px, `strokeWidth` 1.75, without a
-   plate. Repeats are rejected by `tests/routes.test.ts`, so the palette (which
-   shows the same icons) stays readable too. FAQ lives in the group `footer`
+3. One icon per item from the site's own SVG set (`src/app/shell/menuIcons.tsx`:
+   a gold outline with a translucent fill, 22 px, `strokeWidth` 1.7), without a
+   plate; each group title carries a coat of arms in the same style. Repeats
+   are rejected by `tests/routes.test.ts`, so the palette (which shows the
+   same icons) stays readable too. FAQ lives in the group `footer`
    with the other help pages and in the header's Help menu.
 4. Group ids became `standard`, `arena`, `battlegrounds`, `community`, `home`,
    `footer`, `admin`; item ids, paths, entitlements and `tabFromPath` did not

@@ -121,7 +121,7 @@ The app has two navigation contexts that share historical class names:
 
 Never add an unscoped duplicate `.arena-mobile-*` rule. The App drawer must remain `position: fixed`; an inline dropdown may use `position: absolute` only inside a positioned parent.
 
-The public menu is organised by what the reader plays or does, not by tool type. Search is the header field (`/` or Ctrl+K). Then **Главная**, and four collapsible groups: **Стандарт и Вольный** (Мета, Матчапы, Архетипы, Фан-колоды, VS Gold, Карты, Конструктор колод, Патчноуты), **Арена**, **Поля сражений** (the strategy and tier-list builders are ordinary items) and **Сообщество** (Подборка, Таблицы лидеров, Стримеры, Конкурсы, Галерея, Косметика, Архив гайдов). The administrator panel sits alone at the bottom and only for administrators. A group title is a button (`aria-expanded`, `aria-controls`) with no icon, coin or plate. The group of the current page is open on arrival (Standard on Home); a group the reader opened stays open while they move around. Closed groups keep their links in the server HTML. The compact rail shows every item and turns group titles into hairlines.
+The public menu is organised by what the reader plays or does, not by tool type. Search is the header field (`/` or Ctrl+K). Then **Главная**, and four collapsible groups: **Стандарт и Вольный** (Мета, Матчапы, Архетипы, Фан-колоды, VS Gold, Карты, Конструктор колод, Патчноуты), **Арена**, **Поля сражений** (the strategy and tier-list builders are ordinary items) and **Сообщество** (Подборка, Таблицы лидеров, Стримеры, Конкурсы, Галерея, Косметика, Архив гайдов). The administrator panel sits alone at the bottom and only for administrators. A group title is a button (`aria-expanded`, `aria-controls`) with the group's small coat of arms, never a coin or a plate. The group of the current page is open on arrival (Standard on Home); a group the reader opened stays open while they move around. Closed groups keep their links in the server HTML. The compact rail shows every item and turns group titles into hairlines.
 
 ### Page Width
 
@@ -184,8 +184,8 @@ and provides a selector and a popularity filter to reduce crowded clusters.
 
 ## Navigation
 
-- Desktop rail uses red texture, a compact HearthPulse fire-mark, quiet gold line icons and expressive cream text.
-- Menu icons are `lucide-react`, one icon per item (no repeats, checked in `tests/routes.test.ts`), always 18 px with `strokeWidth` 1.75, with no plate, border or background. Group titles are small uppercase Inter labels, not icons.
+- Desktop rail uses red texture, a compact HearthPulse fire-mark, quiet gold duotone icons and expressive cream text.
+- Menu icons are the site's own SVG set (`src/app/shell/menuIcons.tsx`): a 24 px grid, a gold outline and a translucent `currentColor` fill, one icon per item (no repeats, checked in `tests/routes.test.ts`), always 22 px with `strokeWidth` 1.7, with no plate, border or background. Group titles are small uppercase Inter labels after the group's coat of arms in the same style. The active item sits on an embossed plaque (gold hairline, lit top edge, dark lower lip).
 - Active link uses a darker red field plus a gold left rule; it must stay readable without glow.
 - Profile badge stays in the Hearthstone deck frame.
 - Mobile uses the same red material, a compact brand and a burger/X button with `aria-expanded`.
@@ -457,7 +457,7 @@ Rules:
 
 ## Changelog
 
-- **2026-11-18** — Menu cleanup (E22): groups by game mode (Стандарт и Вольный, Арена, Поля сражений, Сообщество) instead of «Конструкторы» and «Разное», the deck builder moved to Standard, builders of Battlegrounds became plain items, every item got its own line icon of one size and stroke, icon plates and gold coin emblems removed, administrator panel moved to the bottom, `Ctrl K` hint in the header search.
+- **2026-11-18** — Menu cleanup (E22): groups by game mode (Стандарт и Вольный, Арена, Поля сражений, Сообщество) instead of «Конструкторы» and «Разное», the deck builder moved to Standard, builders of Battlegrounds became plain items, every item got its own icon from the site's duotone SVG set of one size and stroke, groups got coats of arms, icon plates and gold coin emblems removed, the active item sits on an embossed plaque, administrator panel moved to the bottom, `Ctrl K` hint in the header search.
 - **2026-10-29** — Added the plain server-rendered methodology text under the Arena tier list, classes and legendaries pages (`SeoPageIntro`).
 - **2026-10-29** — Removed the white bands at the edges of a scrolled page: the `html` backdrop is the `--arena-rail-red` token and `.bg-wood` is parchment instead of pale blue, `theme-color` follows the red rail, and the archetype rows and meta cards reserve measured heights.
 - **2026-10-04** — Performance wave 3: one LoadingSurface, server-rendered public previews with a 600 ms budget, sidebar prefetch, quicker fade-through, popover mobile drawer, shared hover and overlay motion.
