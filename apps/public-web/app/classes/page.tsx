@@ -4,7 +4,6 @@ import { ClassesPageClient } from '@/apps/public-web/ui/ClassesPageClient';
 import { seoStaticPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
 import { loadPublicClassesTeaser } from '@/apps/public-web/lib/publicClassesTeaser';
 import { ClassesPublicTeaser } from '@/apps/public-web/ui/ClassesPublicTeaser';
-import { SeoPageIntro } from '@/apps/public-web/ui/SeoPageIntro';
 import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 
 // Prerendered and cheap to prefetch: the full ranking loads in the browser for
@@ -19,8 +18,6 @@ export default async function Page() {
   const teaser = await loadPublicClassesTeaser();
   return <>
     <SeoStructuredData path="/classes" data={teaser} />
-    <ClassesPageClient teaser={<ClassesPublicTeaser data={teaser} />}>
-      <SeoPageIntro path="/classes" />
-    </ClassesPageClient>
+    <ClassesPageClient teaser={<ClassesPublicTeaser data={teaser} />} />
   </>;
 }

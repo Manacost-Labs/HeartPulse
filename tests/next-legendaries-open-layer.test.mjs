@@ -63,7 +63,7 @@ test('the guest HTML of /legendaries/ carries the open groups and no paid value'
     const unavailable = await regenerated(html => html.includes('Данные временно недоступны'), 'unavailable message');
     assert.equal(hasGroups(unavailable), false);
     assert.doesNotMatch(unavailable.replaceAll('<!-- -->', ''), /\d+ групп/, 'no snapshot shows no group count, and is not «0 groups»');
-    assert.match(unavailable, /class="seo-page-intro"/, 'the page text stays');
+    assert.doesNotMatch(unavailable, /О странице/, 'no explanation block is printed');
 
     state.down = false;
     const raw = await regenerated(hasGroups, 'groups appear');

@@ -218,7 +218,6 @@ export const SKELETON_ROUTES = [
       { name: 'board', skeleton: '.arena-classes-loading', loaded: 'ol.arena-classes-board', check: 'fixed' },
       ...[0, 1, 2].map(index => ({ name: `row ${index + 1}`, index, check: 'fixed',
         skeleton: '.arena-classes-loading .arena-class-row', loaded: 'ol.arena-classes-board .arena-class-row' })),
-      { name: 'chart disclosure', skeleton: '.arena-classes-chart--loading', loaded: 'details.arena-classes-chart', check: 'fixed' },
     ],
   },
   {
