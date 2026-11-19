@@ -7147,8 +7147,8 @@ app.use(express.urlencoded({ extended: false, limit: '16kb' }));
 
 const cardImageRouterDependencies = createCardImageDependencies({
   cacheDir: CARD_IMAGE_CACHE_DIR,
-  ensureCardImage,
-  ensureCardTile,
+  ensureCardImage, ensureCardTile,
+  deckArt: { catalogBaseUrl: KOLODAHS_API_BASE_URL, withSlot: withCardImageSlot },
   immutableCacheHeader: BG_IMAGE_CACHE_CONTROL,
   onError: (scope, error) => console.error(
     `[api/card-image] ${scope} failed:`,

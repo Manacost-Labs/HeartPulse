@@ -2,7 +2,7 @@ import { createReadStream, statSync } from 'node:fs';
 import type { Readable } from 'node:stream';
 import { Router, type Request, type Response } from 'express';
 
-export type CardImageVariant = 'thumb' | 'full' | 'tile';
+export type CardImageVariant = 'thumb' | 'full' | 'tile' | 'row' | 'portrait';
 export type CardImageSource = 'blizzard' | 'fallback' | 'placeholder';
 export type CardImageResult = { path: string; source: CardImageSource };
 
@@ -29,6 +29,8 @@ export type CardImageResponder = (
   variant: CardImageVariant,
   options?: CardImageResponseOptions,
 ) => Promise<void>;
+
+const CARD_IMAGE_VARIANTS: readonly CardImageVariant[] = ['thumb', 'full', 'tile', 'row', 'portrait'];
 
 export function normalizeCardImageId(value: unknown): string | null {
   const cardId = String(value ?? '').trim();
@@ -100,11 +102,7 @@ export function createCardImageRouter(dependencies: CardImageRouterDependencies)
 
   router.get('/card-image/:cardId/:variant.webp', async (request, response) => {
     const cardId = normalizeCardImageId(request.params.cardId);
-    const variant: CardImageVariant | null = request.params.variant === 'full'
-      || request.params.variant === 'thumb'
-      || request.params.variant === 'tile'
-      ? request.params.variant
-      : null;
+    const variant: CardImageVariant | null = CARD_IMAGE_VARIANTS.find(item => item === request.params.variant) ?? null;
 
     if (!cardId || !variant) {
       response.set('Cache-Control', 'no-store');
