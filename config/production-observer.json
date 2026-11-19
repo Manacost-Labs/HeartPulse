@@ -37,9 +37,9 @@
         "assertions": [{ "selector": ".arena-paywall", "minCount": 1 }]
       },
       {
-        "id": "arena-tier-list-paywall",
+        "id": "arena-tier-list-open-pool",
         "path": "/tierlist",
-        "assertions": [{ "selector": ".arena-paywall", "minCount": 1 }]
+        "assertions": [{ "selector": ".tierlist-public-pool tbody tr", "minCount": 100 }]
       },
       {
         "id": "arena-legendaries-open-layer",

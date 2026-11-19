@@ -354,7 +354,7 @@ test('every dataset names where its data comes from and which metrics it measure
     '/standard/archetypes': ['Винрейт', 'Популярность', 'Число игр'],
     '/standard/vicious-gold': ['Винрейт колоды', 'Частота колоды', 'Частота класса', 'Power Tier'],
     '/classes': ['Винрейт класса'],
-    '/tierlist': ['Оценка карты'],
+    '/tierlist': ['Оценка карты', 'Винрейт карты', 'Частота выбора карты'],
   };
   for (const path of Object.keys(sources)) {
     const dataset = byType((await seoStructuredDataGraph(path))!['@graph'], 'Dataset')!;
