@@ -247,23 +247,28 @@
 
 .hp-mode { position: relative; }
 
+/*
+ * The button is a small banner: the art of the current mode behind a darkening
+ * that keeps the label readable, the emblem, the label and a round gold chevron.
+ * The art and the darkening are layers, so hover moves only transform and opacity.
+ */
 .hp-mode-button {
   position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-height: 72px;
-  padding: 8px 16px 8px 12px;
-  border: 1px solid rgba(238, 201, 116, 0.42);
-  border-radius: 16px;
+  gap: 10px;
+  height: 76px;
+  padding: 0 12px 0 10px;
+  overflow: hidden;
+  border: 1px solid rgba(238, 201, 116, 0.55);
+  border-radius: 14px;
   color: #fff3d0;
-  background:
-    linear-gradient(180deg, rgba(255, 226, 157, 0.16), rgba(255, 226, 157, 0.03) 46%, rgba(30, 2, 5, 0.34)),
-    rgba(52, 5, 9, 0.5);
-  box-shadow: inset 0 1px rgba(255, 240, 201, 0.2), 0 8px 18px rgba(28, 3, 5, 0.34);
+  background: #2a0709;
+  box-shadow: inset 0 0 0 1px rgba(20, 2, 4, 0.7), 0 8px 18px rgba(28, 3, 5, 0.34);
   cursor: pointer;
+  isolation: isolate;
   list-style: none;
-  transition: border-color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease);
+  transition: border-color var(--motion-fast) var(--motion-ease);
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }
@@ -271,12 +276,34 @@
 .hp-mode-button::-webkit-details-marker { display: none; }
 .hp-mode-button::marker { content: ''; }
 
+/* Dark on the left, in the colour of the sidebar, clear on the right where the face of the character is. */
+.hp-mode-button::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, rgba(34, 3, 6, 0.97) 0%, rgba(34, 3, 6, 0.9) 36%, rgba(34, 3, 6, 0.5) 62%, rgba(34, 3, 6, 0.08) 100%);
+  pointer-events: none;
+}
+
+.hp-mode-face-art {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: right center;
+  transition: transform calc(var(--motion-slow) + 60ms) var(--motion-ease);
+}
+
 .hp-mode-button:focus-visible {
   outline: 2px solid #f7d77d;
   outline-offset: 2px;
 }
 
-.hp-mode-button:active { transform: scale(0.98); }
+.hp-mode-button:active { transform: scale(0.985); }
 
 .hp-mode-emblem {
   display: grid;
@@ -284,10 +311,9 @@
   width: 48px;
   height: 48px;
   place-items: center;
-  transition: transform var(--motion-fast) var(--motion-ease);
 }
 
-.hp-mode-emblem img { display: block; width: 100%; height: 100%; }
+.hp-mode-emblem img { display: block; width: 100%; height: 100%; filter: drop-shadow(0 2px 3px rgba(10, 1, 2, 0.6)); }
 
 .hp-mode-copy {
   display: grid;
@@ -297,7 +323,7 @@
 }
 
 .hp-mode-kicker {
-  color: #d9b567;
+  color: #e2bf72;
   font-family: var(--font-body);
   font-size: 11.5px;
   font-weight: 800;
@@ -310,31 +336,34 @@
   overflow-wrap: anywhere;
   color: #fffaf0;
   font-family: var(--font-body);
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 700;
-  line-height: 1.15;
-  text-shadow: 0 1px 2px rgba(30, 3, 5, 0.6);
+  line-height: 1.12;
+  text-shadow: 0 1px 3px rgba(20, 2, 4, 0.8);
 }
 
 .hp-mode-chevron {
-  flex: 0 0 20px;
-  color: #f0c869;
+  display: grid;
+  flex: 0 0 28px;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  border-radius: 50%;
+  color: #3b0609;
+  background: linear-gradient(180deg, #fbe19a, #dba43a);
+  box-shadow: 0 2px 6px rgba(10, 1, 2, 0.55), inset 0 1px rgba(255, 255, 255, 0.55);
   transition: transform var(--motion-base) var(--motion-ease);
 }
 
-.hp-mode[open] > .hp-mode-button { border-color: rgba(255, 224, 150, 0.8); }
+.hp-mode[open] > .hp-mode-button { border-color: rgba(255, 224, 150, 0.85); }
 .hp-mode[open] > .hp-mode-button .hp-mode-chevron { transform: rotate(180deg); }
 
 @media (hover: hover), (min-width: 1024px) {
-  .hp-mode-button:hover {
-    border-color: rgba(255, 224, 150, 0.78);
-    background-color: rgba(76, 8, 13, 0.6);
-  }
-
-  .hp-mode-button:hover .hp-mode-emblem { transform: scale(1.06); }
-  .hp-mode-button:hover .hp-mode-chevron { transform: translateY(2px); }
-  .hp-mode[open] > .hp-mode-button:hover .hp-mode-chevron { transform: rotate(180deg) translateY(2px); }
+  .hp-mode-button:hover { border-color: rgba(255, 228, 160, 0.9); }
+  .hp-mode-button:hover .hp-mode-face-art { transform: scale(1.06); }
 }
+
+.hp-mode-button:focus-visible .hp-mode-face-art { transform: scale(1.06); }
 
 /* The panel of banners. A closed <details> hides it; the content box fades in and out where the browser animates it. */
 .hp-mode::details-content {
@@ -350,62 +379,74 @@
 }
 
 @keyframes hp-mode-panel-in {
-  from { transform: scale(0.96); }
+  from { opacity: 0; transform: scale(0.98); }
 }
 
 @keyframes hp-mode-card-in {
   from { opacity: 0; transform: translateY(12px); }
 }
 
-.hp-mode[open] .hp-mode-panel { animation: hp-mode-panel-in var(--motion-base) var(--motion-ease); }
+@keyframes hp-mode-sheen {
+  0% { opacity: 0; transform: translateX(0) skewX(-14deg); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(560%) skewX(-14deg); }
+}
+
+.hp-mode[open] .hp-mode-panel { animation: hp-mode-panel-in 200ms var(--motion-ease); }
 
 .hp-mode[open] .hp-mode-card {
   animation: hp-mode-card-in var(--motion-base) var(--motion-ease) backwards;
-  animation-delay: calc(var(--i) * var(--motion-stagger));
+  animation-delay: calc(var(--i) * 40ms);
 }
 
+/*
+ * A banner card: a dark rim, a thin gold line inside it (::before), and above
+ * that a brighter gold frame with a glow (::after) that hover, focus and the
+ * current mode fade in; the art, the title's shade and the glow are separate
+ * layers, so only transform and opacity ever change.
+ */
 .hp-mode-card {
   position: relative;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
   min-width: 0;
-  height: 232px;
+  height: 252px;
   overflow: hidden;
   border-radius: 16px;
   color: #fff7df;
-  background: #2a0709;
-  box-shadow: 0 6px 16px rgba(10, 1, 2, 0.45), inset 0 0 0 1px rgba(246, 218, 160, 0.26);
+  background: #1b0406;
+  box-shadow: 0 6px 16px rgba(10, 1, 2, 0.45), 0 0 0 1px rgba(14, 1, 3, 0.9);
   isolation: isolate;
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
   transition: transform var(--motion-base) var(--motion-ease);
 }
 
-/* A golden frame with a glow: its own layer, so hover only fades it in. */
 .hp-mode-card::before {
   content: '';
   position: absolute;
-  inset: 0;
+  inset: 3px;
   z-index: 3;
+  border-radius: 13px;
+  box-shadow: inset 0 0 0 1px rgba(236, 196, 106, 0.6), 0 0 0 3px rgba(14, 1, 3, 0.55);
+  pointer-events: none;
+}
+
+.hp-mode-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 4;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 2px #f3cf79, 0 0 22px rgba(247, 205, 99, 0.5);
+  box-shadow: inset 0 0 0 2px #f6d680, inset 0 0 24px rgba(247, 205, 99, 0.35);
   opacity: 0;
   transition: opacity var(--motion-base) var(--motion-ease);
   pointer-events: none;
 }
 
-.hp-mode-card[aria-current='true']::before { opacity: 0.55; }
-
-/* The darkening under the title keeps it readable over any art. */
-.hp-mode-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(180deg, transparent 38%, rgba(14, 2, 4, 0.78) 70%, rgba(12, 1, 3, 0.94));
-  pointer-events: none;
-}
+.hp-mode-card[aria-current='true']::after { opacity: 0.7; }
+.hp-mode-card[aria-current='true'] { box-shadow: 0 6px 22px rgba(247, 205, 99, 0.28), 0 0 0 1px rgba(14, 1, 3, 0.9); }
 
 .hp-mode-art {
   position: absolute;
@@ -413,7 +454,7 @@
   z-index: 0;
   display: block;
   overflow: hidden;
-  transition: transform calc(var(--motion-slow) * 2) var(--motion-ease);
+  transition: transform 420ms var(--motion-ease);
 }
 
 .hp-mode-art img {
@@ -424,10 +465,23 @@
   object-position: center 20%;
 }
 
+/* A band of light that crosses the art once as the card is hovered or focused. */
+.hp-mode-art::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -45%;
+  width: 36%;
+  background: linear-gradient(90deg, transparent, rgba(255, 244, 210, 0.34), transparent);
+  opacity: 0;
+  pointer-events: none;
+}
+
 .hp-mode-badge {
   position: absolute;
-  top: 10px;
-  left: 10px;
+  top: 12px;
+  left: 12px;
   z-index: 2;
   align-items: center;
   padding: 4px 9px;
@@ -447,10 +501,30 @@
   position: relative;
   z-index: 2;
   display: grid;
-  gap: 4px;
+  gap: 3px;
   padding: 0 14px 14px;
   font-family: var(--font-body);
 }
+
+/* The shade under the emblem and the title: dense enough for 4.5:1 over any art. */
+.hp-mode-card-text::before {
+  content: '';
+  position: absolute;
+  inset: -90px 0 0;
+  z-index: -1;
+  background: linear-gradient(180deg, transparent, rgba(14, 2, 4, 0.82) 44%, rgba(12, 1, 3, 0.95));
+  pointer-events: none;
+}
+
+.hp-mode-card-emblem {
+  display: block;
+  width: 44px;
+  height: 44px;
+  margin-bottom: 2px;
+  filter: drop-shadow(0 2px 4px rgba(10, 1, 2, 0.7));
+}
+
+.hp-mode-card-emblem img { display: block; width: 100%; height: 100%; }
 
 .hp-mode-card-text strong {
   overflow-wrap: anywhere;
@@ -460,8 +534,8 @@
   text-shadow: 0 2px 6px rgba(10, 1, 2, 0.7);
 }
 
-.hp-mode-card-text span {
-  color: #ecd9b0;
+.hp-mode-card-desc {
+  color: #f0dfb8;
   font-size: 13.5px;
   font-weight: 500;
   line-height: 1.3;
@@ -469,8 +543,9 @@
 
 @media (hover: hover), (min-width: 1024px) {
   .hp-mode-card:hover { transform: translateY(-4px); }
-  .hp-mode-card:hover::before { opacity: 1; }
-  .hp-mode-card:hover .hp-mode-art { transform: scale(1.05); }
+  .hp-mode-card:hover::after { opacity: 1; }
+  .hp-mode-card:hover .hp-mode-art { transform: scale(1.06); }
+  .hp-mode-card:hover .hp-mode-art::after { animation: hp-mode-sheen 760ms var(--motion-ease) 1; }
 }
 
 .hp-mode-card:focus-visible {
@@ -478,8 +553,11 @@
   outline-offset: 2px;
 }
 
-.hp-mode-card:focus-visible::before { opacity: 1; }
-.hp-mode-card:active { transform: scale(0.98); }
+.hp-mode-card:focus-visible { transform: translateY(-4px); }
+.hp-mode-card:focus-visible::after { opacity: 1; }
+.hp-mode-card:focus-visible .hp-mode-art { transform: scale(1.06); }
+.hp-mode-card:focus-visible .hp-mode-art::after { animation: hp-mode-sheen 760ms var(--motion-ease) 1; }
+.hp-mode-card:active { transform: scale(0.985); }
 
 /* ─── Desktop sidebar ──────────────────────────────────────────────────── */
 
@@ -560,11 +638,11 @@
   /* The panel opens to the right of the sidebar, over the page: 4 banners in a row, 2×2 on a narrower window. */
   .hp-mode[data-variant='sidebar'] .hp-mode-panel {
     position: absolute;
-    top: -6px;
+    top: 0;
     left: calc(100% + 0.72rem + 14px + 10px);
     z-index: 70;
     grid-template-columns: repeat(2, 200px);
-    max-height: calc(100dvh - 140px);
+    max-height: calc(100dvh - 150px);
     padding: 14px;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -575,6 +653,7 @@
       linear-gradient(180deg, #2c070a, #1b0406);
     box-shadow: 0 28px 64px rgba(8, 1, 2, 0.6), 0 0 0 1px rgba(8, 1, 2, 0.6), inset 0 1px rgba(255, 233, 180, 0.16);
     transform-origin: top left;
+    scrollbar-width: thin;
   }
 
   @media (min-width: 1360px) {
@@ -583,7 +662,7 @@
       overflow-y: visible;
     }
 
-    .hp-mode[data-variant='sidebar'] .hp-mode-card { height: 280px; }
+    .hp-mode[data-variant='sidebar'] .hp-mode-card { height: 296px; }
   }
 
   /* Rail: icons only, the mode button is its coat of arms, one shared tooltip. Applied before first paint from the remembered choice (navigationPreference.ts). */
@@ -623,9 +702,13 @@
 
   html[data-nav-compact] .arena-sidebar .hp-mode-button {
     justify-content: center;
-    min-height: 64px;
-    padding: 8px 0;
+    height: 64px;
+    padding: 0;
   }
+
+  /* In the rail the button is only the emblem: no art, no darkening, so no request for the face. */
+  html[data-nav-compact] .arena-sidebar .hp-mode-face-art { display: none; }
+  html[data-nav-compact] .arena-sidebar .hp-mode-button::before { display: none; }
 
   html[data-nav-compact] .hp-mode[data-variant='sidebar'] .hp-mode-panel { left: calc(100% + 0.55rem + 14px + 10px); }
 
@@ -749,18 +832,32 @@
     padding: 12px 0 4px;
   }
 
-  .hp-mode[data-variant='mobile'] .hp-mode-card { height: 196px; }
+  .arena-mobile-menu .hp-mode-button { height: 80px; }
+
+  .hp-mode[data-variant='mobile'] .hp-mode-card { height: 216px; }
   .hp-mode[data-variant='mobile'] .hp-mode-card-text { padding: 0 11px 11px; }
   .hp-mode[data-variant='mobile'] .hp-mode-card-text strong { font-size: 17px; }
-  .hp-mode[data-variant='mobile'] .hp-mode-card-text span { font-size: 12.5px; }
+  .hp-mode[data-variant='mobile'] .hp-mode-card-desc { font-size: 12.5px; }
   .hp-mode[data-variant='mobile'] .hp-mode-panel { animation: none; }
+  .hp-mode[data-variant='mobile'] .hp-mode-card-emblem { width: 40px; height: 40px; }
 }
 
+/* Reduced motion: nothing moves; hover and focus still change the colour of the frame. */
 @media (prefers-reduced-motion: reduce) {
   .hp-nav-link:hover .hp-nav-icon,
   .hp-nav-link:hover .hp-nav-label,
   .hp-mode-card:hover,
+  .hp-mode-card:focus-visible,
   .hp-mode-card:hover .hp-mode-art,
+  .hp-mode-card:focus-visible .hp-mode-art,
+  .hp-mode-button:hover .hp-mode-face-art,
+  .hp-mode-button:focus-visible .hp-mode-face-art,
   .hp-nav-link:active,
+  .hp-mode-button:active,
   .hp-mode-card:active { transform: none; }
+
+  .hp-mode-card:hover .hp-mode-art::after,
+  .hp-mode-card:focus-visible .hp-mode-art::after,
+  .hp-mode[open] .hp-mode-panel,
+  .hp-mode[open] .hp-mode-card { animation: none; }
 }

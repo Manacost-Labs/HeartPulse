@@ -59,10 +59,19 @@ assert.equal(html.match(/>Текущий</g)?.length, 8, 'every banner carries t
 // The page's mode picks the list on its own; a page without a mode leaves it to the remembered choice.
 assert.match(html, /<nav[^>]*class="arena-sidebar-nav hp-nav"[^>]*data-page-mode="community"/);
 assert.doesNotMatch(renderToStaticMarkup(<PublicNavigation {...props} activeTab="home" />), /data-page-mode/);
-// Menu art: a painted icon of 40 px for each item, no inline line icons left.
-assert.match(html, /<img class="hp-nav-art" src="\/menu\/icons\/standard-meta\.webp" width="40" height="40" loading="lazy" decoding="async" alt=""\/>/);
-assert.match(html, /src="\/menu\/icons\/mode-community\.webp" width="48" height="48"/);
-assert.match(html, /src="\/menu\/banners\/arena\.webp"/);
+// Menu art: a painted icon of 40 px in three files (width descriptors), the emblem of a mode at 48 px, no inline line icons left.
+assert.match(html, /<img class="hp-nav-art" src="\/menu\/icons\/standard-meta-80\.webp" srcSet="\/menu\/icons\/standard-meta-40\.webp 40w, \/menu\/icons\/standard-meta-80\.webp 80w, \/menu\/icons\/standard-meta-120\.webp 120w" sizes="40px" width="40" height="40" loading="lazy" decoding="async" alt=""\/>/);
+assert.match(html, /srcSet="\/menu\/icons\/mode-community-40\.webp 40w[^"]*" sizes="48px" width="48" height="48"/);
+// A banner card takes its art from a two-file srcset and shows the emblem of its mode; the button's face is a wide strip per mode.
+assert.match(html, /srcSet="\/menu\/banners\/arena-440\.webp 440w, \/menu\/banners\/arena-571\.webp 571w" sizes="\(min-width: 1024px\) 200px, 170px" width="440" height="616"/);
+assert.equal(html.match(/class="hp-mode-card-emblem"/g)?.length, 8, 'each banner carries the emblem of its mode');
+assert.equal(html.match(/<img class="hp-mode-face-art" src="\/menu\/banners\/(?:standard|arena|battlegrounds|community)-face\.webp" width="520" height="160" loading="lazy"/g)?.length, 8, 'four faces in each switch, all lazy');
+assert.doesNotMatch(html, /\/menu\/icons\/[a-z-]+\.webp|\/menu\/banners\/(?:standard|arena|battlegrounds|community)\.webp/, 'no file in the old single-size naming is referenced');
+// Order: the switch comes first, then «Главная», then the list of the mode; the same in the drawer and in the sidebar.
+for (const part of html.split('<div class="hp-nav-top">').slice(1)) {
+  const [switchAt, homeAt, listAt] = [part.indexOf('<details class="hp-mode"'), part.indexOf('href="/"'), part.indexOf('class="hp-nav-list"')];
+  assert.ok(switchAt >= 0 && switchAt < homeAt && homeAt < listAt, 'switch, then Главная, then the list');
+}
 assert.doesNotMatch(html, /class="hp-nav-icon"[^>]*><svg/, 'no line icons are left in the items');
 // The administrator panel hangs below the groups, and only when the access allows it.
 assert.doesNotMatch(html, /href="\/admin\/"/);

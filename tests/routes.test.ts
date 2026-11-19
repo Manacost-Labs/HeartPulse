@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import {
   ADMIN_ONLY_TAB_IDS,
   ADMIN_TABS,
@@ -65,13 +65,18 @@ assert.deepEqual(STANDARD_TABS.map(route => route.id).filter(id => id === 'deck-
 assert.deepEqual(BATTLEGROUNDS_TABS.map(route => route.id), ['bg-heroes', 'bg-tier-list', 'bg-library', 'bg-strategies', 'bg-tier-builder'],
   'Battlegrounds builders are plain items of the group');
 
-// Every item of the menu has a painted icon and every mode an emblem and a banner, each a file that exists.
+// Every item of the menu has a painted icon in three sizes, every mode an emblem, two banner sizes and a face strip, each a file that exists.
+const iconIds = [...grouped, ...NAVIGATION_MODES.map(mode => `mode-${mode.id}`)];
 const artFiles = [
-  ...grouped.map(id => menuArt.icons[id as keyof typeof menuArt.icons]),
-  ...NAVIGATION_MODES.map(mode => menuArt.icons[`mode-${mode.id}` as keyof typeof menuArt.icons]),
-  ...NAVIGATION_MODES.map(mode => menuArt.banners[mode.id as keyof typeof menuArt.banners]),
+  ...iconIds.flatMap(id => [40, 80, 120].map(width => `/menu/icons/${id}-${width}.webp`)),
+  ...NAVIGATION_MODES.flatMap(mode => [`${mode.id}-440`, `${mode.id}-571`, `${mode.id}-face`].map(name => `/menu/banners/${name}.webp`)),
 ];
-assert.deepEqual(artFiles.filter(file => !file || !existsSync(`public${file}`)), [], 'menu art must exist for every item and mode');
+assert.deepEqual(artFiles.filter(file => !existsSync(`public${file}`)), [], 'menu art must exist for every item and mode');
+assert.deepEqual(iconIds.filter(id => !menuArt.icons.includes(id)), [], 'menuArt.json must list every icon id');
+assert.deepEqual([...menuArt.icons].sort(), [...new Set(iconIds)].sort(), 'menuArt.json lists no icon without a menu item');
+assert.deepEqual([...menuArt.banners].sort(), NAVIGATION_MODES.map(mode => mode.id).sort(), 'menuArt.json lists a banner for each mode');
+assert.deepEqual(readdirSync('public/menu/icons').filter(file => !/-(?:40|80|120)\.webp$/.test(file)), [], 'no icon in the old single-size naming stays in public/menu/icons');
+assert.deepEqual(readdirSync('public/menu/banners').filter(file => !/-(?:440|571|face)\.webp$/.test(file)), [], 'no banner in the old naming stays in public/menu/banners');
 assert.deepEqual(NAVIGATION_MODES.map(mode => mode.homeTab).map(tab => tabFromPath(TABS.find(route => route.id === tab)?.path ?? '')), NAVIGATION_MODES.map(mode => mode.homeTab),
   'a banner leads to the main page of its mode');
 

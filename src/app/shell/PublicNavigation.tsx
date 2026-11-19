@@ -44,13 +44,13 @@ type TreeProps = Pick<PublicNavigationProps, 'activeTab' | 'appIsContestAdmin' |
   variant: 'mobile' | 'sidebar';
 };
 
-/** «Главная» and the mode switch stay above the list; the list scrolls on a low window while the switch's panel opens beside it. */
+/** The mode switch and «Главная» stay above the list, in that order; the list scrolls on a low window while the switch's panel opens beside it. */
 function NavigationTree({ variant, activeTab, appIsContestAdmin, badges, mode, onNavigate, visibleArenaTabs, visibleCommunityTabs }: TreeProps) {
   const linkProps = { activeTab, variant, badges, onNavigate };
   return <>
     <div className="hp-nav-top">
-      <NavigationRouteLinks routes={HOME_TABS} {...linkProps} />
       <NavigationModePicker variant={variant} mode={mode} onNavigate={onNavigate} />
+      <NavigationRouteLinks routes={HOME_TABS} {...linkProps} />
     </div>
     <div className="hp-nav-scroll">
       <NavigationModeLists {...linkProps}
