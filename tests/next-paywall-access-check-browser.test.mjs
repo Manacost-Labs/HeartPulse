@@ -79,7 +79,7 @@ test('gated pages keep the gate height while the access check runs', async () =>
     const viewports = [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true, hasTouch: true }];
     for (const viewport of viewports) {
       for (const path of ['/library/', '/battlegrounds/tier-list/', '/battlegrounds/strategies/', '/guides-archive/',
-        '/standard/matchups/', '/standard/vicious-gold/']) {
+        '/standard/vicious-gold/']) {
         const page = await browser.newPage();
         await page.setViewport(viewport);
         await page.evaluateOnNewDocument(() => {

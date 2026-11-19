@@ -44,6 +44,12 @@
     "tests/next-legendaries-open-layer-browser.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
+    "tests/next-standard-matchups-open-layer.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
+    "tests/next-standard-matchups-open-browser.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
     "tests/hsreplay-tierlist.test.ts": {
       "TIERLIST_TEST_SKIP_HANDLER": "1"
     }
@@ -396,6 +402,8 @@
         "tests/scraper-browser-runtime.test.ts",
         "tests/sqlite-connection.test.ts",
         "tests/standard-matchup-routes.test.ts",
+        "tests/standard-matchups-public.test.ts",
+        "tests/standard-matchups-public-projection.test.ts",
         "tests/card-choices.test.ts",
         "tests/standard-matchups-client.test.ts",
         "tests/standard-matchups-matrix.test.ts",
@@ -545,6 +553,8 @@
         "tests/next-tierlist-public.test.mjs",
         "tests/next-classes-teaser.test.mjs",
         "tests/next-legendaries-open-layer.test.mjs",
+        "tests/next-standard-matchups-open-layer.test.mjs",
+        "tests/next-standard-matchups-open-browser.test.mjs",
         "tests/next-legendaries-open-layer-browser.test.mjs",
         "tests/next-standard-meta-open-browser.test.mjs",
         "tests/next-admin-browser.test.mjs",

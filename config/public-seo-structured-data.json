@@ -555,8 +555,14 @@
         "@type": "Dataset",
         "@id": "https://hearthpulse.net/standard/matchups/#dataset",
         "name": "Матчапы Стандарта Hearthstone",
-        "description": "Матрица винрейтов архетипов актуальной меты Стандарта Hearthstone по данным HSGuru.",
+        "description": "Общий срез матчапов Стандарта и Вольного формата Hearthstone по данным HSGuru: винрейт и число игр каждой пары популярных архетипов открыты. Срезы по рангам, периодам и история матчапов доступны по подписке.",
         "url": "https://hearthpulse.net/standard/matchups/",
+        "isAccessibleForFree": false,
+        "hasPart": {
+          "@type": "WebPageElement",
+          "isAccessibleForFree": false,
+          "cssSelector": ".paywalled-standard-matchups"
+        },
         "isBasedOn": {
           "@type": "Dataset",
           "name": "HSGuru: Matchups",

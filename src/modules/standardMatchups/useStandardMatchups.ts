@@ -1,3 +1,5 @@
+'use client';
+
 import { useCallback, useEffect, useState } from 'react';
 import { createStandardMatchupsClient } from './model/client';
 import { readStandardMatchupsSlice, sameStandardMatchupsSlice, writeStandardMatchupsSlice } from './model/slice';
