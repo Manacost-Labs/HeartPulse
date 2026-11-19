@@ -24,6 +24,6 @@ export function createPatchNotesApi(dependencies: PatchNotesServiceDependencies 
     setTimeout(record, 2 * 60_000).unref();
     setInterval(record, 60 * 60_000).unref();
   }
-  return createPatchNotesRouter({ load: createPatchNotesService({ officialArticles: [official3702], ...service, archetypeSnapshots }).load,
-    ...(onError ? { onError } : {}) });
+  const notes = createPatchNotesService({ officialArticles: [official3702], ...service, archetypeSnapshots });
+  return createPatchNotesRouter({ load: notes.load, withCardVersions: notes.withCardVersions, ...(onError ? { onError } : {}) });
 }
