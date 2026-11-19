@@ -158,7 +158,8 @@ test('cosmetic pages are graphs with the full trail, their lists name the cards 
         assert.deepEqual(objects.find(node => node['@type'] === 'WebSite').publisher, { '@id': ORGANIZATION['@id'] }, 'the site points at the organization');
       }
       if (path.startsWith('/battlegrounds/')) {
-        const page = objects.find(node => node['@type'] === 'WebPage');
+        // The strategies page lists its open builds, so it is a collection; the builder is a plain page.
+        const page = objects.find(node => node['@type'] === (path === '/battlegrounds/strategies/' ? 'CollectionPage' : 'WebPage'));
         assert.equal(page.url, `https://hearthpulse.net${path}`);
         assert.ok(page.name && page.description, `${path} names and describes itself`);
       }
