@@ -47,13 +47,15 @@ base; the other bases carry `donors: null` and `donorsTotal`.
 `useCardAssemble(format, cardId, base, enabled)` (states `idle | loading |
 missing | ready | error`; ordinary cards send no request).
 
-- `isAssembleCard(card)`: a bold «Собирает»/«собираете»/«Assemble» in the Russian or English
-  text, or the `ASSEMBLE` mechanic. HSJ marks none of the 13 cards with it.
+- `isAssembleCard(card)`: a bold «Собирает»/«собираете»/«Assemble» in the
+  Russian or English text, or the `ASSEMBLE` mechanic. HSJ marks none of the
+  13 cards with it.
 - `assembleOptionsOfBase(base)`: «Лучшие сборки», every donor option by pick rate
   descending, small samples last.
 - `assembleMeanWinrate(base)` / `assembleWinrateTone(value, base)`: winrate
   tone against the average of the base's real samples (the thresholds of
-  `cardChoiceWinrateTone`); percent format is `formatChoicePercent` (re-exported from the Assemble model).
+  `cardChoiceWinrateTone`); percent format is `formatChoicePercent`
+  (re-exported from the Assemble model).
 - `bestOfOffered(base, donorA, donorB)` («Мне предложили»): the best of the four
   variants of two donors by winrate among variants with a real sample; if all
   are small samples, the best of them with `lowSample: true`; a tie goes to the
