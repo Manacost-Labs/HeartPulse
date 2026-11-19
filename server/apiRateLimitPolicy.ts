@@ -1,3 +1,11 @@
+import type { Request } from 'express';
+import { ipKeyGenerator } from 'express-rate-limit';
+import { getTrustedClientIp } from './networkBoundary.js';
+
+export function rateLimitClientKey(req: Request): string {
+  return ipKeyGenerator(getTrustedClientIp(req) || 'unknown');
+}
+
 export function isPublicMediaApiRequest(method: string, path: string): boolean {
   const normalizedMethod = String(method).toUpperCase();
   if (normalizedMethod !== 'GET' && normalizedMethod !== 'HEAD') return false;

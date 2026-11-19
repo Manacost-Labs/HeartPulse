@@ -285,12 +285,13 @@ JSON-LD). Фикстура `tests/helpers/classesTeaserFixture.ts` даёт ви
 
 ## Бюджет открытых JSON API
 
-Открытые данные слоя (`/api/**/public`, `/teaser`, `/public-teaser`, `/api/public/*`,
-`/api/fun-decks`) отдаются гостям без входа, поэтому на клиента действует бюджет
-запросов: короткое и длинное окно, ключ IPv4 или IPv6 /64, сверх бюджета 429 с
-`Retry-After`. Проверенные по обратному и прямому DNS Googlebot, Google-InspectionTool,
-YandexBot и Bingbot лимита не имеют; loopback (SSR, прогрев) не считается. Значения и режим
-`log|enforce` в `config/public-data-api-guard.json`. Подробности и откат:
+Открытые данные слоя (`/api/**/public`, `/teaser`, `/public-teaser`,
+`/api/public/*`, `/api/fun-decks`) отдаются гостям без входа, поэтому на клиента
+действует бюджет запросов: короткое и длинное окно, ключ IPv4 или IPv6 /64,
+сверх бюджета 429 с `Retry-After`. Проверенные по обратному и прямому DNS
+Googlebot, Google-InspectionTool, YandexBot и Bingbot лимита не имеют;
+loopback (SSR, прогрев) не считается. Значения и режим `log|enforce` лежат в
+`config/public-data-api-guard.json`. Подробности и откат:
 `docs/runbooks/public-data-api-guard.md`.
 
 ## Testing strategy

@@ -45,8 +45,8 @@ import { createBrowserSessionCookieHandlers, legacyArenaCookieDomain, requestVie
 import { createCoverAdminSsoRouter } from './modules/coverAdminSso/public.js';
 import { csrfRequestAllowed, requestTargetPath } from './csrf.js';
 import { configureLoopbackProxyTrust, corsOriginAllowed, getTrustedClientIp } from './networkBoundary.js';
-import { isPublicMediaApiRequest } from './apiRateLimitPolicy.js';
-import { createPublicDataScrapeGuard, loadScrapeGuardConfig } from './publicDataScrapeGuard.js';
+import { isPublicMediaApiRequest, rateLimitClientKey } from './apiRateLimitPolicy.js';
+import { createPublicDataScrapeGuard, loadScrapeGuardConfig, sessionAccountKey } from './publicDataScrapeGuard.js';
 import { createRouteAwareJsonParser, createUploadAuthorizationGuard } from './jsonBody.js';
 import { createReferralRedirectHandler, createReferralRouter } from './referralRoutes.js';
 import { REFERRAL_ATTRIBUTION_SCHEMA_SQL, createReferralAttributionMiddleware } from './referralAttribution.js';
@@ -3185,10 +3185,6 @@ function isContestAdminUser(user: AdminUser | null | undefined): user is AdminUs
   if (!user) return false;
   const userId = user.id;
   return isAdminUser(user) || userId === CONTEST_ADMIN_USER_ID;
-}
-
-function rateLimitClientKey(req: import('express').Request): string {
-  return ipKeyGenerator(getTrustedClientIp(req) || 'unknown');
 }
 
 function rateLimitEmailKey(req: import('express').Request): string {
@@ -6996,21 +6992,9 @@ const apiLimiter = rateLimit({
     || !cookieMutationCsrfAllowed(req) || twitchStateStreamRequest(req.method, req.path)
   ),
 });
-app.use('/api/', apiLimiter);
-
-// Open JSON data (E21): per-client hour/minute budget, verified search bots exempt.
-// config/public-data-api-guard.json switches between "enforce" and "log".
-const publicDataScrapeGuard = createPublicDataScrapeGuard({
-  config: loadScrapeGuardConfig(join(APP_ROOT_DIR, 'config', 'public-data-api-guard.json')),
-  resolveAccountKey: (req) => {
-    for (const token of authTokenCandidatesFromReq(req)) {
-      const row = dbGet<{ user_id: string }>('SELECT user_id FROM sessions WHERE token_hash = ? AND expires_at > ?', sha256(token), Date.now());
-      if (row?.user_id) return String(row.user_id);
-    }
-    return null;
-  },
-});
-app.use('/api/', publicDataScrapeGuard.middleware);
+// Open JSON data (E21, #479): per-client budget after the generic limiter; mode in config/public-data-api-guard.json.
+app.use('/api/', apiLimiter, createPublicDataScrapeGuard({ config: loadScrapeGuardConfig(join(APP_ROOT_DIR, 'config', 'public-data-api-guard.json')),
+  resolveAccountKey: req => sessionAccountKey(authTokenCandidatesFromReq(req), (hash, now) => dbGet('SELECT user_id FROM sessions WHERE token_hash = ? AND expires_at > ?', hash, now)?.user_id) }).middleware);
 
 const authCodeRequestLimiter = rateLimit({
   windowMs: 15 * 60_000,
