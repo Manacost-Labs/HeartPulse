@@ -4650,11 +4650,12 @@ for (const [device, viewport] of [
       const label = element.querySelector(':scope > div > span');
       const heading = element.querySelector('h2');
       const summary = element.querySelector(':scope > p');
+      const shown = node => { const box = node?.getBoundingClientRect(); return Boolean(box && box.width > 0 && box.height > 0); };
       return {
         marginBottom: getComputedStyle(element).marginBottom,
         labelColor: label ? getComputedStyle(label).color : '',
         headingColor: heading ? getComputedStyle(heading).color : '',
-        summaryColor: summary ? getComputedStyle(summary).color : '',
+        summaryShown: shown(summary),
         // Diagnostic only: the parchment theme is scoped by the shell surface.
         surface: document.querySelector('.arena-app-shell')?.className.match(/arena-app-(?!shell)[\w-]+/g) ?? [],
       };
@@ -4662,7 +4663,7 @@ for (const [device, viewport] of [
     if (desktopHeading.marginBottom !== '21.6px'
       || desktopHeading.labelColor !== 'rgb(123, 21, 27)'
       || desktopHeading.headingColor !== 'rgb(59, 42, 31)'
-      || desktopHeading.summaryColor !== '') {
+      || desktopHeading.summaryShown) {
       failures.push(`home headings: desktop parchment typography changed (${JSON.stringify(desktopHeading)})`);
     }
     const desktopArenaDirectory = await page.$eval('.home-arena-directory', element => {
@@ -4670,6 +4671,7 @@ for (const [device, viewport] of [
       const signLabel = element.querySelector('.home-arena-directory__sign > span');
       const signHeading = element.querySelector('.home-arena-directory__sign h2');
       const summary = element.querySelector('.home-section-heading > p');
+      const shown = node => { const box = node?.getBoundingClientRect(); return Boolean(box && box.width > 0 && box.height > 0); };
       const links = element.querySelector('.home-arena-directory__links');
       const linkStyles = links ? getComputedStyle(links) : null;
       return {
@@ -4678,8 +4680,7 @@ for (const [device, viewport] of [
         labelSize: signLabel ? getComputedStyle(signLabel).fontSize : '',
         headingColor: signHeading ? getComputedStyle(signHeading).color : '',
         headingSize: signHeading ? getComputedStyle(signHeading).fontSize : '',
-        summaryColor: summary ? getComputedStyle(summary).color : '',
-        summaryMargin: summary ? getComputedStyle(summary).margin : '',
+        summaryShown: shown(summary),
         gridGap: linkStyles?.gap || '',
         gridPadding: linkStyles?.padding || '',
         gridBorder: linkStyles?.borderTopWidth || '',
@@ -4691,8 +4692,7 @@ for (const [device, viewport] of [
       || desktopArenaDirectory.labelSize !== '11px'
       || desktopArenaDirectory.headingColor !== 'rgb(255, 240, 200)'
       || desktopArenaDirectory.headingSize !== '29.6px'
-      || desktopArenaDirectory.summaryColor !== ''
-      || desktopArenaDirectory.summaryMargin !== ''
+      || desktopArenaDirectory.summaryShown
       || desktopArenaDirectory.gridGap !== '8.8px'
       || desktopArenaDirectory.gridPadding !== '11.2px'
       || desktopArenaDirectory.gridBorder !== '66px'
@@ -4705,6 +4705,7 @@ for (const [device, viewport] of [
       const signLabel = element.querySelector('.home-bg-directory__sign > span');
       const signHeading = element.querySelector('.home-bg-directory__sign h2');
       const summary = element.querySelector('.home-section-heading > p');
+      const shown = node => { const box = node?.getBoundingClientRect(); return Boolean(box && box.width > 0 && box.height > 0); };
       const links = element.querySelector('.home-bg-directory__links');
       const linkStyles = links ? getComputedStyle(links) : null;
       const featured = element.querySelector('.home-bg-directory__link[data-featured="true"]');
@@ -4722,7 +4723,7 @@ for (const [device, viewport] of [
         labelSize: signLabel ? getComputedStyle(signLabel).fontSize : '',
         headingColor: signHeading ? getComputedStyle(signHeading).color : '',
         headingSize: signHeading ? getComputedStyle(signHeading).fontSize : '',
-        summaryColor: summary ? getComputedStyle(summary).color : '',
+        summaryShown: shown(summary),
         gridGap: linkStyles?.gap || '',
         gridPadding: linkStyles?.padding || '',
         gridBorder: linkStyles?.borderTopWidth || '',
@@ -4731,7 +4732,7 @@ for (const [device, viewport] of [
         featuredRadius: featuredStyles?.borderRadius || '',
         featuredColor: featuredStyles?.color || '',
         featuredBackground: featuredStyles?.backgroundColor || '',
-        featuredLabel: featuredLabel ? getComputedStyle(featuredLabel).color : '',
+        featuredLabelShown: shown(featuredLabel),
       };
     });
     if (desktopBgDirectory.overflow !== 'visible'
@@ -4745,7 +4746,7 @@ for (const [device, viewport] of [
       || desktopBgDirectory.labelSize !== '11px'
       || desktopBgDirectory.headingColor !== 'rgb(255, 240, 200)'
       || desktopBgDirectory.headingSize !== '29.6px'
-      || desktopBgDirectory.summaryColor !== ''
+      || desktopBgDirectory.summaryShown
       || desktopBgDirectory.gridGap !== '8.8px'
       || desktopBgDirectory.gridPadding !== '11.2px'
       || desktopBgDirectory.gridBorder !== '66px'
@@ -4754,7 +4755,7 @@ for (const [device, viewport] of [
       || desktopBgDirectory.featuredRadius !== '0px'
       || desktopBgDirectory.featuredColor !== 'rgb(62, 47, 35)'
       || desktopBgDirectory.featuredBackground !== 'rgba(255, 245, 218, 0.52)'
-      || desktopBgDirectory.featuredLabel !== '') {
+      || desktopBgDirectory.featuredLabelShown) {
       failures.push(`home Battlegrounds directory: desktop frame changed (${JSON.stringify(desktopBgDirectory)})`);
     }
     await page.evaluate(() => {
@@ -4835,6 +4836,7 @@ for (const [device, viewport] of [
       const heading = element.querySelector('h1');
       const headingAccent = heading?.querySelector('span');
       const summary = element.querySelector('.home-stage__copy > p');
+      const shown = node => { const box = node?.getBoundingClientRect(); return Boolean(box && box.width > 0 && box.height > 0); };
       const actions = element.querySelector('.home-stage__actions');
       const primary = element.querySelector('.home-action--primary');
       const secondary = element.querySelector('.home-action--secondary');
@@ -4849,7 +4851,6 @@ for (const [device, viewport] of [
       const pageIndex = element.closest('.home-workbench')?.querySelector('.home-page-index');
       const copyStyles = copy ? getComputedStyle(copy) : null;
       const headingStyles = heading ? getComputedStyle(heading) : null;
-      const summaryStyles = summary ? getComputedStyle(summary) : null;
       const primaryStyles = primary ? getComputedStyle(primary) : null;
       const secondaryStyles = secondary ? getComputedStyle(secondary) : null;
       const orbitStyles = orbit ? getComputedStyle(orbit) : null;
@@ -4877,9 +4878,7 @@ for (const [device, viewport] of [
         headingLineHeight: headingStyles?.lineHeight || '',
         headingShadow: headingStyles?.textShadow || '',
         headingAccent: headingAccent ? getComputedStyle(headingAccent).color : '',
-        summaryMarginTop: summaryStyles?.marginTop || '',
-        summaryColor: summaryStyles?.color || '',
-        summarySize: summaryStyles?.fontSize || '',
+        summaryShown: shown(summary),
         actionsMarginTop: actions ? getComputedStyle(actions).marginTop : '',
         primaryBorder: primaryStyles?.borderTopColor || '',
         primaryColor: primaryStyles?.color || '',
@@ -4968,9 +4967,7 @@ for (const [device, viewport] of [
       || desktopStageLayout.headingLineHeight !== '58.4px'
       || desktopStageLayout.headingShadow === 'none'
       || desktopStageLayout.headingAccent !== 'rgb(226, 184, 88)'
-      || desktopStageLayout.summaryMarginTop !== ''
-      || desktopStageLayout.summaryColor !== ''
-      || desktopStageLayout.summarySize !== ''
+      || desktopStageLayout.summaryShown
       || desktopStageLayout.actionsMarginTop !== '17.6px'
       || desktopStageLayout.primaryBorder !== 'rgba(238, 196, 102, 0.72)'
       || desktopStageLayout.primaryColor !== 'rgb(59, 33, 18)'
@@ -5111,16 +5108,17 @@ for (const [device, viewport] of [
     const mobileHeading = await page.$eval('#root .home-latest-articles .home-section-heading', element => {
       const heading = element.querySelector('h2');
       const summary = element.querySelector(':scope > p');
+      const shown = node => { const box = node?.getBoundingClientRect(); return Boolean(box && box.width > 0 && box.height > 0); };
       return {
         headingSize: heading ? getComputedStyle(heading).fontSize : '',
         alignItems: getComputedStyle(element).alignItems,
-        summaryDisplay: summary ? getComputedStyle(summary).display : '',
+        summaryShown: shown(summary),
         sectionPaddingTop: Number.parseFloat(getComputedStyle(element.closest('.home-latest-articles')).paddingTop),
       };
     });
     if (mobileHeading.alignItems !== 'flex-start'
       || mobileHeading.headingSize !== '32px'
-      || mobileHeading.summaryDisplay !== ''
+      || mobileHeading.summaryShown
       || Math.abs(mobileHeading.sectionPaddingTop - 35.2) > 0.1) {
       failures.push(`home headings: mobile parchment typography changed (${JSON.stringify(mobileHeading)})`);
     }
@@ -5212,6 +5210,7 @@ for (const [device, viewport] of [
       const stageStyles = getComputedStyle(element);
       const heading = element.querySelector('h1');
       const summary = element.querySelector('.home-stage__copy > p');
+      const shown = node => { const box = node?.getBoundingClientRect(); return Boolean(box && box.width > 0 && box.height > 0); };
       const character = element.querySelector('.home-stage__character');
       const characterImage = character?.querySelector('img');
       const orbit = element.querySelector('.home-draft-orbit');
@@ -5232,7 +5231,7 @@ for (const [device, viewport] of [
         headingMaxWidth: headingStyles?.maxWidth || '',
         headingSize: headingStyles?.fontSize || '',
         headingLineHeight: headingStyles?.lineHeight || '',
-        summarySize: summary ? getComputedStyle(summary).fontSize : '',
+        summaryShown: shown(summary),
         characterPosition: characterStyles?.position || '',
         characterWidth: character?.getBoundingClientRect().width || 0,
         characterHeight: character?.getBoundingClientRect().height || 0,
@@ -5257,7 +5256,7 @@ for (const [device, viewport] of [
       || mobileStageLayout.headingMaxWidth !== 'none'
       || mobileStageLayout.headingSize !== '39px'
       || mobileStageLayout.headingLineHeight !== '39px'
-      || mobileStageLayout.summarySize !== ''
+      || mobileStageLayout.summaryShown
       || mobileStageLayout.characterPosition !== 'relative'
       || mobileStageLayout.characterWidth <= 0
       || Math.abs(mobileStageLayout.characterHeight - 171.6) > 0.2

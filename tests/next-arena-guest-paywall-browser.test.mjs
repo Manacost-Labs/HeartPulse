@@ -95,3 +95,47 @@ test('Next Arena pages do not show the paywall to administrators without a subsc
     await runtime.close();
   }
 });
+
+// E22 A (#450): the page's explanation is one collapsed «О странице» block under the data.
+test('Next Arena pages keep their explanation in one collapsed «О странице» block on a phone', async () => {
+  const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
+  let browser;
+  try {
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+      headless: true, args: ['--no-sandbox'] });
+    for (const path of ['/classes/', '/legendaries/']) {
+      const page = await browser.newPage();
+      await page.setViewport({ width: 390, height: 844, isMobile: true });
+      await page.goto(`${runtime.origin}${path}`, { waitUntil: 'networkidle2' });
+      const block = 'details.seo-page-intro';
+      await page.waitForSelector(`${block} > summary`, { timeout: 15000 });
+      const state = () => page.$eval(block, node => ({
+        open: node.open,
+        textShown: [...node.querySelectorAll('p')].every(item => item.getBoundingClientRect().height > 0),
+        overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      }));
+      assert.equal(await page.$$eval(block, nodes => nodes.length), 1, `${path} has one «О странице» block`);
+      assert.equal(await page.$eval(`${block} > summary`, node => node.textContent.trim()), 'О странице');
+      assert.equal((await state()).open, false, `${path} block is closed by default`);
+
+      await page.click(`${block} > summary`);
+      const opened = await state();
+      assert.ok(opened.open && opened.textShown, `${path} the mouse opens the block and its text is visible`);
+      assert.ok(opened.overflow <= 0, `${path} open block adds no horizontal scroll (${opened.overflow})`);
+      await page.click(`${block} > summary`);
+      assert.equal((await state()).open, false, `${path} the mouse closes the block`);
+
+      await page.focus(`${block} > summary`);
+      for (const key of ['Enter', 'Space']) {
+        await page.keyboard.press(key);
+        assert.equal((await state()).open, true, `${path} ${key} opens the block`);
+        await page.keyboard.press(key);
+        assert.equal((await state()).open, false, `${path} ${key} closes the block`);
+      }
+      await page.close();
+    }
+  } finally {
+    if (browser) await browser.close();
+    await runtime.close();
+  }
+});
