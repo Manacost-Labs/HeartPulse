@@ -712,6 +712,9 @@
   .arena-mobile-menu .hp-nav-top,
   .arena-mobile-menu .hp-nav-scroll { gap: 8px; }
 
+  /* The drawer itself scrolls; its list never becomes a second scroll area. */
+  .arena-mobile-menu .hp-nav-scroll { overflow: visible; }
+
   .arena-mobile-menu .hp-nav-link { min-height: 56px; }
 
   /* The panel unfolds inside the drawer: 2×2 banners, the height animated by the browser where it can. */

@@ -542,15 +542,26 @@ async function signIn(page, origin, signin = '') {
   }
 }
 
-/** Opens the menu group holding a link: groups start closed except the one of the current page. */
-async function openGroupFor(page, linkSelector) {
-  await page.evaluate(async selector => {
-    const panel = document.querySelector(selector)?.closest('[id^="arena-"]');
-    if (panel && getComputedStyle(panel).display === 'none') {
-      document.querySelector(`[aria-controls="${panel.id}"]`).click();
-      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    }
+/** Makes the menu list the mode holding a link, as a reader does: open the mode switch and choose the mode's banner. */
+async function openModeFor(page, linkSelector) {
+  const mode = await page.evaluate(selector => {
+    const link = document.querySelector(selector);
+    return link && link.getClientRects().length === 0 ? link.closest('.hp-nav-list')?.dataset.for ?? null : null;
   }, linkSelector);
+  if (!mode) return;
+  const root = linkSelector.startsWith('#arena-mobile-menu') ? '#arena-mobile-menu' : '.arena-sidebar';
+  await page.click(`${root} details.hp-mode > summary`);
+  // The banners rise in one after another; press once the chosen one has settled.
+  await page.waitForFunction(selector => {
+    const card = document.querySelector(selector);
+    return card?.checkVisibility() && !card.getAnimations({ subtree: true }).length && getComputedStyle(card).opacity === '1';
+  }, {}, `${root} [data-mode-card][data-mode="${mode}"]`);
+  await page.click(`${root} [data-mode-card][data-mode="${mode}"]`);
+  await page.waitForFunction(selector => document.querySelector(selector)?.getClientRects().length > 0, { timeout: 15_000 }, linkSelector);
+  if (root === '#arena-mobile-menu' && !(await page.$eval(root, node => node.matches(':popover-open')))) {
+    await page.click('button[aria-controls="arena-mobile-menu"]');
+    await page.waitForFunction(selector => document.querySelector(selector)?.matches(':popover-open'), {}, root);
+  }
 }
 
 test('a sign-in whose subscription answers late shows no lock on the next paid page', async () => {
@@ -560,8 +571,9 @@ test('a sign-in whose subscription answers late shows no lock on the next paid p
     await page.setViewport(viewports[0]);
     await page.evaluateOnNewDocument(recordFrames);
     await signIn(page, gateway.origin, 'statusdelay');
+    await openModeFor(page, '.arena-sidebar a[href="/battlegrounds/tier-list/"]');
+    await page.waitForFunction(() => document.querySelector('.arena-sidebar a[href="/battlegrounds/tier-list/"]')?.getClientRects().length > 0);
     await page.evaluate(() => { window.__frames.length = 0; });
-    await openGroupFor(page, '.arena-sidebar a[href="/battlegrounds/tier-list/"]');
     await page.click('.arena-sidebar a[href="/battlegrounds/tier-list/"]');
     await page.waitForSelector('.bg-tier-list-page', { timeout: READY_MS });
     const frames = await page.evaluate(() => window.__frames);

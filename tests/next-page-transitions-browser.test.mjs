@@ -87,51 +87,61 @@ async function assertSameFrame(page) {
     && window.__navigationFrame?.topbar === document.querySelector('.arena-mobile-topbar')), true, 'navigation DOM must persist');
 }
 
-// Groups open independently: opening the second never collapses the first,
-// so no control moves under the pointer, and a closed group releases its
-
-/** Opens the menu group holding a link: groups start closed except the one of the current page. */
-async function openGroupFor(page, linkSelector) {
-  await page.evaluate(async selector => {
-    const panel = document.querySelector(selector)?.closest('[id^="arena-"]');
-    if (panel && getComputedStyle(panel).display === 'none') {
-      document.querySelector(`[aria-controls="${panel.id}"]`).click();
-      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    }
+/** Makes the menu list the mode holding a link, as a reader does: open the mode switch and choose the mode's banner. */
+async function openModeFor(page, linkSelector) {
+  const mode = await page.evaluate(selector => {
+    const link = document.querySelector(selector);
+    return link && link.getClientRects().length === 0 ? link.closest('.hp-nav-list')?.dataset.for ?? null : null;
   }, linkSelector);
+  if (!mode) return;
+  const root = linkSelector.startsWith('#arena-mobile-menu') ? '#arena-mobile-menu' : '.arena-sidebar';
+  await page.click(`${root} details.hp-mode > summary`);
+  // The banners rise in one after another; press once the chosen one has settled.
+  await page.waitForFunction(selector => {
+    const card = document.querySelector(selector);
+    return card?.checkVisibility() && !card.getAnimations({ subtree: true }).length && getComputedStyle(card).opacity === '1';
+  }, {}, `${root} [data-mode-card][data-mode="${mode}"]`);
+  await page.click(`${root} [data-mode-card][data-mode="${mode}"]`);
+  await page.waitForFunction(selector => document.querySelector(selector)?.getClientRects().length > 0, { timeout: 15_000 }, linkSelector);
+  if (root === '#arena-mobile-menu' && !(await page.$eval(root, node => node.matches(':popover-open')))) {
+    await page.click('button[aria-controls="arena-mobile-menu"]');
+    await page.waitForFunction(selector => document.querySelector(selector)?.matches(':popover-open'), {}, root);
+  }
 }
 
-// layout in the same commit (no delayed collapse after an exit animation).
-async function assertGroupSwitchHasNoDelayedCollapse(page, root) {
-  const result = await page.evaluate(async selector => {
-    const nav = document.querySelector(selector);
-    const buttons = [...nav.querySelectorAll('button[aria-controls]')];
-    const frame = () => new Promise(resolve => requestAnimationFrame(resolve));
-    const panel = button => document.getElementById(button.getAttribute('aria-controls'));
-    if (buttons[2].getAttribute('aria-expanded') === 'true') buttons[2].click();
-    if (buttons[3].getAttribute('aria-expanded') === 'true') buttons[3].click();
-    await frame();
-    buttons[2].click();
-    await new Promise(resolve => setTimeout(resolve, 250));
-    const secondY = buttons[3].getBoundingClientRect().y;
-    buttons[3].click();
-    await frame();
-    await frame();
-    const bothOpen = panel(buttons[2]).getBoundingClientRect().height > 0 && panel(buttons[3]).getBoundingClientRect().height > 0;
-    const stayedY = buttons[3].getBoundingClientRect().y;
-    buttons[2].click();
-    await frame();
-    await frame();
-    const height = panel(buttons[2]).getBoundingClientRect().height;
-    const firstY = buttons[3].getBoundingClientRect().y;
-    await new Promise(resolve => setTimeout(resolve, 180));
-    // Leaves the second group open, as the scenarios after this expect.
-    return { bothOpen, moved: Math.abs(stayedY - secondY), height, firstY, lastY: buttons[3].getBoundingClientRect().y };
+/** The mode switch as a reader uses it: opens on a click, shows the four banners with the current one marked, and closes on Escape (focus back on its button) or a press elsewhere. */
+async function assertModePanelBehavior(page, root) {
+  const state = () => page.evaluate(selector => {
+    const panel = document.querySelector(`${selector} details.hp-mode`);
+    const cards = [...panel.querySelectorAll('[data-mode-card]')];
+    return {
+      open: panel.open,
+      visibleCards: cards.filter(card => card.checkVisibility()).length,
+      current: cards.filter(card => card.checkVisibility() && card.getAttribute('aria-current') === 'true' && getComputedStyle(card.querySelector('.hp-mode-badge')).display !== 'none').length,
+      focusOnButton: document.activeElement === panel.querySelector('summary'),
+    };
   }, root);
-  assert.equal(result.bothOpen, true, 'opening a group keeps the other one open');
-  assert.ok(result.moved < 0.5, 'the opened control stays under the pointer');
-  assert.equal(result.height, 0, 'a closed group releases layout in the same commit');
-  assert.ok(Math.abs(result.firstY - result.lastY) < 0.5, 'group controls must not move again after the exit duration');
+  const button = `${root} details.hp-mode > summary`;
+  assert.deepEqual(await state(), { open: false, visibleCards: 0, current: 0, focusOnButton: false }, 'the banners start closed');
+  await page.click(button);
+  await page.waitForFunction(selector => document.querySelectorAll(`${selector} [data-mode-card]`).length === 4
+    && [...document.querySelectorAll(`${selector} [data-mode-card]`)].every(card => card.checkVisibility()), {}, root);
+  assert.deepEqual(await state(), { open: true, visibleCards: 4, current: 1, focusOnButton: true }, 'a click opens four banners, one marked «Текущий»');
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(selector => !document.querySelector(`${selector} details.hp-mode`).open
+    && [...document.querySelectorAll(`${selector} [data-mode-card]`)].every(card => !card.checkVisibility()), {}, root);
+  assert.deepEqual(await state(), { open: false, visibleCards: 0, current: 0, focusOnButton: true }, 'Escape closes the banners and returns focus to the button');
+  assert.equal(await page.evaluate(() => document.querySelector('#arena-mobile-menu')?.matches(':popover-open') ?? false), root === '#arena-mobile-menu',
+    'the first Escape closes only the banners, not the drawer');
+  await page.click(button);
+  // A press on empty ground: beside the sidebar on a desktop, the drawer's own floor on a phone.
+  await (root === '#arena-mobile-menu' ? page.mouse.click(200, 830) : page.mouse.click(1000, 5));
+  await page.waitForFunction(selector => !document.querySelector(`${selector} details.hp-mode`).open, {}, root);
+}
+
+/** A reader who last used another mode: the menu of a page without a mode lists it. */
+async function rememberMode(page, mode) {
+  await page.evaluateOnNewDocument(value => { try { localStorage.setItem('hp:nav:mode', value); } catch { /* storage is optional */ } }, mode);
 }
 
 test('public navigation preserves the frame, sidebar state and native link behavior', { timeout: 60_000 }, async () => {
@@ -146,16 +156,17 @@ test('public navigation preserves the frame, sidebar state and native link behav
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.setViewport({ width: 1440, height: 700 });
+    await rememberMode(page, 'community');
     await page.goto(`${gateway.origin}/faq/`, { waitUntil: 'networkidle2' });
     assert.equal(await page.$eval('.arena-content', node => node.getAnimations().length), 0,
       'the first document paint must have no route entrance');
     await rememberFrame(page);
-    await assertGroupSwitchHasNoDelayedCollapse(page, '.arena-sidebar');
+    await assertModePanelBehavior(page, '.arena-sidebar');
     assert.equal(await page.$eval('#root', root => root.firstElementChild?.matches('.arena-skip-link')), true,
       'the persistent skip link remains the first root element');
-    await page.evaluate(() => { document.querySelector('.arena-sidebar').scrollTop = 180; });
+    await page.evaluate(() => { document.querySelector('.arena-sidebar .hp-nav-scroll').scrollTop = 180; });
     await page.hover('.arena-sidebar a[href="/guides-archive/"]');
-    const scroll = await page.$eval('.arena-sidebar', node => node.scrollTop);
+    const scroll = await page.$eval('.arena-sidebar .hp-nav-scroll', node => node.scrollTop);
     assert.ok(scroll > 0, 'fixture must exercise sidebar scroll');
     const documentCount = gateway.requests.filter(request => request.destination === 'document').length;
     const readingOffset = await page.evaluate(() => {
@@ -171,8 +182,8 @@ test('public navigation preserves the frame, sidebar state and native link behav
     assert.equal(await page.evaluate(() => scrollY), 0, 'the destination opens at its top');
     assert.equal(await page.evaluate(() => document.activeElement?.id), 'main-content', 'focus continues at the new page');
     await assertSameFrame(page);
-    assert.equal(await page.$eval('.arena-sidebar', node => node.scrollTop), scroll);
-    assert.equal(await page.$eval('.arena-sidebar button[aria-controls="arena-sidebar-community"]', node => node.getAttribute('aria-expanded')), 'true');
+    assert.equal(await page.$eval('.arena-sidebar .hp-nav-scroll', node => node.scrollTop), scroll);
+    assert.equal(await page.$eval('.arena-sidebar a[href="/guides-archive/"]', node => node.getAttribute('aria-current')), 'page', 'the current page stays marked in the same list');
     assert.equal(gateway.requests.filter(request => request.destination === 'document').length, documentCount);
     assert.ok(gateway.requests.some(request => request.rsc === '1' && request.path.startsWith('/guides-archive/')));
     assert.equal(await page.evaluate(() => document.querySelector('script[type="speculationrules"]') === null
@@ -210,19 +221,20 @@ test('public navigation preserves the frame, sidebar state and native link behav
     await assertSameFrame(page);
     const popupReady = browser.waitForTarget(target => target.type() === 'page' && target.url() === `${gateway.origin}/tierlist/`, { timeout: 10_000 });
     await page.keyboard.down('Control');
-    await openGroupFor(page, '.arena-sidebar a[href="/tierlist/"]');
+    await openModeFor(page, '.arena-sidebar a[href="/tierlist/"]');
     await page.click('.arena-sidebar a[href="/tierlist/"]');
     await page.keyboard.up('Control');
     const popup = await (await popupReady).page();
     assert.ok(popup, 'Ctrl-click must create a new page');
     assert.equal(new URL(popup.url()).pathname, '/tierlist/', 'Ctrl-click opens the destination in another tab');
-    assert.equal(await page.evaluate(() => location.pathname), '/faq/');
+    assert.equal(await page.evaluate(() => location.pathname), '/classes/', 'the banner of the mode moved this tab; Ctrl-click opened another');
     await popup.close();
     await page.bringToFront();
     // The navigation stays usable while the content box is still fading in.
-    await openGroupFor(page, '.arena-sidebar a[href="/tierlist/"]');
+    await openModeFor(page, '.arena-sidebar a[href="/tierlist/"]');
     await visitByClick(page, '.arena-sidebar a[href="/tierlist/"]', '/tierlist/');
     assert.equal(await page.evaluate(transitionRunning), true, 'fixture must click during the transition');
+    await openModeFor(page, '.arena-sidebar a[href="/guides-archive/"]');
     await visitByClick(page, '.arena-sidebar a[href="/guides-archive/"]', '/guides-archive/');
     await routeMotion(page);
     await assertSameFrame(page);
@@ -232,9 +244,9 @@ test('public navigation preserves the frame, sidebar state and native link behav
     await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
     await page.click('.arena-mobile-nav-toggle');
     await page.waitForFunction(() => document.querySelector('#arena-mobile-menu').matches(':popover-open'));
-    await assertGroupSwitchHasNoDelayedCollapse(page, '#arena-mobile-menu');
+    await assertModePanelBehavior(page, '#arena-mobile-menu');
     await watchRouteMotion(page);
-    await openGroupFor(page, '#arena-mobile-menu a[href="/tierlist/"]');
+    await openModeFor(page, '#arena-mobile-menu a[href="/tierlist/"]');
     await visitByClick(page, '#arena-mobile-menu a[href="/tierlist/"]', '/tierlist/');
     assert.deepEqual(await routeMotion(page), [], 'reduced motion skips the route animation on phones');
     await page.waitForFunction(() => !document.querySelector('#arena-mobile-menu').matches(':popover-open') && document.body.style.position !== 'fixed');
@@ -262,19 +274,17 @@ test('public transitions avoid accidental prefetch and keep usable content while
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.setViewport({ width: 1440, height: 700 });
+    await rememberMode(page, 'community');
     await page.goto(`${gateway.origin}/faq/`, { waitUntil: 'networkidle2' });
     // A dynamic page: a visible menu link learns only its route tree.
     const link = '.arena-sidebar a[href="/gallery/"]';
-    await page.click('.arena-sidebar button[aria-controls="arena-sidebar-community"]');
-    await openGroupFor(page, '.arena-sidebar a[href="/tierlist/"]');
-    await page.waitForFunction(() => document.getElementById('arena-sidebar-community').getAnimations().length === 0);
-    await page.evaluate(() => { document.querySelector('.arena-sidebar').scrollTop = 180; });
+    await page.evaluate(() => { document.querySelector('.arena-sidebar .hp-nav-scroll').scrollTop = 180; });
     await page.hover(link);
     await page.mouse.move(800, 100);
     await new Promise(resolve => setTimeout(resolve, 180));
     const pageRequests = path => gateway.requests.filter(request => request.rsc && !request.prefetch && request.path.startsWith(path));
     assert.equal(pageRequests('/gallery/').length, 0, 'crossing a link must not download a page');
-    const learned = () => gateway.requests.some(request => request.segment && request.path.startsWith('/tierlist/'));
+    const learned = () => gateway.requests.some(request => request.segment && request.path.startsWith('/streamers/'));
     for (let attempt = 0; attempt < 100 && !learned(); attempt += 1) await new Promise(resolve => setTimeout(resolve, 50));
     assert.ok(learned(), 'a visible menu link learns its route while the browser is idle');
     const content = await page.$eval('#main-content', node => node.getBoundingClientRect().top);
@@ -303,7 +313,7 @@ test('public transitions avoid accidental prefetch and keep usable content while
     await new Promise(resolve => setTimeout(resolve, 1100));
     assert.equal(await page.evaluate(() => location.pathname), '/gallery/', 'a slow earlier route cannot replace the newer destination');
     // A dynamic page: /articles/ is prerendered and opens without a pending route.
-    await openGroupFor(page, '.arena-sidebar a[href="/standard/fun-decks/"]');
+    await openModeFor(page, '.arena-sidebar a[href="/standard/fun-decks/"]');
     await page.click('.arena-sidebar a[href="/standard/fun-decks/"]');
     await page.waitForSelector('[data-navigation-progress="pending"]', { timeout: 800 });
     await page.goBack();
@@ -329,9 +339,9 @@ test('hover prepares a complete dynamic page before click, including its route c
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     await page.setViewport({ width: 1440, height: 900 });
+    await rememberMode(page, 'community');
     await page.goto(`${gateway.origin}/faq/`, { waitUntil: 'networkidle2' });
-    await page.click('.arena-sidebar button[aria-controls="arena-sidebar-community"]');
-    await page.$eval('.arena-sidebar', node => { node.scrollTop = 180; });
+    await page.$eval('.arena-sidebar .hp-nav-scroll', node => { node.scrollTop = 180; });
     const link = '.arena-sidebar a[href="/gallery/"]';
     const pageRequests = path => gateway.requests.filter(request => request.rsc && !request.prefetch && request.path.startsWith(path));
     await page.hover(link);
@@ -351,7 +361,7 @@ test('hover prepares a complete dynamic page before click, including its route c
     assert.equal(pageRequests('/contests/').length, 1, 'the click reuses the prefetch that was still downloading');
     // Back while a click waits for its prefetch wins at once, and the late prefetch never navigates.
     const funDecks = '.arena-sidebar a[href="/standard/fun-decks/"]';
-    await openGroupFor(page, funDecks);
+    await openModeFor(page, funDecks);
     await page.hover(funDecks);
     for (let attempt = 0; attempt < 100 && pageRequests('/standard/fun-decks/').length === 0; attempt += 1) {
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -359,10 +369,10 @@ test('hover prepares a complete dynamic page before click, including its route c
     await page.click(funDecks);
     const backAt = Date.now();
     await page.evaluate(() => history.back());
-    await page.waitForFunction(() => location.pathname === '/gallery/');
+    await page.waitForFunction(() => location.pathname === '/contests/');
     assert.ok(Date.now() - backAt < 400, 'Back is not held by the waiting click');
     await new Promise(resolve => setTimeout(resolve, 900));
-    assert.equal(await page.evaluate(() => location.pathname), '/gallery/');
+    assert.equal(await page.evaluate(() => location.pathname), '/contests/');
   } finally {
     if (browser) await browser.close();
     if (gateway) await closeLocal(gateway.server);

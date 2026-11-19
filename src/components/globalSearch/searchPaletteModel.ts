@@ -55,7 +55,7 @@ const RECENT_LIMIT = 5;
 
 const SECTION_LABELS: Record<(typeof NAVIGATION_ROUTES)[number]['group'], string> = {
   home: '',
-  standard: 'Стандарт и Вольный',
+  standard: 'Стандарт',
   arena: 'Арена',
   battlegrounds: 'Поля сражений',
   community: 'Сообщество',

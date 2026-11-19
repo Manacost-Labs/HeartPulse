@@ -58,15 +58,26 @@ async function waitForDrawer(page, expected) {
   }
 }
 
-/** Opens the menu group holding a link: groups start closed except the one of the current page. */
-async function openGroupFor(page, linkSelector) {
-  await page.evaluate(async selector => {
-    const panel = document.querySelector(selector)?.closest('[id^="arena-"]');
-    if (panel && getComputedStyle(panel).display === 'none') {
-      document.querySelector(`[aria-controls="${panel.id}"]`).click();
-      await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    }
+/** Makes the menu list the mode holding a link, as a reader does: open the mode switch and choose the mode's banner. */
+async function openModeFor(page, linkSelector) {
+  const mode = await page.evaluate(selector => {
+    const link = document.querySelector(selector);
+    return link && link.getClientRects().length === 0 ? link.closest('.hp-nav-list')?.dataset.for ?? null : null;
   }, linkSelector);
+  if (!mode) return;
+  const root = linkSelector.startsWith('#arena-mobile-menu') ? '#arena-mobile-menu' : '.arena-sidebar';
+  await page.click(`${root} details.hp-mode > summary`);
+  // The banners rise in one after another; press once the chosen one has settled.
+  await page.waitForFunction(selector => {
+    const card = document.querySelector(selector);
+    return card?.checkVisibility() && !card.getAnimations({ subtree: true }).length && getComputedStyle(card).opacity === '1';
+  }, {}, `${root} [data-mode-card][data-mode="${mode}"]`);
+  await page.click(`${root} [data-mode-card][data-mode="${mode}"]`);
+  await page.waitForFunction(selector => document.querySelector(selector)?.getClientRects().length > 0, { timeout: 15_000 }, linkSelector);
+  if (root === '#arena-mobile-menu' && !(await page.$eval(root, node => node.matches(':popover-open')))) {
+    await page.click('button[aria-controls="arena-mobile-menu"]');
+    await page.waitForFunction(selector => document.querySelector(selector)?.matches(':popover-open'), {}, root);
+  }
 }
 
 test('the mobile drawer opens before hydration, animates both ways and closes as a page leaves', async () => {
@@ -89,7 +100,7 @@ test('the mobile drawer opens before hydration, animates both ways and closes as
     await waitForDrawer(plain.page, { open: true, shown: true, backdrop: true });
     // The drawer slides in on a transition: click once it has stopped moving.
     await waitForDrawer(plain.page, { settled: true });
-    // Without JavaScript only the current group's links are shown; Home is always plain.
+    // Without JavaScript the drawer lists the items of one mode; Home is always there.
     await plain.page.click('#arena-mobile-menu a[href="/"]');
     await plain.page.waitForFunction(() => location.pathname === '/', { timeout: 10_000 });
 
@@ -130,8 +141,8 @@ test('the mobile drawer opens before hydration, animates both ways and closes as
     await page.click('.arena-mobile-nav-toggle');
     await waitForDrawer(page, { open: true, shown: true, locked: 'fixed' });
     await page.waitForFunction(() => getComputedStyle(document.querySelector('#arena-mobile-menu')).opacity === '1');
-    // Groups start closed: open them all so the drawer is longer than the phone.
-    await page.evaluate(() => document.querySelectorAll('#arena-mobile-menu button[aria-controls]').forEach(button => { if (button.getAttribute('aria-expanded') === 'false') button.click(); }));
+    // A low phone window makes the list longer than the drawer.
+    await page.setViewport({ width: 390, height: 600 });
     await page.evaluate(() => { document.querySelector('#arena-mobile-menu').scrollTop = 160; });
     await page.keyboard.press('Escape');
     await waitForDrawer(page, { shown: false, locked: '' });
@@ -189,7 +200,7 @@ test('the mobile drawer opens before hydration, animates both ways and closes as
     // The drawer slides in on a transition: click once it is on screen.
     await page.waitForFunction(() => document.querySelector('#arena-mobile-menu').getBoundingClientRect().left >= 0
       && !document.querySelector('#arena-mobile-menu').getAnimations().length, { timeout: 5_000 });
-    await openGroupFor(page, '#arena-mobile-menu a[href="/tierlist/"]');
+    await openModeFor(page, '#arena-mobile-menu a[href="/tierlist/"]');
     await page.click('#arena-mobile-menu a[href="/tierlist/"]');
     await page.waitForFunction(() => location.pathname === '/tierlist/' && document.readyState === 'complete', { timeout: 10_000 });
     assert.equal(await page.evaluate(() => sessionStorage.getItem('left-at')), null, 'client navigation keeps the document');
