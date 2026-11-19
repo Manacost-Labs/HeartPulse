@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { ARENA_TABS, COMMUNITY_TABS, modeOfTab, type TabId } from '../routing/navigationRoutes';
+import { ARENA_TABS, COMMUNITY_TABS, WILD_TABS, modeOfTab, type TabId } from '../routing/navigationRoutes';
+import type { MenuItemId } from '../routing/navigationPlace';
 import '../../parchment-theme.css';
 import { PublicNavigation } from './PublicNavigation';
 import type { NavigationBadges } from './NavigationItems';
@@ -10,7 +11,8 @@ import { COMPACT_NAVIGATION_ATTRIBUTE } from './navigationPreference';
 import { useNavigationTooltip } from './useNavigationFeedback';
 
 type StoryArgs = {
-  activeTab: TabId;
+  /** A site route, or an item of the Wild list. */
+  activeTab: MenuItemId;
   mobileMenuOpen: boolean;
   compact?: boolean;
   badges?: NavigationBadges;
@@ -22,7 +24,11 @@ function PublicNavigationPreview({
   compact: initialCompact = false,
   badges = {},
 }: StoryArgs) {
-  const [activeTab, setActiveTab] = useState(initialActiveTab);
+  const [current, setActiveTab] = useState(initialActiveTab);
+  // The page of a Wild item is its Standard twin shown in Wild, as `navigationPlace` reads it from the address.
+  const wildTwin = WILD_TABS.find(item => item.id === current)?.twin;
+  const activeTab = (wildTwin ?? current) as TabId;
+  const pageMode = wildTwin ? 'wild' as const : modeOfTab(activeTab);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(initialMobileMenuOpen);
   const [compact, setCompact] = useState(initialCompact);
   // The rail is driven by the document attribute, as in the Next layout.
@@ -38,8 +44,10 @@ function PublicNavigationPreview({
   return (
     <PublicNavigation
       activeTab={activeTab}
+      activeItem={current}
+      pageMode={pageMode}
       mobileMenuOpen={mobileMenuOpen}
-      mode={modeOfTab(activeTab) ?? 'standard'}
+      mode={pageMode ?? 'standard'}
       compact={compact}
       badges={badges}
       onToggleCompact={() => setCompact(value => !value)}

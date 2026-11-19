@@ -31,6 +31,7 @@ const ROWS: readonly Row[] = [
   ['/standard/archetypes/standard/quest-mage', '', 'wild', 'standard', 'constructed-archetypes'],
   ['/standard/meta/standard/quest-mage', '', 'wild', 'standard', 'constructed-archetypes'],
   ['/standard/archetypes/standard/wild', '', 'standard', 'standard', 'constructed-archetypes'],
+  ['/standard/archetypes/standard/quest-mage', '?format=wild', 'standard', 'standard', 'constructed-archetypes'],
   // A card page below the catalog, and the catalog with a format query, follow the same rule.
   ['/standard/cards/some-card/', '', 'standard', 'standard', 'standard-cards'],
   ['/standard/cards/', '?format=wild', 'standard', 'wild', 'wild-cards'],
@@ -57,7 +58,7 @@ const ROWS: readonly Row[] = [
   ['/standard/matchups/', null, 'standard', null, 'standard-matchups'],
   ['/standard/deck-builder/', null, 'wild', null, 'deck-builder'],
   ['/standard/archetypes/wild/quest-mage', null, null, 'wild', 'wild-archetypes'],
-  ['/standard/archetypes/standard/quest-mage', null, null, null, 'constructed-archetypes'],
+  ['/standard/archetypes/standard/quest-mage', null, null, 'standard', 'constructed-archetypes'],
   ['/standard/patches/', null, null, null, 'patch-notes'],
   ['/standard/vicious-gold/', null, null, 'standard', 'standard-vicious-gold'],
   ['/classes/', null, null, 'arena', 'winrates'],
@@ -89,7 +90,7 @@ test('the Wild list has the pages of the issue and no VS Gold', () => {
     ['wild-deck-builder', '/standard/deck-builder?format=wild'],
     ['wild-patch-notes', '/standard/patches'],
   ]);
-  assert.equal(WILD_NAVIGATION_ITEMS.some(item => item.twin === 'standard-vicious-gold'), false);
+  assert.equal(WILD_NAVIGATION_ITEMS.some(item => String(item.twin) === 'standard-vicious-gold'), false);
   assert.deepEqual(NAVIGATION_MODES.map(mode => mode.id), ['standard', 'wild', 'arena', 'battlegrounds', 'community'], 'the banners are in this order');
 });
 

@@ -24,7 +24,8 @@ export type NavigationPlace = {
 const WILD_OF: ReadonlyMap<string, WildItemId> = new Map(WILD_NAVIGATION_ITEMS.map(item => [item.twin, item.id]));
 /** Standard pages that exist in both formats, so the address names the format. */
 const FORMAT_BOUND_TABS: ReadonlySet<string> = new Set(WILD_NAVIGATION_ITEMS.filter(item => !('shared' in item)).map(item => item.twin));
-const WILD_SEGMENT = /^\/standard\/(?:cards|archetypes|meta)\/wild(?:\/|$)/;
+/** The catalog of Wild cards and the pages of one archetype name their format in the path; the path then decides, the query does not. */
+const FORMAT_SEGMENT = /^\/standard\/(?:cards|archetypes|meta)\/(wild|standard)(?:\/|$)/;
 
 /**
  * `search` is the query of the address, or null while it is not known (the server and the
@@ -37,10 +38,10 @@ export function navigationPlace(path: string, search: string | null, remembered:
   const mode = modeOfTab(tab);
   if (mode !== 'standard') return { mode, item: tab };
   if (FORMAT_BOUND_TABS.has(tab)) {
-    const wild = WILD_SEGMENT.test(clean) || (search !== null && readPageFormat(search) === 'wild');
-    if (wild) return { mode: 'wild', item: WILD_OF.get(tab) ?? tab };
     // A path alone does not rule out `?format=wild`.
-    return { mode: search === null ? null : 'standard', item: tab };
+    const format = FORMAT_SEGMENT.exec(clean)?.[1] ?? (search === null ? null : readPageFormat(search));
+    if (format === null) return { mode: null, item: tab };
+    return format === 'wild' ? { mode: 'wild', item: WILD_OF.get(tab) ?? tab } : { mode: 'standard', item: tab };
   }
   if (!WILD_OF.has(tab)) return { mode: 'standard', item: tab };
   if (remembered === null) return { mode: null, item: tab };

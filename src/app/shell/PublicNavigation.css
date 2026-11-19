@@ -11,8 +11,10 @@
 /*
  * Every mode's list, button face and «Текущий» badge are in the server HTML
  * (`data-for`); exactly one mode is current: the page's own (the server marks it
- * `data-page-current`), else the last chosen one (`data-nav-mode` of <html>,
- * written by the head script before first paint), else the first mode
+ * `data-page-current`; it marks nothing where the address alone does not tell, e.g. a
+ * Standard page that `?format=wild` turns into Wild), else the mode in `data-nav-mode`
+ * of <html> (the last chosen one, or the address's, written by the head script before
+ * first paint), else the first mode
  * (`data-default`). Nothing here counts or names the modes except the one list
  * of remembered-mode selectors below: a new mode adds one line to it.
  */
@@ -26,6 +28,7 @@
   [data-page-current],
   html:not([data-nav-mode]) .hp-nav:not([data-page-mode]) [data-default],
   html[data-nav-mode='standard'] .hp-nav:not([data-page-mode]) [data-for='standard'],
+  html[data-nav-mode='wild'] .hp-nav:not([data-page-mode]) [data-for='wild'],
   html[data-nav-mode='arena'] .hp-nav:not([data-page-mode]) [data-for='arena'],
   html[data-nav-mode='battlegrounds'] .hp-nav:not([data-page-mode]) [data-for='battlegrounds'],
   html[data-nav-mode='community'] .hp-nav:not([data-page-mode]) [data-for='community']
@@ -436,6 +439,8 @@
   transition: transform var(--motion-zoom-slow) var(--motion-ease);
 }
 
+.hp-mode-art .hp-mode-art-wide { display: none; }
+
 .hp-mode-art img {
   display: block;
   width: 100%;
@@ -506,7 +511,7 @@
 .hp-mode-card-emblem img { display: block; width: 100%; height: 100%; }
 
 .hp-mode-card-text strong {
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
   font-size: 20px;
   font-weight: 800;
   line-height: 1.15;
@@ -614,13 +619,16 @@
     scrollbar-color: rgba(228, 190, 106, 0.5) transparent;
   }
 
-  /* The panel opens to the right of the sidebar, over the page: 4 banners in a row, 2×2 on a narrower window. */
+  /* The panel opens to the right of the sidebar, over the page: three banners in a row, the rest centered below them (any number of modes). */
   .hp-mode[data-variant='sidebar'] .hp-mode-panel {
     position: absolute;
     top: 0;
     left: calc(100% + 0.72rem + 14px + 10px);
     z-index: 70;
-    grid-template-columns: repeat(2, 200px);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    width: calc(3 * 200px + 2 * 12px + 28px);
     max-height: calc(100dvh - 150px);
     padding: 14px;
     overflow-y: auto;
@@ -635,14 +643,17 @@
     scrollbar-width: thin;
   }
 
+  .hp-mode[data-variant='sidebar'] .hp-mode-card { flex: 0 0 200px; }
+
   /*
-   * From 1360 px the cards stand in a row as wide as the window allows: the panel
-   * is `--modes` cards wide (set from NAVIGATION_MODES) but never wider than the
-   * space right of the sidebar, and the grid wraps whatever does not fit.
+   * From 1360 px all the cards stand in one row: the panel is `--modes` cards wide
+   * (set from NAVIGATION_MODES) but never wider than the space right of the sidebar,
+   * and the cards share what that leaves (182 px each at 1360 px).
    */
   @media (min-width: 1360px) {
     .hp-mode[data-variant='sidebar'] .hp-mode-panel {
-      grid-template-columns: repeat(auto-fill, 200px);
+      display: grid;
+      grid-template-columns: repeat(var(--modes, 4), minmax(0, 1fr));
       width: min(calc(var(--modes, 4) * 212px + 18px), calc(100vw - 372px));
       overflow-y: auto;
     }
@@ -797,7 +808,7 @@
 
   .arena-mobile-menu .hp-nav-link { min-height: 56px; }
 
-  /* The panel unfolds inside the drawer: 2×2 banners, the height animated by the browser where it can. */
+  /* The panel unfolds inside the drawer: one column of wide banners, the height animated by the browser where it can. */
   html { interpolate-size: allow-keywords; }
 
   .hp-mode[data-variant='mobile']::details-content {
@@ -812,19 +823,37 @@
   .hp-mode[data-variant='mobile'][open]::details-content { block-size: auto; }
 
   .hp-mode[data-variant='mobile'] .hp-mode-panel {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 1fr);
     gap: 10px;
     padding: 12px 0 4px;
   }
 
   .arena-mobile-menu .hp-mode-button { height: 80px; }
 
-  .hp-mode[data-variant='mobile'] .hp-mode-card { height: 216px; }
-  .hp-mode[data-variant='mobile'] .hp-mode-card-text { padding: 0 11px 11px; }
-  .hp-mode[data-variant='mobile'] .hp-mode-card-text strong { font-size: 17px; }
-  .hp-mode[data-variant='mobile'] .hp-mode-card-desc { font-size: 12.5px; }
+  /* A row, not a poster: the wide strip of the mode (the face of the button) behind its emblem, name and description, «Текущий» on the right. */
+  .hp-mode[data-variant='mobile'] .hp-mode-card { height: auto; min-height: 88px; justify-content: center; }
+  .hp-mode[data-variant='mobile'] .hp-mode-art-tall { display: none; }
+  .hp-mode[data-variant='mobile'] .hp-mode-art-wide { display: block; }
+  .hp-mode[data-variant='mobile'] .hp-mode-art img { object-position: center; }
+
+  .hp-mode[data-variant='mobile'] .hp-mode-card-text {
+    grid-template-columns: 40px minmax(0, 1fr);
+    grid-template-areas: 'emblem name' 'emblem desc';
+    column-gap: 11px;
+    align-items: center;
+    padding: 12px 96px 12px 12px;
+  }
+
+  .hp-mode[data-variant='mobile'] .hp-mode-card-text::before {
+    inset: 0;
+    background: linear-gradient(90deg, rgba(14, 2, 4, 0.94), rgba(14, 2, 4, 0.82) 60%, rgba(14, 2, 4, 0.3));
+  }
+
+  .hp-mode[data-variant='mobile'] .hp-mode-card-emblem { grid-area: emblem; width: 40px; height: 40px; margin: 0; }
+  .hp-mode[data-variant='mobile'] .hp-mode-card-text strong { grid-area: name; font-size: 17px; }
+  .hp-mode[data-variant='mobile'] .hp-mode-card-desc { grid-area: desc; font-size: 12.5px; }
+  .hp-mode[data-variant='mobile'] .hp-mode-badge { top: 50%; right: 12px; left: auto; translate: 0 -50%; }
   .hp-mode[data-variant='mobile'] .hp-mode-panel { animation: none; }
-  .hp-mode[data-variant='mobile'] .hp-mode-card-emblem { width: 40px; height: 40px; }
 }
 
 /* Reduced motion: nothing moves; hover and focus still change the colour of the frame. */

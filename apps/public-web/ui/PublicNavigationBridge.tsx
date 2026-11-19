@@ -40,12 +40,12 @@ function connectionAllowsPrefetch() {
 
 /**
  * Legacy views keep real links; the persistent layout supplies App Router navigation.
- * `onNavigationStart` receives the destination pathname inside the navigation's transition;
+ * `onNavigationStart` receives the destination pathname and query inside the navigation's transition;
  * `onJoining` names a destination that waits for its prefetch (null when none does);
  * each new `routeKey` (the committed pathname) looks for the page's opted-in links.
  */
 export function PublicNavigationBridge({ onNavigationStart, onJoining, routeKey }: {
-  onNavigationStart?: (pathname: string) => void; onJoining?: (pathname: string | null) => void; routeKey?: string;
+  onNavigationStart?: (pathname: string, search: string) => void; onJoining?: (pathname: string | null, search?: string) => void; routeKey?: string;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -56,15 +56,15 @@ export function PublicNavigationBridge({ onNavigationStart, onJoining, routeKey 
     preloadTransitionPresets();
     const responses = observeRouteResponses();
     let navigation = 0;
-    const join = (pathname: string | null) => { setJoining(pathname !== null); onJoining?.(pathname); };
-    const commit = (path: string, pathname: string, from: Element | null) => {
+    const join = (pathname: string | null, search = '') => { setJoining(pathname !== null); onJoining?.(pathname, search); };
+    const commit = (path: string, pathname: string, search: string, from: Element | null) => {
       // Query and fragment changes keep the page in place.
       if (pathname !== location.pathname) {
         // The ValyroUI entrance for this step once its engine has loaded at idle; a plain fade before.
         expectRouteEntrance(pathname, transitionPresetsNow()?.routeEntranceKeyframes(location.pathname, pathname));
         focusOnCommit.current = { pathname, from };
       }
-      onNavigationStart?.(pathname);
+      onNavigationStart?.(pathname, search);
       router.push(path);
     };
     const push = (path: string) => {
@@ -72,12 +72,12 @@ export function PublicNavigationBridge({ onNavigationStart, onJoining, routeKey 
       const { pathname, search } = new URL(path, location.href);
       const current = ++navigation;
       const from = document.activeElement;
-      const go = () => { join(null); startTransition(() => commit(path, pathname, from)); };
+      const go = () => { join(null); startTransition(() => commit(path, pathname, search, from)); };
       const prepared = responses.pending(`${pathname}${search}`);
       if (!prepared) { go(); return; }
       // The wait stays outside React: an async action would hold every later
       // transition (Back, another click) until it settles.
-      join(pathname);
+      join(pathname, search);
       void Promise.race([prepared, new Promise(resolve => setTimeout(resolve, JOIN_PREFETCH_MS))]).then(() => {
         // A newer click or Back while waiting wins.
         if (current === navigation) go();
