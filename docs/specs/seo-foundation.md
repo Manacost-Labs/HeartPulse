@@ -185,6 +185,10 @@ This slice must not open private API responses to indexing or shared caches.
 - **Свежесть.** `/classes/` входит в `DATA_PAGES` и прогрев и держит копию
   на edge-узле минуту, как `/tierlist/`: после деплоя копия сборки без
   таблицы заменяется сразу (#404).
+- **Свежесть `/legendaries/` и `/heroes/`** (#463). Обе страницы тоже входят
+  в `DATA_PAGES`, прогрев и минутное правило edge-узла; прогрев ждёт блок
+  данных (`legendary-group-card`, `bg-heroes-public__hero`), а не пустую
+  копию сборки.
 
 Тесты: `tests/classes-public-teaser.test.ts` (проекция, маршрут, JSON-LD) и
 `tests/next-classes-teaser.test.mjs` (собранная страница: HTML, RSC-payload,

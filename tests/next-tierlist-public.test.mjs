@@ -9,7 +9,10 @@ import test from 'node:test';
 import express from 'express';
 import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
+import { createBattlegroundHeroRankingRouter } from '../server/battlegroundHeroRankingRoutes.ts';
 import { createTierlistRouter } from '../server/tierlistRoutes.ts';
+import { buildHeroCatalog } from './helpers/battlegroundHeroesFixture.ts';
+import { openAnswer } from './helpers/legendariesOpenLayerFixture.ts';
 import { buildFixtureCards, buildTierlistFixture, closedValues, guestPercent, CLASS_IDS, PAID_KEYS } from './helpers/tierlistPublicFixture.ts';
 
 // The built /tierlist/ page against an Express that serves the real open
@@ -47,9 +50,19 @@ function startLegacy(state) {
     loadFallback: () => null,
     onError: () => undefined,
   });
+  // The open projections of the other two ISR data pages the warm-up regenerates (they answer while `state.down` is false).
+  app.get('/api/legendaries/public', (_request, response) => (state.down
+    ? response.status(503).set('Retry-After', '60').json({ error: 'no snapshot' }) : response.json(openAnswer())));
+  const heroes = createBattlegroundHeroRankingRouter({
+    loadCatalog: async mode => {
+      if (state.down) throw new Error('service down');
+      return buildHeroCatalog('TOP_50_PERCENT', mode);
+    },
+    onError: () => undefined,
+  });
   app.use('/api', (request, response, next) => {
     if (builtFor !== (state.generation ?? 0)) { router = build(); builtFor = state.generation ?? 0; }
-    return router(request, response, next);
+    return router(request, response, (error) => (error ? next(error) : heroes(request, response, next)));
   });
   return app;
 }
@@ -209,7 +222,7 @@ test('the post-deploy warm-up revalidates again until /tierlist/ carries its sli
     const { code, output } = await stand.warm({ WARM_TOTAL_MS: '30000' });
     assert.equal(code, 0, output);
     assert.ok(stand.revalidations.length >= 2, `a page left without data is revalidated again: ${output}`);
-    assert.deepEqual([...stand.revalidations[0]].sort(), ['/articles', '/classes', '/standard/meta', '/tierlist'],
+    assert.deepEqual([...stand.revalidations[0]].sort(), ['/articles', '/classes', '/heroes', '/legendaries', '/standard/meta', '/tierlist'],
       'the real route regenerates exactly the pages that render data');
     assert.match(output, /\[warm\] \/tierlist\/: with data/, output);
     // What a visitor gets right after the warm-up, with no clock shifted and no second request needed.
@@ -315,5 +328,42 @@ test('/tierlist/ in a browser: the whole pool without JS, the class filter with 
     await next.close();
     legacyServer.closeAllConnections();
     await new Promise(done => legacyServer.close(done));
+  }
+});
+
+// /legendaries/ and /heroes/ are ISR pages whose build copy has no data. The real revalidate route must regenerate
+// them, so that right after a deploy a visitor gets the open layer and not «temporarily unavailable».
+test('the post-deploy warm-up regenerates /legendaries/ and /heroes/ through the revalidate route', async () => {
+  const stand = await warmStand({});
+  try {
+    const pages = [
+      { path: '/legendaries/', data: 'legendary-group-card', copy: 'Данные временно недоступны' },
+      { path: '/heroes/', data: 'id="heroes-solo"', copy: 'Рейтинг героев временно недоступен' },
+    ];
+    for (const { path, data, copy } of pages) {
+      const response = await fetch(`${stand.next.origin}${path}`);
+      const html = await response.text();
+      assert.equal(response.status, 200);
+      assert.ok(['HIT', 'STALE', 'MISS'].includes(response.headers.get('x-nextjs-cache')), `${path} is an ISR page: ${response.headers.get('x-nextjs-cache')}`);
+      assert.equal(html.includes(data), false, `the build copy of ${path} has no data`);
+      assert.ok(html.includes(copy), `the build copy of ${path} says it is unavailable`);
+    }
+    const { code, output } = await stand.warm({ WARM_ONLY: '/legendaries/,/heroes/', WARM_TOTAL_MS: '30000' });
+    assert.equal(code, 0, output);
+    assert.ok(stand.revalidations.length >= 1, `the warm-up asked the route to regenerate: ${output}`);
+    for (const path of ['/legendaries', '/heroes']) assert.ok(stand.revalidations[0].includes(path), `the route regenerates ${path}`);
+    for (const path of ['/legendaries/', '/heroes/']) assert.match(output, new RegExp(`\\[warm\\] ${path}: with data`), output);
+    // What a visitor gets right after the warm-up, with no clock shifted: the data and not the message.
+    for (const { path, data, copy } of pages) {
+      const html = (await (await fetch(`${stand.next.origin}${path}`)).text()).replaceAll('<!-- -->', '');
+      assert.ok(html.includes(data), `${path} carries its data after the warm-up`);
+      assert.equal(html.includes(copy), false, `${path} no longer says it is unavailable`);
+    }
+    const legendaries = (await (await fetch(`${stand.next.origin}/legendaries/`)).text()).replaceAll('<!-- -->', '');
+    assert.ok(legendaries.includes('Изера Неспящая, Аспект Сновидений'), 'with the real groups');
+    const heroes = await (await fetch(`${stand.next.origin}/heroes/`)).text();
+    assert.ok(heroes.includes('Герой 0'), 'with the real heroes');
+  } finally {
+    await stand.close();
   }
 });
