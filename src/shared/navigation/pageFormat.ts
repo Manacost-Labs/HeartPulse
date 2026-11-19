@@ -5,6 +5,7 @@
  * state. The Wild catalog of cards and the pages of one archetype carry the format in the
  * path instead (`/standard/cards/wild/`, `/standard/archetypes/wild/<slug>`).
  */
+import { useEffect, useRef } from 'react';
 import { useLocationSearch } from './locationSearch';
 
 export type PageFormat = 'standard' | 'wild';
@@ -36,4 +37,23 @@ export function setPageFormat(format: PageFormat, how: 'push' | 'replace' = 'pus
 export function usePageFormat(): PageFormat | null {
   const search = useLocationSearch();
   return search === null ? null : readPageFormat(search);
+}
+
+/**
+ * Keeps a format that the page holds in its own state and the address's `?format=wild` equal.
+ * The address leads when it changed (a menu item, Back) and `canFollow` says the page may
+ * switch; otherwise the page leads and rewrites the address. Until the browser has read the
+ * address (hydration) nothing happens, so the first render still matches the server's HTML.
+ */
+export function useFormatAddress(format: PageFormat, canFollow: boolean, follow: (format: PageFormat) => void): void {
+  const address = usePageFormat();
+  const seen = useRef<PageFormat | null>(null);
+  useEffect(() => {
+    if (address === null) return;
+    const changed = seen.current !== address;
+    seen.current = address;
+    if (address === format) return;
+    if (changed && canFollow) follow(address);
+    else setPageFormat(format, 'replace');
+  }, [address, format, canFollow, follow]);
 }
