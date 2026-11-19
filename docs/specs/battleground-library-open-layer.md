@@ -84,6 +84,79 @@ Data markers for the post-deploy warm-up (slice #476): pages
 `/library/timewarped/`; the CSS marker of the block with data is
 `.bg-library-public`.
 
+## Card pages (`/library/<kind>/<slug>-<id>/`, `/library/archive/<kind>/<slug>-<id>/`)
+
+`GET /api/bg/library/public/:kind/:dbfId` (and the `archive` and `extra`
+variants) answers `{ card, canonicalPath, stats, related }`. `card` is the
+anonymous projection (identity, type, tier, tribe, attack, health, text,
+mechanics, the golden version's attack and health, images). `stats` is the
+open base slice of the minion from the projection above (only for a minion in
+the current pool; `null` below the sample, for archive cards and for spells)
+with the completion time of the run. `related` is up to six cards chosen by
+tags the catalog states: for a minion those of the same tribe (the nearest
+tavern tiers first), for a spell those of the same tavern tier, in the same
+pool state, never the card itself; no hand-written text. A card page never
+waits for, or starts, the bulk read of every pool (the single-card identity
+exists to avoid it): related cards come from the catalog the router already
+holds, and a cold start warms it behind the answer. A failing statistics source
+with no copy is a `503` with `Retry-After`: never a `200` without the figures
+the indexing rule counts.
+
+`proxy.ts` reads the answer once and hands the page the card and `stats` in the
+request header `x-hearthpulse-bg-public-projection` (a card that does not fit
+the 4 KB header is a `503`, as before), and the related cards in a header of
+their own (`x-hearthpulse-bg-public-related`, the longest prefix that fits). The
+page re-parses field by field (`lib/publicBattlegroundLibraryCardData.ts`).
+
+The page (`lib/battlegroundLibraryDetailRoute.tsx`) is dynamic, one document
+for everyone: the H1, one line of facts under it (type, tribe, tier,
+attack/health, average place, mechanics: a template, no hand-written text), then
+`BattlegroundLibraryPublicCard`: characteristics (type, tier, tribe,
+attack/health, the golden version), the card text, mechanics, the base
+statistics with date and source, related cards. The closed part (strength by
+round, purchases, board positions, history) is one locked button in
+`.paywalled-library-card`; a subscriber has `BgLibrary` in place of the open
+layer once its chunk is loaded. JSON-LD: the entity graph and, when the card has
+statistics, a `Dataset` with `isAccessibleForFree: false` and
+`hasPart.cssSelector: ".paywalled-library-card"`.
+
+The task brief asked for two or three sentences of explanation; the owner's rule
+of 2026-11-19 (open data is the main content, one line under the H1, no
+explanatory blocks after the data) wins: the explanation is the one line under
+the H1.
+
+## Indexing of card pages
+
+`isIndexableBattlegroundLibraryCard` (`shared/battlegroundLibraryIndexing.ts`)
+counts the card's own facts and applies the site threshold
+(`meetsContentThreshold`: 150 own words or 10 own facts; the page's words are
+not counted, only facts). Facts: the name, the type, the tavern tier, the tribe,
+attack, health, the text, each mechanic, the golden version's attack and
+health, and the four figures of the base statistics. The card page's meta
+robots and the minion segment of the sitemap
+(`loadBattlegroundLibrarySitemapRows`) call the same function on the same
+projection and the same statistics, so a page is `index` exactly when it is
+listed. A page below the threshold is `noindex, follow`, has no entity JSON-LD
+and is not in the sitemap. With today's data (2026-11-19): a minion of the pool
+with statistics has 12–16 facts, 776 of the 999 archived minions cross the line
+(10–15 facts), every spell has 4–6 (none does). No page state depends on
+whether the statistics source answered: a source failure with no copy is a
+`503`, not a quiet change from `index` to `noindex`.
+
+Spells: no spell page reaches ten facts, so the `battleground-spells` segment
+of the sitemap is not registered (an empty segment is invalid); it returns with
+the first spell page that crosses the threshold. The production monitor, the
+static sitemap index model and their tests no longer list it.
+The `lastmod` day of a minion follows the projection as it was before the open
+layer (`sitemapCardIdentity`), so introducing the golden version and the
+thumbnail does not date every card anew.
+
+Tests: `tests/battleground-library-open.check.ts` (the card route, related
+cards, one rule for the page and the sitemap, the parsers' allowlist and the
+sentinel check on a dirty answer), `tests/entity-sitemap-sources.test.ts`
+(the sitemap filter), `tests/next-library-open.check.mjs` and
+`tests/next-bg-library-details-browser.test.mjs` (the built card pages).
+
 ## Tests
 
 - `tests/battleground-library-open.check.ts` (imported by

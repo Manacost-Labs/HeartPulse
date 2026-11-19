@@ -75,15 +75,6 @@ const ENTITY_SITEMAP_SEGMENTS = [
     identityFragment: 'card',
   },
   {
-    key: 'battlegroundSpells',
-    path: '/sitemaps/battleground-spells.xml',
-    label: 'battleground spell sitemap',
-    minimumUrls: 50,
-    pathPattern: /^\/library\/spells\/[^/]+-\d+\/$/,
-    identityFromPath: pathname => pathname.match(/-(\d+)\/$/)?.[1],
-    identityFragment: 'card',
-  },
-  {
     key: 'battlegroundHeroes',
     path: '/sitemaps/battleground-heroes.xml',
     label: 'battleground hero sitemap',

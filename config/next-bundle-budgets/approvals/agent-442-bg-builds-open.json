@@ -3,7 +3,7 @@
   "routes": {
     "/battlegrounds/tier-list/": {
       "jsGzipBytes": 4096,
-      "cssGzipBytes": 3840
+      "cssGzipBytes": 3968
     },
     "/guides-archive/": {
       "cssGzipBytes": 64

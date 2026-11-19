@@ -1,0 +1,9 @@
+/* The open layer of a library card page: characteristics, statistics, mechanics and related cards. */
+.bg-library-public__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr)); gap: 0.5rem; margin: 0; }
+.bg-library-public__grid div { padding: 0.5rem 0.75rem; border: 1px solid rgba(105, 72, 46, 0.3); border-radius: 8px; background: #fffaf0; }
+.bg-library-public dt { font-size: 0.8rem; color: #69482e; }
+.bg-library-public dd { margin: 0; font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.bg-library-public__mechanics, .bg-library-public__related { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0; padding: 0; list-style: none; }
+.bg-library-public__mechanics li { padding: 0.35rem 0.7rem; border: 1px solid rgba(105, 72, 46, 0.3); border-radius: 8px; background: #fffaf0; }
+.bg-library-public__related a { display: inline-flex; align-items: center; gap: 0.35rem; min-block-size: 44px; padding: 0 0.9rem; border: 1px solid var(--arena-border, #b68a4f); border-radius: 8px; color: inherit; font-weight: 700; text-decoration: none; }
+.bg-library-public__related span { font-weight: 400; font-size: 0.85rem; }

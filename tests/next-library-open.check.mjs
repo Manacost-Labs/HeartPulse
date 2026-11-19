@@ -11,7 +11,8 @@ import { CLOSED, fetchImpl, slug } from './helpers/battlegroundLibraryOpenFixtur
 
 // The built library pages against an Express that serves the real open projections: a guest and a robot get the
 // same HTML with the open listing (every card of the pool, tier, tribe, attack/health, average place and popularity),
-// nothing closed, neither in the HTML, nor in the RSC payload (`self.__next_f`), nor in the JSON-LD.
+// the open layer of a card page (facts, statistics, related cards) and nothing closed, neither in the HTML, nor in the
+// RSC payload (`self.__next_f`), nor in the JSON-LD. A card below the indexing threshold is noindex without JSON-LD.
 
 const BROWSER_UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
 const ROBOT_UA = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)';
@@ -122,6 +123,44 @@ test('the guest HTML of the library carries the open layer and nothing closed', 
       await delay(300);
     }
     state.listingDown = false;
+
+    // A card page: the open layer, the same for everyone; indexable with ten facts.
+    const cardPath = `/library/minions/${slug('Первый зверь')}-1001/`;
+    const card = await get(cardPath);
+    assert.equal(card.status, 200);
+    assert.match(card.html, /<meta name="robots" content="index, follow/);
+    assert.match(card.html, /<h1[^>]*>Первый зверь<\/h1><p>Существо, Зверь, таверна 2, 3\/4, среднее место 3,90: Провокация\.<\/p>/, 'one line under the H1');
+    for (const fact of ['<dt>Уровень таверны</dt><dd>2</dd>', '<dt>Атака/здоровье</dt><dd>3/4</dd>', '<dt>Золотая версия</dt><dd>6/8</dd>',
+      '<dt>Среднее место с картой</dt><dd>3,90</dd>', '<dt>Среднее место без карты</dt><dd>4,20</dd>', '<dt>Популярность</dt><dd>7,5%</dd>', '<dt>Игр в выборке</dt>']) {
+      assert.ok(card.html.includes(fact), fact);
+    }
+    assert.match(card.html, /<h2 id="card-related-title">Связанные карты<\/h2>[\s\S]*href="\/library\/minions\/второй-зверь-1002\/"/);
+    assert.doesNotMatch(card.html, /href="\/library\/minions\/мурлок-1003\/"/, 'a murloc is not related to a beast');
+    assert.ok(card.html.indexOf('card-facts') < card.html.indexOf('card-related') && card.html.indexOf('card-related') < card.html.indexOf('class="paywalled-library-card"'),
+      'the open layer stands before the closed part');
+    const cardPayload = payloadOf(card.html);
+    const cardLd = jsonLdOf(card.html).filter(text => text.includes('data-entity') || text.includes('"@graph"'));
+    for (const [name, text] of [['HTML', card.html], ['RSC payload', cardPayload], ['JSON-LD', cardLd.join('\n')]]) {
+      assert.deepEqual(closedIn(text), [], `${name} of the card has no closed value`);
+    }
+    assert.ok(cardLd.length === 1 && cardPayload.length > 0);
+    const cardGraph = JSON.parse(cardLd[0])['@graph'];
+    const cardDataset = cardGraph.find(node => node['@type'] === 'Dataset');
+    assert.deepEqual(cardDataset.hasPart, { '@type': 'WebPageElement', isAccessibleForFree: false, cssSelector: '.paywalled-library-card' });
+    // The card page is rendered per request; the order of the resource hints in `<head>` may differ between two renders
+    // (the first one preloads more), so the documents are compared without their `<link>` tags.
+    const withoutHints = html => html.replace(/<link [^>]*>/g, '');
+    assert.equal(withoutHints((await get(cardPath, { 'User-Agent': ROBOT_UA })).html), withoutHints(card.html), 'a robot gets the same card HTML');
+
+    // Ten facts without statistics (a minion below the sample) are still indexable; a spell (four facts) is noindex without JSON-LD.
+    const noStats = await get(`/library/minions/${slug('Без выборки')}-1004/`);
+    assert.match(noStats.html, /<meta name="robots" content="index, follow/);
+    assert.doesNotMatch(noStats.html, /<h2 id="card-stats-title">/);
+    const spell = await get(`/library/spells/${slug('Заклинание')}-3001/`);
+    assert.equal(spell.status, 200);
+    assert.match(spell.html, /<meta name="robots" content="noindex, follow"/);
+    assert.equal(jsonLdOf(spell.html).filter(text => text.includes('"@graph"')).length, 0, 'a page below the threshold has no entity JSON-LD');
+    assert.ok(spell.html.includes('<dt>Уровень таверны</dt><dd>2</dd>'), 'but it still states its facts');
   } finally {
     await next.close();
     legacy.closeAllConnections();
