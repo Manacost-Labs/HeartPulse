@@ -14,7 +14,7 @@ export type {
   TierlistSource,
 } from './model/types';
 
-export { TierListControls, TierBadge } from './ui/TierListControls';
+export { TierListControls, TierBadge, type TierBadgeSize } from './ui/TierListControls';
 export type { ManaFilterValue } from './ui/TierListControls';
 
 export { arenaCardImageSources } from './model/cardImages';

@@ -8,6 +8,7 @@ import {
 } from '../modules/battlegrounds/public';
 import { publicResourceUrl } from '../publicResourceUrl';
 import { TierList, type TierItem } from '../vendor/varylo-ui/gaming/TierList';
+import { TierBadge } from '../modules/arenaTierList/public';
 import { GameImage } from '../vendor/varylo-ui/gaming/picture';
 import { exportTierBuilderImage, type TierBuilderBackground } from './battlegroundTierBuilderExport';
 import { useTierBuilderDraft, useTierBuilderPool, type ClassicRuntime } from './battlegroundTierBuilderDraft';
@@ -98,7 +99,8 @@ export function BattlegroundTierBuilder({ runtime }: { runtime: ClassicRuntime }
           {cards
             ? <TierList items={items} tiers={TIERS} value={placement} onValueChange={setPlacement}
               mode="edit" editable={false} size="lg" exportName="tier-list" title="Ваш тир-лист" headingLevel={2}
-              caption={<span id="tier-builder-counter" data-tour-id="bg-tier-builder-board">{assigned} {cardsWord(assigned)} в тирах</span>} labels={LABELS} renderItem={renderItem} />
+              caption={<span id="tier-builder-counter" data-tour-id="bg-tier-builder-board">{assigned} {cardsWord(assigned)} в тирах</span>} labels={LABELS} renderItem={renderItem}
+              renderTierLabel={tier => <TierBadge tier={tier.id} />} />
             : <div className="bg-tier-builder__placeholder" aria-hidden="true" />}
         </div>
         {pool.length > poolLimit && (

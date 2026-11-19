@@ -756,57 +756,10 @@
   text-shadow: none;
 }
 
-.arena-app-battlegrounds .bg-hero-ledger__tier-emblem {
-  position: relative;
-  display: grid;
-  width: 3.3rem;
-  aspect-ratio: 6 / 7;
-  place-items: center;
-  border: 0;
-  border-radius: 0;
-  background:
-    none;
-  box-shadow:
-    none;
-}
-
-.arena-app-battlegrounds .bg-hero-ledger__tier-emblem img { display: block; width: 100%; height: auto; }
-
 .arena-app-battlegrounds .bg-hero-ledger__tier-count {
   color: #665038;
   font-size: 0.6875rem;
   font-weight: 600;
-}
-
-.arena-app-battlegrounds .bg-hero-ledger__tier-mark--s {
-  color: #59432d;
-  background:
-    #edddba;
-  text-shadow: none;
-}
-
-.arena-app-battlegrounds .bg-hero-ledger__tier-mark--a {
-  background: #edddba;
-  color: #59432d;
-  text-shadow: none;
-}
-
-.arena-app-battlegrounds .bg-hero-ledger__tier-mark--b {
-  background: #edddba;
-  color: #59432d;
-  text-shadow: none;
-}
-
-.arena-app-battlegrounds .bg-hero-ledger__tier-mark--c {
-  background: #edddba;
-  color: #59432d;
-  text-shadow: none;
-}
-
-.arena-app-battlegrounds .bg-hero-ledger__tier-mark--d {
-  background: #edddba;
-  color: #59432d;
-  text-shadow: none;
 }
 
 .arena-app-battlegrounds .bg-hero-ledger__row {
@@ -828,15 +781,13 @@
 }
 
 .arena-app-battlegrounds .bg-hero-ledger__tier-cell {
+  display: grid;
+  place-items: center;
   justify-content: center;
   padding: 0.5rem;
   border-right: 1px solid rgba(60, 34, 22, 0.28);
   color: #59432d;
   background: #edddba;
-}
-
-.arena-app-battlegrounds .bg-hero-ledger__tier-cell .bg-hero-ledger__tier-emblem {
-  width: 2.8rem;
 }
 
 .arena-app-battlegrounds .bg-hero-ledger__row + .bg-hero-ledger__row {
@@ -1897,12 +1848,9 @@
     border-bottom: 1px solid rgba(60, 34, 22, 0.34);
   }
 
-  .arena-app-battlegrounds .bg-hero-ledger__tier-mark strong {
-    font-size: 1.35rem;
-  }
-
-  .arena-app-battlegrounds .bg-hero-ledger__tier-mark .bg-hero-ledger__tier-emblem {
-    width: 2.65rem;
+  .arena-app-battlegrounds .bg-hero-ledger__tier-mark .arena-tier-badge {
+    width: 40px;
+    height: 40px;
   }
 
   .arena-app-battlegrounds .bg-hero-ledger__row {
@@ -1930,8 +1878,9 @@
     border-bottom: 1px solid rgba(60, 34, 22, 0.25);
   }
 
-  .arena-app-battlegrounds .bg-hero-ledger__row--flat .bg-hero-ledger__tier-cell .bg-hero-ledger__tier-emblem {
-    width: 2.25rem;
+  .arena-app-battlegrounds .bg-hero-ledger__row--flat .bg-hero-ledger__tier-cell .arena-tier-badge {
+    width: 36px;
+    height: 36px;
   }
 
   .arena-app-battlegrounds .bg-hero-ledger__row > div {

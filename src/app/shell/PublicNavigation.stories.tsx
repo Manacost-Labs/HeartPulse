@@ -136,11 +136,16 @@ export const ModePanel: Story = {
   play: async ({ canvasElement }) => {
     const sidebar = within(canvasElement.querySelector('.arena-sidebar') as HTMLElement);
     const button = sidebar.getByText('Режим', { selector: '.hp-mode-kicker' }).closest('summary') as HTMLElement;
+    // The switch comes first in the menu, then «Главная», then the list.
+    const top = canvasElement.querySelector('.arena-sidebar .hp-nav-top') as HTMLElement;
+    await expect(top.firstElementChild).toBe(button.closest('details'));
+    await expect(top.lastElementChild).toHaveAttribute('href', '/');
     await userEvent.click(button);
     const panel = canvasElement.querySelector('.arena-sidebar details.hp-mode') as HTMLDetailsElement;
     await expect(panel.open).toBe(true);
     await expect(canvasElement.querySelectorAll('.arena-sidebar [data-mode-card]')).toHaveLength(4);
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(panel.open).toBe(false));
+    await expect(button).toHaveFocus();
   },
 };
