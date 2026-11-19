@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 112,
-    "routeRegistrations": 300,
+    "sourceFiles": 113,
+    "routeRegistrations": 301,
     "middlewareRegistrations": 154,
     "explicitGuardRouteRegistrations": 74,
     "unresolvedPaths": 0
@@ -3030,7 +3030,8 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createCardChoicesRouter(...)"
+        "createCardChoicesRouter(...)",
+        "createCardAssembleRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",
@@ -4398,6 +4399,18 @@
         "limiter"
       ],
       "source": "server/modules/chatCommands/routes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/card-assemble/:format/:cardId",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/constructedCards/cardAssemble.ts",
       "sourceOrder": 0
     },
     {

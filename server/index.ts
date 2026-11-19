@@ -85,7 +85,7 @@ import { createRadarApi } from './modules/radar/public.js';
 import { createLeaderboardsApi } from './modules/leaderboards/public.js';
 import { createSubscriptionAnalyticsApi } from './modules/subscriptionAnalytics/public.js';
 import { createStreamersApi } from './modules/streamers/public.js';
-import { ConstructedCardUpstreamError, createCardChoicesRouter, type ConstructedCardDeck } from './modules/constructedCards/public.js';
+import { ConstructedCardUpstreamError, createCardAssembleRouter, createCardChoicesRouter, type ConstructedCardDeck } from './modules/constructedCards/public.js';
 import {
   createConstructedCardSeoRouter,
   extractConstructedCardFrontendAssets,
@@ -7490,7 +7490,7 @@ app.use('/api', createConstructedArchetypeRouter({
   ),
 }));
 
-app.use('/api', createCardChoicesRouter({ request: path => fetch(`${hsDataApiOrigin()}${path}`, { signal: AbortSignal.timeout(15_000) }), onError: error => console.error('[card-choices] failed:', error instanceof Error ? error.message : error) }));
+app.use('/api', createCardChoicesRouter({ request: path => fetch(`${hsDataApiOrigin()}${path}`, { signal: AbortSignal.timeout(15_000) }), onError: error => console.error('[card-choices] failed:', error instanceof Error ? error.message : error) }), createCardAssembleRouter({ request: path => fetch(`${hsDataApiOrigin()}${path}`, { signal: AbortSignal.timeout(15_000) }), onError: error => console.error('[card-assemble] failed:', error instanceof Error ? error.message : error) }));
 app.use('/api', createArchetypeHsguruStatsRouter({ accessGuard: requireStandardAccess, setPrivateNoStore, loadRuCards: ensureRuCardsData, request: path => fetch(datasetApiUrl(path), { signal: AbortSignal.timeout(15_000) }), ruCardByDbf: dbfId => hearthstoneJsonRuCardsByDbf?.get(dbfId), loadCatalog: (format, slug) => loadArchetypeCatalog(constructedArchetypeCatalogCache.load, format, null, slug), loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards, onError: (scope, error) => console.error(`[archetype-hsguru-stats] ${scope} failed:`, error instanceof Error ? error.message : error) }));
 app.use('/api', createPatchNotesApi({
   fetchJson: url => fetchConstructedCardJson(url, 12_000), loadCardNames: ensureRuCardsData, ttlMs: 30 * 60_000,

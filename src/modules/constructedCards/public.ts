@@ -23,4 +23,5 @@ export { ConstructedCardTile } from './ui/ConstructedCardTile';
 /** Loaded on demand: only card pages with a choice mechanic render it, so catalog pages stay lean. */
 export const CardChoicesSection = lazy(() => import('./ui/CardChoicesSection'));
 export { cardChoiceKindOf } from './model/cardChoices';
+export { isAssembleCard } from './model/cardAssemble';
 export type { CardChoiceKind, CardChoicesData } from './model/cardChoices';
