@@ -299,7 +299,7 @@ assert.equal(publicFunDecksPreview({ error: 'upstream' }), null);
 
 // A 200 that is not the page's contract is a failed read: it neither stores nor replaces the last good copy.
 {
-  const { readPublicJson } = await import('../apps/public-web/lib/firstPaintStore');
+  const { readPublicJson, publicCheckCount, CHECKS_MAX_ENTRIES } = await import('../apps/public-web/lib/firstPaintStore');
   const { funDecksCheck, homeSummaryCheck, homeArticlesCheck } = await import('../apps/public-web/lib/publicPayloadChecks');
   const realFetch = globalThis.fetch;
   const realNow = Date.now;
@@ -332,6 +332,36 @@ assert.equal(publicFunDecksPreview({ error: 'upstream' }), null);
         assert.deepEqual(await readPublicJson(feedPath, false, check), good, `${feedPath}: ${JSON.stringify(broken)} keeps the copy`);
       }
     }
+    // The check belongs to its request: unique paths pushing it out of the table while the answer is on the wire
+    // must not let a late answer outside the contract become the copy.
+    {
+      let release: (() => void) | undefined;
+      const slowPath = '/api/fun-decks?slow-a';
+      globalThis.fetch = (async (input: RequestInfo | URL) => {
+        if (String(input).includes('slow-a')) {
+          await new Promise<void>(resolve => { release = resolve; });
+          return json({ error: 'late 200 outside the contract' });
+        }
+        return json(funRaw);
+      }) as typeof fetch;
+      const slow = readPublicJson(slowPath, true, funDecksCheck).then(() => 'stored', error => error);
+      for (let tries = 0; !release && tries < 100; tries++) await new Promise(resolve => setTimeout(resolve, 5));
+      assert.ok(release, 'the slow read is on the wire');
+      for (let index = 0; index < CHECKS_MAX_ENTRIES + 20; index++) await readPublicJson(`/api/fun-decks?evict-${index}`, true, funDecksCheck);
+      release();
+      assert.ok(await slow instanceof CatalogUnavailableError, 'a late answer outside the contract is a failed read');
+      globalThis.fetch = (async () => json({ error: 'down' }, 503)) as typeof fetch;
+      clock += 3000;
+      await assert.rejects(readPublicJson(slowPath, true, funDecksCheck), CatalogUnavailableError, 'it was not kept as a copy');
+    }
+    answer = funRaw;
+    globalThis.fetch = (async () => json(answer)) as typeof fetch;
+    // The check table is bounded: addresses with their own query or slug do not grow it for ever.
+    answer = funRaw;
+    for (let index = 0; index < CHECKS_MAX_ENTRIES + 50; index++) {
+      await readPublicJson(`/api/fun-decks?q=probe-${index}`, true, funDecksCheck);
+    }
+    assert.ok(publicCheckCount() <= CHECKS_MAX_ENTRIES, `check table holds ${publicCheckCount()} entries, limit ${CHECKS_MAX_ENTRIES}`);
   } finally {
     globalThis.fetch = realFetch;
     Date.now = realNow;
