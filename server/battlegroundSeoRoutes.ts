@@ -4,9 +4,7 @@ import { sameOriginPublicResourceUrl } from '../shared/publicResourceUrl.js';
 import { shareImageUrl } from '../shared/shareImages.js';
 import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js';
 import { isPositiveDbfId, registerPublicBattlegroundHeroRoute } from './battlegroundHeroPublicRoutes.js';
-import { createBattlegroundHeroCatalogLoader } from './battlegroundHeroRankingSource.js';
-import { createHeroRankingStore } from './battlegroundHeroRankingStore.js';
-import { projectBattlegroundHeroStats } from './battlegroundHeroStatsProjection.js';
+import { createHeroStatsLoader } from './battlegroundHeroStatsLoader.js';
 import type { PublicBattlegroundHero } from './battlegroundHeroPublicTypes.js';
 import { renderTextPlurals } from '../shared/hearthstoneCardText.js';
 import { hsDataApiOrigin } from './hsDataApiOrigin.js';
@@ -411,21 +409,9 @@ export function createBattlegroundHeroSeoRouter(
     return hero ?? null;
   };
 
-  // The open statistics come from the same base-range projection as the /heroes/ ranking, read through a
-  // store of this route (live window, last known good copy); a failed read leaves the hero without figures.
-  const rankingStore = createHeroRankingStore({
-    loadCatalog: createBattlegroundHeroCatalogLoader({ fetchImpl, timeoutMs: catalogTimeoutMs }),
-    onError: dependencies.onError,
-  });
-  const loadStats = async (dbfId: number) => {
-    const read = (mode: 'solo' | 'duos') => rankingStore.get(mode).then(snapshot => snapshot.body, () => null);
-    const [solo, duos] = await Promise.all([read('solo'), read('duos')]);
-    return projectBattlegroundHeroStats(dbfId, { solo, duos });
-  };
-
   registerPublicBattlegroundHeroRoute(router, {
     loadHero,
-    loadStats,
+    loadStats: createHeroStatsLoader({ fetchImpl, timeoutMs: catalogTimeoutMs, onError: dependencies.onError }),
     imageUrl: value => safeImageUrl(value, origin),
     retryAfterSeconds,
     onError: dependencies.onError,
