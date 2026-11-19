@@ -364,6 +364,30 @@ SEO cost is 250–400 words fewer on three indexed pages.
   explanation block, no FAQ markup, paywall present, dataset claims) and
   `tests/seo-structured-data.test.ts` (dataset).
 
+## Порог индексации (E21 S5)
+
+Одно правило на сайте: страница либо `index` + в карте сайта + canonical на
+себя, либо `noindex` + вне карты. Порог записан в одном модуле,
+`shared/seoIndexThreshold.ts`; meta robots страницы и проекция карты сайта
+импортируют его предикаты, второй копии условия нет.
+
+- Содержание: не меньше `INDEX_MIN_OWN_WORDS` (150) собственных слов или
+  `INDEX_MIN_OWN_FACTS` (10) собственных фактов, без меню и футера
+  (`meetsContentThreshold`).
+- Выборка по шаблону: `INDEX_MIN_SAMPLE_GAMES`, единственный источник
+  числа. Для архетипов это 1000 игр;
+  `constructedArchetypeIndexing.ts` читает его (прежнее имя
+  `INDEXABLE_ARCHETYPE_MIN_GAMES` — то же значение) и решает через
+  `meetsSampleThreshold`, так что страница и проекция карты сайта идут по
+  одному правилу.
+- Видимость: `indexThresholdNotice({ games, minGames })` возвращает строку
+  «Мало данных: N игр из нужных M, страница не индексируется до набора
+  выборки» либо `null`. Её печатает строка свежести данных страницы.
+- Контракт-тест `tests/route-inventory.test.ts`: у каждого маршрута инвентаря
+  `index` равносильно `sitemap`; у `index` canonical на себя и статус 200; ни один
+  сегмент карты не содержит шаблон с `noindex`; архетип ниже порога
+  не попадает в сегмент архетипов (проекция отклоняет его).
+
 ## Documentation impact
 
 - This specification records the new sitemap segment and page-quality contract.
