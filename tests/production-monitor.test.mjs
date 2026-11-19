@@ -68,7 +68,6 @@ const sitemapWildCardIds = Array.from(
   (_value, index) => `MONITOR_WILD_${String(index + 1).padStart(4, '0')}`,
 );
 const sitemapMinionIds = Array.from({ length: 500 }, (_value, index) => 10_000 + index);
-const sitemapSpellIds = Array.from({ length: 50 }, (_value, index) => 20_000 + index);
 const sitemapHeroIds = Array.from({ length: 80 }, (_value, index) => 30_000 + index);
 const sitemapCosmeticIds = Array.from({ length: 500 }, (_value, index) => `HERO_${index + 1}`);
 const sitemapGuideSlugs = Array.from({ length: 500 }, (_value, index) => `guide-${index + 1}`);
@@ -241,7 +240,6 @@ const server = http.createServer((req, res) => {
       `${origin}/sitemaps/standard-cards.xml`,
       `${origin}/sitemaps/wild-cards.xml`,
       `${origin}/sitemaps/battleground-minions.xml`,
-      `${origin}/sitemaps/battleground-spells.xml`,
       `${origin}/sitemaps/battleground-heroes.xml`,
       `${origin}/sitemaps/cosmetics.xml`,
       `${origin}/sitemaps/guides-archive.xml`,
@@ -303,9 +301,6 @@ const server = http.createServer((req, res) => {
     )),
     '/sitemaps/battleground-minions.xml': sitemapMinionIds.map(dbfId => (
       `${origin}/library/minions/monitor-minion-${dbfId}/`
-    )),
-    '/sitemaps/battleground-spells.xml': sitemapSpellIds.map(dbfId => (
-      `${origin}/library/spells/monitor-spell-${dbfId}/`
     )),
     '/sitemaps/battleground-heroes.xml': sitemapHeroIds.map(dbfId => `${origin}/heroes/${dbfId}/`),
     '/sitemaps/cosmetics.xml': sitemapCosmeticIds.map(cardId => `${origin}/cosmetics/heroes/${cardId}/`),
@@ -454,15 +449,14 @@ try {
     standard: 500,
     wild: 500,
     battlegroundMinions: 500,
-    battlegroundSpells: 50,
     battlegroundHeroes: 80,
     cosmetics: 500,
     guidesArchive: 500,
     archetypes: 40,
   });
   assert.equal(seoCheck.staticUrls, EXPECTED_STATIC_SITEMAP_URL_COUNT);
-  assert.equal(seoCheck.sampledDetails, 26,
-    'seven segments sample first, middle and last; archetypes sample five');
+  assert.equal(seoCheck.sampledDetails, 23,
+    'six segments sample first, middle and last; archetypes sample five');
   assert.equal(report.checks[0].attempts, 2);
   assert.deepEqual(report.checks.map(check => check.status), [200, 200, 200, 200, 200, 200, 404, 200, 200, 404, 200, 200, 200, 200]);
 

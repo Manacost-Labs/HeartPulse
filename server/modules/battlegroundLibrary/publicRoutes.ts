@@ -6,6 +6,12 @@ type PublicCard = { dbfId: number; kind: Kind; nameRu: string; inPool: boolean }
 
 type Dependencies<Card extends PublicCard> = {
   loadCatalog: (kind: Kind, identity?: BattlegroundLibraryLookup) => Promise<Card[]>;
+  /**
+   * The open layer of one card: its open statistics and related cards, added to the answer next to `card`.
+   * A rejection is a 503 with `Retry-After` like the catalog's: never a 200 without figures that would turn an
+   * indexable page into `noindex`.
+   */
+  loadOpenLayer?: (card: Card, archive: boolean) => Promise<Record<string, unknown>>;
   retryAfterSeconds: number;
   onError?: (error: unknown) => void;
 };
@@ -35,7 +41,8 @@ export function createBattlegroundLibraryPublicRouter<Card extends PublicCard>(d
       const kindPath = kind === 'minion' ? 'minions' : 'spells';
       const prefix = archive ? '/library/archive' : '/library';
       const canonicalPath = `${prefix}/${kindPath}/${canonicalBattlegroundCardSlug(card.nameRu)}-${id}/`;
-      return response.json({ card, canonicalPath });
+      const layer = dependencies.loadOpenLayer ? await dependencies.loadOpenLayer(card, archive) : {};
+      return response.json({ card, canonicalPath, ...layer });
     } catch (error) {
       try { dependencies.onError?.(error); } catch { /* Diagnostics cannot replace the retryable response. */ }
       response.set('Retry-After', String(dependencies.retryAfterSeconds));

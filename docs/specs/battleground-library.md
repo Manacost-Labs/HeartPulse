@@ -19,9 +19,11 @@ categories and unknown kinds return 404. The archive listings keep the gate for
 a guest (no open list there);
 subscribers and administrators retain the existing `BgLibrary` filters.
 All supported current and archive detail pages are served by Next.js. Server
-HTML contains
-only the anonymous card identity, safe image, rules text and indexable entity
-JSON-LD with the canonical URL; the existing
+HTML contains the anonymous card identity, safe image, rules text, the open
+facts of the card (tier, tribe, attack/health, mechanics, golden version),
+related cards, for a minion of the pool the base statistics, and the entity
+JSON-LD when the page crosses the indexing threshold
+(`docs/specs/battleground-library-open-layer.md`); the existing
 `BgLibrary` detail client mounts after entitlement or administrator checks.
 Unknown card IDs return 404, and a noncanonical slug redirects to the
 canonical card URL. Catalog outages return non-cacheable 503 HTML with

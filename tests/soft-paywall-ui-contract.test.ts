@@ -365,7 +365,7 @@ test('pages pass the access decision to their gates and reserve the gate height'
     'the placeholder and a mounting paid view must reserve the gate height token');
   assert.match(read('../src/styles/tokens.css'), /--subscription-gate-min-height: 760px;/);
   for (const pageClient of ['BattlegroundLibraryPageClient',
-    'BattlegroundLibraryDetailPageClient', 'BattlegroundTierListPageClient', 'BattlegroundTierBuilderPageClient',
+    'BattlegroundTierListPageClient', 'BattlegroundTierBuilderPageClient',
     'BattlegroundStrategiesPageClient', 'GuidesArchivePageClient', 'GuideArchiveDetailPageClient']) {
     const source = read(`../apps/public-web/ui/${pageClient}.tsx`);
     // `pending` (paidAccess) covers the check and a refusal the server has not confirmed yet.
@@ -375,5 +375,7 @@ test('pages pass the access decision to their gates and reserve the gate height'
   }
   // /heroes/ and /heroes/<id>/ are not in the list: they have open data and no gate to reserve. Their behaviour (open
   // data for a guest, no placeholder, no layout shift when a subscriber's view replaces it) is checked in a browser by
-  // tests/next-paywall-access-check-browser.test.mjs and tests/next-bg-hero-detail-browser.test.mjs.
+  // tests/next-paywall-access-check-browser.test.mjs and tests/next-bg-hero-detail-browser.test.mjs. The same holds for
+  // a library card page (`BattlegroundLibraryDetailPageClient`, checked by the first of them); the library listings keep
+  // the gate for the archive, which has no open list.
 });

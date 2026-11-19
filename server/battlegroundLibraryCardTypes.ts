@@ -14,6 +14,8 @@ export type PublicBattlegroundLibraryCard = {
   attack: number | null;
   health: number | null;
   mechanics: string[];
+  /** The golden version's attack and health, when the catalog has one (a fact of the open card page). */
+  golden: { attack: number | null; health: number | null } | null;
   images: {
     card: string | null;
     golden: string | null;

@@ -2,11 +2,16 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import type { Server } from 'node:http';
 import express from 'express';
-import { projectPublicBattlegroundLibraryCard } from '../server/battlegroundLibrarySeoRoutes.js';
+import { createBattlegroundLibrarySeoRouter } from '../server/battlegroundLibrarySeoRoutes.js';
 import { createBattlegroundLibraryListingRouter } from '../server/battlegroundLibraryListing.js';
 import { createLibraryStatsStore, projectLibraryStatsSlice } from '../server/battlegroundLibraryOpenStats.js';
+import { libraryCardIndexingFacts as serverFacts, relatedLibraryCards } from '../server/battlegroundLibraryOpenCard.js';
+import { projectPublicBattlegroundLibraryCard } from '../server/battlegroundLibrarySeoRoutes.js';
+import { countLibraryCardOwnFacts, isIndexableBattlegroundLibraryCard } from '../shared/battlegroundLibraryIndexing.js';
+import { libraryCardIndexingFacts as pageFacts, publicBattlegroundLibraryCard } from '../apps/public-web/lib/publicBattlegroundLibraryCardData.js';
 import { parsePublicLibraryListing } from '../apps/public-web/lib/publicBattlegroundLibraryListingData.js';
-import { CLOSED, fetchImpl, leaks, slug, state, statsPayload } from './helpers/battlegroundLibraryOpenFixture.js';
+import { encodePublicProjectionList } from '../apps/public-web/lib/publicProjectionHeader.js';
+import { catalogs, CLOSED, fetchImpl, leaks, slug, state, statsPayload } from './helpers/battlegroundLibraryOpenFixture.js';
 
 // The open library (E21): what a guest and a robot may read of the Battlegrounds library, and the sentinel check that
 // nothing closed leaves with it. Every closed figure of the source (impact, combat win rate, the rounds, purchases,
@@ -116,7 +121,67 @@ try {
   await assert.rejects(() => coldStats.get(), /statistics HTTP 500/);
   state.statsDown = false;
 
-  // 3. The page parser copies the allowlist only: a dirty answer cannot put a closed value into the HTML, the RSC payload or the JSON-LD.
+  // 3. The card route: the open layer next to the card, the same figures, related cards by tags, and one rule for the page and the sitemap.
+  const app = express();
+  app.use(createBattlegroundLibrarySeoRouter({ fetchImpl, now: () => clock, catalogCacheTtlMs: 60_000, auxiliaryCatalogBaseUrl: 'https://api.example.test/api/v1' }));
+  const cardOrigin = await listen(app);
+  const answer = await (await fetch(`${cardOrigin}/api/bg/library/public/minion/1001`)).text();
+  assert.deepEqual(leaks(answer), [], 'no closed value in the card answer');
+  const cardBody = JSON.parse(answer);
+  assert.deepEqual(cardBody.stats, { avgPlacementWith: 3.9, avgPlacementWithout: 4.2, popularity: 7.5, gamesWith: 900, updatedAt: '2026-11-19T02:45:13.000Z' });
+  const warm = cardBody;
+  assert.deepEqual(warm.related.map((card: { dbfId: number }) => card.dbfId), [1004, 1002], 'same tribe, nearest tier first; the murloc and the archive are not related');
+  assert.deepEqual(Object.keys(warm.related[0]).sort(), ['dbfId', 'name', 'path', 'tavernTier', 'tribe']);
+  // A cold catalog with a working single-card identity read: the first answer still carries the related cards.
+  {
+    const identityFetch: typeof fetch = async (input, init) => {
+      const url = new URL(String(input));
+      const m = url.pathname.match(/\/cards\/by-dbf\/(\d+)$/);
+      if (m) return new Response(JSON.stringify(catalogs['minion:1'].find(raw => (raw as { dbf: number }).dbf === Number(m[1]))));
+      return fetchImpl(input, init);
+    };
+    const coldApp = express();
+    coldApp.use(createBattlegroundLibrarySeoRouter({ fetchImpl: identityFetch, now: () => clock, auxiliaryCatalogBaseUrl: 'https://api.example.test/api/v1' }));
+    const first = await (await fetch(`${await listen(coldApp)}/api/bg/library/public/minion/1001`)).json();
+    assert.deepEqual(first.related.map((card: { dbfId: number }) => card.dbfId), [1004, 1002], 'the first visitor gets related cards');
+  }
+  state.statsDown = true; clock += 10 * 60_000;
+  const outage = await fetch(`${cardOrigin}/api/bg/library/public/minion/1001`);
+  assert.equal(outage.status, 200, 'the held statistics keep serving after a source failure');
+  state.statsDown = false;
+
+  // 4. One rule, one decision: the facts the server counts for the sitemap are the facts the page counts.
+  for (const dbfId of [1001, 1002, 1003, 1004]) {
+    const answerOf = await (await fetch(`${cardOrigin}/api/bg/library/public/minion/${dbfId}`)).json();
+    const card = publicBattlegroundLibraryCard(answerOf, 'minions', String(dbfId));
+    const serverCard = projectPublicBattlegroundLibraryCard(catalogs['minion:1'].find(raw => (raw as { dbf: number }).dbf === dbfId), 'minion', true)!;
+    const figures = slice.byDbf.get(dbfId) ?? null;
+    const server = serverFacts(serverCard, figures);
+    const page = pageFacts(card);
+    assert.equal(isIndexableBattlegroundLibraryCard(page), isIndexableBattlegroundLibraryCard(server), `page and sitemap agree on ${dbfId}`);
+    assert.equal(countLibraryCardOwnFacts(page), countLibraryCardOwnFacts(server), `same facts for ${dbfId}`);
+  }
+  // 5. The threshold: ten own facts. A thin spell is not indexable, a minion with the golden version and statistics is.
+  const spell = projectPublicBattlegroundLibraryCard(catalogs['spell:1'][0], 'spell', true)!;
+  assert.equal(countLibraryCardOwnFacts(serverFacts(spell, null)), 4);
+  assert.equal(isIndexableBattlegroundLibraryCard(serverFacts(spell, null)), false);
+  const minion = projectPublicBattlegroundLibraryCard(catalogs['minion:1'][0], 'minion', true)!;
+  assert.equal(countLibraryCardOwnFacts(serverFacts(minion, slice.byDbf.get(1001)!)), 14);
+  assert.equal(isIndexableBattlegroundLibraryCard(serverFacts(minion, null)), true, 'ten facts without statistics: the margin is one');
+  assert.equal(isIndexableBattlegroundLibraryCard(serverFacts({ ...minion, golden: null }, null)), false);
+  assert.equal(isIndexableBattlegroundLibraryCard({ name: null, typeName: 'Существо', tavernTier: 1, tribe: 'Зверь', attack: 1, health: 1, text: 'x', mechanicCount: 9, goldenAttack: 1, goldenHealth: 1 }), false, 'no name, no page');
+  assert.deepEqual(relatedLibraryCards(minion, [minion], '/library'), [], 'never the card itself');
+
+  // 6. The page parsers copy the allowlist only: a dirty answer cannot put a closed value into the HTML, the RSC payload or the JSON-LD.
+  const dirtyCard = JSON.parse(answer);
+  dirtyCard.stats = { ...dirtyCard.stats, impact: CLOSED[0], combatWinrate: CLOSED[1], rounds: [CLOSED[2]], history: [CLOSED[5]] };
+  dirtyCard.card = { ...dirtyCard.card, impact: CLOSED[0], purchases: [CLOSED[3]], positions: CLOSED[4], raw: CLOSED[6], mechanics: ['Провокация', CLOSED[0]].slice(0, 1) };
+  dirtyCard.related = [{ ...warm.related[0], impact: CLOSED[0] }, { dbfId: 9, name: 'Чужая', path: 'https://evil.example/x-9/' }];
+  assert.notDeepEqual(leaks(JSON.stringify(dirtyCard)), [], 'mutation: the dirty answer does carry closed values');
+  const parsedCard = publicBattlegroundLibraryCard(dirtyCard, 'minions', '1001');
+  assert.deepEqual(leaks(JSON.stringify(parsedCard)), []);
+  assert.deepEqual(Object.keys(parsedCard.stats!).sort(), ['avgPlacementWith', 'avgPlacementWithout', 'gamesWith', 'popularity', 'updatedAt']);
+  assert.equal(parsedCard.related.length, 1, 'a related card off the library paths is dropped');
   const dirtyListing = JSON.parse(text);
   dirtyListing.items = dirtyListing.items.map((item: object) => ({ ...item, impact: CLOSED[0], rounds: [CLOSED[2]] }));
   dirtyListing.items.find((item: { stats?: object }) => item.stats).stats.combatWinrate = CLOSED[1];
@@ -128,6 +193,11 @@ try {
   assert.equal(parsePublicLibraryListing(dirtyListing, 'spells'), null, 'another kind is not this listing');
   assert.equal(parsePublicLibraryListing({ ...dirtyListing, items: [{ ...dirtyListing.items[0], path: '//evil.example/x-1001/' }] }, 'minions'), null);
 
+  // 7. The related header: the longest prefix that fits, never a failure.
+  const many = Array.from({ length: 6 }, (_value, index) => ({ dbfId: index + 1, name: 'Я'.repeat(170), path: `/library/minions/${'я'.repeat(70)}-${index + 1}/` }));
+  const encoded = encodePublicProjectionList(many);
+  assert.ok(encoded && encoded.length <= 4096);
+  assert.equal(encodePublicProjectionList([]), null);
   console.log('battleground library open layer tests passed');
 } finally {
   await closeAll();
