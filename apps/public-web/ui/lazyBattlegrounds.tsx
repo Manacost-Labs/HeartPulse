@@ -43,6 +43,11 @@ export function useBattlegroundsModuleLoaded(enabled: boolean): boolean {
   return useLoadedModule<BattlegroundsModule | null>(enabled ? battlegrounds : idle) !== null;
 }
 
+/** Whether the library module is loaded: the same rule as `useBattlegroundsModuleLoaded` for the library views. */
+export function useBgLibraryModuleLoaded(enabled: boolean): boolean {
+  return useLoadedModule<BgLibraryModule | null>(enabled ? bgLibrary : idle) !== null;
+}
+
 export function BattlegroundHeroesRoute(props: ComponentProps<BattlegroundsModule['BattlegroundHeroesRoute']>) {
   return render(useLoadedModule(battlegrounds)?.BattlegroundHeroesRoute, props);
 }
