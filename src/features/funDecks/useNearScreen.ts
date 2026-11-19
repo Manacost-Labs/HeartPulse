@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 
 /**
- * True once the element is within `margin` of the viewport (about one screen
- * by default), and from then on. `immediate` skips the wait, for the cards
+ * True once the element is within one screen (`window.innerHeight` px above
+ * and below the viewport; `screens` changes the multiple), and from then on. `immediate` skips the wait, for the cards
  * that are in view on arrival. Without IntersectionObserver the answer is yes.
  */
-export function useNearScreen<T extends Element>(immediate = false, margin = '100% 0px') {
+export function useNearScreen<T extends Element>(immediate = false, screens = 1) {
   const ref = useRef<T>(null);
   const [near, setNear] = useState(immediate);
   useEffect(() => {
@@ -20,9 +20,9 @@ export function useNearScreen<T extends Element>(immediate = false, margin = '10
         setNear(true);
         observer.disconnect();
       }
-    }, { rootMargin: margin });
+    }, { rootMargin: `${Math.round(window.innerHeight * screens)}px 0px` });
     observer.observe(element);
     return () => observer.disconnect();
-  }, [near, margin]);
+  }, [near, screens]);
   return { ref, near };
 }

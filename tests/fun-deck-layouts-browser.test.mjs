@@ -188,8 +188,11 @@ try {
     await many.waitForFunction(() => document.querySelectorAll('section[aria-label="Подборка фан-колод"] > article').length === 9);
     assert.equal(await many.evaluate(() => [...document.querySelectorAll('button')].some(button => /Показать ещё/.test(button.textContent))), false);
     await new Promise(resolve => setTimeout(resolve, 800));
-    const early = await many.$$eval('.fun-deck-tiles__list', lists => lists.length);
-    assert.ok(early >= 1 && early < 9, `only decks near the screen are resolved at first, got ${early} of 9`);
+    // The cards within one screen of the viewport (innerHeight above and below) are resolved, no others.
+    const near = await many.$$eval('section[aria-label="Подборка фан-колод"] > article', (cards, height) => cards.filter(card => card.getBoundingClientRect().top < height * 2).length, 700);
+    const requested = await many.evaluate(() => new Set(window.__funDeckResolves).size);
+    assert.ok(near >= 1 && near < 9, `some decks are far from the screen, got ${near} near of 9`);
+    assert.equal(requested, near, `${requested} decks resolved at first, ${near} are within one screen`);
     await many.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
     await many.waitForFunction(() => document.querySelectorAll('.fun-deck-tiles__list').length === 9, { timeout: 15_000 });
   } finally {

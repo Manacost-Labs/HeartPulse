@@ -75,23 +75,17 @@ export function FunDeckMetrics({ deck, tourAnchor }: { deck: FunDeckRow; tourAnc
  * gets the sentence without it.
  */
 export function FunDecksMethodGate({ methodology }: { methodology: FunDecksPayload['methodology'] | undefined }) {
-  const legacy = methodology?.maxMetaSimilarity != null;
-  const shared = methodology?.ladderMemberSim != null ? `${score(methodology.ladderMemberSim)} карт` : 'много карт';
-  const floor = methodology?.minFunScore != null ? `, индекс фана от ${score(methodology.minFunScore)}` : '';
+  // The same sentences with or without the figures ("—" for an unknown one), so the block keeps its height while the data loads.
+  const shared = score(methodology?.ladderMemberSim ?? null);
+  const floor = score(methodology?.minFunScore ?? null);
   return (
     <div className="fun-decks-method__gate">
-      {legacy ? (
-        <p>
-          Индекс от {score(methodology?.minFunScore ?? null)}, сходство с метой не выше {score(methodology?.maxMetaSimilarity ?? null)}.
-        </p>
-      ) : (
-        <p>
-          В подборку не попадают колоды, у которых {shared} общие со списком ладдерного архетипа,
-          которые названы как ладдерный архетип или общим словом вроде Aggro, Dude, Mech.
-        </p>
-      )}
       <p>
-        <b>Бру</b> — концепт в названии, острый пакет карт или уникальный список{legacy ? '' : floor}.
+        В подборку не попадают колоды, у которых общих карт со списком ладдерного архетипа от {shared},
+        которые названы как ладдерный архетип или общим словом вроде Aggro, Dude, Mech.
+      </p>
+      <p>
+        <b>Бру</b> — концепт в названии, острый пакет карт или уникальный список, индекс фана от {floor}.
         {' '}<b>Офф-мета</b> — забытый, непопулярный архетип.
         {' '}Рядом с винрейтом — 95%-й интервал, шире при малом числе игр.
       </p>

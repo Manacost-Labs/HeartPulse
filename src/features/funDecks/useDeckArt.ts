@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type ReactEventHandler } from 'react';
+import { useCallback, useEffect, useState, type ReactEventHandler } from 'react';
 
 /** How long a failed image waits before its one retry. */
 export const DECK_ART_RETRY_MS = 4_000;
@@ -14,19 +14,19 @@ type ArtStatus = 'loading' | 'loaded' | 'waiting' | 'failed';
  */
 export function useDeckArt() {
   const [state, setState] = useState<{ status: ArtStatus; attempt: number }>({ status: 'loading', attempt: 0 });
-  const timer = useRef<number | undefined>(undefined);
-  useEffect(() => () => window.clearTimeout(timer.current), []);
+
+  // The retry timer lives in an effect keyed on the state, never inside a state updater.
+  useEffect(() => {
+    if (state.status !== 'waiting') return undefined;
+    const timer = window.setTimeout(() => setState({ status: 'loading', attempt: state.attempt + 1 }), DECK_ART_RETRY_MS);
+    return () => window.clearTimeout(timer);
+  }, [state]);
 
   const onLoad = useCallback<ReactEventHandler<HTMLImageElement>>(() => {
     setState(current => ({ ...current, status: 'loaded' }));
   }, []);
   const onError = useCallback<ReactEventHandler<HTMLImageElement>>(() => {
-    setState(current => {
-      if (current.attempt > 0) return { ...current, status: 'failed' };
-      window.clearTimeout(timer.current);
-      timer.current = window.setTimeout(() => setState({ status: 'loading', attempt: 1 }), DECK_ART_RETRY_MS);
-      return { ...current, status: 'waiting' };
-    });
+    setState(current => ({ ...current, status: current.attempt > 0 ? 'failed' : 'waiting' }));
   }, []);
   /** An image served from the cache is complete before React attaches onLoad. */
   const ref = useCallback((image: HTMLImageElement | null) => {

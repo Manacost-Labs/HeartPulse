@@ -85,7 +85,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 79px;
+  height: 88px; /* one height for every deck, the skeleton's too */
+  overflow: hidden;
   padding: 6px 7px;
   border: 5px solid transparent;
   border-image: url("/wallpaper/deck-border.png") 20 / 5px stretch;
@@ -656,7 +657,7 @@ a.fun-deck-portrait:focus-visible { outline: 2px solid var(--fun-red); outline-o
 .fun-deck-layout-state--rows .fun-deck-layout-state__block { height: 42px; border-radius: 21px; }
 
 /* A list keeps one height while it loads and when it fails, and the page skeleton reserves the same. */
-.fun-deck-layout-state--tiles { box-sizing: border-box; min-height: calc(12 * (20cqw + 2px)); align-content: start; padding-inline: 3px; color: #ebcda0; font-size: 0.75rem; }
+.fun-deck-layout-state--tiles { box-sizing: border-box; min-height: calc(12 * (20cqw + 2px)); align-content: start; padding: 0 3px; color: #ebcda0; font-size: 0.75rem; }
 
 .fun-deck-layout-state--rows {
   display: flex;
@@ -671,12 +672,11 @@ a.fun-deck-portrait:focus-visible { outline: 2px solid var(--fun-red); outline-o
 .fun-decks-layout-bar p { min-height: 1.25em; }
 .fun-deck-tiles--loading,
 .fun-deck-rowcard--loading { pointer-events: none; }
-.fun-deck-tiles--loading .fun-deck-tiles__head { min-height: 79px; }
 .fun-deck-tiles--loading .fun-deck-tiles__head > div { display: grid; gap: 6px; }
 .fun-deck-tiles--loading .fun-deck-tiles__head .loading-block { height: 13px; }
 .fun-deck-tiles--loading .fun-deck-tiles__head .fun-deck-skeleton-icon { width: 34px; height: 34px; flex: none; border-radius: 50%; }
-.fun-deck-tiles-skeleton-stats { height: 48.2px; margin: 0; border-radius: 0; }
-.fun-deck-tiles-skeleton-why { height: 28.5px; margin: 0; border-radius: 0; }
+.fun-deck-tiles-skeleton-stats { height: 50.3px; margin: 0; border-radius: 0; }
+.fun-deck-tiles-skeleton-why { height: 29.3px; margin: 0; border-radius: 0; }
 .fun-deck-tiles-skeleton-copy { height: 44px; }
 .fun-deck-rows-skeleton-top { height: 78px; margin: 0; border-radius: 0; }
 

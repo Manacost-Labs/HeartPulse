@@ -139,9 +139,9 @@ viewport; the first card does it at once.
 
 The «Как читаются оценки» block follows the detector in the dataset. The
 numbers come from `methodology` (from the dataset's `filters`:
-`min_fun_score`, `ladder_member_sim`, and `max_meta_similarity` for concept-v7);
-a field the dataset does not publish is `null` and its figure is left out of the
-text, nothing is substituted. concept-v8 text: a deck is left out when it shares
+`min_fun_score`, `ladder_member_sim`); a field the dataset does not publish is
+`null` and shows as «—», nothing is substituted, so the block keeps one height
+while the data loads. concept-v8 text: a deck is left out when it shares
 cards with a ladder archetype's lists, is named like one, or has a generic
 name (Aggro, Dude, Mech); «Бру» has a concept in the name, a spicy card package
 or a unique list; «Офф-мета» is a forgotten, unpopular archetype.

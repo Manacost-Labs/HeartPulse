@@ -76,6 +76,9 @@ export function CopyDeckButton({ deck, className }: { deck: FunDeckRow; classNam
   );
 }
 
+const TILE_BLOCKS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l'] as const;
+const ROW_BLOCKS = ['a'] as const;
+
 export function DeckLoadState({ error, reload, layout, empty = false }: {
   error: string; reload: () => void; layout: 'tiles' | 'rows'; empty?: boolean;
 }) {
@@ -97,7 +100,7 @@ export function DeckLoadState({ error, reload, layout, empty = false }: {
   return (
     <LoadingSurface label="Загружаем состав колоды" quiet layout="rows"
       className={`fun-deck-layout-state fun-deck-layout-state--${layout}`} blocksClassName="fun-deck-layout-state__blocks">
-      {Array.from({ length: layout === 'tiles' ? 12 : 1 }, (_, index) => <LoadingBlock key={index} className="fun-deck-layout-state__block" />)}
+      {(layout === 'tiles' ? TILE_BLOCKS : ROW_BLOCKS).map(id => <LoadingBlock key={id} className="fun-deck-layout-state__block" />)}
     </LoadingSurface>
   );
 }

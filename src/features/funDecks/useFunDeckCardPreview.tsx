@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useState, type FocusEvent, type MouseEvent } from 'react';
 import type { CardPreviewTarget } from '../CardPreviewTooltip';
+import './FunDeckCardPreview.css';
 
 // The tooltip and its image loader are fetched on the first hover or focus,
 // not with the route.

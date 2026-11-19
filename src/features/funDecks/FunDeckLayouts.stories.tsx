@@ -46,6 +46,7 @@ const meta = {
       const url = new URL(String(input), window.location.origin);
       if (url.pathname === '/api/fun-decks') return Promise.resolve(Response.json(many ? manyDecks() : kinds ? kindDecks() : fixture.funDecks));
       if (url.pathname === '/api/deck/resolve') {
+        ((window as unknown as { __funDeckResolves?: string[] }).__funDeckResolves ??= []).push(url.searchParams.get('code') ?? '');
         const code = (url.searchParams.get('code') ?? '').replace(/~\d+$/, '');
         const deck = resolved[code];
         return Promise.resolve(deck ? Response.json({ ok: true, ...deck }) : Response.json({ error: 'Нет колоды' }, { status: 404 }));
