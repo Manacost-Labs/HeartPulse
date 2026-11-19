@@ -54,7 +54,7 @@ test('static root is assembled from public assets and SEO registries', () => {
       `${routeInventory.canonicalOrigin}/sitemaps/archetypes.xml`,
     ]);
     assert.doesNotMatch(sitemapIndex, /<(?:lastmod|changefreq|priority)>/i,
-      'the sitemap index must not invent freshness metadata');
+      'the build knows no freshness: the server dates the index and the static pages at runtime');
 
     const staticSitemap = readFileSync(join(outDir, 'sitemaps/static.xml'), 'utf8');
     const actualUrls = locations(staticSitemap).sort();
@@ -69,6 +69,11 @@ test('static root is assembled from public assets and SEO registries', () => {
       'private and error documents must stay out of the sitemap');
     assert.doesNotMatch(staticSitemap, /<(?:lastmod|changefreq|priority)>/i,
       'sitemap must not invent freshness metadata');
+
+    // The server dates each static page by the day it first saw this fingerprint of its content.
+    const fingerprints = JSON.parse(readFileSync(join(outDir, 'sitemaps/static-fingerprints.json'), 'utf8'));
+    assert.deepEqual(Object.keys(fingerprints).sort(), expectedUrls, 'one fingerprint per static sitemap URL');
+    assert.ok(Object.values(fingerprints).every(value => /^[a-f0-9]{64}$/.test(value)));
 
     // Every edge refuses to activate a tree below the activator's floor, so a
     // cleanup of public/ must not bring the static root close to it.

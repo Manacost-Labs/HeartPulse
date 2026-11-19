@@ -81,12 +81,18 @@ const sitemapArchetypeSlugs = Array.from(
 sitemapCardIds[0] = 'blizzard:12345';
 sitemapWildCardIds[0] = 'blizzard:67890';
 
-function xmlUrlset(urls) {
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(url => `  <url><loc>${url}</loc></url>`).join('\n')}\n</urlset>\n`;
+// The last entry of a sitemap is the newest (2026-11-16 unless `newest` says otherwise). The index dates a sitemap by that day.
+function xmlUrlset(urls, { lastmod = true, invalidLastmod = false, newest = '2026-11-16' } = {}) {
+  const rows = urls.map((url, index) => {
+    const day = invalidLastmod ? '2026-13-45' : index === urls.length - 1 ? newest : '2026-11-10';
+    return `  <url><loc>${url}</loc>${lastmod ? `<lastmod>${day}</lastmod>` : ''}</url>`;
+  });
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.join('\n')}\n</urlset>\n`;
 }
 
-function xmlIndex(urls) {
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map(url => `  <sitemap><loc>${url}</loc></sitemap>`).join('\n')}\n</sitemapindex>\n`;
+function xmlIndex(urls, { lastmod = '2026-11-16' } = {}) {
+  const rows = urls.map(url => `  <sitemap><loc>${url}</loc>${lastmod ? `<lastmod>${lastmod}</lastmod>` : ''}</sitemap>`);
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${rows.join('\n')}\n</sitemapindex>\n`;
 }
 
 function cardHtml(origin, cardId, options = {}) {
@@ -240,14 +246,20 @@ const server = http.createServer((req, res) => {
       `${origin}/sitemaps/cosmetics.xml`,
       `${origin}/sitemaps/guides-archive.xml`,
       ...(seoFailure === 'index-without-archetypes' ? [] : [`${origin}/sitemaps/archetypes.xml`]),
-    ]));
+    ], {
+      lastmod: seoFailure === 'index-without-lastmod' ? ''
+        : seoFailure === 'index-stale-lastmod' || (seoFailure === 'index-edge-stale' && !requestUrl.search) ? '2026-11-12' : '2026-11-16',
+    }));
     return;
   }
   if (requestUrl.pathname === '/sitemaps/static.xml') {
     const urls = Array.from({ length: EXPECTED_STATIC_SITEMAP_URL_COUNT }, (_value, index) => (
       index === 0 ? `${origin}/` : `${origin}/static-${index}/`
     ));
-    let body = xmlUrlset(urls);
+    let body = xmlUrlset(urls, {
+      lastmod: seoFailure !== 'static-without-lastmod',
+      invalidLastmod: seoFailure === 'static-invalid-lastmod',
+    });
     if (seoFailure === 'comment-loc') {
       body = body.replace(
         '</urlset>',
@@ -277,7 +289,12 @@ const server = http.createServer((req, res) => {
         : seoFailure === 'lkg-sitemap' ? 'last-known-good' : 'catalog',
       ...(seoFailure === 'oversized-sitemap' ? { 'Content-Length': String(9 * 1024 * 1024) } : {}),
     });
-    res.end(xmlUrlset(urls));
+    res.end(xmlUrlset(urls, {
+      lastmod: seoFailure !== 'cards-without-lastmod',
+      // An edge cache keys a document by its URI with the query: a plain request meets the stale copy.
+      newest: (seoFailure === 'segment-edge-stale' && !requestUrl.search) || seoFailure === 'segment-behind-index'
+        ? '2026-11-12' : '2026-11-16',
+    }));
     return;
   }
   const additionalSitemaps = {
@@ -309,7 +326,9 @@ const server = http.createServer((req, res) => {
         ? 'last-known-good'
         : 'catalog',
     });
-    res.end(xmlUrlset(additionalSitemaps[requestUrl.pathname]));
+    res.end(xmlUrlset(additionalSitemaps[requestUrl.pathname], {
+      lastmod: !(seoFailure === 'cosmetics-without-lastmod' && requestUrl.pathname === '/sitemaps/cosmetics.xml'),
+    }));
     return;
   }
   const sitemapCardMatch = requestUrl.pathname.match(/^\/standard\/cards\/standard\/(MONITOR_CARD_[0-9]{4}|blizzard%3A[1-9][0-9]*)\/?$/);
@@ -589,7 +608,14 @@ try {
     ['malformed-comment', /XML|well-formed|comment/i],
     ['trailing-xml-garbage', /XML|well-formed|trailing/i],
     ['unexpected-xml-structure', /XML|structure|url/i],
-    ['index-without-archetypes', /exact public segment set/i],
+    ['index-without-archetypes', /exact public segment set \(missing: \/sitemaps\/archetypes\.xml;/i],
+    ['index-without-lastmod', /sitemap index: entry 1 has no lastmod/i],
+    ['index-stale-lastmod', /sitemap index lastmod 2026-11-12 is not the latest entry lastmod 2026-11-16/i],
+    ['static-without-lastmod', /static sitemap: entry 1 has no lastmod/i],
+    ['static-invalid-lastmod', /static sitemap: invalid XML lastmod at entry 1/i],
+    ['segment-behind-index', /sitemap lastmod|latest entry lastmod 2026-11-12/i],
+    ['cards-without-lastmod', /entry 1 has no lastmod/i],
+    ['cosmetics-without-lastmod', /entry 1 has no lastmod/i],
     ['archetypes-small', /archetype sitemap has invalid entry count 29/i],
     ['archetypes-meta-family', /archetype sitemap contains a non-canonical URL/i],
     ['archetypes-wild', /archetype sitemap contains a non-canonical URL/i],
@@ -627,6 +653,17 @@ try {
   });
   assert.equal(commentReport.status, 'ok', 'XML comments must not contribute sitemap locations');
   seoFailure = null;
+
+  // The edge caches the index and each segment separately: a plain request may meet a stale copy of either.
+  // The monitor asks again for a pair the cache cannot hold, so a transient difference is not an error.
+  for (const mode of ['index-edge-stale', 'segment-edge-stale']) {
+    seoFailure = mode;
+    const transient = await runProductionMonitor({ baseUrl, attempts: 1, retryDelayMs: 0, timeoutMs: 2_000 });
+    assert.equal(transient.status, 'ok', `${mode}: a difference that a fresh pair does not show is not an error`);
+    assert.ok(transient.warnings.some(warning => /edge caches differ/.test(warning.message)),
+      `${mode}: the difference is reported as a warning`);
+    seoFailure = null;
+  }
 
   dataFresh = false;
   seoFailure = 'duplicate-sitemap';

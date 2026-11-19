@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { randomUUID } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import { pathToFileURL } from 'node:url';
@@ -431,14 +432,18 @@ function assertTextOnlyXmlElement(node, label) {
   }
 }
 
-function sitemapLocations(xml, rootElement, label) {
+/**
+ * The entries of a sitemap or sitemap index with their `lastmod`. Every entry
+ * must carry one (a `YYYY-MM-DD` date) unless `requireLastmod` is off.
+ */
+export function sitemapEntries(xml, rootElement, label, { requireLastmod = true } = {}) {
   const root = parseXmlDocument(xml, label);
   ensure(root.name === rootElement, `${label}: invalid XML root ${root.name}`);
   ensure(root.attributes.size === 1 && root.attributes.get('xmlns') === SITEMAP_NAMESPACE,
     `${label}: invalid XML namespace`);
   ensure(!root.text.trim(), `${label}: invalid text in XML root`);
   const entryElement = rootElement === 'sitemapindex' ? 'sitemap' : 'url';
-  const locations = root.children.map((entry, index) => {
+  const entries = root.children.map((entry, index) => {
     ensure(entry.name === entryElement, `${label}: invalid XML structure at entry ${index + 1}`);
     ensure(entry.attributes.size === 0 && !entry.text.trim(),
       `${label}: invalid XML attributes or text at entry ${index + 1}`);
@@ -448,17 +453,74 @@ function sitemapLocations(xml, rootElement, label) {
     const [location, lastmod] = entry.children;
     assertTextOnlyXmlElement(location, label);
     ensure(location.text.trim(), `${label}: empty XML location at entry ${index + 1}`);
+    ensure(lastmod || !requireLastmod, `${label}: entry ${index + 1} has no lastmod`);
     if (lastmod) {
       ensure(lastmod.name === 'lastmod', `${label}: invalid XML structure at entry ${index + 1}`);
       assertTextOnlyXmlElement(lastmod, label);
-      ensure(/^\d{4}-\d{2}-\d{2}$/.test(lastmod.text.trim()),
-        `${label}: invalid XML lastmod at entry ${index + 1}`);
+      ensure(/^\d{4}-\d{2}-\d{2}$/.test(lastmod.text.trim())
+        && !Number.isNaN(Date.parse(`${lastmod.text.trim()}T00:00:00Z`)),
+      `${label}: invalid XML lastmod at entry ${index + 1}`);
     }
-    return location.text.trim();
+    return { location: location.text.trim(), lastmod: lastmod?.text.trim() };
   });
-  ensure(locations.length > 0, `${label} contains no locations`);
-  ensure(new Set(locations).size === locations.length, `${label} contains duplicate locations`);
-  return locations;
+  ensure(entries.length > 0, `${label} contains no locations`);
+  ensure(new Set(entries.map(entry => entry.location)).size === entries.length, `${label} contains duplicate locations`);
+  return entries;
+}
+
+function sitemapLocations(xml, rootElement, label, options) {
+  return sitemapEntries(xml, rootElement, label, options).map(entry => entry.location);
+}
+
+/** The index dates a sitemap by the latest `lastmod` among its entries. */
+function assertIndexLastmod(indexEntries, location, entries, label) {
+  const listed = indexEntries.find(entry => entry.location === location)?.lastmod;
+  const latest = entries.map(entry => entry.lastmod).sort().at(-1);
+  ensure(listed === latest, `${label}: sitemap index lastmod ${listed} is not the latest entry lastmod ${latest}`);
+}
+
+const LASTMOD_RECHECKS = 2;
+
+/**
+ * Checks the index date against the segment, tolerating the edge cache. The edge
+ * caches `/sitemap.xml` and each segment separately, keyed by `$request_uri`
+ * with its query string (`deploy/nginx/arena-edge-static-cache.conf`, location
+ * `@arena_mutable_static_origin`, five minutes), so right after an update one
+ * may legitimately hold yesterday's date while the other is already current.
+ * A disagreement is therefore asked again, for a pair that cannot come from
+ * the cache: the same two documents under a query string no cache holds. The
+ * origin (Express) ignores the query, and nothing in front of it keys without
+ * it. Only a disagreement that survives is an error.
+ */
+async function assertIndexLastmodOrRecheck(context, location, entries, label, segmentLimit) {
+  const { origin, indexEntries, fetchImpl, timeoutMs, signal, warnings } = context;
+  try {
+    return assertIndexLastmod(indexEntries, location, entries, label);
+  } catch (cachedError) {
+    for (let attempt = 1; attempt <= LASTMOD_RECHECKS; attempt += 1) {
+      const fresh = path => {
+        const url = new URL(path, origin);
+        url.searchParams.set('lastmod-recheck', randomUUID());
+        return url;
+      };
+      const index = await fetchBoundedText(fresh('/sitemap.xml'), fetchImpl, timeoutMs,
+        MAX_SITEMAP_INDEX_BYTES, 'sitemap index', signal);
+      const segment = await fetchBoundedText(fresh(new URL(location).pathname), fetchImpl, timeoutMs,
+        segmentLimit, label, signal);
+      assertXmlResponse(index.response, 'sitemap index');
+      assertXmlResponse(segment.response, label);
+      try {
+        assertIndexLastmod(sitemapEntries(index.body, 'sitemapindex', 'sitemap index'), location,
+          sitemapEntries(segment.body, 'urlset', label), label);
+      } catch (freshError) {
+        if (attempt === LASTMOD_RECHECKS) throw freshError;
+        continue;
+      }
+      warnings.push({ label, message: `${cachedError.message}; the edge caches differ, a fresh pair agrees` });
+      return undefined;
+    }
+  }
+  return undefined;
 }
 
 function assertXmlResponse(response, label) {
@@ -596,11 +658,19 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal, sitemapWarnM
   );
   slowWarning(warnings, 'sitemap index', '/sitemap.xml', indexStartedAt, sitemapWarnMs);
   assertXmlResponse(indexResponse, 'sitemap index');
-  const indexLocations = sitemapLocations(indexXml, 'sitemapindex', 'sitemap index');
-  ensure(JSON.stringify(indexLocations) === JSON.stringify([
+  const indexEntries = sitemapEntries(indexXml, 'sitemapindex', 'sitemap index');
+  const indexLocations = indexEntries.map(entry => entry.location);
+  const expectedLocations = [
     `${origin}/sitemaps/static.xml`,
     ...ENTITY_SITEMAP_SEGMENTS.map(segment => `${origin}${segment.path}`),
-  ]), 'sitemap index does not contain the exact public segment set');
+  ];
+  // The server leaves a sitemap it cannot date out of the index, so a missing record is how an outage shows here.
+  const missingFromIndex = expectedLocations.filter(location => !indexLocations.includes(location));
+  const unexpectedInIndex = indexLocations.filter(location => !expectedLocations.includes(location));
+  ensure(JSON.stringify(indexLocations) === JSON.stringify(expectedLocations),
+    `sitemap index does not contain the exact public segment set (missing: ${
+      missingFromIndex.map(location => new URL(location).pathname).join(', ') || 'none'}; unexpected: ${
+      unexpectedInIndex.join(', ') || 'none'})`);
 
   const staticStartedAt = Date.now();
   const { response: staticResponse, body: staticXml } = await fetchBoundedText(
@@ -613,7 +683,11 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal, sitemapWarnM
   );
   slowWarning(warnings, 'static sitemap', '/sitemaps/static.xml', staticStartedAt, sitemapWarnMs);
   assertXmlResponse(staticResponse, 'static sitemap');
-  const staticLocations = sitemapLocations(staticXml, 'urlset', 'static sitemap');
+  const staticEntries = sitemapEntries(staticXml, 'urlset', 'static sitemap');
+  const staticLocations = staticEntries.map(entry => entry.location);
+  const lastmodContext = { origin, indexEntries, fetchImpl, timeoutMs, signal, warnings };
+  await assertIndexLastmodOrRecheck(lastmodContext, `${origin}/sitemaps/static.xml`, staticEntries,
+    'static sitemap', MAX_STATIC_SITEMAP_BYTES);
   ensure(
     staticLocations.length === EXPECTED_STATIC_SITEMAP_URL_COUNT,
     `static sitemap contains ${staticLocations.length}/${EXPECTED_STATIC_SITEMAP_URL_COUNT} URLs`,
@@ -652,7 +726,10 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal, sitemapWarnM
       warnings.push({ label: segment.label, message: `${segment.path} is served from the last-known-good copy` });
     }
     ensure(!PRIVATE_PAYLOAD_PATTERN.test(body), `${segment.label} contains private payload fields`);
-    const locations = sitemapLocations(body, 'urlset', segment.label);
+    const segmentEntries = sitemapEntries(body, 'urlset', segment.label);
+    const locations = segmentEntries.map(entry => entry.location);
+    await assertIndexLastmodOrRecheck(lastmodContext, `${origin}${segment.path}`, segmentEntries,
+      segment.label, MAX_CARD_SITEMAP_BYTES);
     ensure(locations.length >= segment.minimumUrls && locations.length <= 50_000,
       `${segment.label} has invalid entry count ${locations.length}`);
     for (const location of locations) {
@@ -935,7 +1012,7 @@ async function sitemapSampleLocations(origin, segmentKey, fetchImpl, timeoutMs, 
     signal,
   );
   ensure(response.status === 200, `${segment.path}: HTTP ${response.status}`);
-  const locations = sitemapLocations(body, 'urlset', segment.label);
+  const locations = sitemapLocations(body, 'urlset', segment.label, { requireLastmod: false });
   ensure(locations.length > 0, `${segment.path} has no URLs`);
   return locations;
 }

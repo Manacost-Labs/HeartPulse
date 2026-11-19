@@ -7382,7 +7382,7 @@ if (staticSitemapArtifact) {
       loadCosmeticsCatalog: (kind, query) => cosmeticsDataService.loadCatalog(kind, query),
       getGuidesDatabase: oldGuidesDatabase,
     }, { loadCatalogs: format => loadArchetypeCatalogWindows(constructedArchetypeCatalogCache.load, format) }),
-    staticUrls: staticSitemapArtifact.urls,
+    staticUrls: staticSitemapArtifact.urls, staticFingerprints: staticSitemapArtifact.fingerprints,
     staticLastModifiedMs: staticSitemapArtifact.modifiedAt,
     stateDirectory: DATA_DIR,
     cacheTtlMs: Number(process.env.SITEMAP_CACHE_TTL_MS || 10 * 60_000),

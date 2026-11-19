@@ -2267,11 +2267,11 @@
     {
       "kind": "route",
       "method": "GET",
-      "path": "/sitemap.xml",
+      "path": "/sitemaps/static.xml",
       "pathKind": "string",
       "receiver": "router",
       "middleware": [],
-      "handler": "fixedHandler(indexDocument)",
+      "handler": "<inline-handler>",
       "guardSignals": [],
       "source": "server/entitySitemapRoutes.ts",
       "sourceOrder": 0
@@ -2279,11 +2279,11 @@
     {
       "kind": "route",
       "method": "GET",
-      "path": "/sitemaps/static.xml",
+      "path": "/sitemap.xml",
       "pathKind": "string",
       "receiver": "router",
       "middleware": [],
-      "handler": "fixedHandler(staticDocument)",
+      "handler": "<inline-handler>",
       "guardSignals": [],
       "source": "server/entitySitemapRoutes.ts",
       "sourceOrder": 1
