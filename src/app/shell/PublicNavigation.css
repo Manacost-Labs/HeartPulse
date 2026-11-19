@@ -485,13 +485,13 @@
   font-family: var(--font-body);
 }
 
-/* The shade under the emblem and the title: dense enough for 4.5:1 over any art. */
+/* The shade lies only under the title and the description and thickens towards them; the emblem stands on the art, its own outline is enough, and the upper two thirds of the art stay bright. Dense enough for 4.5:1 over the lightest art. */
 .hp-mode-card-text::before {
   content: '';
   position: absolute;
-  inset: -90px 0 0;
+  inset: -24px 0 0;
   z-index: -1;
-  background: linear-gradient(180deg, transparent, rgba(14, 2, 4, 0.82) 44%, rgba(12, 1, 3, 0.95));
+  background: linear-gradient(180deg, transparent 0, rgba(14, 2, 4, 0.28) 30%, rgba(14, 2, 4, 0.82) 58%, rgba(12, 1, 3, 0.95));
   pointer-events: none;
 }
 
