@@ -180,10 +180,26 @@ test('public previews render on the server and hydrate without a guest data requ
     assert.equal(slowHtml.match(/class="standard-meta-card"/g)?.length, 3, 'the read fits the budget');
     state.delay = 0;
 
+    // A stalled Express at the deploy's warm-up: the revalidate route's probe gives up after its 5 s budget and leaves the page as it
+    // is, so nobody waits for a regeneration that has no data and nobody gets a 500 or the loader instead of the earlier copy.
+    state.stall = true;
+    started = Date.now();
+    const answer = await (await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).json();
+    const probeMs = Date.now() - started;
+    assert.ok(probeMs < 9000, `the probe gives up at its budget (${probeMs} ms)`);
+    assert.ok(answer.skipped.some(item => item.path === '/standard/meta' && item.reason === 'source-unavailable'), 'the meta page is skipped');
+    assert.ok(!answer.revalidated.includes('/standard/meta'));
+    started = Date.now();
+    const kept = await (await fetch(`${origin}/standard/meta/`)).text();
+    assert.ok(Date.now() - started < 1500, 'the earlier copy is served at once');
+    assert.equal(kept.match(/class="standard-meta-card"/g)?.length, 3, 'with the numbers it had');
+
     // A stalled Express during a regeneration: it gives up after the 5 s
     // budget with the loader (no 500), and the browser loads the teaser itself.
-    state.stall = true;
+    // The probe passes (Express answers), the page is marked stale, and only then the source stalls for the regeneration.
+    state.stall = false;
     await regenerate();
+    state.stall = true;
     started = Date.now();
     const stalled = await (await fetch(`${origin}/standard/meta/`)).text();
     const stalledMs = Date.now() - started;
