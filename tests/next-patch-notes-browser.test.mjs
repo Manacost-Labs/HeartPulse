@@ -61,7 +61,7 @@ test('patch notes show the two newest patches as cards before → after, and the
     assert.equal(document.status, 200);
     const html = await document.text();
     assert.deepEqual([...html.matchAll(/<h2[^>]*>(Патч [\d.]+)<\/h2>/g)].map(match => match[1]), ['Патч 36.6.3'], 'one version is one patch');
-    assert.match(html, /Балансные изменения Стандарта и Полей сражений/, 'the article title leads the patch');
+    assert.doesNotMatch(html, /Балансные изменения Стандарта и Полей сражений/, 'the header is the version, the date and the sources: no article title');
     assert.match(html, /Змей ветреных вершин/);
     assert.match(html, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/standard\/patches\/"/);
     assert.match(html, /class="hp-release__title"/, 'the marker of the post-deploy check is in the server HTML');
