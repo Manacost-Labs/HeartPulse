@@ -150,6 +150,27 @@ test('decks equal on every sort key keep the order the API sent', () => {
   for (const { id } of FUN_DECKS_SORTS) assert.deepEqual(titles(orderFunDecks(twins, id)), ['Второй по списку', 'Первый по списку'], id);
 });
 
+test('a pinned deck leads under every sort; the others keep their order', () => {
+  const pinnedDeck = { ...FUN_FIXTURE[3], pinned: true };
+  const withPin = [FUN_FIXTURE[0], FUN_FIXTURE[1], FUN_FIXTURE[2], pinnedDeck, FUN_FIXTURE[4]];
+  for (const { id } of FUN_DECKS_SORTS) {
+    const ordered = orderFunDecks(withPin, id);
+    assert.equal(ordered[0].title, 'Без интервала Друид', id);
+    assert.deepEqual(titles(ordered.slice(1)), titles(orderFunDecks(FUN_FIXTURE.filter(deck => deck !== FUN_FIXTURE[3]), id)), id);
+  }
+  assert.equal(orderFunDecks([funDeck('Один'), { ...funDeck('Два'), pinned: false }], 'fun')[0].title, 'Один');
+});
+
+test('the Off-meta tag filters by the deck\'s tags, and a deck without a kind is a brew', () => {
+  const tag = FUN_DECK_TAGS.find(item => item.id === 'offmeta');
+  assert.equal(tag?.label, 'Офф-мета');
+  const offMeta = funDeck('Забытый', { kind: 'off_meta', why: ['Офф-мета'], tags: ['offmeta'] });
+  const view = { ...DEFAULT_FUN_DECKS_VIEW, tags: ['offmeta' as const] };
+  assert.deepEqual(titles(selectFunDecks([...FUN_FIXTURE, offMeta], view, true)), ['Забытый']);
+  assert.deepEqual(funDeckWhy(offMeta, ['offmeta']), ['Офф-мета']);
+  assert.equal(funDeck('Старый ответ').kind, undefined);
+});
+
 test('a card shows up to three of the deck\'s reasons, the ones the reader filters by first', () => {
   const why = (index: number, pinned: Parameters<typeof funDeckWhy>[1] = []) => funDeckWhy(FUN_FIXTURE[index], pinned);
   assert.deepEqual(why(0), ['Пакет: Рено', 'Хайлендер', 'Далеко от меты']);

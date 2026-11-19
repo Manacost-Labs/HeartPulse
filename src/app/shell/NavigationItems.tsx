@@ -2,7 +2,8 @@ import type { CSSProperties } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { canonicalPagePath } from '../routing/canonicalPagePath';
 import { NAVIGATION_MODES, type NavigationModeId } from '../routing/navigationData';
-import type { TABS, TabId } from '../routing/navigationRoutes';
+import type { TabId } from '../routing/navigationRoutes';
+import type { MenuItemId } from '../routing/navigationPlace';
 import { MODE_EMBLEM_SIZE, NavigationIcon, modeBannerSrcSet, modeFaceSrc } from './NavigationIcon';
 import { isPlainNavigationClick } from '../routing/isPlainNavigationClick';
 
@@ -21,11 +22,12 @@ function modeMarks(id: NavigationModeId, pageMode: NavigationModeId | null) {
   };
 }
 
-/** A banner card is 200 px wide in the desktop panel and about 170 px in the drawer's two columns. */
-const MODE_CARD_SIZES = '(min-width: 1024px) 200px, 170px';
+/** A banner card is 200 px wide in the desktop panel (182 px at 1360 px); the drawer shows the wide strip instead. */
+const MODE_CARD_SIZES = '200px';
 const MODE_CARD_EMBLEM_SIZE = 44;
 
-export type NavigationRoute = (typeof TABS)[number];
+/** An item of a menu list: a route of the site, or a Wild item, which borrows its icon and badge from its twin. */
+export type NavigationRoute = { id: MenuItemId; label: string; path: string; twin?: TabId };
 export type NavigationGroup = NavigationModeId;
 export { NAV_ICON_SIZE } from './NavigationIcon';
 
@@ -34,17 +36,18 @@ export type NavigationBadges = Partial<Record<TabId, { label: string; title: str
 
 type NavigationRouteLinksProps = {
   routes: readonly NavigationRoute[];
-  activeTab: TabId;
+  activeItem: MenuItemId;
   variant: 'mobile' | 'sidebar';
   /** Mode name the compact rail's tooltip adds, so the two «Тир-лист» items stay distinguishable. */
   context?: string;
   badges?: NavigationBadges;
-  onNavigate: (tab: TabId) => void;
+  onNavigate: (item: MenuItemId) => void;
 };
 
-export function NavigationRouteLinks({ routes, activeTab, variant, context, badges, onNavigate }: NavigationRouteLinksProps) {
+export function NavigationRouteLinks({ routes, activeItem, variant, context, badges, onNavigate }: NavigationRouteLinksProps) {
   return routes.map(tab => {
-    const badge = badges?.[tab.id];
+    const art = tab.twin ?? tab.id;
+    const badge = badges?.[art as TabId];
     return (
       <a
         key={tab.id}
@@ -54,13 +57,13 @@ export function NavigationRouteLinks({ routes, activeTab, variant, context, badg
           event.preventDefault();
           onNavigate(tab.id);
         }}
-        aria-current={activeTab === tab.id ? 'page' : undefined}
+        aria-current={activeItem === tab.id ? 'page' : undefined}
         data-nav-link=""
         data-nav-tip={context ? `${tab.label} · ${context}` : tab.label}
         data-variant={variant}
         className="hp-nav-link"
       >
-        <span className="hp-nav-icon" aria-hidden="true"><NavigationIcon id={tab.id} /></span>
+        <span className="hp-nav-icon" aria-hidden="true"><NavigationIcon id={art} /></span>
         <span className="hp-nav-label">{tab.label}</span>
         {badge && <span className="arena-nav-badge" title={badge.title}>{badge.label}</span>}
       </a>
@@ -97,7 +100,7 @@ export function NavigationModePicker({ variant, mode, pageMode, onNavigate }: {
   variant: 'mobile' | 'sidebar';
   mode: NavigationModeId;
   pageMode: NavigationModeId | null;
-  onNavigate: (tab: TabId) => void;
+  onNavigate: (item: MenuItemId) => void;
 }) {
   return (
     <details className="hp-mode" data-variant={variant}>
@@ -132,11 +135,12 @@ export function NavigationModePicker({ variant, mode, pageMode, onNavigate }: {
               onClick={event => {
                 if (!isPlainNavigationClick(event)) return;
                 event.preventDefault();
-                onNavigate(item.homeTab as TabId);
+                onNavigate(item.homeTab as MenuItemId);
               }}
             >
               <span className="hp-mode-art" aria-hidden="true">
-                {srcSet && <img src={`/menu/banners/${item.id}-440.webp`} srcSet={srcSet} sizes={MODE_CARD_SIZES} width={440} height={616} loading="lazy" decoding="async" alt="" />}
+                {srcSet && <img className="hp-mode-art-tall" src={`/menu/banners/${item.id}-440.webp`} srcSet={srcSet} sizes={MODE_CARD_SIZES} width={440} height={616} loading="lazy" decoding="async" alt="" />}
+                {srcSet && <img className="hp-mode-art-wide" src={modeFaceSrc(item.id)} width={520} height={160} loading="lazy" decoding="async" alt="" />}
               </span>
               <span className="hp-mode-badge" {...modeMarks(item.id, pageMode)}>Текущий</span>
               <span className="hp-mode-card-text">

@@ -21,6 +21,7 @@
     "mode-battlegrounds",
     "mode-community",
     "mode-standard",
+    "mode-wild",
     "patch-notes",
     "standard-cards",
     "standard-matchups",
@@ -34,6 +35,7 @@
     "arena",
     "battlegrounds",
     "community",
-    "standard"
+    "standard",
+    "wild"
   ]
 }

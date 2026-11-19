@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { PatchNotesDetail, PatchNotesSummary } from '@/src/modules/patchNotes/public';
+import type { PatchNotesDetail } from '@/src/modules/patchNotes/public';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { patchNotesHref } from '@/src/modules/patchNotes/public';
 import { PatchNotesView } from '@/src/features/PatchNotesView';
+import '@/src/features/PatchNotesView.css';
 import { fetchWithDeadline } from '@/src/shared/http/fetchWithDeadline';
 import { PatchNotesSkeleton } from '@/src/features/patchNotes/PatchNotesSkeleton';
 import { SectionBanner } from '@/src/shared/ui/EditorialRouteChrome';
@@ -12,7 +13,7 @@ import type { PublicPatchNotes } from '@/apps/public-web/lib/publicPatchNotes';
 import { usePublicAccess } from './usePublicAccess';
 import { navigate } from './navigation';
 
-type State = { patch: PatchNotesDetail | null; archive: PatchNotesSummary[] | null; error: 'missing' | 'failed' | null };
+type State = { patches: PatchNotesDetail[] | null; error: 'missing' | 'failed' | null };
 
 async function readJson<T>(path: string, signal: AbortSignal): Promise<T | 'missing'> {
   const response = await fetchWithDeadline(path, { signal, headers: { Accept: 'application/json' } });
@@ -24,34 +25,30 @@ async function readJson<T>(path: string, signal: AbortSignal): Promise<T | 'miss
 /** Public patch notes: the server seeds what it read in time, the browser loads the rest. */
 export function PatchNotesPageClient({ version, initial }: { version: string | null; initial: PublicPatchNotes }) {
   const access = usePublicAccess();
-  const [state, setState] = useState<State>({ ...initial, error: null });
+  const [state, setState] = useState<State>({ patches: initial.patches, error: null });
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
-    if ((state.patch && state.archive) || state.error) return undefined;
+    if (state.patches || state.error) return undefined;
     const controller = new AbortController();
-    void Promise.all([
-      state.patch ? state.patch : readJson<PatchNotesDetail>(`/api/patch-notes/${encodeURIComponent(version ?? 'latest')}`, controller.signal),
-      state.archive ? { patches: state.archive } : readJson<{ patches: PatchNotesSummary[] }>('/api/patch-notes', controller.signal),
-    ]).then(([patch, list]) => {
+    const path = version ? `/api/patch-notes/${encodeURIComponent(version)}` : '/api/patch-notes/recent';
+    void readJson<PatchNotesDetail | { patches: PatchNotesDetail[] }>(path, controller.signal).then(result => {
       if (controller.signal.aborted) return;
-      setState({
-        patch: patch === 'missing' ? null : patch,
-        archive: list === 'missing' ? [] : list.patches,
-        error: patch === 'missing' ? 'missing' : null,
-      });
+      if (result === 'missing') return setState({ patches: null, error: 'missing' });
+      const patches = 'patches' in result ? result.patches : [result];
+      setState(patches.length ? { patches, error: null } : { patches: null, error: 'missing' });
     }, () => {
       if (!controller.signal.aborted) setState(current => ({ ...current, error: 'failed' }));
     });
     return () => controller.abort();
-  }, [version, attempt, state.patch, state.archive, state.error]);
+  }, [version, attempt, state.patches, state.error]);
 
   return <PublicPageShell activeTab="patch-notes" pathname="/standard/patches/" access={access} navigate={navigate} wide>
     <section className="space-y-5">
       {/* The skeleton carries the page heading itself, so only the missing and failed states show the route banner. */}
-      {!state.patch && state.error && <SectionBanner title="Патчноуты Hearthstone" />}
-      {state.patch
-        ? <PatchNotesView patch={state.patch} archive={state.archive ?? []} onSelectVersion={navigate} />
+      {!state.patches && state.error && <SectionBanner title="Патчноуты Hearthstone" />}
+      {state.patches
+        ? <PatchNotesView patches={state.patches} />
         : state.error === 'missing'
           ? <p className="hp-patch-notes__notice" role="status">
             Патч {version} не найден в архиве. <a href={patchNotesHref(null)}>Открыть последний патч</a>

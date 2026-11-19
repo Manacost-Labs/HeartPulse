@@ -11,7 +11,7 @@ import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 // Battlegrounds') and with the mode panel open.
 const WINDOWS = [1024, 1280, 1440, 1920];
 const ZOOMS = [0.9, 1, 1.25, 1.5];
-const PAGES = ['/standard/meta/', '/classes/', '/heroes/', '/articles/', '/faq/'];
+const PAGES = ['/standard/meta/', '/standard/meta/?format=wild', '/classes/', '/heroes/', '/articles/', '/faq/'];
 
 function signedOut(response) {
   response.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store' })
@@ -80,6 +80,27 @@ test('the sidebar and the drawer have no horizontal scroll at any window width a
           else {
             assert.ok(Math.abs(place.top) <= 1, `${label}: the panel's top is level with the button, ${JSON.stringify(place)}`);
             assert.ok(place.left > 0 && place.right <= 0 && place.bottom <= 0, `${label}: the panel is right of the sidebar and inside the window, ${JSON.stringify(place)}`);
+          }
+          // The five banners: one row from 1360 px, three and two (centered) below it, one column of rows of at least 88 px in the drawer; no word of a name is cut or overflows.
+          await page.waitForFunction(selector => [...document.querySelectorAll(`${selector} [data-mode-card]`)].every(card => !card.getAnimations({ subtree: true }).length), {}, root);
+          const cards = await page.evaluate(selector => [...document.querySelectorAll(`${selector} [data-mode-card]`)].map(card => {
+            const rect = card.getBoundingClientRect();
+            const name = card.querySelector('strong');
+            const text = card.querySelector('.hp-mode-card-text');
+            return { left: rect.left, top: Math.round(rect.top), width: rect.width, height: rect.height,
+              nameOverflow: name.scrollWidth - name.clientWidth, textOverflow: text.scrollWidth - text.clientWidth };
+          }), root);
+          assert.equal(cards.length, 5, `${label}: five banners`);
+          assert.ok(cards.every(card => card.nameOverflow <= 0 && card.textOverflow <= 0), `${label}: names fit their banners, ${JSON.stringify(cards)}`);
+          const rows = Object.values(Object.groupBy(cards, card => card.top)).map(row => row.length);
+          if (drawer) {
+            assert.deepEqual(rows, [1, 1, 1, 1, 1], `${label}: one column in the drawer`);
+            assert.ok(cards.every(card => card.height >= 88), `${label}: a drawer banner is at least 88 px high, ${JSON.stringify(cards)}`);
+          } else if (layoutWidth >= 1360) assert.deepEqual(rows, [5], `${label}: five in a row`);
+          else {
+            assert.deepEqual(rows, [3, 2], `${label}: three and two`);
+            const [first, last] = [cards.slice(0, 3), cards.slice(3)].map(row => (row[0].left + row.at(-1).left + row.at(-1).width) / 2);
+            assert.ok(Math.abs(first - last) <= 2, `${label}: the second row is centered under the first`);
           }
           assert.deepEqual(closed, { region: 0, list: 0, page: 0, labels: 0 }, `${label}: closed menu`);
           // With the panel open the aside's own scroll width includes the popover; its list and the page must still fit.

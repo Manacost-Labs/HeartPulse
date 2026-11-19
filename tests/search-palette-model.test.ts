@@ -17,15 +17,22 @@ test('pages match every word of the query in their name or mode, ignoring case a
   assert.deepEqual(tierLists, ['/tierlist/', '/battlegrounds/tier-list/', '/battlegrounds/tier-builder/']);
   assert.deepEqual(matchPages('тир поля', false).map(pathOf), ['/battlegrounds/tier-list/', '/battlegrounds/tier-builder/']);
   assert.ok(matchPages('', false).length > 15, 'an empty query offers every section');
-  assert.ok(matchPages('', false).every(entry => pathOf(entry).endsWith('/')), 'section links carry the canonical slash');
+  assert.ok(matchPages('', false).every(entry => pathOf(entry).split('?')[0].endsWith('/')), 'section links carry the canonical slash');
   assert.equal(matchPages('админ', false).length, 0, 'admin pages stay hidden from readers');
   const metas = Object.fromEntries(matchPages('', false).map(entry => [pathOf(entry), entry.meta]));
-  assert.equal(metas['/standard/meta/'], '', 'a unique section name needs no mode');
+  assert.equal(metas['/standard/patches/'], '', 'a unique section name needs no mode');
+  assert.equal(metas['/standard/meta/'], 'Стандарт', 'a Standard page that has a Wild twin carries its mode');
+  assert.equal(metas['/standard/meta/?format=wild'], 'Вольный', 'the Wild twin is found and labelled with its mode');
+  assert.equal(metas['/standard/cards/wild/'], 'Вольный');
+  assert.deepEqual(matchPages('матчапы вольный', false).map(pathOf), ['/standard/matchups/?format=wild']);
+  assert.equal(matchPages('', false).filter(entry => entry.label === 'Патчноуты').length, 1, 'patch notes are one page, not one per mode');
+  assert.equal(matchPages('', false).filter(entry => entry.label === 'VS Gold').length, 1, 'VS Gold has no Wild page');
   assert.equal(metas['/tierlist/'], 'Арена', 'a repeated name carries its mode');
   assert.equal(matchPages('админ', true).length, 1);
   // The palette names the groups as the menu does.
   assert.ok(matchPages('сообщество', false).map(pathOf).includes('/leaderboards/'));
-  assert.ok(matchPages('стандарт и вольный', false).map(pathOf).includes('/standard/deck-builder/'));
+  assert.ok(matchPages('стандарт', false).map(pathOf).includes('/standard/deck-builder/'));
+  assert.ok(matchPages('вольный', false).map(pathOf).includes('/standard/deck-builder/?format=wild'));
   assert.equal(matchPages('разное', false).length, 0, 'the old «Разное» group is gone');
 });
 

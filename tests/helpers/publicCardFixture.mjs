@@ -108,7 +108,7 @@ export async function publicCardFixture({ backendEnv, externalRoutes = {} } = {}
   backend.database.prepare(`INSERT INTO sessions (token_hash, user_id, email, expires_at, created_at) VALUES (?, ?, ?, ?, ?)`)
     .run(createHash('sha256').update(session).digest('hex'), 'card-reader', 'card-reader@example.test', Date.now() + 3600000, now);
   return {
-    backend, legacyOrigin, cookie: `manacost_auth_token=${session}`,
+    backend, legacyOrigin, externalOrigin, cookie: `manacost_auth_token=${session}`,
     setUnavailable(value) { unavailable = value; },
     grant() {
       backend.database.prepare(`INSERT INTO manual_subscription_grants (user_id, active, entitlements_json, granted_by, granted_at, updated_at) VALUES (?, 1, ?, ?, ?, ?)`)

@@ -85,7 +85,7 @@ import { createRadarApi } from './modules/radar/public.js';
 import { createLeaderboardsApi } from './modules/leaderboards/public.js';
 import { createSubscriptionAnalyticsApi } from './modules/subscriptionAnalytics/public.js';
 import { createStreamersApi } from './modules/streamers/public.js';
-import { ConstructedCardUpstreamError, createCardChoicesRouter, type ConstructedCardDeck } from './modules/constructedCards/public.js';
+import { ConstructedCardUpstreamError, createCardAssembleRouter, createCardChoicesRouter, type ConstructedCardDeck } from './modules/constructedCards/public.js';
 import {
   createConstructedCardSeoRouter,
   extractConstructedCardFrontendAssets,
@@ -7147,8 +7147,8 @@ app.use(express.urlencoded({ extended: false, limit: '16kb' }));
 
 const cardImageRouterDependencies = createCardImageDependencies({
   cacheDir: CARD_IMAGE_CACHE_DIR,
-  ensureCardImage,
-  ensureCardTile,
+  ensureCardImage, ensureCardTile,
+  deckArt: { catalogBaseUrl: KOLODAHS_API_BASE_URL, withSlot: withCardImageSlot },
   immutableCacheHeader: BG_IMAGE_CACHE_CONTROL,
   onError: (scope, error) => console.error(
     `[api/card-image] ${scope} failed:`,
@@ -7490,7 +7490,7 @@ app.use('/api', createConstructedArchetypeRouter({
   ),
 }));
 
-app.use('/api', createCardChoicesRouter({ request: path => fetch(`${hsDataApiOrigin()}${path}`, { signal: AbortSignal.timeout(15_000) }), onError: error => console.error('[card-choices] failed:', error instanceof Error ? error.message : error) }));
+app.use('/api', createCardChoicesRouter({ request: path => fetch(`${hsDataApiOrigin()}${path}`, { signal: AbortSignal.timeout(15_000) }), onError: error => console.error('[card-choices] failed:', error instanceof Error ? error.message : error) }), createCardAssembleRouter({ request: path => fetch(`${hsDataApiOrigin()}${path}`, { signal: AbortSignal.timeout(15_000) }), onError: error => console.error('[card-assemble] failed:', error instanceof Error ? error.message : error) }));
 app.use('/api', createArchetypeHsguruStatsRouter({ accessGuard: requireStandardAccess, setPrivateNoStore, loadRuCards: ensureRuCardsData, request: path => fetch(datasetApiUrl(path), { signal: AbortSignal.timeout(15_000) }), ruCardByDbf: dbfId => hearthstoneJsonRuCardsByDbf?.get(dbfId), loadCatalog: (format, slug) => loadArchetypeCatalog(constructedArchetypeCatalogCache.load, format, null, slug), loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards, onError: (scope, error) => console.error(`[archetype-hsguru-stats] ${scope} failed:`, error instanceof Error ? error.message : error) }));
 app.use('/api', createPatchNotesApi({
   fetchJson: url => fetchConstructedCardJson(url, 12_000), loadCardNames: ensureRuCardsData, ttlMs: 30 * 60_000,
@@ -7507,7 +7507,7 @@ app.use('/api', createPatchNotesApi({
   },
   // Archetypes of the day before each patch live under DATA_DIR; the hourly job keeps each day on record.
   archetypeSnapshotsDirectory: DATA_DIR, recordArchetypesHourly: BACKGROUND_JOBS_ENABLED,
-  patchesUrl: `${DATASET_API_ORIGIN}/api/patches?limit=500&include_content=1`,
+  patchesUrl: `${DATASET_API_ORIGIN}/api/patches?limit=500&include_content=1`, cardHistoryBaseUrl: KOLODAHS_API_BASE_URL, fetchCardHistory: url => fetchConstructedCardJson(url, 6_000),
   onError: error => console.error('[patch-notes] archive failed:', error instanceof Error ? error.message : error),
 }));
 
@@ -9501,6 +9501,7 @@ const funDeckPreviewCoordinator = createFunDeckPreviewCoordinator({
 
 app.use('/api', createPublicFunDecksRouter({
   loadFunDecks: loadFunDecksDataset,
+  getDatabase: db,
   loadArchetypeLabels: async () => {
     const { map } = await getStandardArchetypeTranslations();
     return name => archetypeLabel(name, map);
@@ -9511,9 +9512,8 @@ app.use('/api', createPublicFunDecksRouter({
 }));
 
 app.use('/api', createAdminFunDecksRouter({
-  adminGuard: adminIdGuard,
-  setPrivateNoStore,
-  loadFunDecks: loadFunDecksDataset,
+  adminGuard: adminIdGuard, setPrivateNoStore, loadFunDecks: loadFunDecksDataset,
+  getDatabase: db, adminAuth, recordAudit: (actor, action, entityId, details) => recordAdminAuditByActorId(actor.id, action, 'fun-deck', entityId, details),
   onError: error => console.error('[admin fun decks]', error instanceof Error ? error.message : error),
 }));
 

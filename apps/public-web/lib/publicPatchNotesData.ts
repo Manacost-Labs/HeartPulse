@@ -1,7 +1,8 @@
-import type { PatchNotesDetail, PatchNotesSummary } from '@/src/modules/patchNotes/public';
+import type { PatchNotesDetail } from '@/src/modules/patchNotes/public';
 import { readFirstPaintJson, withinDeadline } from './publicFirstPaintRead';
 
-export type PublicPatchNotes = { patch: PatchNotesDetail | null; archive: PatchNotesSummary[] | null };
+/** The patches the page shows (two newest, or the one asked for); `null` when not read in time. */
+export type PublicPatchNotes = { patches: PatchNotesDetail[] | null };
 
 export function patchDetail(value: unknown): PatchNotesDetail | null {
   const patch = value as PatchNotesDetail | null;
@@ -9,10 +10,18 @@ export function patchDetail(value: unknown): PatchNotesDetail | null {
     ? patch : null;
 }
 
-export function patchArchive(value: unknown): PatchNotesSummary[] | null {
+/** `/api/patch-notes/recent`: the newest patches, each valid; a damaged answer is not shown half-way. */
+function recentPatches(value: unknown): PatchNotesDetail[] | null {
   const patches = (value as { patches?: unknown } | null)?.patches;
-  return Array.isArray(patches) && patches.every(item => typeof item?.version === 'string') ? patches : null;
+  if (!Array.isArray(patches) || patches.length === 0) return null;
+  const details = patches.map(patchDetail);
+  return details.every(patch => patch !== null) ? details as PatchNotesDetail[] : null;
 }
+
+const singlePatch = (value: unknown): PatchNotesDetail[] | null => {
+  const patch = patchDetail(value);
+  return patch ? [patch] : null;
+};
 
 export type PatchNotesReaderOptions = {
   /** One anonymous Express request; the signal ends it at the refresh budget. */
@@ -72,12 +81,12 @@ export function createPatchNotesReader({
     return hit.value as T;
   }
 
-  /** The patch (`null` for the newest) and the archive, each `null` when not read in time. */
+  /** The patch asked for, or the newest ones (`null`); `null` patches when not read in time. */
   return async function load(version: string | null, deadline: number): Promise<PublicPatchNotes> {
-    const [patch, archive] = await Promise.all([
-      read(`/api/patch-notes/${encodeURIComponent(version ?? 'latest')}`, patchDetail, deadline),
-      read('/api/patch-notes', patchArchive, deadline),
-    ]);
-    return { patch, archive };
+    return {
+      patches: version
+        ? await read(`/api/patch-notes/${encodeURIComponent(version)}`, singlePatch, deadline)
+        : await read('/api/patch-notes/recent', recentPatches, deadline),
+    };
   };
 }
