@@ -119,7 +119,17 @@ const SHOWN = { paid: true, reader: true, avatar: true };
 const HIDDEN = { paid: false, reader: false, avatar: false };
 
 test('public documents allow the back/forward cache and account documents keep no-store', async () => {
-  const express = http.createServer((request, response) => response.writeHead(401).end());
+  // The pages that print Express data are served only with it (a 503 otherwise, and no edge marker for the home page).
+  const answers = {
+    '/api/home/summary': { topClasses: [] }, '/api/articles': { articles: [] },
+    '/api/cosmetics/heroes': { items: [], pagination: { page: 1, perPage: 24, total: 0, totalPages: 0 }, updatedAt: null, source: 'fixture' },
+  };
+  const express = http.createServer((request, response) => {
+    const answer = answers[new URL(request.url, 'http://fixture').pathname];
+    if (!answer) return response.writeHead(401).end();
+    response.setHeader('Content-Type', 'application/json');
+    response.end(JSON.stringify(answer));
+  });
   let next;
   try {
     next = await startNextServer({ legacyOrigin: await listenLocal(express) });

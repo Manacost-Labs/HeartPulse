@@ -1,8 +1,9 @@
 import 'server-only';
 import { cache } from 'react';
 import { isStreamerPage, isStreamersPage, type StreamerPage, type StreamersPage } from '@/src/modules/streamers/public';
-import { fetchPublicExpress } from './expressApi';
-import { FIRST_PAINT_READ_BUDGET_MS, readFirstPaintJson } from './publicFirstPaintRead';
+import { readPublicJson, type PublicPayloadCheck } from './firstPaintStore';
+import { STREAMERS_PATH, streamerPath } from './publicDataPaths';
+import { isPublicDataMissing } from './publicCatalogCache';
 
 export type PublicStreamers = {
   /** Первая страница каталога и эфиры; `null` — их загрузит браузер. */
@@ -18,26 +19,25 @@ export type PublicStreamer = {
   unavailable: boolean;
 };
 
-async function readStatus(path: string): Promise<{ value: unknown; status: number }> {
-  let status = 0;
-  const value = await readFirstPaintJson(async signal => {
-    const response = await fetchPublicExpress(path, signal);
-    status = response.status;
-    return response;
-  }, Date.now() + FIRST_PAINT_READ_BUDGET_MS);
-  return { value, status };
+/** `status`: 200, 4xx (404 — у HSGuru такого нет) или 503 (данных нет ни свежих, ни запасных). */
+async function readStatus(path: string, check: PublicPayloadCheck): Promise<{ value: unknown; status: number }> {
+  try {
+    return { value: await readPublicJson(path, false, check), status: 200 };
+  } catch (error) {
+    return { value: null, status: isPublicDataMissing(error) ? (error as { status: number }).status : 503 };
+  }
 }
 
 /** Каталог стримеров, прочитанный анонимно один раз на запрос (метаданные и страница). */
 export const loadPublicStreamers = cache(async (): Promise<PublicStreamers> => {
-  const { value, status } = await readStatus('/api/streamers');
+  const { value, status } = await readStatus(STREAMERS_PATH, isStreamersPage);
   const page = isStreamersPage(value) ? value : null;
   return { page, unavailable: !page && status >= 500 };
 });
 
 /** Страница стримера; `missing` — у HSGuru нет такого стримера (404). */
 export const loadPublicStreamer = cache(async (slug: string): Promise<PublicStreamer> => {
-  const { value, status } = await readStatus(`/api/streamers/${encodeURIComponent(slug)}`);
+  const { value, status } = await readStatus(streamerPath(slug), isStreamerPage);
   const page = isStreamerPage(value) ? value : null;
   return { page, missing: status === 404, unavailable: !page && status >= 500 };
 });

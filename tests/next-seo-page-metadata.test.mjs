@@ -4,6 +4,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import http from 'node:http';
 import { join } from 'node:path';
 import test, { after, before, describe, it } from 'node:test';
+import { setTimeout as delay } from 'node:timers/promises';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { CONTROL_WARRIOR_DECK_CODE, metaExternalRoutes } from './helpers/browserMetaFixture.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
@@ -547,10 +548,12 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     assert.match(catalog.text, /(^|\D)3 архетипа\s*Нажмите на строку/, 'the count of the snippet is the count on the page');
     const wild = await page('/standard/archetypes/?format=wild');
     assert.ok(wild.description.includes('3 архетипа Вольного формата'));
+    // Express stops answering: the page keeps the data it had (the last good copy), not a page without numbers.
     state.catalog = null;
+    await delay(2200);
     const noCatalog = await page('/standard/archetypes/');
-    assert.equal(noCatalog.title, `Архетипы Hearthstone: винрейт, ${YEAR} | HearthPulse`);
-    assert.equal(noCatalog.description, REGISTRY_PAGES.find(entry => entry.path === '/standard/archetypes').description);
+    assert.equal(noCatalog.title, catalog.title);
+    assert.equal(noCatalog.description, catalog.description);
 
     // Archetype page, under both URL families: name, month, winrate, games, period and source; the longest name still fits.
     state.detail = { updatedAt, label: 'Зоолок' };
@@ -703,6 +706,8 @@ test('the catalog dataset is dated by the catalog and the page asks the API once
     const wild = (await page('/standard/archetypes/?format=wild')).graph;
     assert.equal(nodeOfType(wild, 'Dataset').dateModified, DATA_DATE);
 
+    // A success is reused for two seconds; the catalog changes after them.
+    await delay(2200);
     state.catalog = { updatedAt: null, labels: ['Зоолок'] };
     const undated = (await page('/standard/archetypes/')).graph;
     assert.deepEqual(undated.map(node => node['@type']), ['Organization', 'BreadcrumbList', 'Dataset']);
@@ -843,7 +848,8 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
   const express = startArchetypeExpress(state);
   express.listen(0, '127.0.0.1');
   await once(express, 'listening');
-  const next = await startNextServer({ legacyOrigin: `http://127.0.0.1:${express.address().port}` });
+  const legacyOrigin = `http://127.0.0.1:${express.address().port}`;
+  let next = await startNextServer({ legacyOrigin });
   const fetched = [];
   const page = async path => {
     const response = await fetch(`${next.origin}${path}`);
@@ -959,7 +965,10 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
     assert.ok(!strong.text.includes('Что такое архетип'), 'a page with its class links has no primer');
 
     // Without the catalog the page keeps its own numbers, its robots and its graph; the extras go.
+    // The server keeps the last good catalog and would serve it; a restarted one has none.
     state.catalogOk = false;
+    await next.close();
+    next = await startNextServer({ legacyOrigin });
     const alone = await page('/standard/archetypes/standard/pure-paladin/');
     assert.equal(alone.robots, strong.robots);
     assert.equal(alone.graphs.length, 1);

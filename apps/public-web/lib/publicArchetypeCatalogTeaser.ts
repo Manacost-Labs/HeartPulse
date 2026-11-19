@@ -2,8 +2,9 @@ import 'server-only';
 import { cache } from 'react';
 import { readInitialCatalogFilters } from '@/src/features/constructedArchetypeCatalogUrl';
 import { publicArchetypeCatalog } from './publicArchetypeCatalogTeaserData';
-import { fetchPublicExpress } from './expressApi';
-import { FIRST_PAINT_READ_BUDGET_MS, readFirstPaintJson } from './publicFirstPaintRead';
+import { readPublicJsonOrNull } from './firstPaintStore';
+import { archetypeTeaserPath } from './publicDataPaths';
+import { archetypeTeaserCheck } from './publicPayloadChecks';
 
 /**
  * Anonymous catalog teaser of the format the page opens with (`?format=`),
@@ -11,7 +12,6 @@ import { FIRST_PAINT_READ_BUDGET_MS, readFirstPaintJson } from './publicFirstPai
  */
 export const loadPublicArchetypeCatalogTeaser = cache(async (search: string, period: string | null = null) => {
   const { format } = readInitialCatalogFilters(search, []);
-  const raw = await readFirstPaintJson(signal => fetchPublicExpress(`/api/constructed-archetypes/teaser?format=${format}${period ? `&period=${period}` : ''}`, signal),
-    Date.now() + FIRST_PAINT_READ_BUDGET_MS);
+  const raw = await readPublicJsonOrNull(archetypeTeaserPath(format, period), false, archetypeTeaserCheck(format));
   return raw === null ? null : publicArchetypeCatalog(raw, format);
 });

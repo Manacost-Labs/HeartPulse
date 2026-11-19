@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
 import http from 'node:http';
 import test from 'node:test';
+import { setTimeout as delay } from 'node:timers/promises';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
-import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
+import { visibleText } from '../scripts/lib/post-deploy-data-pages.mjs';
+import { closeLocal, listenLocal, publicCardFixture } from './helpers/publicCardFixture.mjs';
+import { funDecksPayload, startSlowExpress } from './helpers/slowExpressStub.mjs';
 
 const CARD_PATH = '/api/public/constructed-cards/standard/CARD_QA_1';
 const publicCard = id => ({
@@ -308,5 +311,181 @@ test('the outage page menu and footer list the same links as the site shell', as
   } finally {
     if (next) await next.close();
     await closeLocal(api.server);
+  }
+});
+
+// Pages that show data read Express while the document is built. Whatever Express does, a document that
+// is served as a page must carry the page's data, and a document without any must not look like a page.
+// `minWords` is the least a page with its data has (the page without it is 130-290 words shorter).
+const DATA_PAGES = [
+  { path: '/', minWords: 420, text: 'Статья стенда номер 0' },
+  { path: '/leaderboards/', minWords: 500, text: 'TrueBench' },
+  { path: '/cosmetics/', minWords: 270, text: 'Облик героя номер 0' },
+  { path: '/cosmetics/heroes/', minWords: 270, text: 'Облик героя номер 0' },
+  { path: '/cosmetics/coins/', minWords: 180, text: 'Coin 23' },
+  { path: '/streamers/', minWords: 250, text: 'reqvam' },
+  { path: '/streamers/nohandsgamer/', minWords: 300, text: 'NoHandsGamer' },
+  { path: '/standard/patches/', minWords: 3000, text: '' },
+  { path: '/standard/archetypes/', minWords: 700, text: 'Архетип fixture-0' },
+  { path: '/standard/fun-decks/', minWords: 330, text: 'Колода FREE_DECK_A' },
+];
+const words = html => visibleText(html).split(/\s+/).filter(Boolean).length;
+
+async function startDataPagesStand() {
+  const fixture = await publicCardFixture();
+  const express = await startSlowExpress(fixture.legacyOrigin);
+  const start = () => startNextServer({ legacyOrigin: express.origin });
+  const close = async next => { await next?.close(); await express.close(); await fixture.close(); };
+  return { fixture, express, start, close };
+}
+
+const expectPage = ({ response, html, seconds }, page, context) => {
+  assert.equal(response.status, 200, `${page.path} ${context}`);
+  assert.ok(words(html) >= page.minWords, `${page.path} ${context}: ${words(html)} words, expected at least ${page.minWords}`);
+  assert.ok(visibleText(html).includes(page.text), `${page.path} ${context} shows its data`);
+  assert.ok(seconds < 2, `${page.path} ${context} answered in ${seconds}s`);
+};
+
+test('a data page is served with its data while Express is slow, down, and after it recovers', async () => {
+  const stand = await startDataPagesStand();
+  let next;
+  try {
+    next = await stand.start();
+    for (const page of DATA_PAGES) expectPage(await timed(`${next.origin}${page.path}`), page, 'with a healthy Express');
+
+    // The last answers are older than the two seconds a success is reused; Express answers in three seconds.
+    await delay(2500);
+    stand.express.setDelay(3000);
+    for (const page of DATA_PAGES) {
+      const answer = await timed(`${next.origin}${page.path}`);
+      expectPage(answer, page, 'with an Express that answers in 3 s');
+      if (page.path !== '/') assert.equal(answer.response.headers.get('x-hearthpulse-edge-cache'), 'anonymous', `${page.path} is a full page`);
+    }
+
+    stand.express.setDelay(0);
+    stand.express.setDown(true);
+    await delay(1500);
+    for (const page of DATA_PAGES) expectPage(await timed(`${next.origin}${page.path}`), page, 'with an Express that answers 503');
+
+    // After the recovery the next visit shows what Express says now, not the copy that served the outage.
+    stand.express.setDown(false);
+    stand.express.routes['/api/fun-decks'] = () => funDecksPayload(['RECOVERED_DECK_A', 'RECOVERED_DECK_B', 'RECOVERED_DECK_C']);
+    await delay(1500);
+    const recovered = await timed(`${next.origin}/standard/fun-decks/`);
+    assert.ok(visibleText(recovered.html).includes('Колода RECOVERED_DECK_C'), 'the recovered Express is read again');
+    assert.ok(!visibleText(recovered.html).includes('Колода FREE_DECK_A'), 'the old copy is not kept once Express answers');
+  } finally {
+    await stand.close(next);
+  }
+});
+
+test('50 visits to a streamer profile in a row all show the profile while Express answers in three seconds', async () => {
+  const stand = await startDataPagesStand();
+  let next;
+  try {
+    next = await stand.start();
+    const page = DATA_PAGES.find(candidate => candidate.path === '/streamers/nohandsgamer/');
+    expectPage(await timed(`${next.origin}${page.path}`), page, 'at the first visit');
+    await delay(2500);
+    stand.express.setDelay(3000);
+    for (let visit = 1; visit <= 50; visit++) {
+      expectPage(await timed(`${next.origin}${page.path}`), page, `at visit ${visit}`);
+      await delay(100);
+    }
+  } finally {
+    await stand.close(next);
+  }
+});
+
+test('with no copy yet a data page is a retryable 503 that is not a page, and the late answer serves the next visit', async () => {
+  const stand = await startDataPagesStand();
+  let next;
+  try {
+    stand.express.setDelay(4000);
+    next = await stand.start();
+    // `/cosmetics/heroes/` reads what `/cosmetics/` has been waiting for: it may already be there.
+    for (const page of DATA_PAGES.filter(candidate => candidate.path !== '/' && candidate.path !== '/cosmetics/heroes/')) {
+      const answer = await timed(`${next.origin}${page.path}`);
+      assert.equal(answer.response.status, 503, page.path);
+      assert.equal(answer.response.headers.get('retry-after'), '60', `${page.path} tells when to come back`);
+      assert.equal(answer.response.headers.get('cache-control'), 'private, no-store', page.path);
+      assert.equal(answer.response.headers.get('x-robots-tag'), null, `${page.path}: a transient outage is not noindex`);
+      assert.ok(!page.text || !visibleText(answer.html).includes(page.text), `${page.path} has none of its data`);
+      assert.ok(answer.seconds < 2.6, `${page.path} answered in ${answer.seconds}s`);
+    }
+    // The reads went on in the background; the first of them is in by now.
+    await delay(4500);
+    stand.express.setDelay(0);
+    await delay(500);
+    for (const page of DATA_PAGES) expectPage(await timed(`${next.origin}${page.path}`), page, 'after the late answers');
+  } finally {
+    await stand.close(next);
+  }
+});
+
+test('the home page without its feeds is not kept for everybody, and a cold start waits for a quick Express', async () => {
+  const stand = await startDataPagesStand();
+  let next;
+  try {
+    stand.express.setDelay(4000);
+    next = await stand.start();
+    const without = await timed(`${next.origin}/`);
+    assert.equal(without.response.status, 200, 'the page is useful without its feeds');
+    assert.ok(words(without.html) < 400, 'it is the page without the feeds');
+    assert.equal(without.response.headers.get('x-hearthpulse-edge-cache'), null, 'the edge may not keep it');
+    assert.equal(without.response.headers.get('cache-control'), 'private, no-cache');
+    assert.ok(without.seconds < 1.5, `the home page waited ${without.seconds}s`);
+    await next.close();
+    next = undefined;
+
+    // A first visit of a restarted server, with Express in 1.5 s: more than the old 600 ms, within the two seconds.
+    stand.express.setDelay(1500);
+    next = await stand.start();
+    expectPage(await timed(`${next.origin}/leaderboards/`), DATA_PAGES[1], 'on a cold start with a 1.5 s Express');
+  } finally {
+    await stand.close(next);
+  }
+});
+
+test('a page of the open layer is the same for a subscriber, whose answers never enter the shared copies', async () => {
+  const stand = await startDataPagesStand();
+  let next;
+  try {
+    stand.fixture.grant();
+    // A viewer's read of the fun-deck selection carries decks a guest must never see.
+    stand.express.routes['/api/fun-decks'] = request => funDecksPayload(request.headers.cookie
+      ? ['PAID_DECK_OLD', 'FREE_DECK_C', 'FREE_DECK_A', 'FREE_DECK_B', 'SUBSCRIBER_ONLY_DECK']
+      : ['PAID_DECK_OLDEST', 'PAID_DECK_OLD', 'FREE_DECK_C', 'FREE_DECK_A', 'FREE_DECK_B']);
+    next = await stand.start();
+    const asSubscriber = await fetch(`${next.origin}/standard/fun-decks/`, {
+      headers: { Cookie: stand.fixture.cookie, Authorization: 'Bearer subscriber-token' },
+    });
+    const subscriberText = visibleText(await asSubscriber.text());
+    assert.ok(!subscriberText.includes('SUBSCRIBER_ONLY_DECK'), 'the server never asks Express as the viewer');
+    assert.ok(stand.express.state.reads.length > 0);
+    assert.deepEqual(stand.express.state.reads.filter(read => read.cookie || read.authorization), [], 'no viewer credential reaches Express');
+
+    // While Express is down the guest is served the stored copy: it is the open layer, not the subscriber's.
+    await delay(2500);
+    stand.express.setDown(true);
+    const guest = await timed(`${next.origin}/standard/fun-decks/`);
+    const guestText = visibleText(guest.html);
+    assert.equal(guest.response.status, 200);
+    for (const code of ['FREE_DECK_A', 'FREE_DECK_B', 'FREE_DECK_C']) assert.ok(guestText.includes(`Колода ${code}`), code);
+    for (const code of ['SUBSCRIBER_ONLY_DECK', 'PAID_DECK_OLD']) assert.ok(!guestText.includes(code), `${code} stays out of the guest page`);
+  } finally {
+    await stand.close(next);
+  }
+});
+
+test('an unknown streamer is a 404 while Express is slow, not a 503 and not a stored page', async () => {
+  const stand = await startDataPagesStand();
+  let next;
+  try {
+    next = await stand.start();
+    const answer = await timed(`${next.origin}/streamers/nobody_here/`);
+    assert.equal(answer.response.status, 404);
+  } finally {
+    await stand.close(next);
   }
 });
