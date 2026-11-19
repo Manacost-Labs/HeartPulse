@@ -410,8 +410,8 @@ the queries the site wants to answer.
 - Содержание: не меньше `INDEX_MIN_OWN_WORDS` (150) собственных слов или
   `INDEX_MIN_OWN_FACTS` (10) собственных фактов, без меню и футера
   (`meetsContentThreshold`).
-- Выборка по шаблону: `INDEX_MIN_SAMPLE_GAMES`, единственный источник числа. Для архетипов это
-  1000 игр; `constructedArchetypeIndexing.ts` читает его (прежнее имя
+- Выборка по шаблону: `INDEX_MIN_SAMPLE_GAMES`, единственный источник
+  числа. Для архетипов это 1000 игр; `constructedArchetypeIndexing.ts` читает его (прежнее имя
   `INDEXABLE_ARCHETYPE_MIN_GAMES` — то же значение) и решает через
   `meetsSampleThreshold`, так что страница и проекция карты сайта идут по
   одному правилу.
