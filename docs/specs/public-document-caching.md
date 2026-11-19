@@ -108,6 +108,11 @@ slow.
   anonymously as well: the copy is the open layer, the same for everybody. The
   document of a viewer is not stored anywhere on the server; the edge does not
   store a request with a cookie.
+- An answer is stored only if the page of its path can use it: the loader and
+  the probe pass the same check (`publicPayloadChecks.ts`, the type guards of
+  the leaderboards and streamers). A 200 with another shape (a changed
+  contract, an error body) is a failed read: it does not replace the last good
+  copy, and with no copy it is a 503 like an outage.
 - A copy is kept for 6 hours at most, 200 copies at most and 16 Mi characters
   of JSON text in all (at most 32 MiB of heap; a streamer profile is
   estimated at 60-100 KB, so the 160-270 most recently read profiles stay);

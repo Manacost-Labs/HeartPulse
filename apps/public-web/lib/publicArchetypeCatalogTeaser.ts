@@ -4,6 +4,7 @@ import { readInitialCatalogFilters } from '@/src/features/constructedArchetypeCa
 import { publicArchetypeCatalog } from './publicArchetypeCatalogTeaserData';
 import { readPublicJsonOrNull } from './firstPaintStore';
 import { archetypeTeaserPath } from './publicDataPaths';
+import { archetypeTeaserCheck } from './publicPayloadChecks';
 
 /**
  * Anonymous catalog teaser of the format the page opens with (`?format=`),
@@ -11,6 +12,6 @@ import { archetypeTeaserPath } from './publicDataPaths';
  */
 export const loadPublicArchetypeCatalogTeaser = cache(async (search: string, period: string | null = null) => {
   const { format } = readInitialCatalogFilters(search, []);
-  const raw = await readPublicJsonOrNull(archetypeTeaserPath(format, period));
+  const raw = await readPublicJsonOrNull(archetypeTeaserPath(format, period), false, archetypeTeaserCheck(format));
   return raw === null ? null : publicArchetypeCatalog(raw, format);
 });

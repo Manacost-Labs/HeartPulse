@@ -290,6 +290,32 @@ assert.equal(publicFunDecksPreview({ error: 'upstream' }), null);
   down = false;
 }
 
+// A 200 that is not the page's contract is a failed read: it neither stores nor replaces the last good copy.
+{
+  const { readPublicJson } = await import('../apps/public-web/lib/firstPaintStore');
+  const { funDecksCheck } = await import('../apps/public-web/lib/publicPayloadChecks');
+  const realFetch = globalThis.fetch;
+  const realNow = Date.now;
+  let clock = realNow();
+  let answer: unknown = funRaw;
+  Date.now = () => clock;
+  globalThis.fetch = (async () => json(answer)) as typeof fetch;
+  try {
+    const path = '/api/fun-decks?contract-check';
+    assert.deepEqual(await readPublicJson(path, true, funDecksCheck), funRaw);
+    clock += 3000;
+    answer = { error: 'upstream says 200' };
+    const kept = await readPublicJson(path, true, funDecksCheck);
+    assert.deepEqual(kept, funRaw, 'a 200 outside the contract keeps the last good copy');
+    const other = '/api/fun-decks?contract-cold';
+    await assert.rejects(readPublicJson(other, true, funDecksCheck), CatalogUnavailableError,
+      'with no copy a contract-breaking 200 is an outage (503), not a page without data');
+  } finally {
+    globalThis.fetch = realFetch;
+    Date.now = realNow;
+  }
+}
+
 // The loaders are server-only and read anonymously through `readFirstPaintJson`.
 for (const loader of ['publicStandardMetaTeaser']) {
   const source = readFileSync(new URL(`../apps/public-web/lib/${loader}.ts`, import.meta.url), 'utf8');

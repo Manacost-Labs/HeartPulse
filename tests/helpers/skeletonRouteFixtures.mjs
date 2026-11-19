@@ -122,9 +122,16 @@ function cosmeticsDetailResponse(url, { variant }) {
 // client fetch to hold: only a route-level loading UI (owned by navigation)
 // can show while the server is slow. The rows stay measurable on demand.
 const AWAITS_ROUTE_LOADING_UI = 'route-level loading UI for the server-probed detail';
+// Data pages (#420): apps/public-web/proxy.ts reads their data before the document. A copy (fresh or the last
+// good one) renders the page WITH its data; none is a 503. The state these routes measured, a document without
+// data whose browser request is held, no longer exists, so there is no skeleton to measure on these routes
+// (the components stay in Storybook as render checks only). Name them in SKELETON_ROUTES to see the failure.
+// The no-data and last-good behaviour is tests/next-card-detail-proxy.test.mjs.
+const AWAITS_NO_DATA_DOCUMENT = 'no document without data: a copy renders the data, none is a 503 (proxy.ts, #420)';
 
 export const SKELETON_ROUTES = [
   {
+    awaits: AWAITS_NO_DATA_DOCUMENT,
     id: 'fun-decks', path: '/standard/fun-decks/', textVariants: true,
     // The server's 600 ms first-paint read fails, so the browser request is the one held.
     respond: (url, { browser, variant }) => url.pathname === '/api/fun-decks' ? (browser ? json(funDecks(variant)) : unavailable) : undefined,
@@ -193,6 +200,7 @@ export const SKELETON_ROUTES = [
     ],
   },
   {
+    awaits: AWAITS_NO_DATA_DOCUMENT,
     id: 'cosmetics-list', path: '/cosmetics/heroes/', textVariants: true,
     respond: (url, { browser, variant }) => url.pathname === '/api/cosmetics/heroes'
       ? (browser ? json({ items: Array.from({ length: 24 }, (_, index) => heroSummary(index, variant)),

@@ -22,6 +22,8 @@ import { FIRST_PAINT_READ_BUDGET_MS } from './publicFirstPaintRead';
  * numerous ones (hundreds): at the estimated 60-100 KB of a profile the
  * limit keeps the 160-270 most recently read, which is where the traffic is. JSON is kept as text
  * and parsed on every read, so no page can change a stored copy.
+ * An answer the page of the path cannot use (`accept` is false) is a failed
+ * read: it neither becomes the copy nor replaces the previous good one.
  */
 export const COLD_READ_WAIT_MS = 2_000;
 export const STORE_MAX_ENTRIES = 200;
@@ -31,6 +33,15 @@ const STALE_LIMIT_MS = 6 * 60 * 60 * 1000;
 /** A page asks Express a few times (proxy, metadata, page); within this they share one answer. */
 const FRESH_MS = 2_000;
 const STORE_KEY = Symbol.for('hearthpulse.firstPaintStore');
+const ACCEPT_KEY = Symbol.for('hearthpulse.firstPaintStore.accept');
+
+/** True when the parsed answer has the shape the page of its path reads; a path has one such check. */
+export type PublicPayloadCheck = (raw: unknown) => boolean;
+
+function checks() {
+  const holder = globalThis as unknown as { [ACCEPT_KEY]?: Map<string, PublicPayloadCheck> };
+  return (holder[ACCEPT_KEY] ??= new Map());
+}
 
 async function readText(path: string, signal: AbortSignal): Promise<string> {
   const response = await fetchPublicExpress(path, signal);
@@ -44,7 +55,9 @@ async function readText(path: string, signal: AbortSignal): Promise<string> {
     throw new CatalogUnavailableError();
   }
   const text = await response.text();
-  JSON.parse(text);
+  const value: unknown = JSON.parse(text);
+  // A 200 that is not the page's contract must not replace the last good copy: it is a failed read.
+  if (checks().get(path)?.(value) === false) throw new CatalogUnavailableError();
   return text;
 }
 
@@ -64,14 +77,15 @@ function store() {
  * last good one. Throws `CatalogUnavailableError` when there is neither and
  * `PublicDataMissingError` (with the status) when Express refuses the request: 404, 400.
  */
-export async function readPublicJson(path: string, patient = false): Promise<unknown> {
+export async function readPublicJson(path: string, patient = false, accept?: PublicPayloadCheck): Promise<unknown> {
+  if (accept) checks().set(path, accept);
   return JSON.parse(await store()(path, patient));
 }
 
 /** `readPublicJson`, or `null` when the data is not there at all (a page that is useful without it renders without). */
-export async function readPublicJsonOrNull(path: string, patient = false): Promise<unknown> {
+export async function readPublicJsonOrNull(path: string, patient = false, accept?: PublicPayloadCheck): Promise<unknown> {
   try {
-    return await readPublicJson(path, patient);
+    return await readPublicJson(path, patient, accept);
   } catch {
     return null;
   }

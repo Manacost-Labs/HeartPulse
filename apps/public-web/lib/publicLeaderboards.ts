@@ -15,7 +15,9 @@ import { leaderboardPaths } from './publicLeaderboardPaths';
 export async function loadPublicLeaderboards(selection: LeaderboardSelection): Promise<LeaderboardsInitial> {
   const paths = leaderboardPaths(selection);
   const [catalog, table, stats] = await Promise.all([
-    readPublicJsonOrNull(paths.catalog), readPublicJsonOrNull(paths.table), readPublicJsonOrNull(paths.stats),
+    readPublicJsonOrNull(paths.catalog, false, isLeaderboardSeasonCatalog),
+    readPublicJsonOrNull(paths.table, false, isLeaderboardTable),
+    readPublicJsonOrNull(paths.stats, false, isLeaderboardStats),
   ]);
   return {
     selection,

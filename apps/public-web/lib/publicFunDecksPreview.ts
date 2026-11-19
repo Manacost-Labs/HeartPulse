@@ -2,6 +2,7 @@ import 'server-only';
 import { cache } from 'react';
 import { readPublicJsonOrNull } from './firstPaintStore';
 import { FUN_DECKS_PATH } from './publicDataPaths';
+import { funDecksCheck } from './publicPayloadChecks';
 import { publicFunDecksPreview } from './publicFunDecksPreviewData';
 
 /**
@@ -9,6 +10,6 @@ import { publicFunDecksPreview } from './publicFunDecksPreviewData';
  * `null` to let the browser load it. Only the free decks enter the HTML.
  */
 export const loadPublicFunDecksPreview = cache(async () => {
-  const raw = await readPublicJsonOrNull(FUN_DECKS_PATH);
+  const raw = await readPublicJsonOrNull(FUN_DECKS_PATH, false, funDecksCheck);
   return raw === null ? null : publicFunDecksPreview(raw);
 });

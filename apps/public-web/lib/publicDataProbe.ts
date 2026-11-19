@@ -1,13 +1,17 @@
-import { parseLeaderboardSelection } from '@/src/modules/leaderboards/public';
+import {
+  isLeaderboardSeasonCatalog, isLeaderboardStats, isLeaderboardTable, parseLeaderboardSelection,
+} from '@/src/modules/leaderboards/public';
+import { isStreamerPage, isStreamersPage } from '@/src/modules/streamers/public';
 import { normalizePatchVersion } from '@/src/modules/patchNotes/public';
 import { cosmeticsListing } from '@/src/modules/cosmetics/public';
 import { readInitialCatalogFilters } from '@/src/features/constructedArchetypeCatalogUrl';
-import { COLD_READ_WAIT_MS, readPublicJson } from './firstPaintStore';
+import { COLD_READ_WAIT_MS, readPublicJson, type PublicPayloadCheck } from './firstPaintStore';
 import { isPublicDataMissing } from './publicCatalogCache';
 import { patchNotesReader } from './patchNotesStore';
 import { cosmeticsCatalogSeedRequest } from './publicCosmeticsCatalogData';
 import { FUN_DECKS_PATH, HOME_PATHS, STREAMERS_PATH, archetypeTeaserPath, streamerPath } from './publicDataPaths';
 import { leaderboardPaths } from './publicLeaderboardPaths';
+import { archetypeTeaserCheck, cosmeticsCatalogCheck, funDecksCheck } from './publicPayloadChecks';
 
 /**
  * What a document of a data page has to start with, decided by `proxy.ts`
@@ -28,12 +32,12 @@ import { leaderboardPaths } from './publicLeaderboardPaths';
 export type DataProbe = 'none' | 'ready' | 'partial' | 'unavailable';
 
 type Read = 'ok' | 'missing' | 'failed';
-const read = (path: string, patient = true): Promise<Read> => readPublicJson(path, patient).then(() => 'ok' as const,
+const read = (path: string, patient = true, check?: PublicPayloadCheck): Promise<Read> => readPublicJson(path, patient, check).then(() => 'ok' as const,
   error => (isPublicDataMissing(error) ? 'missing' as const : 'failed' as const));
 
 /** Reads in parallel; the page needs the `required` ones. */
-async function probeReads(required: string, optional: readonly string[] = []): Promise<DataProbe> {
-  const [main] = await Promise.all([read(required), ...optional.map(path => read(path))]);
+async function probeReads(required: [string, PublicPayloadCheck], optional: ReadonlyArray<[string, PublicPayloadCheck]> = []): Promise<DataProbe> {
+  const [main] = await Promise.all([read(required[0], true, required[1]), ...optional.map(([path, check]) => read(path, true, check))]);
   if (main === 'missing') return 'none';
   return main === 'ok' ? 'ready' : 'unavailable';
 }
@@ -51,17 +55,19 @@ export async function probePublicData(pathname: string, searchParams: URLSearchP
   }
   if (path === '/leaderboards') {
     const paths = leaderboardPaths(parseLeaderboardSelection(new URLSearchParams(search)));
-    return probeReads(paths.table, [paths.catalog, paths.stats]);
+    return probeReads([paths.table, isLeaderboardTable],
+      [[paths.catalog, isLeaderboardSeasonCatalog], [paths.stats, isLeaderboardStats]]);
   }
-  if (path === '/streamers') return probeReads(STREAMERS_PATH);
+  if (path === '/streamers') return probeReads([STREAMERS_PATH, isStreamersPage]);
   const streamer = path.match(/^\/streamers\/([^/]+)$/u);
   if (streamer) {
     const slug = streamer[1].toLowerCase();
-    return SLUG.test(slug) ? probeReads(streamerPath(slug)) : 'none';
+    return SLUG.test(slug) ? probeReads([streamerPath(slug), isStreamerPage]) : 'none';
   }
-  if (path === '/standard/fun-decks') return probeReads(FUN_DECKS_PATH);
+  if (path === '/standard/fun-decks') return probeReads([FUN_DECKS_PATH, funDecksCheck]);
   if (path === '/standard/archetypes') {
-    return probeReads(archetypeTeaserPath(readInitialCatalogFilters(search, []).format, null));
+    const { format } = readInitialCatalogFilters(search, []);
+    return probeReads([archetypeTeaserPath(format, null), archetypeTeaserCheck(format)]);
   }
   if (path === '/standard/patches') {
     const version = normalizePatchVersion(searchParams.get('version') ?? undefined) || null;
@@ -71,6 +77,9 @@ export async function probePublicData(pathname: string, searchParams: URLSearchP
     return reader.isMissing(version) ? 'none' : 'unavailable';
   }
   const kind = cosmeticsListing(path)?.kind;
-  if (kind) return probeReads(cosmeticsCatalogSeedRequest(kind, search).url);
+  if (kind) {
+    const { url } = cosmeticsCatalogSeedRequest(kind, search);
+    return probeReads([url, cosmeticsCatalogCheck(kind, url)]);
+  }
   return 'none';
 }
