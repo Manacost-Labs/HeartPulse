@@ -4,6 +4,10 @@ export type FunDeckRow = {
   format: string;
   className: string;
   streamer: string | null;
+  /** `off_meta`: a forgotten archetype. Absent in an older response: a brew. */
+  kind?: 'brew' | 'off_meta';
+  /** The admin pinned the deck: it leads its format under every sort. */
+  pinned?: boolean;
   funScore: number | null;
   maxMetaSimilarity: number | null;
   nearestArchetype: string | null;
@@ -49,7 +53,7 @@ export type FunDecksPayload = {
 /** `newest`: first seen; `fun`: fun index; `reliable`: lower bound of the win rate interval; `distant`: least like the meta. */
 export type FunDecksSortMode = 'newest' | 'fun' | 'reliable' | 'distant';
 export type FunDecksFormat = 'all' | 'standard' | 'wild';
-export type FunDeckTagId = 'highlander' | 'xl' | 'meme' | 'cheese' | 'concept';
+export type FunDeckTagId = 'highlander' | 'xl' | 'meme' | 'cheese' | 'concept' | 'offmeta';
 
 export const FUN_DECKS_SORTS: ReadonlyArray<{ id: FunDecksSortMode; label: string }> = [
   { id: 'newest', label: 'Свежие' },
@@ -65,6 +69,7 @@ export const FUN_DECK_TAGS: ReadonlyArray<{ id: FunDeckTagId; label: string; sho
   { id: 'meme', label: 'Мем' },
   { id: 'cheese', label: 'Сыр' },
   { id: 'concept', label: 'Концепт' },
+  { id: 'offmeta', label: 'Офф-мета' },
 ];
 
 /** Hero classes by the lower-case Latin key of `className`, listed in the order of their Russian names. */
@@ -109,10 +114,11 @@ const KEYS_BY_SORT: Record<FunDecksSortMode, Array<[Key, 1 | -1]>> = {
   distant: [[deck => deck.maxMetaSimilarity, 1], [funKey, -1], [newestKey, -1]],
 };
 
-/** The page's order. A key breaks ties by the next one; decks equal on all of them keep the order the API sent. */
+/** The page's order: pinned decks first, then each sort's keys. A key breaks ties by the next one; decks equal on all of them keep the order the API sent. */
 export function orderFunDecks(decks: FunDeckRow[], sortMode: FunDecksSortMode): FunDeckRow[] {
   const keys = KEYS_BY_SORT[sortMode] ?? KEYS_BY_SORT.newest;
   return [...decks].sort((left, right) => {
+    if (Boolean(left.pinned) !== Boolean(right.pinned)) return left.pinned ? -1 : 1;
     for (const [key, direction] of keys) {
       const a = key(left);
       const b = key(right);

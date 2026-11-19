@@ -147,6 +147,7 @@ test('Next cosmetics catalogs and details preserve status, metadata, media and m
           selectedClass: document.querySelector('select[name=cosmetics-class]')?.value,
           robots: document.querySelector('meta[name=robots]')?.content,
           card: document.querySelector('.cosmetics-card')?.textContent?.trim(),
+          sourceLine: /Источник:|обновлено/.test(document.body.innerText),
           main: document.querySelectorAll('main').length,
           overflow: document.documentElement.scrollWidth > innerWidth,
           violations: (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } }))
@@ -159,6 +160,7 @@ test('Next cosmetics catalogs and details preserve status, metadata, media and m
           assert.match(state.robots ?? '', /noindex/);
         }
         assert.match(state.card ?? '', new RegExp(card));
+        assert.equal(state.sourceLine, false, `no source line under the catalog ${path} at ${width}px`);
         assert.equal(state.main, 1);
         assert.equal(state.overflow, false);
         assert.deepEqual(state.violations, []);

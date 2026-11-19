@@ -287,6 +287,10 @@ BG-specific styles live in `src/battlegrounds-parchment.css` and must stay scope
 - Do not edit legacy drag/drop, compression, export, canvas or ordering JavaScript during a design-only task.
 - Verify card library mount, drag/drop target, PNG/WebP buttons and mobile overflow after every pass.
 
+## Patch Notes
+
+`/standard/patches/` is a reading page, not a dashboard. Two newest patches, each an `h2` (HSDisplay, large) with a wood rule, each game mode an `h3` on a thin rule. A changed card is one parchment panel with a quiet border: the card before (`До`), an arrow, the card after (`После`) and between them short plates of the change («Мана 9 → 10», «Тир 4 → 5»). The pictures carry the page: 404×558 archived renders, two pairs in a row on wide content, one pair per row below, and on a phone the two pictures side by side (about 45 % each) with the plates under them. Small text is Inter; there is no search, filter, contents, version switcher, accordion or per-card menu, and no new decorative icon. Direction is the colour of the new value plus text for assistive technology, never colour alone.
+
 ## Lightboxes And Hover Details
 
 - Backdrops are dark and lightly blurred.
@@ -460,7 +464,8 @@ Rules:
 
 - **2026-11-19** — Menu v4 and tier marks (E22 D, #467): the mode switch moved to the top of the menu as a small banner with the art of the current mode, banner cards got a `srcset`, emblems, a gold frame and hover motion, menu icons moved to three sizes, and `TierBadge` became a painted image from `/tier-marks/` used everywhere a tier is drawn.
 - **2026-11-19** — Clean UI (E22 D1, #468): the «О странице» block under the tier list, classes and legendaries pages and the «График классов и скачивание» disclosure under the classes ranking were removed with their code, text data and styles; the pages end with their data. Replaces the 2026-10-29 and 2026-11-18 entries about that text.
-- **2026-11-19** — Menu v3 (E22 C, #458): groups gave way to one flat list of the current mode and a mode switch that opens a panel of five banner cards; painted 40 px icons and mode emblems replaced the SVG set; menu text moved from HSDisplay to Inter 600 at 17 px.
+- **2026-11-19** — Patch notes (E22, #483): the page shows the two newest patches; each changed card is the card before, the plates of the change and the card after; search, filters, contents, highlights, archetype flow, version switcher and card menus were removed.
+- **2026-11-19** — Menu v3 (E22 C, #458): groups gave way to one flat list of the current mode and a mode switch that opens a panel of four banner cards; painted 40 px icons and mode emblems replaced the SVG set; menu text moved from HSDisplay to Inter 600 at 17 px.
 - **2026-11-18** — Menu cleanup (E22): groups by game mode (Стандарт и Вольный, Арена, Поля сражений, Сообщество) instead of «Конструкторы» and «Разное», the deck builder moved to Standard, builders of Battlegrounds became plain items, every item got its own icon from the site's duotone SVG set of one size and stroke, groups got coats of arms, icon plates and gold coin emblems removed, the active item sits on an embossed plaque, administrator panel moved to the bottom, `Ctrl K` hint in the header search.
 - **2026-11-18** — Clean UI (E22 A, #450): the Arena text under the tier list, classes and legendaries pages became one collapsed «О странице» block; the slogan lines under H1 and explanatory paragraphs were removed from the main public pages; the rule above.
 - **2026-10-29** — Added the plain server-rendered methodology text under the Arena tier list, classes and legendaries pages.

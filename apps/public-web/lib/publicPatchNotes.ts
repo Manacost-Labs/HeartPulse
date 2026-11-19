@@ -9,7 +9,7 @@ export type { PublicPatchNotes } from './publicPatchNotesData';
 const readPatchNotes = createPatchNotesReader({ request: (path, signal) => fetchPublicExpress(path, signal) });
 
 /**
- * The patch and the archive for the first paint, read anonymously. A copy
+ * The patches for the first paint, read anonymously. A copy
  * the process already holds is used at once; a part never read before waits
  * at most the shared first-paint budget, else it is `null` and the browser
  * loads it. Patch notes are public, so nothing here depends on the viewer.
