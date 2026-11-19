@@ -113,3 +113,35 @@ test('the guest HTML of /standard/matchups/ carries the open matrix and no paid 
     await new Promise(done => legacyServer.close(done));
   }
 });
+
+// A restart loses the process memory. Next keeps only the copy the build wrote on disk; a regeneration that finds Express down
+// must not publish an empty page nor answer 500: the earlier copy is served again, and the matrix returns with Express.
+test('after a Next restart with Express down the page answers from the earlier copy, then recovers', { timeout: 240_000 }, async () => {
+  const state = { reads: [], down: true, warning: undefined };
+  const legacyServer = startLegacy(state).listen(0, '127.0.0.1');
+  await once(legacyServer, 'listening');
+  const next = await startNextServer({ legacyOrigin: `http://127.0.0.1:${legacyServer.address().port}`,
+    env: { NODE_OPTIONS: `--require=${resolve('tests/helpers/shiftableClock.cjs')}` } });
+  try {
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      process.kill(next.pid, 'SIGUSR2');
+      const response = await fetch(`${next.origin}/standard/matchups/`, { headers: { 'User-Agent': BROWSER_UA } });
+      assert.equal(response.status, 200, `no 500 while Express is down: ${next.output().slice(-300)}`);
+      assert.equal((await response.text()).includes('standard-matchups-open__row'), false, 'no invented matrix');
+      await delay(300);
+    }
+    assert.ok(state.reads.some(read => read.path.includes('/public')), 'the regeneration really tried the origin');
+    state.down = false;
+    let html = '';
+    for (let attempt = 0; attempt < 40 && !html.includes('standard-matchups-open__matrix'); attempt += 1) {
+      process.kill(next.pid, 'SIGUSR2');
+      html = await (await fetch(`${next.origin}/standard/matchups/`, { headers: { 'User-Agent': BROWSER_UA } })).text();
+      await delay(250);
+    }
+    assert.ok(html.includes('standard-matchups-open__matrix'), 'the matrix returns once Express does');
+  } finally {
+    await next.close();
+    legacyServer.closeAllConnections();
+    await new Promise(done => legacyServer.close(done));
+  }
+});

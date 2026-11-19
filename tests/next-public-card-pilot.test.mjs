@@ -151,6 +151,16 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.equal(emptyArticles.status, 200, runtime.output());
     assert.match(await emptyArticles.text(), /Статьи скоро появятся|articles/);
 
+    // /standard/matchups/ is read before the warm-up below: this stand's Express has no matchup snapshot, and a regeneration
+    // without data throws (the earlier copy stays), so after the route marks the page stale there is nothing to render.
+    const matchups = await fetch(`${runtime.origin}/standard/matchups/`, { headers: cookie });
+    assert.equal(matchups.status, 200, runtime.output());
+    const matchupsHtml = await matchups.text();
+    assert.match(matchupsHtml, /<h1>Матчапы<\/h1>/);
+    assert.match(matchupsHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/standard\/matchups\/"/);
+    assert.equal((matchupsHtml.match(/<main\b/g) || []).length, 1);
+    assert.doesNotMatch(matchupsHtml, /Control Warrior|card-reader@example|manacost_auth_token/);
+
     writeFileSync(join(runtime.backend.dataDirectory, 'articles.json'), JSON.stringify({
       articles: [{ id: 'qa-public-article', title: 'Публичная статья Next', date: '2026-09-24',
         image: '/arena-logo-icon.webp', excerpt: 'Контрольный материал', tag: 'Арена',
@@ -213,14 +223,6 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.match(legendariesHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/legendaries\/"/);
     assert.equal((legendariesHtml.match(/<main\b/g) || []).length, 1);
     assert.doesNotMatch(legendariesHtml, /CARD_1|card-reader@example|manacost_auth_token/);
-
-    const matchups = await fetch(`${runtime.origin}/standard/matchups/`, { headers: cookie });
-    assert.equal(matchups.status, 200, runtime.output());
-    const matchupsHtml = await matchups.text();
-    assert.match(matchupsHtml, /<h1>Матчапы<\/h1>/);
-    assert.match(matchupsHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/standard\/matchups\/"/);
-    assert.equal((matchupsHtml.match(/<main\b/g) || []).length, 1);
-    assert.doesNotMatch(matchupsHtml, /Control Warrior|card-reader@example|manacost_auth_token/);
 
     const meta = await fetch(`${runtime.origin}/standard/meta/`, { headers: cookie });
     assert.equal(meta.status, 200, runtime.output());
