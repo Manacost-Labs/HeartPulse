@@ -55,9 +55,14 @@ only) answers with `{ updatedAt, source, classes: [{ place, id, name, winrate,
 sample }], sampleUnit }`. `winrate` is rounded to 0.1 percentage point, `sample`
 is the class sample size (`null` when the source gives none) and `sampleUnit`
 says what it counts: `drafts` for HSReplay (`num_drafts`), `games` for
-Firestone. `source` is «HSReplay» or «Firestone». The Next route renders it as a
-table next to the H1 for everyone who has no access, with the same HTML for
-guests and robots; per-card and per-period breakdowns, history, comparison and
+Firestone. `source` is «HSReplay» or «Firestone». The Next route renders it as the
+page's content right after the H1 (#410) for everyone who has no access, with
+the same HTML for guests and robots and no subscription gate over it. The
+closed part is the last column («Ещё», hatched, behind a lock button that opens
+the subscription offer); the column and its lock carry `.paywalled-classes`. A
+subscriber gets the full ranking in its place once its data has arrived, so the
+page does not shift. Without a snapshot the page shows the full ranking behind
+its gate as before. Per-card and per-period breakdowns, history, comparison and
 any finer winrate stay closed and never reach the HTML, the RSC payload, the
 JSON-LD or the projection. The full `GET /api/winrates` is unchanged. Details
 and tests: `docs/specs/seo-foundation.md`, section «Открытый слой и платная

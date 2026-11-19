@@ -1,4 +1,7 @@
-import type { BattlegroundLibraryKind } from './battlegroundLibrarySeoRoutes.js';
+import { projectPublicBattlegroundLibraryCard, type BattlegroundLibraryKind } from './battlegroundLibrarySeoRoutes.js';
+import { isIndexableBattlegroundLibraryCard } from '../shared/battlegroundLibraryIndexing.js';
+import { libraryCardIndexingFacts } from './battlegroundLibraryOpenCard.js';
+import { createLibraryStatsStore } from './battlegroundLibraryOpenStats.js';
 import { StaleSitemapSourceError } from './entitySitemapDynamicLoader.js';
 import {
   archetypeIndexingFacts,
@@ -6,6 +9,10 @@ import {
   type ArchetypeSitemapRow,
 } from './entitySitemapProjections.js';
 import { isIndexableArchetype } from '../shared/constructedArchetypeIndexing.js';
+import { isIndexableBattlegroundHero } from '../shared/battlegroundHeroIndexing.js';
+import { projectBattlegroundHeroRanking, type PublicHeroRankingMode } from './battlegroundHeroRankingProjection.js';
+import { createBattlegroundHeroCatalogLoader } from './battlegroundHeroRankingSource.js';
+import { projectBattlegroundHeroStats } from './battlegroundHeroStatsProjection.js';
 import {
   loadCosmeticsSitemapRows,
   loadGuideArchiveSitemapRows,
@@ -62,21 +69,39 @@ async function fetchJson(url: string, options: SourceOptions): Promise<JsonRecor
   return record(await response.json());
 }
 
+/**
+ * Rows of the library segment of the sitemap: the cards the page answers as indexable
+ * (`isIndexableBattlegroundLibraryCard`, judged on the same open projection and the same base statistics
+ * the page reads). A failing statistics source rejects the whole candidate, so the last known good sitemap
+ * stays: a page must never be listed on the strength of figures the source did not give.
+ */
 export async function loadBattlegroundLibrarySitemapRows(
   kind: BattlegroundLibraryKind,
   options: SourceOptions = {},
 ): Promise<unknown[]> {
-  const catalogs = await Promise.all([true, false].map(async inPool => {
-    const url = new URL('/api/bg/library/cards', BATTLEGROUNDS_ORIGIN);
-    url.searchParams.set('card_type', kind);
-    url.searchParams.set('in_pool', String(Number(inPool)));
-    const payload = await fetchJson(url.href, options);
-    if (!Array.isArray(payload.data) || payload.data.length === 0) {
-      throw new Error(`Entity sitemap ${kind} catalog is invalid or empty`);
-    }
-    return payload.data;
-  }));
-  return catalogs.flat();
+  const [catalogs, slice] = await Promise.all([
+    Promise.all([true, false].map(async inPool => {
+      const url = new URL('/api/bg/library/cards', BATTLEGROUNDS_ORIGIN);
+      url.searchParams.set('card_type', kind);
+      url.searchParams.set('in_pool', String(Number(inPool)));
+      const payload = await fetchJson(url.href, options);
+      if (!Array.isArray(payload.data) || payload.data.length === 0) {
+        throw new Error(`Entity sitemap ${kind} catalog is invalid or empty`);
+      }
+      return payload.data;
+    })),
+    kind === 'minion'
+      ? createLibraryStatsStore({ fetchImpl: options.fetchImpl, timeoutMs: options.timeoutMs }).get().then(read => read.slice)
+      : Promise.resolve(null),
+  ]);
+  return catalogs.flat().filter(raw => {
+    const source = record(raw);
+    const card = projectPublicBattlegroundLibraryCard(source, kind, source.in_pool === true);
+    // A broken row stays in the list: the projection of the sitemap rejects it with its own error.
+    if (!card) return true;
+    const stats = card.inPool ? slice?.byDbf.get(card.dbfId) ?? null : null;
+    return isIndexableBattlegroundLibraryCard(libraryCardIndexingFacts(card, stats));
+  });
 }
 
 function heroRows(payload: JsonRecord): unknown[] {
@@ -88,12 +113,28 @@ function heroRows(payload: JsonRecord): unknown[] {
   return heroes;
 }
 
+/**
+ * Hero rows of the sitemap: the de-duplicated union of solo and Duos heroes that
+ * the page answers as indexable (`isIndexableBattlegroundHero`, judged on the
+ * same open ranking the page reads). A failing ranking source rejects the whole
+ * candidate, so the last known good sitemap stays.
+ */
 export async function loadBattlegroundHeroSitemapRows(
   options: SourceOptions = {},
 ): Promise<unknown[]> {
-  const [solo, duos] = await Promise.all([
+  const loadCatalog = createBattlegroundHeroCatalogLoader({
+    fetchImpl: options.fetchImpl, timeoutMs: options.timeoutMs, baseUrl: `${BATTLEGROUNDS_ORIGIN}/api/bg/heroes`,
+  });
+  const ranking = async (mode: PublicHeroRankingMode) => {
+    const projected = projectBattlegroundHeroRanking(await loadCatalog(mode), mode);
+    if (!projected) throw new Error('Entity sitemap hero ranking is unavailable');
+    return projected;
+  };
+  const [solo, duos, soloRanking, duosRanking] = await Promise.all([
     fetchJson(`${BATTLEGROUNDS_ORIGIN}/api/bg/heroes`, options).then(heroRows),
     fetchJson(`${BATTLEGROUNDS_ORIGIN}/api/bg/heroes?mode=duos`, options).then(heroRows),
+    ranking('solo'),
+    ranking('duos'),
   ]);
   const seen = new Set<string>();
   return [...solo, ...duos].filter(row => {
@@ -101,7 +142,8 @@ export async function loadBattlegroundHeroSitemapRows(
     if (!/^[1-9][0-9]*$/.test(key)) return true;
     if (seen.has(key)) return false;
     seen.add(key);
-    return true;
+    const stats = projectBattlegroundHeroStats(Number(key), { solo: soloRanking, duos: duosRanking });
+    return stats !== null && isIndexableBattlegroundHero({ ...stats.modes, heroPowerName: stats.heroPowerName });
   });
 }
 
@@ -161,7 +203,9 @@ export function createEntitySitemapLoaders(loadConstructedCards: ConstructedCard
       return cards;
     },
     loadBattlegroundMinions: () => loadBattlegroundLibrarySitemapRows('minion'),
-    loadBattlegroundSpells: () => loadBattlegroundLibrarySitemapRows('spell'),
+    // No spell segment: a spell page states four to six facts (name, type, tier, text, mechanics), below the
+    // threshold of ten, so every spell page is `noindex` and none belongs in a sitemap. An empty segment is
+    // invalid, so the loader is not registered; it returns with the first spell that crosses the line.
     loadBattlegroundHeroes: () => loadBattlegroundHeroSitemapRows(),
   };
 }
@@ -192,7 +236,6 @@ export function createEntitySitemapRuntimeOptions(
     minimumStandardCardCount: minimumFromEnvironment(environment.SITEMAP_STANDARD_MIN_CARDS, 500),
     minimumWildCardCount: minimumFromEnvironment(environment.SITEMAP_WILD_MIN_CARDS, 500),
     minimumBattlegroundMinionCount: minimumFromEnvironment(environment.SITEMAP_BG_MIN_MINIONS, 500),
-    minimumBattlegroundSpellCount: minimumFromEnvironment(environment.SITEMAP_BG_MIN_SPELLS, 50),
     minimumBattlegroundHeroCount: minimumFromEnvironment(environment.SITEMAP_BG_MIN_HEROES, 80),
   };
 }

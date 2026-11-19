@@ -7,34 +7,15 @@ import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js'
 import { canonicalBattlegroundCardSlug, createBattlegroundLibraryCatalogCache, createBattlegroundLibraryIdentityReader, createBattlegroundLibraryAuxiliaryPublicRouter,
   createBattlegroundLibraryPublicRouter, readBattlegroundLibraryIdentity, withBattlegroundLibraryDeadline as withDeadline } from './modules/battlegroundLibrary/public.js';
 import { renderTextPlurals } from '../shared/hearthstoneCardText.js';
+import { createBattlegroundLibraryListingRouter } from './battlegroundLibraryListing.js';
+import { createLibraryStatsStore } from './battlegroundLibraryOpenStats.js';
+import { createLibraryOpenLayerLoader } from './battlegroundLibraryOpenCard.js';
 export { canonicalBattlegroundCardSlug } from './modules/battlegroundLibrary/public.js';
 
-type JsonRecord = Record<string, unknown>;
-export type BattlegroundLibraryKind = 'minion' | 'spell';
+import type { BattlegroundLibraryKind, PublicBattlegroundLibraryCard } from './battlegroundLibraryCardTypes.js';
 
-export type PublicBattlegroundLibraryCard = {
-  dbfId: number;
-  kind: BattlegroundLibraryKind;
-  typeName: string;
-  nameRu: string;
-  nameEn: string | null;
-  textRu: string | null;
-  textEn: string | null;
-  tavernTier: number | null;
-  tribe: string | null;
-  attack: number | null;
-  health: number | null;
-  mechanics: string[];
-  images: {
-    card: string | null;
-    golden: string | null;
-    art: string | null;
-    framed: string | null;
-    crop: string | null;
-  };
-  artist: string | null;
-  inPool: boolean;
-};
+type JsonRecord = Record<string, unknown>;
+export type { BattlegroundLibraryKind, PublicBattlegroundLibraryCard } from './battlegroundLibraryCardTypes.js';
 
 export type BattlegroundLibrarySeoRouterDependencies = {
   fetchImpl?: typeof fetch;
@@ -185,6 +166,13 @@ function publicMechanics(value: unknown): string[] {
   return mechanics.slice(0, 40);
 }
 
+function publicGolden(value: unknown): PublicBattlegroundLibraryCard['golden'] {
+  const golden = record(value);
+  const attack = finiteNumber(golden.attack);
+  const health = finiteNumber(golden.health);
+  return attack === null && health === null ? null : { attack, health };
+}
+
 export function projectPublicBattlegroundLibraryCard(
   value: unknown,
   expectedKind: BattlegroundLibraryKind,
@@ -214,6 +202,7 @@ export function projectPublicBattlegroundLibraryCard(
     attack: finiteNumber(card.attack),
     health: finiteNumber(card.health),
     mechanics: publicMechanics(card.mechanics),
+    golden: publicGolden(card.golden_variant),
     images: {
       card: compactText(images.card, 1_000),
       golden: compactText(images.golden, 1_000),
@@ -531,10 +520,17 @@ export function createBattlegroundLibrarySeoRouter(
     });
   }
 
-  router.use(createBattlegroundLibraryPublicRouter({ loadCatalog, retryAfterSeconds, onError: dependencies.onError }));
+  const statsStore = createLibraryStatsStore({ fetchImpl, now, timeoutMs: catalogTimeoutMs, onError: dependencies.onError });
+  const auxiliaryBaseUrl = dependencies.auxiliaryCatalogBaseUrl ?? 'https://api.kolodahearthstone.com/api/v1';
+  const loadOpenLayer = createLibraryOpenLayerLoader({ stats: statsStore, catalog: catalogCache });
+  router.use(createBattlegroundLibraryListingRouter({
+    loadBaseCards: kind => catalogCache.load(kind), stats: statsStore, fetchImpl, now,
+    apiBaseUrl: auxiliaryBaseUrl, onError: dependencies.onError, retryAfterSeconds,
+  }));
+  router.use(createBattlegroundLibraryPublicRouter({ loadCatalog, retryAfterSeconds, onError: dependencies.onError, loadOpenLayer }));
   router.use(createBattlegroundLibraryAuxiliaryPublicRouter({
     fetchImpl, retryAfterSeconds, onError: dependencies.onError, cardText: renderTextPlurals,
-    apiBaseUrl: dependencies.auxiliaryCatalogBaseUrl ?? 'https://api.kolodahearthstone.com/api/v1',
+    apiBaseUrl: auxiliaryBaseUrl,
     publicImageUrl: value => sameOriginPublicResourceUrl(value, origin) ?? shareImageUrl('battlegrounds', origin),
   }));
   const handlerFor = (kind: BattlegroundLibraryKind): RequestHandler => async (request, response) => {

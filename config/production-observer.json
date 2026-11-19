@@ -32,14 +32,16 @@
         ]
       },
       {
-        "id": "arena-classes-paywall",
+        "id": "arena-classes-open-ranking",
         "path": "/classes",
-        "assertions": [{ "selector": ".arena-paywall", "minCount": 1 }]
+        "assertions": [{ "selector": ".classes-public-teaser tbody tr", "minCount": 5 }],
+        "forbiddenSelectors": [".arena-paywall"]
       },
       {
         "id": "arena-tier-list-open-pool",
         "path": "/tierlist",
-        "assertions": [{ "selector": ".tierlist-public-pool tbody tr", "minCount": 100 }]
+        "assertions": [{ "selector": ".tierlist-public-pool tbody tr", "minCount": 100 }],
+        "forbiddenSelectors": [".arena-paywall"]
       },
       {
         "id": "arena-legendaries-open-layer",
@@ -54,14 +56,22 @@
         "forbiddenSelectors": [".arena-paywall"]
       },
       {
-        "id": "battlegrounds-library-paywall",
-        "path": "/library",
-        "assertions": [{ "selector": ".arena-paywall", "minCount": 1 }]
+        "id": "battlegrounds-library-open-listing",
+        "path": "/library/minions",
+        "assertions": [{ "selector": ".bg-library-public tbody tr", "minCount": 100 }],
+        "forbiddenSelectors": [".arena-paywall"]
       },
       {
-        "id": "battlegrounds-tier-list-paywall",
+        "id": "battlegrounds-tier-list-open-builds",
         "path": "/battlegrounds/tier-list",
-        "assertions": [{ "selector": ".arena-paywall", "minCount": 1 }]
+        "assertions": [{ "selector": ".bg-builds-public article", "minCount": 10 }],
+        "forbiddenSelectors": [".arena-paywall"]
+      },
+      {
+        "id": "battlegrounds-strategies-open-builds",
+        "path": "/battlegrounds/strategies",
+        "assertions": [{ "selector": ".bg-builds-public article", "minCount": 10 }],
+        "forbiddenSelectors": [".arena-paywall"]
       }
     ],
     "authenticated": [

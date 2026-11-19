@@ -2161,7 +2161,14 @@ function BattlegroundTierCard({ item, list, tier, index, highlighted, onOpen, to
 
 const MemoBattlegroundTierCard = memo(BattlegroundTierCard);
 
-function BattlegroundTierList() {
+/** Whether a protected tier-list answer has anything to show (a list with at least one entry). */
+const hasTierEntries = (payload: any): boolean => Object.values(payload?.tiers ?? {}).some(items => Array.isArray(items) && items.length > 0);
+
+/**
+ * `onDataReady` tells a host that keeps an open list in front of this view that the list this view really
+ * asked for (the one in the address, not a guess) came back ok and not empty; it is never called otherwise.
+ */
+function BattlegroundTierList({ onDataReady }: { onDataReady?: () => void } = {}) {
   const initialUrlState = bgTierListUrlState();
   const [activeList, setActiveList] = useState<BattlegroundTierListKey>(initialUrlState.list);
   const [strategySource, setStrategySource] = useState<BattlegroundStrategySource>(initialUrlState.source);
@@ -2237,6 +2244,9 @@ function BattlegroundTierList() {
   }, [activeList, attempt, strategySource, trinketMmr, trinketTimeRange]);
 
   const activeData = data?.list === activeList ? data : null;
+  useEffect(() => {
+    if (!error && activeData && hasTierEntries(activeData)) onDataReady?.();
+  }, [activeData, error, onDataReady]);
   const tiers = useMemo(() => activeData?.tiers || {}, [activeData?.tiers]);
   const minionFilterOptions = useMemo(() => {
     const raceSet = new Set<string>();

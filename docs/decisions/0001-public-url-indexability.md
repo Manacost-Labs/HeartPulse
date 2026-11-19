@@ -43,7 +43,7 @@ CI сверяет registry навигации и prerender с inventory. Runtime
 ## Последствия
 
 - Runtime sitemap index уже следует выбранной slash-политике: static-сегмент строится из SEO registry, Standard card segment — из проверенного SSR-каталога.
-- Standard cards публикуются с semantic change-only `lastmod`; первый обход дату не выдумывает, а LKG не заменяется неполным или дублированным каталогом.
+- Standard cards публикуются с semantic change-only `lastmod`; у адреса, которого хранилище ещё не видело, дата — день первого наблюдения (E21 S5, #378 заменил прежнее «первый обход дату не выдумывает»), а LKG не заменяется неполным или дублированным каталогом.
 - Динамические Wild/Battlegrounds/hero detail pages нельзя добавлять в sitemap до отдельного сегмента, проверенного HTML snapshot и корректного 404.
 - Любой новый route без owner, index policy, mobile fixture и criticality ломает CI.
 - Решение не меняет entitlement: оно определяет только публичный teaser и поисковое поведение.

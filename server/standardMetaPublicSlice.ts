@@ -1,0 +1,98 @@
+import type { RequestHandler } from 'express';
+import { createStandardMetaEnvelope } from './standardMetaDataset.js';
+import { latestStandardMetaBanPeriod } from '../shared/standardMetaPeriods.js';
+import {
+  readFormat,
+  type StandardMetaCoin,
+  type StandardMetaFormat,
+  type StandardMetaMinGames,
+  type StandardMetaPeriod,
+  type StandardMetaRank,
+} from './standardMetaQuery.js';
+
+/** The general slice every guest sees: the filters the meta page opens with (src/features/standardMetaTeaser.ts). */
+export const PUBLIC_STANDARD_META_SLICE = { rank: 'diamond_legend', coin: 'any_player', minGames: 100 } as const;
+
+type PublicSource = {
+  loadMeta: (format: StandardMetaFormat, rank: StandardMetaRank, period: StandardMetaPeriod,
+    coin: StandardMetaCoin, minGames: StandardMetaMinGames) => Promise<unknown>;
+  onError?: (scope: 'meta', error: unknown) => void;
+};
+
+/** One archetype row of the open slice: the paid columns (turns, duration, climb speed) are not copied. */
+export type PublicStandardMetaItem = {
+  id: string; slug: string; archetype: string; archetypeLabel: string; translated: boolean;
+  classKey: string | null; winrate: number | null; popularity: number | null; games: number | null;
+  turns: null; durationMinutes: null; climbingSpeed: null;
+};
+
+/**
+ * Field-by-field allowlist of the open meta slice. Anything a source adds later
+ * stays out of the guest's answer until it is named here.
+ */
+export function projectPublicStandardMeta(data: ReturnType<typeof createStandardMetaEnvelope>['data'], totalGames: number | null) {
+  return {
+    format: data.format,
+    formatLabel: data.formatLabel,
+    rank: data.rank,
+    rankLabel: data.rankLabel,
+    period: data.period,
+    availablePeriods: [data.period],
+    currentPeriod: data.currentPeriod === data.period ? data.period : null,
+    currentPatchPeriod: data.currentPatchPeriod === data.period ? data.period : null,
+    coin: data.coin,
+    minGames: data.minGames,
+    source: data.source,
+    sourceUrl: data.sourceUrl,
+    translationSource: data.translationSource,
+    updatedAt: data.updatedAt,
+    ...(totalGames === null ? {} : { totalGames }),
+    items: data.items.map((item): PublicStandardMetaItem => ({
+      id: item.id,
+      slug: item.slug,
+      archetype: item.archetype,
+      archetypeLabel: item.archetypeLabel,
+      translated: item.translated,
+      classKey: item.classKey,
+      winrate: item.winrate,
+      popularity: item.popularity,
+      games: item.games,
+      turns: null,
+      durationMinutes: null,
+      climbingSpeed: null,
+    })),
+  };
+}
+
+/**
+ * The open general slice of a format: archetype, class, winrate, popularity and
+ * games of every row. The server picks rank, coin, floor and period itself (the
+ * page's defaults); the list of other periods is not sent. One answer for every
+ * viewer, so it may sit in a shared cache.
+ */
+export function createPublicStandardMetaHandler(dependencies: PublicSource): RequestHandler {
+  return async (request, response) => {
+    const format = readFormat(request.query.format);
+    if (!format) return response.status(400).json({ error: 'Неизвестный формат' });
+    const { rank, coin, minGames } = PUBLIC_STANDARD_META_SLICE;
+    try {
+      const first = createStandardMetaEnvelope(await dependencies.loadMeta(format, rank, 'past_day', coin, minGames));
+      const { availablePeriods, currentPeriod, currentPatchPeriod } = first.data;
+      // The period the page opens with: current patch, then the Bans window, then the current window.
+      const period = [currentPatchPeriod, latestStandardMetaBanPeriod(availablePeriods, currentPeriod), currentPeriod]
+        .find((candidate): candidate is StandardMetaPeriod => Boolean(candidate && availablePeriods.includes(candidate)))
+        ?? first.data.period;
+      const envelope = period === first.data.period
+        ? first
+        : createStandardMetaEnvelope(await dependencies.loadMeta(format, rank, period, coin, minGames));
+      response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=900');
+      response.set('X-Content-Type-Options', 'nosniff');
+      return response.json(projectPublicStandardMeta(envelope.data, envelope.quality.sampleSize ?? null));
+    } catch (error) {
+      dependencies.onError?.('meta', error);
+      // A degraded answer must not sit in a shared cache for long.
+      response.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=60');
+      return response.status(502).json({ error: 'Данные меты временно недоступны' });
+    }
+  };
+}

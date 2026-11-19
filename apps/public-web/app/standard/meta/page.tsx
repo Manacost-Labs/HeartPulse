@@ -5,7 +5,6 @@ import { loadPublicStandardMetaTeaser } from '@/apps/public-web/lib/publicStanda
 import { standardMetaSeoValues } from '@/apps/public-web/lib/seoDataValues';
 import { seoStaticPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
 import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
-import { StandardMetaDataNote } from '@/apps/public-web/ui/StandardMetaDataNote';
 
 // Prerendered and regenerated every 5 minutes (PRERENDERED_DATA_REVALIDATE_SECONDS),
 // so a link prefetch brings the whole page and opening it needs no server
@@ -20,8 +19,6 @@ export default async function Page() {
   const teaser = await loadPublicStandardMetaTeaser();
   return <>
     <SeoStructuredData path="/standard/meta" data={teaser?.data} />
-    <StandardMetaPageClient initialTeaser={teaser}>
-      <StandardMetaDataNote teaser={teaser} />
-    </StandardMetaPageClient>
+    <StandardMetaPageClient initialTeaser={teaser} />
   </>;
 }

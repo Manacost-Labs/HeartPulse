@@ -10,6 +10,8 @@ import { createWinrateRouter } from '../server/winrateRoutes.ts';
 import { buildClassesFixture, closedValues, OPEN_ROWS } from './helpers/classesTeaserFixture.ts';
 // The built /heroes/ page (E21 OL2a): hosted here until its own file can be added to tests/test-suites.json.
 import './next-heroes-ranking.check.mjs';
+// The built tier list and strategies pages (E21 R7): hosted here for the same reason.
+import './next-builds-open.check.mjs';
 
 // The built /classes/ page against an Express that serves the real open-slice
 // projection: a guest and a robot get the same HTML with the order of the
@@ -86,14 +88,17 @@ test('the guest HTML of /classes/ carries the open order of the classes and noth
     const start = html.indexOf('class="classes-public-teaser"');
     const slice = html.slice(start, html.indexOf('</section>', start));
     assert.ok(slice.length > 100, 'the open slice is in the server HTML');
-    const rows = [...slice.matchAll(/<tr><td>(\d+)<\/td><th scope="row">([^<]+)<\/th><td>([^<]+)<\/td><td>([^<]+)<\/td><\/tr>/g)]
+    const rows = [...slice.matchAll(/<tr><td>(\d+)<\/td><th scope="row">([^<]+)<\/th><td>([^<]+)<\/td><td>([^<]+)<\/td><td><\/td><\/tr>/g)]
       .map(match => ({ place: Number(match[1]), name: match[2], winrate: match[3], sample: match[4].replace(/\s/g, '') }));
     assert.deepEqual(rows, OPEN_ROWS.map(row => ({
       place: row.place, name: row.name, winrate: `${row.winrate.toFixed(1).replace('.', ',')}%`, sample: String(row.sample),
     })), 'all eleven classes in order, with the winrate to one decimal and the sample');
-    assert.match(slice, /Данные на <time dateTime="2026-11-15T17:00:03\.639Z">15 ноября 2026, 20:00 МСК<\/time> · источник HSReplay\./, 'date and source');
-    assert.ok(html.indexOf('<h1') < start && start < html.indexOf('class="paywalled-classes"'), 'the table stands after the H1 and before the closed part');
-    assert.match(html, /class="paywalled-classes"/, 'the closed part has the class the JSON-LD names');
+    assert.match(slice, /Данные на <time dateTime="2026-11-15T17:00:03\.639Z">15 ноября 2026, 20:00 МСК<\/time> · источник HSReplay<\/p>/, 'date and source, and no explanatory sentence');
+    assert.ok(html.indexOf('<h1') < start, 'the table stands right after the H1: it is the page content, not a block below it');
+    assert.doesNotMatch(html, /arena-paywall/, 'no subscription gate covers the open ranking');
+    // The closed part is the last column: its column and its lock carry the class the JSON-LD names, the open values do not.
+    assert.match(slice, /<col class="paywalled-classes"\/>/, 'the closed column has the class the JSON-LD names');
+    assert.match(slice, /<button type="button" class="classes-public-teaser__lock paywalled-classes"/, 'the lock carries it too');
 
     // Nothing closed in the HTML, in the RSC payload and in the JSON-LD: each is checked on its own.
     assert.match(html, /self\.__next_f/, 'the page carries an RSC payload');

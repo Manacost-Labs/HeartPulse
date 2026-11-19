@@ -715,8 +715,10 @@ function assertLayout(path, layout) {
     const routePath = path.split(' ')[0].replace(/\/$/, '');
     // /legendaries keeps a short banner on a phone (min-height 96px in LegendariesOpenLayer.css, ~98px with
     // its title) so the name, composition and winrate of the first group fit a 390×844 first screen.
+    // /tierlist and /classes do the same (TierListPublicPool.css and ClassesPublicTeaser.css, #410): the open data is the first screen.
     const expectedHeight = routePath === '/faq' ? (layout.mobile ? 180 : 210)
-      : routePath === '/legendaries' && layout.mobile ? 98 : (layout.mobile ? 360 : 320);
+      : (routePath === '/legendaries' || routePath === '/tierlist') && layout.mobile ? 98
+        : routePath === '/classes' && layout.mobile ? 96 : (layout.mobile ? 360 : 320);
     if (Math.abs(layout.bannerHeight - expectedHeight) > 1) {
       failures.push(`${path}: shared banner height changed (${layout.bannerHeight}px; expected ${expectedHeight}px)`);
     }
@@ -4389,7 +4391,7 @@ for (const [device, viewport] of [
   await mockApplicationApi(page, { authenticated: false });
   try {
     await page.goto(`${BASE}/library`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForSelector('.arena-app-battlegrounds .arena-paywall', { visible: true, timeout: 20_000 });
+    await page.waitForSelector('.arena-app-battlegrounds .bg-library-locks', { visible: true, timeout: 20_000 });
     const surface = await page.evaluate(() => {
       const app = document.querySelector('.arena-app-battlegrounds');
       const workspace = document.querySelector('.arena-workspace');

@@ -2,6 +2,8 @@ import { Router, type Request, type RequestHandler, type Response } from 'expres
 import { createBattlegroundHeroRankingRouter } from './battlegroundHeroRankingRoutes.js';
 import { createBattlegroundHeroCatalogLoader } from './battlegroundHeroRankingSource.js';
 import type { PublicHeroRankingMode } from './battlegroundHeroRankingProjection.js';
+import { createBattlegroundBuildsLoader, createBattlegroundBuildsRouter } from './battlegroundBuildsPublicRoutes.js';
+import type { PublicBuildList } from './battlegroundBuildsPublicProjection.js';
 
 type PayloadEnricher = (payload: any) => any;
 type ProxyHandler = (request: Request, response: Response, upstreamPath: string, enrich?: PayloadEnricher) => unknown;
@@ -14,6 +16,10 @@ export type BattlegroundProxyRouterDependencies = {
   enrichHeroPayload: PayloadEnricher;
   /** Source of the open hero ranking (the base rating range); defaults to the loopback Battlegrounds service. */
   loadHeroRankingCatalog?: (mode: PublicHeroRankingMode) => Promise<unknown>;
+  /** Source of the open builds (the list's own base slice); defaults to the loopback Battlegrounds service. */
+  loadBuildsSource?: (list: PublicBuildList) => Promise<unknown>;
+  /** Folder of the builds' last good copy; `null` keeps none (tests). */
+  buildsFallbackDir?: string | null;
 };
 
 export function compactBattlegroundHeroCompositionsPayload(payload: any): any {
@@ -47,6 +53,11 @@ export function createBattlegroundProxyRouter(dependencies: BattlegroundProxyRou
   router.use(createBattlegroundHeroRankingRouter({
     loadCatalog: dependencies.loadHeroRankingCatalog ?? createBattlegroundHeroCatalogLoader(),
     onError: error => console.error('[bg heroes public] upstream failed:', (error as Error)?.message ?? error),
+  }));
+  router.use(createBattlegroundBuildsRouter({
+    loadSource: dependencies.loadBuildsSource ?? createBattlegroundBuildsLoader(),
+    fallbackDir: dependencies.buildsFallbackDir,
+    onError: error => console.error('[bg builds public] upstream failed:', (error as Error)?.message ?? error),
   }));
   const legacyRoutes: Array<[string, string]> = [
     ['/battlegrounds-library', '/api/battlegrounds-library'],

@@ -81,6 +81,17 @@ export function projectStandardCardSitemapCatalog(cards: unknown[], originValue?
   return projectConstructedCardSitemapCatalog(cards, 'standard', originValue);
 }
 
+/**
+ * What a card's `lastmod` day follows: the projection as it was before the open layer of the card page. The golden
+ * version is a newer field of the projection; counting it would date every card of the sitemap anew on the day it was
+ * introduced.
+ */
+function sitemapCardIdentity(card: NonNullable<ReturnType<typeof projectPublicBattlegroundLibraryCard>>): Record<string, unknown> {
+  const identity: Record<string, unknown> = { ...card };
+  delete identity.golden;
+  return identity;
+}
+
 export function projectBattlegroundLibrarySitemapCatalog(
   cards: unknown[],
   kind: BattlegroundLibraryKind,
@@ -98,7 +109,7 @@ export function projectBattlegroundLibrarySitemapCatalog(
         `/library/${kind === 'minion' ? 'minions' : 'spells'}/${canonicalBattlegroundCardSlug(card.nameRu)}-${card.dbfId}/`,
         origin,
       ).href,
-      semanticHash: createHash('sha256').update(JSON.stringify(card)).digest('hex'),
+      semanticHash: createHash('sha256').update(JSON.stringify(sitemapCardIdentity(card))).digest('hex'),
     };
   });
   const keys = new Set<string>();

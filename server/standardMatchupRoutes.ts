@@ -1,12 +1,14 @@
 import { Router, type RequestHandler } from 'express';
 import { sendDatasetJsonCached } from './datasetCacheResponse.js';
 import { inferStandardMetaClass, type StandardMetaClassKey } from './standardMetaClasses.js';
+import { mountPublicStandardMatchups, type PublicStandardMatchupsCacheEntry } from './standardMatchupPublicSlice.js';
 import {
   parseMatchupNumber, parseStandardMatchupSlice, standardMatchupSliceKey,
   type HsguruMatchupTransformOptions, type StandardMatchupFormat, type StandardMatchupSlice,
 } from './standardMatchupSlices.js';
 
 export * from './standardMatchupSlices.js';
+export { PUBLIC_STANDARD_MATCHUP_SLICE, projectStandardMatchupsPublic } from './standardMatchupPublicSlice.js';
 
 type CacheEntry = { data: any; etag: string; expiresAt: number };
 type RedisEntry = { data: any; etag: string };
@@ -14,6 +16,8 @@ type RedisEntry = { data: any; etag: string };
 export type StandardMatchupRouterDependencies = {
   accessGuard: RequestHandler;
   memoryCache: Map<string, CacheEntry>;
+  /** Own store of the open projection (`public:<slice>`), apart from the subscribers' cache. */
+  publicCache?: Map<string, PublicStandardMatchupsCacheEntry>;
   redisKey: (slice: StandardMatchupSlice) => string;
   redisGet: (key: string) => Promise<RedisEntry | null>;
   redisSet: (key: string, data: any, etag: string, ttlSeconds: number) => Promise<unknown> | unknown;
@@ -139,6 +143,8 @@ export function createStandardMatchupRouter(dependencies: StandardMatchupRouterD
   const router = Router();
   const cacheHeader = dependencies.cacheHeader ?? 'public, max-age=3600, stale-while-revalidate=600';
   const now = dependencies.now ?? Date.now;
+
+  mountPublicStandardMatchups(router, dependencies);
 
   router.get('/standard/matchups', dependencies.accessGuard, async (request, response) => {
     const slice = parseStandardMatchupSlice(request.query as Record<string, unknown>);

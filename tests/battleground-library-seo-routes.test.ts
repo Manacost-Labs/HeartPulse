@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import express from 'express';
 import { createBattlegroundLibrarySeoRouter } from '../server/battlegroundLibrarySeoRoutes.js';
+import './battleground-library-open.check';
 
 const INDEX_ROBOTS = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
 const privateSentinels = [
@@ -101,11 +102,23 @@ const frontendAssets = [
   '<script src="https://evil.example.test/leak.js"></script>',
 ].join('\n');
 
+// The base statistics slice of hs-data-api: its average place and popularity are open (owner decision of E21), the
+// impact and the combat win rate stay closed and carry their own marks.
+const CLOSED_STATS = ['QA_BG_CLOSED_IMPACT_77_77', 'QA_BG_CLOSED_WINRATE_66_66'];
+const statsPayload = {
+  latest_run: { mmr_percentile: 'TOP_50_PERCENT', completed_at: '2026-11-19T02:45:13Z' },
+  minions: [{ dbf_id: 98582, avg_placement_with: 3.9, avg_placement_without: 4.2, popularity: 7.5, games_with_minion: 1200,
+    impact: CLOSED_STATS[0], combat_winrate: CLOSED_STATS[1] }],
+};
+
 type FetchCall = { url: string; init?: RequestInit };
 const calls: FetchCall[] = [];
 const catalogFetch: typeof fetch = async (url, init) => {
   calls.push({ url: String(url), init });
   const parsed = new URL(String(url));
+  if (parsed.pathname === '/api/bg/library/minion-stats') {
+    return new Response(JSON.stringify(statsPayload), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
   const key = `${parsed.searchParams.get('card_type')}:${parsed.searchParams.get('in_pool')}`;
   const payload = catalogs.get(key);
   return new Response(JSON.stringify(payload ?? { data: [] }), {
@@ -118,13 +131,15 @@ function occurrences(value: string, pattern: RegExp): number {
   return [...value.matchAll(pattern)].length;
 }
 
-function assertNoPrivateData(html: string, label: string): void {
+function assertNoPrivateData(html: string, label: string, openStats = false): void {
   assert.doesNotMatch(
     html,
-    /\b(?:impact|winrate|popularity|games|avg_placement|combat_winrate|total_played|statsAccess|raw_stats)\b/i,
+    openStats
+      ? /\b(?:impact|winrate|games|avg_placement|combat_winrate|total_played|statsAccess|raw_stats)\b/i
+      : /\b(?:impact|winrate|popularity|games|avg_placement|combat_winrate|total_played|statsAccess|raw_stats)\b/i,
     `${label} must not expose private or statistical field names`,
   );
-  for (const sentinel of privateSentinels) {
+  for (const sentinel of [...privateSentinels, ...CLOSED_STATS]) {
     assert.equal(html.includes(sentinel), false, `${label} leaked ${sentinel}`);
   }
 }
@@ -169,8 +184,12 @@ try {
   assert.equal(publicCard.status, 200);
   assert.match(publicCard.headers.get('cache-control') || '', /no-store/);
   const publicJson = await publicCard.text();
-  assertNoPrivateData(publicJson, 'public card projection');
+  assertNoPrivateData(publicJson, 'public card projection', true);
   const projection = JSON.parse(publicJson);
+  // The open layer: the base statistics of the minion (by name) and related cards by tags; nothing closed with them.
+  assert.deepEqual(projection.stats, { avgPlacementWith: 3.9, avgPlacementWithout: 4.2, popularity: 7.5, gamesWith: 1200,
+    updatedAt: '2026-11-19T02:45:13.000Z' });
+  assert.deepEqual(projection.related, [], 'the only mechanical minion is the card itself');
   assert.equal(projection.card.dbfId, 98582);
   assert.equal(projection.card.kind, 'minion');
   assert.equal(projection.canonicalPath, '/library/minions/баюбот-alert-x-98582/');
@@ -243,7 +262,8 @@ try {
     const headers = new Headers(call.init?.headers);
     assert.equal(headers.get('cookie'), null);
     assert.equal(headers.get('authorization'), null);
-    assert.equal(headers.get('user-agent'), 'HearthPulse/BattlegroundLibrarySEO');
+    assert.equal(headers.get('user-agent'), call.url.includes('/minion-stats')
+      ? 'HearthPulse/BattlegroundLibraryStats' : 'HearthPulse/BattlegroundLibrarySEO');
   }
 
   for (const headers of [
@@ -422,6 +442,7 @@ const identityApp = await startApp(async url => {
     singleReads++;
     return new Response(JSON.stringify(minion));
   }
+  if (String(url).endsWith('/minion-stats')) return new Response(JSON.stringify(statsPayload));
   bulkReads++;
   return new Promise<Response>(() => {});
 }, { timeout: 40 });
@@ -429,10 +450,11 @@ try {
   for (const path of ['/api/bg/library/public/minion/98582', '/library/minions/баюбот-alert-x-98582/']) {
     const result = await fetch(`${identityApp.origin}${path}`);
     assert.equal(result.status, 200, 'one known card must not wait for every active/archive catalog page');
-    assertNoPrivateData(await result.text(), 'single-card projection');
+    assertNoPrivateData(await result.text(), 'single-card projection', path.startsWith('/api/'));
   }
   assert.equal(singleReads, 1, 'public and legacy detail share the validated identity snapshot');
-  assert.equal(bulkReads, 0);
+  // The bulk read never answers here: the related cards are awaited only up to a deadline, then the card goes without them.
+  assert.ok(bulkReads <= 2, 'at most the pair of reads for the related cards');
 } finally { await identityApp.close(); }
 
 console.log('battleground library SEO route tests passed');

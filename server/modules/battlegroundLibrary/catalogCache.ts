@@ -29,6 +29,11 @@ export function createBattlegroundLibraryCatalogCache<Card extends CardIdentity>
     jobs.set(kind, promise); return promise;
   }
   return {
+    /** The held catalog of a kind (even a stale one), without any read: for navigation that must not wait for the source. */
+    peek(kind: Kind): Card[] | undefined {
+      const cached = entries.get(kind);
+      return cached && cached.staleUntil > now() ? cached.cards : undefined;
+    },
     async load(kind: Kind, identity?: BattlegroundLibraryLookup): Promise<Card[]> {
       const cached = entries.get(kind), time = now();
       if (cached && cached.freshUntil > time) return cached.cards;

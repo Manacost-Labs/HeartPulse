@@ -35,6 +35,12 @@
     "tests/next-tierlist-public.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
+    "tests/next-bg-library-listings-browser.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
+    "tests/next-paywall-access-check-browser.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
     "tests/next-classes-teaser.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
@@ -42,6 +48,12 @@
       "NODE_OPTIONS": "--import=tsx"
     },
     "tests/next-legendaries-open-layer-browser.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
+    "tests/next-standard-matchups-open-layer.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
+    "tests/next-standard-matchups-open-browser.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
     "tests/hsreplay-tierlist.test.ts": {
@@ -224,6 +236,7 @@
         "tests/page-tour-registry.test.ts",
         "tests/page-tour.test.ts",
         "tests/build-static-root.test.mjs",
+        "tests/public-seo-fingerprints.test.mjs",
         "tests/process-lifecycle.test.ts",
         "tests/production-observer.test.mjs",
         "tests/public-api-arena-statistics.test.ts",
@@ -401,6 +414,8 @@
         "tests/scraper-browser-runtime.test.ts",
         "tests/sqlite-connection.test.ts",
         "tests/standard-matchup-routes.test.ts",
+        "tests/standard-matchups-public.test.ts",
+        "tests/standard-matchups-public-projection.test.ts",
         "tests/card-assemble.test.ts",
         "tests/card-choices.test.ts",
         "tests/standard-matchups-client.test.ts",
@@ -555,8 +570,12 @@
         "tests/next-first-paint-data-browser.test.mjs",
         "tests/next-tierlist-public.test.mjs",
         "tests/next-classes-teaser.test.mjs",
+        "tests/next-arena-open-first-screen-browser.test.mjs",
         "tests/next-legendaries-open-layer.test.mjs",
+        "tests/next-standard-matchups-open-layer.test.mjs",
+        "tests/next-standard-matchups-open-browser.test.mjs",
         "tests/next-legendaries-open-layer-browser.test.mjs",
+        "tests/next-standard-meta-open-browser.test.mjs",
         "tests/next-admin-browser.test.mjs",
         "tests/admin-console-layout-browser.test.mjs",
         "tests/admin-subscription-analytics-browser.test.mjs",

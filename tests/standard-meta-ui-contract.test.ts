@@ -36,8 +36,8 @@ assert.deepEqual(STANDARD_META_COINS.map(option => [option.id, option.label]),
   [['any_player', 'Любая'], ['going_first', 'Ходит первым'], ['on_coin', 'С монеткой']]);
 // The coin filter is part of the request and of its identity.
 assert.match(metaSource, /const \[coin, setCoin\] = useState<MetaCoin>\(TEASER_SEED_FILTERS\.coin\)/);
-assert.match(metaSource, /metaRequestKey\(format, rank, period, coin, minGames, metaRevision, hasFullAccess\)/);
-assert.match(metaSource, /Очерёдность хода/);
+assert.match(metaSource, /metaRequestKey\(format, rank, hasFullAccess \? period : null, coin, minGames, metaRevision, hasFullAccess\)/);
+assert.match(readFileSync(new URL('../src/features/StandardMetaGuestFilters.tsx', import.meta.url), 'utf8'), /Очерёдность хода/);
 assert.deepEqual(
   orderStandardMetaPeriods(
     ['past_3_hours', 'past_6_hours', 'past_day', 'past_3_days', 'past_week', 'past_2_weeks', 'past_30_days',
@@ -89,7 +89,7 @@ assert.equal(latestStandardMetaBanPeriod(['past_day', 'black_empire_ban'], null)
 assert.equal(resolveStandardMetaDefaultPeriod(['past_day', 'patch_36.6.3'], null, 'patch_36.6.3'), 'patch_36.6.3');
 assert.equal(latestStandardMetaBanPeriod(['past_day', 'unknown_ban'], null), null);
 // The selector shows the default before the first answer sets it, so the label never flips.
-assert.match(metaSource, /const selectedPeriod = period\s*\?\? resolveStandardMetaDefaultPeriod\(/);
+assert.match(metaSource, /const selectedPeriod = \(hasFullAccess \? period : data\.period\)\s*\?\? resolveStandardMetaDefaultPeriod\(/);
 
 // The page opens on Diamond–Legend; a server-rendered teaser also fixes the
 // period it was read for, otherwise the page resolves the current one itself.
@@ -111,7 +111,7 @@ assert.match(readFileSync(new URL('../apps/public-web/ui/StandardMetaPageClient.
 // request in the browser); one not yet sent stays unsent.
 assert.match(metaSource, /controller\.signal\.aborted \? Promise\.reject\(new DOMException\('', 'AbortError'\)\)[\s\S]*?signal: hasFullAccess \? controller\.signal : undefined,/);
 // The guest teaser's prompt waits for the account check, so a subscriber never sees it.
-assert.match(metaSource, /\{!hasFullAccess && !accessPending \? \(\s*<PaywallGate/);
+assert.match(metaSource, /\{!hasFullAccess && !accessPending \? \(\s*<div id="standard-meta-paywall">\s*<PaywallGate/);
 assert.match(metaSource, /option\.asset/);
 assert.match(metaSource, /\/card-format-standard\.webp/);
 assert.match(metaSource, /\/assets\/card-format-wild-128\.webp/);

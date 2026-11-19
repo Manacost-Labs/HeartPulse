@@ -20,15 +20,17 @@ will index every submitted URL or rank it for a particular query.
   entity pages across formats.
 - Battlegrounds minion and spell segments include the active pool and archive
   because both states have visible, entity-specific reference content.
-- The hero segment contains the de-duplicated union of solo and Duos heroes.
+- The hero segment contains the de-duplicated union of solo and Duos heroes that
+  pass `isIndexableBattlegroundHero` (see «Порог индексации»).
 - Search, filter, sort, authentication and other query-state URLs never enter
   an entity sitemap.
 - A missing, malformed or materially collapsed upstream catalog never replaces
   the last known good sitemap snapshot.
 - `lastmod` changes only when the public semantic projection of an entity
-  changes. The first observation does not invent a historical modification
-  date. The one exception is a segment whose source states the date of its
-  data (archetypes, below): that day is the date of a first observation too.
+  changes; every address has one (rules: `docs/specs/seo-foundation.md`,
+  «`lastmod` semantics»). A first observation takes the date its source
+  states (archetypes: the catalog's `updatedAt`; guides: the publication day),
+  else the day of first sight.
 - The archetypes segment lists only Standard archetype pages that pass
   `isIndexableArchetype` (see «Archetype pages»); Wild, the legacy
   `/standard/meta/…` family and archetypes below the threshold never enter it.
@@ -121,9 +123,9 @@ absent-card probe only while the card API reports `X-Data-Cache: LKG`.
   the page's format it also tells a name shared with another row apart: the
   title becomes «Чистый Паладин (Pure Paladin) — колода Hearthstone, …» (the
   English name; the slug when that is the name too). See «Archetype pages».
-- `/standard/meta` shows the same date, slice and source as a server-rendered
-  line below the meta page (`apps/public-web/ui/StandardMetaDataNote.tsx`,
-  passed to the client page as `children`).
+- `/standard/meta` has no visible line with the date, slice and source under
+  the table: the page ends with the data. The same date and source stay in the
+  meta description (above) and in the JSON-LD (`dateModified`, `isBasedOn`).
 - Contract tests live in the existing entity sitemap and SEO route test files.
 
 No new dependency, database migration or public JSON API is introduced.
@@ -362,6 +364,49 @@ SEO cost is 250–400 words fewer on three indexed pages.
 - Tests: `tests/next-seo-page-metadata.test.mjs` (titles, descriptions, no
   explanation block, no FAQ markup, paywall present, dataset claims) and
   `tests/seo-structured-data.test.ts` (dataset).
+
+## Порог индексации (E21 S5)
+
+Одно правило на сайте: страница либо `index` + в карте сайта + canonical на
+себя, либо `noindex` + вне карты. Порог записан в одном модуле,
+`shared/seoIndexThreshold.ts`; meta robots страницы и проекция карты сайта
+импортируют его предикаты, второй копии условия нет.
+
+- Содержание: не меньше `INDEX_MIN_OWN_WORDS` (150) собственных слов или
+  `INDEX_MIN_OWN_FACTS` (10) собственных фактов, без меню и футера
+  (`meetsContentThreshold`).
+- Выборка по шаблону: `INDEX_MIN_SAMPLE_GAMES`, единственный источник
+  числа. Для архетипов это 1000 игр;
+  `constructedArchetypeIndexing.ts` читает его (прежнее имя
+  `INDEXABLE_ARCHETYPE_MIN_GAMES` — то же значение) и решает через
+  `meetsSampleThreshold`, так что страница и проекция карты сайта идут по
+  одному правилу.
+- Видимость: `indexThresholdNotice({ games, minGames })` возвращает строку
+  «Мало данных: N игр из нужных M, страница не индексируется до набора
+  выборки» либо `null`. Её печатает строка свежести данных страницы.
+- Контракт-тест `tests/route-inventory.test.ts`: у каждого маршрута инвентаря
+  `index` равносильно `sitemap`; у `index` canonical на себя и статус 200; ни один
+  сегмент карты не содержит шаблон с `noindex`; архетип ниже порога
+  не попадает в сегмент архетипов (проекция отклоняет его).
+- Герои Полей сражений: `isIndexableBattlegroundHero`
+  (`shared/battlegroundHeroIndexing.ts`) сначала требует оба режима (Соло и
+  Дуо), затем считает имя героя, название силы героя и открытые цифры
+  страницы (тир, среднее место, топ-4, выбор, выборка, сборка, ключевые
+  существа, место в рейтинге) и сравнивает с `INDEX_MIN_OWN_FACTS`. Её читают
+  meta robots страницы `/heroes/<id>/` и сегмент героев карты сайта; герой
+  оценённый в одном режиме (как бы полно) — `noindex, follow`, без JSON-LD и
+  вне карты.
+- Карточки библиотеки Полей сражений: `isIndexableBattlegroundLibraryCard`
+  (`shared/battlegroundLibraryIndexing.ts`) считает название, тип, уровень
+  таверны, племя, атаку, здоровье, текст, каждую механику, атаку и здоровье
+  золотой версии и четыре цифры открытой статистики (среднее место с картой и
+  без неё, популярность, игры) и сравнивает с `INDEX_MIN_OWN_FACTS`. Её читают
+  meta robots карточки `/library/<kind>/<slug>-<id>/` и сегмент существ карты
+  сайта (на тех же данных проекции и статистики). Страница ниже порога —
+  `noindex, follow`, без JSON-LD и вне карты. Сегмента заклинаний нет: страница
+  заклинания несёт 4–6 фактов, ни одна не набирает десять (пустой сегмент
+  недопустим, загрузчик не регистрируется). Подробности:
+  `docs/specs/battleground-library-open-layer.md`.
 
 ## Documentation impact
 

@@ -4,6 +4,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import http from 'node:http';
 import { join } from 'node:path';
 import test, { after, before, describe, it } from 'node:test';
+import { setTimeout as delay } from 'node:timers/promises';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { CONTROL_WARRIOR_DECK_CODE, metaExternalRoutes } from './helpers/browserMetaFixture.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
@@ -132,8 +133,10 @@ test('registry pages render canonical, robots, share metadata and JSON-LD from t
       assert.equal(response.status, 200, path);
       const types = nodes.map(node => node['@type']);
       const html = await response.text();
-      // A listing may add its ItemList; every other node is the registry's, behind the one organization.
-      assert.deepEqual(jsonLdGraph(html)?.['@graph'].map(node => node['@type']).filter(type => type !== 'ItemList'),
+      // A listing may add its ItemList, and a library listing the Dataset of its open statistics; every other node is the
+      // registry's, behind the one organization.
+      assert.deepEqual(jsonLdGraph(html)?.['@graph'].map(node => node['@type'])
+        .filter(type => type !== 'ItemList' && !(type === 'Dataset' && path.startsWith('/library'))),
         ['Organization', ...types], `${path} JSON-LD`);
     }
 
@@ -330,8 +333,10 @@ test('every SEO registry page takes its title, description and share metadata fr
         continue;
       }
       const canonical = `https://hearthpulse.net${page.url}`;
-      assertOnce(html, /<meta name="robots" content="([^"]*)"/g,
-        'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1', `${page.path} robots`);
+      // The strategies page is rendered per request: with no list from Express (as in CI) it is not indexed, with one it is.
+      const indexable = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
+      const stranded = page.path === '/battlegrounds/strategies' && /<meta name="robots" content="noindex, follow"/.test(html);
+      assertOnce(html, /<meta name="robots" content="([^"]*)"/g, stranded ? 'noindex, follow' : indexable, `${page.path} robots`);
       assertOnce(html, /<link rel="canonical" href="([^"]*)"/g, canonical, `${page.path} canonical`);
       assertOnce(html, /<meta property="og:title" content="([^"]*)"/g, page.title, `${page.path} og:title`);
       assertOnce(html, /<meta property="og:description" content="([^"]*)"/g, page.description, `${page.path} og:description`);
@@ -430,7 +435,7 @@ const metaTeaser = (updatedAt, rows) => ({
   availablePeriods: ['past_day', 'past_week', 'patch_36.6.3'], currentPeriod: 'patch_36.6.3', currentPatchPeriod: 'patch_36.6.3',
   coin: 'any_player', minGames: 100, source: 'hsguru', sourceUrl: 'https://www.hsguru.com/meta', translationSource: '', updatedAt,
   items: rows.map(([label, winrate, games], index) => ({ id: `m${index}`, slug: `m${index}`, archetype: label, archetypeLabel: label,
-    translated: true, classKey: 'warlock', winrate, popularity: 20.4, games, turns: 8, durationMinutes: 7, climbingSpeed: 1 })),
+    translated: true, classKey: 'warlock', winrate, popularity: 20.4, games, turns: null, durationMinutes: null, climbingSpeed: null })),
 });
 const archetypeItem = (slug, label, format = 'standard') => ({
   slug, format, classKey: 'warlock', archetype: label, archetypeLabel: label, translated: true, games: 14800, winrate: 61.24,
@@ -446,7 +451,7 @@ function startFakeExpress(state) {
     const detail = url.pathname.match(/^\/api\/constructed-archetypes\/teaser\/(standard|wild)\/([a-z0-9-]+)$/);
     let payload = null;
     if (url.pathname === '/api/auth/me') payload = { user: null };
-    else if (url.pathname === '/api/standard-meta/teaser') payload = state.meta;
+    else if (url.pathname === '/api/standard-meta/public') payload = state.meta;
     else if (url.pathname === '/api/constructed-archetypes/teaser') {
       const format = url.searchParams.get('format') ?? 'standard';
       payload = state.catalog && {
@@ -474,12 +479,20 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
   const next = await startNextServer({ legacyOrigin: `http://127.0.0.1:${express.address().port}` });
   const page = async path => {
     // /standard/meta/ is prerendered: mark it stale so the next request regenerates it from the fixture.
-    if (path === '/standard/meta/') {
+    let origin = next.origin;
+    let fresh = null;
+    if (path === '/standard/meta/' && state.meta === null) {
+      // The revalidate route leaves a page whose source is down as it is (the earlier copy is better than none), so the
+      // build's copy without data comes from a process that has not regenerated anything.
+      fresh = await startNextServer({ legacyOrigin: `http://127.0.0.1:${express.address().port}` });
+      origin = fresh.origin;
+    } else if (path === '/standard/meta/') {
       assert.equal((await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).status, 200);
     }
-    const response = await fetch(`${next.origin}${path}`);
+    const response = await fetch(`${origin}${path}`);
     assert.equal(response.status, 200, path);
     const html = await response.text();
+    if (fresh) await fresh.close();
     const title = decoded(html.match(/<title>([^<]*)<\/title>/)?.[1] ?? '');
     const description = decoded(html.match(/<meta name="description" content="([^"]*)"/)?.[1] ?? '');
     assertOnce(html, /<meta property="og:title" content="([^"]*)"/g, title, `${path} og:title`);
@@ -503,12 +516,10 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     assert.equal(meta.description.split('(хс)').length - 1, 1, 'one «(хс)»');
     assert.doesNotMatch(meta.title, /HSGuru/);
     assert.doesNotMatch(meta.description, /Н'зот|258/, 'a row below 1000 games is not in the snippet');
-    // The same HTML shows the same date, the slice and the source without JavaScript.
-    assert.ok(meta.text.includes(`Данные на ${date}, `), 'the visible line carries the date of the description');
-    assert.match(meta.text, / МСК · Стандарт · Алмаз — Легенда · период «Патч 36\.6\.3» · от 100 игр · источник HSGuru\./);
-    assert.ok(meta.text.includes('срез бесплатного предпросмотра'), 'the line says it is the free preview');
-    assert.match(meta.html, new RegExp(`<time datetime="${updatedAt}">`, 'i'), 'the date is machine-readable');
-    assert.ok(meta.html.includes('<a href="https://www.hsguru.com/meta" rel="noopener noreferrer">HSGuru</a>'), 'the source is linked');
+    // The page ends with the data: no line with the date, the slice and the source under the table.
+    assert.doesNotMatch(meta.text, /Данные на |источник HSGuru|общий срез меты/, 'no data note under the table');
+    assert.ok(!meta.html.includes('standard-meta-data-note'), 'no data note markup');
+    assert.ok(meta.text.includes('Зоолок'), 'the open rows are in the server HTML');
     assert.ok(meta.text.includes('Зоолок') && meta.text.includes('61%'), 'the leader of the snippet is on the page');
 
     // No row of 1000 games: no leader, the rest of the snippet stays.
@@ -517,21 +528,19 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     assert.doesNotMatch(noLeader.description, /Лидер/);
     assert.match(noLeader.description, new RegExp(`^Мета Хартстоуна \\(хс\\) на (${date}): тир-лист колод Стандарта\\. Винрейт и популярность архетипов\\. Данные HSGuru\\.$`));
 
-    // A row without a winrate is never the leader; a source outside HSGuru is not linked as «HSGuru».
-    state.meta = { ...metaTeaser(updatedAt, [['Без винрейта', null, 5000], ['Зоолок', 61, 14800]]),
+    // A row without a winrate is never the leader; the snippet does not depend on the source address.
+    state.meta = { ...metaTeaser(updatedAt, [['Без винрейта', null, 5000], ['Зоолок', 61, 14800], TOP_ROWS[1], TOP_ROWS[2]]),
       sourceUrl: 'https://evil.example/meta' };
     const foreign = await page('/standard/meta/');
     assert.ok(foreign.description.includes('Лидер — Зоолок, 61% побед.'), foreign.description);
-    assert.ok(foreign.text.includes('источник HSGuru.'), 'the source is still named');
-    assert.ok(!foreign.html.includes('<a href="https://evil.example'), 'a foreign source address is not a link');
 
-    // Older than a week: no month in the title, «обновлено» and the date in the description, the line stays.
+    // Older than a week: no month in the title, «обновлено» and the date in the description.
     state.meta = metaTeaser('2026-09-01T09:00:00.000Z', TOP_ROWS);
     const stale = await page('/standard/meta/');
     assert.equal(stale.title, `Мета Hearthstone, ${YEAR}: колоды и винрейты | HearthPulse`);
     assert.equal(stale.description,
       'Мета Хартстоуна (хс), обновлено 1 сентября 2026: тир-лист колод Стандарта. Лидер — Зоолок, 61% побед. Винрейт и популярность архетипов. Данные HSGuru.');
-    assert.ok(stale.text.includes('Данные на 1 сентября 2026, 12:00 МСК'));
+    assert.doesNotMatch(stale.text, /Данные на |источник HSGuru|общий срез меты/, 'no data note under a stale table');
 
     // No data: the static text with the year, no date and no numbers, a normal page and a quiet log.
     state.meta = null;
@@ -551,10 +560,12 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     assert.match(catalog.text, /(^|\D)3 архетипа\s*Нажмите на строку/, 'the count of the snippet is the count on the page');
     const wild = await page('/standard/archetypes/?format=wild');
     assert.ok(wild.description.includes('3 архетипа Вольного формата'));
+    // Express stops answering: the page keeps the data it had (the last good copy), not a page without numbers.
     state.catalog = null;
+    await delay(2200);
     const noCatalog = await page('/standard/archetypes/');
-    assert.equal(noCatalog.title, `Архетипы Hearthstone: винрейт, ${YEAR} | HearthPulse`);
-    assert.equal(noCatalog.description, REGISTRY_PAGES.find(entry => entry.path === '/standard/archetypes').description);
+    assert.equal(noCatalog.title, catalog.title);
+    assert.equal(noCatalog.description, catalog.description);
 
     // Archetype page, under both URL families: name, month, winrate, games, period and source; the longest name still fits.
     state.detail = { updatedAt, label: 'Зоолок' };
@@ -617,12 +628,20 @@ async function withFakeExpress(scenario) {
   await once(express, 'listening');
   const next = await startNextServer({ legacyOrigin: `http://127.0.0.1:${express.address().port}` });
   const page = async path => {
-    if (path === '/standard/meta/') {
+    let origin = next.origin;
+    let fresh = null;
+    if (path === '/standard/meta/' && state.meta === null) {
+      // The revalidate route leaves a page whose source is down as it is (the earlier copy is better than none), so the
+      // build's copy without data comes from a process that has not regenerated anything.
+      fresh = await startNextServer({ legacyOrigin: `http://127.0.0.1:${express.address().port}` });
+      origin = fresh.origin;
+    } else if (path === '/standard/meta/') {
       assert.equal((await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).status, 200);
     }
-    const response = await fetch(`${next.origin}${path}`);
+    const response = await fetch(`${origin}${path}`);
     assert.equal(response.status, 200, path);
     const html = await response.text();
+    if (fresh) await fresh.close();
     return { html, graph: jsonLdGraph(html)?.['@graph'] };
   };
   try {
@@ -646,7 +665,9 @@ test('the meta page describes its teaser as a dataset dated by the teaser, from 
     assert.deepEqual(nodeOfType(graph, 'Dataset'), {
       '@type': 'Dataset', '@id': 'https://hearthpulse.net/standard/meta/#dataset', url: 'https://hearthpulse.net/standard/meta/',
       name: 'Мета Стандарта Hearthstone: винрейт, популярность и число игр архетипов',
-      description: 'Срез меты Стандарта Hearthstone по данным HSGuru: винрейт, популярность и число игр архетипов. На странице показан бесплатный срез; полная таблица доступна подписчикам.',
+      description: 'Общий срез меты Стандарта и Вольного формата Hearthstone по данным HSGuru: винрейт, популярность и число игр каждого архетипа открыты. Узкие срезы по рангу, очерёдности хода и периоду, динамика и рекомендации доступны по подписке.',
+      isAccessibleForFree: false,
+      hasPart: { '@type': 'WebPageElement', isAccessibleForFree: false, cssSelector: '.paywalled-standard-meta' },
       inLanguage: 'ru',
       dateModified: DATA_DATE, publisher: { '@id': 'https://hearthpulse.net/#org' },
       isBasedOn: { '@type': 'Dataset', name: 'HSGuru: Meta', url: HSGURU_META },
@@ -660,9 +681,7 @@ test('the meta page describes its teaser as a dataset dated by the teaser, from 
     });
     assert.equal(collection.dateModified, DATA_DATE);
     assert.deepEqual(collection.about, { '@id': 'https://hearthpulse.net/standard/meta/#dataset' });
-    // The line the reader sees carries the same instant.
-    assert.match(html, new RegExp(`<time datetime="${DATA_DATE}">`, 'i'));
-    // Names of metrics, no values: no row of the teaser reaches the graph.
+    // Names of metrics, no values: no row of the open slice reaches the graph.
     assert.doesNotMatch(JSON.stringify(graph), /Зоолок|Граб|Н'зот|\b(61|58\.2|57\.4|14800|5400|258)\b|gameMode|temporalCoverage|\{\{/);
 
     // Data older than a week keeps its true date: the graph never pretends to be fresher than the teaser.
@@ -707,6 +726,8 @@ test('the catalog dataset is dated by the catalog and the page asks the API once
     const wild = (await page('/standard/archetypes/?format=wild')).graph;
     assert.equal(nodeOfType(wild, 'Dataset').dateModified, DATA_DATE);
 
+    // A success is reused for two seconds; the catalog changes after them.
+    await delay(2200);
     state.catalog = { updatedAt: null, labels: ['Зоолок'] };
     const undated = (await page('/standard/archetypes/')).graph;
     assert.deepEqual(undated.map(node => node['@type']), ['Organization', 'BreadcrumbList', 'Dataset']);
@@ -720,7 +741,7 @@ test('statistics pages without a public date carry no date, and the tier-list co
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   try {
     const graphOf = async path => jsonLdGraph(await (await fetch(`${runtime.nextOrigin}${path}`)).text())['@graph'];
-    for (const path of ['/standard/matchups/', '/standard/vicious-gold/', '/classes/', '/tierlist/']) {
+    for (const path of ['/standard/vicious-gold/', '/classes/', '/tierlist/']) {
       const graph = await graphOf(path);
       assert.deepEqual(graph[0], ORGANIZATION, `${path} defines the organization`);
       const dataset = nodeOfType(graph, 'Dataset');
@@ -847,7 +868,8 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
   const express = startArchetypeExpress(state);
   express.listen(0, '127.0.0.1');
   await once(express, 'listening');
-  const next = await startNextServer({ legacyOrigin: `http://127.0.0.1:${express.address().port}` });
+  const legacyOrigin = `http://127.0.0.1:${express.address().port}`;
+  let next = await startNextServer({ legacyOrigin });
   const fetched = [];
   const page = async path => {
     const response = await fetch(`${next.origin}${path}`);
@@ -963,7 +985,10 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
     assert.ok(!strong.text.includes('Что такое архетип'), 'a page with its class links has no primer');
 
     // Without the catalog the page keeps its own numbers, its robots and its graph; the extras go.
+    // The server keeps the last good catalog and would serve it; a restarted one has none.
     state.catalogOk = false;
+    await next.close();
+    next = await startNextServer({ legacyOrigin });
     const alone = await page('/standard/archetypes/standard/pure-paladin/');
     assert.equal(alone.robots, strong.robots);
     assert.equal(alone.graphs.length, 1);

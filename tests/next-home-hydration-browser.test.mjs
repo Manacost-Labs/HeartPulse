@@ -98,13 +98,23 @@ test('a slow home feed cannot hold the document and only missing feeds load in t
   });
   app.use(express.static('dist'));
   const backend = http.createServer(app);
-  let next, gateway, browser;
-  try {
-    const backendOrigin = await listenLocal(backend);
+  let next, gateway, browser, origin, backendOrigin;
+  // The server keeps the last good feeds and seeds the document from them, so a feed the server missed is
+  // only left for the browser by a server that has none: a restarted one.
+  const startServer = async () => {
     next = await startNextServer({ legacyOrigin: backendOrigin });
     gateway = createPublicWebGateway({ legacyOrigin: backendOrigin, nextOrigin: next.origin,
       enabled: true, pagesEnabled: true, galleryEnabled: true });
-    const origin = await listenLocal(gateway);
+    origin = await listenLocal(gateway);
+  };
+  const restartServer = async () => {
+    await closeLocal(gateway);
+    await next.close();
+    await startServer();
+  };
+  try {
+    backendOrigin = await listenLocal(backend);
+    await startServer();
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
       headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
@@ -140,13 +150,15 @@ test('a slow home feed cannot hold the document and only missing feeds load in t
       'late content must settle softly without moving the page');
     assert.equal(reads.get('/api/home/summary'), 1, 'the completed server feed must not be fetched twice');
     assert.equal(reads.get('/api/articles'), 2, 'only the missing feed is retried in the browser');
-    assert.equal(cancelled, 1, 'the expired server read must release its connection');
+    // The expired server read is not cancelled: it goes on and warms the last good copy for the next visit.
+    assert.equal(cancelled, 0, 'the late server read finishes instead of being cancelled');
     assert.equal(await page.$eval('.home-stage', node => node.textContent.includes('Маг')), true);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     const beforeAccount = [...reads.entries()];
     await page.goto(`${origin}/?login`, { waitUntil: 'networkidle2' });
     assert.deepEqual([...reads.entries()], beforeAccount, 'the account screen must not load home feeds');
     reads.clear(); cancelled = 0; holdBrowser = true;
+    await restartServer();
     const browserRead = page.waitForRequest(request => new URL(request.url()).pathname === '/api/articles');
     await page.goto(`${origin}/`, { waitUntil: 'domcontentloaded' });
     await browserRead;
@@ -160,11 +172,12 @@ test('a slow home feed cannot hold the document and only missing feeds load in t
     await page.waitForFunction(() => location.pathname === '/faq/');
     assert.equal(await page.evaluate(() => window.__homeFallbackDocument), true, 'leaving must use the client router');
     const cancelDeadline = Date.now() + 1000;
-    while (cancelled < 2 && Date.now() < cancelDeadline) await new Promise(resolve => setTimeout(resolve, 20));
-    assert.equal(cancelled, 2, 'leaving cancels the browser fallback as well as the expired server read');
+    while (cancelled < 1 && Date.now() < cancelDeadline) await new Promise(resolve => setTimeout(resolve, 20));
+    assert.equal(cancelled, 1, 'leaving cancels the browser fallback; the late server read finishes on its own');
     assert.deepEqual(errors, []);
 
     holdBrowser = false;
+    await restartServer();
     const preparedContext = await browser.createBrowserContext();
     const prepared = await preparedContext.newPage();
     const recoveryRequests = [];
@@ -179,6 +192,7 @@ test('a slow home feed cannot hold the document and only missing feeds load in t
     await preparedContext.close();
 
     reads.clear(); cancelled = 0; failArticles = true;
+    await restartServer();
     const failedContext = await browser.createBrowserContext();
     const failed = await failedContext.newPage();
     await failed.goto(`${origin}/`, { waitUntil: 'domcontentloaded' });
@@ -192,6 +206,7 @@ test('a slow home feed cannot hold the document and only missing feeds load in t
     // A fresh context has no cached recovery module. Its deadline includes lazy
     // code loading, and releasing the code after expiry must not start a request.
     reads.clear(); cancelled = 0; holdBrowser = false; failArticles = false;
+    await restartServer();
     const context = await browser.createBrowserContext();
     const stalled = await context.newPage();
     let releaseRecovery;

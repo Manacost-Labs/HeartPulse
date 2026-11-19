@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import express from 'express';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { request as httpRequest } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -10,9 +10,15 @@ import {
   createEntitySitemapRouter,
   loadStaticSitemapArtifact,
 } from '../server/entitySitemapRoutes.js';
+import { sitemapContentHash } from '../server/entitySitemapValidation.js';
 import { createEntitySitemapRuntimeOptions } from '../server/entitySitemapSources.js';
 import { isIndexableArchetype } from '../shared/constructedArchetypeIndexing.js';
+import { sitemapEntries } from '../scripts/production-monitor.mjs';
 import { assertAsyncProperty } from './helpers/propertyRuns.js';
+
+const datedEntries = (xml: string, root: 'urlset' | 'sitemapindex' = 'urlset') => (
+  sitemapEntries(xml, root, 'sitemap under test').map(({ location, lastmod }) => [new URL(location).pathname, lastmod])
+);
 
 const staticUrls = Array.from({ length: 29 }, (_, index) => index === 0
   ? 'https://arena.hs-manacost.ru/'
@@ -143,7 +149,8 @@ try {
     [...staticXml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]),
     staticUrls,
   );
-  assert.doesNotMatch(staticXml, /<lastmod>/, 'static sitemap must not invent freshness');
+  assert.deepEqual([...new Set(datedEntries(staticXml).map(([, lastmod]) => lastmod))], ['2026-07-21'],
+    'a static page the store sees for the first time takes the day of first sight');
 
   const [first, concurrent] = await Promise.all([
     fetch(`${app.origin}/sitemaps/standard-cards.xml`),
@@ -159,7 +166,8 @@ try {
   assert.ok(lastModified);
   const firstXml = await first.text();
   assert.match(firstXml, /<loc>https:\/\/arena\.hs-manacost\.ru\/standard\/cards\/standard\/CARD_1\/<\/loc>/);
-  assert.doesNotMatch(firstXml, /<lastmod>/, 'first entity observation must omit lastmod');
+  assert.deepEqual(datedEntries(firstXml), [['/standard/cards/standard/CARD_1/', '2026-07-21']],
+    'the first observation of an entity is dated by the day of first sight');
   assert.doesNotMatch(firstXml, /QA_PRIVATE|stats|subscription|deckCode/i);
   assert.equal(await concurrent.text(), firstXml);
   const identityInvariant = await fetch(`${app.origin}/sitemaps/standard-cards.xml?preview=private`, {
@@ -198,14 +206,14 @@ try {
   assert.equal(await head.text(), '');
   assert.equal(head.headers.get('etag'), etag);
 
-  now += 5 * 60_000 + 1;
+  now += 24 * 60 * 60_000 + 1;
   cards = [{ ...publicCard, text: { ru: 'Получает +2/+2.' } }];
   const changed = await fetch(`${app.origin}/sitemaps/standard-cards.xml`);
   assert.equal(changed.status, 200);
   assert.equal(calls, 2);
   const changedXml = await changed.text();
-  assert.match(changedXml, /<lastmod>2026-07-21<\/lastmod>/,
-    'a semantic public change must set an entity lastmod');
+  assert.deepEqual(datedEntries(changedXml), [['/standard/cards/standard/CARD_1/', '2026-07-22']],
+    'a semantic public change dates the entity by the day it was seen');
   assert.notEqual(changed.headers.get('etag'), etag);
 
   now += 5 * 60_000 + 1;
@@ -627,3 +635,319 @@ await assertAsyncProperty(fc.asyncProperty(fc.array(archetypePropertyItem, { max
 }));
 
 console.log('entity sitemap archetype segment contracts passed');
+
+// Dates of the static pages and of the index: every entry has one, and only a change of content moves it.
+async function startDated(options: {
+  directory: string;
+  now: () => number;
+  fingerprints: Map<string, string>;
+  staticUrls: string[];
+  loadStandardCards: () => Promise<any[]>;
+  loadArchetypes?: () => Promise<any[]>;
+}) {
+  const app = express();
+  app.use(createEntitySitemapRouter({
+    canonicalOrigin: 'https://hearthpulse.net',
+    staticUrls: options.staticUrls,
+    staticFingerprints: options.fingerprints,
+    loadStandardCards: options.loadStandardCards,
+    loadArchetypes: options.loadArchetypes,
+    minimumStandardCardCount: 1,
+    minimumArchetypeCount: 1,
+    stateDirectory: options.directory,
+    now: options.now,
+    responseDeadlineMs: 500,
+  }));
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise<void>(resolve => server.once('listening', resolve));
+  const origin = `http://127.0.0.1:${(server.address() as { port: number }).port}`;
+  return { origin, close: () => new Promise<void>(resolve => server.close(() => resolve())) };
+}
+
+const datedDirectory = mkdtempSync(join(tmpdir(), 'arena-sitemap-dated-'));
+try {
+  const staticPages = ['https://hearthpulse.net/', 'https://hearthpulse.net/faq/', 'https://hearthpulse.net/standard/cards/'];
+  const fingerprints = new Map(staticPages.map((url, position) => [url, String(position + 1).repeat(64)]));
+  let datedNow = Date.parse('2026-11-10T08:00:00.000Z');
+  const archetype = {
+    item: { slug: 'pure-paladin', archetype: 'Pure Paladin', format: 'standard', games: 5_000, deckCount: 2, popularity: 2 },
+    updatedAt: '2026-11-08T05:00:00+00:00',
+    period: 'black_empire',
+  };
+  const boot = () => startDated({
+    directory: datedDirectory,
+    now: () => datedNow,
+    fingerprints,
+    staticUrls: staticPages,
+    loadStandardCards: async () => [publicCard],
+    loadArchetypes: async () => [archetype],
+  });
+  const read = async (origin: string, path: string, root: 'urlset' | 'sitemapindex' = 'urlset') => (
+    datedEntries(await (await fetch(`${origin}${path}`)).text(), root)
+  );
+
+  let app = await boot();
+  try {
+    assert.deepEqual(await read(app.origin, '/sitemaps/static.xml'), [
+      ['/', '2026-11-10'],
+      ['/faq/', '2026-11-10'],
+      ['/standard/cards/', '2026-11-10'],
+    ], 'a static page is dated by the day its content was first seen');
+    assert.deepEqual(await read(app.origin, '/sitemaps/archetypes.xml'), [['/standard/archetypes/standard/pure-paladin/', '2026-11-08']]);
+    assert.deepEqual(await read(app.origin, '/sitemap.xml', 'sitemapindex'), [
+      ['/sitemaps/static.xml', '2026-11-10'],
+      ['/sitemaps/standard-cards.xml', '2026-11-10'],
+      ['/sitemaps/archetypes.xml', '2026-11-08'],
+    ], 'the index dates each sitemap by the latest lastmod among its addresses');
+  } finally {
+    await app.close();
+  }
+
+  // A rebuild and restart a week later over the same content, but the FAQ text changed and a new card appeared.
+  datedNow = Date.parse('2026-11-17T08:00:00.000Z');
+  fingerprints.set('https://hearthpulse.net/faq/', 'f'.repeat(64));
+  const rebooted = await startDated({
+    directory: datedDirectory,
+    now: () => datedNow,
+    fingerprints,
+    staticUrls: staticPages,
+    loadStandardCards: async () => [publicCard, { ...publicCard, card_id: 'CARD_NEW', name: { ru: 'Новая', en: 'New' } }],
+    loadArchetypes: async () => [archetype],
+  });
+  try {
+    assert.deepEqual(await read(rebooted.origin, '/sitemaps/static.xml'), [
+      ['/', '2026-11-10'],
+      ['/faq/', '2026-11-17'],
+      ['/standard/cards/', '2026-11-17'],
+    ], 'only the page whose content changed moves; the cards listing follows its newest card');
+    assert.deepEqual(await read(rebooted.origin, '/sitemaps/standard-cards.xml'), [
+      ['/standard/cards/standard/CARD_1/', '2026-11-10'],
+      ['/standard/cards/standard/CARD_NEW/', '2026-11-17'],
+    ]);
+    assert.deepEqual(await read(rebooted.origin, '/sitemap.xml', 'sitemapindex'), [
+      ['/sitemaps/static.xml', '2026-11-17'],
+      ['/sitemaps/standard-cards.xml', '2026-11-17'],
+      ['/sitemaps/archetypes.xml', '2026-11-08'],
+    ]);
+  } finally {
+    await rebooted.close();
+  }
+
+  // An unchanged rebuild leaves every date where it was.
+  datedNow = Date.parse('2026-12-01T08:00:00.000Z');
+  app = await boot();
+  try {
+    assert.deepEqual((await read(app.origin, '/sitemaps/static.xml')).map(([, lastmod]) => lastmod),
+      ['2026-11-10', '2026-11-17', '2026-11-17']);
+  } finally {
+    await app.close();
+  }
+} finally {
+  rmSync(datedDirectory, { recursive: true, force: true });
+}
+
+// Every record of the index has a day. A segment that cannot be built is dated from the state the store saved
+// earlier (it survives a restart); with no state at all it is left out, so one failing source does not take the
+// index from crawlers. The index answers 503 only when no record can be dated.
+const outageDirectory = mkdtempSync(join(tmpdir(), 'arena-sitemap-outage-'));
+try {
+  const down = async () => { throw new Error('source down'); };
+  const archetype = {
+    item: { slug: 'pure-paladin', archetype: 'Pure Paladin', format: 'standard', games: 5_000, deckCount: 2, popularity: 2 },
+    updatedAt: '2026-11-08T05:00:00+00:00',
+    period: 'black_empire',
+  };
+  const indexOf = async (loadArchetypes: () => Promise<any[]>) => {
+    const app = await startDated({
+      directory: outageDirectory,
+      now: () => Date.parse('2026-11-10T08:00:00.000Z'),
+      fingerprints: new Map(),
+      staticUrls: ['https://hearthpulse.net/'],
+      loadStandardCards: async () => [publicCard],
+      loadArchetypes,
+    });
+    try {
+      const startedAt = Date.now();
+      const response = await fetch(`${app.origin}/sitemap.xml`);
+      return { response, text: await response.text(), elapsedMs: Date.now() - startedAt };
+    } finally {
+      await app.close();
+    }
+  };
+  const recordsOf = (text: string) => sitemapEntries(text, 'sitemapindex', 'index', { requireLastmod: false })
+    .map(({ location, lastmod }) => [new URL(location).pathname, lastmod]);
+
+  const withoutState = await indexOf(down);
+  assert.equal(withoutState.response.status, 200, 'one undatable sitemap does not take the index down');
+  assert.deepEqual(recordsOf(withoutState.text), [
+    ['/sitemaps/static.xml', '2026-11-10'],
+    ['/sitemaps/standard-cards.xml', '2026-11-10'],
+  ], 'the sitemap with no day and no source is not listed; every listed one has a day');
+  assert.ok(withoutState.elapsedMs < 2_000, `the index answers within 2 s, took ${withoutState.elapsedMs} ms`);
+
+  assert.equal((await indexOf(async () => [archetype])).response.status, 200);
+  const fromState = await indexOf(down);
+  assert.equal(fromState.response.status, 200, 'the saved state dates the sitemap the source cannot deliver');
+  assert.deepEqual(recordsOf(fromState.text), [
+    ['/sitemaps/static.xml', '2026-11-10'],
+    ['/sitemaps/standard-cards.xml', '2026-11-10'],
+    ['/sitemaps/archetypes.xml', '2026-11-08'],
+  ]);
+
+  // State written before every address had a day: the sitemap takes the day the state was last written.
+  for (const filename of ['seo-archetypes-sitemap-v1.json', 'seo-archetypes-sitemap-v1.lkg.json']) {
+    const file = join(outageDirectory, filename);
+    const saved = JSON.parse(readFileSync(file, 'utf8'));
+    const unsigned = {
+      ...saved,
+      updatedAt: '2026-11-03T05:00:00.000Z',
+      entries: saved.entries.map(({ lastmod: _lastmod, ...entry }: { lastmod?: string }) => entry),
+    };
+    delete unsigned.contentHash;
+    writeFileSync(file, JSON.stringify({ ...unsigned, contentHash: sitemapContentHash(unsigned) }), 'utf8');
+  }
+  const legacy = await indexOf(down);
+  assert.equal(legacy.response.status, 200);
+  assert.deepEqual(recordsOf(legacy.text).at(-1), ['/sitemaps/archetypes.xml', '2026-11-10'],
+    'state without days: its addresses take the day the store first sees them, like any address it has no date for');
+} finally {
+  rmSync(outageDirectory, { recursive: true, force: true });
+}
+
+// Nothing to list: no source delivers and the store cannot hold a day (its directory is a file).
+const brokenStore = mkdtempSync(join(tmpdir(), 'arena-sitemap-broken-'));
+try {
+  const blocker = join(brokenStore, 'not-a-directory');
+  writeFileSync(blocker, 'x', 'utf8');
+  const app = await startDated({
+    directory: blocker,
+    now: () => Date.parse('2026-11-10T08:00:00.000Z'),
+    fingerprints: new Map(),
+    staticUrls: ['https://hearthpulse.net/'],
+    loadStandardCards: async () => { throw new Error('source down'); },
+  });
+  try {
+    const response = await fetch(`${app.origin}/sitemap.xml`);
+    assert.equal(response.status, 503, 'no record has a day: nothing to list, a retryable 503');
+    assert.ok(Number(response.headers.get('retry-after')) > 0);
+    assert.equal(response.headers.get('cache-control'), 'no-cache, no-store, must-revalidate');
+  } finally {
+    await app.close();
+  }
+} finally {
+  rmSync(brokenStore, { recursive: true, force: true });
+}
+// State written before the store dated every address, a source that does not answer: every served address still has
+// a day, and the day does not move when the rebuild catches up (not even across midnight).
+const legacyDirectory = mkdtempSync(join(tmpdir(), 'arena-sitemap-legacy-'));
+const releases: Array<() => void> = [];
+try {
+  const cards = [1, 2, 3, 4].map(number => ({
+    ...publicCard, card_id: `CARD_${number}`, name: { ru: `Карта ${number}`, en: `Card ${number}` },
+  }));
+  const seedDay = Date.parse('2026-11-10T08:00:00.000Z');
+  const seed = await startDated({
+    directory: legacyDirectory, now: () => seedDay, fingerprints: new Map(),
+    staticUrls: ['https://hearthpulse.net/'], loadStandardCards: async () => cards,
+  });
+  try {
+    assert.equal((await fetch(`${seed.origin}/sitemaps/standard-cards.xml`)).status, 200);
+  } finally {
+    await seed.close();
+  }
+  for (const filename of ['seo-standard-cards-sitemap-v1.json', 'seo-standard-cards-sitemap-v1.lkg.json']) {
+    const file = join(legacyDirectory, filename);
+    const saved = JSON.parse(readFileSync(file, 'utf8'));
+    const unsigned = {
+      ...saved,
+      entries: saved.entries.map(({ lastmod: _lastmod, ...entry }: { lastmod?: string }, position: number) => (
+        position % 2 === 0 ? entry : { ...entry, lastmod: '2026-10-01' }
+      )),
+    };
+    delete unsigned.contentHash;
+    writeFileSync(file, JSON.stringify({ ...unsigned, contentHash: sitemapContentHash(unsigned) }), 'utf8');
+  }
+
+  let legacyNow = Date.parse('2026-11-12T08:00:00.000Z');
+  const hung = new Promise<void>(resolve => releases.push(resolve));
+  const app = await startDated({
+    directory: legacyDirectory, now: () => legacyNow, fingerprints: new Map(),
+    staticUrls: ['https://hearthpulse.net/'], loadStandardCards: async () => { await hung; return cards; },
+  });
+  try {
+    const entriesOf = async () => {
+      const response = await fetch(`${app.origin}/sitemaps/standard-cards.xml`);
+      return { source: response.headers.get('x-sitemap-source'), entries: datedEntries(await response.text()) };
+    };
+    const served = await entriesOf();
+    assert.equal(served.source, 'last-known-good', 'the source does not answer: the saved copy is served');
+    assert.deepEqual(served.entries.map(([, lastmod]) => lastmod),
+      ['2026-11-12', '2026-10-01', '2026-11-12', '2026-10-01'],
+      'every address has a day; the ones the state dated keep it');
+
+    legacyNow = Date.parse('2026-11-13T08:00:00.000Z'); // the rebuild catches up the next day
+    releases.forEach(release => release());
+    let caughtUp = await entriesOf();
+    for (let attempt = 0; attempt < 40 && caughtUp.source !== 'catalog'; attempt += 1) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      caughtUp = await entriesOf();
+    }
+    assert.equal(caughtUp.source, 'catalog', 'the rebuild replaced the saved copy');
+    assert.deepEqual(caughtUp.entries, served.entries, 'a day shown from the saved copy is the day the store keeps');
+  } finally {
+    await app.close();
+  }
+} finally {
+  releases.forEach(release => release());
+  rmSync(legacyDirectory, { recursive: true, force: true });
+}
+
+// The index answers from the saved state without waiting for a rebuild, and asks a hung source only once.
+const coldIndexDirectory = mkdtempSync(join(tmpdir(), 'arena-sitemap-cold-index-'));
+try {
+  const gate = new Promise<void>(resolve => releases.push(resolve));
+  const indexRequest = async (loadStandardCards: () => Promise<any[]>, loadArchetypes: () => Promise<any[]>) => {
+    const app = await startDated({
+      directory: coldIndexDirectory, now: () => Date.parse('2026-11-10T08:00:00.000Z'), fingerprints: new Map(),
+      staticUrls: ['https://hearthpulse.net/'], loadStandardCards, loadArchetypes,
+    });
+    try {
+      const startedAt = Date.now();
+      const response = await fetch(`${app.origin}/sitemap.xml`);
+      const text = await response.text();
+      return { status: response.status, elapsedMs: Date.now() - startedAt, text };
+    } finally {
+      await app.close();
+    }
+  };
+  const archetypeRow = {
+    item: { slug: 'pure-paladin', archetype: 'Pure Paladin', format: 'standard', games: 5_000, deckCount: 2, popularity: 2 },
+    updatedAt: '2026-11-08T05:00:00+00:00',
+    period: 'black_empire',
+  };
+  const slow = async () => { await gate; return [publicCard]; };
+  const slowArchetypes = async () => { await gate; return [archetypeRow]; };
+
+  const noState = await indexRequest(slow, slowArchetypes);
+  assert.equal(noState.status, 200);
+  assert.ok(noState.elapsedMs < 900, `a hung source with no state is waited for once (500 ms), took ${noState.elapsedMs} ms`);
+
+  assert.equal((await indexRequest(async () => [publicCard], async () => [archetypeRow])).status, 200);
+  const restarted = await indexRequest(slow, slowArchetypes);
+  assert.equal(restarted.status, 200);
+  assert.ok(restarted.elapsedMs < 400, `the index does not wait for slow sources, took ${restarted.elapsedMs} ms`);
+  assert.deepEqual(
+    sitemapEntries(restarted.text, 'sitemapindex', 'index').map(({ location, lastmod }) => [new URL(location).pathname, lastmod]),
+    [
+      ['/sitemaps/static.xml', '2026-11-10'],
+      ['/sitemaps/standard-cards.xml', '2026-11-10'],
+      ['/sitemaps/archetypes.xml', '2026-11-08'],
+    ],
+    'the dates come from the saved state',
+  );
+} finally {
+  releases.forEach(release => release());
+  rmSync(coldIndexDirectory, { recursive: true, force: true });
+}
+
+console.log('entity sitemap lastmod contracts passed');

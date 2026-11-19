@@ -1,23 +1,23 @@
 import 'server-only';
 import {
-  isLeaderboardSeasonCatalog, isLeaderboardStats, isLeaderboardTable, leaderboardApiQuery,
+  isLeaderboardSeasonCatalog, isLeaderboardStats, isLeaderboardTable,
   type LeaderboardsInitial, type LeaderboardSelection,
 } from '@/src/modules/leaderboards/public';
-import { fetchPublicExpress } from './expressApi';
-import { FIRST_PAINT_READ_BUDGET_MS, readFirstPaintJson } from './publicFirstPaintRead';
+import { readPublicJsonOrNull } from './firstPaintStore';
+import { leaderboardPaths } from './publicLeaderboardPaths';
 
 /**
  * Первый кадр таблиц лидеров: каталог сезонов, страница таблицы и сводка
- * выбранной таблицы, прочитанные анонимно и параллельно за общий бюджет
- * первого кадра. Что не успело — `null`, это загрузит браузер.
+ * выбранной таблицы, прочитанные анонимно и параллельно. Если Express не
+ * успел, берётся последняя удачная копия (`firstPaintStore.ts`); `null` — копии
+ * нет вовсе, и страницу до этого не допускает `proxy.ts` (503).
  */
 export async function loadPublicLeaderboards(selection: LeaderboardSelection): Promise<LeaderboardsInitial> {
-  const deadline = Date.now() + FIRST_PAINT_READ_BUDGET_MS;
-  const read = (path: string) => readFirstPaintJson(signal => fetchPublicExpress(path, signal), deadline);
+  const paths = leaderboardPaths(selection);
   const [catalog, table, stats] = await Promise.all([
-    read('/api/leaderboards/seasons'),
-    read(`/api/leaderboards/table?${leaderboardApiQuery(selection, true)}`),
-    read(`/api/leaderboards/stats?${leaderboardApiQuery(selection, false)}`),
+    readPublicJsonOrNull(paths.catalog, false, isLeaderboardSeasonCatalog),
+    readPublicJsonOrNull(paths.table, false, isLeaderboardTable),
+    readPublicJsonOrNull(paths.stats, false, isLeaderboardStats),
   ]);
   return {
     selection,

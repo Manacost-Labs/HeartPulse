@@ -328,7 +328,9 @@ test('pages pass the access decision to their gates and reserve the gate height'
   const detailDataSource = read('../src/modules/constructedArchetypes/useArchetypeDetail.ts');
   const catalogDataSource = read('../src/modules/constructedArchetypes/useArchetypeCatalog.ts');
   assert.match(metaSource, /surface="meta"/);
-  assert.match(metaSource, /filteredItems\.slice\(0,\s*3\)/);
+  // The open layer: a guest reads every row of the general slice from the public route, with the format only.
+  assert.doesNotMatch(metaSource, /filteredItems\.slice\(0,\s*3\)/);
+  assert.match(metaSource, /'\/api\/standard-meta\/public'/);
   assert.match(detailDataSource, /hasFullAccess && !denied/);
   assert.match(detailDataSource, /hasFullAccess \? '' : '\/teaser'/);
   assert.match(catalogDataSource, /\/api\/constructed-archetypes\/teaser\?format=/);
@@ -362,16 +364,18 @@ test('pages pass the access decision to their gates and reserve the gate height'
   assert.ok(/\.arena-paywall-pending,\s*\.arena-paid-view \{\s*min-height: var\(--subscription-gate-min-height\);\s*\}/.test(paywallCss),
     'the placeholder and a mounting paid view must reserve the gate height token');
   assert.match(read('../src/styles/tokens.css'), /--subscription-gate-min-height: 760px;/);
-  for (const pageClient of ['BattlegroundHeroDetailPageClient', 'BattlegroundLibraryPageClient',
-    'BattlegroundLibraryDetailPageClient', 'BattlegroundTierListPageClient', 'BattlegroundTierBuilderPageClient',
-    'BattlegroundStrategiesPageClient', 'GuidesArchivePageClient', 'GuideArchiveDetailPageClient']) {
+  for (const pageClient of ['BattlegroundLibraryPageClient',
+    'BattlegroundTierBuilderPageClient', 'GuidesArchivePageClient', 'GuideArchiveDetailPageClient']) {
     const source = read(`../apps/public-web/ui/${pageClient}.tsx`);
     // `pending` (paidAccess) covers the check and a refusal the server has not confirmed yet.
     assert.match(source, /const \{ allowed, pending \} = paidAccess\(access, '\w+'\);/, `${pageClient} must decide with paidAccess`);
     assert.match(source, /pending\s*\?\s*<PaywallPending\b/, `${pageClient} must reserve the gate while access is pending`);
     assert.ok(!/<p[^>]*aria-busy/.test(source), `${pageClient} must not render a bare pending line`);
   }
-  // /heroes/ is not in the list: it has an open ranking and no gate to reserve. Its behaviour (open tables for a
-  // guest, no placeholder, no layout shift when a subscriber's view replaces them) is checked in a browser by
-  // tests/next-paywall-access-check-browser.test.mjs.
+  // /heroes/, /heroes/<id>/, /battlegrounds/tier-list/ and /battlegrounds/strategies/ are not in the list: they have open
+  // data and no gate to reserve. Their behaviour (open data for a guest, no placeholder, no layout shift when a
+  // subscriber's view replaces it) is checked in a browser by tests/next-paywall-access-check-browser.test.mjs and
+  // tests/next-bg-hero-detail-browser.test.mjs. The same holds for a library card page
+  // (`BattlegroundLibraryDetailPageClient`, checked by the first of them); the library listings keep the gate for the
+  // archive, which has no open list.
 });

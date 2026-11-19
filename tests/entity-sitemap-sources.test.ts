@@ -11,23 +11,53 @@ import {
   selectIndexableArchetypeRows,
 } from '../server/entitySitemapSources.js';
 
+const ratedRow = (dbfId: number, name: string, avg: number, eightPlaces: boolean) => ({
+  dbfId, hero: name, tier: 'A', avg_placement: avg, pick_rate: '4.5%',
+  ...(eightPlaces ? { placement_distribution: [20, 15, 14, 13, 12, 11, 8, 7] } : {}),
+});
+
 const requests: string[] = [];
 const payloads = new Map<string, unknown>([
+  // Library cards (docs/specs/seo-entity-indexing.md): a card is listed when the open card page is indexable, ten own
+  // facts. Minion 1 is in the pool with base statistics (name, type, tier, tribe, attack, health, text, one mechanic,
+  // golden version, four figures: 14), minion 2 is archived with one mechanic and the golden version (10), minion 3 is archived and
+  // bare (name, type, tier, text: 4), so its page is noindex and it stays out.
   ['http://127.0.0.1:3108/api/bg/library/cards?card_type=minion&in_pool=1', {
-    data: [{ dbf: 1, name: { ru: 'Активное существо' }, card_type: { slug: 'minion' }, in_pool: true }],
+    data: [{ dbf: 1, name: { ru: 'Активное существо' }, card_type: { slug: 'minion', name_ru: 'Существо' }, in_pool: true,
+      tavern_tier: 2, creature_type: { name_ru: 'Зверь' }, attack: 3, health: 4, text_ru: 'Текст', mechanics: [{ slug: 'TAUNT', name_ru: 'Провокация' }],
+      golden_variant: { attack: 6, health: 8 } }],
   }],
   ['http://127.0.0.1:3108/api/bg/library/cards?card_type=minion&in_pool=0', {
-    data: [{ dbf: 2, name: { ru: 'Архивное существо' }, card_type: { slug: 'minion' }, in_pool: false }],
+    data: [{ dbf: 2, name: { ru: 'Архивное существо' }, card_type: { slug: 'minion', name_ru: 'Существо' }, in_pool: false,
+      tavern_tier: 3, creature_type: { name_ru: 'Зверь' }, attack: 2, health: 2, text_ru: 'Текст', mechanics: [{ slug: 'TAUNT', name_ru: 'Провокация' }], golden_variant: { attack: 4, health: 4 } },
+    { dbf: 3, name: { ru: 'Голое существо' }, card_type: { slug: 'minion', name_ru: 'Существо' }, in_pool: false, tavern_tier: 1, text_ru: 'Текст' }],
+  }],
+  ['http://127.0.0.1:3108/api/bg/library/minion-stats', {
+    latest_run: { mmr_percentile: 'TOP_50_PERCENT', completed_at: '2026-11-19T02:45:13Z' },
+    minions: [{ dbf_id: 1, avg_placement_with: 3.9, avg_placement_without: 4.2, popularity: 7.5, games_with_minion: 900, impact: 0.3 }],
   }],
   ['http://127.0.0.1:3108/api/bg/heroes', {
     ok: true,
-    heroes: [{ dbfId: 10, hero: 'Одиночный герой' }],
+    heroes: [{ dbfId: 10, hero: 'Одиночный герой' }, { dbfId: 13, hero: 'Полный Solo' }],
+  }],
+  // Open ranking (base range) the hero pages and the hero segment are judged on: heroes 10 and 12 are rated in
+  // both modes (10 facts: the page's threshold), hero 11 only in Duos (5 facts, the page is noindex).
+  ['http://127.0.0.1:3108/api/bg/heroes?mode=solo&mmr=TOP_50_PERCENT', {
+    ok: true, heroes: [ratedRow(10, 'Одиночный герой', 4.1, true), ratedRow(12, 'Герой Duos 2', 4.4, true),
+      // Rated in solo only, with every field filled: more than ten facts, still not indexable (both modes are required).
+      { ...ratedRow(13, 'Полный Solo', 3.9, true), games: 9000, best_composition: { name: 'Нежить' },
+        key_minions_top3: [{ name: 'А' }, { name: 'Б' }, { name: 'В' }], hero_power: { card: { name: 'Сила' } } }],
+  }],
+  ['http://127.0.0.1:3108/api/bg/heroes?mode=duos&mmr=TOP_50_PERCENT', {
+    ok: true,
+    heroes: [ratedRow(10, 'Одиночный герой', 4.0, false), ratedRow(11, 'Герой Duos', 4.2, false), ratedRow(12, 'Герой Duos 2', 4.5, false)],
   }],
   ['http://127.0.0.1:3108/api/bg/heroes?mode=duos', {
     ok: true,
     heroes: [
       { dbfId: 10, hero: 'Дубликат из Duos' },
       { dbfId: 11, hero: 'Герой Duos' },
+      { dbfId: 12, hero: 'Герой Duos 2' },
     ],
   }],
 ]);
@@ -41,17 +71,25 @@ const fetchImpl = (async (input: string | URL | Request) => {
 }) as typeof fetch;
 
 const minions = await loadBattlegroundLibrarySitemapRows('minion', { fetchImpl, timeoutMs: 100 });
-assert.deepEqual(minions.map((row: any) => row.dbf), [1, 2]);
-assert.deepEqual(requests.slice(0, 2).sort(), [
+assert.deepEqual(minions.map((row: any) => row.dbf), [1, 2], 'a card below the threshold (minion 3) is not listed');
+assert.deepEqual(requests.slice(0, 3).sort(), [
   'http://127.0.0.1:3108/api/bg/library/cards?card_type=minion&in_pool=0',
   'http://127.0.0.1:3108/api/bg/library/cards?card_type=minion&in_pool=1',
+  'http://127.0.0.1:3108/api/bg/library/minion-stats',
 ]);
+// Without the base statistics minion 1 has ten facts: still listed. Without golden version and statistics it falls below.
+payloads.set('http://127.0.0.1:3108/api/bg/library/minion-stats', { latest_run: { mmr_percentile: 'TOP_50_PERCENT' }, minions: [
+  { dbf_id: 9, avg_placement_with: 4, games_with_minion: 900 }] });
+assert.deepEqual((await loadBattlegroundLibrarySitemapRows('minion', { fetchImpl, timeoutMs: 100 })).map((row: any) => row.dbf), [1, 2]);
+// A failing statistics source rejects the candidate, so the last known good sitemap stays.
+payloads.delete('http://127.0.0.1:3108/api/bg/library/minion-stats');
+await assert.rejects(() => loadBattlegroundLibrarySitemapRows('minion', { fetchImpl, timeoutMs: 100 }), /statistics HTTP 404/);
 
 const heroes = await loadBattlegroundHeroSitemapRows({ fetchImpl, timeoutMs: 100 });
 assert.deepEqual(heroes.map((row: any) => [row.dbfId, row.hero]), [
   [10, 'Одиночный герой'],
-  [11, 'Герой Duos'],
-], 'solo must remain authoritative when the same hero is also present in Duos');
+  [12, 'Герой Duos 2'],
+], 'solo must remain authoritative for a hero in both modes; a hero below the indexing threshold (Duos only) stays out');
 
 const standard = [{ card_id: 'SHARED_1' }, { card_id: 'STANDARD_ONLY_1' }];
 const wild = [{ card_id: 'SHARED_1' }, { card_id: 'WILD_ONLY_1' }, { card_id: 'WILD_ONLY_2' }];
@@ -75,12 +113,11 @@ assert.deepEqual(constructedCalls, ['standard', 'standard', 'wild']);
 const runtimeOptions = createEntitySitemapRuntimeOptions(async () => ({ cards: [] }), {
   SITEMAP_STANDARD_MIN_CARDS: 'not-a-number',
   SITEMAP_WILD_MIN_CARDS: '700',
-  SITEMAP_BG_MIN_SPELLS: '50001',
   SITEMAP_BG_MIN_HEROES: '90',
 });
 assert.equal(runtimeOptions.minimumStandardCardCount, 500);
 assert.equal(runtimeOptions.minimumWildCardCount, 700);
-assert.equal(runtimeOptions.minimumBattlegroundSpellCount, 50);
+assert.equal('loadBattlegroundSpells' in loaders, false, 'no spell page reaches the indexing threshold: no spell segment');
 assert.equal(runtimeOptions.minimumBattlegroundHeroCount, 90);
 
 await assert.rejects(

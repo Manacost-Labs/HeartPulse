@@ -6,7 +6,44 @@ search. The Express `/api/standard/matchups?format=standard|wild` endpoint
 provides rows, columns and win rates. The API requires the `standard`
 subscription entitlement.
 
-Anonymous HTML may contain a description and access gate, but no private
+## Open general slice (E21 OL5)
+
+A guest sees the general slice in the server HTML: all ranks (`rank=all`), the
+source's default period and the page's default floor of 25 games per pair. The
+rows and columns are the most played archetypes (30 in the HTML, the rest of
+the slice loads in the browser from the same open route), with slug, name,
+class, popularity and games, the win rate and games of every pair, the date of
+the data and the source. Ranks other than `all`, the period list, the floor
+menu and the history of a pair are paid and not in the HTML, the RSC payload or
+the JSON-LD.
+
+- `GET /api/standard/matchups/public?format=standard|wild` has no guard and
+  reads no filter from the query. It projects the dataset field by field
+  (`server/standardMatchupPublicSlice.ts`), keeps its own cache (5 minutes) and
+  ETag per format, and shares one origin read between concurrent misses. A
+  failure answers the stale copy (`warning: 'stale'`), then the last good copy
+  kept apart in Redis (`:public-v1`, `warning: 'fallback'`), then `503` with
+  `Retry-After: 60`, never `502`.
+- `GET /api/standard/matchups` stays behind `requireStandardAccess`.
+- The Next page (`apps/public-web/lib/publicStandardMatchups.ts`) reads only the
+  public route anonymously and re-checks the answer
+  (`src/modules/standardMatchups/model/publicProjection.ts`); an answer that is
+  not the `all` rank of the format is refused. Without a snapshot a regeneration
+  throws, so ISR keeps the last good page; only the build, which has no API,
+  prints the «temporarily unavailable» state.
+- The page has one line under the H1 (slice, floor, date, source) and the
+  matrix as the main content; there is no block after it. The locked filters
+  (`.paywalled-standard-matchups`, named by the JSON-LD `hasPart`) open the
+  subscription offer on a press. A subscriber's matrix replaces the open view
+  only once its data and its chunk are loaded. Wild is read from the open route
+  in the browser after the format switch; the server HTML is Standard.
+- `tests/standard-matchups-public.test.ts` puts a label in every paid field
+  (the Legend rank `63.3636`, the period list, history) and checks that none
+  reaches a guest, with a mutation that turns it red;
+  `tests/next-standard-matchups-open-layer.test.mjs` does the same for the HTML,
+  the RSC payload and the JSON-LD of the built page.
+
+Anonymous HTML may contain a description and the open slice above, but no private
 matrix values. A Next.js client must wait for a verified account and
 entitlement before requesting the API. Cached matrices must be scoped to an
 account and format, cleared after access denial, and hidden immediately when

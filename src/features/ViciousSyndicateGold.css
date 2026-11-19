@@ -308,9 +308,6 @@ a:is(.vsgold-power-row__name, .vsgold-deck-row__name):focus-visible { outline: 2
 }
 
 .vsgold-empty { margin: 1rem 0 0; color: var(--vs-muted); }
-.vsgold-method { padding: 0.75rem 1rem; border: 1px solid var(--vs-line); background: rgba(255, 250, 236, 0.5); color: var(--vs-muted); font-size: 0.86rem; line-height: 1.45; }
-.vsgold-method summary { min-height: 28px; color: var(--vs-ink); font-weight: 800; cursor: pointer; }
-.vsgold-method p { margin: 0.5rem 0 0; }
 
 /* Error state */
 .vsgold__state { display: grid; justify-items: center; gap: 0.6rem; padding: 2rem 1rem; text-align: center; }

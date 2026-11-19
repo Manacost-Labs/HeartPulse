@@ -76,7 +76,7 @@ async function watchRestore(page) {
     if (window.__restoreWatched) return;
     window.__restoreWatched = true;
     const snapshot = () => ({
-      paid: Boolean(document.querySelector('.bg-tier-list-page, ol.arena-classes-board')),
+      paid: Boolean(document.querySelector('.arena-paid-view, ol.arena-classes-board')),
       reader: document.body.textContent.includes('Читатель Кэша'),
       avatar: Boolean(document.querySelector('.arena-sidebar-profile-avatar')),
     });
@@ -102,7 +102,7 @@ async function restoredState(page, settled = 0) {
   return page.evaluate(() => ({ marker: window.__restoreMarker === true, restored: window.__restored ?? null }));
 }
 
-async function openReader(browser, origin, account, path = '/battlegrounds/tier-list/', paid = '.bg-tier-list-page') {
+async function openReader(browser, origin, account, path = '/battlegrounds/tier-builder/', paid = '.arena-paid-view') {
   const page = await browser.newPage();
   await page.setViewport({ width: 1440, height: 900 });
   const pageErrors = [];
@@ -119,7 +119,17 @@ const SHOWN = { paid: true, reader: true, avatar: true };
 const HIDDEN = { paid: false, reader: false, avatar: false };
 
 test('public documents allow the back/forward cache and account documents keep no-store', async () => {
-  const express = http.createServer((request, response) => response.writeHead(401).end());
+  // The pages that print Express data are served only with it (a 503 otherwise, and no edge marker for the home page).
+  const answers = {
+    '/api/home/summary': { topClasses: [] }, '/api/articles': { articles: [] },
+    '/api/cosmetics/heroes': { items: [], pagination: { page: 1, perPage: 24, total: 0, totalPages: 0 }, updatedAt: null, source: 'fixture' },
+  };
+  const express = http.createServer((request, response) => {
+    const answer = answers[new URL(request.url, 'http://fixture').pathname];
+    if (!answer) return response.writeHead(401).end();
+    response.setHeader('Content-Type', 'application/json');
+    response.end(JSON.stringify(answer));
+  });
   let next;
   try {
     next = await startNextServer({ legacyOrigin: await listenLocal(express) });
@@ -238,8 +248,8 @@ test('Back restores public pages from the back/forward cache and never shows a s
     await reader.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 15000 });
     gateway.sessions.add('reader');
 
-    await reader.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'load' });
-    await reader.waitForSelector('.bg-tier-list-page', { timeout: 15000 });
+    await reader.goto(`${gateway.origin}/battlegrounds/tier-builder/`, { waitUntil: 'load' });
+    await reader.waitForSelector('.arena-paid-view', { timeout: 15000 });
     await watchRestore(reader);
 
     // The subscriber signs out on the account page, then goes Back.
@@ -256,7 +266,7 @@ test('Back restores public pages from the back/forward cache and never shows a s
     assert.deepEqual({ event: signedOut.restored.event, frame: signedOut.restored.frame }, { event: HIDDEN, frame: HIDDEN },
       'a page restored after sign-out must hide the paid view and the signed-in header before its first frame');
     await reader.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 10000 });
-    assert.equal(await reader.$('.bg-tier-list-page'), null);
+    assert.equal(await reader.$('.arena-paid-view'), null);
     assert.equal(await reader.$('.arena-sidebar-profile-avatar'), null);
     assert.deepEqual(pageErrors, []);
     await reader.close();
@@ -319,7 +329,7 @@ test('a restored page shows an account only with its confirmed subscription', as
         assert.equal(await reader.evaluate(() => document.body.textContent.includes('Читатель Кэша')), false,
           'a subscription that never answers leaves the restored page without the account');
       } else {
-        await reader.waitForSelector('.bg-tier-list-page', { timeout: 15000 });
+        await reader.waitForSelector('.arena-paid-view', { timeout: 15000 });
       }
     });
 
@@ -327,7 +337,7 @@ test('a restored page shows an account only with its confirmed subscription', as
     const signedInElsewhere = subscriptionDelay => scenario(async (gateway, context) => {
       const guestPage = await context.newPage();
       await guestPage.setViewport({ width: 1440, height: 900 });
-      await guestPage.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'load' });
+      await guestPage.goto(`${gateway.origin}/battlegrounds/tier-builder/`, { waitUntil: 'load' });
       await guestPage.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 15000 });
       await watchRestore(guestPage);
       await follow(guestPage, '/classes/');
@@ -346,7 +356,7 @@ test('a restored page shows an account only with its confirmed subscription', as
         `guest page, subscription ${subscriptionDelay}: no lock frame after the restore`);
       gateway.meDelay = 0;
       if (subscriptionDelay !== 'error') {
-        await guestPage.waitForSelector('.bg-tier-list-page', { timeout: 15000 });
+        await guestPage.waitForSelector('.arena-paid-view', { timeout: 15000 });
         return;
       }
       await guestPage.waitForSelector('.arena-access-unavailable', { timeout: 20000 });
@@ -366,7 +376,7 @@ test('a restored page shows an account only with its confirmed subscription', as
         await guestPage.waitForFunction(() => window.__afterRetry.length === 3, { timeout: 10000 });
         assert.deepEqual(await guestPage.evaluate(() => window.__afterRetry), [false, false, false],
           `retry with subscription ${retry}: no account before its subscription`);
-        await guestPage.waitForSelector(retry === 'error' ? '.arena-access-unavailable' : '.bg-tier-list-page', { timeout: 20000 });
+        await guestPage.waitForSelector(retry === 'error' ? '.arena-access-unavailable' : '.arena-paid-view', { timeout: 20000 });
       }
     });
 
@@ -484,10 +494,10 @@ test('client routes revalidate shared access after revocation and account change
     await page.waitForFunction(() => location.pathname === '/classes/');
     assert.equal(await page.$('ol.arena-classes-board'), null, 'revoked access must not reappear on client Back');
     await page.setCookie({ name: 'bf_session', value: 'other', url: gateway.origin });
-    await openModeFor(page, '.arena-sidebar .hp-nav-list a[href="/battlegrounds/tier-list/"]');
-    await page.click('.arena-sidebar .hp-nav-list a[href="/battlegrounds/tier-list/"]');
-    await page.waitForFunction(() => location.pathname === '/battlegrounds/tier-list/' && document.body.textContent.includes('Другой Посетитель'));
-    assert.equal(await page.$('.bg-tier-list-page'), null, 'the new account has no paid grants');
+    await openModeFor(page, '.arena-sidebar .hp-nav-list a[href="/battlegrounds/tier-builder/"]');
+    await page.click('.arena-sidebar .hp-nav-list a[href="/battlegrounds/tier-builder/"]');
+    await page.waitForFunction(() => location.pathname === '/battlegrounds/tier-builder/' && document.body.textContent.includes('Другой Посетитель'));
+    assert.equal(await page.$('.arena-paid-view'), null, 'the new account has no paid grants');
     assert.equal(await page.evaluate(() => window.__sharedMenu === document.querySelector('.arena-sidebar')), true);
     assert.deepEqual(pageErrors, []);
   } finally {

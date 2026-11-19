@@ -1,22 +1,29 @@
 # Battlegrounds library access
 
 The `/library/` listing is served by Next.js with a public title,
-description and canonical URL. Guests see an anonymous description and a
-subscription gate; the existing `BgLibrary` client mounts only after the
-`battlegrounds` entitlement or administrator role is verified. Guest HTML and
-browser requests must not include the protected `/api/bg/library/*` data.
+description and canonical URL. The listings of the current pool
+(`/library/` and the nine `/library/:kind/`) carry an open layer for guests and
+robots: every card with its tavern tier, type, tribe, attack/health and, for
+minions, the base statistics (`docs/specs/battleground-library-open-layer.md`),
+and a locked button for the closed part. The existing `BgLibrary` client mounts
+only after the `battlegrounds` entitlement or administrator role is verified,
+and replaces the open list after its chunk is loaded. Guest HTML and browser
+requests must not include the protected `/api/bg/library/*` data; the server
+reads only the anonymous `/api/bg/library/public/*` projections.
 
 All nine allowed `/library/:kind/` categories, `/library/archive/`, and all
 seven allowed `/library/archive/:kind/` categories are served by Next.js.
 Minion and spell listings retain their existing SEO registry metadata; the
 additional categories carry local Next metadata. Unsupported archive
-categories and unknown kinds return 404. Each
-guest page shows its category description without protected API requests;
+categories and unknown kinds return 404. The archive listings keep the gate for
+a guest (no open list there);
 subscribers and administrators retain the existing `BgLibrary` filters.
 All supported current and archive detail pages are served by Next.js. Server
-HTML contains
-only the anonymous card identity, safe image, rules text and indexable entity
-JSON-LD with the canonical URL; the existing
+HTML contains the anonymous card identity, safe image, rules text, the open
+facts of the card (tier, tribe, attack/health, mechanics, golden version),
+related cards, for a minion of the pool the base statistics, and the entity
+JSON-LD when the page crosses the indexing threshold
+(`docs/specs/battleground-library-open-layer.md`); the existing
 `BgLibrary` detail client mounts after entitlement or administrator checks.
 Unknown card IDs return 404, and a noncanonical slug redirects to the
 canonical card URL. Catalog outages return non-cacheable 503 HTML with

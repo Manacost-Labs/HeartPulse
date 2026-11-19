@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -54,6 +55,28 @@ export function createPublicSeoModel(root = process.cwd()) {
     return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join('\n')}\n</urlset>\n`;
   }
 
+  /**
+   * Fingerprint of the content of each static page, by canonical URL: a hash of
+   * its registry record and, for a text page, of the text a visitor reads there
+   * (`pageTexts`, by path: see `renderPublicPageTexts`). A comment, a reformat
+   * or a renamed variable in a source file changes neither, so only a change a
+   * visitor can see moves it. It depends on nothing else, so a rebuild of the
+   * same content gives the same fingerprints; the server stores the day it first
+   * saw each one and dates `lastmod` by it.
+   */
+  function staticPageFingerprints(pageTexts = {}) {
+    const fingerprints = {};
+    for (const [pathname, page] of seoPages.entries()) {
+      if (!page.sitemap) continue;
+      const canonical = canonicalUrlFor(pathname, resolvePathPolicy(pathname));
+      fingerprints[canonical] = createHash('sha256').update(JSON.stringify({
+        record: [page.policyRouteId, page.title, page.description, page.dataTitle ?? null, page.dataDescription ?? null],
+        text: pageTexts[pathname] ?? null,
+      })).digest('hex');
+    }
+    return fingerprints;
+  }
+
   // Express serves the live index; this artifact documents the same segments.
   function sitemapIndexXml() {
     const locations = [
@@ -61,7 +84,6 @@ export function createPublicSeoModel(root = process.cwd()) {
       `${siteUrl}/sitemaps/standard-cards.xml`,
       `${siteUrl}/sitemaps/wild-cards.xml`,
       `${siteUrl}/sitemaps/battleground-minions.xml`,
-      `${siteUrl}/sitemaps/battleground-spells.xml`,
       `${siteUrl}/sitemaps/battleground-heroes.xml`,
       `${siteUrl}/sitemaps/cosmetics.xml`,
       `${siteUrl}/sitemaps/guides-archive.xml`,
@@ -70,7 +92,7 @@ export function createPublicSeoModel(root = process.cwd()) {
     return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${locations.map(location => `  <sitemap><loc>${escapeXml(location)}</loc></sitemap>`).join('\n')}\n</sitemapindex>\n`;
   }
 
-  return { seoPages, staticSitemapXml, sitemapIndexXml };
+  return { seoPages, staticSitemapXml, sitemapIndexXml, staticPageFingerprints };
 }
 
 function normalizePathname(pathname) {

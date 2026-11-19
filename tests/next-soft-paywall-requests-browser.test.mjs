@@ -20,6 +20,8 @@ test('Next.js soft-paywall pages request only the data the visitor may see', asy
       headless: true, args: ['--no-sandbox'] });
     const [name, value] = runtime.cookie.split('=');
     for (const [path, endpoint] of [['/standard/meta/', '/api/standard-meta'], ['/standard/archetypes/', '/api/constructed-archetypes']]) {
+      // The open slice a guest reads: the meta page's general slice, the catalog's teaser.
+      const openRoute = path === '/standard/meta/' ? `${endpoint}/public` : `${endpoint}/teaser`;
       for (const [subscriber, remembered, tagged] of [[true, true, true], [true, false, true], [true, false, false], [false, false, false]]) {
         const context = await browser.createBrowserContext();
         if (subscriber) await context.setCookie({ name, value, domain: new URL(runtime.origin).hostname, path: '/' },
@@ -46,7 +48,7 @@ test('Next.js soft-paywall pages request only the data the visitor may see', asy
           const { pathname } = new URL(request.url());
           if (pathname.startsWith(endpoint)) requested.push(pathname);
           if (pathname === endpoint) releaseTeaser();
-          if (pathname !== `${endpoint}/teaser`) return void request.continue();
+          if (pathname !== openRoute) return void request.continue();
           void Promise.race([fullSliceRequested, new Promise(resolve => setTimeout(resolve, 3_000))])
             .then(() => request.continue()).catch(() => {});
         });
@@ -64,8 +66,8 @@ test('Next.js soft-paywall pages request only the data the visitor may see', asy
         // a teaser the full slice would cancel; the archetype catalog serves
         // its teaser from the server. Either way a subscriber reads the full
         // slice only.
-        const expected = serverTeaser ? [] : !subscriber ? [`${endpoint}/teaser`]
-          : tagged ? [endpoint] : [`${endpoint}/teaser`, endpoint];
+        const expected = serverTeaser ? [] : !subscriber ? [openRoute]
+          : tagged ? [endpoint] : [openRoute, endpoint];
         assert.deepEqual(requested, expected, `${label} requested ${JSON.stringify(requested)}`);
         assert.deepEqual(failed, [], `${label} cancelled no request`);
         assert.doesNotMatch(html, /"deckCode":"[^"]/, `${path} carries no deck code in its HTML`);

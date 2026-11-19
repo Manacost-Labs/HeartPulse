@@ -209,15 +209,16 @@ assert.match(urlset, /<lastmod>2026-07-21<\/lastmod>/);
 assert.doesNotMatch(urlset, /<changefreq>|<priority>/);
 
 const index = renderSitemapIndex([
-  'https://arena.hs-manacost.ru/sitemaps/static.xml',
-  'https://arena.hs-manacost.ru/sitemaps/standard-cards.xml',
-  'https://arena.hs-manacost.ru/sitemaps/wild-cards.xml',
-  'https://arena.hs-manacost.ru/sitemaps/battleground-minions.xml',
-  'https://arena.hs-manacost.ru/sitemaps/battleground-spells.xml',
-  'https://arena.hs-manacost.ru/sitemaps/battleground-heroes.xml',
+  { location: 'https://arena.hs-manacost.ru/sitemaps/static.xml' },
+  { location: 'https://arena.hs-manacost.ru/sitemaps/standard-cards.xml' },
+  { location: 'https://arena.hs-manacost.ru/sitemaps/wild-cards.xml' },
+  { location: 'https://arena.hs-manacost.ru/sitemaps/battleground-minions.xml' },
+  { location: 'https://arena.hs-manacost.ru/sitemaps/battleground-spells.xml' },
+  { location: 'https://arena.hs-manacost.ru/sitemaps/battleground-heroes.xml' },
 ]);
 assert.match(index, /<sitemapindex xmlns="http:\/\/www\.sitemaps\.org\/schemas\/sitemap\/0\.9">/);
 assert.equal([...index.matchAll(/<loc>/g)].length, 6);
+assert.doesNotMatch(index, /<lastmod>/, 'an index entry with no date writes none');
 
 assert.throws(
   () => renderSitemapUrlset(Array.from({ length: 50_001 }, (_, index) => ({

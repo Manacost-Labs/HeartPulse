@@ -555,8 +555,14 @@
         "@type": "Dataset",
         "@id": "https://hearthpulse.net/standard/matchups/#dataset",
         "name": "Матчапы Стандарта Hearthstone",
-        "description": "Матрица винрейтов архетипов актуальной меты Стандарта Hearthstone по данным HSGuru.",
+        "description": "Общий срез матчапов Стандарта и Вольного формата Hearthstone по данным HSGuru: винрейт и число игр каждой пары популярных архетипов открыты. Срезы по рангам, периодам и история матчапов доступны по подписке.",
         "url": "https://hearthpulse.net/standard/matchups/",
+        "isAccessibleForFree": false,
+        "hasPart": {
+          "@type": "WebPageElement",
+          "isAccessibleForFree": false,
+          "cssSelector": ".paywalled-standard-matchups"
+        },
         "isBasedOn": {
           "@type": "Dataset",
           "name": "HSGuru: Matchups",
@@ -618,8 +624,14 @@
         "@type": "Dataset",
         "@id": "https://hearthpulse.net/standard/meta/#dataset",
         "name": "Мета Стандарта Hearthstone: винрейт, популярность и число игр архетипов",
-        "description": "Срез меты Стандарта Hearthstone по данным HSGuru: винрейт, популярность и число игр архетипов. На странице показан бесплатный срез; полная таблица доступна подписчикам.",
+        "description": "Общий срез меты Стандарта и Вольного формата Hearthstone по данным HSGuru: винрейт, популярность и число игр каждого архетипа открыты. Узкие срезы по рангу, очерёдности хода и периоду, динамика и рекомендации доступны по подписке.",
         "url": "https://hearthpulse.net/standard/meta/",
+        "isAccessibleForFree": false,
+        "hasPart": {
+          "@type": "WebPageElement",
+          "isAccessibleForFree": false,
+          "cssSelector": ".paywalled-standard-meta"
+        },
         "isBasedOn": {
           "@type": "Dataset",
           "name": "HSGuru: Meta",
@@ -1322,12 +1334,57 @@
         ]
       },
       {
-        "@type": "WebPage",
-        "@id": "https://hearthpulse.net/battlegrounds/strategies/#page",
+        "@type": "CollectionPage",
+        "@id": "https://hearthpulse.net/battlegrounds/strategies/#collection",
         "name": "Конструктор стратегий Полей сражений",
-        "description": "Инструмент для сборки и визуализации собственного плана на Полях сражений Hearthstone.",
+        "description": "Стратегии Hearthstone Battlegrounds по тирам: ключевые существа, условия перехода, пример стола и ссылка на конструктор.",
         "url": "https://hearthpulse.net/battlegrounds/strategies/",
         "inLanguage": "ru"
+      },
+      {
+        "@type": "Dataset",
+        "@id": "https://hearthpulse.net/battlegrounds/strategies/#dataset",
+        "name": "Тир-лист стратегий Полей сражений Hearthstone",
+        "description": "Стратегии Hearthstone Battlegrounds по данным Firestone. На открытой странице — все стратегии по тирам: ключевые существа, условия перехода, пример стола и ссылка на конструктор. Конструктор стратегий, статистика по узким рейтинговым диапазонам и разбор развилок доступны по подписке.",
+        "url": "https://hearthpulse.net/battlegrounds/strategies/",
+        "isAccessibleForFree": false,
+        "hasPart": {
+          "@type": "WebPageElement",
+          "isAccessibleForFree": false,
+          "cssSelector": ".paywalled-builds"
+        },
+        "isBasedOn": [
+          {
+            "@type": "Dataset",
+            "name": "Firestone: Battlegrounds Comps",
+            "url": "https://www.firestoneapp.com/battlegrounds/comps"
+          }
+        ],
+        "variableMeasured": [
+          {
+            "@type": "PropertyValue",
+            "name": "Тир стратегии"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Среднее место стратегии"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Популярность стратегии",
+            "unitText": "%"
+          }
+        ],
+        "keywords": [
+          "Hearthstone",
+          "Поля сражений",
+          "стратегии",
+          "конструктор стратегий"
+        ],
+        "about": {
+          "@type": "VideoGame",
+          "name": "Hearthstone"
+        }
       }
     ],
     "/heroes": [
@@ -1502,9 +1559,54 @@
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/battlegrounds/tier-list/#collection",
         "name": "Тир-лист Полей сражений Hearthstone",
-        "description": "Существа, стратегии, заклинания и аксессуары Hearthstone Battlegrounds.",
+        "description": "Сборки Hearthstone Battlegrounds по тирам: ключевые существа, условия перехода, пример стола и среднее место.",
         "url": "https://hearthpulse.net/battlegrounds/tier-list/",
         "inLanguage": "ru"
+      },
+      {
+        "@type": "Dataset",
+        "@id": "https://hearthpulse.net/battlegrounds/tier-list/#dataset",
+        "name": "Тир-лист сборок Полей сражений Hearthstone",
+        "description": "Тир-лист сборок Hearthstone Battlegrounds по данным HSReplay. На открытой странице — все сборки по тирам: ключевые существа, условия перехода в сборку, пример стола и ссылка на конструктор. Статистика по узким рейтинговым диапазонам, разбор развилок по ходу партии и аксессуары доступны по подписке.",
+        "url": "https://hearthpulse.net/battlegrounds/tier-list/",
+        "isAccessibleForFree": false,
+        "hasPart": {
+          "@type": "WebPageElement",
+          "isAccessibleForFree": false,
+          "cssSelector": ".paywalled-builds"
+        },
+        "isBasedOn": [
+          {
+            "@type": "Dataset",
+            "name": "HSReplay: Battlegrounds Comps",
+            "url": "https://hsreplay.net/battlegrounds/comps/"
+          }
+        ],
+        "variableMeasured": [
+          {
+            "@type": "PropertyValue",
+            "name": "Тир сборки"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Среднее место сборки"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Популярность сборки",
+            "unitText": "%"
+          }
+        ],
+        "keywords": [
+          "Hearthstone",
+          "Поля сражений",
+          "сборки",
+          "тир-лист сборок"
+        ],
+        "about": {
+          "@type": "VideoGame",
+          "name": "Hearthstone"
+        }
       }
     ],
     "/battlegrounds/tier-builder": [

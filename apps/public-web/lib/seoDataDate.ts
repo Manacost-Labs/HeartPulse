@@ -27,7 +27,7 @@ const parts = new Intl.DateTimeFormat('en-US', {
 });
 
 /**
- * The date of the data for metadata and the visible data note: month, full
+ * The date of the data for metadata and server-rendered blocks: month, full
  * date and time in the audience's zone (`SERVER_RENDER_TIME_ZONE`, the zone
  * server-rendered times use), never the server's own clock. `now` is the
  * moment that decides whether the data is stale. `null` for a missing or

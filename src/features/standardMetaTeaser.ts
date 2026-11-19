@@ -8,9 +8,9 @@ import type {
 } from '../../shared/standardMetaContract';
 
 /**
- * The guest's first slice, read on the server from the anonymous teaser
+ * The guest's first slice, read on the server from the open general slice
  * (apps/public-web/lib/publicStandardMetaTeaser.ts): the period the page
- * opens with and its data.
+ * opens with and its data (every archetype row, without the paid columns).
  */
 export type StandardMetaTeaserSeed = { period: StandardMetaPeriod; data: StandardMetaData };
 
@@ -26,7 +26,7 @@ export function metaRequestKey(format: StandardMetaFormat, rank: StandardMetaSer
 /** The request a server-rendered teaser answers, or '' when the viewer needs full data. */
 export function teaserSeedKey(seed: StandardMetaTeaserSeed | null, fullAccess: boolean): string {
   return seed && !fullAccess
-    ? metaRequestKey(TEASER_SEED_FILTERS.format, TEASER_SEED_FILTERS.rank, seed.period, TEASER_SEED_FILTERS.coin,
+    ? metaRequestKey(TEASER_SEED_FILTERS.format, TEASER_SEED_FILTERS.rank, null, TEASER_SEED_FILTERS.coin,
       TEASER_SEED_FILTERS.minGames, 0, false)
     : '';
 }

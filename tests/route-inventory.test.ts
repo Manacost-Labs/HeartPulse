@@ -2,6 +2,16 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { TABS } from '../src/app/routing/navigationRoutes';
 import { resolvePublicUrlPolicy } from '../src/shared/seo/publicUrlPolicy';
+import { INDEXABLE_ARCHETYPE_MIN_GAMES, isIndexableArchetype } from '../shared/constructedArchetypeIndexing';
+import {
+  INDEX_MIN_OWN_FACTS,
+  INDEX_MIN_OWN_WORDS,
+  INDEX_MIN_SAMPLE_GAMES,
+  indexThresholdNotice,
+  meetsContentThreshold,
+  meetsSampleThreshold,
+} from '../shared/seoIndexThreshold';
+import { projectConstructedArchetypeSitemapCatalog } from '../server/entitySitemapProjections';
 
 type InventoryRoute = {
   id: string;
@@ -287,5 +297,77 @@ for (const policy of inventory.queryPolicies) {
 for (const parameter of ['login', 'admin', 'section', 'contest', 'contests', 'page', 'list', 'source', 'strategy', 'q']) {
   assert.ok(queryOwners.has(parameter), `${parameter} query state must have an explicit noindex policy`);
 }
+
+// S5 (#379): one indexing rule. index <=> sitemap <=> self-canonical, and a noindex page is in no segment.
+for (const route of inventory.routes) {
+  assert.equal(route.indexPolicy === 'index', route.sitemap,
+    `${route.id}: index and sitemap eligibility must be the same fact`);
+  if (route.indexPolicy === 'index') {
+    assert.equal(route.canonicalPolicy, 'self', `${route.id}: an index page is canonical to itself`);
+    assert.equal(route.expectedStatus, 200, `${route.id}: an index page answers 200`);
+  }
+}
+
+// Every entity sitemap segment lists paths that the inventory marks `index`; no segment carries a noindex template.
+const segmentSamplePaths: Record<string, string> = {
+  'standard-cards': '/standard/cards/standard/EX1_001/',
+  'wild-cards': '/standard/cards/wild/EX1_001/',
+  'battleground-minions': '/library/minions/murloc-tidehunter-1/',
+  'battleground-spells': '/library/spells/banana-1/',
+  'battleground-heroes': '/heroes/1/',
+  cosmetics: '/cosmetics/heroes/57944/',
+  'guides-archive': '/guides-archive/some-guide/',
+  archetypes: '/standard/archetypes/standard/aggro-hunter/',
+};
+for (const [segment, path] of Object.entries(segmentSamplePaths)) {
+  const policy = inventory.routes.find(route => routeMatchesPath(route, path));
+  assert.ok(policy, `${segment} sitemap segment path ${path} must have an inventory policy`);
+  assert.equal(policy.indexPolicy, 'index', `${segment} sitemap segment must not contain a noindex template (${policy.id})`);
+  assert.equal(policy.sitemap, true, `${segment} sitemap segment template ${policy.id} must be sitemap-eligible`);
+  assert.equal(policy.canonicalPolicy, 'self', `${segment} sitemap segment template ${policy.id} must be self-canonical`);
+}
+
+// Dynamic noindex: an archetype below the sample threshold is kept out of its segment, not silently listed.
+const archetypeRow = (games: number) => ({
+  item: { slug: 'aggro-hunter', format: 'standard', games, deckCount: 3, popularity: 2, archetype: 'Aggro', classKey: 'hunter' },
+  updatedAt: '2026-11-19T00:00:00.000Z',
+  period: 'last-7-days',
+});
+const archetypeMin = INDEX_MIN_SAMPLE_GAMES.archetype;
+assert.equal(isIndexableArchetype(archetypeRow(archetypeMin).item as never), true);
+assert.equal(isIndexableArchetype(archetypeRow(archetypeMin - 1).item as never), false);
+assert.equal(projectConstructedArchetypeSitemapCatalog([archetypeRow(archetypeMin)]).length, 1,
+  'an archetype at the threshold enters the archetypes segment');
+assert.throws(() => projectConstructedArchetypeSitemapCatalog([archetypeRow(archetypeMin - 1)]),
+  'an archetype below the threshold must be rejected from the archetypes segment');
+
+// The threshold module: 150 own words or 10 own facts; the notice names the sample.
+assert.equal(INDEX_MIN_OWN_WORDS, 150);
+assert.equal(INDEX_MIN_OWN_FACTS, 10);
+assert.equal(INDEXABLE_ARCHETYPE_MIN_GAMES, archetypeMin, 'the archetype readers see the number of the threshold module, not a second constant');
+// One rule: the archetype predicate and the sitemap projection agree with the shared sample threshold at the boundary.
+for (const games of [0, archetypeMin - 1, archetypeMin, archetypeMin + 1]) {
+  const expected = meetsSampleThreshold(games, archetypeMin);
+  assert.equal(isIndexableArchetype(archetypeRow(games).item as never), expected, `isIndexableArchetype at ${games} games`);
+  const listed = (() => {
+    try { return projectConstructedArchetypeSitemapCatalog([archetypeRow(games)]).length === 1; } catch { return false; }
+  })();
+  assert.equal(listed, expected, `sitemap projection at ${games} games`);
+}
+assert.equal(archetypeMin, 1000, 'the archetype sample minimum is the existing constant, read from the threshold module');
+assert.equal(meetsContentThreshold({ ownWords: 149, ownFacts: 9 }), false);
+assert.equal(meetsContentThreshold({ ownWords: 150, ownFacts: 0 }), true);
+assert.equal(meetsContentThreshold({ ownWords: 0, ownFacts: 10 }), true);
+assert.equal(meetsContentThreshold({ ownWords: Number.NaN, ownFacts: -3 }), false);
+assert.equal(
+  indexThresholdNotice({ games: 120, minGames: archetypeMin }),
+  'Мало данных: 120 игр из нужных 1000, страница не индексируется до набора выборки',
+);
+assert.equal(
+  indexThresholdNotice({ games: null, minGames: archetypeMin }),
+  'Мало данных: 0 игр из нужных 1000, страница не индексируется до набора выборки',
+);
+assert.equal(indexThresholdNotice({ games: archetypeMin, minGames: archetypeMin }), null);
+assert.equal(indexThresholdNotice({ games: archetypeMin + 5000, minGames: archetypeMin }), null);
 
 console.log(`public route inventory assertions passed (${inventory.routes.length} templates)`);

@@ -97,7 +97,8 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
           h1: [...document.querySelectorAll('h1')].map(node => node.textContent?.trim()),
           mainCount: document.querySelectorAll('main').length,
           canonical: document.querySelector('link[rel="canonical"]')?.href,
-          paywall: document.body.textContent.includes('доступен подписчикам'),
+          // The strategies page shows its open builds and a closed-part note instead of a gate (E21 R7).
+          paywall: document.body.textContent.includes('доступен подписчикам') || Boolean(document.querySelector('.paywalled-builds .bg-builds-locks button')),
           contentWidth: document.querySelector('.arena-content').getBoundingClientRect().width,
           mainWidth: document.querySelector('main').getBoundingClientRect().width,
           overflow: document.documentElement.scrollWidth > innerWidth,

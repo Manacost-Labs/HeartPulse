@@ -2,18 +2,20 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { cosmeticsDetailPath } from '@/src/modules/cosmetics/public';
 import { constructedCardRoute } from '@/src/modules/constructedCards/public';
 import { publicBattlegroundHero } from './lib/publicBattlegroundHeroData';
+import { publicBattlegroundHeroStatsOf } from './lib/publicBattlegroundHeroStats';
 import { publicBattlegroundLibraryCard } from './lib/publicBattlegroundLibraryCardData';
 import { battlegroundLibraryDetailApiPath, type BattlegroundLibraryPool } from './lib/battlegroundLibraryDetailKinds';
 import { publicCardSeed } from './lib/publicCardSeed';
-import { encodePublicProjection, MISSING_PUBLIC_PROJECTION, PUBLIC_BG_PROJECTION_HEADER,
-  PUBLIC_CARD_PROJECTION_HEADER } from './lib/publicProjectionHeader';
+import { encodePublicProjection, encodePublicProjectionList, MISSING_PUBLIC_PROJECTION, PUBLIC_BG_PROJECTION_HEADER,
+  PUBLIC_BG_RELATED_HEADER, PUBLIC_CARD_PROJECTION_HEADER } from './lib/publicProjectionHeader';
 import { MISSING_COSMETICS_DETAIL_HEADER } from './lib/cosmeticsDetailContract';
 import { unavailablePageHtml } from './lib/unavailablePage';
 import { fetchPublicExpress } from './lib/expressApi';
 import { cachedCatalog } from './lib/defaultCatalogStore';
 import { rememberCardProjection, lastGoodCardProjection, forgetCardProjection } from './lib/cardLastGood';
 import { CATALOG_READ_DEADLINE_MS } from './lib/publicCatalogCache';
-import { isPublicHomeDocument, PUBLIC_DOCUMENT_RESPONSE_HEADERS } from './documentCaching.mjs';
+import { probePublicData } from './lib/publicDataProbe';
+import { isPublicHomeDocument, PUBLIC_DOCUMENT_CACHE_CONTROL, PUBLIC_DOCUMENT_RESPONSE_HEADERS } from './documentCaching.mjs';
 
 type BattlegroundDetailProbe =
   | { type: 'hero'; dbfId: string; apiPath: string }
@@ -62,12 +64,21 @@ async function checkBattlegroundDetail(probe: BattlegroundDetailProbe, headers: 
     const value = await response.json();
     let projection: unknown;
     if (probe.type === 'hero') {
-      projection = { hero: publicBattlegroundHero(value, probe.dbfId) };
+      const hero = publicBattlegroundHero(value, probe.dbfId);
+      const stats = publicBattlegroundHeroStatsOf(value);
+      // The open statistics ride along when they fit the header; otherwise the page reads them itself.
+      projection = { hero, stats };
+      if (!encodePublicProjection(projection)) projection = { hero };
     } else {
       const card = publicBattlegroundLibraryCard(value, probe.kindPath, probe.dbfId, probe.pool);
+      // The open facts and statistics ride along: the oversized case below stays a 503 (no second read can race it).
       projection = { card: { dbfId: card.dbfId, kind: card.kind, nameRu: card.name,
-        typeName: card.typeName, textRu: card.text, images: { card: card.image } },
-      canonicalPath: card.canonicalPath };
+        typeName: card.typeName, textRu: card.text, images: { card: card.image },
+        tavernTier: card.tavernTier, tribe: card.tribe, attack: card.attack, health: card.health,
+        mechanics: card.mechanics, golden: card.golden },
+      canonicalPath: card.canonicalPath, stats: card.stats };
+      const related = encodePublicProjectionList(card.related);
+      if (related) headers.set(PUBLIC_BG_RELATED_HEADER, related);
     }
     const encoded = encodePublicProjection(projection);
     // A large header can exceed an upstream request limit.
@@ -201,6 +212,7 @@ export async function proxy(request: NextRequest) {
   headers.delete('x-hearthpulse-card-id');
   headers.delete('x-hearthpulse-card-format');
   headers.delete(PUBLIC_BG_PROJECTION_HEADER);
+  headers.delete(PUBLIC_BG_RELATED_HEADER);
   headers.delete(PUBLIC_CARD_PROJECTION_HEADER);
   headers.delete(MISSING_COSMETICS_DETAIL_HEADER);
   if (route.page === 'detail' && route.cardId) {
@@ -227,11 +239,20 @@ export async function proxy(request: NextRequest) {
     if (nicknameRedirect) return nicknameRedirect;
     const cosmeticsUnavailable = await checkCosmeticsDetail(request.nextUrl.pathname, headers, request.method);
     if (cosmeticsUnavailable) return cosmeticsUnavailable;
+    // A data page is served only with its data (fresh or the last good copy). Without any, the document
+    // would be the page without its data, and the regional edge keeps a 200 for everybody: it is a 503 instead.
+    // A probe that itself fails is a bug, not an outage: the page is served as before.
+    const data = scriptFetch || request.nextUrl.searchParams.has('login') ? 'none'
+      : await probePublicData(request.nextUrl.pathname, request.nextUrl.searchParams).catch(() => 'none' as const);
+    if (data === 'unavailable') return unavailableResponse('60', request.method, true);
     // The other public families get this header from `next.config.mjs`.
     if (isPublicHomeDocument(request.nextUrl.pathname, request.nextUrl.searchParams)) {
-      return NextResponse.next({ request: { headers }, headers: PUBLIC_DOCUMENT_RESPONSE_HEADERS });
+      // Without its feeds the home page is still worth showing, but not worth keeping for everybody.
+      return NextResponse.next({ request: { headers }, headers: data === 'partial'
+        ? { 'Cache-Control': PUBLIC_DOCUMENT_CACHE_CONTROL } : PUBLIC_DOCUMENT_RESPONSE_HEADERS });
     }
   }
   return NextResponse.next({ request: { headers } });
 }
-export const config = { matcher: ['/', '/standard/cards/:path*', '/heroes/:path*', '/library/:path*', '/cosmetics/:path*', '/u/:path*'] };
+export const config = { matcher: ['/', '/standard/cards/:path*', '/heroes/:path*', '/library/:path*', '/cosmetics/:path*', '/u/:path*',
+  '/leaderboards/:path*', '/streamers/:path*', '/standard/patches/:path*', '/standard/archetypes/:path*', '/standard/fun-decks/:path*'] };

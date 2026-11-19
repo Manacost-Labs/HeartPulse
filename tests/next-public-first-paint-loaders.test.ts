@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { readFirstPaintJson } from '../apps/public-web/lib/publicFirstPaintRead';
-import { loadStandardMetaTeaserSeed, standardMetaTeaserPath } from '../apps/public-web/lib/publicStandardMetaTeaserData';
+import { CatalogUnavailableError, PublicDataMissingError, createDefaultCatalogCache } from '../apps/public-web/lib/publicCatalogCache';
+import { loadStandardMetaTeaserSeed, standardMetaPublicPath } from '../apps/public-web/lib/publicStandardMetaTeaserData';
 import { publicArchetypeCatalog } from '../apps/public-web/lib/publicArchetypeCatalogTeaserData';
 import { cosmeticsCatalogSeed, cosmeticsCatalogSeedRequest } from '../apps/public-web/lib/publicCosmeticsCatalogData';
 import { publicFunDecksPreview } from '../apps/public-web/lib/publicFunDecksPreviewData';
@@ -49,7 +50,7 @@ assert.equal(bodyAborted, true, 'the deadline covers a stalled JSON body, not on
 const metaItem = (index: number) => ({
   id: `a${index}`, slug: `a-${index}`, archetype: `Archetype ${index}`, archetypeLabel: `Архетип ${index}`,
   translated: true, classKey: 'mage', winrate: 51.2, popularity: 4.1, games: 1200 + index,
-  turns: 8.2, durationMinutes: 7.5, climbingSpeed: 1.1,
+  turns: null, durationMinutes: null, climbingSpeed: null,
 });
 const metaPayload = (period: string, items = [metaItem(1), metaItem(2), metaItem(3)]) => ({
   format: 'standard', formatLabel: 'Стандарт', rank: 'diamond_legend', rankLabel: 'Алмаз — Легенда', period,
@@ -57,52 +58,30 @@ const metaPayload = (period: string, items = [metaItem(1), metaItem(2), metaItem
   currentPatchPeriod: 'patch_36.6.3', coin: 'any_player', minGames: 100, source: 'hsguru', sourceUrl: '',
   translationSource: '', updatedAt: '2026-10-03T10:00:00.000Z', items,
 });
-assert.equal(standardMetaTeaserPath(null),
-  '/api/standard-meta/teaser?format=standard&rank=diamond_legend&coin=any_player&min_games=100');
+assert.equal(standardMetaPublicPath(), '/api/standard-meta/public?format=standard');
 const metaReads: string[] = [];
 const metaSeed = await loadStandardMetaTeaserSeed(async path => {
   metaReads.push(path);
-  return metaPayload(new URL(path, 'http://x').searchParams.get('period') ?? 'past_day');
+  return metaPayload('patch_36.6.3');
 });
-assert.deepEqual(metaReads, [standardMetaTeaserPath(null), standardMetaTeaserPath('patch_36.6.3')]);
+assert.deepEqual(metaReads, [standardMetaPublicPath()], 'one read of the open slice');
 assert.equal(metaSeed?.period, 'patch_36.6.3');
-assert.equal(metaSeed?.data.period, 'patch_36.6.3');
 assert.equal(metaSeed?.data.items.length, 3);
-// With the period resolved last time, both reads start together (one round trip, not two).
-const startedReads: string[] = [];
-let release: () => void = () => undefined;
-const gate = new Promise<void>(resolve => { release = resolve; });
-const parallelSeed = loadStandardMetaTeaserSeed(async path => {
-  startedReads.push(path);
-  await gate;
-  return metaPayload(new URL(path, 'http://x').searchParams.get('period') ?? 'past_day');
-}, 'patch_36.6.3');
-await new Promise(resolve => setTimeout(resolve, 10));
-assert.deepEqual(startedReads, [standardMetaTeaserPath(null), standardMetaTeaserPath('patch_36.6.3')],
-  'the expected period is read before the default read answers');
-release();
-assert.equal((await parallelSeed)?.data.period, 'patch_36.6.3');
-const changedPeriod: string[] = [];
-const changedSeed = await loadStandardMetaTeaserSeed(async path => {
-  changedPeriod.push(path);
-  return metaPayload(new URL(path, 'http://x').searchParams.get('period') ?? 'past_day');
-}, 'patch_36.6.2');
-assert.equal(changedSeed?.period, 'patch_36.6.3');
-assert.equal(changedPeriod.length, 3, 'a new patch reads the current period in turn');
-const oneRead: string[] = [];
-await loadStandardMetaTeaserSeed(async path => { oneRead.push(path); return metaPayload('patch_36.6.3'); });
-assert.equal(oneRead.length, 1, 'no second read when Express already answered the current period');
+const wholeSlice = await loadStandardMetaTeaserSeed(async () => metaPayload('patch_36.6.3',
+  [metaItem(1), metaItem(2), metaItem(3), metaItem(4), metaItem(5)]));
+assert.equal(wholeSlice?.data.items.length, 5, 'every row of the open slice reaches the page');
 assert.equal(await loadStandardMetaTeaserSeed(async () => null), null);
 assert.equal(await loadStandardMetaTeaserSeed(async () => ({ items: 'broken' })), null);
+assert.equal(await loadStandardMetaTeaserSeed(async () => metaPayload('patch_36.6.3', [])), null, 'an empty slice is not seeded');
+// A row that brings a paid column is not an open row: the page is left to the browser.
 assert.equal(await loadStandardMetaTeaserSeed(async () => metaPayload('patch_36.6.3',
-  [metaItem(1), metaItem(2), metaItem(3), metaItem(4)])), null, 'more than the top three is not a teaser');
-// The games of the whole slice reach the page; nothing else the teaser might carry does.
+  [{ ...metaItem(1), turns: 7.7 }])), null, 'a paid column is never printed into the HTML');
 const sampledSeed = await loadStandardMetaTeaserSeed(async () => ({
   ...metaPayload('patch_36.6.3'), totalGames: 4_500, deckCodes: ['PAID'],
 }));
 assert.equal(sampledSeed?.data.totalGames, 4_500);
 assert.deepEqual(Object.keys(sampledSeed?.data ?? {}).filter(key => !(key in metaPayload('patch_36.6.3'))), ['totalGames']);
-assert.equal(metaSeed?.data.totalGames, undefined, 'a teaser without the total stays without it');
+assert.equal(metaSeed?.data.totalGames, undefined, 'a slice without the total stays without it');
 for (const totalGames of [-1, 4_500.5, '4500']) {
   assert.equal(await loadStandardMetaTeaserSeed(async () => ({ ...metaPayload('patch_36.6.3'), totalGames })), null,
     `a total of ${JSON.stringify(totalGames)} is not a count of games`);
@@ -272,9 +251,125 @@ assert.equal(publicFunDecksPreview({ error: 'upstream' }), null);
   assert.ok(reads.includes('/api/patch-notes/1.0.0'), 'the oldest version was dropped at the bound');
 }
 
-// The loaders are server-only, anonymous (fetchPublicExpress) and bounded.
-for (const loader of ['publicStandardMetaTeaser', 'publicArchetypeCatalogTeaser', 'publicCosmeticsCatalog',
-  'publicFunDecksPreview']) {
+// The last good store of the data pages: bounded in copies, size and age, never serving a removed page.
+{
+  let clock = 0;
+  const now = () => clock;
+  let down = false;
+  const missing = new Set<string>();
+  const sizes = new Map<string, number>();
+  const options = { maxEntries: 3, maxBytes: 100, staleLimitMs: 1000, freshMs: 10, size: (value: unknown) => (value as string).length };
+  const store = createDefaultCatalogCache<string>(async key => {
+    if (missing.has(key)) throw new PublicDataMissingError();
+    if (down) throw new Error('Express down');
+    return 'x'.repeat(sizes.get(key) ?? 10);
+  }, now, value => value, options);
+
+  // Copies: the oldest idle one goes first, by count and by size.
+  for (const key of ['a', 'b', 'c', 'd']) { await store(key); clock += 20; }
+  down = true;
+  await assert.rejects(store('a'), CatalogUnavailableError, 'the fourth copy pushed the oldest one out');
+  assert.equal(await store('d'), 'x'.repeat(10), 'the newest copy is still there');
+  down = false;
+  sizes.set('big', 70);
+  await store('big');
+  clock += 20;
+  down = true;
+  assert.equal(await store('big'), 'x'.repeat(70));
+  await assert.rejects(store('b'), CatalogUnavailableError, 'a big copy pushed out older ones to stay within the size bound');
+  down = false;
+
+  // Age: a copy older than the limit is not served in an outage.
+  await store('d');
+  clock += 5000;
+  down = true;
+  await assert.rejects(store('d'), CatalogUnavailableError, 'a copy past its age limit is not served');
+  down = false;
+
+  // A 404 is told as it is, stores nothing and drops the copy of that path.
+  await store('gone');
+  clock += 20;
+  missing.add('gone');
+  await assert.rejects(store('gone'), PublicDataMissingError);
+  down = true;
+  missing.delete('gone');
+  await assert.rejects(store('gone'), CatalogUnavailableError, 'the removed page is not served from memory');
+  down = false;
+}
+
+// A 200 that is not the page's contract is a failed read: it neither stores nor replaces the last good copy.
+{
+  const { readPublicJson, publicCheckCount, CHECKS_MAX_ENTRIES } = await import('../apps/public-web/lib/firstPaintStore');
+  const { funDecksCheck, homeSummaryCheck, homeArticlesCheck } = await import('../apps/public-web/lib/publicPayloadChecks');
+  const realFetch = globalThis.fetch;
+  const realNow = Date.now;
+  let clock = realNow();
+  let answer: unknown = funRaw;
+  Date.now = () => clock;
+  globalThis.fetch = (async () => json(answer)) as typeof fetch;
+  try {
+    const path = '/api/fun-decks?contract-check';
+    assert.deepEqual(await readPublicJson(path, true, funDecksCheck), funRaw);
+    clock += 3000;
+    answer = { error: 'upstream says 200' };
+    const kept = await readPublicJson(path, true, funDecksCheck);
+    assert.deepEqual(kept, funRaw, 'a 200 outside the contract keeps the last good copy');
+    const other = '/api/fun-decks?contract-cold';
+    await assert.rejects(readPublicJson(other, true, funDecksCheck), CatalogUnavailableError,
+      'with no copy a contract-breaking 200 is an outage (503), not a page without data');
+    // The home feeds: an error body, null or a bare array must not replace the copy either.
+    const feeds = [
+      ['/api/home/summary', homeSummaryCheck, { topClasses: [{ id: 'mage', name: 'Маг', winrate: 51.2 }] }],
+      ['/api/articles', homeArticlesCheck, { articles: [{ id: 'a1', title: 'Статья' }], updatedAt: null }],
+    ] as const;
+    for (const [feedPath, check, good] of feeds) {
+      answer = good;
+      const first = await readPublicJson(feedPath, false, check);
+      assert.deepEqual(first, good);
+      for (const broken of [{ error: 'upstream' }, null, []]) {
+        clock += 3000;
+        answer = broken;
+        assert.deepEqual(await readPublicJson(feedPath, false, check), good, `${feedPath}: ${JSON.stringify(broken)} keeps the copy`);
+      }
+    }
+    // The check belongs to its request: unique paths pushing it out of the table while the answer is on the wire
+    // must not let a late answer outside the contract become the copy.
+    {
+      let release: (() => void) | undefined;
+      const slowPath = '/api/fun-decks?slow-a';
+      globalThis.fetch = (async (input: RequestInfo | URL) => {
+        if (String(input).includes('slow-a')) {
+          await new Promise<void>(resolve => { release = resolve; });
+          return json({ error: 'late 200 outside the contract' });
+        }
+        return json(funRaw);
+      }) as typeof fetch;
+      const slow = readPublicJson(slowPath, true, funDecksCheck).then(() => 'stored', error => error);
+      for (let tries = 0; !release && tries < 100; tries++) await new Promise(resolve => setTimeout(resolve, 5));
+      assert.ok(release, 'the slow read is on the wire');
+      for (let index = 0; index < CHECKS_MAX_ENTRIES + 20; index++) await readPublicJson(`/api/fun-decks?evict-${index}`, true, funDecksCheck);
+      release();
+      assert.ok(await slow instanceof CatalogUnavailableError, 'a late answer outside the contract is a failed read');
+      globalThis.fetch = (async () => json({ error: 'down' }, 503)) as typeof fetch;
+      clock += 3000;
+      await assert.rejects(readPublicJson(slowPath, true, funDecksCheck), CatalogUnavailableError, 'it was not kept as a copy');
+    }
+    answer = funRaw;
+    globalThis.fetch = (async () => json(answer)) as typeof fetch;
+    // The check table is bounded: addresses with their own query or slug do not grow it for ever.
+    answer = funRaw;
+    for (let index = 0; index < CHECKS_MAX_ENTRIES + 50; index++) {
+      await readPublicJson(`/api/fun-decks?q=probe-${index}`, true, funDecksCheck);
+    }
+    assert.ok(publicCheckCount() <= CHECKS_MAX_ENTRIES, `check table holds ${publicCheckCount()} entries, limit ${CHECKS_MAX_ENTRIES}`);
+  } finally {
+    globalThis.fetch = realFetch;
+    Date.now = realNow;
+  }
+}
+
+// The loaders are server-only and read anonymously through `readFirstPaintJson`.
+for (const loader of ['publicStandardMetaTeaser']) {
   const source = readFileSync(new URL(`../apps/public-web/lib/${loader}.ts`, import.meta.url), 'utf8');
   assert.match(source, /^import 'server-only';/, `${loader} never reaches the browser bundle`);
   assert.match(source, /fetchPublicExpress\(/, `${loader} reads without viewer cookies`);

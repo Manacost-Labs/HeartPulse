@@ -8,12 +8,14 @@
  * has no server-rendered path to the pages yet.
  */
 
+import { INDEX_MIN_SAMPLE_GAMES, meetsSampleThreshold } from './seoIndexThreshold.js';
+
 /**
  * A winrate below this many games is noise, so the page stays out of the index.
- * Pilot value: it keeps about a third of the Standard catalog; tune it from
- * Search Console coverage, here and nowhere else.
+ * The number lives in `seoIndexThreshold.ts` (the one indexing threshold); this
+ * is the name the archetype readers already use.
  */
-export const INDEXABLE_ARCHETYPE_MIN_GAMES = 1000;
+export const INDEXABLE_ARCHETYPE_MIN_GAMES = INDEX_MIN_SAMPLE_GAMES.archetype;
 
 /** What the rule reads from a catalog row or a detail answer of the public teaser. */
 export type ArchetypeIndexingFacts = {
@@ -34,7 +36,7 @@ function positive(value: number | null | undefined): boolean {
  */
 export function isIndexableArchetype(facts: ArchetypeIndexingFacts): boolean {
   return facts.format === 'standard'
-    && Number.isFinite(facts.games) && facts.games >= INDEXABLE_ARCHETYPE_MIN_GAMES
+    && meetsSampleThreshold(facts.games, INDEX_MIN_SAMPLE_GAMES.archetype)
     && positive(facts.deckCount)
     && positive(facts.popularity);
 }

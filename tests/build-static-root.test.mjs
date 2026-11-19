@@ -47,14 +47,13 @@ test('static root is assembled from public assets and SEO registries', () => {
       `${routeInventory.canonicalOrigin}/sitemaps/standard-cards.xml`,
       `${routeInventory.canonicalOrigin}/sitemaps/wild-cards.xml`,
       `${routeInventory.canonicalOrigin}/sitemaps/battleground-minions.xml`,
-      `${routeInventory.canonicalOrigin}/sitemaps/battleground-spells.xml`,
       `${routeInventory.canonicalOrigin}/sitemaps/battleground-heroes.xml`,
       `${routeInventory.canonicalOrigin}/sitemaps/cosmetics.xml`,
       `${routeInventory.canonicalOrigin}/sitemaps/guides-archive.xml`,
       `${routeInventory.canonicalOrigin}/sitemaps/archetypes.xml`,
     ]);
     assert.doesNotMatch(sitemapIndex, /<(?:lastmod|changefreq|priority)>/i,
-      'the sitemap index must not invent freshness metadata');
+      'the build knows no freshness: the server dates the index and the static pages at runtime');
 
     const staticSitemap = readFileSync(join(outDir, 'sitemaps/static.xml'), 'utf8');
     const actualUrls = locations(staticSitemap).sort();
@@ -69,6 +68,11 @@ test('static root is assembled from public assets and SEO registries', () => {
       'private and error documents must stay out of the sitemap');
     assert.doesNotMatch(staticSitemap, /<(?:lastmod|changefreq|priority)>/i,
       'sitemap must not invent freshness metadata');
+
+    // The server dates each static page by the day it first saw this fingerprint of its content.
+    const fingerprints = JSON.parse(readFileSync(join(outDir, 'sitemaps/static-fingerprints.json'), 'utf8'));
+    assert.deepEqual(Object.keys(fingerprints).sort(), expectedUrls, 'one fingerprint per static sitemap URL');
+    assert.ok(Object.values(fingerprints).every(value => /^[a-f0-9]{64}$/.test(value)));
 
     // Every edge refuses to activate a tree below the activator's floor, so a
     // cleanup of public/ must not bring the static root close to it.
@@ -91,7 +95,7 @@ test('static root is assembled from public assets and SEO registries', () => {
 const LLMS_SECTIONS = [
   { urls: ['/standard/meta/'], sources: ['HSGuru'], update: 'несколько раз в сутки', open: true, paid: true },
   { urls: ['/standard/archetypes/'], sources: ['HSGuru'], update: 'несколько раз в сутки', open: true, paid: true },
-  { urls: ['/standard/matchups/'], sources: ['HSGuru'], open: false, paid: true },
+  { urls: ['/standard/matchups/'], sources: ['HSGuru'], update: 'несколько раз в сутки', open: true, paid: true },
   { urls: ['/standard/vicious-gold/'], sources: ['Vicious Syndicate'], update: 'каждые 2 часа', open: false, paid: true },
   { urls: ['/standard/fun-decks/'], sources: ['HSGuru'], update: 'каждые 2 часа', open: true, paid: true },
   { urls: ['/standard/cards/', '/standard/cards/standard/', '/standard/cards/wild/'], sources: ['HSReplay'], open: true, paid: true },

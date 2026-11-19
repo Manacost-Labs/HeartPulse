@@ -162,9 +162,10 @@ export const fixtures = {
     list: 'spells',
     source: 'qa-fixture',
     fetchedAt: '2026-07-11T00:00:00.000Z',
-    count: 0,
-    tierCounts: {},
-    tiers: {},
+    // One entry: a subscriber's paid view replaces the open list only when its own answer has something to show.
+    count: 1,
+    tierCounts: { S: 1 },
+    tiers: { S: [{ key: 'qa-spell', title: 'Контрольное заклинание', name: 'Контрольное заклинание', tier: 'S', dbfId: 9101, tavernTier: 1 }] },
   },
   '/api/bg/heroes': {
     ok: true,
@@ -383,6 +384,16 @@ export const fixtures = {
         image: 'https://hearthpulse.net/api/card-image/BG_HERO_QA_9002/full.webp',
       },
     },
+  },
+  // The open listings the Next pages of the library read (the card below is one of them).
+  '/api/bg/library/public/listing': { kinds: [{ kind: 'minions', total: 1 }] },
+  '/api/bg/library/public/listing/minions': {
+    kind: 'minions', total: 1, slice: { mmr: 'TOP_50_PERCENT', source: 'HSReplay', updatedAt: '2026-11-19T02:45:13.000Z' },
+    items: [{
+      dbfId: 9101, name: 'Контрольное существо', typeName: 'Существо', path: '/library/minions/контрольное-существо-9101/',
+      tavernTier: 3, group: 'Зверь', attack: 4, health: 5,
+      stats: { avgPlacementWith: 3.9, popularity: 7.5, gamesWith: 900 },
+    }],
   },
   '/api/bg/library/public/minion/9101': {
     card: {
@@ -1189,6 +1200,7 @@ export const publicStandardFixtureAliases = {
   '/api/constructed-cards/CARD_QA_1': '/api/admin/constructed-cards/CARD_QA_1',
   '/api/standard-meta': '/api/admin/standard-meta',
   '/api/standard-meta/teaser': '/api/admin/standard-meta',
+  '/api/standard-meta/public': '/api/admin/standard-meta',
   '/api/standard-meta/trends': '/api/admin/standard-meta/trends',
   '/api/vicious-syndicate-gold': '/api/admin/vicious-syndicate-gold',
   '/api/vicious-syndicate-gold/builds': '/api/admin/vicious-syndicate-gold/builds',

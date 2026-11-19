@@ -45,7 +45,8 @@ import { createBrowserSessionCookieHandlers, legacyArenaCookieDomain, requestVie
 import { createCoverAdminSsoRouter } from './modules/coverAdminSso/public.js';
 import { csrfRequestAllowed, requestTargetPath } from './csrf.js';
 import { configureLoopbackProxyTrust, corsOriginAllowed, getTrustedClientIp } from './networkBoundary.js';
-import { isPublicMediaApiRequest } from './apiRateLimitPolicy.js';
+import { isPublicMediaApiRequest, rateLimitClientKey } from './apiRateLimitPolicy.js';
+import { createPublicDataScrapeGuard, loadScrapeGuardConfig, sessionAccountKey } from './publicDataScrapeGuard.js';
 import { createRouteAwareJsonParser, createUploadAuthorizationGuard } from './jsonBody.js';
 import { createReferralRedirectHandler, createReferralRouter } from './referralRoutes.js';
 import { REFERRAL_ATTRIBUTION_SCHEMA_SQL, createReferralAttributionMiddleware } from './referralAttribution.js';
@@ -3185,10 +3186,6 @@ function isContestAdminUser(user: AdminUser | null | undefined): user is AdminUs
   if (!user) return false;
   const userId = user.id;
   return isAdminUser(user) || userId === CONTEST_ADMIN_USER_ID;
-}
-
-function rateLimitClientKey(req: import('express').Request): string {
-  return ipKeyGenerator(getTrustedClientIp(req) || 'unknown');
 }
 
 function rateLimitEmailKey(req: import('express').Request): string {
@@ -6979,7 +6976,7 @@ const apiLimiter = rateLimit({
   skip: (req) => (
     req.path.startsWith('/card-image/')
     || (req.method === 'POST' && req.path === '/auth/telegram/bot/webhook')
-    || isPublicMediaApiRequest(req.method, req.path)
+    || isPublicMediaApiRequest(req.method, req.path) || publicDataScrapeGuard.ownsBudget(req)
     || (req.method === 'GET' && req.originalUrl.startsWith('/api/gallery/'))
     // Chat bots fetch every channel's commands from a few shared servers; registerChatCommands budgets them per channel.
     || (req.method === 'GET' && req.path.startsWith('/v1/chat/'))
@@ -6997,6 +6994,9 @@ const apiLimiter = rateLimit({
   ),
 });
 app.use('/api/', apiLimiter);
+const publicDataScrapeGuard = createPublicDataScrapeGuard({ config: loadScrapeGuardConfig(join(APP_ROOT_DIR, 'config', 'public-data-api-guard.json')),
+  resolveAccountKey: req => sessionAccountKey(authTokenCandidatesFromReq(req), (hash, now) => dbGet('SELECT user_id FROM sessions WHERE token_hash = ? AND expires_at > ?', hash, now)?.user_id) });
+app.use('/api/', publicDataScrapeGuard.middleware);
 
 const authCodeRequestLimiter = rateLimit({
   windowMs: 15 * 60_000,
@@ -7383,7 +7383,7 @@ if (staticSitemapArtifact) {
       loadCosmeticsCatalog: (kind, query) => cosmeticsDataService.loadCatalog(kind, query),
       getGuidesDatabase: oldGuidesDatabase,
     }, { loadCatalogs: format => loadArchetypeCatalogWindows(constructedArchetypeCatalogCache.load, format) }),
-    staticUrls: staticSitemapArtifact.urls,
+    staticUrls: staticSitemapArtifact.urls, staticFingerprints: staticSitemapArtifact.fingerprints,
     staticLastModifiedMs: staticSitemapArtifact.modifiedAt,
     stateDirectory: DATA_DIR,
     cacheTtlMs: Number(process.env.SITEMAP_CACHE_TTL_MS || 10 * 60_000),

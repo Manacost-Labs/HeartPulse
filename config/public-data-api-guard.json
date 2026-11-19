@@ -1,0 +1,17 @@
+{
+  "$comment": "Бюджет на клиента для открытых JSON API (E21, #479). Откат: поставьте \"mode\": \"log\". Подробности: docs/runbooks/public-data-api-guard.md",
+  "mode": "log",
+  "shortWindowSeconds": 60,
+  "shortMax": 60,
+  "longWindowSeconds": 3600,
+  "longMax": 1500,
+  "accountMultiplier": 3,
+  "maxTrackedClients": 50000,
+  "bots": {
+    "dnsTimeoutMs": 1000,
+    "positiveTtlSeconds": 86400,
+    "negativeTtlSeconds": 3600,
+    "errorTtlSeconds": 60,
+    "cacheSize": 5000
+  }
+}

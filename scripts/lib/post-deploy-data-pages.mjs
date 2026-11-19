@@ -4,7 +4,7 @@
  * block, which does not depend on how much data there is (a word count does).
  * The copy without the data is what the build makes without Express, or what
  * a first-paint read that missed its 600 ms budget ships. `copyWords` and
- * `dataWords` are only what a stand measured on 2026-11-16 (the copy against
+ * `dataWords` are only what a stand measured on 2026-11-16 (2026-11-19 for /legendaries/ and /heroes/; the copy against
  * the page with live data) and show the size of the difference.
  * The warm-up after a deploy (`scripts/warm-prerendered-pages.mjs`) waits for
  * the marker, and a production monitor can use the same table.
@@ -14,13 +14,28 @@
  * (`DATA_PAGES` in apps/public-web/app/health/next/revalidate/route.ts must
  * list exactly these). Dynamic pages have no build copy; they ship without the
  * data when their first-paint read misses its budget (a cold or busy server).
- * Library lists carry no server data (identical with and without Express).
+ * The library hub and listings (`/library/`, `/library/<kind>/`) carry the open list; `copyWords`/`dataWords` are 0 (not measured).
+ * The hub's marker is the class of a list size (only a filled copy has one), a listing's the table wrapper (the copy has a notice).
  */
 export const DATA_PAGES = [
   { path: '/standard/meta/', isr: true, marker: 'standard-meta__results', copyWords: 213, dataWords: 345 },
   { path: '/articles/', isr: true, marker: 'article-card-modern', copyWords: 144, dataWords: 895 },
   { path: '/tierlist/', isr: true, marker: 'tierlist-public-pool', copyWords: 557, dataWords: 831 },
   { path: '/classes/', isr: true, marker: 'classes-public-teaser', copyWords: 469, dataWords: 554 },
+  { path: '/legendaries/', isr: true, marker: 'legendary-group-card', copyWords: 346, dataWords: 4931 },
+  { path: '/heroes/', isr: true, marker: 'bg-heroes-public__hero', copyWords: 172, dataWords: 2250 },
+  { path: '/standard/matchups/', isr: true, marker: 'standard-matchups-open__matrix', copyWords: 120, dataWords: 1500 }, // words: an estimate, not a stand measurement
+  { path: '/battlegrounds/tier-list/', isr: true, marker: 'bg-builds-public__builder', copyWords: 95, dataWords: 1500 },
+  { path: '/library/', isr: true, marker: 'bg-library-public__size', copyWords: 0, dataWords: 0 },
+  { path: '/library/minions/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
+  { path: '/library/spells/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
+  { path: '/library/anomalies/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
+  { path: '/library/dark-gifts/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
+  { path: '/library/quests/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
+  { path: '/library/rewards/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
+  { path: '/library/darkmoon-prizes/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
+  { path: '/library/trinkets/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
+  { path: '/library/timewarped/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
   { path: '/leaderboards/', marker: 'leaderboards-table__rank', copyWords: 197, dataWords: 811 },
   { path: '/cosmetics/', marker: 'cosmetics-hero-card', copyWords: 192, dataWords: 314 },
   { path: '/cosmetics/heroes/', marker: 'cosmetics-hero-card', copyWords: 193, dataWords: 315 },

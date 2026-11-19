@@ -20,7 +20,19 @@ const hero = { hero: {
   heroPower: { name: 'Прокрастинация', text: 'Пропустите первые два хода.',
     image: 'https://hearthpulse.net/assets/og-preview.png' },
   privateMetric: 'PRIVATE_HERO_STATISTICS',
+},
+// The open statistics (base range). The closed marks ride in as an upstream mistake would: extra fields at every level.
+stats: {
+  mmr: 'TOP_50_PERCENT', updatedAt: '2026-11-18T17:01:18.000Z', source: 'HSReplay',
+  topRange: 'SENTINEL_TOP_1_PERCENT_4.4321',
+  modes: {
+    solo: { tier: 'S', avgPlacement: 3.57, top4Rate: 61.4, pickRate: 12.3, bestComposition: 'Нежить', keyMinions: ['Падальщик', 'Скелет'],
+      rank: 2, of: 110, placementDistribution: ['SENTINEL_PLACE_12.3456'], adjustedAvgPlacement: 'SENTINEL_ADJUSTED_3.9876' },
+    duos: { tier: 'A', avgPlacement: 3.9, top4Rate: null, pickRate: 9.8, bestComposition: null, keyMinions: [],
+      rank: 14, of: 108, compositions: [{ name: 'SENTINEL_COMPOSITION_METRICS' }], history: ['SENTINEL_PATCH_HISTORY'] },
+  },
 } };
+const CLOSED_MARKS = ['PRIVATE_HERO_STATISTICS', 'SENTINEL_TOP_1_PERCENT', 'SENTINEL_PLACE', 'SENTINEL_ADJUSTED', 'SENTINEL_COMPOSITION_METRICS', 'SENTINEL_PATCH_HISTORY'];
 
 test('Next hero detail renders a safe teaser and real 404 without guest statistics requests', async () => {
   let publicCalls = 0;
@@ -85,6 +97,8 @@ test('Next hero detail renders a safe teaser and real 404 without guest statisti
         canonical: document.querySelector('link[rel=canonical]')?.href,
         h1: [...document.querySelectorAll('h1')].map(node => node.textContent?.trim()),
         main: document.querySelectorAll('main').length,
+        sections: [...document.querySelectorAll('.bg-hero-public h2')].map(node => node.textContent?.trim()),
+        lock: Boolean(document.querySelector('.paywalled-hero button')),
         overflow: document.documentElement.scrollWidth > innerWidth,
         violations: (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } }))
           .violations.map(violation => violation.id),
@@ -94,9 +108,25 @@ test('Next hero detail renders a safe teaser and real 404 without guest statisti
       assert.equal(state.overflow, false);
       assert.deepEqual(state.violations, []);
       assert.equal(state.canonical, 'https://hearthpulse.net/heroes/57944/');
-      assert.equal(state.html.includes('PRIVATE_HERO_STATISTICS'), false);
+      for (const mark of CLOSED_MARKS) assert.equal(state.html.includes(mark), false, `${mark} reached the guest's DOM (HTML or RSC payload)`);
+      // The open statistics are the page's content, there without waiting for a script, and nothing shifts.
+      assert.deepEqual(state.sections, ['Сила героя', 'Статистика героя — Соло', 'Статистика героя — Дуо']);
+      assert.equal(state.lock, true, 'the paid part is a lock button, not data');
     }
     assert.deepEqual(errors, []); assert.deepEqual(failed, []); assert.deepEqual(protectedCalls, []);
+    // The raw server HTML (what a robot reads): data, one JSON-LD with the closed part named, no closed value anywhere.
+    const raw = await (await fetch(`${origin}/heroes/57944/`)).text();
+    for (const text of ['Тир', 'Среднее место', '3,57', '61,4%', 'Нежить', 'Падальщик, Скелет', '2 из 110', 'HSReplay', 'Прокрастинация']) {
+      assert.ok(raw.includes(text), `the server HTML has «${text}»`);
+    }
+    assert.match(raw, /content="index, follow/);
+    for (const mark of CLOSED_MARKS) assert.equal(raw.includes(mark), false, `${mark} is not in the server HTML`);
+    const rawGraph = JSON.parse([...raw.matchAll(/<script\b(?=[^>]*type="application\/ld\+json")(?=[^>]*data-server-entity-jsonld)[^>]*>([\s\S]*?)<\/script>/g)][0][1])['@graph'];
+    const dataset = rawGraph.find(node => node['@type'] === 'Dataset');
+    assert.equal(dataset.isAccessibleForFree, false);
+    assert.deepEqual(dataset.hasPart, { '@type': 'WebPageElement', isAccessibleForFree: false, cssSelector: '.paywalled-hero' });
+    assert.ok(raw.includes('class="paywalled-hero"'), 'the selector names a real element');
+    assert.equal(JSON.stringify(rawGraph).includes('SENTINEL'), false);
     const callsBeforeSpoof = publicCalls;
     const spoofed = await fetch(`${origin}/heroes/57944/`, { headers: {
       'x-hearthpulse-bg-public-projection': `v1:${Buffer.from('{"hero":{}}').toString('base64url')}`,
