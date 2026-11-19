@@ -27,9 +27,13 @@ export function StandardMatchupsPageClient({ initial }: { initial: PublicStandar
     return () => { cancelled = true; };
   }, [allowed]);
   const paidData = matchups.state.data ?? matchups.shown;
-  const paidReady = allowed && chunkReady && paidData !== null;
+  // Once the subscriber's matrix is up it stays: a format switch empties `data` for a moment, and falling back
+  // to the open layer would unmount the matrix and lose its selection.
+  const [paidShown, setPaidShown] = useState(false);
+  const paidReady = allowed && chunkReady && (paidData !== null || paidShown);
+  useEffect(() => { if (paidReady) setPaidShown(true); }, [paidReady]);
   const [updatedAtLabel, setUpdatedAtLabel] = useState('Нет данных');
-  const updatedAt = paidReady ? paidData.updatedAt : initial?.updatedAt;
+  const updatedAt = paidReady ? paidData?.updatedAt : initial?.updatedAt;
   useEffect(() => {
     setUpdatedAtLabel(updatedAt
       ? new Date(updatedAt).toLocaleString('ru-RU', {
