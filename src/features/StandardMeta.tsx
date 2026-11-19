@@ -38,6 +38,7 @@ import {
 } from './standardMetaFilterModel';
 import StandardMetaChart from './StandardMetaChart';
 import { STANDARD_META_CLASS_COLORS, standardMetaClassIcon } from './standardMetaClassModel';
+import { setPageFormat, usePageFormat } from '../shared/navigation/pageFormat';
 import { metaRequestKey, teaserSeedKey, TEASER_SEED_FILTERS, type StandardMetaTeaserSeed } from './standardMetaTeaser';
 import '../route-parchment.css';
 import './recovery/RecoverableSurface.css';
@@ -479,7 +480,8 @@ function StandardMetaContent({
   paywall,
   initialTeaser,
 }: Required<Omit<StandardMetaPageProps, 'embedded'>>) {
-  const [format, setFormat] = useState<MetaFormat>(TEASER_SEED_FILTERS.format);
+  // The format is the address's (`?format=wild`), so the menu follows it and Back restores it; the default until the browser reads it.
+  const format: MetaFormat = usePageFormat() ?? TEASER_SEED_FILTERS.format;
   const [rank, setRank] = useState<MetaRank>(TEASER_SEED_FILTERS.rank);
   const [period, setPeriod] = useState<MetaPeriod | null>(initialTeaser?.period ?? null);
   const [coin, setCoin] = useState<MetaCoin>(TEASER_SEED_FILTERS.coin);
@@ -607,7 +609,7 @@ function StandardMetaContent({
           <div className="standard-meta__segmented">
             {FORMATS.map(option => {
               return (
-                <button key={option.id} type="button" aria-pressed={format === option.id} onClick={() => setFormat(option.id)}>
+                <button key={option.id} type="button" aria-pressed={format === option.id} onClick={() => setPageFormat(option.id)}>
                   <img src={option.asset} alt="" width="32" height="36" aria-hidden="true" />
                   <span><strong>{option.label}</strong><small>{option.description}</small></span>
                 </button>

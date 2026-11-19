@@ -40,22 +40,23 @@ assert.match(html, /aria-current="page"/);
 assert.doesNotMatch(html, /href="\/[^"?#.]*[^\/"?#.]"/, 'navigation links must target canonical trailing-slash URLs');
 assert.doesNotMatch(html, /arena-sidebar-status|Дата обновления данных|Обновлено/);
 assert.doesNotMatch(html, /Конструкторы|Разное|Традиционный режим|Стандарт и Вольный/, 'the old groups are gone');
-// The items of all four modes are in the server HTML of the drawer and of the sidebar; CSS shows one list.
+// The items of all five modes are in the server HTML of the drawer and of the sidebar; CSS shows one list.
 for (const path of ['/standard/matchups/', '/standard/deck-builder/', '/battlegrounds/tier-list/', '/battlegrounds/tier-builder/', '/guides-archive/']) {
   assert.equal(html.split(`href="${path}"`).length - 1, 2, `${path} is listed in the drawer and in the sidebar`);
 }
-assert.equal(html.match(/class="hp-nav-list"/g)?.length, 8, 'four lists in the drawer and four in the sidebar');
-// The mode switch is a native <details>: it opens without JavaScript. Its four banners are plain links to the mode's main page.
+assert.equal(html.match(/class="hp-nav-list"/g)?.length, 10, 'five lists in the drawer and five in the sidebar');
+// The mode switch is a native <details>: it opens without JavaScript. Its five banners are plain links to the mode's main page.
 assert.equal(html.match(/<details class="hp-mode"/g)?.length, 2, 'one switch in the drawer and one in the sidebar');
-for (const [mode, path] of [['standard', '/standard/meta/'], ['arena', '/classes/'], ['battlegrounds', '/heroes/'], ['community', '/articles/']]) {
+for (const [mode, path] of [['standard', '/standard/meta/'], ['wild', '/standard/meta/?format=wild'], ['arena', '/classes/'], ['battlegrounds', '/heroes/'], ['community', '/articles/']]) {
   assert.equal(html.split(`<a href="${path}" class="hp-mode-card" data-mode="${mode}"`).length - 1, 2, `the ${mode} banner leads to ${path}`);
 }
 assert.equal(html.match(/<a[^>]*class="hp-mode-card"[^>]*aria-current="true"/g)?.length, 2, 'only the current mode is marked');
 assert.match(html, /<a[^>]*data-mode="community"[^>]*aria-current="true"/);
 assert.doesNotMatch(html, /<a[^>]*data-mode="arena"[^>]*aria-current/);
-for (const title of ['Стандарт', 'Арена', 'Поля сражений', 'Сообщество']) assert.match(html, new RegExp(`<strong>${title}</strong>`));
+for (const title of ['Стандарт', 'Вольный', 'Арена', 'Поля сражений', 'Сообщество']) assert.match(html, new RegExp(`<strong>${title}</strong>`));
 assert.match(html, /Мета, матчапы, колоды, карты/);
-assert.equal(html.match(/>Текущий</g)?.length, 8, 'every banner carries the badge, CSS shows the current one');
+assert.match(html, /Все дополнения: мета, колоды, карты/);
+assert.equal(html.match(/>Текущий</g)?.length, 10, 'every banner carries the badge, CSS shows the current one');
 // The page's mode picks the list on its own; a page without a mode leaves it to the remembered choice.
 assert.match(html, /<nav[^>]*class="arena-sidebar-nav hp-nav"[^>]*data-page-mode="community"/);
 assert.doesNotMatch(renderToStaticMarkup(<PublicNavigation {...props} activeTab="home" />), /data-page-mode/);
@@ -63,15 +64,16 @@ assert.doesNotMatch(renderToStaticMarkup(<PublicNavigation {...props} activeTab=
 assert.match(html, /<img class="hp-nav-art" src="\/menu\/icons\/standard-meta-80\.webp" srcSet="\/menu\/icons\/standard-meta-40\.webp 40w, \/menu\/icons\/standard-meta-80\.webp 80w, \/menu\/icons\/standard-meta-120\.webp 120w" sizes="40px" width="40" height="40" loading="lazy" decoding="async" alt=""\/>/);
 assert.match(html, /srcSet="\/menu\/icons\/mode-community-40\.webp 40w[^"]*" sizes="48px" width="48" height="48"/);
 // A banner card takes its art from a two-file srcset and shows the emblem of its mode; the button's face is a wide strip per mode.
-assert.match(html, /srcSet="\/menu\/banners\/arena-440\.webp 440w, \/menu\/banners\/arena-571\.webp 571w" sizes="\(min-width: 1024px\) 200px, 170px" width="440" height="616"/);
-assert.equal(html.match(/class="hp-mode-card-emblem"/g)?.length, 8, 'each banner carries the emblem of its mode');
-assert.equal(html.match(/<img class="hp-mode-face-art" src="\/menu\/banners\/(?:standard|arena|battlegrounds|community)-face\.webp" width="520" height="160" loading="lazy"/g)?.length, 8, 'four faces in each switch, all lazy');
-assert.doesNotMatch(html, /\/menu\/icons\/[a-z-]+\.webp|\/menu\/banners\/(?:standard|arena|battlegrounds|community)\.webp/, 'no file in the old single-size naming is referenced');
+assert.match(html, /srcSet="\/menu\/banners\/arena-440\.webp 440w, \/menu\/banners\/arena-571\.webp 571w" sizes="200px" width="440" height="616"/);
+assert.equal(html.match(/class="hp-mode-card-emblem"/g)?.length, 10, 'each banner carries the emblem of its mode');
+assert.equal(html.match(/<img class="hp-mode-face-art" src="\/menu\/banners\/(?:standard|wild|arena|battlegrounds|community)-face\.webp" width="520" height="160" loading="lazy"/g)?.length, 10, 'five faces in each switch, all lazy');
+assert.equal(html.match(/<img class="hp-mode-art-wide" src="\/menu\/banners\/wild-face\.webp"/g)?.length, 2, 'a banner card also carries the wide strip, which only the drawer shows');
+assert.doesNotMatch(html, /\/menu\/icons\/[a-z-]+\.webp|\/menu\/banners\/(?:standard|wild|arena|battlegrounds|community)\.webp/, 'no file in the old single-size naming is referenced');
 // The page's own mode is marked on the server (`data-page-current`) and the first mode is the default, so CSS shows one mode without naming them.
 assert.equal(html.match(/data-page-current=""/g)?.length, 6, 'the page mode marks its list, face and badge in the drawer and in the sidebar');
 assert.doesNotMatch(html, /data-for="(?:standard|arena|battlegrounds)"[^>]*data-page-current/, 'only the page mode is marked');
 assert.equal(html.match(/data-default=""/g)?.length, 6, 'the first mode carries the default mark on its list, face and badge (twice: drawer and sidebar)');
-assert.equal(html.match(/style="--modes:4"/g)?.length, 2, 'the panel knows how many modes it holds');
+assert.equal(html.match(/style="--modes:5"/g)?.length, 2, 'the panel knows how many modes it holds');
 // Order: the switch comes first, then «Главная», then the list of the mode; the same in the drawer and in the sidebar.
 for (const part of html.split('<div class="hp-nav-top">').slice(1)) {
   const [switchAt, homeAt, listAt] = [part.indexOf('<details class="hp-mode"'), part.indexOf('href="/"'), part.indexOf('class="hp-nav-list"')];
@@ -150,3 +152,26 @@ calls.length = 0;
 assert.deepEqual(calls.sort(), ['close', 'navigate home'], 'the brand link closes the drawer');
 
 console.log('public navigation shell assertions passed');
+
+// The Wild list: the same pages in the Wild format, each with the icon of its twin; VS Gold stays in Standard only.
+const wildLists = html.split('class="hp-nav-list" data-for="wild"').slice(1).map(part => part.split('class="hp-nav-list"')[0]);
+assert.equal(wildLists.length, 2, 'a Wild list in the drawer and in the sidebar');
+for (const list of wildLists) {
+  const hrefs = [...list.matchAll(/<a href="([^"]+)"/g)].map(match => match[1].replace(/&amp;/g, '&'));
+  assert.deepEqual(hrefs, ['/standard/meta/?format=wild', '/standard/matchups/?format=wild', '/standard/archetypes/?format=wild',
+    '/standard/fun-decks/?format=wild', '/standard/cards/wild/', '/standard/deck-builder/?format=wild', '/standard/patches/']);
+  assert.match(list, /src="\/menu\/icons\/standard-meta-80\.webp"/, 'a Wild item shows the icon of its twin');
+  assert.doesNotMatch(list, /vicious-gold|VS Gold/);
+  assert.match(list, /data-nav-tip="Мета · Вольный"/, 'the rail names the mode of the item');
+  assert.match(list, /patch-notes-80\.webp[\s\S]*Новый/, 'the patch badge follows the twin');
+}
+assert.equal(html.split('href="/standard/cards/wild/"').length - 1, 2, 'one Wild catalog link per menu, none among the Standard items');
+
+// An address in Wild: the Wild item is the current one, the mode of the page is Wild, the Standard list has none.
+const wildHtml = renderToStaticMarkup(<PublicNavigation {...props} activeTab="standard-matchups" activeItem="wild-matchups" pageMode="wild" mode="wild" />);
+assert.equal(wildHtml.match(/<a href="\/standard\/matchups\/\?format=wild"[^>]*aria-current="page"/g)?.length, 2, 'Матчапы of the Wild list is current in both menus');
+assert.doesNotMatch(wildHtml, /<a href="\/standard\/matchups\/"[^>]*aria-current/, 'its Standard twin is not');
+assert.match(wildHtml, /<a[^>]*data-mode="wild"[^>]*aria-current="true"/);
+assert.match(wildHtml, /<nav[^>]*class="arena-sidebar-nav hp-nav"[^>]*data-page-mode="wild"/);
+// A page whose format the server cannot know yet names no mode: the head script's attribute on <html> decides.
+assert.doesNotMatch(renderToStaticMarkup(<PublicNavigation {...props} activeTab="standard-meta" pageMode={null} />), /data-page-mode|data-page-current/);

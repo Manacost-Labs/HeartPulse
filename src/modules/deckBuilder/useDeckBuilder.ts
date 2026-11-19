@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFormatAddress } from '../../shared/navigation/pageFormat';
 import { downloadDeckImage, loadDeckCatalog } from './api/client';
 import { loadCardConfiguration } from './api/configuration';
 import { canAddSideboard, changeSideboard, configurationIssues, type CardConfiguration } from './model/configuration';
@@ -65,6 +66,13 @@ export function useDeckBuilder(ports: DeckBuilderPorts, initial: DeckBuilderInit
       legality.reset();
     }
   }
+  // The format is in the address (`?format=wild`), so the menu's mode is the builder's; a deck in progress keeps its format.
+  const followAddress = useCallback((format: BuilderFormat) => {
+    setCollectionFilters(current => ({ ...current, format, pool: '', set: '', page: 1 }));
+    setBandFilters(emptyFilters(collectionFilters.heroClass, format));
+    legality.reset();
+  }, [collectionFilters.heroClass, legality]);
+  useFormatAddress(collectionFilters.format, !deck.length, followAddress);
   function confirmReset() {
     setDeck([]);
     setConfigurationOwner(null);
