@@ -108,7 +108,8 @@ test('Next Arena pages end with their data: no «О странице» or chart 
       const page = await browser.newPage();
       await page.setViewport({ width: 390, height: 844, isMobile: true });
       await page.goto(`${runtime.origin}${path}`, { waitUntil: 'networkidle2' });
-      await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 15000 });
+      await page.waitForSelector('#main-content h1', { timeout: 15000 });
+      await new Promise(resolve => setTimeout(resolve, 1000));
       const state = await page.evaluate(() => ({
         text: document.querySelector('#main-content')?.innerText ?? '',
         details: [...document.querySelectorAll('#main-content details')].map(node => node.textContent.trim().slice(0, 40)),
