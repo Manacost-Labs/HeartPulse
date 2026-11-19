@@ -31,7 +31,7 @@ const readMenu = page => page.evaluate(() => {
     lists: lists.map(list => list.dataset.for),
     current: lists.flatMap(list => [...list.querySelectorAll('a[aria-current="page"]')].map(link => link.textContent.trim())),
     mode: [...side.querySelectorAll('.hp-mode-name')].find(name => name.checkVisibility())?.textContent,
-    format: [...document.querySelectorAll('#main-content .standard-meta__format-control button[aria-pressed="true"]')].map(button => button.textContent.trim().split(/\s/)[0]),
+    format: [...document.querySelectorAll('#main-content .standard-meta__format-control button[aria-pressed="true"]')].map(button => /^(?:Стандарт|Вольный)/.exec(button.textContent.trim())?.[0]),
     where: location.pathname + location.search,
   };
 });
