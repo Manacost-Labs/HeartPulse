@@ -3,8 +3,9 @@ import test from 'node:test';
 import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 
-// The production observer (config/production-observer.json) requires the
-// shared `.arena-paywall` gate on every paid Arena page for anonymous visitors.
+// Without open data a paid Arena page shows anonymous visitors the shared `.arena-paywall` gate. This pilot has
+// a snapshot for /tierlist/ (its open list is the content, see next-arena-open-first-screen-browser.test.mjs,
+// which also covers the tier list without a snapshot) and none for /classes/, so the gate is checked there.
 test('Next Arena pages show the shared subscription paywall to guests', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   let browser;
@@ -12,7 +13,7 @@ test('Next Arena pages show the shared subscription paywall to guests', async ()
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
     // /legendaries/ is not here: its groups are open, see next-legendaries-open-layer-browser.test.mjs.
-    for (const path of ['/classes/', '/tierlist/']) {
+    for (const path of ['/classes/']) {
       const page = await browser.newPage();
       await page.goto(`${runtime.origin}${path}`, { waitUntil: 'networkidle2' });
       await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 15000 })
@@ -46,7 +47,7 @@ test('Next Arena pages swap a guest to the paywall without a layout shift', asyn
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
     for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true }]) {
-      for (const path of ['/classes/', '/tierlist/']) {
+      for (const path of ['/classes/']) {
         const page = await browser.newPage();
         await page.setViewport(viewport);
         await page.evaluateOnNewDocument(() => {
@@ -58,7 +59,8 @@ test('Next Arena pages swap a guest to the paywall without a layout shift', asyn
           }).observe({ type: 'layout-shift', buffered: true });
         });
         await page.goto(`${runtime.origin}${path}`, { waitUntil: 'networkidle2' });
-        await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 15000 });
+        await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 15000 })
+          .catch(() => assert.fail(`${path} at ${viewport.width}px must end on the paywall`));
         await new Promise(resolve => setTimeout(resolve, 500));
         const shift = await page.evaluate(() => window.__layoutShifts.reduce((sum, value) => sum + value, 0));
         assert.ok(shift < 0.02, `${path} at ${viewport.width}px shifted by ${shift.toFixed(4)} when the paywall appeared`);

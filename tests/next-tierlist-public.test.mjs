@@ -110,7 +110,10 @@ test('the guest HTML of /tierlist/ carries the whole open pool and nothing paid'
     const start = html.indexOf('class="tierlist-public-pool"');
     const slice = html.slice(start, html.indexOf('</table></div></section></div></section>', start) + 10);
     assert.ok(slice.length > 1000, 'the open list is in the server HTML');
-    const rows = [...slice.matchAll(/<tr><th>Карта ([\w-]+)<td>([SA-F—])<td>([\d,]+)<td>([\d,]+)(?=<tr>|<\/table>)/g)];
+    // The cards of a class are grouped by tier: the painted mark of the tier (`data-tier`) heads its rows.
+    const rows = [...slice.matchAll(/data-tier="([SA-FU])"[^>]*\/><\/th><\/tr><\/tbody><tbody>(.*?)<\/tbody>/g)].flatMap(group =>
+      [...group[2].matchAll(/<tr><th>Карта ([\w-]+)<td>([\d,]+)<td>([\d,]+)<td>(?=<tr>|$)/g)]
+        .map(row => [row[0], row[1], group[1], row[2], row[3]]));
     assert.equal(rows.length, CARDS.length, 'every card of the pool: a card with a tier, winrate and pick rate per row');
     for (const classId of CLASSES) {
       assert.match(slice, new RegExp(`<section id="tierlist-${classId}" data-tierlist-class="${classId}"`), `a section and anchor for ${classId}`);
@@ -119,13 +122,16 @@ test('the guest HTML of /tierlist/ carries the whole open pool and nothing paid'
     const first = rows.find(row => row[1] === 'death-knight-0');
     assert.deepEqual([first[2], first[3], first[4]], ['A', '55,6', '61,2'], 'the sentinels are shown rounded to 0,1');
     assert.equal(guestPercent(55.5555), '55,6');
-    assert.equal(rows.find(row => row[1] === 'druid-u')[2], '—', 'a card without a tier is still listed');
+    assert.equal(rows.find(row => row[1] === 'druid-u')[2], 'U', 'a card without a tier is still listed, under the «Без тира» mark');
     // The HTML budget is 300 KB. Every row is in the HTML and in the RSC payload and costs ~90 bytes in the two (measured on
     // a 1100-card fixture: 214 KB in all): the page with this fixture and a pool of 1500 cards must still fit.
     const projected = Buffer.byteLength(html) + (1500 - CARDS.length) * 100;
     assert.ok(projected <= 300_000, `a 1500-card pool would make ${projected} bytes of HTML (${Buffer.byteLength(html)} for ${CARDS.length} cards)`);
     assert.match(slice, /Данные на <time dateTime="2026-11-15T17:00:03\.639Z">15 ноября 2026, 20:00 МСК<\/time> · по данным более 980\s000 игр · источник HSReplay/);
-    assert.match(html, /class="paywalled-tierlist"/, 'the closed part has the class the JSON-LD names');
+    assert.match(slice, /<col class="tierlist-public-pool__col-lock paywalled-tierlist"\/>/, 'the closed column has the class the JSON-LD names');
+    assert.match(slice, /<button type="button" class="tierlist-public-pool__lock paywalled-tierlist"/, 'the lock carries it too');
+    assert.ok(!html.includes('arena-paywall'), 'no gate over the open list');
+    assert.ok(html.indexOf('<h1') < start, 'the list is the page content right after the H1');
 
     // Nothing closed in the HTML, in the RSC payload and in the JSON-LD: each is checked on its own.
     assert.match(html, /self\.__next_f/, 'the page carries an RSC payload');
@@ -232,7 +238,8 @@ test('the post-deploy warm-up revalidates again until /tierlist/ carries its sli
     // What a visitor gets right after the warm-up, with no clock shifted and no second request needed.
     const after = await guestHtml(stand.next.origin);
     assert.match(after, /class="tierlist-public-pool"/, 'the slice is in the served HTML');
-    assert.match(after, /<tr><th>Карта mage-s0<td>S<td>/, 'with its cards');
+    assert.match(after, /<tr><th>Карта mage-s0<td>[\d,]+<td>[\d,]+<td>/, 'with its cards');
+    assert.match(after, /data-tier="S"/, 'under the tier marks');
   } finally {
     await stand.close();
   }
@@ -294,7 +301,7 @@ test('/tierlist/ in a browser: the whole pool without JS, the class filter with 
     await plain.goto(`${origin}/tierlist/#tierlist-mage`, { waitUntil: 'load' });
     await delay(300);
     const noScript = await plain.evaluate(() => ({
-      rows: document.querySelectorAll('.tierlist-public-pool tbody tr').length,
+      rows: document.querySelectorAll('.tierlist-public-pool tbody:not(.tierlist-public-pool__tier) tr').length,
       hidden: document.querySelectorAll('.tierlist-public-pool [hidden]').length,
       mageTop: Math.round(document.getElementById('tierlist-mage').getBoundingClientRect().top),
     }));
@@ -314,7 +321,7 @@ test('/tierlist/ in a browser: the whole pool without JS, the class filter with 
       });
       await page.goto(`${origin}/tierlist/`, { waitUntil: 'networkidle2' });
       const visibleSections = () => page.evaluate(() => [...document.querySelectorAll('[data-tierlist-class]')].filter(node => !node.hidden).length);
-      const visibleRows = () => page.evaluate(() => [...document.querySelectorAll('.tierlist-public-pool tbody tr')].filter(row => !row.closest('[hidden]')).length);
+      const visibleRows = () => page.evaluate(() => [...document.querySelectorAll('.tierlist-public-pool tbody:not(.tierlist-public-pool__tier) tr')].filter(row => !row.closest('[hidden]')).length);
       assert.equal(await visibleSections(), CLASSES.length, `${viewport.width}px: every class is shown by default`);
       await page.click('.tierlist-public-pool__classes a[href="#tierlist-mage"]');
       await page.waitForFunction(() => document.querySelectorAll('[data-tierlist-class]:not([hidden])').length === 1);
