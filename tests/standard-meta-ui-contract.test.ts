@@ -37,7 +37,7 @@ assert.deepEqual(STANDARD_META_COINS.map(option => [option.id, option.label]),
 // The coin filter is part of the request and of its identity.
 assert.match(metaSource, /const \[coin, setCoin\] = useState<MetaCoin>\(TEASER_SEED_FILTERS\.coin\)/);
 assert.match(metaSource, /metaRequestKey\(format, rank, hasFullAccess \? period : null, coin, minGames, metaRevision, hasFullAccess\)/);
-assert.match(metaSource, /Очерёдность хода/);
+assert.match(readFileSync(new URL('../src/features/StandardMetaGuestFilters.tsx', import.meta.url), 'utf8'), /Очерёдность хода/);
 assert.deepEqual(
   orderStandardMetaPeriods(
     ['past_3_hours', 'past_6_hours', 'past_day', 'past_3_days', 'past_week', 'past_2_weeks', 'past_30_days',
