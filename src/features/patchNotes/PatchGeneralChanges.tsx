@@ -12,7 +12,7 @@ import type { CardPreviewSheetCard } from '../CardPreviewSheet';
  */
 
 const loadCardPreviewSheet = () => import('../CardPreviewSheet');
-const loadCardPreviewTooltip = () => import('../CardPreviewTooltip');
+const loadCardPreviewTooltip = () => import('./PatchCardTooltip');
 const CardPreviewSheet = lazy(loadCardPreviewSheet);
 /* The tooltip is lazy too: it only exists once a name is hovered, and it brings its own styles. */
 const CardPreviewTooltip = lazy(loadCardPreviewTooltip);
