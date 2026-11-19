@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { fetchWithDeadline } from '../../shared/http/fetchWithDeadline';
 import type { DeckListCard, DeckListSideboard } from './DeckListView';
 
 export type ResolvedDeckPayload = {
@@ -61,7 +62,8 @@ export function useResolvedDeck(
     if (archetype) query.set('archetype', archetype);
     setLoading(true);
     setError('');
-    void fetch(`/api/deck/resolve?${query}`, {
+    // A request the server never answers (a restart, a lost connection) ends at the deadline with a retry.
+    void fetchWithDeadline(`/api/deck/resolve?${query}`, {
       credentials: 'same-origin',
       headers: { Accept: 'application/json' },
       signal: controller.signal,

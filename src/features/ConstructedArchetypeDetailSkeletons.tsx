@@ -55,7 +55,7 @@ function BuildsGallerySkeleton({ cards }: { cards: number }) {
 }
 
 /** Cards the gallery shows before «show more» (ConstructedArchetypes). */
-const FIRST_BUILDS = 6;
+const FIRST_BUILDS = 8;
 
 /** The builds gallery while the subscriber core loads: its heading, the first page of cards and «show more». */
 export function ArchetypeBuildsSkeleton({ deckCount = FIRST_BUILDS }: { deckCount?: number }) {

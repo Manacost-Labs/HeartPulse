@@ -2898,9 +2898,9 @@ for (const [device, viewport] of [
       };
     });
     if (!archetypeDetailState.title.includes('Чётный') || archetypeDetailState.charts !== 3
-      || archetypeDetailState.builds !== 6 || archetypeDetailState.deckCards !== 30
-      || archetypeDetailState.renderSurfaces !== 6 || archetypeDetailState.previews < 1
-      || archetypeDetailState.previewButtons < 1 || archetypeDetailState.copyButtons !== 6
+      || archetypeDetailState.builds !== 8 || archetypeDetailState.deckCards !== 40
+      || archetypeDetailState.renderSurfaces !== 8 || archetypeDetailState.previews < 1
+      || archetypeDetailState.previewButtons < 1 || archetypeDetailState.copyButtons !== 8
       || archetypeDetailState.copyHeight < 42 || archetypeDetailState.documentOverflow) {
       failures.push(`archetype detail [${device}]: charts, builds, code or containment regressed (${JSON.stringify(archetypeDetailState)})`);
     }
@@ -2921,7 +2921,7 @@ for (const [device, viewport] of [
       failures.push(`archetype detail [${device}]: deck code copy did not expose success (${JSON.stringify(archetypeCopyState)})`);
     }
     await page.click('.archetype-builds__more');
-    await page.waitForFunction(() => document.querySelectorAll('.archetype-deck-card').length === 12);
+    await page.waitForFunction(() => document.querySelectorAll('.archetype-deck-card').length === 14);
     await auditAccessibility(page, `archetype detail [${device}]`, '.archetype-detail-page');
     await page.screenshot({ path: `${OUT}/archetype-detail-${device}.png`, fullPage: false });
     await page.evaluate(() => { try { localStorage.removeItem('hp:deck-layout'); } catch { /* storage is optional */ } });

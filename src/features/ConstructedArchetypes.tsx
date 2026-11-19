@@ -47,6 +47,9 @@ import {
   type ArchetypeFormat,
 } from './constructedArchetypeCatalogUrl';
 
+/** Builds the gallery shows at first and adds with each «Загрузить ещё». */
+const BUILDS_PAGE = 8;
+
 const ConstructedArchetypeAnalysis = React.lazy(loadArchetypeAnalysis);
 
 type ArchetypeBuild = {
@@ -451,7 +454,7 @@ type ArchetypeDetailProps = {
 
 function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywall, initialDetail, embedded, accessPending }: ArchetypeDetailProps) {
   const Root = embedded ? 'section' : 'main';
-  const [visibleBuilds, setVisibleBuilds] = useState(6);
+  const [visibleBuilds, setVisibleBuilds] = useState(BUILDS_PAGE);
   const { detail, core, history: historyRead, analysis: analysisRead, ranks: ranksRead, fullAccess, denied } = useArchetypeDetail({
     format, slug, hasFullAccess, accessPending, seed: initialDetail,
   });
@@ -561,8 +564,8 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
             classKey={item.classKey}
           />
           {visibleBuilds < item.builds.length && (
-            <button type="button" className="archetype-builds__more" onClick={() => setVisibleBuilds(value => value + 6)}>
-              Показать ещё {Math.min(6, item.builds.length - visibleBuilds)}
+            <button type="button" className="archetype-builds__more" onClick={() => setVisibleBuilds(value => value + BUILDS_PAGE)}>
+              Загрузить ещё {Math.min(BUILDS_PAGE, item.builds.length - visibleBuilds)}
               <ChevronDown size={17} />
             </button>
           )}
