@@ -11,6 +11,11 @@ import {
   selectIndexableArchetypeRows,
 } from '../server/entitySitemapSources.js';
 
+const ratedRow = (dbfId: number, name: string, avg: number, eightPlaces: boolean) => ({
+  dbfId, hero: name, tier: 'A', avg_placement: avg, pick_rate: '4.5%',
+  ...(eightPlaces ? { placement_distribution: [20, 15, 14, 13, 12, 11, 8, 7] } : {}),
+});
+
 const requests: string[] = [];
 const payloads = new Map<string, unknown>([
   ['http://127.0.0.1:3108/api/bg/library/cards?card_type=minion&in_pool=1', {
@@ -21,13 +26,26 @@ const payloads = new Map<string, unknown>([
   }],
   ['http://127.0.0.1:3108/api/bg/heroes', {
     ok: true,
-    heroes: [{ dbfId: 10, hero: 'Одиночный герой' }],
+    heroes: [{ dbfId: 10, hero: 'Одиночный герой' }, { dbfId: 13, hero: 'Полный Solo' }],
+  }],
+  // Open ranking (base range) the hero pages and the hero segment are judged on: heroes 10 and 12 are rated in
+  // both modes (10 facts: the page's threshold), hero 11 only in Duos (5 facts, the page is noindex).
+  ['http://127.0.0.1:3108/api/bg/heroes?mode=solo&mmr=TOP_50_PERCENT', {
+    ok: true, heroes: [ratedRow(10, 'Одиночный герой', 4.1, true), ratedRow(12, 'Герой Duos 2', 4.4, true),
+      // Rated in solo only, with every field filled: more than ten facts, still not indexable (both modes are required).
+      { ...ratedRow(13, 'Полный Solo', 3.9, true), games: 9000, best_composition: { name: 'Нежить' },
+        key_minions_top3: [{ name: 'А' }, { name: 'Б' }, { name: 'В' }], hero_power: { card: { name: 'Сила' } } }],
+  }],
+  ['http://127.0.0.1:3108/api/bg/heroes?mode=duos&mmr=TOP_50_PERCENT', {
+    ok: true,
+    heroes: [ratedRow(10, 'Одиночный герой', 4.0, false), ratedRow(11, 'Герой Duos', 4.2, false), ratedRow(12, 'Герой Duos 2', 4.5, false)],
   }],
   ['http://127.0.0.1:3108/api/bg/heroes?mode=duos', {
     ok: true,
     heroes: [
       { dbfId: 10, hero: 'Дубликат из Duos' },
       { dbfId: 11, hero: 'Герой Duos' },
+      { dbfId: 12, hero: 'Герой Duos 2' },
     ],
   }],
 ]);
@@ -50,8 +68,8 @@ assert.deepEqual(requests.slice(0, 2).sort(), [
 const heroes = await loadBattlegroundHeroSitemapRows({ fetchImpl, timeoutMs: 100 });
 assert.deepEqual(heroes.map((row: any) => [row.dbfId, row.hero]), [
   [10, 'Одиночный герой'],
-  [11, 'Герой Duos'],
-], 'solo must remain authoritative when the same hero is also present in Duos');
+  [12, 'Герой Duos 2'],
+], 'solo must remain authoritative for a hero in both modes; a hero below the indexing threshold (Duos only) stays out');
 
 const standard = [{ card_id: 'SHARED_1' }, { card_id: 'STANDARD_ONLY_1' }];
 const wild = [{ card_id: 'SHARED_1' }, { card_id: 'WILD_ONLY_1' }, { card_id: 'WILD_ONLY_2' }];
