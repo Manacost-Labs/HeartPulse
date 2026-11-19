@@ -3,6 +3,8 @@ import type { CosmeticKind } from '@/src/modules/cosmetics/public';
 import type { PublicPayloadCheck } from './firstPaintStore';
 import { publicArchetypeCatalog } from './publicArchetypeCatalogTeaserData';
 import { cosmeticsCatalogSeed } from './publicCosmeticsCatalogData';
+import { articlesData } from './articlesData';
+import { homeSummaryData } from './homeSummaryData';
 import { publicFunDecksPreview } from './publicFunDecksPreviewData';
 
 /**
@@ -20,6 +22,8 @@ const usable = (convert: (raw: unknown) => unknown): PublicPayloadCheck => raw =
   }
 };
 
+export const homeSummaryCheck = usable(homeSummaryData);
+export const homeArticlesCheck = usable(raw => articlesData(raw));
 export const funDecksCheck = usable(publicFunDecksPreview);
 export const archetypeTeaserCheck = (format: ArchetypeCatalog['format']) => usable(raw => publicArchetypeCatalog(raw, format));
 export const cosmeticsCatalogCheck = (kind: CosmeticKind, url: string) => usable(raw => cosmeticsCatalogSeed(kind, url, raw));

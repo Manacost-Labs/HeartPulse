@@ -293,7 +293,7 @@ assert.equal(publicFunDecksPreview({ error: 'upstream' }), null);
 // A 200 that is not the page's contract is a failed read: it neither stores nor replaces the last good copy.
 {
   const { readPublicJson } = await import('../apps/public-web/lib/firstPaintStore');
-  const { funDecksCheck } = await import('../apps/public-web/lib/publicPayloadChecks');
+  const { funDecksCheck, homeSummaryCheck, homeArticlesCheck } = await import('../apps/public-web/lib/publicPayloadChecks');
   const realFetch = globalThis.fetch;
   const realNow = Date.now;
   let clock = realNow();
@@ -310,6 +310,21 @@ assert.equal(publicFunDecksPreview({ error: 'upstream' }), null);
     const other = '/api/fun-decks?contract-cold';
     await assert.rejects(readPublicJson(other, true, funDecksCheck), CatalogUnavailableError,
       'with no copy a contract-breaking 200 is an outage (503), not a page without data');
+    // The home feeds: an error body, null or a bare array must not replace the copy either.
+    const feeds = [
+      ['/api/home/summary', homeSummaryCheck, { topClasses: [{ id: 'mage', name: 'Маг', winrate: 51.2 }] }],
+      ['/api/articles', homeArticlesCheck, { articles: [{ id: 'a1', title: 'Статья' }], updatedAt: null }],
+    ] as const;
+    for (const [feedPath, check, good] of feeds) {
+      answer = good;
+      const first = await readPublicJson(feedPath, false, check);
+      assert.deepEqual(first, good);
+      for (const broken of [{ error: 'upstream' }, null, []]) {
+        clock += 3000;
+        answer = broken;
+        assert.deepEqual(await readPublicJson(feedPath, false, check), good, `${feedPath}: ${JSON.stringify(broken)} keeps the copy`);
+      }
+    }
   } finally {
     globalThis.fetch = realFetch;
     Date.now = realNow;

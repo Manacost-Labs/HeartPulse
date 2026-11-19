@@ -99,7 +99,6 @@ function tierList() {
 }
 
 const json = body => ({ body });
-const unavailable = { status: 503, body: { error: 'Fixture first-paint read unavailable' } };
 
 const COSMETICS_DETAIL_PARTS = [
   { name: 'detail', skeleton: '.loading-surface__blocks.cosmetics-detail', loaded: 'article.cosmetics-detail', check: 'viewport' },
@@ -123,18 +122,21 @@ function cosmeticsDetailResponse(url, { variant }) {
 // can show while the server is slow. The rows stay measurable on demand.
 const AWAITS_ROUTE_LOADING_UI = 'route-level loading UI for the server-probed detail';
 // Data pages (#420): apps/public-web/proxy.ts reads their data before the document. A copy (fresh or the last
-// good one) renders the page WITH its data; none is a 503. The state these routes measured, a document without
-// data whose browser request is held, no longer exists, so there is no skeleton to measure on these routes
-// (the components stay in Storybook as render checks only). Name them in SKELETON_ROUTES to see the failure.
-// The no-data and last-good behaviour is tests/next-card-detail-proxy.test.mjs.
-const AWAITS_NO_DATA_DOCUMENT = 'no document without data: a copy renders the data, none is a 503 (proxy.ts, #420)';
+// good one) renders the page WITH its data; none is a 503. So a document with no data, which these routes once
+// held open, does not exist any more. Where a skeleton is still reachable (a filter from the link while the
+// complete list loads) the route targets that state; where it is not, the route is gone (see the end of the table).
+
+// Not here: the cosmetics catalog (/cosmetics/heroes/). Its skeleton (Cosmetics.tsx) shows only while the grid has
+// no payload at all. The seed is built by the same check the proxy probe applies, so a document either carries the
+// seed or is a 503; a filter or page change keeps the previous page dimmed instead of the skeleton. No URL reaches it.
+// CosmeticsGridSkeleton stays a Storybook story.
 
 export const SKELETON_ROUTES = [
   {
-    awaits: AWAITS_NO_DATA_DOCUMENT,
-    id: 'fun-decks', path: '/standard/fun-decks/', textVariants: true,
-    // The server's 600 ms first-paint read fails, so the browser request is the one held.
-    respond: (url, { browser, variant }) => url.pathname === '/api/fun-decks' ? (browser ? json(funDecks(variant)) : unavailable) : undefined,
+    // A filter from the link (?format=wild) cannot be answered by the guest preview the server renders, so the page
+    // shows the skeleton (`settling`, FunDecksPage.tsx) until the complete list, the held browser request, arrives.
+    id: 'fun-decks', path: '/standard/fun-decks/?format=wild', textVariants: true,
+    respond: (url, { variant }) => url.pathname === '/api/fun-decks' ? json(funDecks(variant)) : undefined,
     hold: (url, { browser }) => browser && url.pathname === '/api/fun-decks',
     skeleton: '.loading-surface__blocks.fun-decks-grid', loaded: 'section.fun-decks-grid > .fun-deck-card',
     parts: [
@@ -197,22 +199,6 @@ export const SKELETON_ROUTES = [
       ...[0, 1, 2].map(index => ({ name: `card ${index + 1}`, index, check: 'text', top: index === 0,
         skeleton: '.loading-surface__blocks.guide-archive-grid > .guide-archive-card', loaded: '.guide-archive-grid > a.guide-archive-card' })),
       { name: 'card 1 cover', skeleton: '.guide-archive-card-skeleton .guide-archive-card-media', loaded: 'a.guide-archive-card .guide-archive-card-media', check: 'fixed', top: false },
-    ],
-  },
-  {
-    awaits: AWAITS_NO_DATA_DOCUMENT,
-    id: 'cosmetics-list', path: '/cosmetics/heroes/', textVariants: true,
-    respond: (url, { browser, variant }) => url.pathname === '/api/cosmetics/heroes'
-      ? (browser ? json({ items: Array.from({ length: 24 }, (_, index) => heroSummary(index, variant)),
-        pagination: { page: 1, perPage: 48, total: 24, totalPages: 1 }, updatedAt: NOW, source: 'fixture' }) : unavailable)
-      : undefined,
-    hold: (url, { browser }) => browser && url.pathname === '/api/cosmetics/heroes',
-    skeleton: '.cosmetics-grid-loading', loaded: '.cosmetics-grid-heroes > .cosmetics-card',
-    parts: [
-      { name: 'grid', skeleton: '.cosmetics-grid-loading', loaded: '.cosmetics-grid.cosmetics-grid-heroes', check: 'viewport' },
-      ...[0, 1, 2].map(index => ({ name: `card ${index + 1}`, index, check: 'text', top: index === 0,
-        skeleton: '.cosmetics-grid-loading > .cosmetics-card', loaded: '.cosmetics-grid-heroes > .cosmetics-card' })),
-      { name: 'card 1 media', skeleton: '.cosmetics-skeleton .cosmetics-card-media', loaded: '.cosmetics-grid-heroes .cosmetics-card-media', check: 'fixed', top: false },
     ],
   },
   {

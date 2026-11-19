@@ -11,7 +11,9 @@ import { patchNotesReader } from './patchNotesStore';
 import { cosmeticsCatalogSeedRequest } from './publicCosmeticsCatalogData';
 import { FUN_DECKS_PATH, HOME_PATHS, STREAMERS_PATH, archetypeTeaserPath, streamerPath } from './publicDataPaths';
 import { leaderboardPaths } from './publicLeaderboardPaths';
-import { archetypeTeaserCheck, cosmeticsCatalogCheck, funDecksCheck } from './publicPayloadChecks';
+import {
+  archetypeTeaserCheck, cosmeticsCatalogCheck, funDecksCheck, homeArticlesCheck, homeSummaryCheck,
+} from './publicPayloadChecks';
 
 /**
  * What a document of a data page has to start with, decided by `proxy.ts`
@@ -50,7 +52,7 @@ export async function probePublicData(pathname: string, searchParams: URLSearchP
   const search = searchParams.toString();
   if (path === '/') {
     // The page is worth showing without its feeds, so it does not wait longer for them than it always did.
-    const [summary, articles] = await Promise.all([read(HOME_PATHS.summary, false), read(HOME_PATHS.articles, false)]);
+    const [summary, articles] = await Promise.all([read(HOME_PATHS.summary, false, homeSummaryCheck), read(HOME_PATHS.articles, false, homeArticlesCheck)]);
     return summary === 'ok' && articles === 'ok' ? 'ready' : 'partial';
   }
   if (path === '/leaderboards') {
