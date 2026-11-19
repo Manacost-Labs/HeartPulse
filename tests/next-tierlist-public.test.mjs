@@ -25,12 +25,6 @@ const CLASSES = [...CLASS_IDS, 'any'];
 const BROWSER_UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
 const ROBOT_UA = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)';
 
-async function listen(server) {
-  server.listen(0, '127.0.0.1');
-  await once(server, 'listening');
-  return `http://127.0.0.1:${server.address().port}`;
-}
-
 function startLegacy(state) {
   const app = express();
   app.use((request, _response, next) => {

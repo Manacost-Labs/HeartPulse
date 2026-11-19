@@ -138,7 +138,7 @@ This slice must not open private API responses to indexing or shared caches.
 копирующая строку) проверяет, что сторож краснеет. Первая страница с
 открытым слоем: `/tierlist/`.
 
-#### `/tierlist/`: весь пул карт (E21 OL3, #440)
+### `/tierlist/`: весь пул карт (E21 OL3, #440)
 
 Решение владельца 2026-11-18 расширило открытый слой `/tierlist/` с топ-10
 до всего пула карт текущей Арены. Открыто: `cardId`, `name`, `classKey`,
