@@ -293,8 +293,15 @@ assert.equal(projectCardAssemble(poolBody('ok', 'garbage'))?.bases[0].donorPool,
 assert.equal(projectCardAssemble(poolBody('ok', []))?.bases[0].donorPool, null);
 assert.equal(projectCardAssemble(CONTRACT)?.donorPoolStatus, null);
 assert.equal(projectCardAssemble(CONTRACT)?.bases[0].donors?.length, projectCardAssemble(poolBody('ok', poolRows))?.bases[0].donors?.length);
-const oneHalf = projectCardAssemble(poolBody('ok', [{ ...poolRows[0], options: [poolRows[0]?.options[0]] }, poolRows[1], { ...poolRows[2], has_stats: 'yes' }]));
-assert.deepEqual(oneHalf?.bases[0].donorPool?.map(donor => donor.card.cardId), ['MAGE_ONE'], 'exactly two halves and a boolean has_stats, or the donor is dropped');
+// One unreadable entry among valid ones makes the whole pool untrustworthy: no pool at all, never a shorter one.
+const withBroken = (broken: unknown) => projectCardAssemble(poolBody('ok', [poolRows[0], broken, poolRows[1]]));
+assert.equal(withBroken({ ...poolRows[0], options: [poolRows[0]?.options[0]] })?.bases[0].donorPool, null, 'one half');
+assert.equal(withBroken({ ...poolRows[2], has_stats: 'yes' })?.bases[0].donorPool, null, 'has_stats is not a boolean');
+assert.equal(withBroken({ ...poolRows[2], options: [poolRows[2]?.options[0], poolRows[2]?.options[0]] })?.bases[0].donorPool, null, 'two equal halves');
+assert.equal(withBroken({ has_stats: true, options: poolRows[2]?.options })?.bases[0].donorPool, null, 'no card');
+assert.equal(withBroken(null)?.bases[0].donorPool, null, 'not an object');
+assert.equal(withBroken(poolRows[3])?.bases[0].donorPool?.length, 3, 'valid entries are kept whole');
+assert.equal(projectCardAssemble(poolBody('ok', Array.from({ length: 801 }, (_, index) => pool(`FLOOD_${index}`, 20000 + index, 'MAGE', false))))?.bases[0].donorPool, null, 'a flood is not trimmed to look complete');
 const state = projectCardAssemble(poolBody('weird', poolRows));
 assert.equal(state?.donorPoolStatus, null);
 assert.equal(state?.bases[0].donorPool, null);

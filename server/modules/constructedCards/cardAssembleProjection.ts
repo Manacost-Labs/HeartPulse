@@ -161,16 +161,18 @@ function readOptions(value: unknown): AssembleOption[] | null {
   return first.half === 'effect' ? [first, second] : [second, first];
 }
 
-function readPoolOptions(value: unknown): AssemblePoolOption[] | null {
-  const options = readOptions(value);
-  return options ? options.map(option => ({ half: option.half, text: option.text })) : null;
-}
-
 function readPoolDonor(value: unknown): AssemblePoolDonor | null {
   const row = record(value);
   const card = readCard(row.card);
-  const options = readPoolOptions(row.options);
+  const options = readOptions(row.options)?.map(option => ({ half: option.half, text: option.text }));
   return card && options && typeof row.has_stats === 'boolean' ? { card, hasStats: row.has_stats, options } : null;
+}
+
+/** The whole pool or nothing: one unreadable entry (or a flood) makes the pool untrustworthy, not shorter. */
+function readPool(value: unknown): AssemblePoolDonor[] | null {
+  if (!Array.isArray(value) || value.length > MAX_POOL) return null;
+  const donors = value.map(readPoolDonor);
+  return donors.every(donor => donor !== null) ? donors : null;
 }
 
 function readDonor(value: unknown): AssembleDonor | null {
@@ -203,7 +205,7 @@ function readBase(value: unknown): AssembleBase | null {
     lowSample: row.low_sample === true,
     donorsTotal: count(row.donors_total) ?? donors?.length ?? 0,
     donors,
-    donorPool: Array.isArray(row.donor_pool) ? row.donor_pool.slice(0, MAX_POOL).flatMap(item => readPoolDonor(item) ?? []) : null,
+    donorPool: readPool(row.donor_pool),
   };
 }
 
