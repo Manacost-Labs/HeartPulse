@@ -94,4 +94,21 @@ timed.stop();
 assert.ok(loads >= 2, 'the timer repeats');
 assert.deepEqual(errors.slice(0, 1).map(item => /dataset down/.test(item)), [true]);
 
+// The wiring starts the timer only when asked: no timer with `periodic: false`.
+process.env.FUN_DECK_PREWARM_ART_START_MS = '1';
+process.env.FUN_DECK_PREWARM_ART_INTERVAL_MS = '1000';
+const { createFunDeckArtWarming } = await import('../server/app/createFunDeckArtWarming.js');
+for (const periodic of [false, true]) {
+  let listLoads = 0;
+  const wiring = createFunDeckArtWarming({
+    deckArt: { cachePath: () => '/nonexistent', ensure: async () => ({ path: '', source: 'fallback' }) } as never,
+    deckBuilder: {} as never,
+    funDecks: { loadFunDecks: async () => { listLoads += 1; return {}; } },
+    periodic,
+  });
+  await new Promise(resolve => setTimeout(resolve, 300));
+  wiring.stop();
+  assert.equal(listLoads > 0, periodic, periodic ? 'the periodic warm-up loads the published decks' : 'no timer without periodic');
+}
+
 console.log('Fun-deck art prewarmer tests passed');

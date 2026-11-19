@@ -174,6 +174,44 @@ try {
     await hover.close();
   }
 
+  // Keyboard focus on a tile below the first screen scrolls it into view and the preview stays, beside its card.
+  const keys = await browser.newPage();
+  try {
+    await keys.setViewport({ width: 1440, height: 700, deviceScaleFactor: 1 });
+    await keys.setRequestInterception(true);
+    keys.on('request', request => {
+      const { pathname } = new URL(request.url());
+      if (pathname.startsWith('/api/card-image/') || pathname.startsWith('/api/public-resource/')) {
+        void request.respond({ status: 200, contentType: 'image/gif', body: PIXEL });
+        return;
+      }
+      void request.continue();
+    });
+    await keys.goto(storybook.storyUrl('constructed-fun-deck-layouts--tiles'), { waitUntil: 'domcontentloaded' });
+    await keys.waitForSelector('a.fun-deck-tile');
+    let tabs = 0;
+    let focusedBelowFold = false;
+    while (tabs < 120 && !focusedBelowFold) {
+      await keys.keyboard.press('Tab');
+      tabs += 1;
+      focusedBelowFold = await keys.evaluate(() => {
+        const active = document.activeElement;
+        return Boolean(active?.matches('a.fun-deck-tile')) && window.scrollY > 300;
+      });
+    }
+    assert.ok(focusedBelowFold, 'Tab reaches a tile that needed scrolling');
+    await keys.waitForSelector('[data-card-preview-id]', { timeout: 5_000 });
+    await new Promise(resolve => setTimeout(resolve, 600));
+    const placed = await keys.evaluate(() => {
+      const tile = document.activeElement.getBoundingClientRect();
+      const preview = document.querySelector('[data-card-preview-id]').getBoundingClientRect();
+      return { shown: true, overlapsVertically: preview.top < tile.bottom && preview.bottom > tile.top, inViewport: preview.top >= 0 && preview.bottom <= window.innerHeight };
+    });
+    assert.ok(placed.shown && placed.overlapsVertically && placed.inViewport, `the preview stays next to the focused tile: ${JSON.stringify(placed)}`);
+  } finally {
+    await keys.close();
+  }
+
   // A subscriber sees all nine decks and no «Показать ещё»; a deck is resolved when it nears the screen.
   const many = await browser.newPage();
   try {

@@ -232,6 +232,8 @@
 .fun-decks-method__gate p { margin: 0; }
 .fun-decks-method__gate p + p { margin-top: 0.3rem; }
 .fun-decks-method__gate b { color: #3d0a0f; }
+/* A figure takes the same width known or not («—»), so the lines break alike while the data loads. */
+.fun-decks-method__figure { display: inline-block; min-width: 3.2ch; text-align: center; }
 
 .fun-decks-method__gate {
   grid-column: 2;
@@ -937,6 +939,6 @@
   }
 }
 
-/* «Стандарт / Вольный» in the banner summary fits on one line, at 1440 and 390. */
-.fun-decks-page .traditional-mode-banner__summary dt { letter-spacing: 0.04em; }
+/* «Стандарт / Вольный» in the banner summary is never cut: it wraps to a second line when the cell is narrow (360, 390). */
+.fun-decks-page .traditional-mode-banner__summary dt { letter-spacing: 0.04em; line-height: 1.25; text-overflow: clip; white-space: normal; }
 .fun-decks-page .traditional-mode-banner__summary > div { padding-inline: 0.9rem; }
