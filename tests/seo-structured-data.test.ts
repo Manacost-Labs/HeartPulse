@@ -215,7 +215,7 @@ test('no registry graph offers a price or claims to be an application, and no da
       assert.deepEqual(node.publisher, { '@id': ORGANIZATION_ID }, `${path} Dataset publisher`);
     }
   }
-  for (const path of ['/', '/battlegrounds/strategies/', '/battlegrounds/tier-builder/']) {
+  for (const path of ['/', '/battlegrounds/tier-builder/']) {
     const page = byType((await seoStructuredDataGraph(path))!['@graph'], 'WebPage')!;
     assert.equal(typeof page.name, 'string', path);
     assert.equal(typeof page.description, 'string', path);
@@ -385,7 +385,7 @@ test('the contents lists of the tier lists are gone, and no description counts t
   const types = async (path: string) => (await seoStructuredDataGraph(path))!['@graph'].map(node => node['@type']);
   assert.deepEqual(await types('/tierlist/'), ['Organization', 'BreadcrumbList', 'Dataset']);
   assert.deepEqual(await types('/legendaries/'), ['Organization', 'BreadcrumbList', 'Dataset']);
-  assert.deepEqual(await types('/battlegrounds/tier-list/'), ['Organization', 'BreadcrumbList', 'CollectionPage']);
+  assert.deepEqual(await types('/battlegrounds/tier-list/'), ['Organization', 'BreadcrumbList', 'CollectionPage', 'Dataset']);
   const classes = byType((await seoStructuredDataGraph('/classes/'))!['@graph'], 'Dataset')!;
   assert.equal(classes.description, 'Процент побед (винрейт) классов в режиме Арена Hearthstone по данным HSReplay и Firestone. '
     + 'Разбивки, история и сравнение классов доступны по подписке; на открытой странице — порядок классов с винрейтом до десятых долей процента, '

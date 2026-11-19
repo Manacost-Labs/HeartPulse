@@ -120,6 +120,65 @@ row count, grid visibility, highlights and annotations are saved; no
 credentials, paid statistics or library payloads are copied. Storage failures
 keep the in-memory editor usable and must be communicated by the editor.
 
+## Open builds (`/battlegrounds/tier-list/`, `/battlegrounds/strategies/`)
+
+Since E21 R7 (#442) both pages publish their builds to every visitor in the
+server HTML; the interactive tier lists, the strategy builder and the closed
+statistics keep requiring the `battlegrounds` entitlement.
+
+Express answers `GET /api/bg/tier-lists/public?list=compositions|strategies`
+from `server/battlegroundBuildsPublicRoutes.ts`. The source and its base slice
+are fixed by the server (`compositions` is the HSReplay list, `strategies` the
+Firestone list, both read from the loopback Battlegrounds service without
+`mmr` or `timeRange`); `source`, `mmr`, `timeRange` or another `list` is a 400.
+The projection (`server/battlegroundBuildsPublicProjection.ts`) copies fields
+by name (an allowlist):
+
+- build: `key`, `tier`, `title`, `description` (the conditions for going into
+  the build), `difficulty`, `archetype`;
+- open figures of the base slice: `avgPlacement` (1..8, two digits) and
+  `popularity` (percent, one digit), `null` when the source has none (HSReplay
+  gives neither today);
+- minions: `coreCards` (up to 6) and `additionalCards` (up to 8, the example
+  board) with `dbfId`, `cardId`, `name` (Russian), `image` (same-origin
+  public-resource path);
+- `updatedAt` (`fetchedAt`), `source`, `list`.
+
+Closed and never copied: sample sizes (`games`), `firstPlace`, the placement
+distribution, top-four and first-place popularity, confidence intervals, other
+rating ranges, trinkets by range, the fork analysis, `whenToCommit` and the
+card-level figures. A row with no key, no name or no key minion is skipped.
+The route has its own store per list (five minutes, own ETag) and answers a
+failing source in this order: the stored projection with `warning: "stale"`,
+the last raw answer kept on disk (`os.tmpdir()/hearthpulse-bg-builds-public`)
+projected again with `warning: "fallback"`, and else a 503 with `Retry-After`
+(never a 502 or an empty list). `/api/bg/tier-lists` and `/api/bg-comps` stay
+behind the access guard.
+
+The Next pages (ISR five minutes) read the list anonymously
+(`apps/public-web/lib/publicBattlegroundBuilds.ts`, which re-parses field by
+field in `publicBattlegroundBuildsData.ts`) and render
+`BattlegroundBuildsPublicList`: tiers S to D, each build with its title, facts
+(archetype, difficulty, average place, popularity), conditions, key minions,
+the rest of the example board and a link to `/battlegrounds/tier-builder/`. A
+guest, a robot and a signed-in visitor without a subscription get the same
+HTML; a subscriber keeps the list on screen until the paid chunk has loaded
+and the paid view replaces it in one render. A failed read never turns into an
+empty page: the page uses the last good list of the process, and with none the
+regeneration throws, so Next keeps the copy it has. Only the build, which has
+no Express, renders without the list.
+
+JSON-LD: `ItemList` of the printed builds (anchors `#build-<key>`) and a
+`Dataset` with `isAccessibleForFree: false` and `hasPart` pointing at
+`.paywalled-builds`, the closed part under the list. The strategies page is a
+`CollectionPage` for that reason. Production observer entries
+`battlegrounds-tier-list-open-builds` and `battlegrounds-strategies-open-builds`
+check `.bg-builds-public article`.
+
+Warm-up and edge rules for both pages are handled by the final E21 slice
+(#476): the page paths are `/battlegrounds/tier-list` and
+`/battlegrounds/strategies`, the data marker is `.bg-builds-public article`.
+
 ## Boundaries
 
 Always validate restored placements against the current card pool and preserve

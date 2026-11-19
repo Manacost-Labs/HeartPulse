@@ -61,9 +61,16 @@
         "assertions": [{ "selector": ".arena-paywall", "minCount": 1 }]
       },
       {
-        "id": "battlegrounds-tier-list-paywall",
+        "id": "battlegrounds-tier-list-open-builds",
         "path": "/battlegrounds/tier-list",
-        "assertions": [{ "selector": ".arena-paywall", "minCount": 1 }]
+        "assertions": [{ "selector": ".bg-builds-public article", "minCount": 10 }],
+        "forbiddenSelectors": [".arena-paywall"]
+      },
+      {
+        "id": "battlegrounds-strategies-open-builds",
+        "path": "/battlegrounds/strategies",
+        "assertions": [{ "selector": ".bg-builds-public article", "minCount": 10 }],
+        "forbiddenSelectors": [".arena-paywall"]
       }
     ],
     "authenticated": [
