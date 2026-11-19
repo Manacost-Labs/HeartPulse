@@ -28,6 +28,8 @@ export type PatchCardView = {
   art: PatchCardArt;
   /** Wiki full illustration behind featured cards; `null` without a catalog match. */
   artwork: PatchNotesArtwork | null;
+  /** The card before and after the patch (card-history archive); both or neither. */
+  pair: { before: string; after: string } | null;
   /** Lower-case class of a Constructed or Arena card (`warrior`); `null` for neutral and other modes. */
   classKey: string | null;
   /** The card's page on the site (statistics and decks with it), for Constructed cards of a known format. */
@@ -189,6 +191,7 @@ export function toPatchView(detail: Pick<PatchNotesDetail, 'entries'>): PatchVie
       renderUrl: entry.renderUrl ?? null,
       art: art(entry),
       artwork: entry.artwork ?? null,
+      pair: entry.beforeRenderUrl && entry.afterRenderUrl ? { before: entry.beforeRenderUrl, after: entry.afterRenderUrl } : null,
       classKey: classKeyOf(entry),
       cardUrl: entry.cardId && entry.format ? `/standard/cards/${entry.format}/${encodeURIComponent(entry.cardId)}/` : null,
       anchor: patchCardAnchor(entry.id),

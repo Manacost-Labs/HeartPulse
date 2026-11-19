@@ -1,12 +1,13 @@
 # Patch notes page
 
-`/standard/patches/` shows the card changes of one Hearthstone patch
+`/standard/patches/` shows the card changes of the two newest Hearthstone
+patches that have parsed changes, newest first
 (`src/features/PatchNotesView.tsx` and `src/features/patchNotes/`, parchment
-styles of the site). Without a
-query it opens the newest patch that has card changes; `?version=36.6.3` opens
-one patch of the archive. The archive lists every patch with at least one
-parsed change. The page is public: no entitlement, no paywall and no viewer
-data.
+styles of the site). `?version=36.6.3` opens one patch of the archive in the
+same layout; the cards of other pages and the Radar link to it. The page is
+public: no entitlement, no paywall and no viewer data. It has no search,
+filters, table of contents, version switcher, highlights, archetype flow or
+per-card menus: a patch is its modes, a mode is its cards.
 
 ## Source
 
@@ -84,6 +85,9 @@ general rules are preserved; developer commentary is summarized in Russian.
 
 ## Meta impact and history
 
+The API still serves `archetypes` and `history` of each entry; the page of
+2026-11-19 no longer shows them (no archetype flow, no earlier-patch links).
+
 - Archetypes belong to the day before the patch, never to today.
   Express keeps a snapshot of the site's archetype catalogs
   (`v1/hsguru/archetypes`, the same cache as the archetype pages) for
@@ -138,48 +142,77 @@ general rules are preserved; developer commentary is summarized in Russian.
   (`loadPublicCards('wild')`, `images.art` with `art_metadata` width and
   height; `null` when unstated). An id also finds the art of its `CORE_`
   reprint or original. Battlegrounds entries have none. Only `http(s)` URLs
-  are kept; the page loads them through the image proxy at 320 and 512 px.
+  are kept; the page no longer shows them.
 - The art catalog never delays a snapshot: the patches are parsed with the
   last art lookup (none after a restart); the catalog is read only after the
   snapshot is built, because reading it alongside the archive slowed the
   first answer, and its art is merged into the current snapshot on arrival.
 
-## Navigation
+## Before and after
 
-One way to do each thing:
+Each entry carries `beforeRenderUrl` and `afterRenderUrl`: absolute URLs of
+archived renders of the card in the card history of the data API
+(`server/modules/patchNotes/cardVersions.ts`). Both or neither.
 
-- The version switcher lives in the patch header: older and newer arrows
-  around a select of every archived version, and "Все патчи", which opens
-  the archive timeline in a modal side drawer (a native `<dialog>`). The
-  drawer is rendered with the page, so the links to every patch are in the
-  server HTML.
-- Below the header the changes column and, on page content at least
-  1000 px wide, a sticky table of contents ("В этом патче") beside it:
-  "Главное в патче", "Архетипы" (when shown), each section and, for a
-  section of more than one group, its classes or card types after the
-  filters. The entry under the reading line is marked
-  (`aria-current="location"`, IntersectionObserver). Narrower, the same
-  entries are one «Перейти к…» select in the filters bar (an optgroup per
-  section); choosing one jumps there and opens a folded section. CSS shows
-  one of the two, and neither appears for a patch with two entries or
-  fewer.
-- The filters bar, a framed toolbar whose controls share one height,
-  carries the search and the kind filter (Все / ↑ / ↓ / ↻; the header
-  digest uses the same marks, so the toggles carry their names as labels).
-  The changes column is a container of its own: when it is at least 760 px
-  wide the whole bar sticks under the site header; narrower, only the jump
-  select and kind row sticks and the search scrolls away. The layout uses
-  container queries because the site rail takes part of the viewport.
-- Every card in a section has the id `card-<entry id>`; its "…" holds a
-  copy-link button. `:target` marks the linked card, and a patch loaded in
-  the browser scrolls to it. Cards, groups and sections keep
-  `scroll-margin-top` below the sticky bar.
-- Sections fade in when opened, without motion under
-  `prefers-reduced-motion`. The empty filter state offers a reset. While a
-  patch loads in the browser the page shows `PatchNotesSkeleton`: the
-  header plate with the page `h1`, the bar, a section head, change rows in
-  the page's columns and the table of contents on wide content, built from
-  the shared `LoadingSurface` blocks.
+- Source: `GET <KOLODAHS_API_BASE_URL>/card-history/constructed_card/<id>`
+  (`media.image_url.archive_url`) for Constructed, Arena and side-mode cards,
+  `/card-history/card/<id>` (`media.card_image.archive_url`) for Battlegrounds.
+  The local image paths of the history jump without a change of the card and
+  are never used; neither is a picture whose status is not archived.
+- Pair rule: "before" is the last archived picture whose `observed_at` (UTC)
+  is older than the patch's `publishedAt`; "after" is the first archived
+  picture from `publishedAt` up to the release of the next newer patch of the
+  archive whose picture (sha256) differs from "before". Without both, the
+  card has no pair and nothing is drawn or guessed. The history starts on
+  2026-10-11, so 37.0.2 and 37.0.0 have pairs (about 20 of 22 Standard
+  and 28 of 66 Battlegrounds cards in 37.0.2; trinkets have none) and
+  36.6.3 and older have none.
+- Cost: one request per entry, at most four at a time, six seconds each at
+  most. The two newest patches are read as soon as the archive is; another
+  patch is read on its first request. A request waits up to four seconds for
+  a patch not read yet and serves the pairs found so far; the rest arrive
+  with later answers. A finished patch is kept six hours, one whose reads
+  failed is read again after five minutes, at most 16 patches are kept. A
+  failed or unknown (`404`) card has no pair; the route never fails for it.
+- The archive hosts are `api.kolodahearthstone.com/uploads/`, which the image
+  proxy (`/api/public-resource/db/`) already allows; the page never loads the
+  archive host directly.
+
+## Page
+
+- Reading order: the page `h1`, then each patch: its `h2` ("Патч 37.0.2") with
+  the date, the number of changes and quiet links to the article and the
+  official notes, and the article title as a lead line; then each mode as an
+  `h3` ("Стандарт", "Вольный", "Арена", "Поля сражений", "Другие режимы") with
+  its general changes as a plain list, then its cards. A mode's general
+  changes sit under its first section; a mode with only general changes gets
+  a section of its own. Picture-only article headings are one quiet line at
+  the end of the patch. A patch without line-by-line changes says so.
+- A pair card: the name (a link to the card page for Constructed cards of a
+  known format), the picture "До", an arrow with the plates of the change, the
+  picture "После", and the developers' comment as one line. A plate is the
+  game's word and the values: «Мана 9 → 10» (a Battlegrounds cost is
+  «Золото»), «Тир 4 → 5», «Атака 5 → 6», «Здоровье», «Броня…»; the new value
+  is coloured by direction (green better, red worse for the player) and the
+  direction is also said to assistive technology. A rule-text change is the
+  plate «Текст»: the text itself is on the pictures.
+- A card without a pair: one current picture ("Сейчас"; the card image of the
+  site, the Battlegrounds catalog render) and its plates beside it; a text
+  change then shows the old and the new text under its plate, because no
+  picture shows the old one. A card the catalog does not know is one line:
+  the name and its plates. There are no placeholders or apologies.
+- Layout (container queries on the card, grid auto-fit on the list): two
+  pairs in a row from about 1100 px of content, one pair per row below;
+  at card width under 27 rem (phones) the two pictures sit side by side,
+  each about 45 %, with the arrow between and the plates under them. Images
+  have width and height (Constructed 404×558, Battlegrounds 512×776), the
+  first four of the newest patch load eagerly, the rest lazily, all through
+  `/api/public-resource` at 480 px (`webp`). Nothing scrolls sideways.
+- Every card has the id `card-<entry id>`; a patch loaded in the browser
+  scrolls to it. Dates render in Europe/Moscow before hydration and in the
+  viewer's zone after it. While a patch loads in the browser the page shows
+  `PatchNotesSkeleton`: the `h1` and two blocks from the shared
+  `LoadingSurface`.
 
 ## API
 
@@ -188,131 +221,29 @@ One way to do each thing:
 | --- | --- |
 | `GET /api/patch-notes` | `{ patches: PatchNotesSummary[], updatedAt }`, patches with changes, newest first |
 | `GET /api/patch-notes/latest` | `PatchNotesDetail` of the newest patch with changes |
-| `GET /api/patch-notes/:version` | `PatchNotesDetail`; `400` for a malformed version, `404` for an unknown one |
+| `GET /api/patch-notes/recent` | `{ patches: PatchNotesDetail[2], updatedAt }`, the page's two newest patches with before/after pictures |
+| `GET /api/patch-notes/:version` | `PatchNotesDetail` with before/after pictures; `400` for a malformed version, `404` for an unknown one |
 <!-- markdownlint-enable MD013 -->
 
 Responses are `public, max-age=600, stale-while-revalidate=1800`. The newest
 build of a version wins when hs-data-api stores two builds of one article.
+`latest` and the archive list carry no before/after pairs: they are not
+read for them.
 
 ## Rendering
 
-The server component reads both routes through a cache in the Next process
+The server component reads `/api/patch-notes/recent` (or the one version)
+through a cache in the Next process
 (`apps/public-web/lib/publicPatchNotesData.ts`): the last good answer of each
 path is served at once and refreshed in the background once it is five
-minutes old, so a slow Express no longer ships the page without the patch
+minutes old, so a slow Express no longer ships the page without the patches
 (the regional edge keeps an anonymous document for a minute, bots included).
 Only a path the process has never read waits, within the shared 600 ms
 first-paint budget; its read goes on for up to ten seconds and fills the
-cache for the next request, and a part that missed the budget is loaded by
+cache for the next request, and a patch that missed the budget is loaded by
 the browser. Failed, `404` and malformed answers are not kept; at most 48
 paths are, the least recently served dropped first. After a deploy
 `scripts/warm-prerendered-pages.mjs` requests the page on the local Next
-origin to fill the cache. Dates render in Europe/Moscow before hydration and in
-the viewer's zone after it.
-
-- Reading order: the header, the bar, "Главное в патче", the archetypes
-  block, the sections and a one-paragraph source note. "Главное" and the
-  archetypes block open like a section summary — an emblem (a star, a
-  network glyph), the title in display type, a thin wood rule — without the
-  disclosure; the archetypes block names its day on the right ("данные за
-  30 сентября 2026 г."), under the title on phones. A patch of one or two
-  changes has no bar: there is nothing to filter. The Sankey draws its
-  flows without the kit's dash animation,
-  which Chrome leaves unpainted on this chart's wide flows.
-- The page heading (`h1` "Патчноуты Hearthstone") sits in the patch header
-  instead of the tall route banner, which only the missing, failed and
-  loading states still show.
-- The header is an art plate like the archetype header: the archetype class
-  art of the class with most changed cards (`public/archetype-art/classes`),
-  or the Battlegrounds plate when most changes are there, else the plate of
-  the first section. It is preloaded (`fetchPriority: high`, `srcset`) and
-  is the page's LCP image. The first card with wiki art at least 1000 px wide
-  (highlights first) stands on the right. The header shows the version only
-  through the switcher, the date, the expansion cycle of the version — every
-  major client version opens one (35 → «Катаклизм», 37 → «Власть Темной
-  империи»); majors the archive has no patch of are not mapped — with the
-  set glyph of the card library in a small seal, the article title without
-  its version prefix as the `h2` (`patchHeadline`: "Обновление 36.4.2 уже в
-  игре: баланс…" → "Баланс…"; "Патч 36.4.2" when nothing else is left), and the
-  "главное" (`patchDigest`): a line per section, at most three, with the
-  section name in gold and its nerfs, buffs and reworks in that order, each
-  after its ↓ ↑ ↻ mark — the card names for a section of up to four
-  changes, else the count with its Russian plural ("20 ослаблений"). The
-  article's own lead is not used: it is too often "Обновление уже доступно
-  для загрузки на ПК!". Then quiet links to the article and the official
-  notes. On content under 480 px "Все патчи" keeps only its icon.
-- Reading hierarchy: patch (the header) → mode section → class or card type
-  → card. The header is the page's only art plate: a section summary is the
-  mode emblem and the title in display type on a thin wood rule, with a
-  disclosure chevron. Each number is said once: the header digest counts
-  the kinds of a long section; nothing else counts them. Groups are a line
-  of type: the 96 px class icon (or card-type glyph) and the name; a
-  section of one group of the section's own name has none.
-- Inside a group rows read nerfs, then buffs, then reworks, in the article's
-  order within each kind (`patchKindBlocks`). A group of at least six rows
-  with more than one kind is split into blocks, each named once by a small
-  label ("↓ Ослабления", "↑ Усиления", "↻ Переработки"); rows under such a
-  label drop their own mark. Shorter or single-kind groups are only
-  reordered and keep the mark on each row.
-- "Главное в патче" picks up to four changes with a picture from sections
-  longer than three cards of a patch longer than eight changes (a shorter
-  section or patch is read whole below, so it is not repeated): Standard
-  first, then the largest number moves; a stated buff or nerf outranks a
-  rework and one section fills at most half the list while others have
-  candidates. Highlights share one paper panel split by hairlines, not a
-  grid of boxed cards: each tile is the render beside the name and the
-  change, without details. They stack on narrow content, run two a row from
-  700 px and all in one row from 1080 px.
-- Sections are Стандарт, Вольный, Стандарт и Вольный (cards of unknown
-  format), Арена, Поля сражений and Другие режимы, each a `<details>` open by
-  default. Constructed entries carry `format`: `standard` when today's
-  Standard catalog (`loadPublicCards('standard')`) lists the card or its
-  `CORE_` reprint, else `wild`; `null` without a match or a catalog. Groups
-  are classes (Constructed, Arena) or card types (Battlegrounds: list
-  headings such as "Малый аксессуар" first, then catalog types).
-- Filters: search over Russian and English names and change text, the kind
-  (buffs, nerfs, reworks), and class or card type. Filtering hides the
-  highlights and section notes.
-- A change row shows only the render, the name with a ↑↓↻ mark (a coloured
-  glyph without a fill; with the kind labels of long groups it is the page's
-  one colour signal) and the change. Rows sit on the parchment without a
-  box, a hairline above each, in one, two (content from 700 px) or three
-  (from 1080 px) columns; only the highlights panel is boxed. A group of
-  one or two cards spans only its columns, so small classes share a row;
-  larger groups take the full width.
-  Groups share the section's columns (CSS subgrid), so rows line up. The
-  row's "…" (a `<details>` in its corner; on devices with hover it stays
-  faded until the row is pointed at or focused) holds the
-  type and the article's English name, the archetypes of the day before
-  the patch, the earlier patches that changed it, "Карта и колоды с ней" for Constructed
-  cards of a known format (`/standard/cards/<format>/<id>/`, which lists decks
-  with the card) and the copy-link button.
-- The picture sits in a fixed card-shaped box: the Constructed render
-  `/api/card-image/<id>/thumb.webp`, the Battlegrounds catalog render resized
-  through `/api/public-resource` (else the proxy's square art). Images have
-  width and height, the first four load eagerly. Hover or focus shows the
-  full current card, a tap or click opens it in a sheet. No source has card
-  images from before a patch, so there is no before/after render toggle: the
-  before state is the struck-out value or the word diff.
-- Number changes read `старое → новое`; cost, attack and health are drawn on
-  the game's mana crystal, attack and health icons, a tavern tier as its tier
-  shield; a Battlegrounds cost is gold and armor has no game icon on the
-  site, so both use an interface glyph. The old value is a smaller, faded,
-  grey gem (a value without an icon is struck through), the new one plain
-  ink, not coloured by direction;
-  the label and the direction stay for assistive technology. A rule-text
-  change is one sentence: changed words separated only by spaces form one
-  phrase (`patchDiffHunks`), shown as the whole old phrase muted and struck
-  out in muted ink, then the whole new phrase bold ink with a soft gold
-  highlighter stroke
-  ("было:"/"стало:" for assistive technology), never alternating single
-  words; its label is shown only when it is not "Текст".
-- A patch without line-by-line changes says so in a panel that points to the
-  header links. Picture-only article headings of a mode are one quiet line
-  with the article link (`patchPictureNote`): "Изменения брони героев,
-  существ, аксессуаров — в статье только картинками". Repeated headings are
-  named once, and in a mode with listed cards the mode's own parent heading
-  ("Изменения Hearthstone", "Изменения Полей сражений") is left out, because
-  the parser reports it only for having no text of its own. A mode without
-  cards gets a section only for its "Общие изменения" (a short list); a mode
-  with nothing but pictures is a line of the source note at the end.
+origin to fill the cache. The HTML carries the patch headings and the card
+names, so the page is indexable; `scripts/lib/post-deploy-data-pages.mjs`
+waits for the marker `hp-release__title`.
