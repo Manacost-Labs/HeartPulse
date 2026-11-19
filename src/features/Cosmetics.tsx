@@ -40,7 +40,6 @@ import {
 } from '../modules/cosmetics/public';
 import { CosmeticsGridSkeleton } from './CosmeticsGridSkeleton';
 import { CosmeticsDetailSkeleton } from './CosmeticsDetailSkeleton';
-import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
 import { useCatalogRequest, type CatalogRequestState } from './cosmeticsCatalogRequest';
 import { publicResourceImageUrl, publicResourceUrl } from '../publicResourceUrl';
 import { cachedCardImage } from './cosmeticsCardImage';
@@ -92,8 +91,6 @@ export type CatalogPayload = {
   generatedBy?: RelatedCard[];
   related?: RelatedCard[];
   pagination: { page: number; perPage: number; total: number; totalPages: number };
-  updatedAt: string | null;
-  source: string;
 };
 
 type HeroDetail = HeroSummary & {
@@ -258,14 +255,6 @@ function catalogControlsReducer(state: CatalogControls, action: CatalogControlsA
     ...state,
     page: Math.max(1, action.page),
   };
-}
-
-function formatUpdatedAt(value: string | null, timeZone?: string) {
-  if (!value) return 'время не указано';
-  const parsed = new Date(value.replace(' ', 'T') + (value.includes('Z') || /[+-]\d\d:\d\d$/.test(value) ? '' : 'Z'));
-  return Number.isNaN(parsed.getTime())
-    ? value
-    : parsed.toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short', timeZone });
 }
 
 function CatalogTabs({ active, navigatePath }: { active: CosmeticKind; navigatePath: (path: string) => void }) {
@@ -565,7 +554,6 @@ function CatalogView({
   };
 
   const items = payload?.items ?? [];
-  const timeZone = useViewerTimeZone();
   return (
     <>
       {kind === 'heroes' && <HeroFiltersPanel filters={filters} onChange={updateFilters} />}
@@ -630,11 +618,6 @@ function CatalogView({
             </nav>
           )}
         </>
-      )}
-      {payload && (
-        <p className="cosmetics-source">
-          Источник: {payload.source} · обновлено {formatUpdatedAt(payload.updatedAt, timeZone)}
-        </p>
       )}
     </>
   );

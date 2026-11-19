@@ -78,7 +78,7 @@ test('leaderboards: returning to a loaded table while another is pending shows i
     await standard.seen();
     await page.click('.leaderboards-modes button:nth-child(3)');
     await settledOn(page, 'XQN', 'Battlegrounds → Standard (pending) → Battlegrounds');
-    await page.waitForSelector('.leaderboards-charts svg', { timeout: 5000 });
+    await page.waitForSelector('.leaderboards-table tbody tr', { timeout: 5000 });
     standard.release();
     await pause(300);
     await settledOn(page, 'XQN', 'the late Standard answer does not replace Battlegrounds');

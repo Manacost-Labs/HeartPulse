@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { LEADERBOARD_MAX_RANK, leaderboardSearch } from '../model/leaderboardsView';
 import { LeaderboardControls, LeaderboardJump, LeaderboardMyNick, LeaderboardSearch } from './LeaderboardControls';
 import { LeaderboardPlayerCard, type PlayerCardActions } from './LeaderboardPlayerCard';
-import { LeaderboardCharts, LeaderboardSummary } from './LeaderboardSummary';
+import { LeaderboardSummary } from './LeaderboardSummary';
 import { LeaderboardTableView } from './LeaderboardTableView';
 import {
   LeaderboardCollecting, LeaderboardMissing, LeaderboardSummarySkeleton, LeaderboardTableSkeleton, LeaderboardUnknownSeason, LeaderboardsUnavailable,
@@ -75,9 +75,5 @@ export function LeaderboardsView({ initial }: { initial: LeaderboardsInitial }) 
             </div>
           </>}
     </section>
-    {showsTable && stats.value && stats.status === 'ready' && <LeaderboardCharts stats={stats.value} />}
-    <p className="leaderboards-muted leaderboards-source">
-      Данные — официальные таблицы лидеров Blizzard (hearthstone.blizzard.com), текущие сезоны обновляются четыре раза в сутки.
-    </p>
   </div>;
 }

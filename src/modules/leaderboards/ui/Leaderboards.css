@@ -373,17 +373,6 @@
   }
 }
 
-.leaderboards-charts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
-  gap: 0.75rem;
-  min-width: 0;
-}
-
-/* Заголовки графиков — в шкале страницы (заголовок карточки игрока), а не крупные заголовки разделов. */
-.leaderboards-charts .analytics-chart__header { margin-bottom: 0.5rem; }
-.leaderboards-charts .analytics-chart__header h3 { font-size: var(--lb-text-title); }
-
 /* Таблица — список строк: ровные колонки фиксированной раскладки, строки 46px
    с чередованием фона вместо линий, без прокрутки вбок. */
 
@@ -670,8 +659,6 @@
 .leaderboards-message > svg { flex: none; width: 22px; height: 22px; color: var(--lb-accent); }
 .leaderboards-message p { margin: 0.3rem 0 0.75rem; color: var(--arena-muted-ink); font-size: var(--lb-text-small); }
 .leaderboards-message__action { display: inline-flex; align-items: center; text-decoration: none; }
-
-.leaderboards-source { padding: 0 0.25rem; }
 
 .leaderboards-table--skeleton { gap: 6px; min-height: 560px; }
 /* Скелетон сводки — те же плитки и гистограмма с заливкой загрузки; ширина плиток — как у плиток с числами. */
