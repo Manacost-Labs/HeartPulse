@@ -55,6 +55,8 @@ export function useModePanels() {
   useEffect(() => {
     const keydown = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || !document.querySelector(`${PANELS}[open]`)) return;
+      // The drawer is a native popover that Escape would close too; this press belongs to the banners.
+      event.preventDefault();
       event.stopPropagation();
       closeModePanels(true);
     };

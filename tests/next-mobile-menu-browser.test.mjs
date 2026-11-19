@@ -202,8 +202,8 @@ test('the mobile drawer opens before hydration, animates both ways and closes as
     // The drawer slides in on a transition: click once it is on screen.
     await page.waitForFunction(() => document.querySelector('#arena-mobile-menu').getBoundingClientRect().left >= 0
       && !document.querySelector('#arena-mobile-menu').getAnimations().length, { timeout: 5_000 });
-    await openModeFor(page, '#arena-mobile-menu a[href="/tierlist/"]');
-    await page.click('#arena-mobile-menu a[href="/tierlist/"]');
+    await openModeFor(page, '#arena-mobile-menu .hp-nav-list a[href="/tierlist/"]');
+    await page.click('#arena-mobile-menu .hp-nav-list a[href="/tierlist/"]');
     await page.waitForFunction(() => location.pathname === '/tierlist/' && document.readyState === 'complete', { timeout: 10_000 });
     assert.equal(await page.evaluate(() => sessionStorage.getItem('left-at')), null, 'client navigation keeps the document');
     assert.deepEqual(await page.evaluate(() => ({

@@ -167,7 +167,7 @@ test('public navigation preserves the frame, sidebar state and native link behav
     assert.equal(await page.$eval('#root', root => root.firstElementChild?.matches('.arena-skip-link')), true,
       'the persistent skip link remains the first root element');
     await page.evaluate(() => { document.querySelector('.arena-sidebar .hp-nav-scroll').scrollTop = 180; });
-    await page.hover('.arena-sidebar a[href="/guides-archive/"]');
+    await page.hover('.arena-sidebar .hp-nav-list a[href="/guides-archive/"]');
     const scroll = await page.$eval('.arena-sidebar .hp-nav-scroll', node => node.scrollTop);
     assert.ok(scroll > 0, 'fixture must exercise sidebar scroll');
     const documentCount = gateway.requests.filter(request => request.destination === 'document').length;
@@ -177,7 +177,7 @@ test('public navigation preserves the frame, sidebar state and native link behav
     });
     assert.ok(readingOffset > 0, 'fixture must leave a scrolled page');
     await watchRouteMotion(page);
-    await visitByClick(page, '.arena-sidebar a[href="/guides-archive/"]', '/guides-archive/');
+    await visitByClick(page, '.arena-sidebar .hp-nav-list a[href="/guides-archive/"]', '/guides-archive/');
     assert.deepEqual(await routeMotion(page), [
       { target: 'content', skeleton: false, duration: 220, delay: 0, from: '1', to: '1', transform: 'translateY(16px)' },
     ], 'the ready destination rises in once (ValyroUI rise) at full opacity, at commit, over --motion-base; nothing else moves');
@@ -185,7 +185,7 @@ test('public navigation preserves the frame, sidebar state and native link behav
     assert.equal(await page.evaluate(() => document.activeElement?.id), 'main-content', 'focus continues at the new page');
     await assertSameFrame(page);
     assert.equal(await page.$eval('.arena-sidebar .hp-nav-scroll', node => node.scrollTop), scroll);
-    assert.equal(await page.$eval('.arena-sidebar a[href="/guides-archive/"]', node => node.getAttribute('aria-current')), 'page', 'the current page stays marked in the same list');
+    assert.equal(await page.$eval('.arena-sidebar .hp-nav-list a[href="/guides-archive/"]', node => node.getAttribute('aria-current')), 'page', 'the current page stays marked in the same list');
     assert.equal(gateway.requests.filter(request => request.destination === 'document').length, documentCount);
     assert.ok(gateway.requests.some(request => request.rsc === '1' && request.path.startsWith('/guides-archive/')));
     assert.equal(await page.evaluate(() => document.querySelector('script[type="speculationrules"]') === null
@@ -221,23 +221,20 @@ test('public navigation preserves the frame, sidebar state and native link behav
     assert.equal(gateway.requests.slice(beforeFragment).some(request => request.rsc === '1'), false,
       'a fragment on the current canonical path/query must remain native');
     await assertSameFrame(page);
-    const popupReady = browser.waitForTarget(target => target.type() === 'page' && target.url() === `${gateway.origin}/tierlist/`, { timeout: 10_000 });
-    await openModeFor(page, '.arena-sidebar a[href="/tierlist/"]');
+    const popupReady = browser.waitForTarget(target => target.type() === 'page' && target.url() === `${gateway.origin}/gallery/`, { timeout: 10_000 });
     await page.keyboard.down('Control');
-    await page.click('.arena-sidebar a[href="/tierlist/"]');
+    await page.click('.arena-sidebar .hp-nav-list a[href="/gallery/"]');
     await page.keyboard.up('Control');
     const popup = await (await popupReady).page();
     assert.ok(popup, 'Ctrl-click must create a new page');
-    assert.equal(new URL(popup.url()).pathname, '/tierlist/', 'Ctrl-click opens the destination in another tab');
-    assert.equal(await page.evaluate(() => location.pathname), '/classes/', 'the banner of the mode moved this tab; Ctrl-click opened another');
+    assert.equal(new URL(popup.url()).pathname, '/gallery/', 'Ctrl-click opens the destination in another tab');
+    assert.equal(await page.evaluate(() => location.pathname), '/faq/');
     await popup.close();
     await page.bringToFront();
     // The navigation stays usable while the content box is still fading in.
-    await openModeFor(page, '.arena-sidebar a[href="/tierlist/"]');
-    await visitByClick(page, '.arena-sidebar a[href="/tierlist/"]', '/tierlist/');
+    await visitByClick(page, '.arena-sidebar .hp-nav-list a[href="/gallery/"]', '/gallery/');
     assert.equal(await page.evaluate(transitionRunning), true, 'fixture must click during the transition');
-    await openModeFor(page, '.arena-sidebar a[href="/guides-archive/"]');
-    await visitByClick(page, '.arena-sidebar a[href="/guides-archive/"]', '/guides-archive/');
+    await visitByClick(page, '.arena-sidebar .hp-nav-list a[href="/guides-archive/"]', '/guides-archive/');
     await routeMotion(page);
     await assertSameFrame(page);
     assert.deepEqual(errors, []);
@@ -248,8 +245,8 @@ test('public navigation preserves the frame, sidebar state and native link behav
     await page.waitForFunction(() => document.querySelector('#arena-mobile-menu').matches(':popover-open'));
     await assertModePanelBehavior(page, '#arena-mobile-menu');
     await watchRouteMotion(page);
-    await openModeFor(page, '#arena-mobile-menu a[href="/tierlist/"]');
-    await visitByClick(page, '#arena-mobile-menu a[href="/tierlist/"]', '/tierlist/');
+    await openModeFor(page, '#arena-mobile-menu .hp-nav-list a[href="/tierlist/"]');
+    await visitByClick(page, '#arena-mobile-menu .hp-nav-list a[href="/tierlist/"]', '/tierlist/');
     assert.deepEqual(await routeMotion(page), [], 'reduced motion skips the route animation on phones');
     await page.waitForFunction(() => !document.querySelector('#arena-mobile-menu').matches(':popover-open') && document.body.style.position !== 'fixed');
     await assertSameFrame(page);
@@ -279,7 +276,7 @@ test('public transitions avoid accidental prefetch and keep usable content while
     await rememberMode(page, 'community');
     await page.goto(`${gateway.origin}/faq/`, { waitUntil: 'networkidle2' });
     // A dynamic page: a visible menu link learns only its route tree.
-    const link = '.arena-sidebar a[href="/gallery/"]';
+    const link = '.arena-sidebar .hp-nav-list a[href="/gallery/"]';
     await page.evaluate(() => { document.querySelector('.arena-sidebar .hp-nav-scroll').scrollTop = 180; });
     await page.hover(link);
     await page.mouse.move(800, 100);
@@ -303,7 +300,7 @@ test('public transitions avoid accidental prefetch and keep usable content while
     await page.evaluate(() => Object.defineProperty(navigator, 'connection', {
       configurable: true, value: { get saveData() { return true; }, get effectiveType() { return '4g'; } },
     }));
-    const other = '.arena-sidebar a[href="/contests/"]';
+    const other = '.arena-sidebar .hp-nav-list a[href="/contests/"]';
     await page.hover(other);
     await new Promise(resolve => setTimeout(resolve, 180));
     assert.equal(pageRequests('/contests/').length, 0,
@@ -315,8 +312,7 @@ test('public transitions avoid accidental prefetch and keep usable content while
     await new Promise(resolve => setTimeout(resolve, 1100));
     assert.equal(await page.evaluate(() => location.pathname), '/gallery/', 'a slow earlier route cannot replace the newer destination');
     // A dynamic page: /articles/ is prerendered and opens without a pending route.
-    await openModeFor(page, '.arena-sidebar a[href="/standard/fun-decks/"]');
-    await page.click('.arena-sidebar a[href="/standard/fun-decks/"]');
+    await page.click('.arena-sidebar .hp-nav-list a[href="/streamers/"]');
     await page.waitForSelector('[data-navigation-progress="pending"]', { timeout: 800 });
     await page.goBack();
     await page.waitForFunction(() => location.pathname === '/faq/' && !document.querySelector('[data-navigation-progress="pending"]'));
@@ -344,7 +340,7 @@ test('hover prepares a complete dynamic page before click, including its route c
     await rememberMode(page, 'community');
     await page.goto(`${gateway.origin}/faq/`, { waitUntil: 'networkidle2' });
     await page.$eval('.arena-sidebar .hp-nav-scroll', node => { node.scrollTop = 180; });
-    const link = '.arena-sidebar a[href="/gallery/"]';
+    const link = '.arena-sidebar .hp-nav-list a[href="/gallery/"]';
     const pageRequests = path => gateway.requests.filter(request => request.rsc && !request.prefetch && request.path.startsWith(path));
     await page.hover(link);
     await page.waitForNetworkIdle({ idleTime: 250 });
@@ -353,7 +349,7 @@ test('hover prepares a complete dynamic page before click, including its route c
     assert.equal(pageRequests('/gallery/').length, 1, 'a prepared dynamic page must not need a new route request after click');
     assert.ok(await page.$('#main-content'), 'the prepared content must render');
     // A click while the hover's page is still downloading joins it instead of asking again.
-    const contests = '.arena-sidebar a[href="/contests/"]';
+    const contests = '.arena-sidebar .hp-nav-list a[href="/contests/"]';
     await page.hover(contests);
     for (let attempt = 0; attempt < 100 && pageRequests('/contests/').length === 0; attempt += 1) {
       await new Promise(resolve => setTimeout(resolve, 10));
@@ -362,7 +358,7 @@ test('hover prepares a complete dynamic page before click, including its route c
     await visitByClick(page, contests, '/contests/');
     assert.equal(pageRequests('/contests/').length, 1, 'the click reuses the prefetch that was still downloading');
     // Back while a click waits for its prefetch wins at once, and the late prefetch never navigates.
-    const funDecks = '.arena-sidebar a[href="/standard/fun-decks/"]';
+    const funDecks = '.arena-sidebar .hp-nav-list a[href="/standard/fun-decks/"]';
     await openModeFor(page, funDecks);
     await page.hover(funDecks);
     for (let attempt = 0; attempt < 100 && pageRequests('/standard/fun-decks/').length === 0; attempt += 1) {

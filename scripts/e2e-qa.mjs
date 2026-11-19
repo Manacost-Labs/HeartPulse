@@ -5287,8 +5287,8 @@ for (const [device, viewport] of [
       return card?.checkVisibility() && !card.getAnimations({ subtree: true }).length && getComputedStyle(card).opacity === '1';
     }, { timeout: 5_000 });
     await page.click('.arena-sidebar [data-mode-card][data-mode="arena"]');
-    await page.waitForSelector('.arena-sidebar a[href="/classes/"]', { visible: true, timeout: 15_000 });
-    await page.click('.arena-sidebar a[href="/classes/"]');
+    await page.waitForSelector('.arena-sidebar .hp-nav-list a[href="/classes/"]', { visible: true, timeout: 15_000 });
+    await page.click('.arena-sidebar .hp-nav-list a[href="/classes/"]');
     await page.waitForFunction(() => document.title.startsWith('Винрейт классов'), { timeout: 5_000 });
     const seoRegistryState = await page.evaluate(() => ({
       path: location.pathname,
@@ -5740,17 +5740,17 @@ for (const [device, viewport] of [
     await page.waitForFunction(() => [...document.querySelectorAll('.arena-sidebar [data-mode-card]')].every(card => card.checkVisibility() && !card.getAnimations({ subtree: true }).length), { timeout: 5_000 });
     await page.click('.arena-sidebar [data-mode-card][data-mode="community"]');
     await page.waitForFunction(() => location.pathname === '/articles/' || location.pathname === '/articles', { timeout: 15_000 });
-    await page.waitForSelector('.arena-sidebar a[href="/streamers/"]', { visible: true, timeout: 15_000 });
+    await page.waitForSelector('.arena-sidebar .hp-nav-list a[href="/streamers/"]', { visible: true, timeout: 15_000 });
     const afterPick = await page.evaluate(() => ({
       mode: [...document.querySelectorAll('.arena-sidebar .hp-mode-name')].find(item => item.checkVisibility())?.textContent,
       current: document.querySelector('.arena-sidebar a[aria-current="page"]')?.getAttribute('href'),
-      arenaShown: Boolean(document.querySelector('.arena-sidebar a[href="/classes/"]')?.checkVisibility()),
+      arenaShown: Boolean(document.querySelector('.arena-sidebar .hp-nav-list a[href="/classes/"]')?.checkVisibility()),
       panelOpen: document.querySelector('.arena-sidebar details.hp-mode').open,
     }));
     if (afterPick.mode !== 'Сообщество' || afterPick.current !== '/articles/' || afterPick.arenaShown || afterPick.panelOpen) failures.push(`desktop sidebar: choosing a banner did not switch the list (${JSON.stringify(afterPick)})`);
-    await page.click('.arena-sidebar a[href="/streamers/"]');
+    await page.click('.arena-sidebar .hp-nav-list a[href="/streamers/"]');
     await page.waitForFunction(() => location.pathname === '/streamers/' || location.pathname === '/streamers', { timeout: 15_000 });
-    await page.waitForFunction(() => document.querySelector('.arena-sidebar a[href="/streamers/"][aria-current="page"]'), { timeout: 15_000 });
+    await page.waitForFunction(() => document.querySelector('.arena-sidebar .hp-nav-list a[href="/streamers/"][aria-current="page"]'), { timeout: 15_000 });
     await auditAccessibility(page, 'desktop sidebar');
     await page.screenshot({ path: `${OUT}/desktop-sidebar.png`, fullPage: false });
     console.log('✓ desktop sidebar frame, mode switch and flat list');
@@ -5824,7 +5824,7 @@ for (const [device, viewport] of [
           '/articles', '/standard/matchups', '/standard/deck-builder', '/classes', '/tierlist', '/legendaries',
           '/heroes', '/library', '/battlegrounds/tier-list', '/battlegrounds/strategies',
           '/battlegrounds/tier-builder', '/gallery', '/guides-archive', '/contests',
-        ].filter(path => !document.querySelector(`#arena-mobile-menu a[href="${path}/"]`)),
+        ].filter(path => !document.querySelector(`#arena-mobile-menu .hp-nav-list a[href="${path}/"]`)),
         toggleSize: (() => {
           const toggleRect = toggle?.getBoundingClientRect();
           return { width: toggleRect?.width || 0, height: toggleRect?.height || 0 };

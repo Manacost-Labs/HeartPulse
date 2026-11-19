@@ -573,10 +573,10 @@ test('a sign-in whose subscription answers late shows no lock on the next paid p
     await page.setViewport(viewports[0]);
     await page.evaluateOnNewDocument(recordFrames);
     await signIn(page, gateway.origin, 'statusdelay');
-    await openModeFor(page, '.arena-sidebar a[href="/battlegrounds/tier-list/"]');
-    await page.waitForFunction(() => document.querySelector('.arena-sidebar a[href="/battlegrounds/tier-list/"]')?.getClientRects().length > 0);
+    await openModeFor(page, '.arena-sidebar .hp-nav-list a[href="/battlegrounds/tier-list/"]');
+    await page.waitForFunction(() => document.querySelector('.arena-sidebar .hp-nav-list a[href="/battlegrounds/tier-list/"]')?.getClientRects().length > 0);
     await page.evaluate(() => { window.__frames.length = 0; });
-    await page.click('.arena-sidebar a[href="/battlegrounds/tier-list/"]');
+    await page.click('.arena-sidebar .hp-nav-list a[href="/battlegrounds/tier-list/"]');
     await page.waitForSelector('.bg-tier-list-page', { timeout: READY_MS });
     const frames = await page.evaluate(() => window.__frames);
     assert.deepEqual(frames.filter(frame => frame.gate || frame.preview).slice(0, 1), [], 'no lock before the subscription answers');
