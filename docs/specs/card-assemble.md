@@ -81,3 +81,28 @@ is open to everyone, like «Что берут из Открытия».
   first, glowing and marked «Лучший выбор».
 - `missing` (404) renders nothing; `no_data` or no bases says «Мало данных»;
   an error keeps a retry button.
+
+## Offered: the full donor pool (HeartPulse#515)
+
+`data.donor_pool_status` and `bases[].donor_pool[]` (hs-data-api#160) pass
+the projection allowlist: `{ state, classDependent, playerClass }` and per
+donor `{ card, hasStats, options }` with exactly two halves (`effect`,
+`trigger`) and their texts. The proxy and its cache are unchanged (no new
+parameters). A pool is only kept when the status is `ok`; a broken,
+missing or empty pool is `null` and the section behaves as before.
+
+- «Мне предложили» offers every donor of the pool, donors with statistics
+  first, then those that never met the base (`hasStats: false`), marked «не
+  встречался в играх». Search and the «Показать всех» grid are the same.
+- Donors without statistics can be chosen; their two texts show «Нет данных»
+  and no percentages or bars. «Лучший выбор» only compares variants with
+  statistics. If neither donor has statistics, the section says so in words
+  and in the `aria-live` region, and shows the four texts.
+- The pool of the neutral F3TCH3R depends on the player's class
+  (`classDependent`). «За какой класс играете?» (11 class crests) filters
+  the base ribbon (the class's bases and neutral ones) and the donors
+  (the class and neutral ones); without a class «Мне предложили» asks for
+  one. The filter is client side. Class cards (BE_702) and Raj (BE_004) show
+  the pool as the API sent it.
+- `mismatch`, `unavailable` or no pool: only donors with winrate data, as
+  in HeartPulse#494, and no class choice.

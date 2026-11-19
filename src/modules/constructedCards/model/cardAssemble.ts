@@ -29,7 +29,16 @@ export type AssembleDonor = {
   lowSample: boolean;
   /** `[effect, trigger]`. */
   options: AssembleOption[];
+  /** Set on a donor of the full pool that never met the base in games: texts without any percentage. */
+  noStats?: true;
 };
+/** A donor of the full pool; `hasStats: false` is a donor that never met this base in games. */
+export type AssemblePoolDonor = {
+  card: AssembleCard;
+  hasStats: boolean;
+  options: { half: AssembleHalf; text: AssembleText | null }[];
+};
+export type AssembleDonorPoolStatus = { state: string; classDependent: boolean; playerClass: string | null };
 export type AssembleBase = {
   card: AssembleCard;
   offerRate: number | null;
@@ -38,6 +47,8 @@ export type AssembleBase = {
   donorsTotal: number;
   /** `null`: the donors of this base are not loaded. */
   donors: AssembleDonor[] | null;
+  /** The full donor pool of the requested base; absent or `null` without one. */
+  donorPool?: AssemblePoolDonor[] | null;
 };
 export type CardAssembleData = {
   cardId: string;
@@ -53,6 +64,7 @@ export type CardAssembleData = {
   basesTotal: number;
   winRate: number | null;
   bases: AssembleBase[];
+  donorPoolStatus?: AssembleDonorPoolStatus | null;
 };
 
 export type AssembleVariant = { donor: AssembleDonor; option: AssembleOption };
@@ -128,7 +140,9 @@ export function bestOfOffered(
   donorA: AssembleDonor | string,
   donorB: AssembleDonor | string,
 ): AssembleBestOffered | null {
-  const find = (donor: AssembleDonor | string) => (base.donors ?? []).find(item => item.card.cardId === (typeof donor === 'string' ? donor : donor.card.cardId));
+  const find = (donor: AssembleDonor | string) => (typeof donor === 'string'
+    ? (base.donors ?? []).find(item => item.card.cardId === donor)
+    : donor);
   const a = find(donorA);
   const b = find(donorB);
   if (!a || !b || a === b) return null;

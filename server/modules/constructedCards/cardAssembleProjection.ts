@@ -9,6 +9,7 @@ export type AssembleHalf = 'effect' | 'trigger';
 export const CARD_ID = /^[A-Za-z0-9_]{2,80}$/;
 const MAX_BASES = 300;
 const MAX_DONORS = 200;
+const MAX_POOL = 800;
 const MAX_TEXT = 400;
 
 export type AssembleCard = {
@@ -39,6 +40,22 @@ export type AssembleDonor = {
   lowSample: boolean;
   options: AssembleOption[];
 };
+/** A donor of the full pool: the two build texts, with or without HSReplay statistics. */
+export type AssemblePoolOption = { half: AssembleHalf; text: AssembleText | null };
+export type AssemblePoolDonor = {
+  card: AssembleCard;
+  /** `false`: the donor never met this base in games, so there are texts and no percentages. */
+  hasStats: boolean;
+  /** `[effect, trigger]`. */
+  options: AssemblePoolOption[];
+};
+export type AssembleDonorPoolStatus = {
+  /** `ok`, `mismatch` or `unavailable`; the pool is only sent for `ok`. */
+  state: string;
+  /** The pool depends on the player's class (the neutral F3TCH3R). */
+  classDependent: boolean;
+  playerClass: string | null;
+};
 export type AssembleBase = {
   card: AssembleCard;
   offerRate: number | null;
@@ -47,6 +64,8 @@ export type AssembleBase = {
   donorsTotal: number;
   /** `null`: the donors of this base were not requested. */
   donors: AssembleDonor[] | null;
+  /** The full donor pool of the requested base; `null` without one (not requested, mismatch, unavailable). */
+  donorPool: AssemblePoolDonor[] | null;
 };
 export type CardAssemblePayload = {
   cardId: string;
@@ -62,6 +81,7 @@ export type CardAssemblePayload = {
   basesTotal: number;
   winRate: number | null;
   bases: AssembleBase[];
+  donorPoolStatus: AssembleDonorPoolStatus | null;
 };
 
 type Record_ = Record<string, unknown>;
@@ -141,6 +161,20 @@ function readOptions(value: unknown): AssembleOption[] | null {
   return first.half === 'effect' ? [first, second] : [second, first];
 }
 
+function readPoolDonor(value: unknown): AssemblePoolDonor | null {
+  const row = record(value);
+  const card = readCard(row.card);
+  const options = readOptions(row.options)?.map(option => ({ half: option.half, text: option.text }));
+  return card && options && typeof row.has_stats === 'boolean' ? { card, hasStats: row.has_stats, options } : null;
+}
+
+/** The whole pool or nothing: one unreadable entry (or a flood) makes the pool untrustworthy, not shorter. */
+function readPool(value: unknown): AssemblePoolDonor[] | null {
+  if (!Array.isArray(value) || value.length > MAX_POOL) return null;
+  const donors = value.map(readPoolDonor);
+  return donors.every(donor => donor !== null) ? donors : null;
+}
+
 function readDonor(value: unknown): AssembleDonor | null {
   const row = record(value);
   const card = readCard(row.card);
@@ -171,7 +205,15 @@ function readBase(value: unknown): AssembleBase | null {
     lowSample: row.low_sample === true,
     donorsTotal: count(row.donors_total) ?? donors?.length ?? 0,
     donors,
+    donorPool: readPool(row.donor_pool),
   };
+}
+
+function readPoolStatus(value: unknown): AssembleDonorPoolStatus | null {
+  const row = record(value);
+  const state = text(row.state);
+  if (state !== 'ok' && state !== 'mismatch' && state !== 'unavailable') return null;
+  return { state, classDependent: row.class_dependent === true, playerClass: text(row.player_class) };
 }
 
 /** Projects one hs-data-api answer; `null` when it is not an Assemble answer. */
@@ -185,7 +227,10 @@ export function projectCardAssemble(body: unknown, requested?: { cardId: string;
   const stats = record(data.stats);
   const summary = record(data.summary);
   const sourceUrl = text(stats.source_url);
-  const bases = data.bases.slice(0, MAX_BASES).flatMap(item => readBase(item) ?? []);
+  const poolStatus = readPoolStatus(data.donor_pool_status);
+  // A pool without a passed check (or without a readable status) is never shown.
+  const bases = data.bases.slice(0, MAX_BASES).flatMap(item => readBase(item) ?? [])
+    .map(base => (poolStatus?.state === 'ok' && base.donorPool?.length ? base : { ...base, donorPool: null }));
   return {
     cardId: card.cardId,
     format: data.format,
@@ -199,5 +244,6 @@ export function projectCardAssemble(body: unknown, requested?: { cardId: string;
     basesTotal: count(summary.bases_total) ?? bases.length,
     winRate: percent(summary.win_rate),
     bases,
+    donorPoolStatus: poolStatus,
   };
 }

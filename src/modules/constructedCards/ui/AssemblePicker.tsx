@@ -22,7 +22,7 @@ export function Portrait({ card, className = '' }: { card: AssembleCard; classNa
   );
 }
 
-export type PickerItem = { id: string; card: AssembleCard; note: string };
+export type PickerItem = { id: string; card: AssembleCard; note: string; /** A donor that never met the base: dimmed, with its note. */ muted?: boolean };
 
 /** Round portraits of cards to choose from: a wrapped ribbon, with a search field when there are many. */
 export function PortraitPicker({ items, selected, onPick, label, searchLabel, size }: {
@@ -53,7 +53,7 @@ export function PortraitPicker({ items, selected, onPick, label, searchLabel, si
           <ul className="assemble-picker__list" aria-label={label}>
             {shown.map(item => (
               <li key={item.id}>
-                <button type="button" aria-pressed={selected.includes(item.id)} onClick={() => onPick(item.id)}>
+                <button type="button" className={item.muted ? 'is-nodata' : undefined} aria-pressed={selected.includes(item.id)} onClick={() => onPick(item.id)}>
                   <Portrait card={item.card} />
                   <span className="assemble-picker__name">{item.card.name}</span>
                   <span className="assemble-picker__note">{item.note}</span>

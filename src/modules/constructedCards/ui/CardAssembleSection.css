@@ -141,3 +141,40 @@
 }
 
 .assemble-base__facts .card-choices__thin { align-self: start; margin-top: 0.1rem; }
+
+/* «За какой класс играете?»: crests of the 11 classes, the real class art. */
+.assemble-classes { margin-top: 1rem; }
+.assemble-classes .assemble-title { margin-top: 0; }
+.assemble-classes__hint { max-width: 46rem; margin: 0.2rem 0 0; color: #735e49; font-size: 0.875rem; line-height: 1.45; }
+.assemble-classes__list { display: grid; grid-template-columns: repeat(11, minmax(0, 1fr)); gap: 0.3rem; margin: 0.6rem 0 0; padding: 0; list-style: none; }
+.assemble-classes__list button { display: grid; width: 100%; min-height: 44px; padding: 0.45rem 0.15rem; border: 1px solid transparent; justify-items: center; align-content: start; gap: 0.25rem; color: #4a2d1b; background: transparent; font: inherit; cursor: pointer; transition: transform var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease); }
+.assemble-classes__list img { display: block; width: 100%; max-width: 56px; height: auto; aspect-ratio: 1; object-fit: contain; filter: drop-shadow(0 2px 3px rgba(67, 37, 15, 0.35)); transition: transform var(--motion-fast) var(--motion-ease); }
+.assemble-classes__list span { max-width: 100%; font-size: 0.75rem; font-weight: 800; line-height: 1.2; text-align: center; overflow-wrap: break-word; hyphens: auto; }
+.assemble-classes__list button:active { transform: scale(0.96); }
+.assemble-classes__list button:focus-visible { outline: 3px solid #7b151b; outline-offset: 1px; }
+.assemble-classes__list button[aria-pressed='true'] { border-color: #c79a3e; background: rgba(239, 201, 111, 0.3); box-shadow: 0 0 12px rgba(239, 201, 111, 0.6); }
+@media (hover: hover) {
+  .assemble-classes__list button:hover { transform: translateY(-3px); background: rgba(224, 191, 117, 0.26); }
+  .assemble-classes__list button:hover img { transform: scale(1.1); }
+}
+
+/* A donor that never met the base: dimmed, with a plain label, no percentages. */
+.assemble-picker__list button.is-nodata .assemble-portrait { filter: grayscale(0.6); opacity: 0.85; }
+.assemble-picker__list button.is-nodata .assemble-picker__note { color: #6a5440; font-style: italic; }
+.assemble-slot__name small { display: block; margin-top: 0.1rem; color: #6a5440; font-size: 0.75rem; font-style: italic; font-weight: 700; }
+.assemble-row.is-nodata { background: linear-gradient(180deg, rgba(255, 252, 238, 0.6), rgba(244, 224, 176, 0.35)); }
+.assemble-row__nodata { max-width: 9.5rem; margin: 0; color: #6a5440; font-size: 0.8125rem; line-height: 1.35; }
+.assemble-row__nodata b { display: block; color: #4a2d1b; font-size: 0.9375rem; }
+
+@media (max-width: 640px) {
+  .assemble-classes__list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .assemble-row__nodata { grid-column: 1 / -1; max-width: none; }
+  .assemble-row__nodata b { display: inline; margin-right: 0.4rem; }
+}
+@media (min-width: 641px) and (max-width: 900px) {
+  .assemble-classes__list { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .assemble-classes__list button, .assemble-classes__list img { transition: none; }
+  .assemble-classes__list button:hover, .assemble-classes__list button:hover img { transform: none; }
+}

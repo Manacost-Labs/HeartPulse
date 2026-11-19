@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 import { CardAssembleSection } from './CardAssembleSection';
 import pool from './cardAssemblePool.json';
-import type { AssembleBase, AssembleCard, AssembleDonor, AssembleOption, CardAssembleData } from '../model/cardAssemble';
+import type { AssembleBase, AssembleCard, AssembleDonor, AssembleOption, AssemblePoolDonor, CardAssembleData } from '../model/cardAssemble';
 
 type PoolRow = [id: string, dbf: number, name: string, cost: number, rarity: string, cardClass: string, trigger: string, effect: string];
 const POOL = pool as PoolRow[];
@@ -25,9 +25,26 @@ function random(seed: string) {
 const round = (value: number) => Math.round(value * 10) / 10;
 const cardOf = (row: PoolRow): AssembleCard => ({ cardId: row[0], dbfId: row[1], name: row[2], cost: row[3], rarity: row[4], cardClass: row[5] });
 
+/** Pool rules of the contract: a class card offers its class and neutral donors, the neutral F3TCH3R every class. */
+function candidatesOf(base: PoolRow, cardId: string): PoolRow[] {
+  return POOL.filter(row => row !== base && (cardId !== 'BE_702' || row[5] === 'ROGUE' || row[5] === 'NEUTRAL'));
+}
+
+function donorPoolOf(base: PoolRow, cardId: string, withStats: Set<string>): AssemblePoolDonor[] {
+  const pool = candidatesOf(base, cardId).map((row): AssemblePoolDonor => ({
+    card: cardOf(row),
+    hasStats: withStats.has(row[0]),
+    options: [
+      { half: 'effect', text: { locale: 'ru', trigger: base[6], effect: row[7] } },
+      { half: 'trigger', text: { locale: 'ru', trigger: row[6], effect: base[7] } },
+    ],
+  }));
+  return [...pool.filter(donor => donor.hasStats), ...pool.filter(donor => !donor.hasStats).sort((a, b) => a.card.name.localeCompare(b.card.name, 'ru'))];
+}
+
 function donorsOf(base: PoolRow, seed: string): AssembleDonor[] {
   const rnd = random(`${seed}:${base[0]}`);
-  const others = POOL.filter(row => row !== base).sort(() => rnd() - 0.5).slice(0, 34);
+  const others = candidatesOf(base, seed).sort(() => rnd() - 0.5).slice(0, 34);
   return others.map((row, index): AssembleDonor => {
     const effectPick = 25 + rnd() * 65;
     const baseWin = 47 + rnd() * 14;
@@ -44,7 +61,7 @@ function donorsOf(base: PoolRow, seed: string): AssembleDonor[] {
   });
 }
 
-function assembleAnswer(cardId: string, basesCount: number, requested: string | null): CardAssembleData {
+function assembleAnswer(cardId: string, basesCount: number, requested: string | null, withoutPool = false): CardAssembleData {
   const rnd = random(cardId);
   const rows = [POOL[1] as PoolRow, ...POOL.slice(2)].slice(0, basesCount);
   const bases: AssembleBase[] = rows.map((row, index) => {
@@ -55,11 +72,16 @@ function assembleAnswer(cardId: string, basesCount: number, requested: string | 
   bases.sort((a, b) => (b.offerRate ?? 0) - (a.offerRate ?? 0));
   const wanted = requested && requested !== 'top' ? bases.find(base => String(base.card.dbfId) === requested) : bases[0];
   const target = wanted ?? bases[0];
-  if (target) target.donors = donorsOf(rows.find(row => row[1] === target.card.dbfId) as PoolRow, cardId);
+  const targetRow = target ? rows.find(row => row[1] === target.card.dbfId) : undefined;
+  if (target && targetRow) {
+    target.donors = donorsOf(targetRow, cardId);
+    if (!withoutPool) target.donorPool = donorPoolOf(targetRow, cardId, new Set(target.donors.map(donor => donor.card.cardId)));
+  }
   return {
     cardId, format: 'standard', state: 'ok', checkedAt: '2026-11-19T03:10:00+00:00', asOf: null, stale: false,
     sourceUrl: 'https://hsreplay.net/cards/assemble-pools/', timeRange: 'LAST_7_DAYS', originalClassOnly: true,
     basesTotal: bases.length, winRate: 51.2, bases,
+    donorPoolStatus: { state: withoutPool ? 'mismatch' : 'ok', classDependent: cardId === 'BE_044', playerClass: cardId === 'BE_702' ? 'ROGUE' : null },
   };
 }
 
@@ -84,7 +106,7 @@ const meta = {
         ? { ...assembleAnswer(args.cardId, 0, null), state: 'not_collected' }
         : parameters.empty
         ? { ...assembleAnswer(args.cardId, 0, null), state: 'no_data' }
-        : assembleAnswer(args.cardId, BASES[args.cardId] ?? 38, url.searchParams.get('base'));
+        : assembleAnswer(args.cardId, BASES[args.cardId] ?? 38, url.searchParams.get('base'), parameters.noPool === true);
       return new Response(JSON.stringify(answer), { headers: { 'Content-Type': 'application/json' } });
     };
     return () => { window.fetch = original; };
@@ -117,6 +139,24 @@ export const Offered: Story = {
     const buttons = within(list).getAllByRole('button');
     await userEvent.click(buttons[0] as HTMLElement);
     await userEvent.click(buttons[1] as HTMLElement);
+    await waitFor(() => expect(canvas.getByText('Лучший выбор')).toBeVisible());
+  },
+};
+
+/** The check of the pool failed: «Мне предложили» works on the donors with statistics, no class choice. */
+export const PoolMismatch: Story = { parameters: { noPool: true } };
+
+/** F3TCH3R, class Mage: one donor with statistics and one that never met the base; the best build is among the first. */
+export const OfferedDonorWithoutStats: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(await canvas.findByRole('button', { name: 'Маг' }));
+    await userEvent.click(await canvas.findByRole('button', { name: 'Мне предложили' }));
+    const list = await canvas.findByRole('list', { name: 'Существа, которых могла предложить игра' });
+    await userEvent.click(within(list).getAllByRole('button')[0] as HTMLElement);
+    await userEvent.click(await canvas.findByRole('button', { name: /Показать всех/ }));
+    const all = within(await canvas.findByRole('list', { name: 'Существа, которых могла предложить игра' })).getAllByRole('button');
+    await userEvent.click(all[all.length - 1] as HTMLElement);
     await waitFor(() => expect(canvas.getByText('Лучший выбор')).toBeVisible());
   },
 };
