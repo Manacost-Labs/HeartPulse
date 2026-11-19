@@ -143,6 +143,12 @@ with statistics has 12–16 facts, 776 of the 999 archived minions cross the lin
 whether the statistics source answered: a source failure with no copy is a
 `503`, not a quiet change from `index` to `noindex`.
 
+The store of the minion segment has no count-collapse guard (as for archetypes):
+the segment is filtered by the indexing rule, so a smaller list is a change of
+the data, not a truncation (1302 → 1072 on 2026-11-20 was rejected as a
+collapse and kept 230 `noindex` pages in the sitemap). Its guard is the minimum
+of 500 addresses; the other segments keep the 90% rule.
+
 Spells: no spell page reaches ten facts, so the `battleground-spells` segment
 of the sitemap is not registered (an empty segment is invalid); it returns with
 the first spell page that crosses the threshold. The production monitor, the
