@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { canonicalBattlegroundCardSlug } from './publicRoutes.js';
 
-const KINDS = {
+export const BATTLEGROUND_LIBRARY_EXTRA_KINDS = {
   anomalies: { endpoint: 'anomalies', kind: 'anomaly', typeName: 'Аномалия', archive: true },
   'dark-gifts': { endpoint: 'dark-gifts', kind: 'dark_gift', typeName: 'Темный дар', archive: false },
   quests: { endpoint: 'quests', kind: 'quest', typeName: 'Квест', archive: true },
@@ -45,7 +45,7 @@ export function createBattlegroundLibraryAuxiliaryPublicRouter(dependencies: Dep
     response.set('Cache-Control', 'no-cache, no-store, must-revalidate');
     response.set('X-Robots-Tag', 'noindex, nofollow');
     const { pool, kind, dbfId } = request.params;
-    const spec = Object.hasOwn(KINDS, kind) ? KINDS[kind as keyof typeof KINDS] : null;
+    const spec = Object.hasOwn(BATTLEGROUND_LIBRARY_EXTRA_KINDS, kind) ? BATTLEGROUND_LIBRARY_EXTRA_KINDS[kind as keyof typeof BATTLEGROUND_LIBRARY_EXTRA_KINDS] : null;
     if (!spec || (pool !== 'current' && pool !== 'archive')
       || (pool === 'archive' && !spec.archive)
       || !/^[1-9][0-9]*$/.test(dbfId) || !Number.isSafeInteger(Number(dbfId))) {

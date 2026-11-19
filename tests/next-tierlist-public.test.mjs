@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createServer, request as httpRequest } from 'node:http';
 import { existsSync } from 'node:fs';
+import { DATA_PAGES } from '../scripts/lib/post-deploy-data-pages.mjs';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
@@ -62,7 +63,7 @@ function startLegacy(state) {
     ? response.status(503).set('Retry-After', '60').json({ error: 'no snapshot' })
     : response.json(matchupsOpenAnswer({ noise: true, format: request.query.format === 'wild' ? 'wild' : 'standard' }))));
   // The sources the revalidate route probes before it marks the other pages stale: they answer while `state.down` is false.
-  app.get(['/api/articles', '/api/winrates/public-teaser', '/api/standard-meta/public'], (_request, response) => (state.down
+  app.get(['/api/articles', '/api/winrates/public-teaser', '/api/standard-meta/public', '/api/bg/library/public/listing', '/api/bg/library/public/listing/:kind'], (_request, response) => (state.down
     ? response.status(503).json({ error: 'no snapshot' }) : response.json([{ id: 'probe' }])));
   const heroes = createBattlegroundHeroRankingRouter({
     loadCatalog: async mode => {
@@ -242,7 +243,8 @@ test('the post-deploy warm-up revalidates again until /tierlist/ carries its sli
     // The first call finds every source down: nothing is marked stale. Once Express is back, the route regenerates exactly the
     // pages that render data (the literal list is the contract between DATA_PAGES and the route).
     assert.deepEqual(stand.revalidations[0], [], 'a page whose source is down is not marked stale');
-    assert.deepEqual([...stand.revalidations.at(-1)].sort(), ['/articles', '/classes', '/heroes', '/legendaries', '/standard/matchups', '/standard/meta', '/tierlist'],
+    assert.deepEqual([...stand.revalidations.at(-1)].sort(), ['/articles', '/classes', '/heroes', '/legendaries', '/library', ...['anomalies', 'dark-gifts', 'darkmoon-prizes', 'minions', 'quests',
+      'rewards', 'spells', 'timewarped', 'trinkets'].map(kind => `/library/${kind}`), '/standard/matchups', '/standard/meta', '/tierlist'],
       'the real route regenerates exactly the pages that render data');
     assert.match(output, /\[warm\] \/tierlist\/: with data/, output);
     // What a visitor gets right after the warm-up, with no clock shifted and no second request needed.
@@ -388,4 +390,14 @@ test('the post-deploy warm-up regenerates /legendaries/, /heroes/ and /standard/
   } finally {
     await stand.close();
   }
+});
+
+// The warm-up table lists exactly the ISR pages the real revalidate route regenerates (that literal is asserted against the
+// real route by the warm-up test above).
+test('DATA_PAGES marked isr are the 17 pages of the revalidate route', () => {
+  const expected = ['/articles', '/classes', '/heroes', '/legendaries', '/library', ...['anomalies', 'dark-gifts', 'darkmoon-prizes', 'minions', 'quests',
+    'rewards', 'spells', 'timewarped', 'trinkets'].map(kind => `/library/${kind}`), '/standard/matchups', '/standard/meta', '/tierlist'];
+  assert.equal(expected.length, 17);
+  assert.deepEqual(DATA_PAGES.filter(page => page.isr).map(page => page.path.replace(/\/$/, '')).sort(), [...expected].sort());
+  assert.equal(DATA_PAGES.find(page => page.path === '/library/').marker, 'bg-library-public__size', 'the hub marker is not on the copy without sizes');
 });

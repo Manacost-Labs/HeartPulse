@@ -35,6 +35,12 @@
     "tests/next-tierlist-public.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
+    "tests/next-bg-library-listings-browser.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
+    "tests/next-paywall-access-check-browser.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
     "tests/next-classes-teaser.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },

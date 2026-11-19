@@ -1,6 +1,7 @@
 import 'server-only';
 import { PUBLIC_LEGENDARIES_PATH } from '@/src/modules/arenaLegendaries/public';
 import { fetchPublicExpress } from './expressApi';
+import { LIBRARY_INDEX_PATH, LIBRARY_LISTING_KINDS, libraryListingPath } from './publicBattlegroundLibraryListingData';
 import { heroesRankingPath } from './publicBattlegroundHeroesData';
 import { CLASSES_TEASER_PATH } from './publicClassesTeaserData';
 import { standardMatchupsPublicPath } from './publicStandardMatchupsData';
@@ -20,9 +21,11 @@ export const DATA_PAGE_PROBES = {
   '/legendaries': `${PUBLIC_LEGENDARIES_PATH}?source=hsreplay`,
   '/heroes': heroesRankingPath('solo'),
   '/standard/matchups': standardMatchupsPublicPath,
-} as const;
+  '/library': LIBRARY_INDEX_PATH,
+  ...Object.fromEntries(LIBRARY_LISTING_KINDS.map(kind => [`/library/${kind}`, libraryListingPath(kind)])),
+} as Record<string, string>;
 
-export type DataPageProbePath = keyof typeof DATA_PAGE_PROBES;
+export type DataPageProbePath = string;
 
 /** Whether the source answers 200 with a body that has data (not `null`, not `{}`). */
 export async function dataSourceAvailable(path: string): Promise<boolean> {

@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 114,
-    "routeRegistrations": 303,
-    "middlewareRegistrations": 155,
+    "sourceFiles": 115,
+    "routeRegistrations": 305,
+    "middlewareRegistrations": 156,
     "explicitGuardRouteRegistrations": 74,
     "unresolvedPaths": 0
   },
@@ -1496,13 +1496,37 @@
       "sourceOrder": 0
     },
     {
+      "kind": "route",
+      "method": "GET",
+      "path": "/api/bg/library/public/listing",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/battlegroundLibraryListing.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/api/bg/library/public/listing/:kind",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/battlegroundLibraryListing.ts",
+      "sourceOrder": 1
+    },
+    {
       "kind": "middleware",
       "paths": [
         "/"
       ],
       "receiver": "router",
       "handlers": [
-        "createBattlegroundLibraryPublicRouter(...)"
+        "createBattlegroundLibraryListingRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/battlegroundLibrarySeoRoutes.ts",
@@ -1515,11 +1539,24 @@
       ],
       "receiver": "router",
       "handlers": [
-        "createBattlegroundLibraryAuxiliaryPublicRouter(...)"
+        "createBattlegroundLibraryPublicRouter(...)"
       ],
       "guardSignals": [],
       "source": "server/battlegroundLibrarySeoRoutes.ts",
       "sourceOrder": 1
+    },
+    {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "createBattlegroundLibraryAuxiliaryPublicRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/battlegroundLibrarySeoRoutes.ts",
+      "sourceOrder": 2
     },
     {
       "kind": "route",
@@ -1531,7 +1568,7 @@
       "handler": "handlerFor(...)",
       "guardSignals": [],
       "source": "server/battlegroundLibrarySeoRoutes.ts",
-      "sourceOrder": 2
+      "sourceOrder": 3
     },
     {
       "kind": "route",
@@ -1543,7 +1580,7 @@
       "handler": "handlerFor(...)",
       "guardSignals": [],
       "source": "server/battlegroundLibrarySeoRoutes.ts",
-      "sourceOrder": 3
+      "sourceOrder": 4
     },
     {
       "kind": "middleware",

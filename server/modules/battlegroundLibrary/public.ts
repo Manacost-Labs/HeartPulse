@@ -1,5 +1,5 @@
 export { canonicalBattlegroundCardSlug, createBattlegroundLibraryPublicRouter } from './publicRoutes.js';
-export { createBattlegroundLibraryAuxiliaryPublicRouter } from './auxiliaryPublicRoutes.js';
+export { BATTLEGROUND_LIBRARY_EXTRA_KINDS, createBattlegroundLibraryAuxiliaryPublicRouter } from './auxiliaryPublicRoutes.js';
 export { createBattlegroundLibraryCatalogCache, type BattlegroundLibraryLookup } from './catalogCache.js';
 export { createBattlegroundLibraryIdentityReader } from './identityReader.js';
 export { readBattlegroundLibraryIdentity, withBattlegroundLibraryDeadline } from './identitySource.js';

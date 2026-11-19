@@ -133,8 +133,10 @@ test('registry pages render canonical, robots, share metadata and JSON-LD from t
       assert.equal(response.status, 200, path);
       const types = nodes.map(node => node['@type']);
       const html = await response.text();
-      // A listing may add its ItemList; every other node is the registry's, behind the one organization.
-      assert.deepEqual(jsonLdGraph(html)?.['@graph'].map(node => node['@type']).filter(type => type !== 'ItemList'),
+      // A listing may add its ItemList, and a library listing the Dataset of its open statistics; every other node is the
+      // registry's, behind the one organization.
+      assert.deepEqual(jsonLdGraph(html)?.['@graph'].map(node => node['@type'])
+        .filter(type => type !== 'ItemList' && !(type === 'Dataset' && path.startsWith('/library'))),
         ['Organization', ...types], `${path} JSON-LD`);
     }
 
