@@ -21,7 +21,7 @@
 .assemble-picker--small .assemble-portrait { width: 52px; height: 52px; }
 .assemble-picker__list li { display: flex; min-width: 0; }
 .assemble-picker__list button { display: grid; width: 100%; min-height: 44px; padding: 0.4rem 0.2rem 0.45rem; border: 1px solid transparent; justify-items: center; align-content: start; gap: 0.2rem; color: #4a2d1b; background: transparent; font: inherit; text-align: center; cursor: pointer; transition: transform var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease); }
-.assemble-picker__name { display: -webkit-box; max-width: 100%; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 0.8125rem; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
+.assemble-picker__name { hyphens: auto; overflow-wrap: break-word; display: -webkit-box; max-width: 100%; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 0.8125rem; font-weight: 800; line-height: 1.2; }
 .assemble-picker__note { color: #735e49; font-size: 0.75rem; font-variant-numeric: tabular-nums; }
 .assemble-picker__list button:focus-visible { outline: 3px solid #7b151b; outline-offset: 1px; }
 .assemble-picker__list button:active { transform: scale(0.96); }
@@ -139,3 +139,5 @@
   .assemble-offer__hint { margin-top: 0.6rem; font-size: 0.875rem; }
   .assemble-offer .assemble-rows { margin-top: 1rem; }
 }
+
+.assemble-base__facts .card-choices__thin { align-self: start; margin-top: 0.1rem; }

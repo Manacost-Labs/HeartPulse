@@ -57,7 +57,8 @@ export function CardAssembleSection({ format, cardId }: CardAssembleSectionProps
   const data = state.status === 'ready' ? state.data : kept;
   const ribbon = useMemo(() => (data ? assembleBasesByOffer(data) : []), [data]);
 
-  if (!styled || state.status === 'missing' || state.status === 'idle') return null;
+  // «not_collected»: the source does not track this card yet, so there is nothing to show (as for a 404).
+  if (!styled || state.status === 'missing' || state.status === 'idle' || (state.status === 'ready' && state.data.state === 'not_collected')) return null;
   const loadingBase = state.status === 'loading';
   const active = state.status === 'ready' ? assembleActiveBase(state.data) : null;
   const shownBase = (selected === 'top' ? active : data?.bases.find(base => base.card.dbfId === selected)) ?? active;
@@ -145,7 +146,7 @@ export function CardAssembleSection({ format, cardId }: CardAssembleSectionProps
 
           <p className="card-choices__source">
             Источник: {data.sourceUrl ? <a href={data.sourceUrl} target="_blank" rel="noreferrer">HSReplay</a> : 'HSReplay'} · {data.format === 'standard' ? 'Стандарт' : 'Вольный'}
-            {date ? ` · данные на ${date}` : ''}. Винрейт цветом — к среднему по сборкам этой основы.
+            {date ? ` · данные на ${date}` : ''} · винрейт цветом — к среднему по сборкам этой основы.
           </p>
         </>
       )}

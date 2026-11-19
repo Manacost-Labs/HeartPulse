@@ -17,6 +17,7 @@ export function BaseSummary({ base, format }: { base: AssembleBase; format: Card
         <div>
           <dt>Винрейт</dt>
           <dd className={`is-${base.lowSample ? 'neutral' : assembleWinrateTone(base.winRate, base)}`}>{formatChoicePercent(base.winRate)}</dd>
+          {base.lowSample && <dd className="card-choices__thin">Мало данных</dd>}
         </div>
         <div><dt>Доноров</dt><dd>{base.donorsTotal}</dd></div>
       </dl>
@@ -41,6 +42,12 @@ export function OfferedPanel({ base, format }: { base: AssembleBase; format: Car
     ? [result.best, ...result.variants.filter(variant => variant !== result.best)
       .sort((a, b) => (b.option.winRate ?? -1) - (a.option.winRate ?? -1))]
     : [];
+  const announcement = chosen.length < 2
+    ? ''
+    : editing ? 'Выберите существ заново.'
+      : result
+        ? `Лучший выбор: ${result.best.donor.card.name}, берём ${result.best.option.half === 'effect' ? 'эффект' : 'условие'}, винрейт ${formatChoicePercent(result.best.option.winRate)}${result.lowSample ? ', данных мало' : ''}.`
+        : 'Для этих двух существ нет данных о винрейте.';
   const items = donors.map(donor => ({ id: donor.card.cardId, card: donor.card, note: donor.offerRate === null ? '' : `выпадает ${formatChoicePercent(donor.offerRate)}` }));
   return (
     <div className="assemble-offer">
@@ -63,6 +70,7 @@ export function OfferedPanel({ base, format }: { base: AssembleBase; format: Car
             );
         })}
       </div>
+      <p className="assemble-sr" role="status" aria-live="polite" aria-atomic="true">{announcement}</p>
       {chosen.length === 2 && !editing && (
         <button type="button" className="assemble-edit" onClick={() => setEditing(true)}>Изменить выбор</button>
       )}

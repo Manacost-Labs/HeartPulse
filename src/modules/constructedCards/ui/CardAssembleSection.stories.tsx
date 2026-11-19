@@ -73,12 +73,16 @@ const meta = {
   decorators: [Story => <div className="constructed-cards constructed-card-detail" style={{ maxWidth: 1320, marginInline: 'auto', padding: 16 }}><Story /></div>],
   beforeEach: ({ parameters, args }) => {
     const original = window.fetch;
+    let failed = false;
     window.fetch = async (input, init) => {
       const url = new URL(String(input), window.location.origin);
       if (!url.pathname.startsWith('/api/card-assemble/')) return original(input, init);
       if (parameters.hold) return new Promise<Response>(() => {});
       if (parameters.missing) return new Response('{}', { status: 404 });
-      const answer = parameters.empty
+      if (parameters.failOnce && !failed) { failed = true; return new Response('{}', { status: 503 }); }
+      const answer = parameters.notCollected
+        ? { ...assembleAnswer(args.cardId, 0, null), state: 'not_collected' }
+        : parameters.empty
         ? { ...assembleAnswer(args.cardId, 0, null), state: 'no_data' }
         : assembleAnswer(args.cardId, BASES[args.cardId] ?? 38, url.searchParams.get('base'));
       return new Response(JSON.stringify(answer), { headers: { 'Content-Type': 'application/json' } });
@@ -96,6 +100,12 @@ export const Raj: Story = { args: { cardId: 'BE_004' } };
 export const ShadowCreator: Story = { args: { cardId: 'BE_702' } };
 export const Loading: Story = { parameters: { hold: true } };
 export const NotEnoughData: Story = { parameters: { empty: true } };
+/** The first request fails with a 503: an alert with «Повторить»; the second answer is fine. */
+export const ErrorThenRetry: Story = { parameters: { failOnce: true } };
+/** The source does not track the card yet: no section at all. */
+export const NotCollected: Story = { parameters: { notCollected: true } };
+/** A phone: two rows of portraits, the builds right under the slots. */
+export const Phone: Story = { globals: { viewport: { value: 'mobile1', isRotated: false } } };
 export const Missing: Story = { parameters: { missing: true } };
 
 /** «Мне предложили»: two donors give four builds, the best one glows. */

@@ -74,6 +74,8 @@ try {
   assert.equal(await page.$$eval('.assemble-offer ol > li', rows => rows.length), 4);
   assert.equal(await page.$$eval('.assemble-offer .assemble-row__best', labels => labels.length), 1);
   assert.match(await text('.assemble-row__best'), /^Лучший/);
+  // A screen reader hears the answer: the live region names the best build.
+  assert.match(await page.$eval('.assemble-offer [role="status"]', node => node.textContent), /^Лучший выбор: .+, берём (эффект|условие), винрейт \d+,\d%\.$/);
   // The picker folds away, the builds stay under the slots; «Изменить выбор» brings it back.
   assert.equal(await page.$('ul[aria-label="Существа, которых могла предложить игра"]'), null);
   await page.evaluate(() => [...document.querySelectorAll('.assemble-edit')][0]?.click());
@@ -123,6 +125,16 @@ try {
   // A card the data source does not know shows no section, and no data says so.
   await page.goto(storybook.storyUrl('card-detail-assemble--missing'), { waitUntil: 'networkidle0' });
   assert.equal(await page.$('[data-card-assemble]'), null);
+  // A card the source does not collect yet is hidden, not announced as «Мало данных».
+  await page.goto(storybook.storyUrl('card-detail-assemble--not-collected'), { waitUntil: 'networkidle0' });
+  assert.equal(await page.$('[data-card-assemble]'), null);
+  // A failed request shows an alert, and «Повторить» brings the section.
+  await page.goto(storybook.storyUrl('card-detail-assemble--error-then-retry'), { waitUntil: 'networkidle0' });
+  await page.waitForSelector('[data-card-assemble] [role="alert"]');
+  assert.match(await text('[data-card-assemble] [role="alert"]'), /Повторить/);
+  await page.evaluate(() => [...document.querySelectorAll('[role="alert"] button')].find(button => button.textContent === 'Повторить')?.click());
+  await page.waitForSelector('[data-card-assemble] .assemble-row');
+  assert.doesNotMatch(await text('[data-card-assemble]'), /г\.\./);
   await page.goto(storybook.storyUrl('card-detail-assemble--not-enough-data'), { waitUntil: 'networkidle0' });
   assert.match(await text('[data-card-assemble]'), /Мало данных/);
   assert.deepEqual(runtimeErrors, []);
