@@ -122,7 +122,7 @@ export async function loadBattlegroundHeroSitemapRows(
     if (seen.has(key)) return false;
     seen.add(key);
     const stats = projectBattlegroundHeroStats(Number(key), { solo: soloRanking, duos: duosRanking });
-    return stats !== null && isIndexableBattlegroundHero(stats.modes);
+    return stats !== null && isIndexableBattlegroundHero({ ...stats.modes, heroPowerName: stats.heroPowerName });
   });
 }
 

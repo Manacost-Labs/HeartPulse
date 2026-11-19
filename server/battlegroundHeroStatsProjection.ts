@@ -29,12 +29,14 @@ export function projectBattlegroundHeroStats(
   const modes: PublicBattlegroundHeroStats['modes'] = {};
   const dates: string[] = [];
   let source = '';
+  let heroPowerName: string | null = null;
   let stale = false;
   for (const mode of ['solo', 'duos'] as const) {
     const ranking = rankings[mode];
     const index = ranking?.heroes.findIndex(hero => hero.dbfId === dbfId) ?? -1;
     if (!ranking || index < 0) continue;
     modes[mode] = modeStats(ranking.heroes[index], index + 1, ranking.heroes.length);
+    heroPowerName = heroPowerName ?? ranking.heroes[index].heroPowerName;
     if (ranking.updatedAt) dates.push(ranking.updatedAt);
     source = source || ranking.source;
     stale = stale || ranking.warning === 'stale';
@@ -43,6 +45,7 @@ export function projectBattlegroundHeroStats(
   dates.sort();
   return {
     mmr: 'TOP_50_PERCENT',
+    heroPowerName,
     updatedAt: dates[0] ?? null,
     source,
     ...(stale ? { warning: 'stale' as const } : {}),

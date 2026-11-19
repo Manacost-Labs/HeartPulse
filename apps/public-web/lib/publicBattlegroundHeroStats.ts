@@ -24,6 +24,7 @@ export type PublicBattlegroundHeroModeStats = {
 };
 
 export type PublicBattlegroundHeroStats = {
+  heroPowerName: string | null;
   updatedAt: string | null;
   source: string;
   modes: Partial<Record<HeroStatsMode, PublicBattlegroundHeroModeStats>>;
@@ -69,7 +70,7 @@ export function parsePublicBattlegroundHeroStats(raw: unknown): PublicBattlegrou
   if (!parsed.solo && !parsed.duos) return null;
   const updatedAt = text(stats.updatedAt, 40);
   return {
-    modes: parsed, source: text(stats.source, 40),
+    modes: parsed, heroPowerName: text(stats.heroPowerName) || null, source: text(stats.source, 40),
     updatedAt: updatedAt && Number.isFinite(Date.parse(updatedAt)) ? updatedAt : null,
   };
 }

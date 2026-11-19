@@ -33,6 +33,8 @@ export type PublicBattlegroundHeroModeStats = {
 
 export type PublicBattlegroundHeroStats = {
   mmr: 'TOP_50_PERCENT';
+  /** Name of the hero power in the ranking row (a fact for the indexing rule). */
+  heroPowerName: string | null;
   /** The older of the data dates of the modes present, ISO. */
   updatedAt: string | null;
   source: string;

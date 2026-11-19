@@ -67,11 +67,12 @@ block `stats`: the hero's row in the open ranking of the base range
 if the source row has one), `bestComposition`, up to three `keyMinions`, `rank`
 and `of` (place among the rated heroes of the mode, best average place first);
 plus `updatedAt` (the older mode date), `source`, `mmr`, `warning: "stale"`.
-The block is read through a store of the route itself
-(`server/battlegroundHeroRankingStore.ts`: five minutes, deduplicated refresh,
-last known copy); a source that fails with no copy leaves the answer without
-figures (`stats: null`, the hero is still served), so a failing ranking never
-takes the page or the subscriber's view down. An unrated hero has `stats: null`.
+`heroPowerName` (hero-level) rides with it. The block is read through a store
+of the route itself (`server/battlegroundHeroRankingStore.ts`: five minutes,
+deduplicated refresh, last known copy). A source that fails after a good read
+keeps serving the copy; a cold start with the source down (no copy of a mode) is
+a 503 with `Retry-After`, never a 200 without figures: that would turn an
+indexable page into `noindex`. An unrated hero has `stats: null` (a real answer).
 Closed and never copied: other rating ranges, the placement distribution,
 `adjusted_avg_placement`, compositions with metrics, patch history (they stay on
 `/api/bg/heroes/:dbfId/details` behind the access guard). Missing IDs return
@@ -98,13 +99,16 @@ robot and the guest get the same HTML.
 
 Indexing: `isIndexableBattlegroundHero` (`shared/battlegroundHeroIndexing.ts`,
 on the threshold of `shared/seoIndexThreshold.ts`, see
-`docs/specs/seo-entity-indexing.md`) counts the hero's name plus every open
-figure the page prints; fewer than ten facts (a hero rated in one mode only)
-makes the page `noindex, follow` without JSON-LD, and the hero segment of the
+`docs/specs/seo-entity-indexing.md`) requires both modes first, then counts
+the hero's name, hero power name and every open figure the page prints (ten
+facts needed; a typical hero has eleven, a margin of one); a hero rated in one
+mode only, however full, makes the page `noindex, follow` without JSON-LD, and the hero segment of the
 sitemap (`loadBattlegroundHeroSitemapRows`) filters by the same function over the
 same ranking. JSON-LD of an indexable hero page: the entity graph plus a
 `Dataset` with `isAccessibleForFree: false` and
-`hasPart.cssSelector: ".paywalled-hero"`.
+`hasPart.cssSelector: ".paywalled-hero"`. The best build and key minions are
+printed only when the source gives their names (today it gives
+`best_composition_id` only, #305); neither the page nor the Dataset promises them.
 
 Tests: `tests/battleground-hero-ranking-public.check.ts` (stats projection,
 indexing rule, parser, route), `tests/next-bg-hero-detail-browser.test.mjs`

@@ -8,7 +8,7 @@ import { createBattlegroundHeroCatalogLoader } from '../server/battlegroundHeroR
 import { projectBattlegroundHeroRanking } from '../server/battlegroundHeroRankingProjection';
 import { createBattlegroundProxyRouter } from '../server/battlegroundProxyRoutes';
 import { registerPublicBattlegroundHeroRoute } from '../server/battlegroundHeroPublicRoutes';
-import { createHeroRankingStore } from '../server/battlegroundHeroRankingStore';
+import { createHeroStatsLoader } from '../server/battlegroundHeroStatsLoader';
 import { projectBattlegroundHeroStats } from '../server/battlegroundHeroStatsProjection';
 import { countHeroOwnFacts, isIndexableBattlegroundHero } from '../shared/battlegroundHeroIndexing';
 import { heroStatsSummary, parsePublicBattlegroundHeroStats } from '../apps/public-web/lib/publicBattlegroundHeroStats';
@@ -230,7 +230,8 @@ const rankingOf = (mode: 'solo' | 'duos') => projectBattlegroundHeroRanking(buil
 
 test('the hero statistics are the hero row of the base range in both modes, open figures only', () => {
   const stats = projectBattlegroundHeroStats(1000, { solo: rankingOf('solo'), duos: rankingOf('duos') })!;
-  assert.deepEqual(Object.keys(stats).sort(), ['mmr', 'modes', 'source', 'updatedAt']);
+  assert.deepEqual(Object.keys(stats).sort(), ['heroPowerName', 'mmr', 'modes', 'source', 'updatedAt']);
+  assert.equal(stats.heroPowerName, 'Сила 0');
   assert.equal(stats.mmr, 'TOP_50_PERCENT');
   assert.deepEqual(Object.keys(stats.modes.solo!).sort(), ['avgPlacement', 'bestComposition', 'keyMinions', 'of', 'pickRate', 'rank', 'tier', 'top4Rate']);
   assert.deepEqual({ rank: stats.modes.solo!.rank, of: stats.modes.solo!.of, tier: stats.modes.solo!.tier }, { rank: 1, of: HERO_COUNT, tier: 'A' });
@@ -242,19 +243,30 @@ test('the hero statistics are the hero row of the base range in both modes, open
   assert.equal(projectBattlegroundHeroStats(1000, { solo: { ...rankingOf('solo'), warning: 'stale' } })!.warning, 'stale');
 });
 
-test('the indexing rule counts the open facts: both modes pass, one mode or none do not', () => {
+test('the indexing rule needs both modes, then counts the open facts', () => {
   const both = projectBattlegroundHeroStats(1000, { solo: rankingOf('solo'), duos: rankingOf('duos') })!;
-  assert.equal(countHeroOwnFacts(both.modes), 1 + 8 + 7);
-  assert.equal(isIndexableBattlegroundHero(both.modes), true);
+  const facts = (stats: typeof both) => ({ ...stats.modes, heroPowerName: stats.heroPowerName });
+  assert.equal(countHeroOwnFacts(facts(both)), 1 + 1 + 8 + 7);
+  assert.equal(isIndexableBattlegroundHero(facts(both)), true);
   const bareSolo = { solo: { tier: 'A', avgPlacement: 4, top4Rate: 50, pickRate: 9, bestComposition: null, keyMinions: [], rank: 3 } };
   assert.equal(countHeroOwnFacts(bareSolo), 6);
-  assert.equal(isIndexableBattlegroundHero(bareSolo), false, 'five figures and a name are below ten facts');
+  assert.equal(isIndexableBattlegroundHero(bareSolo), false);
   assert.equal(isIndexableBattlegroundHero({}), false);
   assert.equal(isIndexableBattlegroundHero({ solo: null, duos: null }), false);
-  // Mutation guard: the typical live hero (both modes, no build in the source) sits exactly on the line.
-  const live = { ...both.modes, solo: { ...both.modes.solo!, bestComposition: null, keyMinions: [] }, duos: { ...both.modes.duos!, bestComposition: null, keyMinions: [] } };
-  assert.equal(countHeroOwnFacts(live), 10);
+  // Regression: a hero rated in ONE mode with every field filled (sample, build, three minions) has well over
+  // ten facts and must still not be indexable: both modes are required before the threshold is read.
+  const fullSolo = { solo: { tier: 'S', avgPlacement: 3.2, top4Rate: 70, pickRate: 11, games: 5000, bestComposition: 'Нежить', keyMinions: ['А', 'Б', 'В'], rank: 1 }, heroPowerName: 'Сила' };
+  assert.ok(countHeroOwnFacts(fullSolo) >= 10, `${countHeroOwnFacts(fullSolo)} facts`);
+  assert.equal(isIndexableBattlegroundHero(fullSolo), false, 'one mode is never enough');
+  assert.equal(isIndexableBattlegroundHero({ duos: fullSolo.solo, heroPowerName: 'Сила' }), false);
+  // Live shape (no build names, no sample): ten facts with the hero power, one of margin.
+  const live = { ...both.modes, solo: { ...both.modes.solo!, bestComposition: null, keyMinions: [] }, duos: { ...both.modes.duos!, bestComposition: null, keyMinions: [] }, heroPowerName: 'Сила' };
+  assert.equal(countHeroOwnFacts(live), 11);
   assert.equal(isIndexableBattlegroundHero(live), true);
+  // Margin: the source stops giving one figure (pick rate in solo) and the page stays indexable; two are too many.
+  assert.equal(isIndexableBattlegroundHero({ ...live, solo: { ...live.solo, top4Rate: null } }), true);
+  assert.equal(isIndexableBattlegroundHero({ ...live, solo: { ...live.solo, top4Rate: null, pickRate: null } }), false);
+  assert.equal(isIndexableBattlegroundHero({ ...live, heroPowerName: null, solo: { ...live.solo, top4Rate: null } }), false);
 });
 
 test('the hero page parser copies the whitelisted fields only', () => {
@@ -266,7 +278,7 @@ test('the hero page parser copies the whitelisted fields only', () => {
   });
   assert.notDeepEqual(leaks(JSON.stringify(dirty)), [], 'mutation: the dirty answer does carry closed values, so the check below is not vacuous');
   const parsed = parsePublicBattlegroundHeroStats(dirty)!;
-  assert.deepEqual(Object.keys(parsed).sort(), ['modes', 'source', 'updatedAt']);
+  assert.deepEqual(Object.keys(parsed).sort(), ['heroPowerName', 'modes', 'source', 'updatedAt']);
   assert.deepEqual(Object.keys(parsed.modes.solo!).sort(), ['avgPlacement', 'bestComposition', 'games', 'keyMinions', 'of', 'pickRate', 'rank', 'tier', 'top4Rate']);
   assert.deepEqual(leaks(JSON.stringify(parsed)), []);
   assert.equal(parsePublicBattlegroundHeroStats({ ...dirty, modes: { solo: { ...dirty.modes.solo, tier: 'Z' }, duos: { ...dirty.modes.duos, avgPlacement: 12 } } }), null);
@@ -275,14 +287,11 @@ test('the hero page parser copies the whitelisted fields only', () => {
   assert.equal(heroStatsSummary('Герой', null), null);
 });
 
-test('GET /bg/heroes/public/:dbfId carries the statistics, survives a failing ranking and 503s without a hero', async () => {
+test('GET /bg/heroes/public/:dbfId carries the statistics, keeps the last copy and answers 503 on a cold start without a source', async () => {
   const state = { reads: [] as string[], down: false };
   const service = await startService(state);
   const heroes = new Map([[1000, 'Герой 0'], [2001, 'Без оценки']]);
-  const build = (down: () => boolean) => {
-    const store = createHeroRankingStore({
-      loadCatalog: createBattlegroundHeroCatalogLoader({ baseUrl: `${service.origin}/api/bg/heroes` }), onError: () => undefined,
-    });
+  const build = () => {
     const router = express.Router();
     registerPublicBattlegroundHeroRoute(router, {
       loadHero: async id => {
@@ -290,19 +299,17 @@ test('GET /bg/heroes/public/:dbfId carries the statistics, survives a failing ra
         const name = heroes.get(Number(id));
         return name ? { dbfId: Number(id), cardId: null, name, image: null, heroPower: null } : null;
       },
-      loadStats: async dbfId => {
-        if (down()) throw new Error('ranking down');
-        const read = (mode: 'solo' | 'duos') => store.get(mode).then(snapshot => snapshot.body, () => null);
-        return projectBattlegroundHeroStats(dbfId, { solo: await read('solo'), duos: await read('duos') });
-      },
+      loadStats: createHeroStatsLoader({
+        fetchImpl: ((url: string | URL, init?: RequestInit) => fetch(String(url).replace('http://127.0.0.1:3108', service.origin), init)) as typeof fetch,
+        onError: () => undefined,
+      }),
       imageUrl: () => 'https://hearthpulse.net/assets/og-preview.png', retryAfterSeconds: 45, onError: () => undefined,
     });
     const app = express();
     app.use(router);
     return listen(app);
   };
-  let broken = false;
-  const api = await build(() => broken);
+  const api = await build();
   try {
     const ok = await fetch(`${api.origin}/api/bg/heroes/public/1000`);
     assert.equal(ok.status, 200);
@@ -310,20 +317,33 @@ test('GET /bg/heroes/public/:dbfId carries the statistics, survives a failing ra
     const body = JSON.parse(text);
     assert.equal(body.hero.name, 'Герой 0');
     assert.equal(body.stats.mmr, 'TOP_50_PERCENT');
+    assert.equal(body.stats.heroPowerName, 'Сила 0');
     assert.equal(body.stats.modes.solo.tier, 'A');
     assert.deepEqual(leaks(text), [], 'no closed value in the hero answer');
     const unrated = await (await fetch(`${api.origin}/api/bg/heroes/public/2001`)).json();
     assert.equal(unrated.stats, null, 'an unrated hero answers without statistics');
-    broken = true;
-    const degraded = await fetch(`${api.origin}/api/bg/heroes/public/1000`);
-    assert.equal(degraded.status, 200, 'a failing ranking does not take the hero page down');
-    assert.equal((await degraded.json()).stats, null);
+    state.down = true;
+    const warm = await fetch(`${api.origin}/api/bg/heroes/public/1000`);
+    assert.equal(warm.status, 200, 'a source that fails after a good read keeps serving the copy');
+    assert.equal((await warm.json()).stats.modes.duos.rank, 1);
     assert.equal((await fetch(`${api.origin}/api/bg/heroes/public/999`)).status, 404);
     const outage = await fetch(`${api.origin}/api/bg/heroes/public/777`);
     assert.equal(outage.status, 503);
     assert.equal(outage.headers.get('retry-after'), '45');
   } finally {
     await close(api.server);
+  }
+  // Cold start with the source down: never a 200 without figures (that would make an indexable page noindex).
+  const cold = await build();
+  try {
+    const response = await fetch(`${cold.origin}/api/bg/heroes/public/1000`);
+    assert.equal(response.status, 503);
+    assert.equal(response.headers.get('retry-after'), '45');
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    state.down = false;
+    assert.equal((await fetch(`${cold.origin}/api/bg/heroes/public/1000`)).status, 200, 'it recovers with the source');
+  } finally {
+    await close(cold.server);
     await close(service.server);
   }
 });

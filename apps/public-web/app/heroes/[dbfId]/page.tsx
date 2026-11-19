@@ -20,7 +20,7 @@ async function resolveHero(params: Props['params']) {
   if (!hero) notFound();
   const stats = await loadPublicBattlegroundHeroStats(dbfId);
   // The one indexing rule (shared/seoIndexThreshold.ts): the hero segment of the sitemap judges by the same function.
-  const indexable = isIndexableBattlegroundHero(stats?.modes ?? {});
+  const indexable = isIndexableBattlegroundHero(stats ? { ...stats.modes, heroPowerName: stats.heroPowerName } : {});
   return { hero, stats, indexable };
 }
 
@@ -81,7 +81,7 @@ export default async function Page({ params }: Props) {
       '@type': 'Dataset',
       '@id': `${canonical}#dataset`,
       name: `Статистика героя ${hero.name} в Полях сражений Hearthstone`,
-      description: `Тир, среднее место, доля топ-4, частота выбора и лучшая сборка героя ${hero.name} в рейтинге «Топ 50%» для Соло и Дуо по данным HSReplay. Узкие рейтинговые диапазоны, распределение мест, сборки с метриками и динамика между патчами доступны по подписке.`,
+      description: `Тир, среднее место, доля топ-4 и частота выбора героя ${hero.name} в рейтинге «Топ 50%» для Соло и Дуо по данным HSReplay. Узкие рейтинговые диапазоны, распределение мест, сборки с метриками и динамика между патчами доступны по подписке.`,
       url: canonical,
       inLanguage: 'ru',
       isAccessibleForFree: false,

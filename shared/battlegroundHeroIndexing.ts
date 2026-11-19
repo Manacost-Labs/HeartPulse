@@ -25,6 +25,8 @@ export type HeroIndexingModeFacts = {
 export type HeroIndexingFacts = {
   solo?: HeroIndexingModeFacts | null;
   duos?: HeroIndexingModeFacts | null;
+  /** Name of the hero power: a fact the page prints and the ranking row carries. */
+  heroPowerName?: string | null;
 };
 
 const present = (value: unknown): number => value !== null && value !== undefined && value !== '' ? 1 : 0;
@@ -35,13 +37,20 @@ function modeFactCount(mode: HeroIndexingModeFacts | null | undefined): number {
     + present(mode.games) + present(mode.bestComposition) + mode.keyMinions.length + present(mode.rank);
 }
 
-/** The hero's own facts: its name plus every open figure the page prints. */
+/** The hero's own facts: its name, its hero power and every open figure of the modes the page prints. */
 export function countHeroOwnFacts(facts: HeroIndexingFacts): number {
   const figures = modeFactCount(facts.solo) + modeFactCount(facts.duos);
-  return figures > 0 ? figures + 1 : 0;
+  return figures > 0 ? figures + 1 + present(facts.heroPowerName) : 0;
 }
 
-/** Whether a hero page is indexable: it has open figures that reach the content threshold. */
+/**
+ * Whether a hero page is indexable. Both modes must be rated first: a hero seen in one mode only is a
+ * thin page however many figures that mode carries (a full build and three minions must not make up for
+ * the missing mode). Then the open facts must reach the content threshold. The ten facts of a typical
+ * hero (name, hero power and the core figures of both modes) leave a margin of one: losing one source
+ * field does not turn the whole segment to `noindex`.
+ */
 export function isIndexableBattlegroundHero(facts: HeroIndexingFacts): boolean {
+  if (!facts.solo || !facts.duos) return false;
   return meetsContentThreshold({ ownWords: 0, ownFacts: countHeroOwnFacts(facts) });
 }

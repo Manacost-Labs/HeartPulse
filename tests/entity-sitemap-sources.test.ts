@@ -26,12 +26,15 @@ const payloads = new Map<string, unknown>([
   }],
   ['http://127.0.0.1:3108/api/bg/heroes', {
     ok: true,
-    heroes: [{ dbfId: 10, hero: 'Одиночный герой' }],
+    heroes: [{ dbfId: 10, hero: 'Одиночный герой' }, { dbfId: 13, hero: 'Полный Solo' }],
   }],
   // Open ranking (base range) the hero pages and the hero segment are judged on: heroes 10 and 12 are rated in
   // both modes (10 facts: the page's threshold), hero 11 only in Duos (5 facts, the page is noindex).
   ['http://127.0.0.1:3108/api/bg/heroes?mode=solo&mmr=TOP_50_PERCENT', {
-    ok: true, heroes: [ratedRow(10, 'Одиночный герой', 4.1, true), ratedRow(12, 'Герой Duos 2', 4.4, true)],
+    ok: true, heroes: [ratedRow(10, 'Одиночный герой', 4.1, true), ratedRow(12, 'Герой Duos 2', 4.4, true),
+      // Rated in solo only, with every field filled: more than ten facts, still not indexable (both modes are required).
+      { ...ratedRow(13, 'Полный Solo', 3.9, true), games: 9000, best_composition: { name: 'Нежить' },
+        key_minions_top3: [{ name: 'А' }, { name: 'Б' }, { name: 'В' }], hero_power: { card: { name: 'Сила' } } }],
   }],
   ['http://127.0.0.1:3108/api/bg/heroes?mode=duos&mmr=TOP_50_PERCENT', {
     ok: true,

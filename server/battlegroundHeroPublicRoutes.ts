@@ -15,7 +15,7 @@ export function isPositiveDbfId(value: unknown): boolean {
  */
 export function registerPublicBattlegroundHeroRoute(router: Router, options: {
   loadHero: (dbfId: string) => Promise<PublicBattlegroundHero | null>;
-  /** Open statistics of the hero; `null` when it is not rated. A failure leaves the identity answer intact. */
+  /** Open statistics of the hero; `null` when it is not rated. A rejection is a 503 with `Retry-After`. */
   loadStats?: (dbfId: number) => Promise<PublicBattlegroundHeroStats | null>;
   imageUrl: (value: string | null) => string;
   retryAfterSeconds: number;
@@ -29,12 +29,8 @@ export function registerPublicBattlegroundHeroRoute(router: Router, options: {
     try {
       const hero = await options.loadHero(dbfId);
       if (!hero) return response.status(404).json({ error: 'Hero not found' });
-      let stats: PublicBattlegroundHeroStats | null = null;
-      if (options.loadStats) {
-        try { stats = await options.loadStats(hero.dbfId); } catch (error) {
-          try { options.onError?.(error); } catch { /* diagnostics are best-effort */ }
-        }
-      }
+      // A failing statistics source with no copy is a retryable 503 like the catalog: never a 200 without figures.
+      const stats = options.loadStats ? await options.loadStats(hero.dbfId) : null;
       return response.json({ stats, hero: {
         dbfId: hero.dbfId, cardId: hero.cardId, name: hero.name,
         image: options.imageUrl(hero.image),
