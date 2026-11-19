@@ -5690,17 +5690,24 @@ for (const [device, viewport] of [
       || sidebarState.mainPaddingTop !== '16px') {
       failures.push(`desktop sidebar: parchment frame changed (${JSON.stringify(sidebarState)})`);
     }
-    // Hover is a transform on the icon and a plate that fades in; nothing else moves.
+    // Hover is a transform on the icon and a plate that fades in; nothing else moves. Reduced motion (the default of this
+    // harness) keeps the plate and removes the movement.
     const hoverTarget = '.arena-sidebar .hp-nav-list a.hp-nav-link:not([aria-current="page"])';
     const firstVisible = await page.evaluateHandle(selector => [...document.querySelectorAll(selector)].find(item => item.checkVisibility()), hoverTarget);
-    await firstVisible.hover();
-    await new Promise(resolve => setTimeout(resolve, 260));
-    const hoveredLink = await firstVisible.evaluate(element => ({
+    const readHover = () => firstVisible.evaluate(element => ({
       iconTransform: getComputedStyle(element.querySelector('.hp-nav-icon')).transform,
       labelTransform: getComputedStyle(element.querySelector('.hp-nav-label')).transform,
       plate: getComputedStyle(element, '::before').opacity,
       color: getComputedStyle(element).color,
     }));
+    await firstVisible.hover();
+    await new Promise(resolve => setTimeout(resolve, 260));
+    const stillHover = await readHover();
+    if (stillHover.iconTransform !== 'none' || stillHover.labelTransform !== 'none' || stillHover.plate !== '1') failures.push(`desktop sidebar: reduced motion must keep the hover plate and drop the movement (${JSON.stringify(stillHover)})`);
+    await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'no-preference' }]);
+    await new Promise(resolve => setTimeout(resolve, 300));
+    const hoveredLink = await readHover();
+    await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
     if (hoveredLink.iconTransform !== 'matrix(1.08, 0, 0, 1.08, 0, 0)'
       || hoveredLink.labelTransform !== 'matrix(1, 0, 0, 1, 2, 0)'
       || hoveredLink.plate !== '1'
