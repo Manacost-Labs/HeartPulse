@@ -11,7 +11,8 @@ export function score(value: number | null): string {
   return `${Math.round(Math.max(0, Math.min(1, value)) * 100)}%`;
 }
 
-function metaDistance(value: number | null): string {
+/** How unlike the nearest meta deck the list is, as a whole percent. */
+export function metaDistance(value: number | null): string {
   return score(value === null ? null : 1 - value);
 }
 

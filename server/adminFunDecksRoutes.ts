@@ -1,4 +1,7 @@
 import { Router, type RequestHandler, type Response } from 'express';
+import type { DatabaseSync } from 'node:sqlite';
+import { createAdminFunDeckModerationRouter, type AdminFunDeckModerationDependencies } from './adminFunDeckModerationRoutes.js';
+import { applyFunDeckModeration, listFunDeckModeration, type FunDeckModerationRecord } from './adminFunDeckModerationStore.js';
 import { asRecord, normalizeFunDeckRow, numberOrNull, text, type FunDeckRow } from './funDeckRows.js';
 
 export type { FunDeckRow };
@@ -16,12 +19,18 @@ export type FunDecksPayload = {
     schedule: string;
   };
   decks: FunDeckRow[];
+  /** Admin selection only: the hidden decks, from their snapshots. */
+  hidden?: Array<{ format: string; deckCode: string; deck: FunDeckRow | null; note: string | null; updatedBy: string | null; updatedAt: string }>;
 };
 
 export type AdminFunDecksDependencies = {
   adminGuard: RequestHandler;
   setPrivateNoStore: (response: Response) => void;
   loadFunDecks: () => Promise<unknown>;
+  /** The moderation table; without it the selection is the dataset as is and nothing can be moderated. */
+  getDatabase?: () => DatabaseSync;
+  adminAuth?: AdminFunDeckModerationDependencies['adminAuth'];
+  recordAudit?: AdminFunDeckModerationDependencies['recordAudit'];
   onError?: (error: unknown) => void;
 };
 
@@ -42,6 +51,8 @@ export type PublicFunDecksPayload = {
 
 export type PublicFunDecksDependencies = {
   loadFunDecks: () => Promise<unknown>;
+  /** The moderation table: the admin's hide/pin decisions. A failure to read it leaves the dataset unmoderated. */
+  getDatabase?: () => DatabaseSync;
   /** The site's Russian archetype names; a failure leaves the English ones. */
   loadArchetypeLabels?: () => Promise<(name: string) => string>;
   getPreview?: (deck: FunDeckRow) => FunDeckRow['render'] | null;
@@ -80,21 +91,21 @@ export function normalizeFunDecksPayload(raw: unknown): FunDecksPayload {
   };
 }
 
+function countByFormat(decks: readonly FunDeckRow[]): PublicFunDecksPayload['stats'] {
+  const counts = decks.reduce((sum, deck) => {
+    const format = deck.format.toLowerCase();
+    if (format === 'wild') sum.wild += 1;
+    else if (format === 'standard') sum.standard += 1;
+    return sum;
+  }, { standard: 0, wild: 0 });
+  return { total: decks.length, ...counts };
+}
+
 export function normalizePublicFunDecksPayload(raw: unknown): PublicFunDecksPayload {
   const normalized = normalizeFunDecksPayload(raw);
-  const formatCounts = normalized.decks.reduce((counts, deck) => {
-    const format = deck.format.toLowerCase();
-    if (format === 'wild') counts.wild += 1;
-    else if (format === 'standard') counts.standard += 1;
-    return counts;
-  }, { standard: 0, wild: 0 });
-
   return {
     fetchedAt: normalized.fetchedAt,
-    stats: {
-      total: normalized.decks.length,
-      ...formatCounts,
-    },
+    stats: countByFormat(normalized.decks),
     methodology: {
       detectorVersion: normalized.detectorVersion,
       minFunScore: numberOrNull(normalized.filters.min_fun_score) ?? 0.55,
@@ -104,12 +115,27 @@ export function normalizePublicFunDecksPayload(raw: unknown): PublicFunDecksPayl
   };
 }
 
+/** Hidden decks leave, pinned ones lead their format, and the counts follow. */
+function moderatePublicPayload(payload: PublicFunDecksPayload, dependencies: PublicFunDecksDependencies): void {
+  let records: FunDeckModerationRecord[];
+  try {
+    records = dependencies.getDatabase ? listFunDeckModeration(dependencies.getDatabase()) : [];
+  } catch (error) {
+    dependencies.onError?.(error);
+    return;
+  }
+  if (!records.length) return;
+  payload.decks = applyFunDeckModeration(payload.decks, records);
+  payload.stats = countByFormat(payload.decks);
+}
+
 export function createPublicFunDecksRouter(dependencies: PublicFunDecksDependencies): Router {
   const router = Router();
 
   router.get('/fun-decks', async (_request, response) => {
     try {
       const payload = normalizePublicFunDecksPayload(await dependencies.loadFunDecks());
+      moderatePublicPayload(payload, dependencies);
       const archetypeLabel = await dependencies.loadArchetypeLabels?.().catch(error => {
         dependencies.onError?.(error);
         return null;
@@ -149,6 +175,24 @@ export function createPublicFunDecksRouter(dependencies: PublicFunDecksDependenc
   return router;
 }
 
+/** Every deck with its decision, and the hidden ones listed from their snapshots; unreadable moderation leaves the dataset as is. */
+function moderateAdminPayload(payload: FunDecksPayload, dependencies: AdminFunDecksDependencies): FunDecksPayload {
+  if (!dependencies.getDatabase) return payload;
+  let records: FunDeckModerationRecord[];
+  try {
+    records = listFunDeckModeration(dependencies.getDatabase());
+  } catch (error) {
+    dependencies.onError?.(error);
+    return payload;
+  }
+  return {
+    ...payload,
+    decks: applyFunDeckModeration(payload.decks, records, true),
+    hidden: records.filter(record => record.action === 'hide').map(({ format, deckCode, snapshot, note, updatedBy, updatedAt }) => (
+      { format, deckCode, deck: snapshot, note, updatedBy, updatedAt })),
+  };
+}
+
 export function createAdminFunDecksRouter(dependencies: AdminFunDecksDependencies): Router {
   const router = Router();
   router.use('/admin/fun-decks', dependencies.adminGuard, (_request, response, next) => {
@@ -156,9 +200,19 @@ export function createAdminFunDecksRouter(dependencies: AdminFunDecksDependencie
     next();
   });
 
+  if (dependencies.getDatabase && dependencies.adminAuth) {
+    router.use(createAdminFunDeckModerationRouter({
+      ...dependencies,
+      getDatabase: dependencies.getDatabase,
+      adminAuth: dependencies.adminAuth,
+      loadDecks: async () => normalizeFunDecksPayload(await dependencies.loadFunDecks()).decks,
+    }));
+  }
+
   router.get('/admin/fun-decks', async (_request, response) => {
     try {
-      return response.json(normalizeFunDecksPayload(await dependencies.loadFunDecks()));
+      const payload = normalizeFunDecksPayload(await dependencies.loadFunDecks());
+      return response.json(moderateAdminPayload(payload, dependencies));
     } catch (error) {
       dependencies.onError?.(error);
       return response.status(502).json({

@@ -38,6 +38,12 @@ export type PatchNotesEntry = {
   /** Hearthstone Wiki full illustration of a resolved Constructed card; absent from older responses. */
   artwork?: PatchNotesArtwork | null;
   /**
+   * The card as it looked before and after the patch: absolute archive URLs of the card history. Both or neither;
+   * absent from older responses.
+   */
+  beforeRenderUrl?: string | null;
+  afterRenderUrl?: string | null;
+  /**
    * Today's format of a resolved Constructed card: `standard` when the
    * Standard catalog lists it, else `wild`; `null` when unknown.
    */

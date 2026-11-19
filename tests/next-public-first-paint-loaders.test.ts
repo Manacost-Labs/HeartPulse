@@ -178,6 +178,11 @@ assert.equal(JSON.stringify(funPreview).includes('PRIVATE_'), false);
   assert.deepEqual([newer?.winRateCiLow, newer?.winRateCiHigh, newer?.variants, newer?.sourceTitle, newer?.nearestArchetypeLabel],
     [41.5, 67.2, 1, 'STD Deck 2', 'Вихлепых Друид']);
   assert.deepEqual([newer?.why, newer?.tags], [['Концепт'], ['concept']], 'the reasons and the filter tags reach the guest\'s first view');
+  // `kind` and `pinned` reach the guest's first view; a response without them is a brew, not pinned.
+  const flagged = publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), kind: 'off_meta', pinned: true }] })?.decks[0];
+  assert.deepEqual([flagged?.kind, flagged?.pinned], ['off_meta', true]);
+  assert.deepEqual([funPreview?.decks[0].kind, funPreview?.decks[0].pinned], ['brew', undefined]);
+  assert.equal(publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), kind: 'hacked', pinned: 'yes' }] })?.decks[0].kind, 'brew');
   const older = funPreview?.decks[0];
   assert.deepEqual([older?.winRateCiLow, older?.winRateCiHigh, older?.variants, older?.sourceTitle, older?.nearestArchetypeLabel],
     [null, null, null, null, null]);
@@ -194,9 +199,8 @@ assert.equal(publicFunDecksPreview({ error: 'upstream' }), null);
 // so a slow Express never ships the page without the patch once it was read.
 {
   const patch = (version: string) => ({ version, title: `Патч ${version}`, entries: [] });
-  const archive = { patches: [{ version: '36.6.3' }] };
   let clock = 0;
-  let mode: 'ok' | 'stall' | 'fail' = 'ok';
+  let mode: 'ok' | 'stall' | 'fail' | 'damaged' = 'ok';
   const reads: string[] = [];
   const stalled: (() => void)[] = [];
   const load = createPatchNotesReader({
@@ -204,43 +208,46 @@ assert.equal(publicFunDecksPreview({ error: 'upstream' }), null);
     request: async path => {
       reads.push(path);
       if (mode === 'fail') return json({ error: 'upstream' }, 502);
-      const body = path === '/api/patch-notes' ? archive : patch(path.split('/').pop() ?? '');
+      const version = path.split('/').pop() ?? '';
+      const body = version === 'recent' ? { patches: [patch('37.0.2'), patch('37.0.0')] } : patch(version);
       if (mode === 'stall') await new Promise<void>(resolve => { stalled.push(resolve); });
-      return json(body);
+      return json(mode === 'damaged' ? { patches: [patch('37.0.2'), { version: 5 }] } : body);
     },
   });
   const deadline = () => Date.now() + 200;
+  const versions = async (version: string | null) => (await load(version, deadline())).patches?.map(item => item.version) ?? null;
 
   // A cold read that misses the deadline is null, but keeps going and fills the cache.
   mode = 'stall';
-  assert.deepEqual(await load(null, Date.now() + 20), { patch: null, archive: null });
+  assert.deepEqual(await load(null, Date.now() + 20), { patches: null });
   mode = 'ok';
   for (const resume of stalled) resume();
   await new Promise(resolve => setTimeout(resolve, 20));
   reads.length = 0;
-  const warm = await load(null, deadline());
-  assert.equal(warm.patch?.version, 'latest');
-  assert.deepEqual(reads.filter(path => path !== '/api/patch-notes'), [], 'a fresh copy needs no Express read');
+  assert.deepEqual(await versions(null), ['37.0.2', '37.0.0'], 'the page shows the two newest patches');
+  assert.deepEqual(reads, [], 'a fresh copy needs no Express read');
 
   // Stale: served at once while one refresh runs; a failed refresh keeps the last good copy.
   clock = 5000;
   mode = 'fail';
   reads.length = 0;
-  assert.equal((await load(null, Date.now() - 1)).patch?.version, 'latest', 'a stale copy ignores the spent budget');
+  assert.deepEqual((await load(null, Date.now() - 1)).patches?.map(item => item.version), ['37.0.2', '37.0.0'],
+    'a stale copy ignores the spent budget');
   await new Promise(resolve => setTimeout(resolve, 20));
-  assert.deepEqual(reads.sort(), ['/api/patch-notes', '/api/patch-notes/latest']);
-  assert.equal((await load(null, deadline())).patch?.version, 'latest');
+  assert.deepEqual(reads, ['/api/patch-notes/recent']);
+  assert.deepEqual(await versions(null), ['37.0.2', '37.0.0']);
 
-  // Unknown versions are not kept; known ones are bounded, least recently served first.
-  mode = 'fail';
-  assert.equal((await load('9.9.9', deadline())).patch, null);
+  // Unknown or damaged answers are not kept; known versions are bounded, least recently served first.
+  assert.equal(await versions('9.9.9'), null);
+  mode = 'damaged';
+  assert.equal(await versions('8.8.8'), null, 'a version answer without its fields is not a patch');
   mode = 'ok';
-  for (const version of ['1.0.0', '2.0.0', '3.0.0']) await load(version, deadline());
+  for (const version of ['1.0.0', '2.0.0', '3.0.0', '4.0.0']) await versions(version);
   reads.length = 0;
   clock = 5500;
-  await load('3.0.0', deadline());
+  await versions('3.0.0');
   assert.equal(reads.includes('/api/patch-notes/3.0.0'), false, 'a cached version is served from memory');
-  await load('1.0.0', deadline());
+  await versions('1.0.0');
   assert.ok(reads.includes('/api/patch-notes/1.0.0'), 'the oldest version was dropped at the bound');
 }
 

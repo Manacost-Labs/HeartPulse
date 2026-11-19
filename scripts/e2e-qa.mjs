@@ -715,8 +715,10 @@ function assertLayout(path, layout) {
     const routePath = path.split(' ')[0].replace(/\/$/, '');
     // /legendaries keeps a short banner on a phone (min-height 96px in LegendariesOpenLayer.css, ~98px with
     // its title) so the name, composition and winrate of the first group fit a 390×844 first screen.
+    // /tierlist and /classes do the same (TierListPublicPool.css and ClassesPublicTeaser.css, #410): the open data is the first screen.
     const expectedHeight = routePath === '/faq' ? (layout.mobile ? 180 : 210)
-      : routePath === '/legendaries' && layout.mobile ? 98 : (layout.mobile ? 360 : 320);
+      : (routePath === '/legendaries' || routePath === '/tierlist') && layout.mobile ? 98
+        : routePath === '/classes' && layout.mobile ? 96 : (layout.mobile ? 360 : 320);
     if (Math.abs(layout.bannerHeight - expectedHeight) > 1) {
       failures.push(`${path}: shared banner height changed (${layout.bannerHeight}px; expected ${expectedHeight}px)`);
     }
@@ -5718,7 +5720,7 @@ for (const [device, viewport] of [
       || hoveredLink.color !== 'rgb(255, 250, 240)') {
       failures.push(`desktop sidebar: hover treatment changed (${JSON.stringify(hoveredLink)})`);
     }
-    // The mode switch opens on a click only, shows the four banners and closes on Escape with focus back on its button.
+    // The mode switch opens on a click only, shows the five banners and closes on Escape with focus back on its button.
     const switchState = () => page.evaluate(() => {
       const panel = document.querySelector('.arena-sidebar details.hp-mode');
       const cards = [...panel.querySelectorAll('[data-mode-card]')];
@@ -5739,8 +5741,8 @@ for (const [device, viewport] of [
     await page.click('.arena-sidebar details.hp-mode > summary');
     await page.waitForFunction(() => [...document.querySelectorAll('.arena-sidebar [data-mode-card]')].every(card => card.checkVisibility() && !card.getAnimations({ subtree: true }).length), { timeout: 5_000 });
     const opened = await switchState();
-    // 4 in a row from 1360 px, 2×2 below.
-    if (!opened.open || opened.shown !== 4 || JSON.stringify(opened.current) !== '["arena"]' || JSON.stringify(opened.badge) !== '["arena"]' || opened.columns !== 4 || !opened.inViewport) {
+    // Five in a row from 1360 px, three and two below.
+    if (!opened.open || opened.shown !== 5 || JSON.stringify(opened.current) !== '["arena"]' || JSON.stringify(opened.badge) !== '["arena"]' || opened.columns !== 5 || !opened.inViewport) {
       failures.push(`desktop sidebar: the mode panel is wrong (${JSON.stringify(opened)})`);
     }
     await page.screenshot({ path: `${OUT}/desktop-mode-panel.png`, fullPage: false });

@@ -1,0 +1,75 @@
+{
+  "reason": "«Вольный» — пятый режим меню (#475, E22 E): у режима свой баннер, список из семи пунктов и широкие строки баннеров в мобильном меню, а панель из пяти карточек перестроена (в ряд от 1360 px, три и две ниже). CSS меню вырос на 53–173 B gzip на каждом маршруте (одно правило «виден один режим» для нового режима, раскладка панели, строки баннеров в ящике). JS: общий код оболочки вырос для всех маршрутов (функция «адрес → режим и пункт», формат страницы в адресе, подписка на query — около 170 строк); везде, кроме фан-колод, это укладывается в допуск 2 %. У /standard/fun-decks/ допуск почти исчерпали виды колод (#497) и модерация (#490), поэтому сборка CI на merge с main показала 205214 B при лимите 204561 B (+653 B); одобрено 800 B: 653 B превышения, правка «Назад» в конструкторе колод и запас на разброс сборок CI. Одобрены округлённые до 10 B приросты, не больше нужного.",
+  "routes": {
+    "/articles/": {
+      "cssGzipBytes": 125
+    },
+    "/battlegrounds/tier-list/": {
+      "cssGzipBytes": 180
+    },
+    "/classes/": {
+      "cssGzipBytes": 160
+    },
+    "/connect/": {
+      "cssGzipBytes": 180
+    },
+    "/contests/": {
+      "cssGzipBytes": 190
+    },
+    "/cosmetics/": {
+      "cssGzipBytes": 180
+    },
+    "/developers/api/": {
+      "cssGzipBytes": 180
+    },
+    "/faq/": {
+      "cssGzipBytes": 180
+    },
+    "/gallery/": {
+      "cssGzipBytes": 125
+    },
+    "/guides-archive/": {
+      "cssGzipBytes": 180
+    },
+    "/heroes/": {
+      "cssGzipBytes": 150
+    },
+    "/": {
+      "cssGzipBytes": 180
+    },
+    "/library/minions/": {
+      "cssGzipBytes": 180
+    },
+    "/library/": {
+      "cssGzipBytes": 180
+    },
+    "/privacy/": {
+      "cssGzipBytes": 180
+    },
+    "/standard/archetypes/": {
+      "cssGzipBytes": 70
+    },
+    "/standard/cards/standard/": {
+      "cssGzipBytes": 155
+    },
+    "/standard/cards/": {
+      "cssGzipBytes": 155
+    },
+    "/standard/deck-builder/": {
+      "cssGzipBytes": 180
+    },
+    "/standard/fun-decks/": {
+      "cssGzipBytes": 160,
+      "jsGzipBytes": 800
+    },
+    "/standard/matchups/": {
+      "cssGzipBytes": 135
+    },
+    "/standard/meta/": {
+      "cssGzipBytes": 165
+    },
+    "/standard/vicious-gold/": {
+      "cssGzipBytes": 145
+    }
+  }
+}

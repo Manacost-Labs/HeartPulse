@@ -1,0 +1,309 @@
+{
+  "data": {
+    "card": {
+      "card_id": "BE_044",
+      "dbf_id": 128892,
+      "name": "F3TCH3R",
+      "name_ru": "РЕ-3-ВЕР",
+      "card_class": "NEUTRAL",
+      "cost": 3,
+      "type": "MINION",
+      "rarity": "COMMON",
+      "text": "Battlecry: Assemble a 4-Cost minion.",
+      "text_ru": "Боевой клич: собирает существо за (4)."
+    },
+    "format": "standard",
+    "game_type": "RANKED_STANDARD",
+    "time_range": "LAST_7_DAYS",
+    "original_class_only": true,
+    "stats": {
+      "state": "ok",
+      "checked_at": "2026-11-20T03:10:00+00:00",
+      "as_of": null,
+      "stale": false,
+      "source_url": "https://hsreplay.net/cards/assemble-pools/",
+      "unresolved_rows": 0
+    },
+    "summary": {
+      "bases_total": 38,
+      "win_rate": 51.2
+    },
+    "bases": [
+      {
+        "card": {
+          "card_id": "TIME_100",
+          "dbf_id": 121051,
+          "name": "Hourglass Attendant",
+          "name_ru": "Смотритель песочных часов",
+          "card_class": "NEUTRAL",
+          "cost": 4,
+          "type": "MINION",
+          "rarity": "COMMON"
+        },
+        "offer_rate": 6.7,
+        "win_rate": 58.4,
+        "low_sample": false,
+        "donors_total": 41,
+        "donors": [
+          {
+            "card": {
+              "card_id": "CORE_EX1_110",
+              "dbf_id": 69667,
+              "name": "Cairne Bloodhoof",
+              "name_ru": "Кэрн Кровавое Копыто",
+              "card_class": "NEUTRAL",
+              "cost": 6,
+              "type": "MINION",
+              "rarity": "LEGENDARY"
+            },
+            "offer_rate": 9.8,
+            "pick_rate": 87.2,
+            "win_rate": 68.9,
+            "picks": 412,
+            "low_sample": false,
+            "options": [
+              {
+                "half": "effect",
+                "text": {
+                  "ru": {
+                    "trigger": "В конце вашего хода",
+                    "effect": "призывает Бейна Кровавое Копыто 5/5."
+                  },
+                  "en": {
+                    "trigger": "At the end of your turn,",
+                    "effect": "summon a 5/5 Baine Bloodhoof."
+                  }
+                },
+                "pick_rate": 84.3,
+                "win_rate": 69.5,
+                "picks": 398,
+                "low_sample": false,
+                "undervalued": false
+              },
+              {
+                "half": "trigger",
+                "text": {
+                  "ru": {
+                    "trigger": "Предсмертный хрип:",
+                    "effect": "существа у вас в руке получают +1/+1."
+                  },
+                  "en": {
+                    "trigger": "Deathrattle:",
+                    "effect": "Give all minions in your hand +1/+1."
+                  }
+                },
+                "pick_rate": 2.9,
+                "win_rate": 50.0,
+                "picks": 9,
+                "low_sample": true,
+                "undervalued": false
+              }
+            ]
+          },
+          {
+            "card": {
+              "card_id": "JAIL_007",
+              "dbf_id": 110021,
+              "name": "Jailer's Imp",
+              "name_ru": "Бес из стоков",
+              "card_class": "WARLOCK",
+              "cost": 3,
+              "type": "MINION",
+              "rarity": "COMMON"
+            },
+            "offer_rate": 8.1,
+            "pick_rate": 51.0,
+            "win_rate": 55.2,
+            "picks": 140,
+            "low_sample": false,
+            "options": [
+              {
+                "half": "effect",
+                "text": {
+                  "ru": {
+                    "trigger": "В конце вашего хода",
+                    "effect": "наносит 2 ед. урона всем противникам."
+                  },
+                  "en": {
+                    "trigger": "At the end of your turn,",
+                    "effect": "deal 2 damage to all enemies."
+                  }
+                },
+                "pick_rate": 44.0,
+                "win_rate": 56.4,
+                "picks": 120,
+                "low_sample": false,
+                "undervalued": false
+              },
+              {
+                "half": "trigger",
+                "text": {
+                  "ru": {
+                    "trigger": "Боевой клич:",
+                    "effect": "существа у вас в руке получают +1/+1."
+                  },
+                  "en": {
+                    "trigger": "Battlecry:",
+                    "effect": "Give all minions in your hand +1/+1."
+                  }
+                },
+                "pick_rate": 7.0,
+                "win_rate": 49.5,
+                "picks": 20,
+                "low_sample": false,
+                "undervalued": false
+              }
+            ]
+          },
+          {
+            "card": {
+              "card_id": "EDR_492",
+              "dbf_id": 118011,
+              "name": "Mama Duck",
+              "name_ru": "Мама-утка",
+              "card_class": "NEUTRAL",
+              "cost": 5,
+              "type": "MINION",
+              "rarity": "EPIC"
+            },
+            "offer_rate": 7.5,
+            "pick_rate": 40.0,
+            "win_rate": 53.0,
+            "picks": 90,
+            "low_sample": false,
+            "options": [
+              {
+                "half": "effect",
+                "text": {
+                  "ru": {
+                    "trigger": "В конце вашего хода",
+                    "effect": "призывает трех утят 1/1 с «Натиском»."
+                  },
+                  "en": {
+                    "trigger": "At the end of your turn,",
+                    "effect": "summon three 1/1 Ducklings with Rush."
+                  }
+                },
+                "pick_rate": 36.0,
+                "win_rate": 54.1,
+                "picks": 80,
+                "low_sample": false,
+                "undervalued": false
+              },
+              {
+                "half": "trigger",
+                "text": {
+                  "ru": null,
+                  "en": {
+                    "trigger": "Deathrattle:",
+                    "effect": "Summon a 1/1 Duckling."
+                  }
+                },
+                "pick_rate": 4.0,
+                "win_rate": 48.0,
+                "picks": 6,
+                "low_sample": true,
+                "undervalued": false
+              }
+            ]
+          },
+          {
+            "card": {
+              "card_id": "BE_550",
+              "dbf_id": 129001,
+              "name": "Tank Regiment",
+              "name_ru": "Танковый полк",
+              "card_class": "NEUTRAL",
+              "cost": 8,
+              "type": "MINION",
+              "rarity": "RARE"
+            },
+            "offer_rate": 6.2,
+            "pick_rate": 30.0,
+            "win_rate": 49.0,
+            "picks": 60,
+            "low_sample": false,
+            "options": [
+              {
+                "half": "effect",
+                "text": {
+                  "ru": {
+                    "trigger": "В конце вашего хода",
+                    "effect": "призывает две копии этого существа."
+                  },
+                  "en": {
+                    "trigger": "At the end of your turn,",
+                    "effect": "summon two copies of this minion."
+                  }
+                },
+                "pick_rate": 12.0,
+                "win_rate": 47.0,
+                "picks": 25,
+                "low_sample": false,
+                "undervalued": false
+              },
+              {
+                "half": "trigger",
+                "text": {
+                  "ru": {
+                    "trigger": "Боевой клич: призывает две копии этого существа. Предсмертный хрип:",
+                    "effect": "существа у вас в руке получают +1/+1."
+                  },
+                  "en": {
+                    "trigger": "Battlecry: Summon two copies of this minion. Deathrattle:",
+                    "effect": "Give all minions in your hand +1/+1."
+                  }
+                },
+                "pick_rate": 18.0,
+                "win_rate": 50.5,
+                "picks": 40,
+                "low_sample": false,
+                "undervalued": false
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "card": {
+          "card_id": "BT_716",
+          "dbf_id": 63456,
+          "name": "Bonechewer Brawler",
+          "name_ru": "Костегрыз-драчун",
+          "card_class": "NEUTRAL",
+          "cost": 2,
+          "type": "MINION",
+          "rarity": "COMMON"
+        },
+        "offer_rate": 5.9,
+        "win_rate": 50.1,
+        "low_sample": false,
+        "donors_total": 38,
+        "donors": null
+      },
+      {
+        "card": {
+          "card_id": "CORE_EX1_011",
+          "dbf_id": 69701,
+          "name": "Voodoo Doctor",
+          "name_ru": "Знахарь",
+          "card_class": "NEUTRAL",
+          "cost": 1,
+          "type": "MINION",
+          "rarity": "COMMON"
+        },
+        "offer_rate": 0.4,
+        "win_rate": null,
+        "low_sample": true,
+        "donors_total": 12,
+        "donors": null
+      }
+    ]
+  },
+  "meta": {
+    "source_id": "hsreplay_assemble",
+    "fetched_at": "2026-11-20T03:10:00+00:00",
+    "stale": false,
+    "count": 38
+  }
+}

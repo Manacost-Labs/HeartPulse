@@ -32,14 +32,16 @@
         ]
       },
       {
-        "id": "arena-classes-paywall",
+        "id": "arena-classes-open-ranking",
         "path": "/classes",
-        "assertions": [{ "selector": ".arena-paywall", "minCount": 1 }]
+        "assertions": [{ "selector": ".classes-public-teaser tbody tr", "minCount": 5 }],
+        "forbiddenSelectors": [".arena-paywall"]
       },
       {
         "id": "arena-tier-list-open-pool",
         "path": "/tierlist",
-        "assertions": [{ "selector": ".tierlist-public-pool tbody tr", "minCount": 100 }]
+        "assertions": [{ "selector": ".tierlist-public-pool tbody tr", "minCount": 100 }],
+        "forbiddenSelectors": [".arena-paywall"]
       },
       {
         "id": "arena-legendaries-open-layer",

@@ -26,6 +26,7 @@ export type PatchCardView = {
   /** Catalog render for the hover preview; the page falls back to the HearthstoneJSON render. */
   renderUrl: string | null;
   art: PatchCardArt;
+  /** Card before and after the patch (card history), both or neither. */ pair: { before: string; after: string } | null;
   /** Wiki full illustration behind featured cards; `null` without a catalog match. */
   artwork: PatchNotesArtwork | null;
   /** Lower-case class of a Constructed or Arena card (`warrior`); `null` for neutral and other modes. */
@@ -189,15 +190,14 @@ export function toPatchView(detail: Pick<PatchNotesDetail, 'entries'>): PatchVie
       renderUrl: entry.renderUrl ?? null,
       art: art(entry),
       artwork: entry.artwork ?? null,
-      classKey: classKeyOf(entry),
+      pair: entry.beforeRenderUrl && entry.afterRenderUrl ? { before: entry.beforeRenderUrl, after: entry.afterRenderUrl } : null, classKey: classKeyOf(entry),
       cardUrl: entry.cardId && entry.format ? `/standard/cards/${entry.format}/${encodeURIComponent(entry.cardId)}/` : null,
       anchor: patchCardAnchor(entry.id),
       archetypes: (entry.archetypes ?? []).map(use => ({ ...use, href: archetypeHref(use) })),
       history: (entry.history ?? []).map(item => ({
         version: item.version, publishedAt: item.publishedAt, href: `${patchNotesHref(item.version)}#${patchCardAnchor(item.entryId)}`,
       })),
-      kind: patchKind(entry.changes),
-      changes,
+      kind: patchKind(entry.changes), changes,
       note: entry.note,
       hasText: changes.some(change => typeof change.before === 'string' && change.before.length > 12
         || typeof change.after === 'string' && change.after.length > 12),

@@ -45,7 +45,16 @@ export const MODE_NAVIGATION_ATTRIBUTE = 'data-nav-mode';
 const MODES: readonly NavigationModeId[] = NAVIGATION_MODES.map(mode => mode.id);
 export type RememberedNavigationMode = NavigationModeId;
 
-export const MODE_NAVIGATION_SCRIPT = `try{var m=localStorage.getItem(${JSON.stringify(MODE_NAVIGATION_KEY)});if(${MODES.map(mode => `m===${JSON.stringify(mode)}`).join('||')})document.documentElement.setAttribute(${JSON.stringify(MODE_NAVIGATION_ATTRIBUTE)},m)}catch(e){}`;
+const MODE_ATTRIBUTE_JSON = JSON.stringify(MODE_NAVIGATION_ATTRIBUTE);
+
+/**
+ * Inline head script. First the remembered mode goes to `<html>`. Then the pages of Standard
+ * that the server cannot tell apart (the prerendered HTML has no query) get the mode of their
+ * address: `?format=wild` is Wild, any other is Standard, and patch notes keep Wild only if
+ * Wild was the choice. Pages whose path names the format or the mode are marked by the server;
+ * the same rules are in `routing/navigationPlace.ts`, and a test runs this script against them.
+ */
+export const MODE_NAVIGATION_SCRIPT = `(function(){var m;try{m=localStorage.getItem(${JSON.stringify(MODE_NAVIGATION_KEY)});if(${MODES.map(mode => `m===${JSON.stringify(mode)}`).join('||')})document.documentElement.setAttribute(${MODE_ATTRIBUTE_JSON},m)}catch(e){}try{var p=location.pathname;if(/^\\/standard\\//.test(p)&&!/^\\/standard\\/(?:(?:cards|archetypes|meta)\\/(?:wild|standard)|vicious-gold)(?:\\/|$)/.test(p))document.documentElement.setAttribute(${MODE_ATTRIBUTE_JSON},(/^\\/standard\\/patches(?:\\/|$)/.test(p)?m==='wild':/[?&]format=wild(?:&|$)/.test(location.search))?'wild':'standard')}catch(e){}})();`;
 
 const modeListeners = new Set<() => void>();
 

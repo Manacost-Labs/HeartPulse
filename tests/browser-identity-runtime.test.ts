@@ -282,6 +282,8 @@ test('consent page for the production Manacost reader names hearthpulse.net and 
     assert.ok(html.includes('<h1>Вход через hearthpulse.net <span class="to">в Манакост <span class="host">(hs-manacost.ru)</span></span></h1>'),
       'the destination belongs to the heading, and the parenthesis wraps together with the host');
     assert.ok(html.includes('<svg'), 'the HearthPulse mark is inline because the page CSP blocks every image');
+    assert.ok(html.includes('role="img" aria-label="HearthPulse"'), 'the flame mark keeps an accessible name');
+    assert.ok(html.indexOf('value="continue"') < html.indexOf('value="deny"'), 'the primary decision comes first');
     assert.ok(html.includes('Пароль, почта и платёжные данные не передаются'));
     assert.ok(!html.includes('<script>'), 'the profile name must be escaped');
     assert.ok(html.includes('&lt;script&gt;alert(1)&lt;/script&gt;'));
