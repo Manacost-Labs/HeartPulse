@@ -724,12 +724,6 @@
       0 8px 18px rgba(15, 23, 42, 0.14) !important;
   }
 
-  .arena-content .tier-rank-badge,
-  .arena-content .tier-rank-badge.font-hs {
-    color: #f8fbff !important;
-    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.62) !important;
-  }
-
   .articles-grid-modern {
     align-items: stretch;
   }
