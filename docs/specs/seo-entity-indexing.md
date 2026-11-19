@@ -349,7 +349,8 @@ SEO cost is 250–400 words fewer on three indexed pages.
 - The `Dataset` of the three pages keeps `isAccessibleForFree:
   false`, names its sources and the subscription and states no figure or update
   frequency (`deploy/hs-arena-scraper.timer` is the scraper's schedule, not the
-  refresh rate of the datasets). The `/classes` description no longer mentions a reading guide.
+  refresh rate of the datasets). The `/classes` description no longer
+  mentions a reading guide.
 - Titles stay static with the year: «Тир-лист Арены Hearthstone (хс), {year}»,
   «Винрейт классов Арены Hearthstone, {year}», «Легендарки Арены Hearthstone,
   {year}». The classes title starts with «Винрейт классов» and its description

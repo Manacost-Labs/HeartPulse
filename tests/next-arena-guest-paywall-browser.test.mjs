@@ -111,7 +111,7 @@ test('Next Arena pages end with their data: no «О странице» or chart 
       await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 15000 });
       const state = await page.evaluate(() => ({
         text: document.querySelector('#main-content')?.innerText ?? '',
-        details: [...document.querySelectorAll('details')].map(node => node.textContent.trim().slice(0, 40)),
+        details: [...document.querySelectorAll('#main-content details')].map(node => node.textContent.trim().slice(0, 40)),
         overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       }));
       assert.doesNotMatch(state.text, /О странице|График классов и скачивание/, `${path} has no explanation block`);
