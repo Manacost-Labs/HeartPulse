@@ -1,47 +1,55 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import PaywallGate from '@/src/components/PaywallGate';
-import PaywallPending from '@/src/components/PaywallPending';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import StandardMatchupsPage from '@/src/features/StandardMatchups';
-import { useStandardMatchups } from '@/src/modules/standardMatchups/public';
+import { StandardMatchupsOpen } from '@/src/features/StandardMatchupsOpen';
+import { useStandardMatchups, type PublicStandardMatchups } from '@/src/modules/standardMatchups/public';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { navigate } from './navigation';
 
-export function StandardMatchupsPageClient() {
+/** The browser fetches the matrix chunk while the subscriber's data loads, so the swap needs no wait. */
+const loadMatrixChunk = () => import('@/src/features/StandardMatchupMatrix');
+
+/**
+ * `initial` is the open slice the server printed (`null`: it had no snapshot, the page says so and the
+ * browser asks again). A subscriber's matrix replaces it only once its data and its chunk are both here.
+ */
+export function StandardMatchupsPageClient({ initial }: { initial: PublicStandardMatchups | null }) {
   const access = usePublicAccess();
-  const { allowed, pending } = paidAccess(access, 'standard');
+  const { allowed } = paidAccess(access, 'standard');
   const matchups = useStandardMatchups(access.user?.id, allowed, { syncUrl: true });
-  const [updatedAtLabel, setUpdatedAtLabel] = useState('Нет данных');
+  const [chunkReady, setChunkReady] = useState(false);
   useEffect(() => {
-    const updatedAt = matchups.state.data?.updatedAt;
+    if (!allowed) return;
+    let cancelled = false;
+    void loadMatrixChunk().then(() => { if (!cancelled) setChunkReady(true); }, () => undefined);
+    return () => { cancelled = true; };
+  }, [allowed]);
+  const paidData = matchups.state.data ?? matchups.shown;
+  // Once the subscriber's matrix is up it stays: a format switch empties `data` for a moment, and falling back
+  // to the open layer would unmount the matrix and lose its selection.
+  const [paidShown, setPaidShown] = useState(false);
+  const paidReady = allowed && chunkReady && (paidData !== null || paidShown);
+  useEffect(() => { if (paidReady) setPaidShown(true); }, [paidReady]);
+  const [updatedAtLabel, setUpdatedAtLabel] = useState('Нет данных');
+  const updatedAt = paidReady ? paidData?.updatedAt : initial?.updatedAt;
+  useEffect(() => {
     setUpdatedAtLabel(updatedAt
       ? new Date(updatedAt).toLocaleString('ru-RU', {
         day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
       })
       : 'Нет данных');
-  }, [matchups.state.data?.updatedAt]);
+  }, [updatedAt]);
 
   return <PublicPageShell activeTab="standard-matchups" pathname="/standard/matchups/" parchmentPreload="tablet-up"
     access={access} navigate={navigate} updatedAtLabel={updatedAtLabel} wide>
-    {allowed
+    {paidReady
       ? <StandardMatchupsPage external={{ format: matchups.format, changeFormat: matchups.changeFormat,
         slice: matchups.slice, changeSlice: matchups.changeSlice,
-        data: matchups.state.data ?? matchups.shown, loading: matchups.loading, error: matchups.error,
+        data: paidData, loading: matchups.loading, error: matchups.error,
         retry: matchups.retry }} />
-      : <section className="standard-matchups space-y-5 sm:space-y-6">
-        <header className="traditional-mode-banner">
-          <div className="traditional-mode-banner__copy">
-            <h1>Матчапы</h1>
-          </div>
-        </header>
-        {pending
-          ? <PaywallPending>Проверяем доступ к матчапам…</PaywallPending>
-          : <PaywallGate active
-            title="Подтвердите подписку Манакоста для доступа к матчапам"
-            variant="standard" headingLevel="h2" authUser={access.user} subscriptionStatus={access.subscription}
-            subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />}
-      </section>}
+      : <StandardMatchupsOpen initial={initial} paywall={{ authUser: access.user, subscriptionStatus: access.subscription,
+        subscriptionLoading: access.checking, onRefreshSubscription: access.refresh }} />}
   </PublicPageShell>;
 }

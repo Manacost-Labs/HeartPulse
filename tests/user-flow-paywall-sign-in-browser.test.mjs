@@ -8,7 +8,7 @@ import {
 
 const EMAIL = 'diamond@example.test';
 const PASSWORD = 'qa-password-123';
-const PAYWALL = 'Подтвердите подписку Манакоста для доступа к матчапам';
+const PAYWALL = 'Ранги, периоды и история матчапов — в подписке';
 
 test('a guest meets the Standard paywall, signs in with a password and a mailed code, and the matchups open', { timeout: 180_000 }, async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true });
@@ -27,13 +27,13 @@ test('a guest meets the Standard paywall, signs in with a password and a mailed 
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(`${runtime.origin}/standard/matchups/`, { waitUntil: 'domcontentloaded' });
+    // Гость видит открытую матрицу общего среза; платные фильтры предлагают подписку на месте.
     await findByRole(page, 'heading', 'Матчапы');
+    await clickByRole(page, 'button', 'Ранг');
     const paywall = await findByRole(page, 'region', PAYWALL);
-    assert.match(await paywall.evaluate(node => node.innerText), /Доступ откроется через Boosty уровня «Алмаз» или выше/);
-    await findByRole(page, 'link', 'Оформить на Boosty Уровень «Алмаз» и выше');
+    assert.match(await paywall.evaluate(node => node.innerText), /тариф «алмаз»/i);
 
-    await clickByRole(page, 'link', 'Войти в профиль');
-    await page.waitForFunction(() => location.pathname === '/' && location.search === '?login');
+    await page.goto(`${runtime.origin}/?login`, { waitUntil: 'domcontentloaded' });
     await findByRole(page, 'heading', 'Вход в HearthPulse');
     await waitForFocus(page, 'textbox', 'Почта');
     await typeByRole(page, 'textbox', 'Почта', EMAIL);

@@ -65,6 +65,7 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
   let browser;
   try {
     assert.equal((await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).status, 200);
+    stack.publicReads.length = 0; // the route's own probe of the source is not a page read
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
 

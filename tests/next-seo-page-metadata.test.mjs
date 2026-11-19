@@ -479,12 +479,20 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
   const next = await startNextServer({ legacyOrigin: `http://127.0.0.1:${express.address().port}` });
   const page = async path => {
     // /standard/meta/ is prerendered: mark it stale so the next request regenerates it from the fixture.
-    if (path === '/standard/meta/') {
+    let origin = next.origin;
+    let fresh = null;
+    if (path === '/standard/meta/' && state.meta === null) {
+      // The revalidate route leaves a page whose source is down as it is (the earlier copy is better than none), so the
+      // build's copy without data comes from a process that has not regenerated anything.
+      fresh = await startNextServer({ legacyOrigin: `http://127.0.0.1:${express.address().port}` });
+      origin = fresh.origin;
+    } else if (path === '/standard/meta/') {
       assert.equal((await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).status, 200);
     }
-    const response = await fetch(`${next.origin}${path}`);
+    const response = await fetch(`${origin}${path}`);
     assert.equal(response.status, 200, path);
     const html = await response.text();
+    if (fresh) await fresh.close();
     const title = decoded(html.match(/<title>([^<]*)<\/title>/)?.[1] ?? '');
     const description = decoded(html.match(/<meta name="description" content="([^"]*)"/)?.[1] ?? '');
     assertOnce(html, /<meta property="og:title" content="([^"]*)"/g, title, `${path} og:title`);
@@ -620,12 +628,20 @@ async function withFakeExpress(scenario) {
   await once(express, 'listening');
   const next = await startNextServer({ legacyOrigin: `http://127.0.0.1:${express.address().port}` });
   const page = async path => {
-    if (path === '/standard/meta/') {
+    let origin = next.origin;
+    let fresh = null;
+    if (path === '/standard/meta/' && state.meta === null) {
+      // The revalidate route leaves a page whose source is down as it is (the earlier copy is better than none), so the
+      // build's copy without data comes from a process that has not regenerated anything.
+      fresh = await startNextServer({ legacyOrigin: `http://127.0.0.1:${express.address().port}` });
+      origin = fresh.origin;
+    } else if (path === '/standard/meta/') {
       assert.equal((await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).status, 200);
     }
-    const response = await fetch(`${next.origin}${path}`);
+    const response = await fetch(`${origin}${path}`);
     assert.equal(response.status, 200, path);
     const html = await response.text();
+    if (fresh) await fresh.close();
     return { html, graph: jsonLdGraph(html)?.['@graph'] };
   };
   try {
@@ -725,7 +741,7 @@ test('statistics pages without a public date carry no date, and the tier-list co
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   try {
     const graphOf = async path => jsonLdGraph(await (await fetch(`${runtime.nextOrigin}${path}`)).text())['@graph'];
-    for (const path of ['/standard/matchups/', '/standard/vicious-gold/', '/classes/', '/tierlist/']) {
+    for (const path of ['/standard/vicious-gold/', '/classes/', '/tierlist/']) {
       const graph = await graphOf(path);
       assert.deepEqual(graph[0], ORGANIZATION, `${path} defines the organization`);
       const dataset = nodeOfType(graph, 'Dataset');

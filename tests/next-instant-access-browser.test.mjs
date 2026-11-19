@@ -291,7 +291,8 @@ test('a revoked subscription replaces the remembered paid page with the gate', a
     const page = await context.newPage();
     await page.setViewport(viewport);
     await setCookies(page, gateway.origin, { plan: 'lapsed' });
-    await page.goto(`${gateway.origin}/standard/matchups/`, { waitUntil: 'domcontentloaded' });
+    // /standard/matchups/ is open now (the general slice) and offers the subscription on a press; a closed page gates at once.
+    await page.goto(`${gateway.origin}/standard/vicious-gold/`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: READY_MS });
     assert.match(await page.$eval('.arena-paywall', node => node.textContent), /Подписка не найдена/);
     // The next page remembers the lapsed plan: the gate, not the paid page, from the start.

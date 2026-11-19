@@ -18,3 +18,8 @@ export {
   type StandardMatchupArchetype, type StandardMatchupClassAverage, type StandardMatchupGroup,
   type StandardMatchupOpponent, type StandardMatchupOverview,
 } from './model/overview';
+export {
+  loadPublicStandardMatchups, parsePublicStandardMatchups, PUBLIC_STANDARD_MATCHUPS_HTML_LIMIT,
+  PUBLIC_STANDARD_MATCHUPS_PATH, type PublicStandardMatchups, type PublicStandardMatchupsArchetype,
+  type PublicStandardMatchupsPair,
+} from './model/publicProjection';

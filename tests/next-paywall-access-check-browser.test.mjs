@@ -91,8 +91,7 @@ test('gated pages keep the gate height while the access check runs', async () =>
       headless: true, args: ['--no-sandbox'] });
     const viewports = [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true, hasTouch: true }];
     for (const viewport of viewports) {
-      for (const path of ['/guides-archive/',
-        '/standard/matchups/', '/standard/vicious-gold/']) {
+      for (const path of ['/guides-archive/', '/standard/vicious-gold/']) {
         const page = await browser.newPage();
         await page.setViewport(viewport);
         await page.evaluateOnNewDocument(() => {
