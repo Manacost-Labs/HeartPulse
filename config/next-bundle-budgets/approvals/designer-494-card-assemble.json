@@ -1,0 +1,8 @@
+{
+  "reason": "Секция «Сборка» (#494): тело секции и CSS полностью ленивые и в начальные ресурсы не попадают. Остаётся только клиентская ссылка CardAssembleLazy, которую реэкспортирует public.ts модуля карт: +371 B JS gzip на маршрутах каталога карт и +636 B на /cosmetics/, где её тянет CosmeticsRelatedCardGallery через тот же public.ts. Допуск округлён вверх.",
+  "routes": {
+    "/standard/cards/": { "jsGzipBytes": 400 },
+    "/standard/cards/standard/": { "jsGzipBytes": 400 },
+    "/cosmetics/": { "jsGzipBytes": 680 }
+  }
+}
