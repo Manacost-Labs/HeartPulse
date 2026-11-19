@@ -40,8 +40,10 @@ export type DeckArtImageDependencies = {
   fetch?: DeckArtFetch;
   withSlot?: <T>(task: () => Promise<T>) => Promise<T>;
   now?: () => number;
-  /** A card whose source failed is not fetched again for this long. */
+  /** A card the source does not have (404, no deck tile) is not fetched again for this long. */
   failureTtlMs?: number;
+  /** A timeout, network error, 429 or 5xx blocks the card only briefly: the source is likely to recover. */
+  transientFailureTtlMs?: number;
   timeoutMs?: number;
 };
 
@@ -98,6 +100,9 @@ function isKolodaUpload(value: unknown, catalogBaseUrl: string): value is string
   }
 }
 
+/** The source answered and has no such art: retrying soon will not help. */
+class DeckArtMissingError extends Error {}
+
 function record(value: unknown): Record<string, unknown> {
   return value && typeof value === 'object' ? value as Record<string, unknown> : {};
 }
@@ -107,6 +112,7 @@ export function createDeckArtImages(dependencies: DeckArtImageDependencies) {
   const withSlot = dependencies.withSlot ?? (<T>(task: () => Promise<T>) => task());
   const now = dependencies.now ?? Date.now;
   const failureTtlMs = dependencies.failureTtlMs ?? 10 * 60_000;
+  const transientFailureTtlMs = dependencies.transientFailureTtlMs ?? 60_000;
   const timeoutMs = dependencies.timeoutMs ?? 15_000;
   const artBaseUrl = (dependencies.artBaseUrl ?? 'https://art.hearthstonejson.com/v1/256x').replace(/\/$/, '');
   const catalogBaseUrl = dependencies.catalogBaseUrl.replace(/\/$/, '');
@@ -133,13 +139,19 @@ export function createDeckArtImages(dependencies: DeckArtImageDependencies) {
       headers: { 'User-Agent': USER_AGENT, Accept: 'application/json' },
       signal: AbortSignal.timeout(timeoutMs),
     });
-    if (!response.ok) throw new Error(`Kolodahs card HTTP ${response.status}`);
+    if (!response.ok) {
+      const message = `Kolodahs card HTTP ${response.status}`;
+      throw response.status === 404 ? new DeckArtMissingError(message) : new Error(message);
+    }
     const payload = record(await response.json());
     const card = record(payload.data ?? payload);
     const tile = record(card.images).tile ?? card.tile_image_url;
-    if (!isKolodaUpload(tile, catalogBaseUrl)) throw new Error('Kolodahs card has no deck tile');
+    if (!isKolodaUpload(tile, catalogBaseUrl)) throw new DeckArtMissingError('Kolodahs card has no deck tile');
     const image = await download(tile);
-    if (!image.body) throw new Error(`Kolodahs tile HTTP ${image.status}`);
+    if (!image.body) {
+      const message = `Kolodahs tile HTTP ${image.status}`;
+      throw image.status === 404 ? new DeckArtMissingError(message) : new Error(message);
+    }
     return image.body;
   };
 
@@ -151,7 +163,7 @@ export function createDeckArtImages(dependencies: DeckArtImageDependencies) {
       if (image.body) return image.body;
       if (image.status !== 404) throw new Error(`Card art HTTP ${image.status}`);
     }
-    throw new Error('Card art not found');
+    throw new DeckArtMissingError('Card art not found');
   };
 
   const render = async (cardId: string, variant: DeckArtVariant, outPath: string) => {
@@ -189,7 +201,7 @@ export function createDeckArtImages(dependencies: DeckArtImageDependencies) {
       } catch (error) {
         // Unknown ids must not grow the memory without bound: the oldest failure goes first.
         if (failedUntil.size >= MAX_REMEMBERED_FAILURES) failedUntil.delete(failedUntil.keys().next().value as string);
-        failedUntil.set(key, now() + failureTtlMs);
+        failedUntil.set(key, now() + (error instanceof DeckArtMissingError ? failureTtlMs : transientFailureTtlMs));
         throw error;
       }
     }).finally(() => jobs.delete(key));

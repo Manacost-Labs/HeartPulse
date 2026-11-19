@@ -98,3 +98,55 @@ exists for it; `clear` is idempotent.
   (`hide`/`pin`/`null`), plus `hidden`, the hidden decks from their snapshots
   with the note, the actor and the time. The card shows the kind and the
   decision, the buttons "Скрыть", "Закрепить", "Вернуть", and a block "Скрытые".
+
+## Card art, preview and the full list
+
+The «Плитки» tile and the «Строки» portrait are the site's own images
+`/api/card-image/<id>/row.webp` and `portrait.webp` (`server/deckArtImages.ts`).
+The fallback (mana gem or cost, name, count or star, rarity edge) is always
+drawn, in the same 5:1 box, and the picture lies over it once loaded. A failed
+image is requested once more after 4 s with a new `<img>` (the route answers a
+failed generation with 502 / `no-store`); a second failure keeps the fallback.
+
+The source failure window depends on the cause: a missing card or tile (404)
+blocks the card for 10 minutes (`failureTtlMs`), a timeout, network error, 429
+or 5xx for 60 seconds (`transientFailureTtlMs`).
+
+`server/funDeckArtPrewarmer.ts` (wired by `server/app/createFunDeckArtWarming.ts`
+and the preview coordinator) generates `row` and `portrait` for every card of
+every published deck, sideboards and their key cards included, found with
+`resolveDeckPayload`. It runs after every `GET /api/fun-decks` and, with
+background jobs on, one minute after start and every 30 minutes. One image at
+a time, with a pause after each; cached files cost nothing. A complete deck is
+not queued again for the warm TTL; a deck with a failed card is retried after
+10 minutes. Environment (all optional):
+`FUN_DECK_PREWARM_ART_DELAY_MS` (250), `FUN_DECK_PREWARM_ART_TTL_MS` (6 h),
+`FUN_DECK_PREWARM_ART_INTERVAL_MS` (30 min), `FUN_DECK_PREWARM_ART_START_MS`
+(60 s). The existing Deckview preview prewarm keeps
+`FUN_DECK_PREWARM_CONCURRENCY` (2) and `FUN_DECK_PREWARM_DELAY_MS` (2 s).
+
+With a mouse (`(hover: hover) and (pointer: fine)`) a tile or portrait shows the
+full card through `CardPreviewTooltip`, on hover and on keyboard focus; leaving,
+blur, Escape, scroll and resize close it. One tooltip serves the whole list and
+its code is loaded on the first hover. On touch a tap opens the card page
+(`/standard/cards/{format}/{id}/`); tokens have no page and no link, but the
+hover preview works for them too.
+
+A subscriber sees every deck of the filter; there is no «Показать ещё». The
+guest still gets the three-deck preview and the paywall. Each card requests its
+deck (`/api/deck/resolve`) when it comes within about one screen of the
+viewport; the first card does it at once.
+
+The «Как читаются оценки» block follows the detector in the dataset. The
+numbers come from `methodology` (from the dataset's `filters`:
+`min_fun_score`, `ladder_member_sim`, and `max_meta_similarity` for concept-v7);
+a field the dataset does not publish is `null` and its figure is left out of the
+text, nothing is substituted. concept-v8 text: a deck is left out when it shares
+cards with a ladder archetype's lists, is named like one, or has a generic
+name (Aggro, Dude, Mech); «Бру» has a concept in the name, a spicy card package
+or a unique list; «Офф-мета» is a forgotten, unpopular archetype.
+
+The card preview is the card render alone (no plate), 360 px wide at most,
+placed beside the tile; the page-scoped `bare` variant of
+`AnchoredImagePreview`. The tile count zone (×N) is a solid gradient, so a
+long name ends before the number in the fallback and over the picture.

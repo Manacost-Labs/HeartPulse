@@ -25,10 +25,11 @@ type CardImageDependencyInput = {
  */
 export function createCardImageDependencies(
   input: CardImageDependencyInput,
-): CardImageRouterDependencies {
+): CardImageRouterDependencies & { deckArt: ReturnType<typeof createDeckArtImages> } {
   const cacheRoot = resolve(input.cacheDir);
   const deckArt = createDeckArtImages({ cacheDir: input.cacheDir, ...input.deckArt });
   return {
+    deckArt,
     ensureImage: (cardId, variant) => {
       if (variant === 'tile') return input.ensureCardTile(cardId);
       if (variant === 'row' || variant === 'portrait') return deckArt.ensure(cardId, variant);

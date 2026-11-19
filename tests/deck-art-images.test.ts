@@ -96,6 +96,28 @@ try {
   clock += 60_001;
   await assert.rejects(images.ensure('EVIL_1', 'row'), /no deck tile/);
   assert.equal(calls.length, afterFailure + 1);
+
+  // A missing card stays blocked for the long window; a source hiccup only for a short one.
+  const timing = createDeckArtImages({
+    cacheDir,
+    catalogBaseUrl: catalog,
+    artBaseUrl: 'https://art.test/256x',
+    fetch: async url => {
+      if (url.endsWith('/constructed-cards/GONE_1')) return { ok: false, status: 404, json: async () => ({}), arrayBuffer: async () => new ArrayBuffer(0) };
+      if (url.endsWith('/constructed-cards/FLAKY_1')) return { ok: false, status: 503, json: async () => ({}), arrayBuffer: async () => new ArrayBuffer(0) };
+      throw new Error('The operation was aborted due to timeout');
+    },
+    now: () => clock,
+    failureTtlMs: 600_000,
+    transientFailureTtlMs: 60_000,
+  });
+  for (const id of ['GONE_1', 'FLAKY_1', 'SLOW_1']) await assert.rejects(timing.ensure(id, 'row'));
+  clock += 61_000;
+  await assert.rejects(timing.ensure('GONE_1', 'row'), /recently unavailable/);
+  await assert.rejects(timing.ensure('FLAKY_1', 'row'), /HTTP 503/);
+  await assert.rejects(timing.ensure('SLOW_1', 'row'), /timeout/);
+  clock += 540_000;
+  await assert.rejects(timing.ensure('GONE_1', 'row'), /HTTP 404/);
 } finally {
   rmSync(cacheDir, { recursive: true, force: true });
 }

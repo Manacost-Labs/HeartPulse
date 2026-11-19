@@ -85,7 +85,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  min-height: 58px;
+  min-height: 79px;
   padding: 6px 7px;
   border: 5px solid transparent;
   border-image: url("/wallpaper/deck-border.png") 20 / 5px stretch;
@@ -122,7 +122,8 @@
   line-height: 1.25;
 }
 
-.fun-deck-tiles__head p { color: #ebcda0; }
+.fun-deck-tiles__head p { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 5px; min-width: 0; color: #ebcda0; }
+.fun-deck-tiles__head p strong { flex: none; margin-left: 0; }
 
 .fun-deck-tiles__head p strong,
 .fun-deck-rowcard__identity p strong {
@@ -200,8 +201,10 @@
 .fun-deck-tiles__list { padding: 3px 3px 4px; }
 
 .fun-deck-tile {
+  --tile-rarity: rgba(145, 113, 63, 0.55);
   position: relative;
   display: block;
+  aspect-ratio: 5 / 1;
   margin: 1px 0;
   overflow: hidden;
   border-radius: 3px;
@@ -212,12 +215,19 @@
   transition: filter var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease);
 }
 
+/* The picture lies over the always-drawn fallback, so the tile keeps its 5:1 box
+   while the image loads, fails or is retried. */
 .fun-deck-tile img {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
-  height: auto;
-  aspect-ratio: 5 / 1;
+  height: 100%;
+  opacity: 0;
+  transition: opacity var(--motion-fast) var(--motion-ease);
 }
+
+.fun-deck-tile.is-loaded img { opacity: 1; }
 
 a.fun-deck-tile:hover { filter: brightness(1.15) saturate(1.1); box-shadow: inset 0 0 0 1px #f1c66d; }
 a.fun-deck-tile:focus-visible { outline: 2px solid #f1c66d; outline-offset: -2px; }
@@ -228,12 +238,13 @@ a.fun-deck-tile:focus-visible { outline: 2px solid #f1c66d; outline-offset: -2px
   right: 0;
   bottom: 0;
   display: flex;
-  width: 17%;
+  width: 23%;
   align-items: center;
   justify-content: flex-end;
-  padding-right: 5px;
+  padding-right: 6px;
   color: #fff6dc;
-  background: linear-gradient(90deg, rgba(28, 19, 12, 0) 0%, rgba(28, 19, 12, 0.82) 48%, #1c130c 100%);
+  /* The name never runs into the count: the gradient is solid before the number. */
+  background: linear-gradient(90deg, rgba(28, 19, 12, 0) 0%, rgba(28, 19, 12, 0.9) 34%, #1c130c 58%);
   font-family: var(--font-display, Georgia, serif);
   font-size: 0.8rem;
   font-weight: 800;
@@ -260,18 +271,53 @@ a.fun-deck-tile:focus-visible { outline: 2px solid #f1c66d; outline-offset: -2px
   text-shadow: 0 0 2px #000, 0 1px 2px #000;
 }
 
+.fun-deck-tile.is-rare { --tile-rarity: #4f8fd8; }
+.fun-deck-tile.is-epic { --tile-rarity: #a35bd6; }
+.fun-deck-tile.is-legendary { --tile-rarity: #f0a63a; }
+
+/* Mana gem, name and count in the tile's own voice: the card's picture is not here yet. */
 .fun-deck-tile__fallback {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  min-height: 34px;
-  padding: 4px 8px;
-  font-size: 0.75rem;
-  line-height: 1.2;
+  gap: 6%;
+  padding-left: 1.5%;
+  background: linear-gradient(90deg, #3a2618 0%, #261a10 60%, #1c130c 100%);
+  box-shadow: inset 3px 0 0 var(--tile-rarity);
+  line-height: 1;
 }
 
-.fun-deck-tile__fallback b { color: #9bd9ff; }
-.fun-deck-tile__fallback span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.fun-deck-tile.is-loaded .fun-deck-tile__fallback { visibility: hidden; }
+
+.fun-deck-tile__fallback b {
+  display: grid;
+  flex: none;
+  height: 78%;
+  aspect-ratio: 1;
+  place-items: center;
+  margin-left: 2%;
+  color: #fff;
+  background: url("/assets/mana-64.webp") center / contain no-repeat;
+  font: 900 0.85rem/1 var(--font-display, Georgia, serif);
+  text-shadow: 0 0 2px #000, 0 1px 2px #000;
+}
+
+.fun-deck-tile__fallback span {
+  min-width: 0;
+  overflow: hidden;
+  padding-right: 21%;
+  color: #fff3d6;
+  font: 800 0.72rem/1.2 var(--font-display, Georgia, serif);
+  text-shadow: 0 1px 2px #000, 0 0 3px #000;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.fun-deck-tile__count.is-star { color: #ffc94d; font-size: 0.85rem; }
+
+/* The list column is the size reference of the 12-tile placeholder (tile height = width / 5). */
+.fun-deck-tiles__deck { container-type: inline-size; }
 
 .fun-deck-tiles__side {
   margin: 2px 0 4px;
@@ -493,13 +539,32 @@ a.fun-deck-tile:focus-visible { outline: 2px solid #f1c66d; outline-offset: -2px
 .fun-deck-portrait.is-epic .fun-deck-portrait__ring { box-shadow: 0 0 0 2px #a35bd6, 0 0 0 3px #3b1a4c, 0 2px 4px rgba(40, 20, 8, 0.45); }
 .fun-deck-portrait.is-legendary .fun-deck-portrait__ring { box-shadow: 0 0 0 2px #f0a63a, 0 0 0 3px #5c3407, 0 0 7px rgba(240, 166, 58, 0.55); }
 
+.fun-deck-portrait__ring { position: relative; }
+
+.fun-deck-portrait__ring b {
+  font: 900 1rem/1 var(--font-display, Georgia, serif);
+  text-shadow: 0 0 2px #000, 0 1px 2px #000;
+}
+
+.fun-deck-portrait.is-small .fun-deck-portrait__ring b { font-size: 0.8rem; }
+.fun-deck-portrait.is-loaded .fun-deck-portrait__ring b { visibility: hidden; }
+
+/* Cost on a mana-blue disc until the art arrives; the rarity ring is already there. */
+.fun-deck-portrait__ring { background: radial-gradient(circle at 50% 35%, #2f5f9e, #172c4d); }
+
 .fun-deck-portrait__ring img {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
+  opacity: 0;
   transform: scale(1.12);
+  transition: opacity var(--motion-fast) var(--motion-ease);
 }
+
+.fun-deck-portrait.is-loaded .fun-deck-portrait__ring img { opacity: 1; }
 
 a.fun-deck-portrait:hover { z-index: 1; transform: translateY(-2px) scale(1.12); }
 a.fun-deck-portrait:focus-visible { outline: 2px solid var(--fun-red); outline-offset: 3px; }
@@ -586,12 +651,12 @@ a.fun-deck-portrait:focus-visible { outline: 2px solid var(--fun-red); outline-o
   cursor: pointer;
 }
 
-.fun-deck-layout-state__blocks { display: grid; width: 100%; gap: 3px; }
-.fun-deck-layout-state--tiles .fun-deck-layout-state__block { height: 34px; border-radius: 3px; }
+.fun-deck-layout-state__blocks { display: grid; width: 100%; gap: 2px; }
+.fun-deck-layout-state--tiles .fun-deck-layout-state__block { aspect-ratio: 5 / 1; border-radius: 3px; }
 .fun-deck-layout-state--rows .fun-deck-layout-state__block { height: 42px; border-radius: 21px; }
 
 /* A list keeps one height while it loads and when it fails, and the page skeleton reserves the same. */
-.fun-deck-layout-state--tiles { box-sizing: border-box; min-height: 150px; align-content: center; color: #ebcda0; font-size: 0.75rem; }
+.fun-deck-layout-state--tiles { box-sizing: border-box; min-height: calc(12 * (20cqw + 2px)); align-content: start; padding-inline: 3px; color: #ebcda0; font-size: 0.75rem; }
 
 .fun-deck-layout-state--rows {
   display: flex;
@@ -621,6 +686,7 @@ a.fun-deck-portrait:focus-visible { outline: 2px solid var(--fun-red); outline-o
 }
 
 @media (max-width: 640px) {
+  .fun-deck-tiles__stats dt { letter-spacing: 0.02em; }
   .fun-decks-tiles-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
   .fun-deck-rowcard__top { grid-template-columns: minmax(0, 1fr); }
   .fun-deck-rowcard__stats { grid-row: auto; }
@@ -637,10 +703,11 @@ a.fun-deck-portrait:focus-visible { outline: 2px solid var(--fun-red); outline-o
 
 @media (prefers-reduced-motion: reduce) {
   .fun-deck-tile,
-  .fun-deck-portrait { transition: none; }
+  .fun-deck-tile img,
+  .fun-deck-portrait,
+  .fun-deck-portrait__ring img { transition: none; }
   a.fun-deck-portrait:hover { transform: none; }
 }
 
-/* The loaded selection may add «Показать ещё» below the decks: while it loads,
-   the skeleton keeps the footer below the screen so nothing visible moves. */
+/* While the list loads, the skeleton keeps the paywall and the footer below the screen so nothing visible moves. */
 .loading-surface__blocks:is(.fun-decks-tiles-grid, .fun-decks-rows) { min-height: 100vh; }

@@ -1,4 +1,4 @@
-import { funDeckHasFewGames, funDeckInterval, funDeckWhy, type FunDeckRow, type FunDeckTagId } from './funDecksPreview';
+import { funDeckHasFewGames, funDeckInterval, funDeckWhy, type FunDecksPayload, type FunDeckRow, type FunDeckTagId } from './funDecksPreview';
 
 function percent(value: number | null, digits = 1): string {
   if (value === null || !Number.isFinite(value)) return '—';
@@ -66,5 +66,35 @@ export function FunDeckMetrics({ deck, tourAnchor }: { deck: FunDeckRow; tourAnc
         <dd>{score(deck.funScore)}</dd>
       </div>
     </dl>
+  );
+}
+
+/**
+ * Which decks are left out and what the two kinds mean. The numbers are the
+ * dataset's own (`methodology`); a detector version that does not publish one
+ * gets the sentence without it.
+ */
+export function FunDecksMethodGate({ methodology }: { methodology: FunDecksPayload['methodology'] | undefined }) {
+  const legacy = methodology?.maxMetaSimilarity != null;
+  const shared = methodology?.ladderMemberSim != null ? `${score(methodology.ladderMemberSim)} карт` : 'много карт';
+  const floor = methodology?.minFunScore != null ? `, индекс фана от ${score(methodology.minFunScore)}` : '';
+  return (
+    <div className="fun-decks-method__gate">
+      {legacy ? (
+        <p>
+          Индекс от {score(methodology?.minFunScore ?? null)}, сходство с метой не выше {score(methodology?.maxMetaSimilarity ?? null)}.
+        </p>
+      ) : (
+        <p>
+          В подборку не попадают колоды, у которых {shared} общие со списком ладдерного архетипа,
+          которые названы как ладдерный архетип или общим словом вроде Aggro, Dude, Mech.
+        </p>
+      )}
+      <p>
+        <b>Бру</b> — концепт в названии, острый пакет карт или уникальный список{legacy ? '' : floor}.
+        {' '}<b>Офф-мета</b> — забытый, непопулярный архетип.
+        {' '}Рядом с винрейтом — 95%-й интервал, шире при малом числе игр.
+      </p>
+    </div>
   );
 }

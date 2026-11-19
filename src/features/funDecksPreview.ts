@@ -44,8 +44,9 @@ export type FunDecksPayload = {
   };
   methodology: {
     detectorVersion: string | null;
-    minFunScore: number;
-    maxMetaSimilarity: number;
+    minFunScore: number | null;
+    maxMetaSimilarity: number | null;
+    ladderMemberSim?: number | null;
   };
   decks: FunDeckRow[];
 };

@@ -11,20 +11,43 @@ import fixture from './funDeckLayouts.fixture.json';
  */
 const resolved = fixture.resolved as Record<string, Record<string, unknown>>;
 
+/** A subscriber's list: the three fixture decks repeated under other codes, so there are more than the old first page of six. */
+function manyDecks() {
+  const decks = Array.from({ length: 9 }, (_, index) => {
+    const deck = fixture.funDecks.decks[index % fixture.funDecks.decks.length];
+    return { ...deck, title: `${deck.title}${index >= 3 ? ` ${Math.floor(index / 3) + 1}` : ''}`, deckCode: `${deck.deckCode}~${index}` };
+  });
+  return { ...fixture.funDecks, stats: { total: decks.length, standard: 3, wild: 6 }, decks };
+}
+
+/** An off-meta deck, a pinned one and one with the longest labels, to see the chips line up in every view. */
+function kindDecks() {
+  const [first, second, third] = fixture.funDecks.decks;
+  const decks = [
+    { ...first, kind: 'off_meta', pinned: true, why: ['Офф-мета', 'Концепт', 'Далеко от меты'], tags: ['offmeta', 'concept'] },
+    { ...second, kind: 'off_meta', why: ['Офф-мета', 'Забытый архетип'], tags: ['offmeta'] },
+    { ...third, pinned: true, title: 'Очень длинное название колоды про необычную идею', why: ['Пакет: Йогг-Сарон', 'Хайлендер', 'Далеко от меты'], tags: ['concept'] },
+  ];
+  return { ...fixture.funDecks, decks };
+}
+
 const meta = {
   title: 'Constructed/Fun deck layouts',
   component: FunDecksPage,
   args: { hasFullAccess: true, initialPreview: null },
   parameters: { layout: 'fullscreen', fullPage: true },
   decorators: [Story => <div style={{ maxWidth: 1200, marginInline: 'auto', paddingInline: 'clamp(.8rem, 2vw, 1.5rem)' }}><Story /></div>],
-  beforeEach: () => {
+  beforeEach: ({ args }) => {
     const original = window.fetch;
+    const many = Boolean((args as { manyDecks?: boolean }).manyDecks);
+    const kinds = Boolean((args as { kinds?: boolean }).kinds);
     try { window.localStorage.removeItem('hp:fun-decks:layout'); } catch { /* storage may be blocked */ }
     window.fetch = (input, init) => {
       const url = new URL(String(input), window.location.origin);
-      if (url.pathname === '/api/fun-decks') return Promise.resolve(Response.json(fixture.funDecks));
+      if (url.pathname === '/api/fun-decks') return Promise.resolve(Response.json(many ? manyDecks() : kinds ? kindDecks() : fixture.funDecks));
       if (url.pathname === '/api/deck/resolve') {
-        const deck = resolved[url.searchParams.get('code') ?? ''];
+        const code = (url.searchParams.get('code') ?? '').replace(/~\d+$/, '');
+        const deck = resolved[code];
         return Promise.resolve(deck ? Response.json({ ok: true, ...deck }) : Response.json({ error: 'Нет колоды' }, { status: 404 }));
       }
       return original(input, init);
@@ -56,5 +79,23 @@ export const Images: Story = {
   play: async ({ canvas }) => {
     await userEvent.click(await canvas.findByRole('button', { name: 'Картинки' }));
     await expect(canvas.getByRole('button', { name: 'Картинки' })).toHaveAttribute('aria-pressed', 'true');
+  },
+};
+
+/** A subscriber sees every deck of the filter at once, with no «Показать ещё». */
+export const AllDecks: Story = {
+  args: { manyDecks: true } as never,
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByText('9 колод')).toBeInTheDocument();
+    await expect(canvas.queryByRole('button', { name: /Показать ещё/ })).toBeNull();
+    await expect(canvas.getAllByRole('article')).toHaveLength(9);
+  },
+};
+
+/** Off-meta and pinned decks keep the same chips and head height as the others. */
+export const OffMetaAndPinned: Story = {
+  args: { kinds: true } as never,
+  play: async ({ canvas }) => {
+    await expect((await canvas.findAllByText('Офф-мета', { selector: 'li' })).length).toBeGreaterThan(0);
   },
 };

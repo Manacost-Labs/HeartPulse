@@ -43,8 +43,12 @@ export type PublicFunDecksPayload = {
   };
   methodology: {
     detectorVersion: string | null;
-    minFunScore: number;
-    maxMetaSimilarity: number;
+    /** From the dataset's `filters`; null when the detector version does not publish it. */
+    minFunScore: number | null;
+    /** Only the concept-v7 detector; null for v8. */
+    maxMetaSimilarity: number | null;
+    /** The share of common cards with a ladder list that rules a deck out (concept-v8). */
+    ladderMemberSim: number | null;
   };
   decks: FunDeckRow[];
 };
@@ -108,8 +112,9 @@ export function normalizePublicFunDecksPayload(raw: unknown): PublicFunDecksPayl
     stats: countByFormat(normalized.decks),
     methodology: {
       detectorVersion: normalized.detectorVersion,
-      minFunScore: numberOrNull(normalized.filters.min_fun_score) ?? 0.55,
-      maxMetaSimilarity: numberOrNull(normalized.filters.max_meta_similarity) ?? 0.42,
+      minFunScore: numberOrNull(normalized.filters.min_fun_score),
+      maxMetaSimilarity: numberOrNull(normalized.filters.max_meta_similarity),
+      ladderMemberSim: numberOrNull(normalized.filters.ladder_member_sim),
     },
     decks: normalized.decks,
   };
@@ -127,6 +132,15 @@ function moderatePublicPayload(payload: PublicFunDecksPayload, dependencies: Pub
   if (!records.length) return;
   payload.decks = applyFunDeckModeration(payload.decks, records);
   payload.stats = countByFormat(payload.decks);
+}
+
+/** The decks the public page shows, moderated, for background jobs such as the art prewarm. */
+export async function loadPublishedFunDecks(
+  dependencies: Pick<PublicFunDecksDependencies, 'loadFunDecks' | 'getDatabase' | 'onError'>,
+): Promise<FunDeckRow[]> {
+  const payload = normalizePublicFunDecksPayload(await dependencies.loadFunDecks());
+  moderatePublicPayload(payload, dependencies as PublicFunDecksDependencies);
+  return payload.decks;
 }
 
 export function createPublicFunDecksRouter(dependencies: PublicFunDecksDependencies): Router {
