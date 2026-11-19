@@ -215,7 +215,7 @@ const fixtureFetch = (async (input: RequestInfo | URL) => {
       deckSizeLimit: 30,
       archetype: null,
     };
-  } else if (url.pathname === '/api/standard-meta/teaser') {
+  } else if (url.pathname === '/api/standard-meta/teaser' || url.pathname === '/api/standard-meta/public') {
     payload = metaPayload(url.searchParams.get('format') === 'wild' ? 'wild' : 'standard');
   } else if (url.pathname.endsWith('/standard/void-soul-dh')) {
     payload = detail;

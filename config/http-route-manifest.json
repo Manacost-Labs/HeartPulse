@@ -3,7 +3,7 @@
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
     "sourceFiles": 111,
-    "routeRegistrations": 298,
+    "routeRegistrations": 299,
     "middlewareRegistrations": 153,
     "explicitGuardRouteRegistrations": 73,
     "unresolvedPaths": 0
@@ -5696,25 +5696,21 @@
       "sourceOrder": 0
     },
     {
-      "kind": "middleware",
-      "paths": [
-        "/standard-meta"
-      ],
+      "kind": "route",
+      "method": "GET",
+      "path": "/standard-meta/public",
+      "pathKind": "string",
       "receiver": "router",
-      "handlers": [
-        "dependencies.accessGuard",
-        "protectAdminStats"
-      ],
-      "guardSignals": [
-        "dependencies.accessGuard"
-      ],
+      "middleware": [],
+      "handler": "createPublicStandardMetaHandler(dependencies)",
+      "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
       "sourceOrder": 1
     },
     {
       "kind": "middleware",
       "paths": [
-        "/vicious-syndicate-gold"
+        "/standard-meta"
       ],
       "receiver": "router",
       "handlers": [
@@ -5730,6 +5726,22 @@
     {
       "kind": "middleware",
       "paths": [
+        "/vicious-syndicate-gold"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "dependencies.accessGuard",
+        "protectAdminStats"
+      ],
+      "guardSignals": [
+        "dependencies.accessGuard"
+      ],
+      "source": "server/standardMetaRoutes.ts",
+      "sourceOrder": 3
+    },
+    {
+      "kind": "middleware",
+      "paths": [
         "/admin/standard-meta"
       ],
       "receiver": "router",
@@ -5741,7 +5753,7 @@
         "dependencies.adminGuard"
       ],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 3
+      "sourceOrder": 4
     },
     {
       "kind": "middleware",
@@ -5757,7 +5769,7 @@
         "dependencies.adminGuard"
       ],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 4
+      "sourceOrder": 5
     },
     {
       "kind": "route",
@@ -5769,7 +5781,7 @@
       "handler": "metaHandler",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 5
+      "sourceOrder": 6
     },
     {
       "kind": "route",
@@ -5781,7 +5793,7 @@
       "handler": "metaHandler",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 6
+      "sourceOrder": 7
     },
     {
       "kind": "route",
@@ -5793,7 +5805,7 @@
       "handler": "createTrendsHandler(dependencies)",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 7
+      "sourceOrder": 8
     },
     {
       "kind": "route",
@@ -5805,7 +5817,7 @@
       "handler": "viciousBuildsHandler",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 8
+      "sourceOrder": 9
     },
     {
       "kind": "route",
@@ -5817,7 +5829,7 @@
       "handler": "viciousBuildsHandler",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 9
+      "sourceOrder": 10
     },
     {
       "kind": "route",
@@ -5829,7 +5841,7 @@
       "handler": "viciousHandler",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 10
+      "sourceOrder": 11
     },
     {
       "kind": "route",
@@ -5841,7 +5853,7 @@
       "handler": "viciousHandler",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 11
+      "sourceOrder": 12
     },
     {
       "kind": "route",
@@ -5853,7 +5865,7 @@
       "handler": "recommendationHandler",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 12
+      "sourceOrder": 13
     },
     {
       "kind": "route",
@@ -5865,7 +5877,7 @@
       "handler": "recommendationHandler",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 13
+      "sourceOrder": 14
     },
     {
       "kind": "route",
@@ -5877,7 +5889,7 @@
       "handler": "previewCreateHandler",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 14
+      "sourceOrder": 15
     },
     {
       "kind": "route",
@@ -5889,7 +5901,7 @@
       "handler": "previewCreateHandler",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 15
+      "sourceOrder": 16
     },
     {
       "kind": "route",
@@ -5901,7 +5913,7 @@
       "handler": "previewReadHandler",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 16
+      "sourceOrder": 17
     },
     {
       "kind": "route",
@@ -5913,7 +5925,7 @@
       "handler": "previewReadHandler",
       "guardSignals": [],
       "source": "server/standardMetaRoutes.ts",
-      "sourceOrder": 17
+      "sourceOrder": 18
     },
     {
       "kind": "route",

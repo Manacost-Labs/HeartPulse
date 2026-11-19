@@ -17,7 +17,7 @@ import { startNextServer } from '../scripts/lib/next-server.mjs';
 const metaItem = index => ({
   id: `meta-${index}`, slug: `meta-${index}`, archetype: `Archetype ${index}`, archetypeLabel: `Архетип ${index}`,
   translated: true, classKey: 'mage', winrate: 50 + index, popularity: 3 + index, games: 1000 * index,
-  turns: 8, durationMinutes: 7, climbingSpeed: 1,
+  turns: null, durationMinutes: null, climbingSpeed: null,
 });
 // Express answers the teaser with the games of the whole slice, which has more rows than the three it shows.
 const metaTotalGames = 52_500;
@@ -71,7 +71,7 @@ function startLegacy(state) {
       return;
     }
     const payload = path === '/api/auth/me' ? { user: null }
-      : path === '/api/standard-meta/teaser' ? metaTeaser(url.searchParams.get('period') ?? 'past_day')
+      : path === '/api/standard-meta/public' ? metaTeaser('patch_36.6.3')
         : path === '/api/constructed-archetypes/teaser' ? catalog
           : path === '/api/fun-decks' ? funDecks
             : null;
@@ -109,7 +109,7 @@ test('public previews render on the server and hydrate without a guest data requ
     await regenerate();
     const metaHtml = await (await fetch(`${origin}/standard/meta/`, { headers: { Cookie: 'session=guest-fixture' } })).text();
     assert.equal(metaHtml.match(/class="standard-meta-card"/g)?.length, 3, 'the three teaser archetypes are in the HTML');
-    assert.match(metaHtml, /В предпросмотре<\/dt><dd>3<\/dd>/, 'the summary counts the teaser, not a placeholder zero');
+    assert.match(metaHtml, /Архетипов<\/dt><dd>3<\/dd>/, 'the summary counts the open rows, not a placeholder zero');
     // 1 000 + 2 000 + 3 000 are the shown rows; the sample is the slice's.
     assert.match(metaHtml, /Игр в выборке<\/dt><dd>52\s500<\/dd>/, 'the guest sample is the whole slice, not the three shown rows');
     assert.doesNotMatch(metaHtml, /data-arrive/, 'server-rendered data does not fade in');
@@ -119,10 +119,9 @@ test('public previews render on the server and hydrate without a guest data requ
     const stylesheets = [...metaHtml.matchAll(/href="(\/_next\/static\/css\/[^"]+\.css)"/g)].map(match => match[1]);
     const css = (await Promise.all([...new Set(stylesheets)].map(href => fetch(`${origin}${href}`).then(response => response.text())))).join('');
     assert.match(css, /\.standard-meta-chart__header\{/, 'the chart stylesheet loads with the document');
-    assert.deepEqual(state.reads.filter(read => read.path.startsWith('/api/standard-meta')).map(read => read.path).slice(0, 2), [
-      '/api/standard-meta/teaser?format=standard&rank=diamond_legend&coin=any_player&min_games=100',
-      '/api/standard-meta/teaser?format=standard&rank=diamond_legend&coin=any_player&min_games=100&period=patch_36.6.3',
-    ], 'Express answers its own default period first; the page opens on the current one');
+    assert.deepEqual(state.reads.filter(read => read.path.startsWith('/api/standard-meta')).map(read => read.path).slice(0, 1), [
+      '/api/standard-meta/public?format=standard',
+    ], 'one read of the open general slice, filters fixed by Express');
     assert.deepEqual([...new Set(state.reads.map(read => read.cookie))], [''], 'server reads never forward cookies');
 
     const archetypesHtml = await (await fetch(`${origin}/standard/archetypes/`)).text();
@@ -178,7 +177,7 @@ test('public previews render on the server and hydrate without a guest data requ
     let started = Date.now();
     const slowHtml = await (await fetch(`${origin}/standard/meta/`)).text();
     assert.ok(Date.now() - started < 1500, `a slow Express read is awaited in parallel (${Date.now() - started} ms)`);
-    assert.equal(slowHtml.match(/class="standard-meta-card"/g)?.length, 3, 'two parallel reads fit the budget');
+    assert.equal(slowHtml.match(/class="standard-meta-card"/g)?.length, 3, 'the read fits the budget');
     state.delay = 0;
 
     // A stalled Express during a regeneration: it gives up after the 5 s
@@ -190,14 +189,14 @@ test('public previews render on the server and hydrate without a guest data requ
     const stalledMs = Date.now() - started;
     assert.ok(stalledMs >= 4500 && stalledMs < 9000, `a stalled Express read gives up at the budget (${stalledMs} ms)`);
     assert.match(stalled, /data-loading-surface="panel"/, 'without data the page renders its loader');
-    assert.match(stalled, /В предпросмотре<\/dt><dd><span class="loading-block loading-value"/, 'and no fake zero: a value placeholder');
+    assert.match(stalled, /Архетипов<\/dt><dd><span class="loading-block loading-value"/, 'and no fake zero: a value placeholder');
     const page = await browser.newPage();
     await page.setViewport({ width: 390, height: 844 });
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     const browserReads = [];
     page.on('request', request => {
-      if (new URL(request.url()).pathname === '/api/standard-meta/teaser') browserReads.push(request.url());
+      if (new URL(request.url()).pathname === '/api/standard-meta/public') browserReads.push(request.url());
     });
     await page.goto(`${origin}/standard/meta/`, { waitUntil: 'networkidle0' });
     await page.waitForSelector('#root .standard-meta-card', { visible: true });

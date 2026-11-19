@@ -1189,6 +1189,7 @@ export const publicStandardFixtureAliases = {
   '/api/constructed-cards/CARD_QA_1': '/api/admin/constructed-cards/CARD_QA_1',
   '/api/standard-meta': '/api/admin/standard-meta',
   '/api/standard-meta/teaser': '/api/admin/standard-meta',
+  '/api/standard-meta/public': '/api/admin/standard-meta',
   '/api/standard-meta/trends': '/api/admin/standard-meta/trends',
   '/api/vicious-syndicate-gold': '/api/admin/vicious-syndicate-gold',
   '/api/vicious-syndicate-gold/builds': '/api/admin/vicious-syndicate-gold/builds',

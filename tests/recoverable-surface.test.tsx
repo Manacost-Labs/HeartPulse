@@ -99,7 +99,7 @@ assert.match(deckSource, /data-deck-render-state=\{renderState\}/);
 const metaSource = readFileSync(new URL('../src/features/StandardMeta.tsx', import.meta.url), 'utf8');
 assert.match(metaSource, /scope="standard-meta"/);
 assert.match(metaSource, /'\/api\/standard-meta'/);
-assert.match(metaSource, /'\/api\/standard-meta\/teaser'/);
+assert.match(metaSource, /'\/api\/standard-meta\/public'/);
 
 const archetypesSource = readFileSync(new URL('../src/features/ConstructedArchetypes.tsx', import.meta.url), 'utf8');
 assert.match(archetypesSource, /scope="constructed-archetypes"/);

@@ -14,6 +14,7 @@ import {
   type StandardMetaRank,
 } from './standardMetaQuery.js';
 import { createTeaserHandler, createTrendsHandler } from './standardMetaSliceHandlers.js';
+import { createPublicStandardMetaHandler } from './standardMetaPublicSlice.js';
 
 export type { StandardMetaCoin, StandardMetaFormat, StandardMetaMinGames, StandardMetaPeriod, StandardMetaRank };
 
@@ -98,6 +99,7 @@ export function createStandardMetaRouter(dependencies: StandardMetaRouterDepende
   const router = Router();
 
   router.get('/standard-meta/teaser', createTeaserHandler(dependencies));
+  router.get('/standard-meta/public', createPublicStandardMetaHandler(dependencies));
 
   const protectAdminStats: RequestHandler = (_request, response, next) => {
     dependencies.setPrivateNoStore(response);
