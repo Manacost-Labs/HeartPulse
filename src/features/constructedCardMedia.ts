@@ -37,7 +37,6 @@ export type ConstructedCardVariant = {
 };
 
 type JsonRecord = Record<string, any>;
-
 export { constructedCardImageIdentity };
 
 const CONSTRUCTED_CARD_IMAGE_VERSION = 'constructed-cards-patch-36-2-20260805';
