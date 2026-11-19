@@ -29,14 +29,16 @@ open or closed. Its counter reserves a fixed slot, and its chevron changes
 direction without motion. No leading ornament or open-state separator is used.
 
 The hero table uses an ivory surface, a dark brown header, restrained bronze
-and green metrics, and neutral tier gutters. Local versioned SVG shields
-distinguish S, A, B, C and D with gold, forest, blue, bronze and stone enamel;
-letters keep the rank identifiable without color. Distribution interaction
+and green metrics, and neutral tier gutters. The site's tier mark (`TierBadge`,
+painted images in `public/tier-marks/`) distinguishes S, A, B, C and D with
+gold, copper, amethyst, emerald and sapphire stone; its `alt` («Тир S») keeps
+the rank identifiable without color. Distribution interaction
 does not resize bars. Grouped and sorted rows retain keyboard sorting, hero
 links, placement labels and readable layouts at 320–1440 px.
 
-The five SVGs are authored locally, contain no external resources or scripts,
-and are stored as `public/bg-tier-emblem-{s,a,b,c,d}-v1.svg`.
+The marks are WebP files in three sizes (40, 80 and 160 px) with a
+width-descriptor `srcset`; the earlier `public/bg-tier-emblem-*-v1.svg` shields
+are gone.
 
 ## Implementation and verification
 

@@ -1029,7 +1029,7 @@ function LibraryListPage({ kind, pool, navigatePath, cacheScope }: { kind: Libra
     ? filtered.slice(archiveStart, archiveStart + ARCHIVE_PAGE_SIZE)
     : filtered.slice(0, visibleCount);
   const grouped = useMemo(() => {
-    const groups = new Map<string, { key: string; label: string; tavernTier?: number; items: LibraryCard[] }>();
+    const groups = new Map<string, { key: string; label: string; tavernTier?: number; tier?: string; items: LibraryCard[] }>();
     visible.forEach(card => {
       const group = libraryDisplayGroup(card, kind);
       if (!groups.has(group.key)) groups.set(group.key, { ...group, items: [] });

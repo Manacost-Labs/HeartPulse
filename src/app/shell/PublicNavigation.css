@@ -295,7 +295,7 @@
   height: 100%;
   object-fit: cover;
   object-position: right center;
-  transition: transform calc(var(--motion-slow) + 60ms) var(--motion-ease);
+  transition: transform var(--motion-zoom-slow) var(--motion-ease);
 }
 
 .hp-mode-button:focus-visible {
@@ -392,11 +392,11 @@
   100% { opacity: 0; transform: translateX(560%) skewX(-14deg); }
 }
 
-.hp-mode[open] .hp-mode-panel { animation: hp-mode-panel-in 200ms var(--motion-ease); }
+.hp-mode[open] .hp-mode-panel { animation: hp-mode-panel-in var(--motion-panel) var(--motion-ease); }
 
 .hp-mode[open] .hp-mode-card {
   animation: hp-mode-card-in var(--motion-base) var(--motion-ease) backwards;
-  animation-delay: calc(var(--i) * 40ms);
+  animation-delay: calc(var(--i) * var(--motion-step));
 }
 
 /*
@@ -454,7 +454,7 @@
   z-index: 0;
   display: block;
   overflow: hidden;
-  transition: transform 420ms var(--motion-ease);
+  transition: transform var(--motion-zoom-slow) var(--motion-ease);
 }
 
 .hp-mode-art img {
@@ -545,7 +545,7 @@
   .hp-mode-card:hover { transform: translateY(-4px); }
   .hp-mode-card:hover::after { opacity: 1; }
   .hp-mode-card:hover .hp-mode-art { transform: scale(1.06); }
-  .hp-mode-card:hover .hp-mode-art::after { animation: hp-mode-sheen 760ms var(--motion-ease) 1; }
+  .hp-mode-card:hover .hp-mode-art::after { animation: hp-mode-sheen var(--motion-zoom-slow) var(--motion-ease) 1; }
 }
 
 .hp-mode-card:focus-visible {
@@ -556,7 +556,7 @@
 .hp-mode-card:focus-visible { transform: translateY(-4px); }
 .hp-mode-card:focus-visible::after { opacity: 1; }
 .hp-mode-card:focus-visible .hp-mode-art { transform: scale(1.06); }
-.hp-mode-card:focus-visible .hp-mode-art::after { animation: hp-mode-sheen 760ms var(--motion-ease) 1; }
+.hp-mode-card:focus-visible .hp-mode-art::after { animation: hp-mode-sheen var(--motion-zoom-slow) var(--motion-ease) 1; }
 .hp-mode-card:active { transform: scale(0.985); }
 
 /* ─── Desktop sidebar ──────────────────────────────────────────────────── */
