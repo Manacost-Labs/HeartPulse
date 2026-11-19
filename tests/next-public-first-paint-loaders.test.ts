@@ -292,7 +292,7 @@ assert.equal(publicFunDecksPreview({ error: 'upstream' }), null);
 
 // A 200 that is not the page's contract is a failed read: it neither stores nor replaces the last good copy.
 {
-  const { readPublicJson } = await import('../apps/public-web/lib/firstPaintStore');
+  const { readPublicJson, publicCheckCount, CHECKS_MAX_ENTRIES } = await import('../apps/public-web/lib/firstPaintStore');
   const { funDecksCheck, homeSummaryCheck, homeArticlesCheck } = await import('../apps/public-web/lib/publicPayloadChecks');
   const realFetch = globalThis.fetch;
   const realNow = Date.now;
@@ -325,6 +325,12 @@ assert.equal(publicFunDecksPreview({ error: 'upstream' }), null);
         assert.deepEqual(await readPublicJson(feedPath, false, check), good, `${feedPath}: ${JSON.stringify(broken)} keeps the copy`);
       }
     }
+    // The check table is bounded: addresses with their own query or slug do not grow it for ever.
+    answer = funRaw;
+    for (let index = 0; index < CHECKS_MAX_ENTRIES + 50; index++) {
+      await readPublicJson(`/api/fun-decks?q=probe-${index}`, true, funDecksCheck);
+    }
+    assert.ok(publicCheckCount() <= CHECKS_MAX_ENTRIES, `check table holds ${publicCheckCount()} entries, limit ${CHECKS_MAX_ENTRIES}`);
   } finally {
     globalThis.fetch = realFetch;
     Date.now = realNow;

@@ -38,10 +38,26 @@ const ACCEPT_KEY = Symbol.for('hearthpulse.firstPaintStore.accept');
 /** True when the parsed answer has the shape the page of its path reads; a path has one such check. */
 export type PublicPayloadCheck = (raw: unknown) => boolean;
 
+/** Checks kept: twice the copies, since a check outlives its copy only until the next read of the path. */
+export const CHECKS_MAX_ENTRIES = STORE_MAX_ENTRIES * 2;
+
 function checks() {
   const holder = globalThis as unknown as { [ACCEPT_KEY]?: Map<string, PublicPayloadCheck> };
   return (holder[ACCEPT_KEY] ??= new Map());
 }
+
+/**
+ * Every address read (`?q=`, a streamer slug, filters) names a path, so the table is bounded: the least
+ * recently read path goes first. A reader always names its check before the read, so a dropped one is set again.
+ */
+function rememberCheck(path: string, check: PublicPayloadCheck) {
+  const table = checks();
+  table.delete(path);
+  table.set(path, check);
+  if (table.size > CHECKS_MAX_ENTRIES) table.delete(table.keys().next().value as string);
+}
+
+export const publicCheckCount = () => checks().size;
 
 async function readText(path: string, signal: AbortSignal): Promise<string> {
   const response = await fetchPublicExpress(path, signal);
@@ -78,7 +94,7 @@ function store() {
  * `PublicDataMissingError` (with the status) when Express refuses the request: 404, 400.
  */
 export async function readPublicJson(path: string, patient = false, accept?: PublicPayloadCheck): Promise<unknown> {
-  if (accept) checks().set(path, accept);
+  if (accept) rememberCheck(path, accept);
   return JSON.parse(await store()(path, patient));
 }
 
