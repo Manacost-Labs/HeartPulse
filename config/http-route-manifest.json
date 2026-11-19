@@ -5970,7 +5970,7 @@
     {
       "kind": "route",
       "method": "GET",
-      "path": "/tierlist/public-teaser",
+      "path": "/tierlist/public",
       "pathKind": "string",
       "receiver": "router",
       "middleware": [],

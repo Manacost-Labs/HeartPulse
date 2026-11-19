@@ -99,38 +99,50 @@ The Deathwing Storybook case uses a local fixture at
 [original HearthArena render](https://cdn.heartharena.com/images/renders/ruRU/CATA_190h.webp).
 It stays in the development story bundle and requires no live image API.
 
-## Open slice for guests and robots
+## Open layer for guests and robots
 
 `GET /api/tierlist` stays closed (entitlement `arena`). The page `/tierlist/`
-shows guests and robots, in server HTML, an open slice: the top ten cards and
-the top three of each class with their tier, the update date and a lower
-bound of the sample ("по данным более N игр"). It comes from a separate
-anonymous projection, `GET /api/tierlist/public-teaser`
-(`server/tierlistRoutes.ts`), built on the same data, cache and
-last-known-good fallback as the full endpoint.
+shows guests and robots, in server HTML, the whole card pool of the current
+Arena by class with tier, base winrate and pick rate, the update date, the
+source and a lower bound of the sample ("по данным более N игр"). Owner
+decisions 2026-11-18: the open layer grew from the top ten to the whole pool,
+and the pick rate of cards is open as well. It comes from a separate anonymous
+projection, `GET /api/tierlist/public?source=hsreplay|firestone`
+(`server/tierlistRoutes.ts`, `server/tierlistPublicProjection.ts`), built on the
+same data and last-known-good fallback as the full endpoint.
 
-- The projection reads the default source (HSReplay) only and ignores `source`,
-  `t` and `bust`: a guest cannot fan out origin reads.
-- Per card it carries `cardId`, `name`, `classKey`, `className`, `tier` and
-  `image` (our own `/api/card-image/` address). Cards are ranked by tier, then
-  by the dataset's own score; the score is used for the order and never sent.
-  Cards without a letter tier ("Без тира") and the neutral class (for the
-  per-class lists) are not part of the slice.
-- No source (HSReplay, HearthArena, Firestone) publishes a total game count
-  for the dataset, so `sampleGamesAtLeast` is a lower bound: the largest
-  per-card game count rounded down to two significant digits (987654 becomes
-  980000), or `null` when the source gives none (HearthArena) or it is under
-  1000. It is the only game figure sent, and it is not the exact sample size.
-  Rounding is done in Express; the Next loader drops any other value.
-- It carries no `winrate`, `deckWinrate`, `playedWinrate`, `totalGames` per
-  card or card outside the slice. Without data the route answers 502 and the
-  page renders without the slice (still HTTP 200).
+- Sources: `hsreplay` (default) and `firestone`. Anything else (HearthArena
+  included) is a 400. `t` and `bust` are ignored: a guest cannot fan out origin
+  reads. The projection has its own cache (five minutes) and ETag per source.
+- **Open, per card:** `cardId`, `name`, `classKey`, `className`, `tier`
+  (`S`..`F`, `U` for a card without a tier), `cost`, `rarity`, `type`, `image`
+  (our own `/api/card-image/` address), `winrate` and `pickRate` (percent
+  rounded to 0.1). Top level: `updatedAt`, `source`, `sourceId`,
+  `sampleGamesAtLeast`, `warning` (`stale` or `fallback`).
+- **Paid (never sent):** `playedWinrate`, `inDecks`, `totalGames` (exact),
+  `offerRate`, `discardRate`, `drawnWinrate`, `mulliganWinrate`, `keptRate`,
+  `avgCopies`, `arenaSmithTier`, `arenaSmithTierPosition`, `arenaSmithRank`,
+  `arenaScore`, `score`, a winrate more precise than 0.1, sorting and filtering
+  by these figures, history.
+- `sampleGamesAtLeast` is a lower bound: the largest per-card game count rounded
+  down to two significant digits (987654 becomes 980000), or `null` when the
+  source gives none or it is under 1000. Rounding is done in Express; the Next
+  loader drops any other value.
+- Failure order: fresh projection, origin, stale projection (`warning: stale`),
+  last known good file (`warning: fallback`), then 503 with `Retry-After: 60`.
+  The page then renders without the list (still HTTP 200).
+- The page renders the `hsreplay` projection as one table per class (anchors
+  `#tierlist-<classKey>`); the class filter is a client enhancement over the
+  same server markup (without a script every section is visible and the links
+  are plain anchors). The server HTML of the list stays well under 300 KB: rows
+  carry text only (no images).
 - `/tierlist/` is a five-minute ISR page. The copy made at build time has no
-  slice (the build has no Express); after a deploy it is replaced on the first
-  regeneration, up to five minutes in Next plus up to five in the nginx cache.
-  The page is not in the post-deploy warm-up list.
-- The closed list sits in `.paywalled-tierlist`, the container named by the
-  page's JSON-LD. Subscribers see the full list as before.
+  list (the build has no Express); after a deploy it is replaced on the first
+  regeneration, and the post-deploy warm-up waits for the marker
+  `tierlist-public-pool`.
+- The paid view sits in `.paywalled-tierlist`, the container named by the
+  page's JSON-LD (`isAccessibleForFree: false`, `hasPart`). Subscribers see the
+  full list as before; the guest/subscriber switch of the page is #410.
 
 The rules shared by all open slices are in
 [SEO foundation](seo-foundation.md#открытый-слой-и-платная-разметка).

@@ -108,9 +108,9 @@ This slice must not open private API responses to indexing or shared caches.
   RSC-payload, поэтому клиентской части отдают только белый список, а
   серверный компонент открытого слоя передают в неё как `children`.
 - **Страница повторно фильтрует ответ.** Загрузчик Next
-  (`apps/public-web/lib/publicTierlistTeaserData.ts`) копирует только
-  разрешённые поля и режет списки до 10 и 3 карт, так что лишнее поле в
-  ответе Express не дойдёт до страницы.
+  (`apps/public-web/lib/publicTierlistData.ts`) копирует только
+  разрешённые поля и округляет винрейт и частоту выбора до 0,1, так что
+  лишнее поле в ответе Express не дойдёт до страницы.
 - **Разметка платной части.** Узел страницы (у `/tierlist` это Dataset) с
   `isAccessibleForFree: false` и `hasPart` типа `WebPageElement` с
   `cssSelector` закрытого блока. Селектор должен совпадать с классом
@@ -128,12 +128,27 @@ This slice must not open private API responses to indexing or shared caches.
   Прогрев после деплоя проверяет и динамические страницы с данными
   (`scripts/lib/post-deploy-data-pages.mjs`: перечень и признак данных в HTML).
 
-Что держит правило тестами: `tests/tierlist-public-teaser.test.ts`
-(проекция, маршрут, JSON-LD) и `tests/next-tierlist-teaser.test.mjs`
-(собранная страница: HTML, RSC-payload и JSON-LD). Фикстура
-`tests/helpers/tierlistTeaserFixture.ts` даёт каждому винрейту и каждому
-числу игр уникальное значение; тест падает, если любое из них (или имя карты
-вне среза) найдено в выводе. Первая страница с открытым слоем: `/tierlist/`.
+Что держит правило тестами: `tests/tierlist-public.test.ts`
+(проекция, маршрут, JSON-LD, мутация) и `tests/next-tierlist-public.test.mjs`
+(собранная страница: HTML, RSC-payload и JSON-LD, браузер). Фикстура
+`tests/helpers/tierlistPublicFixture.ts` даёт каждому платному показателю
+уникальное значение (метки `mulliganWinrate: 58.765`, `arenaSmithRank: 4242`,
+`winrate: 55.5555`, который гость видит как 55,6); тест падает, если любое
+значение или имя платного ключа найдено в выводе, а мутация (проекция,
+копирующая строку) проверяет, что сторож краснеет. Первая страница с
+открытым слоем: `/tierlist/`.
+
+#### `/tierlist/`: весь пул карт (E21 OL3, #440)
+
+Решение владельца 2026-11-18 расширило открытый слой `/tierlist/` с топ-10
+до всего пула карт текущей Арены. Открыто: `cardId`, `name`, `classKey`,
+`className`, `tier`, `cost`, `rarity`, `type`, картинка (в API), `winrate` и
+`pickRate` (до 0,1), `updatedAt`, `source`, `sampleGamesAtLeast`. Платно:
+`playedWinrate`, `inDecks`, `totalGames`, `offerRate`, `discardRate`,
+`drawnWinrate`, `mulliganWinrate`, `keptRate`, `avgCopies`, поля ArenaSmith,
+винрейт точнее 0,1, сортировки и фильтры по ним, история. Источники открытого
+слоя: HSReplay и Firestone; HearthArena не открыт. Подробности и порядок
+отказов: [Arena tier list](arena-tierlist.md#open-layer-for-guests-and-robots).
 
 ### `/classes/`: порядок классов
 

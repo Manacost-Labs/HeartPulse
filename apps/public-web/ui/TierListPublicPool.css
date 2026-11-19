@@ -1,0 +1,96 @@
+/* The open Arena tier list: server-rendered for guests and robots, the same HTML for both. */
+.tierlist-public-pool {
+  max-inline-size: 72rem;
+  margin: 1.75rem auto 0;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--arena-paper-line);
+  color: var(--arena-ink);
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.tierlist-public-pool h2,
+.tierlist-public-pool h3 {
+  margin: 1.25rem 0 0.5rem;
+  color: var(--arena-red);
+  font-family: var(--font-hs);
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.tierlist-public-pool h2 {
+  margin-top: 0;
+  font-size: clamp(1.15rem, 1rem + 0.6vw, 1.4rem);
+}
+
+.tierlist-public-pool h3 {
+  font-size: 1.05rem;
+  scroll-margin-block-start: 5rem;
+}
+
+.tierlist-public-pool p {
+  max-inline-size: 68ch;
+  margin: 0 0 0.75rem;
+}
+
+.tierlist-public-pool__classes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  margin: 0 0 0.75rem;
+}
+
+.tierlist-public-pool__classes a {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--arena-paper-line);
+  border-radius: 999px;
+  color: var(--arena-ink);
+  text-decoration: none;
+}
+
+.tierlist-public-pool__classes a[aria-current='true'] {
+  background: var(--arena-red);
+  border-color: var(--arena-red);
+  color: #fff;
+}
+
+.tierlist-public-pool__scroll {
+  overflow-x: auto;
+}
+
+.tierlist-public-pool table {
+  inline-size: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.tierlist-public-pool caption {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+
+.tierlist-public-pool th,
+.tierlist-public-pool td {
+  padding: 0.3rem 0.6rem;
+  border-bottom: 1px solid var(--arena-paper-line);
+  text-align: start;
+}
+
+.tierlist-public-pool tbody th {
+  text-align: start;
+  font-weight: 400;
+}
+
+.tierlist-public-pool td:nth-child(n + 2),
+.tierlist-public-pool thead th:nth-child(n + 2) {
+  text-align: end;
+}
+
+.tierlist-public-pool thead th:first-child {
+  inline-size: 52%;
+}

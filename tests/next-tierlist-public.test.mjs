@@ -1,27 +1,27 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
-import { createServer } from 'node:http';
+import { createServer, request as httpRequest } from 'node:http';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
 import express from 'express';
+import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { createTierlistRouter } from '../server/tierlistRoutes.ts';
-import { buildTierlistFixture, closedValues, CLASS_IDS } from './helpers/tierlistTeaserFixture.ts';
+import { buildFixtureCards, buildTierlistFixture, closedValues, guestPercent, CLASS_IDS, PAID_KEYS } from './helpers/tierlistPublicFixture.ts';
 
-// The built /tierlist/ page against an Express that serves the real open-slice
-// projection: a guest and a robot get the same HTML with the top ten cards and
-// the top three of each class, and no closed value (winrate, score, per-card
-// games, a card outside the slice) is in the HTML, the RSC payload
-// (`self.__next_f`) or the JSON-LD. Without data the page is still a 200.
+// The built /tierlist/ page against an Express that serves the real open
+// projection: a guest and a robot get the same HTML with the whole card pool
+// by class (tier, winrate to 0,1, pick rate), the date and the source, and no
+// paid value (mulligan winrate, ArenaSmith rank, exact games, unrounded winrate)
+// is in the HTML, the RSC payload (`self.__next_f`) or the JSON-LD. Without
+// data the page is still a 200.
 
-const TOP = ['mage-s0', 'mage-s1', 'mage-s2', 'any-s0', 'any-s1', 'warlock-s0', 'death-knight-0', 'demon-hunter-0', 'druid-0', 'hunter-0'];
-const classTop = classId => classId === 'mage' ? ['mage-s0', 'mage-s1', 'mage-s2']
-  : classId === 'warlock' ? ['warlock-s0', 'warlock-0', 'warlock-1'] : [0, 1, 2].map(j => `${classId}-${j}`);
-const VISIBLE = new Set([...TOP, ...CLASS_IDS.flatMap(classTop)].map(id => `FX_${id}`));
-const CLOSED = closedValues(VISIBLE);
+const CARDS = buildFixtureCards();
+const CLOSED = closedValues();
+const CLASSES = [...CLASS_IDS, 'any'];
 const BROWSER_UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
 const ROBOT_UA = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)';
 
@@ -38,8 +38,10 @@ function startLegacy(state) {
     next();
   });
   app.get('/api/auth/me', (_request, response) => response.json({ user: null }));
-  app.use('/api', createTierlistRouter({
-    // Nobody is a subscriber here: only the open slice may be answered.
+  // A new router (and so an empty projection cache) whenever `state.generation` changes: Express restarted without a copy.
+  let router = null; let builtFor = -1;
+  const build = () => createTierlistRouter({
+    // Nobody is a subscriber here: only the open layer may be answered.
     accessGuard: (_request, response) => { response.status(403).json({ error: 'subscription required' }); },
     cache: new Map(),
     resolveSource: () => 'hsreplay',
@@ -50,7 +52,11 @@ function startLegacy(state) {
     present: data => ({ ...data, classPositions: {} }),
     loadFallback: () => null,
     onError: () => undefined,
-  }));
+  });
+  app.use('/api', (request, response, next) => {
+    if (builtFor !== (state.generation ?? 0)) { router = build(); builtFor = state.generation ?? 0; }
+    return router(request, response, next);
+  });
   return app;
 }
 
@@ -60,7 +66,7 @@ const guestHtml = async (origin, headers = {}) => {
   return response.text();
 };
 
-test('the guest HTML of /tierlist/ carries the open slice and nothing closed', async () => {
+test('the guest HTML of /tierlist/ carries the whole open pool and nothing paid', async () => {
   assert.equal(existsSync('apps/public-web/.next/BUILD_ID'), true, 'run build:next before this test');
   // The build copy of the page is made without Express: it has no slice.
   const state = { reads: [], down: true };
@@ -82,7 +88,7 @@ test('the guest HTML of /tierlist/ carries the open slice and nothing closed', a
     }
     return assert.fail(`the page was not regenerated: ${phase}; reads ${JSON.stringify(state.reads.map(read => read.path))}; ${next.output().slice(-300)}`);
   };
-  const hasSlice = html => html.includes('class="tierlist-public-teaser"');
+  const hasSlice = html => html.includes('class="tierlist-public-pool"');
   try {
     const buildCopy = await guestHtml(next.origin);
     assert.equal(hasSlice(buildCopy), false, 'the copy made without Express has no slice but is a 200 page');
@@ -90,17 +96,24 @@ test('the guest HTML of /tierlist/ carries the open slice and nothing closed', a
     state.down = false;
     const html = await regenerated(hasSlice, 'slice appears');
 
-    const start = html.indexOf('class="tierlist-public-teaser"');
-    const slice = html.slice(start, html.indexOf('</section>', start));
-    assert.ok(slice.length > 100, 'the open slice is in the server HTML');
-    const shown = [...slice.matchAll(/Карта ([\w-]+) — тир ([SA-F])/g)].map(match => match[1]);
-    assert.deepEqual(shown.slice(0, 10), TOP, 'the top ten, best first, then the class lists');
-    assert.equal(shown.length, 10 + 33, 'ten cards and three of each of the eleven classes');
-    for (const classId of CLASS_IDS) {
-      assert.match(slice, new RegExp(`<h4>Класс ${classId}</h4><ol>(<li>[^<]*</li>){3}</ol>`), `three cards for ${classId}`);
+    const start = html.indexOf('class="tierlist-public-pool"');
+    const slice = html.slice(start, html.indexOf('</table></div></section></div></section>', start) + 10);
+    assert.ok(slice.length > 1000, 'the open list is in the server HTML');
+    const rows = [...slice.matchAll(/<tr><th>Карта ([\w-]+)<td>([SA-F—])<td>([\d,]+)<td>([\d,]+)(?=<tr>|<\/table>)/g)];
+    assert.equal(rows.length, CARDS.length, 'every card of the pool: a card with a tier, winrate and pick rate per row');
+    for (const classId of CLASSES) {
+      assert.match(slice, new RegExp(`<section id="tierlist-${classId}" data-tierlist-class="${classId}"`), `a section and anchor for ${classId}`);
+      assert.match(slice, new RegExp(`<a href="#tierlist-${classId}">Класс ${classId}</a>`), `the filter links to ${classId} without a script`);
     }
-    assert.match(slice, /Карта mage-s0 — тир S, Класс mage/, 'a top card names its tier and class');
-    assert.match(slice, /Данные на <time dateTime="2026-11-15T17:00:03\.639Z">15 ноября 2026, 20:00 МСК<\/time> · по данным более 980\s000 игр · источник HSReplay\./, 'date, sample and source');
+    const first = rows.find(row => row[1] === 'death-knight-0');
+    assert.deepEqual([first[2], first[3], first[4]], ['A', '55,6', '61,2'], 'the sentinels are shown rounded to 0,1');
+    assert.equal(guestPercent(55.5555), '55,6');
+    assert.equal(rows.find(row => row[1] === 'druid-u')[2], '—', 'a card without a tier is still listed');
+    // The HTML budget is 300 KB. Every row is in the HTML and in the RSC payload and costs ~90 bytes in the two (measured on
+    // a 1100-card fixture: 214 KB in all): the page with this fixture and a pool of 1500 cards must still fit.
+    const projected = Buffer.byteLength(html) + (1500 - CARDS.length) * 100;
+    assert.ok(projected <= 300_000, `a 1500-card pool would make ${projected} bytes of HTML (${Buffer.byteLength(html)} for ${CARDS.length} cards)`);
+    assert.match(slice, /Данные на <time dateTime="2026-11-15T17:00:03\.639Z">15 ноября 2026, 20:00 МСК<\/time> · по данным более 980\s000 игр · источник HSReplay/);
     assert.match(html, /class="paywalled-tierlist"/, 'the closed part has the class the JSON-LD names');
 
     // Nothing closed in the HTML, in the RSC payload and in the JSON-LD: each is checked on its own.
@@ -109,7 +122,8 @@ test('the guest HTML of /tierlist/ carries the open slice and nothing closed', a
     const jsonLd = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(match => match[1]);
     assert.ok(payload.length > 0 && jsonLd.length > 0, 'both are present, so the checks below are not vacuous');
     for (const [name, text] of [['HTML', html], ['RSC payload', payload], ['JSON-LD', jsonLd.join('\n')]]) {
-      assert.deepEqual(CLOSED.filter(value => text.includes(value)), [], `${name} has no closed value`);
+      assert.deepEqual(CLOSED.filter(value => text.includes(value)), [], `${name} has no paid value`);
+      assert.deepEqual(PAID_KEYS.filter(key => text.includes(key)), [], `${name} has no paid key`);
     }
     const graph = JSON.parse(jsonLd.find(text => text.includes('Dataset')))['@graph'];
     const dataset = graph.find(node => node['@type'] === 'Dataset');
@@ -121,7 +135,7 @@ test('the guest HTML of /tierlist/ carries the open slice and nothing closed', a
 
     // The server reads the projection anonymously.
     const reads = state.reads.filter(read => read.path.startsWith('/api/tierlist'));
-    assert.ok(reads.length > 0 && reads.every(read => read.path === '/api/tierlist/public-teaser'), 'only the open projection is read');
+    assert.ok(reads.length > 0 && reads.every(read => read.path === '/api/tierlist/public?source=hsreplay'), 'only the open projection is read');
     assert.deepEqual([...new Set(state.reads.map(read => read.cookie))], [''], 'cookies are never forwarded');
 
     // A robot and a guest get the same document.
@@ -130,8 +144,9 @@ test('the guest HTML of /tierlist/ carries the open slice and nothing closed', a
 
     // No data: a 200 page, with its text and markup but without the slice.
     state.down = true;
+    state.generation = 1;
     const empty = await regenerated(page => !hasSlice(page), 'slice disappears without data');
-    assert.doesNotMatch(empty, /tierlist-public-teaser/, 'no slice without data');
+    assert.doesNotMatch(empty, /tierlist-public-pool/, 'no slice without data');
     assert.match(empty, /class="paywalled-tierlist"/);
     assert.match(empty, /class="seo-page-intro"/, 'the page text stays');
   } finally {
@@ -196,7 +211,7 @@ test('the post-deploy warm-up revalidates again until /tierlist/ carries its sli
   const stand = await warmStand({ expressRecoversAfterFirstRevalidation: true });
   try {
     const before = await guestHtml(stand.next.origin);
-    assert.equal(before.includes('class="tierlist-public-teaser"'), false, 'the build copy has no slice');
+    assert.equal(before.includes('class="tierlist-public-pool"'), false, 'the build copy has no slice');
     const { code, output } = await stand.warm({ WARM_TOTAL_MS: '30000' });
     assert.equal(code, 0, output);
     assert.ok(stand.revalidations.length >= 2, `a page left without data is revalidated again: ${output}`);
@@ -205,8 +220,8 @@ test('the post-deploy warm-up revalidates again until /tierlist/ carries its sli
     assert.match(output, /\[warm\] \/tierlist\/: with data/, output);
     // What a visitor gets right after the warm-up, with no clock shifted and no second request needed.
     const after = await guestHtml(stand.next.origin);
-    assert.match(after, /class="tierlist-public-teaser"/, 'the slice is in the served HTML');
-    assert.match(after, /Карта mage-s0 — тир S/, 'with its cards');
+    assert.match(after, /class="tierlist-public-pool"/, 'the slice is in the served HTML');
+    assert.match(after, /<tr><th>Карта mage-s0<td>S<td>/, 'with its cards');
   } finally {
     await stand.close();
   }
@@ -231,5 +246,80 @@ test('the post-deploy warm-up waits for a cold Express and warns for every page 
     assert.match(output, /::warning::pages without data after the deploy warm-up: \/tierlist\/, \/classes\//, output);
   } finally {
     await absent.close();
+  }
+});
+
+// The open list in a real browser: without a script every card of the pool is on the page and the class links
+// are plain anchors; with one the class filter shows a single class and the page does not shift while it
+// hydrates and while the paywall settles.
+test('/tierlist/ in a browser: the whole pool without JS, the class filter with JS, no layout shift', async () => {
+  const state = { reads: [], down: false };
+  const legacyServer = startLegacy(state).listen(0, '127.0.0.1');
+  await once(legacyServer, 'listening');
+  const legacyPort = legacyServer.address().port;
+  const next = await startNextServer({ legacyOrigin: `http://127.0.0.1:${legacyPort}`,
+    env: { NODE_OPTIONS: `--require=${resolve('tests/helpers/shiftableClock.cjs')}` } });
+  let front; let browser;
+  try {
+    for (let attempt = 0; attempt < 40; attempt += 1) {
+      process.kill(next.pid, 'SIGUSR2');
+      if ((await guestHtml(next.origin)).includes('class="tierlist-public-pool"')) break;
+      await delay(250);
+    }
+    front = createServer((request, response) => {
+      const port = request.url.startsWith('/api/') ? legacyPort : Number(new URL(next.origin).port);
+      const upstream = httpRequest({ host: '127.0.0.1', port, method: request.method, path: request.url, headers: request.headers },
+        answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
+      request.pipe(upstream);
+    });
+    front.listen(0, '127.0.0.1');
+    await once(front, 'listening');
+    const origin = `http://127.0.0.1:${front.address().port}`;
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+      headless: true, args: ['--no-sandbox'] });
+
+    const plain = await browser.newPage();
+    await plain.setJavaScriptEnabled(false);
+    await plain.goto(`${origin}/tierlist/#tierlist-mage`, { waitUntil: 'load' });
+    await delay(300);
+    const noScript = await plain.evaluate(() => ({
+      rows: document.querySelectorAll('.tierlist-public-pool tbody tr').length,
+      hidden: document.querySelectorAll('.tierlist-public-pool [hidden]').length,
+      mageTop: Math.round(document.getElementById('tierlist-mage').getBoundingClientRect().top),
+    }));
+    assert.equal(noScript.rows, CARDS.length, 'without JS every card of the pool is on the page');
+    assert.equal(noScript.hidden, 0, 'nothing is hidden without a script');
+    assert.ok(noScript.mageTop < 400, `the class anchor works without a script (section top ${noScript.mageTop}px)`);
+    await plain.close();
+
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true, hasTouch: true }]) {
+      const page = await browser.newPage();
+      await page.setViewport(viewport);
+      await page.evaluateOnNewDocument(() => {
+        window.__layoutShifts = [];
+        new PerformanceObserver(list => {
+          for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.__layoutShifts.push(entry.value);
+        }).observe({ type: 'layout-shift', buffered: true });
+      });
+      await page.goto(`${origin}/tierlist/`, { waitUntil: 'networkidle2' });
+      const visibleSections = () => page.evaluate(() => [...document.querySelectorAll('[data-tierlist-class]')].filter(node => !node.hidden).length);
+      const visibleRows = () => page.evaluate(() => [...document.querySelectorAll('.tierlist-public-pool tbody tr')].filter(row => !row.closest('[hidden]')).length);
+      assert.equal(await visibleSections(), CLASSES.length, `${viewport.width}px: every class is shown by default`);
+      await page.click('.tierlist-public-pool__classes a[href="#tierlist-mage"]');
+      await page.waitForFunction(() => document.querySelectorAll('[data-tierlist-class]:not([hidden])').length === 1);
+      assert.equal(await visibleRows(), CARDS.filter(card => card.classId === 'mage').length, 'the filter keeps only the chosen class');
+      await page.click('.tierlist-public-pool__classes a[href="#tierlist-pool"]');
+      await page.waitForFunction(count => document.querySelectorAll('[data-tierlist-class]:not([hidden])').length === count, {}, CLASSES.length);
+      assert.equal(await visibleRows(), CARDS.length, 'all classes are back');
+      const shift = await page.evaluate(() => window.__layoutShifts.reduce((sum, value) => sum + value, 0));
+      assert.ok(shift < 0.02, `${viewport.width}px: the page shifted by ${shift.toFixed(4)}`);
+      await page.close();
+    }
+  } finally {
+    if (browser) await browser.close();
+    if (front) { front.closeAllConnections(); await new Promise(done => front.close(done)); }
+    await next.close();
+    legacyServer.closeAllConnections();
+    await new Promise(done => legacyServer.close(done));
   }
 });
