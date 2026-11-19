@@ -386,7 +386,7 @@ try {
   await page.click('.constructed-card-stats__more');
   await page.waitForFunction(() => document.querySelectorAll('.constructed-card-stats tbody tr').length === 18);
   await page.$eval('.archetype-builds__more', button => button.click());
-  await page.waitForFunction(() => document.querySelectorAll('.archetype-deck-card').length === 12);
+  await page.waitForFunction(() => document.querySelectorAll('.archetype-deck-card').length === 14);
   const revealedDeckLoadingStates = await page.$$eval(
     '.archetype-builds .archetype-deck-card:nth-child(n + 7) .deck-render-preview',
     previews => previews.map(preview => {
@@ -492,7 +492,7 @@ try {
   assert.ok(detailMobile.copyHeight >= 42);
   assert.equal(detailMobile.deckTileHeight, 25);
   assert.equal(detailMobile.deckGemWidth, 25);
-  assert.equal(detailMobile.deckColumnCount, 6);
+  assert.equal(detailMobile.deckColumnCount, 8);
   assert.equal(detailMobile.matchupCount, 11);
   const mobileCardStats = await page.evaluate(() => ({
     cardCount: document.querySelectorAll('.constructed-card-stats__list > li').length,

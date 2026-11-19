@@ -357,6 +357,7 @@
         "tests/browser-identity-storage.test.ts",
         "tests/browser-identity-tls.test.mjs",
         "tests/card-image-routes.test.ts",
+        "tests/constructed-card-deck-stats.test.ts",
         "tests/class-matchup-routes.test.ts",
         "tests/client-error-routes.test.ts",
         "tests/constructed-archetype-routes.test.ts",
