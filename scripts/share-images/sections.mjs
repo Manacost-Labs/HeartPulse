@@ -25,12 +25,12 @@ const img = (src, size, extra = '') => `<img src="${src}" alt="" style="width:${
 const ART = {
   overview: `<div class="art-grid">
     ${img('/card-format-standard.webp', 136)}
-    ${img('/bg-tier-emblem-s-v1.svg', 136)}
+    ${img('/tier-marks/s-160.webp', 136)}
     ${img('/class_icon/mage.png', 136)}
     <div class="art-trophy" style="width:136px;height:136px">${TROPHY_SVG}</div>
   </div>`,
   standard: img('/card-format-standard.webp', 290),
-  battlegrounds: img('/bg-tier-emblem-s-v1.svg', 300),
+  battlegrounds: img('/tier-marks/s-160.webp', 220),
   arena: `<div class="art-fan">
     ${img('/class_icon/paladin.png', 170, 'transform:translate(-104px,22px) rotate(-12deg)')}
     ${img('/class_icon/warrior.png', 170, 'transform:translate(104px,22px) rotate(12deg)')}

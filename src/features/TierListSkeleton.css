@@ -12,7 +12,7 @@
 .tierlist-skeleton-select--mana { inline-size: 162px; }
 .tierlist-skeleton-view { inline-size: 90px; block-size: 44px; border-radius: 6px; }
 
-.tierlist-skeleton-badge { flex-shrink: 0; inline-size: 46px; block-size: 52px; }
+.tierlist-skeleton-badge { flex-shrink: 0; inline-size: 52px; block-size: 52px; }
 .tierlist-skeleton-tier-title { inline-size: 8rem; block-size: 1.5rem; }
 
 /* The cell, card button and card ratio of the loaded gallery (HSCard). */

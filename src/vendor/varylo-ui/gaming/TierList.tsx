@@ -144,6 +144,8 @@ export interface TierListProps extends Omit<ComponentPropsWithRef<'section'>, 't
   showNames?: boolean;
   /** Custom tile content, e.g. a portrait with a hover card. Default: portrait, role badge and name. */
   renderItem?: (item: TierItem, mode: TierListMode) => ReactNode;
+  /** HearthPulse: draws the label of a tier row (the site's TierBadge) in place of the text chip. */
+  renderTierLabel?: (tier: TierDef) => ReactNode;
   /** Makes tiles buttons in view mode. */
   onItemClick?: (item: TierItem) => void;
   /** Heading. Default: `labels.title`. */
@@ -225,6 +227,7 @@ export function TierList({
   size = 'md',
   showNames = true,
   renderItem,
+  renderTierLabel,
   onItemClick,
   title,
   caption,
@@ -680,9 +683,11 @@ export function TierList({
               style={tier ? ({ '--_tier': gameToneColor(tier.color ?? 'gray') } as CSSProperties) : undefined}
             >
               <div className="ui-tier-list__label" id={labelId}>
-                <span className={row.tier === null ? 'ui-tier-list__pool' : 'ui-game-tier ui-tier-list__chip'} data-long={label.length > 3 || undefined}>
-                  {label}
-                </span>
+                {tier && renderTierLabel ? renderTierLabel(tier) : (
+                  <span className={row.tier === null ? 'ui-tier-list__pool' : 'ui-game-tier ui-tier-list__chip'} data-long={label.length > 3 || undefined}>
+                    {label}
+                  </span>
+                )}
                 {tier?.description && <span className="ui-tier-list__description">{tier.description}</span>}
                 <span className="ui-sr-only">{`, ${copy.count(row.items.length)}`}</span>
               </div>

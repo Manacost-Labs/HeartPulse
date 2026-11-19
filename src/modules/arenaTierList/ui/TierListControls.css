@@ -112,52 +112,31 @@
 .arena-tier-controls :is(button, select, input):focus-visible { outline: 2px solid #6d1117; outline-offset: 3px; }
 .arena-tier-search:focus-within { outline: 2px solid #6d1117; outline-offset: 2px; }
 .arena-tier-search input:focus-visible { outline: none; }
+/* The tier mark is an <img> of /tier-marks/; its side comes from the width and height attributes, so rows never shift as it loads. */
 .arena-tier-badge {
-  --tier-color: #5a4430;
-  --tier-shape: polygon(8% 0, 92% 0, 100% 8%, 100% 68%, 50% 100%, 0 68%, 0 8%);
-  position: relative;
+  display: block;
+  flex: 0 0 auto;
+  object-fit: contain;
+  user-select: none;
+}
+
+/* A tier with no painted mark (a reader's own name): a neutral plate of the same size, in the page's ink. */
+.arena-tier-badge--text {
   display: inline-grid;
   place-items: center;
-  flex-shrink: 0;
-  width: 46px;
+  width: 52px;
   height: 52px;
-  padding-bottom: 6px;
   box-sizing: border-box;
-  clip-path: var(--tier-shape);
-  color: #fff4d9;
-  background: linear-gradient(135deg, #f5d99a, #ac793c 38%, #f0ce87 58%, #76502b);
-  font: 900 26px/1 var(--font-hs, 'Cinzel', serif);
+  border: 2px solid #8a6b3f;
+  border-radius: 12px;
+  color: #3d2a1e;
+  background: #ecd9ac;
+  font: 800 15px/1 var(--font-body, 'Inter', sans-serif);
+  overflow: hidden;
 }
-.arena-tier-badge::before,
-.arena-tier-badge::after {
-  content: '';
-  position: absolute;
-  clip-path: var(--tier-shape);
-  pointer-events: none;
-}
-.arena-tier-badge::before {
-  inset: 2px;
-  background: #593a21;
-}
-.arena-tier-badge::after {
-  inset: 4px;
-  background: linear-gradient(150deg, #ffffff26, transparent 48%, #00000030), var(--tier-color);
-}
-.arena-tier-badge-letter {
-  position: relative;
-  z-index: 1;
-  text-shadow: 0 1px 2px #21140dc0;
-}
-.arena-tier-badge--small { width: 28px; height: 32px; padding-bottom: 4px; font-size: 16px; }
-.arena-tier-badge--small::before { inset: 1px; }
-.arena-tier-badge--small::after { inset: 3px; }
-.arena-tier-badge[data-tier='S'] { --tier-color: #911f2b; }
-.arena-tier-badge[data-tier='A'] { --tier-color: #87500e; }
-.arena-tier-badge[data-tier='B'] { --tier-color: #6d4193; }
-.arena-tier-badge[data-tier='C'] { --tier-color: #286a52; }
-.arena-tier-badge[data-tier='D'] { --tier-color: #346784; }
-.arena-tier-badge[data-tier='E'] { --tier-color: #73462e; }
-.arena-tier-badge[data-tier='F'] { --tier-color: #55524e; }
+
+.arena-tier-badge--text[data-size='32'] { width: 32px; height: 32px; border-radius: 8px; font-size: 12px; }
+.arena-tier-badge--text[data-size='72'] { width: 72px; height: 72px; border-radius: 16px; font-size: 20px; }
 @media (max-width: 639px) {
   .arena-tier-controls { padding-inline: 8px; border-width: 8px; border-image-width: 8px; }
   .arena-tier-controls-top { gap: 12px; }
