@@ -13,7 +13,8 @@ export function fallbackCardRender(id: string): string {
   return `/api/public-resource/hsjson/v1/render/latest/ruRU/512x/${encodeURIComponent(id)}.png`;
 }
 
-export default function CardPreviewTooltip({ preview }: { preview: CardPreviewTarget }) {
+/** `bare`: the card render alone, without the plate (the fun-decks page). */
+export default function CardPreviewTooltip({ preview, bare = false, keepOnScroll = false }: { preview: CardPreviewTarget; bare?: boolean; keepOnScroll?: boolean }) {
   const fallback = fallbackCardRender(preview.id);
   const preferredSource = publicResourceUrl(preview.imageUrl) || fallback;
   return (
@@ -25,6 +26,8 @@ export default function CardPreviewTooltip({ preview }: { preview: CardPreviewTa
       accessibleName={`Полная карта ${preview.name}`}
       anchorRect={preview.rect}
       previewId={preview.id}
+      bare={bare}
+      keepOnScroll={keepOnScroll}
       className="card-preview-tooltip"
       data-card-preview-id={preview.id}
     />

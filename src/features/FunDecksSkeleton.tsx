@@ -5,7 +5,7 @@ import './FunDecksPage.css';
 import './FunDecksSkeleton.css';
 import './funDecks/FunDeckLayouts.css';
 
-/** The first screen of the selection shows six decks (FunDecksPage `visibleCount`); the skeleton reserves all six. */
+/** The skeleton reserves the first screen's worth of decks; the loaded list shows all of them. */
 export const FUN_DECKS_FIRST_PAGE = 6;
 
 const decks = Array.from({ length: FUN_DECKS_FIRST_PAGE }, (_, index) => index);

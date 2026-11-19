@@ -21,7 +21,7 @@ import {
   type FunDeckTagId,
   type FunDecksPayload,
 } from './funDecksPreview';
-import { FunDeckMetrics, FunDeckWhy, score } from './FunDeckFacts';
+import { FunDeckMetrics, FunDeckWhy, FunDecksMethodGate } from './FunDeckFacts';
 import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
 import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
 import '../shared/ui/LoadingSurface.css';
@@ -29,6 +29,8 @@ import './FunDecksPage.css';
 import { FunDecksSkeleton } from './FunDecksSkeleton';
 import { FunDecksFilters } from './FunDecksFilters';
 import { useFunDecksFilters } from './useFunDecksFilters';
+import { useFunDeckCardPreview } from './funDecks/useFunDeckCardPreview';
+import { useNearScreen } from './funDecks/useNearScreen';
 import { funDeckClassMeta, funDeckFormat, funDeckFormatLabel } from './funDecks/deckMeta';
 import { useCopyDeckCode } from './funDecks/useCopyDeckCode';
 import { FunDeckLayoutSwitch, useFunDeckLayout, type FunDeckLayout } from './funDecks/FunDeckLayoutSwitch';
@@ -38,7 +40,7 @@ import { FunDeckTilesCard } from './funDecks/FunDeckTilesCard';
 const EMPTY_DATA: FunDecksPayload = {
   fetchedAt: null,
   stats: { total: 0, standard: 0, wild: 0 },
-  methodology: { detectorVersion: null, minFunScore: 0.55, maxMetaSimilarity: 0.42 },
+  methodology: { detectorVersion: null, minFunScore: null, maxMetaSimilarity: null, ladderMemberSim: null },
   decks: [],
 };
 
@@ -76,15 +78,17 @@ function FunDeckCard({
   pinnedTags?: readonly FunDeckTagId[];
 }) {
   const format = funDeckFormat(deck);
+  const { ref, near } = useNearScreen<HTMLElement>(eager);
   const { data, error, reload } = useResolvedDeck(deck.deckCode, {
     format,
     archetype: deck.nearestArchetype || undefined,
+    enabled: near,
   });
   const classMeta = funDeckClassMeta(deck, data?.heroDbfId);
   const { state: copyState, label: copyLabel, copy: copyDeckCode } = useCopyDeckCode(deck.deckCode);
 
   return (
-    <article className="fun-deck-card">
+    <article className="fun-deck-card" ref={ref}>
       <header className="fun-deck-card__identity">
         <img src={classMeta.icon} alt="" width="64" height="64" loading="lazy" decoding="async" />
         <div>
@@ -223,7 +227,8 @@ export default function FunDecksPage({
   // A guest whose complete list failed still has the preview it may see.
   const error = loadError && (hasFullAccess || !data.decks.length) ? loadError : '';
   const [arrivesLater] = useState(!initialPreview);
-  const { filters, query, view, visibleCount, filtered, change, search, reset, showMore } = useFunDecksFilters();
+  const { filters, query, view, filtered, change, search, reset } = useFunDecksFilters();
+  const { listeners: previewListeners, tooltip: cardPreview } = useFunDeckCardPreview();
   const [layout, setLayout] = useFunDeckLayout();
   const deckView = DECK_VIEWS[layout];
   const filteredDecks = useMemo(
@@ -234,7 +239,8 @@ export default function FunDecksPage({
   const settling = !complete && !loadError
     && (filters.format !== 'all' || filters.classes.length > 0 || filters.tags.length > 0 || filters.sort !== 'newest');
 
-  const visibleDecks = filteredDecks.slice(0, visibleCount);
+  // A subscriber sees every deck of the filter; the guest's selection is already cut to the free preview.
+  const visibleDecks = filteredDecks;
 
   return (
     <div className="fun-decks-page">
@@ -261,29 +267,25 @@ export default function FunDecksPage({
           <div>
             <dt>Не похожа на мету</dt>
             <dd>
-              <strong>100% − сходство с ближайшей мета-колодой</strong>
+              <strong>100% − сходство с ближайшим ладдерным списком</strong>
               <span>
-                Состав сравнивается по картам и их количеству с колодами того же
-                формата и класса. Чем меньше общих карт, тем выше процент.
+                Список сравнивается по картам с колодами того же формата и класса.
+                Чем меньше общих карт, тем выше процент.
               </span>
             </dd>
           </div>
           <div>
             <dt>Индекс фана</dt>
             <dd>
-              <strong>Дистанция от меты + необычность идеи</strong>
+              <strong>Дальность от лестницы + необычность идеи</strong>
               <span>
-                Основа — 55% от дистанции до меты. Баллы добавляют редкие сочетания
-                карт и нестандартная концепция, а популярные ладдерные архетипы снижают оценку.
+                Растёт, если колода далека от ладдерных списков, а в ней есть концепт
+                в названии, острый пакет карт или уникальный список.
               </span>
             </dd>
           </div>
         </dl>
-        <p className="fun-decks-method__gate">
-          Индекс от {score(data.methodology?.minFunScore ?? 0.55)},
-          {' '}сходство с метой не выше {score(data.methodology?.maxMetaSimilarity ?? 0.42)}.
-          {' '}Рядом с винрейтом — 95%-й интервал, шире при малом числе игр.
-        </p>
+        <FunDecksMethodGate methodology={data.methodology} />
       </section>
 
       <FunDecksFilters
@@ -319,7 +321,7 @@ export default function FunDecksPage({
       ) : visibleDecks.length ? (
         <>
           <section className={`${deckView.className} data-surface${arrivesLater ? ' data-arrive' : ''}`} aria-label="Подборка фан-колод"
-            aria-busy={hasFullAccess && !complete}>
+            aria-busy={hasFullAccess && !complete} {...previewListeners}>
             {visibleDecks.map((deck, index) => (
               <React.Fragment key={`${deck.format}:${deck.deckCode}`}>
                 <deckView.Card
@@ -336,14 +338,7 @@ export default function FunDecksPage({
               </React.Fragment>
             ))}
           </section>
-          {hasFullAccess && visibleCount < filteredDecks.length ? (
-            <div className="fun-decks-page__more">
-              <button type="button" onClick={showMore}>
-                Показать ещё
-                <span>{filteredDecks.length - visibleCount}</span>
-              </button>
-            </div>
-          ) : null}
+          {cardPreview}
         </>
       ) : (
         <section className="fun-decks-page__state">

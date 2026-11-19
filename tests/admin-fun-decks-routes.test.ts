@@ -161,9 +161,13 @@ assert.deepEqual(publicPayload.stats, { total: 2, standard: 1, wild: 1 });
 assert.equal(publicPayload.fetchedAt, '2026-07-25T01:15:16.225405+00:00');
 assert.deepEqual(publicPayload.methodology, {
   detectorVersion: null,
-  minFunScore: 0.55,
-  maxMetaSimilarity: 0.42,
-});
+  minFunScore: null,
+  maxMetaSimilarity: null,
+  ladderMemberSim: null,
+}, 'a dataset without thresholds shows none: no invented 0.55 / 0.42');
+assert.deepEqual(normalizePublicFunDecksPayload({ data: { structured: {
+  detector_version: 'concept-v8', filters: { min_fun_score: 0.35, ladder_member_sim: 0.55 }, rows: [],
+} } }).methodology, { detectorVersion: 'concept-v8', minFunScore: 0.35, maxMetaSimilarity: null, ladderMemberSim: 0.55 });
 
 let upstreamFails = false;
 let labelsFail = false;
@@ -219,7 +223,7 @@ try {
   assert.match(publicResponse.headers.get('cache-control') || '', /public, max-age=300/);
   const publicResponsePayload = await publicResponse.json() as any;
   assert.deepEqual(publicResponsePayload.stats, { total: 2, standard: 1, wild: 1 });
-  assert.equal(publicResponsePayload.methodology.minFunScore, 0.55);
+  assert.equal(publicResponsePayload.methodology.minFunScore, null);
   assert.equal('cadence' in publicResponsePayload, false);
   assert.equal('filters' in publicResponsePayload, false);
   const [standardDeck, wildDeck] = ['Deck', 'No archetype'].map(title => publicResponsePayload.decks.find((deck: any) => deck.title === title));

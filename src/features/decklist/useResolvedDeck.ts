@@ -27,6 +27,8 @@ type UseResolvedDeckState = {
 type UseResolvedDeckOptions = {
   format?: 'standard' | 'wild';
   archetype?: string;
+  /** False holds the request back, for a card that is still far from the screen. Default true. */
+  enabled?: boolean;
 };
 
 /**
@@ -44,8 +46,10 @@ export function useResolvedDeck(
   const code = String(deckCode || '').trim();
   const format = options.format === 'wild' ? 'wild' : 'standard';
   const archetype = String(options.archetype || '').trim();
+  const enabled = options.enabled !== false;
 
   useEffect(() => {
+    if (!enabled) return undefined;
     if (!code) {
       setData(null);
       setError('');
@@ -92,7 +96,7 @@ export function useResolvedDeck(
         if (!controller.signal.aborted) setLoading(false);
       });
     return () => controller.abort();
-  }, [archetype, code, format, reloadToken]);
+  }, [archetype, code, enabled, format, reloadToken]);
 
   return {
     data,

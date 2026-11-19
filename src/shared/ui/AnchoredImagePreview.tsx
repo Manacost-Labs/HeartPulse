@@ -10,10 +10,14 @@ type Props = HTMLAttributes<HTMLElement> & {
   accessibleName: string;
   anchorRect: DOMRect;
   previewId: string;
+  /** The image alone, no plate and no visible name (the name stays the accessible one). */
+  bare?: boolean;
+  /** The caller closes the preview on scroll (or moves it) itself. */
+  keepOnScroll?: boolean;
 };
 
 /** A passive hover image; callers own the trigger, navigation and touch interaction. */
-export function AnchoredImagePreview({ source: preferredSource, fallbackSource, name, accessibleName, anchorRect, previewId, className = '', ...attributes }: Props) {
+export function AnchoredImagePreview({ source: preferredSource, fallbackSource, name, accessibleName, anchorRect, previewId, bare = false, keepOnScroll = false, className = '', ...attributes }: Props) {
   const [visible, setVisible] = useState(false);
   const [source, setSource] = useState(preferredSource);
   const [loadedSource, setLoadedSource] = useState('');
@@ -29,7 +33,7 @@ export function AnchoredImagePreview({ source: preferredSource, fallbackSource, 
       if (event.key === 'Escape') dismiss();
     };
     window.addEventListener('keydown', onKeyDown);
-    window.addEventListener('scroll', dismiss, true);
+    if (!keepOnScroll) window.addEventListener('scroll', dismiss, true);
     window.addEventListener('resize', dismiss);
     return () => {
       window.clearTimeout(timer);
@@ -37,16 +41,16 @@ export function AnchoredImagePreview({ source: preferredSource, fallbackSource, 
       window.removeEventListener('scroll', dismiss, true);
       window.removeEventListener('resize', dismiss);
     };
-  }, []);
+  }, [keepOnScroll]);
 
   if (!visible || typeof document === 'undefined') return null;
-  const layout = anchoredImagePreviewLayout(anchorRect, window.innerWidth, window.innerHeight);
+  const layout = anchoredImagePreviewLayout(anchorRect, window.innerWidth, window.innerHeight, bare);
   const loaded = loadedSource === source;
 
   return createPortal(
     <aside
       {...attributes}
-      className={`anchored-image-preview ${className}`.trim()}
+      className={`anchored-image-preview${bare ? ' anchored-image-preview--bare' : ''} ${className}`.trim()}
       style={layout}
       role="tooltip"
       aria-label={accessibleName}

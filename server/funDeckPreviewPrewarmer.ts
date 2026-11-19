@@ -1,5 +1,6 @@
 import { cachedDeckviewPreview } from './deckviewPreview.js';
 import type { StandardMetaPreview } from './standardMetaRoutes.js';
+import type { FunDeckArtPrewarmer } from './funDeckArtPrewarmer.js';
 
 export type FunDeckPreviewCandidate = {
   deckCode: string;
@@ -12,9 +13,12 @@ export type FunDeckPreviewPrewarmer = {
   whenIdle: () => Promise<void>;
 };
 
+/** A published deck row: enough for the preview, and for the card art when it has a format. */
+export type FunDeckCoordinatorCandidate = FunDeckPreviewCandidate & { format?: string; nearestArchetype?: string | null };
+
 export type FunDeckPreviewCoordinator = {
   getPreview: (deck: FunDeckPreviewCandidate) => { imageUrl: string; previewImageUrl: string } | null;
-  schedule: FunDeckPreviewPrewarmer['schedule'];
+  schedule: (decks: FunDeckCoordinatorCandidate[]) => void;
   snapshot: FunDeckPreviewPrewarmer['snapshot'];
 };
 
@@ -103,6 +107,8 @@ export function createFunDeckPreviewCoordinator(options: {
   revision: string;
   publicBaseUrl: string;
   render: Options['render'];
+  /** Warms the card art of the same decks; it follows every schedule of the previews. */
+  art?: FunDeckArtPrewarmer;
 }): FunDeckPreviewCoordinator {
   const prewarmer = createFunDeckPreviewPrewarmer({
     concurrency: Number(process.env.FUN_DECK_PREWARM_CONCURRENCY || 2),
@@ -120,7 +126,10 @@ export function createFunDeckPreviewCoordinator(options: {
       options.publicBaseUrl,
       deck,
     ),
-    schedule: prewarmer.schedule,
+    schedule: decks => {
+      prewarmer.schedule(decks);
+      options.art?.schedule(decks.flatMap(deck => (deck.format ? [{ ...deck, format: deck.format }] : [])));
+    },
     snapshot: prewarmer.snapshot,
   };
 }

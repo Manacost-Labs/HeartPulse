@@ -72,8 +72,9 @@ export function publicFunDecksPreview(raw: unknown): FunDecksPayload | null {
       stats: { total: count(stats.total), standard: count(stats.standard), wild: count(stats.wild) },
       methodology: {
         detectorVersion: optionalText(methodology.detectorVersion, 40),
-        minFunScore: optionalNumber(methodology.minFunScore) ?? 0.55,
-        maxMetaSimilarity: optionalNumber(methodology.maxMetaSimilarity) ?? 0.42,
+        minFunScore: optionalNumber(methodology.minFunScore) ?? null,
+        maxMetaSimilarity: optionalNumber(methodology.maxMetaSimilarity) ?? null,
+        ladderMemberSim: optionalNumber(methodology.ladderMemberSim) ?? null,
       },
       decks: payload.decks.map(deck),
     });

@@ -229,6 +229,12 @@
   line-height: 1.45;
 }
 
+.fun-decks-method__gate p { margin: 0; }
+.fun-decks-method__gate p + p { margin-top: 0.3rem; }
+.fun-decks-method__gate b { color: #3d0a0f; }
+/* A figure takes the same width known or not («—»), so the lines break alike while the data loads. */
+.fun-decks-method__figure { display: inline-block; min-width: 3.2ch; text-align: center; }
+
 .fun-decks-method__gate {
   grid-column: 2;
   margin: 0;
@@ -308,7 +314,6 @@
 .fun-decks-tools__classes button,
 .fun-decks-tools__tags button,
 .fun-decks-tools__result button,
-.fun-decks-page__more button,
 .fun-decks-page__state button,
 .fun-deck-card__deck-state button {
   min-height: 44px;
@@ -348,8 +353,7 @@
   height: 16px;
 }
 
-.fun-decks-tools__formats button span,
-.fun-decks-page__more button span {
+.fun-decks-tools__formats button span {
   display: grid;
   min-width: 1.6rem;
   min-height: 1.6rem;
@@ -750,24 +754,6 @@
   height: 11px;
 }
 
-.fun-decks-page__more {
-  display: flex;
-  justify-content: center;
-  padding: 1.5rem 0 0.35rem;
-}
-
-.fun-decks-page__more button {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.6rem;
-  min-width: 190px;
-  justify-content: center;
-  padding: 0.7rem 1rem;
-  color: #fff0c8;
-  border-color: var(--fun-red-dark);
-  background: var(--fun-red);
-}
-
 .fun-decks-page__state {
   display: grid;
   min-height: 360px;
@@ -947,9 +933,12 @@
   .fun-decks-tools__classes button,
   .fun-decks-tools__tags button,
   .fun-decks-tools__result button,
-  .fun-decks-page__more button,
-  .fun-decks-page__state button,
+    .fun-decks-page__state button,
   .fun-deck-card__deck-state button {
     transition-duration: 0.01ms;
   }
 }
+
+/* «Стандарт / Вольный» in the banner summary is never cut: it wraps to a second line when the cell is narrow (360, 390). */
+.fun-decks-page .traditional-mode-banner__summary dt { letter-spacing: 0.04em; line-height: 1.25; text-overflow: clip; white-space: normal; }
+.fun-decks-page .traditional-mode-banner__summary > div { padding-inline: 0.9rem; }

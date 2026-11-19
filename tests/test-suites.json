@@ -178,6 +178,7 @@
         "tests/entity-sitemap-catalog.test.ts",
         "tests/entity-sitemap-editorial.test.ts",
         "tests/entity-sitemap-sources.test.ts",
+        "tests/fun-deck-art-prewarmer.test.ts",
         "tests/fun-deck-entries.test.ts",
         "tests/fun-deck-preview-prewarmer.test.ts",
         "tests/game-data-audit-codex.test.ts",

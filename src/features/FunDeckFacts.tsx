@@ -1,4 +1,4 @@
-import { funDeckHasFewGames, funDeckInterval, funDeckWhy, type FunDeckRow, type FunDeckTagId } from './funDecksPreview';
+import { funDeckHasFewGames, funDeckInterval, funDeckWhy, type FunDecksPayload, type FunDeckRow, type FunDeckTagId } from './funDecksPreview';
 
 function percent(value: number | null, digits = 1): string {
   if (value === null || !Number.isFinite(value)) return '—';
@@ -66,5 +66,38 @@ export function FunDeckMetrics({ deck, tourAnchor }: { deck: FunDeckRow; tourAnc
         <dd>{score(deck.funScore)}</dd>
       </div>
     </dl>
+  );
+}
+
+/**
+ * Which decks are left out and what the two kinds mean. The figures are the
+ * dataset's own (`methodology`); the sentences are about the same length with
+ * or without them, so the block keeps its height while the data loads.
+ * concept-v7 keeps its old threshold line, for a rolled-back dataset.
+ */
+export function FunDecksMethodGate({ methodology }: { methodology: FunDecksPayload['methodology'] | undefined }) {
+  if (methodology?.detectorVersion?.includes('v7')) {
+    return (
+      <div className="fun-decks-method__gate">
+        <p>
+          Индекс от {score(methodology.minFunScore)}, сходство с метой не выше {score(methodology.maxMetaSimilarity)}.
+          {' '}Рядом с винрейтом — 95%-й интервал, шире при малом числе игр.
+        </p>
+      </div>
+    );
+  }
+  const figure = (value: number | null | undefined) => <span className="fun-decks-method__figure">{score(value ?? null)}</span>;
+  return (
+    <div className="fun-decks-method__gate">
+      <p>
+        Не берём колоды, которые на {figure(methodology?.ladderMemberSim)} и больше совпадают со списками ладдерного архетипа, называются как
+        ладдерный архетип или носят общее имя вроде Aggro, Dude, Mech.
+      </p>
+      <p>
+        <b>Бру</b> — колода с идеей: концепт в названии, редкий пакет карт или уникальный список, индекс фана от {figure(methodology?.minFunScore)}.
+        {' '}<b>Офф-мета</b> — забытый, редко играемый архетип.
+        {' '}Рядом с винрейтом — 95%-й интервал, шире при малом числе игр.
+      </p>
+    </div>
   );
 }

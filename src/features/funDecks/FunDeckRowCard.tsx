@@ -1,22 +1,23 @@
-import { useState } from 'react';
 import { metaDistance, score } from '../FunDeckFacts';
 import { funDeckCardArt, funDeckManaCurve, type FunDeckCard, type FunDeckEntry } from './deckEntries';
+import { useDeckArt } from './useDeckArt';
 import { CardLink, CopyDeckButton, DeckLoadState, WhyTags, useFunDeck, winRate, winRateTone, type DeckCardProps } from './funDeckCardParts';
 
 /** «Строки»: one deck per line with round card portraits and the mana curve. */
 function DeckPortrait({ card, configuredCost = null, small = false, eager }: {
   card: FunDeckCard; configuredCost?: number | null; small?: boolean; eager: boolean;
 }) {
-  const [failed, setFailed] = useState(false);
+  const art = useDeckArt();
   const cost = configuredCost ?? card.cost;
   const rarity = (card.rarity || 'common').toLowerCase();
   return (
-    <CardLink card={card} cost={cost} className={`fun-deck-portrait is-${rarity}${small ? ' is-small' : ''}`}>
+    <CardLink card={card} cost={cost} className={`fun-deck-portrait is-${rarity}${small ? ' is-small' : ''}${art.status === 'loaded' ? ' is-loaded' : ''}`}>
       <span className="fun-deck-portrait__ring">
-        {failed ? <b>{cost}</b> : (
-          <img src={funDeckCardArt(card.id, 'portrait')} alt="" width={96} height={96}
-            loading={eager ? 'eager' : 'lazy'} decoding="async" onError={() => setFailed(true)} />
-        )}
+        <b aria-hidden="true">{cost}</b>
+        {art.showImage ? (
+          <img key={art.attempt} {...art.imageProps} src={funDeckCardArt(card.id, 'portrait')} alt="" width={96} height={96}
+            loading={eager ? 'eager' : 'lazy'} decoding="async" />
+        ) : null}
       </span>
       {card.elite ? <span className="fun-deck-portrait__badge is-star" aria-hidden="true">★</span>
         : card.count > 1 ? <span className="fun-deck-portrait__badge" aria-hidden="true">×{card.count}</span> : null}
@@ -41,9 +42,9 @@ function ManaCurve({ entries }: { entries: readonly FunDeckEntry[] }) {
 }
 
 export function FunDeckRowCard({ deck, fresh = false, tourAnchor = false, eager = false, pinnedTags = [] }: DeckCardProps) {
-  const { data, error, reload, classMeta, entries, subtitle } = useFunDeck(deck);
+  const { data, error, reload, classMeta, entries, subtitle, ref } = useFunDeck(deck, eager);
   return (
-    <article className="fun-deck-rowcard">
+    <article className="fun-deck-rowcard" ref={ref}>
       <header className="fun-deck-rowcard__top">
         <div className="fun-deck-rowcard__identity">
           <span className="fun-deck-rowcard__hero"><img src={classMeta.icon} alt="" width="40" height="40" loading="lazy" decoding="async" /></span>

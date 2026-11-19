@@ -1,22 +1,29 @@
-import { useState } from 'react';
 import { score } from '../FunDeckFacts';
 import { funDeckCardArt, type FunDeckCard, type FunDeckEntry } from './deckEntries';
+import { useDeckArt } from './useDeckArt';
 import { CardLink, CopyDeckButton, DeckLoadState, WhyTags, useFunDeck, winRate, winRateTone, type DeckCardProps } from './funDeckCardParts';
 
-/** «Плитки»: deck-builder rows in narrow columns, many decks side by side. */
+/**
+ * «Плитки»: deck-builder rows in narrow columns, many decks side by side. The
+ * tile is always drawn (mana gem, name, count) and the picture lies over it
+ * once loaded, so a slow or failed image never leaves an empty box.
+ */
 function DeckTile({ card, configuredCost = null, eager }: { card: FunDeckCard; configuredCost?: number | null; eager: boolean }) {
-  const [failed, setFailed] = useState(false);
+  const art = useDeckArt();
   const cost = configuredCost ?? card.cost;
+  const rarity = (card.rarity || 'common').toLowerCase();
   return (
-    <CardLink card={card} cost={cost} className="fun-deck-tile">
-      {failed ? (
-        <span className="fun-deck-tile__fallback"><b>{cost}</b><span>{card.name}</span></span>
-      ) : (
-        <img src={funDeckCardArt(card.id, 'row')} alt="" width={400} height={80}
-          loading={eager ? 'eager' : 'lazy'} decoding="async" onError={() => setFailed(true)} />
-      )}
-      {configuredCost !== null && !failed ? <span className="fun-deck-tile__mana" aria-hidden="true">{configuredCost}</span> : null}
-      {card.count > 1 ? <span className="fun-deck-tile__count" aria-hidden="true">×{card.count}</span> : null}
+    <CardLink card={card} cost={cost} className={`fun-deck-tile is-${rarity}${art.status === 'loaded' ? ' is-loaded' : ''}`}>
+      <span className="fun-deck-tile__fallback" aria-hidden="true">
+        <b>{cost}</b><span>{card.name}</span>
+      </span>
+      {art.showImage ? (
+        <img key={art.attempt} {...art.imageProps} src={funDeckCardArt(card.id, 'row')} alt="" width={400} height={80}
+          loading={eager ? 'eager' : 'lazy'} decoding="async" />
+      ) : null}
+      {configuredCost !== null && art.status === 'loaded' ? <span className="fun-deck-tile__mana" aria-hidden="true">{configuredCost}</span> : null}
+      {card.count > 1 ? <span className="fun-deck-tile__count" aria-hidden="true">×{card.count}</span>
+        : card.elite && art.status !== 'loaded' ? <span className="fun-deck-tile__count is-star" aria-hidden="true">★</span> : null}
     </CardLink>
   );
 }
@@ -38,14 +45,14 @@ function TileEntry({ entry, eager }: { entry: FunDeckEntry; eager: boolean }) {
 }
 
 export function FunDeckTilesCard({ deck, fresh = false, tourAnchor = false, eager = false, pinnedTags = [] }: DeckCardProps) {
-  const { data, error, reload, classMeta, entries, subtitle } = useFunDeck(deck);
+  const { data, error, reload, classMeta, entries, subtitle, ref } = useFunDeck(deck, eager);
   return (
-    <article className="fun-deck-tiles">
+    <article className="fun-deck-tiles" ref={ref}>
       <header className="fun-deck-tiles__head">
         <img src={classMeta.icon} alt="" width="34" height="34" loading="lazy" decoding="async" />
         <div>
           <h2 title={deck.title}>{deck.title}</h2>
-          <p>{subtitle}{fresh ? <strong>Новая</strong> : null}</p>
+          <p><span>{subtitle}</span>{fresh ? <strong>Новая</strong> : null}</p>
         </div>
       </header>
       <dl className="fun-deck-tiles__stats" data-tour-id={tourAnchor ? 'fun-decks-card-metrics' : undefined}>

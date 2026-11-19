@@ -211,6 +211,7 @@ import {
 } from './adminMechanicTranslationRoutes.js';
 import { createAdminFunDecksRouter, createPublicFunDecksRouter } from './adminFunDecksRoutes.js';
 import { createFunDeckPreviewCoordinator } from './funDeckPreviewPrewarmer.js';
+import { createFunDeckArtWarming } from './app/createFunDeckArtWarming.js';
 import { createAdminArenaSynergyServiceRouter } from './adminArenaSynergyService.js';
 import { createAdminStandardOperationsRouter, type StandardCacheTarget } from './adminStandardOperationsRoutes.js';
 import { createAdminParserControlRouter } from './adminParserControlRoutes.js';
@@ -9490,13 +9491,10 @@ async function loadFunDecksDataset(): Promise<unknown> {
 }
 
 const funDeckPreviewCoordinator = createFunDeckPreviewCoordinator({
-  cache: standardMetaPreviewCache,
-  revision: DECKVIEW_RENDER.revision,
-  publicBaseUrl: DECKVIEW_RENDER.publicBaseUrl,
-  render: deck => createStandardMetaPreview({
-    deckCode: deck.deckCode,
-    archetypeLabel: deck.title,
-  }),
+  cache: standardMetaPreviewCache, revision: DECKVIEW_RENDER.revision, publicBaseUrl: DECKVIEW_RENDER.publicBaseUrl,
+  render: deck => createStandardMetaPreview({ deckCode: deck.deckCode, archetypeLabel: deck.title }),
+  art: createFunDeckArtWarming({ deckArt: cardImageRouterDependencies.deckArt, deckBuilder: deckBuilderDependencies,
+    funDecks: { loadFunDecks: loadFunDecksDataset, getDatabase: db }, periodic: BACKGROUND_JOBS_ENABLED }),
 });
 
 app.use('/api', createPublicFunDecksRouter({
