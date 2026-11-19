@@ -1,5 +1,4 @@
 import { WinrateMeterFill } from './WinrateMeterFill';
-import { BarChart } from '../../../shared/ui/analytics/BarChart';
 import '../../../shared/ui/analytics/Analytics.css';
 import type { ArenaClassesState } from '../model/state';
 import { ArenaClassesSkeleton } from './ArenaClassesSkeleton';
@@ -84,13 +83,6 @@ export function ArenaClassesBoard({ state, onRetry }: {
               );
             })}
       </ol>}
-      {classes.length > 0 && <details className="arena-classes-chart">
-        <summary>График классов и скачивание</summary>
-        <BarChart title="Винрейт классов Арены" subtitle="Доля побед · шкала от 0 до 100%" rows={classes.map(cls => ({
-          label: cls.name, value: cls.winrate, color: cls.color,
-          detail: cls.games == null ? 'Размер выборки не указан' : `${cls.games.toLocaleString('ru-RU')} игр`,
-        }))} />
-      </details>}
       {(state.status === 'error' || state.status === 'empty') && <button type="button" className="arena-classes-retry" onClick={onRetry}>
         Повторить загрузку
       </button>}

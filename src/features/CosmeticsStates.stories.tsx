@@ -17,7 +17,7 @@ const hero: HeroSummary = {
 };
 const catalog = (page: number): CatalogPayload => ({
   items: Array.from({ length: 12 }, (_, index) => ({ ...hero, cardId: `HERO_${page}_${index}` })),
-  pagination: { page, perPage: 12, total: 24, totalPages: 2 }, updatedAt: '2026-10-19T12:00:00Z', source: 'HearthPulse',
+  pagination: { page, perPage: 12, total: 24, totalPages: 2 },
 });
 
 const meta = {

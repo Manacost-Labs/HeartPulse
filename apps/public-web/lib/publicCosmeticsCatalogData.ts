@@ -120,8 +120,6 @@ export function cosmeticsCatalogSeed(kind: CosmeticKind, requestUrl: string, raw
         ...(generatedBy ? { generatedBy } : {}),
         ...(relatedCards ? { related: relatedCards } : {}),
         pagination: { page, perPage: count(pagination.perPage), total: count(pagination.total), totalPages: count(pagination.totalPages) },
-        updatedAt: optionalText(payload.updatedAt, 64),
-        source: text(payload.source),
       },
     };
   } catch (error) {

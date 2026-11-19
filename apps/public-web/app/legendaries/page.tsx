@@ -3,7 +3,6 @@ import '@/src/features/TraditionalModeBanner.css';
 import { LegendariesPageClient } from '@/apps/public-web/ui/LegendariesPageClient';
 import { seoStaticPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
 import { loadPublicLegendaries } from '@/apps/public-web/lib/publicLegendaries';
-import { SeoPageIntro } from '@/apps/public-web/ui/SeoPageIntro';
 import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 
 // Prerendered and cheap to prefetch: the open layer of the groups (the key card,
@@ -19,8 +18,6 @@ export default async function Page() {
   const initial = await loadPublicLegendaries();
   return <>
     <SeoStructuredData path="/legendaries" data={initial} />
-    <LegendariesPageClient initial={initial}>
-      <SeoPageIntro path="/legendaries" />
-    </LegendariesPageClient>
+    <LegendariesPageClient initial={initial} />
   </>;
 }

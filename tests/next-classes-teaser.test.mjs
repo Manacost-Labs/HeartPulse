@@ -134,7 +134,7 @@ test('the guest HTML of /classes/ carries the open order of the classes and noth
     const empty = await regenerated(page => !hasSlice(page), 'slice disappears without data');
     assert.doesNotMatch(empty, /classes-public-teaser/, 'no slice without data');
     assert.match(empty, /class="paywalled-classes"/);
-    assert.match(empty, /class="seo-page-intro"/, 'the page text stays');
+    assert.doesNotMatch(empty, /О странице/, 'no explanation block is printed');
   } finally {
     await next.close();
     legacyServer.closeAllConnections();

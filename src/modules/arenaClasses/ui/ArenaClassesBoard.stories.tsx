@@ -72,21 +72,10 @@ export const Stale: Story = {
   },
 };
 
-export const DownloadableChart: Story = {
-  play: async ({ canvas }) => {
-    await userEvent.click(canvas.getByText('График классов и скачивание'));
-    await expect(canvas.getByRole('img', { name: 'Винрейт классов Арены' })).toBeVisible();
-    await expect(canvas.getByRole('button', { name: 'Скачать Винрейт классов Арены: SVG' })).toBeEnabled();
-    await expect(canvas.getByText('51,2%')).toBeVisible();
-  },
-};
-
 export const ZeroWinrate: Story = {
   args: { state: { status: 'ready', data: { ...data, classes: [{ ...data.classes[0], winrate: 0, games: 0 }] } } },
   play: async ({ canvas, canvasElement }) => {
     await expect(canvas.getByText('0.0%')).toBeVisible();
     await expect(canvasElement.querySelector('.arena-class-meter-fill')?.getBoundingClientRect().width).toBe(0);
-    await userEvent.click(canvas.getByText('График классов и скачивание'));
-    await expect(canvas.getAllByText('0%').length).toBeGreaterThan(0);
   },
 };

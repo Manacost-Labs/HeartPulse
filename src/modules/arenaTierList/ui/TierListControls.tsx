@@ -89,8 +89,32 @@ export function TierListControls(props: ControlsProps) {
   </div>;
 }
 
-export function TierBadge({ tier, small = false }: { tier: string; small?: boolean }) {
-  return <span className={`arena-tier-badge${small ? ' arena-tier-badge--small' : ''}`} data-tier={tier} role="img" aria-label={`Тир ${tier}`}>
-    <span className="arena-tier-badge-letter" aria-hidden="true">{tier}</span>
-  </span>;
+/** Letters that have a painted mark in `public/tier-marks/` (`u` is «Без тира»). */
+const TIER_MARK_LETTERS: ReadonlySet<string> = new Set(['s', 'a', 'b', 'c', 'd', 'e', 'f', 'u']);
+
+/** Side of the square mark in px: the compact one for tables and cards, the default for tier headings, the large one for hero places. */
+export const TIER_BADGE_SIZES = { sm: 32, md: 52, lg: 72 } as const;
+export type TierBadgeSize = keyof typeof TIER_BADGE_SIZES;
+
+/** The mark of a tier letter as a width-descriptor srcset (40, 80 and 160 px files). */
+const tierMarkSrcSet = (letter: string): string => [40, 80, 160].map(width => `/tier-marks/${letter}-${width}.webp ${width}w`).join(', ');
+
+/**
+ * The one tier mark of the site: a painted image from `/tier-marks/` (S gold,
+ * A copper, B amethyst, C emerald, D sapphire, E bronze, F iron, U «Без тира»).
+ * The case of the letter does not matter. Any other value, such as a tier a
+ * reader named in the builder, gets a plain neutral text mark instead of a
+ * broken image. `small` is the short form of `size="sm"`.
+ */
+export function TierBadge({ tier, small = false, size }: { tier: string; small?: boolean; size?: TierBadgeSize }) {
+  const px = TIER_BADGE_SIZES[size ?? (small ? 'sm' : 'md')];
+  const letter = tier.trim().toLowerCase();
+  if (!TIER_MARK_LETTERS.has(letter)) {
+    return <span className="arena-tier-badge arena-tier-badge--text" data-size={px} role="img" aria-label={`Тир ${tier}`}>
+      <span aria-hidden="true">{tier.trim().slice(0, 3)}</span>
+    </span>;
+  }
+  return <img className="arena-tier-badge" data-tier={letter.toUpperCase()} src={`/tier-marks/${letter}-80.webp`} srcSet={tierMarkSrcSet(letter)}
+    sizes={`${px}px`} width={px} height={px} alt={letter === 'u' ? 'Без тира' : `Тир ${letter.toUpperCase()}`}
+    loading="lazy" decoding="async" draggable={false} />;
 }

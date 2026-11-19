@@ -45,7 +45,7 @@ const classes = renderToStaticMarkup(<ArenaClassesSkeleton />);
 assertPlaceholder(classes, 'Загружаем статистику классов');
 assert.equal(classes.match(/class="arena-class-row /g)?.length, 11);
 assert.match(classes, /<div class="arena-classes-board arena-classes-loading [^"]*">/);
-assert.match(classes, /class="arena-classes-chart arena-classes-chart--loading"/, 'the closed chart disclosure keeps its place');
+assert.doesNotMatch(classes, /<details/, 'the loading board has no chart disclosure placeholder');
 
 // Visitors never see build instructions or internal tooling names.
 const routes = readFileSync(new URL('../src/features/DeferredRoutes.tsx', import.meta.url), 'utf8');

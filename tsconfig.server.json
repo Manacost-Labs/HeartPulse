@@ -18,6 +18,7 @@
     "server/scraper.ts",
     "server/blizzardCards.ts",
     "server/cardImageCache.ts",
+    "server/cardImageDbf.ts",
     "server/constructedCardImagePrewarmer.ts",
     "server/hsreplayArenasmith.ts",
     "server/arenaSynergyAnalysis.ts",
@@ -40,6 +41,7 @@
     "server/guides/**/*.ts",
     "server/modules/gameDataAudit/**/*.ts",
     "src/telemetry/sentryPrivacy.ts",
-    "shared/arenaSynergyContract.ts"
+    "shared/arenaSynergyContract.ts",
+    "shared/cardImageRepairs.ts"
   ]
 }
