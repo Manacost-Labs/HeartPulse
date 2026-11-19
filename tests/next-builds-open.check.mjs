@@ -94,11 +94,14 @@ test('the guest HTML of both builds pages carries every open build and nothing c
       const buildCopy = await pageHtml(next.origin, path);
       assert.equal(hasBuilds(buildCopy), false, `${path}: the copy made without Express has no builds but is a 200 page`);
       assert.match(buildCopy, /class="paywalled-builds"/);
+      // A page that has no list to show must not be indexed that way (the strategies page is rendered per request).
+      if (path.includes('strategies')) assert.match(buildCopy, /<meta name="robots" content="noindex, follow"/, 'no data: noindex');
     }
     state.down = false;
     for (const [path, list] of PAGES) {
       const html = await regenerated(path, hasBuilds, 'builds appear');
       const expected = OPEN_BUILDS(list);
+      if (path.includes('strategies')) assert.doesNotMatch(html, /<meta name="robots" content="noindex/, 'with data: indexable');
       assert.equal(articlesOf(html).length, BUILD_COUNT, `${path}: every build is printed (${(clean(html).match(/<article id="[^"]+"/g) ?? []).join(' ')}; ${(clean(html).match(/<section id="[^"]+"/g) ?? []).join(' ')})`);
       assert.deepEqual(articlesOf(html), expected.map(item => ({
         key: item.key, tier: item.tier, title: item.title,

@@ -79,7 +79,8 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
     const errors = []; const failed = []; const failedResponses = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-    page.on('requestfailed', request => { if (!isAbortedRoutePrefetch(request)) failed.push(request.url()); });
+    // The subscriber's own data probe may be cut by the reload the test makes while it is in flight.
+    page.on('requestfailed', request => { if (!isAbortedRoutePrefetch(request) && !request.url().endsWith('/api/bg/tier-lists?list=minions')) failed.push(request.url()); });
     page.on('response', response => { if (response.status() >= 400 && !isMenuRoutePrefetch(response.request())) failedResponses.push(`${response.status()} ${response.url()}`); });
     for (const width of [1440, 390, 320]) {
       await page.setViewport({ width, height: 900 });
@@ -140,8 +141,9 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
     await page.waitForSelector('[data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]', { timeout: 10000 });
     tierStatus = 503;
     await page.reload({ waitUntil: 'networkidle2' });
-    await page.waitForFunction(() => document.querySelector('main')?.textContent.includes('Данные временно недоступны'));
-    assert.ok(await page.$('[data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]'));
+    // The subscriber's own data fails: the open list stays instead of the paid view's error.
+    await page.waitForSelector('.paywalled-builds .bg-builds-locks', { timeout: 10000 });
+    assert.equal(await page.$('[data-tour-id="bg-tier-list-strategy"]'), null, 'no paid view over a failed protected read');
     await page.close();
   } finally {
     if (browser) await browser.close();

@@ -6,6 +6,7 @@ import { BattlegroundsTierListSearchIntro } from '@/src/modules/searchLanding/pu
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { BattlegroundTierList, loadBattlegrounds, useBattlegroundsModuleLoaded, usePaidViewPrefetch } from './lazyBattlegrounds';
 import { BattlegroundBuildsLocks } from './BattlegroundBuildsLocks';
+import { useProtectedRead } from './useProtectedRead';
 import { navigate } from './navigation';
 
 const pathname = '/battlegrounds/tier-list/';
@@ -20,13 +21,16 @@ export function BattlegroundTierListPageClient({ builds }: { builds: ReactNode }
   const { allowed } = paidAccess(access, 'battlegrounds');
   // The open list stays (with its height) until the paid view is loaded and can replace it in one render.
   const paidViewReady = useBattlegroundsModuleLoaded(allowed);
+  // The open list also stays while the subscriber's protected data has not arrived (a failure must not replace it).
+  const dataReady = useProtectedRead('/api/bg/tier-lists?list=minions', allowed);
   return <PublicPageShell activeTab="bg-tier-list" pathname={pathname}
     access={access} navigate={navigate} wide>
     <section className="space-y-5">
-      <BattlegroundsTierListSearchIntro />
-      {allowed && paidViewReady
+      {allowed && paidViewReady && dataReady
         ? <BattlegroundTierList key={access.user?.id} />
         : <>
+          {/* The paid view brings its own banner: the intro (the page's H1) is only for the open list. */}
+          <BattlegroundsTierListSearchIntro />
           {builds}
           {/* The closed part, named by the page's JSON-LD (`hasPart.cssSelector`); a wrapper without a box of its own. */}
           <div className="paywalled-builds" style={{ display: 'contents' }}>

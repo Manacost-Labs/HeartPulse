@@ -13,7 +13,9 @@ import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 export const dynamic = 'force-dynamic';
 
 export async function generateMetadata({ searchParams }: { searchParams: BuilderSearch }) {
-  return battlegroundBuilderMetadata('/battlegrounds/strategies', searchParams);
+  const metadata = await battlegroundBuilderMetadata('/battlegrounds/strategies', searchParams);
+  // A cold process with no list (the page shows only its notice) must not be indexed that way.
+  return await loadPublicBattlegroundBuilds('strategies', false) ? metadata : { ...metadata, robots: { index: false, follow: true } };
 }
 
 export default async function Page() {

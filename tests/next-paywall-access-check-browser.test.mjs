@@ -454,6 +454,7 @@ test('the builds pages show the open list without a placeholder and keep it unti
             assert.ok(held > 0, 'the chunk of the paid view was held back (the scenario is real)');
             await page.waitForSelector('.arena-paid-view', { timeout: 15_000 });
             assert.equal(await articles(), 0, 'the list is replaced, not doubled');
+            assert.equal(await page.$$eval('h1', nodes => nodes.length), 1, `${path}: a subscriber sees exactly one H1`);
           } else {
             await page.waitForSelector('.bg-builds-locks button', { timeout: 10_000 });
           }
