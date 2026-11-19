@@ -272,6 +272,17 @@ assert.notEqual(
   'a changed Blizzard image must produce a new browser/CDN cache key',
 );
 
+assert.equal(
+  constructedCardRenderImage('TIME_609t2', null, 'full'),
+  '/api/card-image/TIME_609t2/full.webp?v=constructed-cards-patch-36-2-20260805-dbf472',
+  'repaired cards get a new URL so browser and edge drop the old wrong image',
+);
+assert.equal(
+  constructedCardRenderImage('ETC_080', null, 'full'),
+  '/api/card-image/ETC_080/full.webp?v=constructed-cards-patch-36-2-20260805',
+  'unaffected cards keep their cached URL',
+);
+
 const legacyRelatedGroups = normalizeConstructedRelatedCardGroups({
   wiki: {
     related_cards: [
