@@ -275,7 +275,7 @@ async function testModeration() {
   let rows = [
     { title: 'Std A', deck_code: code('A'), format: 'Standard', fun_score: 0.9 },
     { title: 'Std B', deck_code: code('B'), format: 'Standard', fun_score: 0.8, kind: 'off_meta' },
-    { title: 'Std C', deck_code: code('C'), format: 'Standard', fun_score: 0.7 },
+    { title: 'Std C', deck_code: code('C'), format: 'Standard', fun_score: 0.7, nearest_archetype: 'Tog Druid' },
     { title: 'Wild D', deck_code: code('D'), format: 'Wild', fun_score: 0.6 },
   ];
   const loadFunDecks = async () => ({ data: { structured: { rows } } });
@@ -291,6 +291,7 @@ async function testModeration() {
   moderationApp.use(express.json());
   moderationApp.use('/api', createPublicFunDecksRouter({
     loadFunDecks,
+    loadArchetypeLabels: async () => name => (name === 'Tog Druid' ? 'Вихлепых Друид' : name),
     getDatabase: () => {
       if (storeBroken) throw new Error('moderation table unreadable');
       return database;
@@ -377,6 +378,7 @@ async function testModeration() {
     const fromSnapshot = ((await (await call('GET', '/fun-decks')).json()) as any);
     assert.deepEqual(fromSnapshot.stats, { total: 3, standard: 2, wild: 1 });
     assert.equal(fromSnapshot.decks[0].pinned, true);
+    assert.equal(fromSnapshot.decks[0].nearestArchetypeLabel, 'Вихлепых Друид', 'a deck from its snapshot gets the Russian archetype name too');
     assert.equal((await moderate({ format: 'standard', deckCode: code('C'), action: 'hide' })).status, 200, 'a decision on a dropped deck works from its snapshot');
     assert.equal((await moderate({ format: 'standard', deckCode: code('C'), action: 'pin' })).status, 200);
 
