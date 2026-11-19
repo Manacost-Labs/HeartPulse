@@ -10,51 +10,30 @@
 
 /*
  * Every mode's list, button face and «Текущий» badge are in the server HTML
- * (`data-for`); exactly one mode is current: the page's own (`data-page-mode`
- * of the tree), else the last chosen one (`data-nav-mode` of <html>, written by
- * the head script before first paint), else Standard.
+ * (`data-for`); exactly one mode is current: the page's own (the server marks it
+ * `data-page-current`), else the last chosen one (`data-nav-mode` of <html>,
+ * written by the head script before first paint), else the first mode
+ * (`data-default`). Nothing here counts or names the modes except the one list
+ * of remembered-mode selectors below: a new mode adds one line to it.
  */
 .hp-nav [data-for] { display: none; }
 
-.hp-nav-list:is(
-  .hp-nav[data-page-mode='standard'] [data-for='standard'],
-  .hp-nav[data-page-mode='arena'] [data-for='arena'],
-  .hp-nav[data-page-mode='battlegrounds'] [data-for='battlegrounds'],
-  .hp-nav[data-page-mode='community'] [data-for='community'],
-  html:not([data-nav-mode='arena'], [data-nav-mode='battlegrounds'], [data-nav-mode='community']) .hp-nav:not([data-page-mode]) [data-for='standard'],
+.hp-nav-list { --shown: grid; }
+.hp-mode-face { --shown: contents; }
+.hp-mode-badge { --shown: inline-flex; }
+
+.hp-nav [data-for]:is(
+  [data-page-current],
+  html:not([data-nav-mode]) .hp-nav:not([data-page-mode]) [data-default],
+  html[data-nav-mode='standard'] .hp-nav:not([data-page-mode]) [data-for='standard'],
   html[data-nav-mode='arena'] .hp-nav:not([data-page-mode]) [data-for='arena'],
   html[data-nav-mode='battlegrounds'] .hp-nav:not([data-page-mode]) [data-for='battlegrounds'],
   html[data-nav-mode='community'] .hp-nav:not([data-page-mode]) [data-for='community']
 ) {
-  display: grid;
-  gap: 4px;
+  display: var(--shown);
 }
 
-.hp-mode-face:is(
-  .hp-nav[data-page-mode='standard'] [data-for='standard'],
-  .hp-nav[data-page-mode='arena'] [data-for='arena'],
-  .hp-nav[data-page-mode='battlegrounds'] [data-for='battlegrounds'],
-  .hp-nav[data-page-mode='community'] [data-for='community'],
-  html:not([data-nav-mode='arena'], [data-nav-mode='battlegrounds'], [data-nav-mode='community']) .hp-nav:not([data-page-mode]) [data-for='standard'],
-  html[data-nav-mode='arena'] .hp-nav:not([data-page-mode]) [data-for='arena'],
-  html[data-nav-mode='battlegrounds'] .hp-nav:not([data-page-mode]) [data-for='battlegrounds'],
-  html[data-nav-mode='community'] .hp-nav:not([data-page-mode]) [data-for='community']
-) {
-  display: contents;
-}
-
-.hp-mode-badge:is(
-  .hp-nav[data-page-mode='standard'] [data-for='standard'],
-  .hp-nav[data-page-mode='arena'] [data-for='arena'],
-  .hp-nav[data-page-mode='battlegrounds'] [data-for='battlegrounds'],
-  .hp-nav[data-page-mode='community'] [data-for='community'],
-  html:not([data-nav-mode='arena'], [data-nav-mode='battlegrounds'], [data-nav-mode='community']) .hp-nav:not([data-page-mode]) [data-for='standard'],
-  html[data-nav-mode='arena'] .hp-nav:not([data-page-mode]) [data-for='arena'],
-  html[data-nav-mode='battlegrounds'] .hp-nav:not([data-page-mode]) [data-for='battlegrounds'],
-  html[data-nav-mode='community'] .hp-nav:not([data-page-mode]) [data-for='community']
-) {
-  display: inline-flex;
-}
+.hp-nav-list { gap: 4px; }
 
 /* ─── Shared ───────────────────────────────────────────────────────────── */
 
@@ -656,10 +635,16 @@
     scrollbar-width: thin;
   }
 
+  /*
+   * From 1360 px the cards stand in a row as wide as the window allows: the panel
+   * is `--modes` cards wide (set from NAVIGATION_MODES) but never wider than the
+   * space right of the sidebar, and the grid wraps whatever does not fit.
+   */
   @media (min-width: 1360px) {
     .hp-mode[data-variant='sidebar'] .hp-mode-panel {
-      grid-template-columns: repeat(4, 200px);
-      overflow-y: visible;
+      grid-template-columns: repeat(auto-fill, 200px);
+      width: min(calc(var(--modes, 4) * 212px + 18px), calc(100vw - 372px));
+      overflow-y: auto;
     }
 
     .hp-mode[data-variant='sidebar'] .hp-mode-card { height: 296px; }

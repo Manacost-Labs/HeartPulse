@@ -67,6 +67,11 @@ assert.match(html, /srcSet="\/menu\/banners\/arena-440\.webp 440w, \/menu\/banne
 assert.equal(html.match(/class="hp-mode-card-emblem"/g)?.length, 8, 'each banner carries the emblem of its mode');
 assert.equal(html.match(/<img class="hp-mode-face-art" src="\/menu\/banners\/(?:standard|arena|battlegrounds|community)-face\.webp" width="520" height="160" loading="lazy"/g)?.length, 8, 'four faces in each switch, all lazy');
 assert.doesNotMatch(html, /\/menu\/icons\/[a-z-]+\.webp|\/menu\/banners\/(?:standard|arena|battlegrounds|community)\.webp/, 'no file in the old single-size naming is referenced');
+// The page's own mode is marked on the server (`data-page-current`) and the first mode is the default, so CSS shows one mode without naming them.
+assert.equal(html.match(/data-page-current=""/g)?.length, 6, 'the page mode marks its list, face and badge in the drawer and in the sidebar');
+assert.doesNotMatch(html, /data-for="(?:standard|arena|battlegrounds)"[^>]*data-page-current/, 'only the page mode is marked');
+assert.equal(html.match(/data-default=""/g)?.length, 6, 'the first mode carries the default mark on its list, face and badge (twice: drawer and sidebar)');
+assert.equal(html.match(/style="--modes:4"/g)?.length, 2, 'the panel knows how many modes it holds');
 // Order: the switch comes first, then «Главная», then the list of the mode; the same in the drawer and in the sidebar.
 for (const part of html.split('<div class="hp-nav-top">').slice(1)) {
   const [switchAt, homeAt, listAt] = [part.indexOf('<details class="hp-mode"'), part.indexOf('href="/"'), part.indexOf('class="hp-nav-list"')];
