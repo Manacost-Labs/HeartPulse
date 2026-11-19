@@ -1,45 +1,8 @@
 import { metaDistance, score } from '../FunDeckFacts';
-import { funDeckCardArt, funDeckManaCurve, type FunDeckCard, type FunDeckEntry } from './deckEntries';
-import { useDeckArt } from './useDeckArt';
-import { CardLink, CopyDeckButton, DeckLoadState, WhyTags, useFunDeck, winRate, winRateTone, type DeckCardProps } from './funDeckCardParts';
+import { CopyDeckButton, DeckLoadState, DeckPortrait, ManaCurve } from '../deckViews/deckViewParts';
+import { WhyTags, useFunDeck, winRate, winRateTone, type DeckCardProps } from './funDeckCardParts';
 
-/** «Строки»: one deck per line with round card portraits and the mana curve. */
-export function DeckPortrait({ card, configuredCost = null, small = false, eager }: {
-  card: FunDeckCard; configuredCost?: number | null; small?: boolean; eager: boolean;
-}) {
-  const art = useDeckArt();
-  const cost = configuredCost ?? card.cost;
-  const rarity = (card.rarity || 'common').toLowerCase();
-  return (
-    <CardLink card={card} cost={cost} className={`fun-deck-portrait is-${rarity}${small ? ' is-small' : ''}${art.status === 'loaded' ? ' is-loaded' : ''}`}>
-      <span className="fun-deck-portrait__ring">
-        <b aria-hidden="true">{cost}</b>
-        {art.showImage ? (
-          <img key={art.attempt} {...art.imageProps} src={funDeckCardArt(card.id, 'portrait')} alt="" width={96} height={96}
-            loading={eager ? 'eager' : 'lazy'} decoding="async" />
-        ) : null}
-      </span>
-      {card.elite ? <span className="fun-deck-portrait__badge is-star" aria-hidden="true">★</span>
-        : card.count > 1 ? <span className="fun-deck-portrait__badge" aria-hidden="true">×{card.count}</span> : null}
-    </CardLink>
-  );
-}
 
-export function ManaCurve({ entries }: { entries: readonly FunDeckEntry[] }) {
-  const curve = funDeckManaCurve(entries);
-  const top = Math.max(1, ...curve);
-  return (
-    <div className="fun-deck-curve" role="img"
-      aria-label={`Кривая маны: ${curve.map((count, cost) => `${cost < 7 ? cost : '7+'} — ${count}`).join(', ')}`}>
-      {curve.map((count, cost) => (
-        <span key={cost} className="fun-deck-curve__bar">
-          <i style={{ height: `${count ? Math.max(6, Math.round((count / top) * 100)) : 0}%` }} />
-          <small>{cost < 7 ? cost : '7+'}</small>
-        </span>
-      ))}
-    </div>
-  );
-}
 
 export function FunDeckRowCard({ deck, fresh = false, tourAnchor = false, eager = false, pinnedTags = [] }: DeckCardProps) {
   const { data, error, reload, classMeta, entries, subtitle, ref } = useFunDeck(deck, eager);

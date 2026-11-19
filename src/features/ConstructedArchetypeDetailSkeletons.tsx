@@ -9,7 +9,7 @@ import './ConstructedArchetypeDetailSkeletons.css';
 import './ConstructedArchetypeInsights.css';
 import { Title, Value, Words } from './archetypeSkeletonText';
 import { useDeckLayout, type DeckLayout } from './deckViews/DeckLayoutSwitch';
-import { RowSkeleton as DeckRowSkeleton, TileSkeleton as DeckTileSkeleton } from './FunDecksSkeleton';
+import { RowSkeleton as DeckRowSkeleton, TileSkeleton as DeckTileSkeleton } from './deckViews/DeckViewSkeletons';
 import './ConstructedArchetypeDeckGallery.css';
 
 // Placeholders for the independently loaded parts of an archetype page. Each

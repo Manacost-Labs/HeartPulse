@@ -1,9 +1,7 @@
 import { useMemo, type CSSProperties } from 'react';
 import { useResolvedDeck } from '../decklist/useResolvedDeck';
 import { funDeckEntries } from '../funDecks/deckEntries';
-import { CopyDeckButton, DeckLoadState } from '../funDecks/funDeckCardParts';
-import { DeckPortrait, ManaCurve } from '../funDecks/FunDeckRowCard';
-import { TileEntry } from '../funDecks/FunDeckTilesCard';
+import { CopyDeckButton, DeckLoadState, DeckPortrait, ManaCurve, TileEntry } from './deckViewParts';
 import { useNearScreen } from '../funDecks/useNearScreen';
 import '../funDecks/FunDeckLayouts.css';
 
