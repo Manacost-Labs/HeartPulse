@@ -1,0 +1,15 @@
+{
+  "reason": "Релиз E21 одним PR (#526): слияние всех срезов открытого слоя поверх main дало +9 Б gzip JS на /standard/cards/ (общие чанки сдвинулись при слиянии, кода страниц карт срезы не меняли). Одобрение с запасом по правилу команды (не меньше 64 Б). Для маршрутов, где одобрения меню (#458, #475) выставлены ровно по замеру и запас CSS на ветке релиза 0–1 Б, добавлен тот же минимальный запас 64 Б, чтобы сборка merge queue поверх свежего main не падала из-за сдвига общих чанков на несколько байт.",
+  "routes": {
+    "/standard/cards/": { "jsGzipBytes": 128 },
+    "/standard/cards/standard/": { "jsGzipBytes": 128 },
+    "/heroes/": { "cssGzipBytes": 64 },
+    "/": { "cssGzipBytes": 64 },
+    "/connect/": { "cssGzipBytes": 64 },
+    "/faq/": { "cssGzipBytes": 64 },
+    "/privacy/": { "cssGzipBytes": 64 },
+    "/standard/matchups/": { "cssGzipBytes": 64 },
+    "/standard/deck-builder/": { "cssGzipBytes": 64 },
+    "/developers/api/": { "cssGzipBytes": 64 }
+  }
+}
