@@ -54,17 +54,62 @@ guard, JSON-LD) and `tests/next-heroes-ranking.test.mjs` (built page: HTML,
 RSC payload, JSON-LD); the fixture `tests/helpers/battlegroundHeroesFixture.ts`
 gives every closed figure a unique value and the tests fail if one is found.
 
-## Detail route
+## Detail route and open statistics (`/heroes/<id>/`)
 
 The Next.js list route is staged while public Nginx traffic remains on the
 legacy page. The `/heroes/:dbfId/` detail route is also staged in Next.js.
 Express exposes `/api/bg/heroes/public/:dbfId` as a cacheable anonymous
-projection of hero ID, name, image and hero power only. It uses the same solo
-and duo catalog resolution as the existing SEO route; missing IDs return 404
-and upstream failures return retryable 503. Next.js does not forward account
-cookies to this endpoint and returns a real 404 for missing IDs. The full hero
-statistics client mounts only after account verification. Public Nginx traffic
-continues to use the legacy detail route until deployment checks are complete.
+projection of hero ID, name, image, hero power and, since E21 OL2b (#384), the
+block `stats`: the hero's row in the open ranking of the base range
+(`TOP_50_PERCENT`), solo and duos
+(`server/battlegroundHeroStatsProjection.ts`, copied by name). Per mode:
+`tier`, `avgPlacement`, `top4Rate` (`null` in duos), `pickRate`, `games` (only
+if the source row has one), `bestComposition`, up to three `keyMinions`, `rank`
+and `of` (place among the rated heroes of the mode, best average place first);
+plus `updatedAt` (the older mode date), `source`, `mmr`, `warning: "stale"`.
+The block is read through a store of the route itself
+(`server/battlegroundHeroRankingStore.ts`: five minutes, deduplicated refresh,
+last known copy); a source that fails with no copy leaves the answer without
+figures (`stats: null`, the hero is still served), so a failing ranking never
+takes the page or the subscriber's view down. An unrated hero has `stats: null`.
+Closed and never copied: other rating ranges, the placement distribution,
+`adjusted_avg_placement`, compositions with metrics, patch history (they stay on
+`/api/bg/heroes/:dbfId/details` behind the access guard). Missing IDs return
+404 and upstream failures of the hero catalog return retryable 503. Next.js
+does not forward account cookies to this endpoint and returns a real 404 for
+missing IDs.
+
+`apps/public-web/proxy.ts` reads the answer once and carries the hero and its
+parsed statistics to the page in the projection header (the statistics are
+dropped from the header when it would not fit; the page then reads them itself).
+`lib/publicBattlegroundHeroStats.ts` re-parses field by field, so a figure that
+should not be there cannot reach the HTML, the RSC payload or the JSON-LD.
+
+The page (`apps/public-web/app/heroes/[dbfId]/page.tsx`, dynamic) renders the
+open data as the main content: under the H1 one line built from the facts
+(tier, average place, top-4, best build), then `BattlegroundHeroPublicStats`
+(`.bg-hero-public`): the hero power, one block per mode with tier, average place,
+top-4, pick rate, sample, place in the ranking, best build and key minions, then
+the date and source. Everyone without access sees it; a visitor without access
+also gets, in the closed part `.paywalled-hero`, one lock button that carries no
+data (a press opens the subscription offer). A subscriber's paid view replaces
+the open block in one render after its chunk has loaded (no layout shift). The
+robot and the guest get the same HTML.
+
+Indexing: `isIndexableBattlegroundHero` (`shared/battlegroundHeroIndexing.ts`,
+on the threshold of `shared/seoIndexThreshold.ts`, see
+`docs/specs/seo-entity-indexing.md`) counts the hero's name plus every open
+figure the page prints; fewer than ten facts (a hero rated in one mode only)
+makes the page `noindex, follow` without JSON-LD, and the hero segment of the
+sitemap (`loadBattlegroundHeroSitemapRows`) filters by the same function over the
+same ranking. JSON-LD of an indexable hero page: the entity graph plus a
+`Dataset` with `isAccessibleForFree: false` and
+`hasPart.cssSelector: ".paywalled-hero"`.
+
+Tests: `tests/battleground-hero-ranking-public.check.ts` (stats projection,
+indexing rule, parser, route), `tests/next-bg-hero-detail-browser.test.mjs`
+(built page: HTML, RSC payload, JSON-LD, closed marks) and
+`tests/entity-sitemap-sources.test.ts` (hero segment filter).
 
 ## Hero detail layout
 

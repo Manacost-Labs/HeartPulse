@@ -1,5 +1,5 @@
 import type { Router } from 'express';
-import type { PublicBattlegroundHero } from './battlegroundHeroPublicTypes.js';
+import type { PublicBattlegroundHero, PublicBattlegroundHeroStats } from './battlegroundHeroPublicTypes.js';
 
 export function isPositiveDbfId(value: unknown): boolean {
   const raw = String(value ?? '');
@@ -7,9 +7,16 @@ export function isPositiveDbfId(value: unknown): boolean {
   return /^[1-9][0-9]*$/.test(raw) && Number.isSafeInteger(parsed) && parsed > 0;
 }
 
-/** Registers only anonymous identity fields; account statistics stay on guarded routes. */
+/**
+ * Registers the anonymous identity of a hero and its open statistics (the base
+ * rating range, solo and duos; see `battlegroundHeroStatsProjection.ts`).
+ * Everything else about a hero (other ranges, placement distribution,
+ * compositions with metrics, patch history) stays on guarded routes.
+ */
 export function registerPublicBattlegroundHeroRoute(router: Router, options: {
   loadHero: (dbfId: string) => Promise<PublicBattlegroundHero | null>;
+  /** Open statistics of the hero; `null` when it is not rated. A failure leaves the identity answer intact. */
+  loadStats?: (dbfId: number) => Promise<PublicBattlegroundHeroStats | null>;
   imageUrl: (value: string | null) => string;
   retryAfterSeconds: number;
   onError?: (error: unknown) => void;
@@ -22,7 +29,13 @@ export function registerPublicBattlegroundHeroRoute(router: Router, options: {
     try {
       const hero = await options.loadHero(dbfId);
       if (!hero) return response.status(404).json({ error: 'Hero not found' });
-      return response.json({ hero: {
+      let stats: PublicBattlegroundHeroStats | null = null;
+      if (options.loadStats) {
+        try { stats = await options.loadStats(hero.dbfId); } catch (error) {
+          try { options.onError?.(error); } catch { /* diagnostics are best-effort */ }
+        }
+      }
+      return response.json({ stats, hero: {
         dbfId: hero.dbfId, cardId: hero.cardId, name: hero.name,
         image: options.imageUrl(hero.image),
         heroPower: hero.heroPower ? {

@@ -1,0 +1,52 @@
+/* The open statistics of a hero: server-rendered for guests and robots, the same HTML for both. */
+.bg-hero-public {
+  display: grid;
+  gap: 1rem;
+  color: var(--arena-ink);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.35;
+}
+
+.bg-hero-public h2 {
+  margin: 0 0 0.35rem;
+  color: var(--arena-red);
+  font-family: var(--font-hs);
+  font-size: clamp(1.15rem, 1rem + 0.6vw, 1.4rem);
+  font-weight: 400;
+  line-height: 1.25;
+}
+
+.bg-hero-public__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.bg-hero-public__grid div {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(105, 72, 46, 0.3);
+  border-radius: 8px;
+  background: #fffaf0;
+}
+
+.bg-hero-public dt { font-size: 0.8rem; color: #69482e; }
+.bg-hero-public dd { margin: 0; font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.bg-hero-public dd.bg-hero-public__text { font-size: 0.95rem; font-weight: 400; }
+.bg-hero-public p { margin: 0.35rem 0 0; font-size: 0.9rem; }
+
+.bg-hero-locks { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; margin: 0; }
+.bg-hero-locks button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-block-size: 44px;
+  padding: 0 0.9rem;
+  border: 1px solid #b68a4f;
+  border-radius: 8px;
+  background: #fffaf0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}

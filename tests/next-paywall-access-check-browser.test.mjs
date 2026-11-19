@@ -18,6 +18,17 @@ const openRanking = mode => ({
   })),
 });
 // The subscriber's paid view reads the guarded catalog; its content does not matter here.
+// A 3:4 picture like a hero's portrait (the page reserves 180x240 for it).
+const PLACEHOLDER_IMAGE = '<svg xmlns="http://www.w3.org/2000/svg" width="180" height="240" viewBox="0 0 180 240"><rect width="180" height="240" fill="#b68a4f"/></svg>';
+
+// The open answer of `GET /api/bg/heroes/public/:dbfId`: identity and the hero's row in the base range.
+const openHero = {
+  hero: { dbfId: 57944, cardId: 'TB_BaconShop_HERO_16', name: 'А. Ф. Ка', image: 'https://hearthpulse.net/assets/og-preview.png',
+    heroPower: { name: 'Прокрастинация', text: 'Пропустите первые два хода.', image: 'https://hearthpulse.net/assets/og-preview.png' } },
+  stats: { mmr: 'TOP_50_PERCENT', updatedAt: '2026-11-18T17:01:18.000Z', source: 'HSReplay', modes: {
+    solo: { tier: 'S', avgPlacement: 3.57, top4Rate: 61.4, pickRate: 12.3, bestComposition: 'Нежить', keyMinions: ['Падальщик'], rank: 2, of: 110 },
+    duos: { tier: 'A', avgPlacement: 3.9, top4Rate: null, pickRate: 9.8, bestComposition: null, keyMinions: [], rank: 14, of: 108 } } },
+};
 const guardedCatalog = { ok: true, fetched_at: '2026-11-18T17:01:18.663Z', view: { heroes: [] } };
 
 // The session check answers late, as it does on a phone after the scripts
@@ -236,6 +247,104 @@ test('/heroes/ shows the open ranking without a placeholder and keeps it until t
         await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         const total = (await page.evaluate(() => window.__layoutShifts)).reduce((sum, value) => sum + value, 0);
         assert.ok(total < 0.01, `${subscriber ? 'subscriber' : 'guest'} at ${viewport.width}px shifted by ${total.toFixed(3)}`);
+        await page.close();
+      }
+    }
+    await closeLocal(front);
+  } finally {
+    if (browser) await browser.close();
+    if (gateway) await closeLocal(gateway.server);
+    if (next) await next.close();
+    legacyServer.closeAllConnections();
+    await new Promise(done => legacyServer.close(done));
+  }
+});
+
+// /heroes/<id>/ has open statistics: nobody waits behind a placeholder or a gate. A guest and a subscriber whose
+// access is still being checked get the server-rendered figures and the lock at once; a confirmed subscriber keeps
+// the figures on screen until the paid view's chunk has loaded (here it arrives late), and the view then replaces
+// them in one render, without a layout shift.
+test('/heroes/<id>/ shows the open statistics without a placeholder and keeps them until the paid view has loaded', async () => {
+  const legacy = express();
+  legacy.get('/api/bg/heroes/public/57944', (_request, response) => response.json(openHero));
+  legacy.use((_request, response) => response.status(401).end());
+  const legacyServer = legacy.listen(0, '127.0.0.1');
+  let next; let gateway; let browser;
+  try {
+    await new Promise(done => legacyServer.once('listening', done));
+    next = await startNextServer({ legacyOrigin: `http://127.0.0.1:${legacyServer.address().port}`,
+      env: { NODE_OPTIONS: `--require=${resolve('tests/helpers/shiftableClock.cjs')}` } });
+    gateway = await startGateway(next.origin);
+    // Heroes catalog for the subscriber's paid view and the open projection for everyone.
+    gateway.server.removeAllListeners('request');
+    const front = http.createServer((request, response) => {
+      const subscriber = /(?:^|;\s*)pending_reader=1/.test(request.headers.cookie ?? '');
+      const json = payload => response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(payload));
+      if (request.url === '/api/auth/me') return void setTimeout(() => json({ user: subscriber ? SUBSCRIBER : null }), SESSION_DELAY_MS);
+      if (subscriber && request.url === '/api/subscription/status') return json(SUBSCRIBED);
+      if (subscriber && request.url.startsWith('/api/bg/heroes?')) return json(guardedCatalog);
+      if (request.url.startsWith('/api/bg/heroes/public')) {
+        const upstream = http.request({ host: '127.0.0.1', port: legacyServer.address().port, path: request.url },
+          answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
+        return void upstream.end();
+      }
+      if (request.url.startsWith('/api/')) return void response.writeHead(401, { 'Content-Type': 'application/json' }).end('{"error":"guest"}');
+      const upstream = http.request(new URL(next.origin), { method: request.method, path: request.url, headers: request.headers },
+        answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
+      return void request.pipe(upstream);
+    });
+    const frontOrigin = await listenLocal(front);
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+      headless: true, args: ['--no-sandbox'] });
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true, hasTouch: true }]) {
+      for (const subscriber of [false, true]) {
+        const page = await browser.newPage();
+        await page.setViewport(viewport);
+        if (subscriber) await page.setCookie({ name: 'pending_reader', value: '1', url: frontOrigin });
+        await page.evaluateOnNewDocument(() => {
+          window.__layoutShifts = [];
+          new PerformanceObserver(list => {
+            for (const entry of list.getEntries()) {
+              if (!entry.hadRecentInput) window.__layoutShifts.push({ value: entry.value, sources: entry.sources.map(source => source.node?.className?.toString?.() ?? source.node?.nodeName ?? '') });
+            }
+          }).observe({ type: 'layout-shift', buffered: true });
+        });
+        // The paid view's chunk arrives late: the script that holds the Battlegrounds view (found by a string only it has) waits.
+        let held = 0;
+        await page.setRequestInterception(true);
+        page.on('request', request => {
+          // The hero's picture lives on the public origin: a placeholder stands in, so a failing download cannot move the page.
+          if (request.url().startsWith('https://hearthpulse.net/assets/')) return void request.respond({ status: 200, contentType: 'image/svg+xml', body: PLACEHOLDER_IMAGE }).catch(() => {});
+          if (!subscriber || request.resourceType() !== 'script') return void request.continue().catch(() => {});
+          void fetch(request.url()).then(async answer => {
+            const body = await answer.text();
+            if (body.includes('API героев временно недоступен')) { held += 1; await delay(4000); }
+            await request.respond({ status: 200, contentType: 'application/javascript', body });
+          }).catch(() => request.continue().catch(() => {}));
+        });
+        await page.goto(`${frontOrigin}/heroes/57944/`, { waitUntil: 'domcontentloaded' });
+        const rows = () => page.evaluate(() => document.querySelectorAll('#hero-solo dl > div').length);
+        assert.ok(await rows() >= 6, 'the open statistics are in the first paint');
+        assert.equal(await page.$('.arena-paywall-pending'), null, 'no placeholder while access is checked');
+        assert.equal(await page.$('.arena-paywall'), null, 'no gate for a visitor of an open page');
+        if (subscriber) {
+          await page.waitForFunction(() => performance.getEntriesByType('resource').some(entry => entry.name.endsWith('/api/subscription/status')), { timeout: 10_000 });
+          await delay(1200);
+          // Access is confirmed, the chunk is still on its way: the ranking has not been replaced by a placeholder.
+          const state = await page.evaluate(() => ({ rows: document.querySelectorAll('#hero-solo dl > div').length, paid: !!document.querySelector('.arena-paid-view'),
+            pending: !!document.querySelector('.arena-paywall-pending'), text: document.querySelector('main')?.innerText.slice(0, 200) }));
+          assert.ok(state.rows >= 6, `the statistics stay until the paid view has loaded: ${JSON.stringify(state)}`);
+          assert.equal(await page.$('.arena-paywall-pending'), null, 'no placeholder while the paid view loads');
+          assert.ok(held > 0, 'the chunk of the paid view was held back (the scenario is real)');
+          await page.waitForSelector('.arena-paid-view', { timeout: 15_000 });
+          assert.equal(await rows(), 0, 'the statistics are replaced, not doubled');
+        } else {
+          await page.waitForSelector('.paywalled-hero button', { timeout: 10_000 });
+        }
+        await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+        const shifts = await page.evaluate(() => window.__layoutShifts);
+        const total = shifts.reduce((sum, shift) => sum + shift.value, 0);
+        assert.ok(total < 0.01, `${subscriber ? 'subscriber' : 'guest'} at ${viewport.width}px shifted by ${total.toFixed(3)}: ${JSON.stringify(shifts)}`);
         await page.close();
       }
     }

@@ -7,6 +7,11 @@ import { createBattlegroundHeroRankingRouter } from '../server/battlegroundHeroR
 import { createBattlegroundHeroCatalogLoader } from '../server/battlegroundHeroRankingSource';
 import { projectBattlegroundHeroRanking } from '../server/battlegroundHeroRankingProjection';
 import { createBattlegroundProxyRouter } from '../server/battlegroundProxyRoutes';
+import { registerPublicBattlegroundHeroRoute } from '../server/battlegroundHeroPublicRoutes';
+import { createHeroRankingStore } from '../server/battlegroundHeroRankingStore';
+import { projectBattlegroundHeroStats } from '../server/battlegroundHeroStatsProjection';
+import { countHeroOwnFacts, isIndexableBattlegroundHero } from '../shared/battlegroundHeroIndexing';
+import { heroStatsSummary, parsePublicBattlegroundHeroStats } from '../apps/public-web/lib/publicBattlegroundHeroStats';
 import { parsePublicBattlegroundHeroesRanking } from '../apps/public-web/lib/publicBattlegroundHeroesData';
 import { seoStructuredDataGraph } from '../src/seo/structuredData';
 import { buildHeroCatalog, closedValues, HERO_COUNT, OPEN_ROWS, UPDATED_AT } from './helpers/battlegroundHeroesFixture';
@@ -216,5 +221,109 @@ test('the guarded /api/bg/heroes stays closed to a guest for every range and ope
     assert.equal(upstream.length, 4, 'only the four subscriber reads reached the service');
   } finally {
     await close(api.server);
+  }
+});
+
+// OL2b (#384): the open statistics of one hero on /api/bg/heroes/public/:dbfId and /heroes/<id>/.
+
+const rankingOf = (mode: 'solo' | 'duos') => projectBattlegroundHeroRanking(buildHeroCatalog('TOP_50_PERCENT', mode), mode)!;
+
+test('the hero statistics are the hero row of the base range in both modes, open figures only', () => {
+  const stats = projectBattlegroundHeroStats(1000, { solo: rankingOf('solo'), duos: rankingOf('duos') })!;
+  assert.deepEqual(Object.keys(stats).sort(), ['mmr', 'modes', 'source', 'updatedAt']);
+  assert.equal(stats.mmr, 'TOP_50_PERCENT');
+  assert.deepEqual(Object.keys(stats.modes.solo!).sort(), ['avgPlacement', 'bestComposition', 'keyMinions', 'of', 'pickRate', 'rank', 'tier', 'top4Rate']);
+  assert.deepEqual({ rank: stats.modes.solo!.rank, of: stats.modes.solo!.of, tier: stats.modes.solo!.tier }, { rank: 1, of: HERO_COUNT, tier: 'A' });
+  assert.equal(stats.modes.duos!.top4Rate, null, 'duos has no top-4');
+  assert.equal(projectBattlegroundHeroStats(1005, { solo: rankingOf('solo'), duos: rankingOf('duos') })!.modes.solo!.rank, HERO_COUNT);
+  assert.deepEqual(leaks(JSON.stringify(stats)), [], 'no closed value in the statistics');
+  assert.equal(projectBattlegroundHeroStats(2001, { solo: rankingOf('solo'), duos: rankingOf('duos') }), null, 'an unrated hero has no statistics');
+  assert.equal(projectBattlegroundHeroStats(1000, { solo: null, duos: null }), null);
+  assert.equal(projectBattlegroundHeroStats(1000, { solo: { ...rankingOf('solo'), warning: 'stale' } })!.warning, 'stale');
+});
+
+test('the indexing rule counts the open facts: both modes pass, one mode or none do not', () => {
+  const both = projectBattlegroundHeroStats(1000, { solo: rankingOf('solo'), duos: rankingOf('duos') })!;
+  assert.equal(countHeroOwnFacts(both.modes), 1 + 8 + 7);
+  assert.equal(isIndexableBattlegroundHero(both.modes), true);
+  const bareSolo = { solo: { tier: 'A', avgPlacement: 4, top4Rate: 50, pickRate: 9, bestComposition: null, keyMinions: [], rank: 3 } };
+  assert.equal(countHeroOwnFacts(bareSolo), 6);
+  assert.equal(isIndexableBattlegroundHero(bareSolo), false, 'five figures and a name are below ten facts');
+  assert.equal(isIndexableBattlegroundHero({}), false);
+  assert.equal(isIndexableBattlegroundHero({ solo: null, duos: null }), false);
+  // Mutation guard: the typical live hero (both modes, no build in the source) sits exactly on the line.
+  const live = { ...both.modes, solo: { ...both.modes.solo!, bestComposition: null, keyMinions: [] }, duos: { ...both.modes.duos!, bestComposition: null, keyMinions: [] } };
+  assert.equal(countHeroOwnFacts(live), 10);
+  assert.equal(isIndexableBattlegroundHero(live), true);
+});
+
+test('the hero page parser copies the whitelisted fields only', () => {
+  const stats = projectBattlegroundHeroStats(1002, { solo: rankingOf('solo'), duos: rankingOf('duos') })!;
+  const dirty = structuredClone(stats) as unknown as Record<string, any>;
+  dirty.ranges = { TOP_1_PERCENT: { avgPlacement: 4.4321 } };
+  for (const mode of ['solo', 'duos']) Object.assign(dirty.modes[mode], {
+    placementDistribution: ['12.3456%'], adjustedAvgPlacement: 3.9876, compositions: [{ name: 'SENTINEL_PATCH_9' }], history: [{ avg: 4.6666 }],
+  });
+  assert.notDeepEqual(leaks(JSON.stringify(dirty)), [], 'mutation: the dirty answer does carry closed values, so the check below is not vacuous');
+  const parsed = parsePublicBattlegroundHeroStats(dirty)!;
+  assert.deepEqual(Object.keys(parsed).sort(), ['modes', 'source', 'updatedAt']);
+  assert.deepEqual(Object.keys(parsed.modes.solo!).sort(), ['avgPlacement', 'bestComposition', 'games', 'keyMinions', 'of', 'pickRate', 'rank', 'tier', 'top4Rate']);
+  assert.deepEqual(leaks(JSON.stringify(parsed)), []);
+  assert.equal(parsePublicBattlegroundHeroStats({ ...dirty, modes: { solo: { ...dirty.modes.solo, tier: 'Z' }, duos: { ...dirty.modes.duos, avgPlacement: 12 } } }), null);
+  for (const bad of [null, [], 'x', {}, { modes: {} }]) assert.equal(parsePublicBattlegroundHeroStats(bad), null, JSON.stringify(bad));
+  assert.match(heroStatsSummary('Герой 2', parsed)!, /^Герой 2 в рейтинге «Топ 50%», Соло: тир B, среднее место 3,95, топ-4 /);
+  assert.equal(heroStatsSummary('Герой', null), null);
+});
+
+test('GET /bg/heroes/public/:dbfId carries the statistics, survives a failing ranking and 503s without a hero', async () => {
+  const state = { reads: [] as string[], down: false };
+  const service = await startService(state);
+  const heroes = new Map([[1000, 'Герой 0'], [2001, 'Без оценки']]);
+  const build = (down: () => boolean) => {
+    const store = createHeroRankingStore({
+      loadCatalog: createBattlegroundHeroCatalogLoader({ baseUrl: `${service.origin}/api/bg/heroes` }), onError: () => undefined,
+    });
+    const router = express.Router();
+    registerPublicBattlegroundHeroRoute(router, {
+      loadHero: async id => {
+        if (id === '777') throw new Error('catalog down');
+        const name = heroes.get(Number(id));
+        return name ? { dbfId: Number(id), cardId: null, name, image: null, heroPower: null } : null;
+      },
+      loadStats: async dbfId => {
+        if (down()) throw new Error('ranking down');
+        const read = (mode: 'solo' | 'duos') => store.get(mode).then(snapshot => snapshot.body, () => null);
+        return projectBattlegroundHeroStats(dbfId, { solo: await read('solo'), duos: await read('duos') });
+      },
+      imageUrl: () => 'https://hearthpulse.net/assets/og-preview.png', retryAfterSeconds: 45, onError: () => undefined,
+    });
+    const app = express();
+    app.use(router);
+    return listen(app);
+  };
+  let broken = false;
+  const api = await build(() => broken);
+  try {
+    const ok = await fetch(`${api.origin}/api/bg/heroes/public/1000`);
+    assert.equal(ok.status, 200);
+    const text = await ok.text();
+    const body = JSON.parse(text);
+    assert.equal(body.hero.name, 'Герой 0');
+    assert.equal(body.stats.mmr, 'TOP_50_PERCENT');
+    assert.equal(body.stats.modes.solo.tier, 'A');
+    assert.deepEqual(leaks(text), [], 'no closed value in the hero answer');
+    const unrated = await (await fetch(`${api.origin}/api/bg/heroes/public/2001`)).json();
+    assert.equal(unrated.stats, null, 'an unrated hero answers without statistics');
+    broken = true;
+    const degraded = await fetch(`${api.origin}/api/bg/heroes/public/1000`);
+    assert.equal(degraded.status, 200, 'a failing ranking does not take the hero page down');
+    assert.equal((await degraded.json()).stats, null);
+    assert.equal((await fetch(`${api.origin}/api/bg/heroes/public/999`)).status, 404);
+    const outage = await fetch(`${api.origin}/api/bg/heroes/public/777`);
+    assert.equal(outage.status, 503);
+    assert.equal(outage.headers.get('retry-after'), '45');
+  } finally {
+    await close(api.server);
+    await close(service.server);
   }
 });

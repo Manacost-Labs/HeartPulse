@@ -20,7 +20,8 @@ will index every submitted URL or rank it for a particular query.
   entity pages across formats.
 - Battlegrounds minion and spell segments include the active pool and archive
   because both states have visible, entity-specific reference content.
-- The hero segment contains the de-duplicated union of solo and Duos heroes.
+- The hero segment contains the de-duplicated union of solo and Duos heroes that
+  pass `isIndexableBattlegroundHero` (see «Порог индексации»).
 - Search, filter, sort, authentication and other query-state URLs never enter
   an entity sitemap.
 - A missing, malformed or materially collapsed upstream catalog never replaces
@@ -423,6 +424,13 @@ the queries the site wants to answer.
   `index` равносильно `sitemap`; у `index` canonical на себя и статус 200; ни один
   сегмент карты не содержит шаблон с `noindex`; архетип ниже порога
   не попадает в сегмент архетипов (проекция отклоняет его).
+- Герои Полей сражений: `isIndexableBattlegroundHero`
+  (`shared/battlegroundHeroIndexing.ts`) считает имя героя и открытые цифры
+  страницы (по режимам Соло и Дуо: тир, среднее место, топ-4, выбор, выборка,
+  сборка, ключевые существа, место в рейтинге) и сравнивает с
+  `INDEX_MIN_OWN_FACTS`. Её читают meta robots страницы `/heroes/<id>/` и
+  сегмент героев карты сайта; герой ниже порога (оценён в одном режиме) —
+  `noindex, follow`, без JSON-LD и вне карты.
 
 ## Documentation impact
 

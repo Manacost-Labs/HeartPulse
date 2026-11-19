@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { cosmeticsDetailPath } from '@/src/modules/cosmetics/public';
 import { constructedCardRoute } from '@/src/modules/constructedCards/public';
 import { publicBattlegroundHero } from './lib/publicBattlegroundHeroData';
+import { publicBattlegroundHeroStatsOf } from './lib/publicBattlegroundHeroStats';
 import { publicBattlegroundLibraryCard } from './lib/publicBattlegroundLibraryCardData';
 import { battlegroundLibraryDetailApiPath, type BattlegroundLibraryPool } from './lib/battlegroundLibraryDetailKinds';
 import { publicCardSeed } from './lib/publicCardSeed';
@@ -62,7 +63,11 @@ async function checkBattlegroundDetail(probe: BattlegroundDetailProbe, headers: 
     const value = await response.json();
     let projection: unknown;
     if (probe.type === 'hero') {
-      projection = { hero: publicBattlegroundHero(value, probe.dbfId) };
+      const hero = publicBattlegroundHero(value, probe.dbfId);
+      const stats = publicBattlegroundHeroStatsOf(value);
+      // The open statistics ride along when they fit the header; otherwise the page reads them itself.
+      projection = { hero, stats };
+      if (!encodePublicProjection(projection)) projection = { hero };
     } else {
       const card = publicBattlegroundLibraryCard(value, probe.kindPath, probe.dbfId, probe.pool);
       projection = { card: { dbfId: card.dbfId, kind: card.kind, nameRu: card.name,

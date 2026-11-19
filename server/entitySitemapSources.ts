@@ -6,6 +6,10 @@ import {
   type ArchetypeSitemapRow,
 } from './entitySitemapProjections.js';
 import { isIndexableArchetype } from '../shared/constructedArchetypeIndexing.js';
+import { isIndexableBattlegroundHero } from '../shared/battlegroundHeroIndexing.js';
+import { projectBattlegroundHeroRanking, type PublicHeroRankingMode } from './battlegroundHeroRankingProjection.js';
+import { createBattlegroundHeroCatalogLoader } from './battlegroundHeroRankingSource.js';
+import { projectBattlegroundHeroStats } from './battlegroundHeroStatsProjection.js';
 import {
   loadCosmeticsSitemapRows,
   loadGuideArchiveSitemapRows,
@@ -88,12 +92,28 @@ function heroRows(payload: JsonRecord): unknown[] {
   return heroes;
 }
 
+/**
+ * Hero rows of the sitemap: the de-duplicated union of solo and Duos heroes that
+ * the page answers as indexable (`isIndexableBattlegroundHero`, judged on the
+ * same open ranking the page reads). A failing ranking source rejects the whole
+ * candidate, so the last known good sitemap stays.
+ */
 export async function loadBattlegroundHeroSitemapRows(
   options: SourceOptions = {},
 ): Promise<unknown[]> {
-  const [solo, duos] = await Promise.all([
+  const loadCatalog = createBattlegroundHeroCatalogLoader({
+    fetchImpl: options.fetchImpl, timeoutMs: options.timeoutMs, baseUrl: `${BATTLEGROUNDS_ORIGIN}/api/bg/heroes`,
+  });
+  const ranking = async (mode: PublicHeroRankingMode) => {
+    const projected = projectBattlegroundHeroRanking(await loadCatalog(mode), mode);
+    if (!projected) throw new Error('Entity sitemap hero ranking is unavailable');
+    return projected;
+  };
+  const [solo, duos, soloRanking, duosRanking] = await Promise.all([
     fetchJson(`${BATTLEGROUNDS_ORIGIN}/api/bg/heroes`, options).then(heroRows),
     fetchJson(`${BATTLEGROUNDS_ORIGIN}/api/bg/heroes?mode=duos`, options).then(heroRows),
+    ranking('solo'),
+    ranking('duos'),
   ]);
   const seen = new Set<string>();
   return [...solo, ...duos].filter(row => {
@@ -101,7 +121,8 @@ export async function loadBattlegroundHeroSitemapRows(
     if (!/^[1-9][0-9]*$/.test(key)) return true;
     if (seen.has(key)) return false;
     seen.add(key);
-    return true;
+    const stats = projectBattlegroundHeroStats(Number(key), { solo: soloRanking, duos: duosRanking });
+    return stats !== null && isIndexableBattlegroundHero(stats.modes);
   });
 }
 
