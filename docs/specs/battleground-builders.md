@@ -157,10 +157,10 @@ behind the access guard.
 
 The Next pages read the list anonymously
 (`apps/public-web/lib/publicBattlegroundBuilds.ts`, through the last good
-store, re-parsing field by field in `publicBattlegroundBuildsData.ts`). The tier list is prerendered (ISR
-five minutes); the strategies page stays rendered per request, because its
-robots policy depends on the query.
-Both render
+store, re-parsing field by field in `publicBattlegroundBuildsData.ts`). The
+tier list is prerendered (ISR five minutes); the strategies page stays
+rendered per request, because its robots policy depends on the query. Both
+render
 `BattlegroundBuildsPublicList`: tiers S to D, each build with its title, facts
 (archetype, difficulty, average place, popularity), conditions, key minions,
 the rest of the example board and a link to `/battlegrounds/tier-builder/`. A
