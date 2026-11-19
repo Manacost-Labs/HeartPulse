@@ -503,13 +503,10 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     assert.equal(meta.description.split('(хс)').length - 1, 1, 'one «(хс)»');
     assert.doesNotMatch(meta.title, /HSGuru/);
     assert.doesNotMatch(meta.description, /Н'зот|258/, 'a row below 1000 games is not in the snippet');
-    // The same HTML shows the same date, the slice and the source without JavaScript.
-    assert.ok(meta.text.includes(`Данные на ${date}, `), 'the visible line carries the date of the description');
-    assert.match(meta.text, / МСК · Стандарт · Алмаз — Легенда · период «Патч 36\.6\.3» · от 100 игр · источник HSGuru\./);
-    assert.ok(meta.text.includes('общий срез меты'), 'the line says it is the general slice');
+    // The page ends with the data: no line with the date, the slice and the source under the table.
+    assert.doesNotMatch(meta.text, /Данные на |источник HSGuru|общий срез меты/, 'no data note under the table');
+    assert.ok(!meta.html.includes('standard-meta-data-note'), 'no data note markup');
     assert.ok(meta.text.includes('Зоолок'), 'the open rows are in the server HTML');
-    assert.match(meta.html, new RegExp(`<time datetime="${updatedAt}">`, 'i'), 'the date is machine-readable');
-    assert.ok(meta.html.includes('<a href="https://www.hsguru.com/meta" rel="noopener noreferrer">HSGuru</a>'), 'the source is linked');
     assert.ok(meta.text.includes('Зоолок') && meta.text.includes('61%'), 'the leader of the snippet is on the page');
 
     // No row of 1000 games: no leader, the rest of the snippet stays.
@@ -518,21 +515,18 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     assert.doesNotMatch(noLeader.description, /Лидер/);
     assert.match(noLeader.description, new RegExp(`^Мета Хартстоуна \\(хс\\) на (${date}): тир-лист колод Стандарта\\. Винрейт и популярность архетипов\\. Данные HSGuru\\.$`));
 
-    // A row without a winrate is never the leader; a source outside HSGuru is not linked as «HSGuru».
+    // A row without a winrate is never the leader; the snippet does not depend on the source address.
     state.meta = { ...metaTeaser(updatedAt, [['Без винрейта', null, 5000], ['Зоолок', 61, 14800], TOP_ROWS[1], TOP_ROWS[2]]),
       sourceUrl: 'https://evil.example/meta' };
     const foreign = await page('/standard/meta/');
     assert.ok(foreign.description.includes('Лидер — Зоолок, 61% побед.'), foreign.description);
-    assert.ok(foreign.text.includes('источник HSGuru.'), 'the source is still named');
-    assert.ok(!foreign.html.includes('<a href="https://evil.example'), 'a foreign source address is not a link');
 
-    // Older than a week: no month in the title, «обновлено» and the date in the description, the line stays.
+    // Older than a week: no month in the title, «обновлено» and the date in the description.
     state.meta = metaTeaser('2026-09-01T09:00:00.000Z', TOP_ROWS);
     const stale = await page('/standard/meta/');
     assert.equal(stale.title, `Мета Hearthstone, ${YEAR}: колоды и винрейты | HearthPulse`);
     assert.equal(stale.description,
       'Мета Хартстоуна (хс), обновлено 1 сентября 2026: тир-лист колод Стандарта. Лидер — Зоолок, 61% побед. Винрейт и популярность архетипов. Данные HSGuru.');
-    assert.ok(stale.text.includes('Данные на 1 сентября 2026, 12:00 МСК'));
 
     // No data: the static text with the year, no date and no numbers, a normal page and a quiet log.
     state.meta = null;
@@ -663,8 +657,6 @@ test('the meta page describes its teaser as a dataset dated by the teaser, from 
     });
     assert.equal(collection.dateModified, DATA_DATE);
     assert.deepEqual(collection.about, { '@id': 'https://hearthpulse.net/standard/meta/#dataset' });
-    // The line the reader sees carries the same instant.
-    assert.match(html, new RegExp(`<time datetime="${DATA_DATE}">`, 'i'));
     // Names of metrics, no values: no row of the open slice reaches the graph.
     assert.doesNotMatch(JSON.stringify(graph), /Зоолок|Граб|Н'зот|\b(61|58\.2|57\.4|14800|5400|258)\b|gameMode|temporalCoverage|\{\{/);
 

@@ -122,9 +122,9 @@ absent-card probe only while the card API reports `X-Data-Cache: LKG`.
   the page's format it also tells a name shared with another row apart: the
   title becomes «Чистый Паладин (Pure Paladin) — колода Hearthstone, …» (the
   English name; the slug when that is the name too). See «Archetype pages».
-- `/standard/meta` shows the same date, slice and source as a server-rendered
-  line below the meta page (`apps/public-web/ui/StandardMetaDataNote.tsx`,
-  passed to the client page as `children`).
+- `/standard/meta` has no visible line with the date, slice and source under
+  the table: the page ends with the data. The same date and source stay in the
+  meta description (above) and in the JSON-LD (`dateModified`, `isBasedOn`).
 - Contract tests live in the existing entity sitemap and SEO route test files.
 
 No new dependency, database migration or public JSON API is introduced.

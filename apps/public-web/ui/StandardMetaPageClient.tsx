@@ -1,6 +1,5 @@
 'use client';
 
-import type { ReactNode } from 'react';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import StandardMetaPage from '@/src/features/StandardMeta';
 import type { StandardMetaTeaserSeed } from '@/src/features/standardMetaTeaser';
@@ -8,8 +7,7 @@ import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { navigate } from './navigation';
 import { sessionTag } from './viewerHint';
 
-/** `children` is server-rendered content (the data note) shown below the meta page, inside the shell's `<main>`. */
-export function StandardMetaPageClient({ initialTeaser, children }: { initialTeaser: StandardMetaTeaserSeed | null; children?: ReactNode }) {
+export function StandardMetaPageClient({ initialTeaser }: { initialTeaser: StandardMetaTeaserSeed | null }) {
   const access = usePublicAccess();
   const { allowed, pending } = paidAccess(access, 'standard');
   // The teaser is the same for every viewer, so it is not reloaded when the
@@ -21,6 +19,5 @@ export function StandardMetaPageClient({ initialTeaser, children }: { initialTea
       teaserWaitsForAccess={pending && sessionTag() !== null} initialTeaser={initialTeaser}
       paywall={{ authUser: access.user, subscriptionStatus: access.subscription,
         subscriptionLoading: access.checking, onRefreshSubscription: access.refresh }} />
-    {children}
   </PublicPageShell>;
 }

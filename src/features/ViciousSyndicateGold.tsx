@@ -183,12 +183,6 @@ export default function ViciousSyndicateGold() {
           minimumFrequency={data.minimumDeckFrequency} deckClass={deckClass} onDeckClassChange={setDeckClass}
           buildState={buildState} buildCoverage={data.buildCoverage} copiedDeck={copiedDeck} onCopy={copyDeck} />
       </MetaShare>
-
-      <details className="vsgold-method">
-        <summary>Как читать отчёт</summary>
-        <p>Тир — по винрейту Power Tier против тех же порогов, что на странице меты: S от 53%, A от 51%, B от 49%, C от 47%, ниже — D. Vicious Syndicate не отдаёт число игр по каждому архетипу, поэтому доверительного интервала здесь нет.</p>
-        <p>В диапазонах рангов рядом с винрейтом — разница в процентных пунктах с той же колодой на всех рангах. Истории прошлых отчётов в источнике нет, поэтому изменений со временем страница не показывает.</p>
-      </details>
     </div>
   );
 }
