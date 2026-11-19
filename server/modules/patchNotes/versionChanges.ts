@@ -15,10 +15,17 @@ export type CardFacts = {
 
 const number = (value: unknown) => (typeof value === 'number' && Number.isFinite(value) ? value : undefined);
 
-/** Rule text compares without markup (`<b>`, `[x]`), line breaks and spacing. */
-export const plainRuleText = (value: unknown) => (typeof value === 'string'
-  ? value.replace(/<[^>]*>/g, '').replace(/\[x\]/gi, '').replace(/\s+/g, ' ').trim().toLocaleLowerCase('ru-RU')
-  : undefined);
+/** Rule text compares without markup (`<b>`, `[x]`), line breaks and spacing; the result is only compared, never shown. */
+export function plainRuleText(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  let text = value;
+  // Repeated until nothing changes, so a tag split by another tag is removed too.
+  for (let previous = ''; previous !== text;) {
+    previous = text;
+    text = text.replace(/<[^<>]*>/g, '');
+  }
+  return text.replace(/[<>]/g, '').replace(/\[x\]/gi, '').replace(/\s+/g, ' ').trim().toLocaleLowerCase('ru-RU');
+}
 
 /** The comparable facts of a history snapshot; `null` for anything that is not one. */
 export function cardFacts(snapshot: unknown, battlegrounds: boolean): CardFacts | null {
