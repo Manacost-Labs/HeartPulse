@@ -41,7 +41,10 @@ const reworked: PatchNotesEntry = {
 };
 const unknown: PatchNotesEntry = {
   ...base, id: 'constructed-неизвестная-карта', name: 'Карта вне каталога', mode: 'constructed',
-  cardId: null, changes: [{ label: 'Стоимость', before: 6, after: 5, better: 'lower' }],
+  cardId: null, changes: [
+    { label: 'Стоимость', before: 6, after: 5, better: 'lower' },
+    { label: 'Текст', before: 'Уничтожает существо, а затем возрождает его с полным здоровьем.', after: 'Уничтожает нелегендарное существо, а затем возрождает его с полным здоровьем.' },
+  ],
 };
 
 const latest: PatchNotesDetail = {
@@ -49,8 +52,12 @@ const latest: PatchNotesDetail = {
   publishedAt: '2026-11-03T15:55:00+00:00', sourceUrl: 'https://hs-manacost.ru/', officialUrl: 'https://playhearthstone.com/',
   changeCount: 6, missingBefore: 0, summary: null, meta: null,
   entries: [matriarch, reworked, unknown, wrathguard, tiered, trinket],
-  pictureSections: [{ mode: 'battlegrounds', title: 'ИЗМЕНЕНИЯ СУЩЕСТВ' }],
-  generalChanges: [{ mode: 'battlegrounds', lines: ['Аберрации больше не встречаются в каждом матче.'] }],
+  pictureSections: [],
+  generalChanges: [{
+    mode: 'battlegrounds',
+    lines: ['Аберрации больше не встречаются в каждом матче.', 'Анимации нескольких Живых азеритов в игре теперь проигрываются как одна.'],
+    marks: [{ line: 1, start: 20, end: 34, cardId: 'BG28_707', name: 'Живой азерит', renderUrl: null }],
+  }],
 };
 const earlier: PatchNotesDetail = {
   ...latest, version: '37.0.0', build: '37.0.0.254477', title: 'Обновление 37.0', publishedAt: '2026-10-12T16:55:00+00:00',
@@ -81,6 +88,9 @@ export const BeforeAfter: Story = {
     await expect(canvas.getByRole('article', { name: 'Молот Сумерек' }).dataset.variant).toBe('single');
     await expect(canvas.getByRole('article', { name: 'Карта вне каталога' }).dataset.variant).toBe('line');
     await expect(canvas.getByText('Тир')).toBeVisible();
+    await expect(canvas.getByRole('button', { name: /Живых азеритов/ })).toBeVisible();
+    await expect(canvasElement.querySelectorAll('.hp-pc[data-variant="line"] ins').length).toBeGreaterThan(0);
+    await expect(canvasElement.querySelector('.hp-pc[data-variant="pair"] .hp-plate__text')).toBeNull();
     await expect(canvas.getByText('Золото')).toBeVisible();
     await expect(canvasElement.querySelector('input, select, details, nav')).toBeNull();
   },

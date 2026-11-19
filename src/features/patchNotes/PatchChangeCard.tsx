@@ -1,13 +1,16 @@
 import { ArrowRight } from 'lucide-react';
 import type { PatchCardView } from '../../modules/patchNotes/public';
 import { publicResourceImageUrl, publicResourceUrl } from '../../publicResourceUrl';
+import { patchDiffHunks } from '../../modules/patchNotes/public';
+import { wordDiff } from '../../vendor/varylo-ui/gaming/patch';
 import { changePlates, type ChangePlate } from './patchChangePlates';
 
 /*
  * One changed card as the patch changed it: the card before, an arrow with
  * the plates of what changed, the card after. A card without a pair of pictures
- * is one current picture with the plates beside it; a card the catalog does not
- * know is one line of text.
+ * is one current picture with the plates beside it. The pictures carry the
+ * rule text, so only a card with no picture at all prints its text: once, the
+ * changed words marked.
  */
 
 const DIRECTION_TEXT = { buff: 'лучше для игрока', nerf: 'хуже для игрока', neutral: '' } as const;
@@ -31,15 +34,32 @@ function pairOf(card: PatchCardView): { before: Picture; after: Picture } | null
   return before && after ? { before, after } : null;
 }
 
-/** The current picture of a card: the catalog render of a Battlegrounds card, else the site's own card image. */
+/**
+ * The current picture of a card: the catalog render of a Battlegrounds card or of a card the dictionary does not
+ * hold, else the game's own latest render (it carries today's rule text, which the site's stored thumbnail may not).
+ */
 function currentPicture(card: PatchCardView): Picture | null {
   if (!card.cardId) return null;
-  const render = card.mode === 'battlegrounds' ? publicResourceUrl(card.renderUrl) : '';
+  const render = publicResourceUrl(card.renderUrl);
   if (render.startsWith('/api/public-resource/')) {
     return { src: publicResourceImageUrl(card.renderUrl, { width: 480 }), ...SIZE.battleground, contain: false };
   }
-  if (card.art === 'card') return { src: card.thumb ?? '', width: 360, height: 497, contain: false };
-  return { src: card.thumb ?? '', width: 360, height: card.art === 'hero' ? 546 : 360, contain: true };
+  if (card.mode === 'battlegrounds') return { src: card.thumb ?? '', width: 360, height: card.art === 'hero' ? 546 : 360, contain: true };
+  return { src: publicResourceImageUrl(`/api/public-resource/hsjson/v1/render/latest/ruRU/512x/${encodeURIComponent(card.cardId)}.png`, { width: 480 }), ...SIZE.battleground, contain: false };
+}
+
+/** The rule text of a card shown without a picture: the old words struck out, the new ones marked, in one paragraph. */
+function RuleText({ before, after }: { before: string | null; after: string | null }) {
+  const tokens = before && after ? patchDiffHunks(wordDiff(before, after)) : [{ text: (before ?? after) ?? '', op: before && !after ? 'remove' as const : 'same' as const }];
+  return (
+    <span className="hp-plate__text">
+      {tokens.map((token, index) => (token.op === 'same'
+        ? <span key={index}>{token.text}</span>
+        : token.op === 'remove'
+          ? <del key={index}><span className="sr-only">было </span>{token.text}</del>
+          : <ins key={index}><span className="sr-only">стало </span>{token.text}</ins>))}
+    </span>
+  );
 }
 
 function Plate({ plate, withText }: { plate: ChangePlate; withText: boolean }) {
@@ -55,12 +75,7 @@ function Plate({ plate, withText }: { plate: ChangePlate; withText: boolean }) {
           {direction !== 'neutral' && <span className="sr-only">, {DIRECTION_TEXT[direction]}</span>}
         </span>
       )}
-      {withText && text && (
-        <span className="hp-plate__text">
-          {text.before && <span><i>Было:</i> {text.before}</span>}
-          {text.after && <span><i>Стало:</i> {text.after}</span>}
-        </span>
-      )}
+      {withText && text && <RuleText before={text.before} after={text.after} />}
     </li>
   );
 }
@@ -85,10 +100,11 @@ export function PatchChangeCard({ card, eager }: { card: PatchCardView; eager: b
   const body = (
     <>
       <h4 id={headingId} className="hp-pc__name">{name}</h4>
+      {card.subtitle && <p className="hp-pc__meta">{card.subtitle}</p>}
       {card.sourceName && <p className="hp-pc__meta" lang="en">{card.sourceName}</p>}
     </>
   );
-  const list = (withText: boolean) => (
+  const list = (withText: boolean) => plates.length > 0 && (
     <ul className="hp-pc__plates" aria-label="Что изменилось">
       {plates.map((plate, index) => <Plate key={`${plate.label}-${index}`} plate={plate} withText={withText} />)}
     </ul>
@@ -117,7 +133,7 @@ export function PatchChangeCard({ card, eager }: { card: PatchCardView; eager: b
         <Figure picture={current} caption="Сейчас" alt={`${card.name} сейчас`} eager={eager} />
         <div className="hp-pc__side">
           {body}
-          {list(true)}
+          {list(false)}
           {note}
         </div>
       </article>

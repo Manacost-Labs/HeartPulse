@@ -1,0 +1,72 @@
+/*
+ * The rule changes of a mode: one quiet sheet with a short label and a list
+ * whose bullets are small gold diamonds. A card named in a line is the same
+ * kind of highlight as a card name in an article: italic, with a dotted rule.
+ */
+
+.hp-general {
+  display: grid;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 1rem 1.25rem 0.5rem;
+  border: 1px solid var(--patch-line);
+  border-radius: 6px;
+  background: var(--patch-paper);
+  font-family: var(--font-body);
+}
+
+.hp-general__label {
+  margin: 0;
+  color: var(--arena-muted-ink);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hp-general__list { display: grid; margin: 0; padding: 0; list-style: none; }
+
+.hp-general__list li {
+  position: relative;
+  padding: 0.6rem 0 0.6rem 1.4rem;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.hp-general__list li + li { border-top: 1px solid rgba(95, 55, 29, 0.16); }
+
+.hp-general__list li::before {
+  content: '';
+  position: absolute;
+  top: 1.05rem;
+  left: 0.1rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border: 1.5px solid #5a3315;
+  background: linear-gradient(180deg, #ffe9a3, #f2b52c);
+  transform: rotate(45deg);
+}
+
+.hp-card-mention {
+  display: inline;
+  min-height: 0;
+  margin: 0;
+  padding: 0 0.1em;
+  border: 0;
+  border-radius: 3px;
+  background: rgba(217, 171, 73, 0.2);
+  color: inherit;
+  font: inherit;
+  font-style: italic;
+  font-weight: 600;
+  text-align: inherit;
+  text-decoration: underline dotted rgba(95, 55, 29, 0.7);
+  text-underline-offset: 3px;
+  cursor: help;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hp-card-mention:hover,
+.hp-card-mention:focus-visible { background: rgba(217, 171, 73, 0.4); color: var(--arena-red); }
+.hp-card-mention:focus-visible { outline: 2px solid var(--arena-red); outline-offset: 2px; }

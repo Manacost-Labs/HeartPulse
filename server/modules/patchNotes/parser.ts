@@ -17,13 +17,17 @@ export type ResolvedPatchCard = {
   cardType?: string | null;
   name?: string;
   renderUrl?: string | null;
+  /** What the article added to the name ("Способность К’Туна", "2-й уровень"): shown as the card's line, not as another spelling. */
+  qualifier?: string;
 };
 
 /**
  * Card lookup by name within a mode; `null` when the name is unknown or
  * ambiguous. The subtitle tells a lesser trinket from the greater one of the same name.
  */
-export type PatchCardResolver = (name: string, context?: { mode: PatchNotesMode; subtitle: string | null }) => ResolvedPatchCard | null;
+export type PatchCardResolver = (
+  name: string, context?: { mode: PatchNotesMode; subtitle: string | null; tier?: number | null },
+) => ResolvedPatchCard | null;
 
 type Statement = { name: string | null; qualifier: string | null; note: string | null; extra: PatchNotesChange[] };
 type ParsedArticle = {
@@ -63,12 +67,13 @@ class ArticleReader {
     const effectiveSubtitle = [this.current.label, subtitle].filter(Boolean).join(' · ') || null;
     const card = this.resolve(entryName, { mode: this.current.mode, subtitle: effectiveSubtitle });
     const displayName = card?.name || entryName;
+    const shownSubtitle = card?.qualifier ? [effectiveSubtitle, card.qualifier].filter(Boolean).join(' · ') : effectiveSubtitle;
     this.entries.push({
       id: entryId(this.current.mode, effectiveSubtitle, entryName, this.used), name: displayName,
-      sourceName: sameName(displayName, entryName) ? null : entryName, mode: this.current.mode,
+      sourceName: card?.qualifier || sameName(displayName, entryName) ? null : entryName, mode: this.current.mode,
       cardId: card?.id ?? null, cardClass: card?.cardClass ?? null, cardType: card?.cardType ?? null,
       renderUrl: card?.renderUrl ?? null, artwork: null, beforeRenderUrl: null, afterRenderUrl: null, format: null, archetypes: [], history: [],
-      subtitle: effectiveSubtitle, changes, note: entryNote,
+      subtitle: shownSubtitle, changes, note: entryNote,
     });
     if (this.open) this.open.empty = false;
   }

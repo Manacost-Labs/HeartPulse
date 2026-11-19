@@ -107,8 +107,20 @@ export type PatchNotesMeta = {
 /** An article heading of changes that the article shows only as pictures, so no entry carries them. */
 export type PatchNotesPictureSection = { mode: PatchNotesMode; title: string };
 
+/** A card named inside a general-changes line: characters `start`–`end` of `lines[line]`. */
+export type PatchNotesMention = {
+  line: number;
+  start: number;
+  end: number;
+  cardId: string;
+  /** The card's own name, as the catalog spells it (the line may use another case). */
+  name: string;
+  /** Catalog render of a Battlegrounds card; `null` for a Constructed card, which the site renders itself. */
+  renderUrl: string | null;
+};
+
 /** Rule changes the article states as plain sentences under a "general changes" heading. */
-export type PatchNotesGeneralChanges = { mode: PatchNotesMode; lines: string[] };
+export type PatchNotesGeneralChanges = { mode: PatchNotesMode; lines: string[]; marks?: PatchNotesMention[] };
 
 export type PatchNotesDetail = PatchNotesSummary & {
   summary: string | null;

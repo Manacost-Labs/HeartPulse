@@ -1,4 +1,5 @@
 import type { PatchNotesDetail, PatchNotesEntry } from './contract.js';
+import { cardFacts, diffFacts, reconcileChanges, type VersionDiff } from './versionChanges.js';
 
 /**
  * "Before" and "after" pictures of a changed card, from the card history of
@@ -9,12 +10,13 @@ import type { PatchNotesDetail, PatchNotesEntry } from './contract.js';
  * painted or guessed.
  */
 
-export type CardVersionPair = { before: string; after: string };
+/** `diff`: what differs between the two versions' snapshots, `null` when either has none. */
+export type CardVersionPair = { before: string; after: string; diff: VersionDiff | null };
 
 /** The patch's own window: it came out at `from` and the next patch at `until` (`null`: none yet). */
 export type PatchWindow = { from: number; until: number | null };
 
-type Picture = { at: number; url: string; key: string };
+type Picture = { at: number; url: string; key: string; snapshot: unknown };
 
 const ARCHIVE_PREFIX = '/uploads/card-history-media/';
 const MAX_CONCURRENT = 4;
@@ -38,14 +40,18 @@ function pictures(versions: unknown, mediaKey: string, origin: string): Picture[
     const media = (version as { media?: Record<string, { archive_url?: unknown; sha256?: unknown } | undefined> })?.media?.[mediaKey];
     const path = typeof media?.archive_url === 'string' ? media.archive_url : '';
     if (!Number.isFinite(at) || !path.startsWith(ARCHIVE_PREFIX) || path.includes('..')) continue;
-    result.push({ at, url: `${origin}${path}`, key: typeof media?.sha256 === 'string' && media.sha256 ? media.sha256 : path });
+    result.push({
+      at, url: `${origin}${path}`, key: typeof media?.sha256 === 'string' && media.sha256 ? media.sha256 : path,
+      snapshot: (version as { snapshot?: unknown })?.snapshot,
+    });
   }
   return result.sort((left, right) => left.at - right.at);
 }
 
 /**
  * "Before" is the last archived picture older than the patch; "after" is the
- * first one inside the patch's window whose picture differs from it.
+ * first one inside the patch's window whose picture differs from it; the
+ * snapshots of those two versions say what changed.
  */
 export function pickVersionPair(versions: unknown, mediaKey: string, window: PatchWindow, origin: string): CardVersionPair | null {
   const archive = pictures(versions, mediaKey, origin);
@@ -53,7 +59,9 @@ export function pickVersionPair(versions: unknown, mediaKey: string, window: Pat
   if (!before) return null;
   const after = archive.find(picture => picture.at >= window.from && (window.until === null || picture.at < window.until)
     && picture.key !== before.key);
-  return after ? { before: before.url, after: after.url } : null;
+  if (!after) return null;
+  const [left, right] = [cardFacts(before.snapshot, mediaKey === 'card_image'), cardFacts(after.snapshot, mediaKey === 'card_image')];
+  return { before: before.url, after: after.url, diff: left && right ? diffFacts(left, right) : null };
 }
 
 export type CardVersionsDependencies = {
@@ -114,7 +122,8 @@ export function createCardVersions({ fetchJson, baseUrl, now = Date.now }: CardV
   };
 
   const jobFor = (patch: PatchNotesDetail, window: PatchWindow) => {
-    const key = `${patch.build}@${window.until ?? ''}`;
+    // Cards the catalog resolved later are new lookups, so the key counts the cards with an id.
+    const key = `${patch.build}@${window.until ?? ''}#${patch.entries.filter(entry => entry.cardId).length}`;
     const known = jobs.get(key);
     const age = known ? now() - known.at : 0;
     if (known && (known.done || age < (known.complete ? COMPLETE_TTL_MS : INCOMPLETE_RETRY_MS))) return known;
@@ -142,7 +151,9 @@ export function createCardVersions({ fetchJson, baseUrl, now = Date.now }: CardV
         ...patch,
         entries: patch.entries.map(entry => {
           const pair = job.pairs.get(entry.id);
-          return pair ? { ...entry, beforeRenderUrl: pair.before, afterRenderUrl: pair.after } : entry;
+          if (!pair) return entry;
+          const changes = pair.diff ? reconcileChanges(entry.changes, pair.diff, entry.mode === 'battlegrounds') : entry.changes;
+          return { ...entry, beforeRenderUrl: pair.before, afterRenderUrl: pair.after, changes };
         }),
       };
     },

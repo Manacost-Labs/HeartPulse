@@ -6,13 +6,13 @@ export type ChangePlate = {
   before: string | null;
   after: string | null;
   direction: PatchDirection;
-  /** Old and new rule text; the page shows them only where no picture of the card shows the text. */
+  /** Old and new rule text; the page shows them, the changed words marked, only where no picture of the card shows the text. */
   text: { before: string | null; after: string | null } | null;
 };
 
 const LONG_TEXT = 12;
 
-const isText = (change: PatchChangeView) => (typeof change.before === 'string' && change.before.length > LONG_TEXT)
+const isText = (change: PatchChangeView) => change.label === 'Текст' || (typeof change.before === 'string' && change.before.length > LONG_TEXT)
   || (typeof change.after === 'string' && change.after.length > LONG_TEXT);
 
 /** The game's own words for the numbers: a Battlegrounds cost is gold, a tavern level is a tier. */

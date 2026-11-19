@@ -95,7 +95,12 @@ test('patch notes show the two newest patches as cards before → after, and the
     ], 'cards and their plates read in the article\'s own order, mode by mode');
     assert.equal(await page.$$eval('.hp-pc[data-variant="pair"]', nodes => nodes.length), 0,
       'an archive picture from a host the image proxy does not know is not drawn as a pair');
-    assert.equal(await page.$$eval('.hp-pc del, .hp-patch-toc', nodes => nodes.length), 0);
+    assert.equal(await page.$$eval('.hp-patch-toc', nodes => nodes.length), 0);
+    // A card with no picture prints its text once, the changed words marked; no "Было / Стало" blocks anywhere.
+    assert.equal(await page.$$eval('.hp-pc[data-variant="line"] .hp-plate__text ins', nodes => nodes.length > 0), true);
+    assert.equal(await page.$$eval('.hp-patch', nodes => /Было:|Стало:|только картинками/.test(nodes[0].textContent ?? '')), false);
+    assert.equal(await page.$$eval('.hp-mode__head', nodes => nodes.every(node => node.querySelector('img.hp-mode__art') && node.querySelector('h3'))), true,
+      'every mode is a heading on a strip of its art');
     assert.equal((await fetch(`${pilot.origin}/api/patch-notes/9.9.9`)).status, 404);
 
     await page.setRequestInterception(true);

@@ -1,0 +1,106 @@
+/*
+ * The mode title of a patch: the menu's gold emblem and the name on a strip of
+ * the mode's art, under a dark wash so the name reads on any picture. The
+ * frame is the site's wood with a thin gold line inside.
+ */
+
+.hp-mode__head {
+  position: relative;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  min-height: 5.5rem;
+  padding: 0.75rem 1.25rem;
+  overflow: hidden;
+  isolation: isolate;
+  border: 2px solid #4a2a14;
+  border-radius: 8px;
+  background: #2e160b;
+  box-shadow: inset 0 0 0 1px rgba(239, 201, 111, 0.55), 0 2px 0 rgba(46, 22, 11, 0.3);
+}
+
+.hp-mode__art {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 70% 30%;
+}
+
+.hp-mode__head::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(90deg, rgba(34, 17, 8, 0.9) 0%, rgba(34, 17, 8, 0.62) 50%, rgba(34, 17, 8, 0.08) 100%);
+}
+
+.hp-mode__head .hp-nav-art,
+.hp-mode__emblem {
+  flex: none;
+  width: 3.5rem;
+  height: 3.5rem;
+  filter: drop-shadow(0 0 0.55rem rgba(255, 205, 90, 0.5));
+}
+
+.hp-mode__head .hp-mode__title {
+  margin: 0;
+  color: #fff3cf;
+  font-family: var(--font-display);
+  font-size: clamp(1.5rem, 4.2vw, 2rem);
+  font-weight: 400;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  text-shadow: 0 2px 0 #2e160b, 0 0 14px rgba(0, 0, 0, 0.65);
+}
+
+@media (max-width: 599px) {
+  .hp-mode__head { gap: 0.75rem; min-height: 4.5rem; padding: 0.6rem 1rem; }
+  .hp-mode__head .hp-nav-art,
+  .hp-mode__emblem { width: 2.75rem; height: 2.75rem; }
+}
+
+/* VARIANT-B-C-START */
+/* B: no frame; the heading sits on the parchment, the art fades in from the right edge, a wood rule underneath. */
+.hp-patch[data-mode-style='b'] .hp-mode__head {
+  min-height: 5rem;
+  padding: 0.25rem 0 0.5rem;
+  overflow: visible;
+  border: 0;
+  border-bottom: 4px solid transparent;
+  border-image: linear-gradient(90deg, #5f371d 0%, rgba(95, 55, 29, 0.5) 60%, rgba(95, 55, 29, 0.1) 100%) 1;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.hp-patch[data-mode-style='b'] .hp-mode__head::before { display: none; }
+.hp-patch[data-mode-style='b'] .hp-mode__art {
+  left: auto;
+  z-index: -1;
+  width: min(62%, 26rem);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 65%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 65%);
+}
+.hp-patch[data-mode-style='b'] .hp-mode__head .hp-mode__title { color: var(--arena-ink); text-shadow: none; }
+
+/* C: a leather ribbon with a gold edge and a notched end; no art. */
+.hp-patch[data-mode-style='c'] .hp-mode__head {
+  min-height: 4rem;
+  width: fit-content;
+  min-width: min(100%, 22rem);
+  max-width: 100%;
+  padding: 0.5rem 3rem 0.5rem 1rem;
+  border: 0;
+  border-radius: 0;
+  background: linear-gradient(180deg, #5a3317, #3b200e);
+  box-shadow: inset 0 0 0 2px #d9ab49, inset 0 0 0 4px #3b200e;
+  clip-path: polygon(0 0, 100% 0, calc(100% - 1.1rem) 50%, 100% 100%, 0 100%);
+}
+.hp-patch[data-mode-style='c'] .hp-mode__art,
+.hp-patch[data-mode-style='c'] .hp-mode__head::before { display: none; }
+.hp-patch[data-mode-style='c'] .hp-mode__head .hp-nav-art,
+.hp-patch[data-mode-style='c'] .hp-mode__emblem { width: 2.75rem; height: 2.75rem; }
+.hp-patch[data-mode-style='c'] .hp-mode__head .hp-mode__title { color: #f5d98a; font-size: clamp(1.35rem, 3.6vw, 1.7rem); }
+/* VARIANT-B-C-END */

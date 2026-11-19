@@ -21,6 +21,7 @@ export type PatchCardView = {
   group: string;
   /** "Существо · Воин", "Малый аксессуар", "Дуэли · Уиллоу". */
   typeLabel: string | null;
+  subtitle: string | null; /** The article's line under the name: "Малый аксессуар", "Способность К’Туна". */
   cardId: string | null;
   thumb: string | null;
   /** Catalog render for the hover preview; the page falls back to the HearthstoneJSON render. */
@@ -184,7 +185,7 @@ export function toPatchView(detail: Pick<PatchNotesDetail, 'entries'>): PatchVie
       mode: entry.mode,
       section: sectionId,
       group,
-      typeLabel,
+      typeLabel, subtitle: entry.subtitle ?? null,
       cardId: entry.cardId,
       thumb: entry.cardId ? patchCardImage(entry.cardId) : null,
       renderUrl: entry.renderUrl ?? null,
@@ -197,8 +198,7 @@ export function toPatchView(detail: Pick<PatchNotesDetail, 'entries'>): PatchVie
       history: (entry.history ?? []).map(item => ({
         version: item.version, publishedAt: item.publishedAt, href: `${patchNotesHref(item.version)}#${patchCardAnchor(item.entryId)}`,
       })),
-      kind: patchKind(entry.changes), changes,
-      note: entry.note,
+      kind: patchKind(entry.changes), changes, note: entry.note,
       hasText: changes.some(change => typeof change.before === 'string' && change.before.length > 12
         || typeof change.after === 'string' && change.after.length > 12),
       search: [entry.name, entry.sourceName, typeLabel, ...entry.changes.flatMap(change => [change.label, change.before, change.after])]

@@ -10,6 +10,8 @@ export type BattlegroundCatalogCard = {
   /** `lesser` or `greater` for trinkets. */
   group: string | null;
   timewarped: boolean;
+  /** Tavern tier of a minion; versions of one card that differ by tier share a name. */
+  tier?: number | null;
   renderUrl: string | null;
 };
 
@@ -48,6 +50,7 @@ function catalogCard(row: Row, library: (typeof LIBRARIES)[number]): Battlegroun
     cardType: library.cardType ?? (slug === 'spell' ? 'spell' : 'minion'),
     group: text((row.group as Row | undefined)?.slug) || null,
     timewarped: library.timewarped === true,
+    tier: Number.isInteger(row.tavern_tier) ? Number(row.tavern_tier) : null,
     renderUrl: httpUrl(images.card) ?? httpUrl(images.hero),
   };
 }
@@ -121,7 +124,8 @@ export function createBattlegroundNameResolver(cards: BattlegroundCatalogCard[])
       : /малый/i.test(subtitle) ? (card: BattlegroundCatalogCard) => card.group === 'lesser'
         : /большой/i.test(subtitle) ? (card: BattlegroundCatalogCard) => card.group === 'greater'
           : null;
-    const pool = wanted ? candidates.filter(wanted) : candidates;
+    const sameTier = context?.tier ? candidates.filter(card => card.tier === context.tier) : [];
+    const pool = sameTier.length ? sameTier : wanted ? candidates.filter(wanted) : candidates;
     const card = [...(pool.length ? pool : candidates)].sort((left, right) => rank(left) - rank(right))[0];
     return { id: card.id, cardClass: null, cardType: card.cardType, name: card.ru, renderUrl: card.renderUrl };
   };

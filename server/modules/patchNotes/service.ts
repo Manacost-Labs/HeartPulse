@@ -7,7 +7,12 @@ import {
 } from './archetypeSnapshots.js';
 import { cleanArticleText, parsePatchArticle, type PatchCardResolver } from './parser.js';
 import { createPatchCardVersions } from './cardVersions.js';
-import { createBattlegroundNameResolver, type BattlegroundCatalogCard } from './battlegroundCatalog.js';
+import type { BattlegroundCatalogCard } from './battlegroundCatalog.js';
+import { createPatchCardResolver } from './cardNames.js';
+import { createCatalogCards } from './catalogCards.js';
+import { battlegroundNamed, collectibleNamed, createMentionFinder, withMentions } from './generalMentions.js';
+
+export { createCardNameResolver, createPatchCardResolver } from './cardNames.js';
 
 type Row = Record<string, unknown>;
 type CardName = { name?: unknown; playerClass?: unknown; type?: unknown; dbf?: unknown };
@@ -52,33 +57,6 @@ const httpUrl = (value: unknown) => {
   const url = text(value);
   return url && /^https?:\/\//i.test(url) ? url : null;
 };
-
-const nameKey = (value: string) => value.toLocaleLowerCase('ru-RU').replace(/ё/g, 'е').replace(/[’‘`]/g, "'")
-  .replace(/\s+/g, ' ').trim();
-
-/** A name that belongs to cards of two classes is ambiguous and stays unresolved. */
-export function createCardNameResolver(cards: Record<string, CardName>): PatchCardResolver {
-  const byName = new Map<string, { id: string; cardClass: string | null; cardType: string | null } | null>();
-  for (const [id, card] of Object.entries(cards)) {
-    const name = typeof card?.name === 'string' ? nameKey(card.name) : '';
-    if (!name) continue;
-    const cardClass = typeof card.playerClass === 'string' ? card.playerClass : null;
-    const cardType = typeof card.type === 'string' ? card.type.toLowerCase() : null;
-    const known = byName.get(name);
-    if (known === undefined) byName.set(name, { id, cardClass, cardType });
-    else if (known && known.cardClass !== cardClass) byName.set(name, null);
-    // Reprints share a name and class; the original set id keeps its art.
-    else if (known && known.id.startsWith('CORE_') && !id.startsWith('CORE_')) byName.set(name, { id, cardClass, cardType });
-  }
-  return name => byName.get(nameKey(name)) ?? null;
-}
-
-/** Battlegrounds names resolve against the Battlegrounds catalog, every other mode against collectible cards. */
-export function createPatchCardResolver(cards: Record<string, CardName>, battlegrounds: BattlegroundCatalogCard[]): PatchCardResolver {
-  const collectible = createCardNameResolver(cards);
-  const battleground = createBattlegroundNameResolver(battlegrounds);
-  return (name, context) => (context?.mode === 'battlegrounds' ? battleground(name, context) : collectible(name, context));
-}
 
 function sections(value: unknown): { level?: unknown; title?: unknown }[] {
   return Array.isArray(value) ? value.filter(item => item && typeof item === 'object') : [];
@@ -205,6 +183,7 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
 
   const history = { fetchJson: dependencies.fetchCardHistory ?? dependencies.fetchJson, baseUrl: dependencies.cardHistoryBaseUrl ?? '', now };
   const cardVersions = dependencies.cardHistoryBaseUrl ? createPatchCardVersions(history) : null;
+  const catalogCards = dependencies.cardHistoryBaseUrl ? createCatalogCards(history) : null;
   const refresh = async () => {
     const [payload, cards, battlegrounds, standard] = await Promise.all([
       dependencies.fetchJson(dependencies.patchesUrl),
@@ -217,8 +196,13 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
     if (!Array.isArray(rows)) throw new Error('Patch archive payload has no patches');
     const resolve = createPatchCardResolver(cards, battlegrounds);
     const articles = supplementOfficialArticles(dropForeignArticleBuilds(rows as Row[]), dependencies.officialArticles ?? [], resolve);
-    const value = buildPatchNotesSnapshot(articles, resolve, new Date(now()).toISOString(),
+    const built = buildPatchNotesSnapshot(articles, resolve, new Date(now()).toISOString(),
       { standard: new Set(standard), dbfs: createDbfLookup(cards), artwork }, metaFor);
+    const finders = { battlegrounds: createMentionFinder(battlegroundNamed(battlegrounds)), collectible: createMentionFinder(collectibleNamed(cards)) };
+    const value = { ...built, patches: withMentions(built.patches, finders) };
+    // The cards of the newest patches that the dictionary lacks are read before the first answer (for a moment only); later answers fill in the rest.
+    await Promise.race([catalogCards?.load(value.patches.filter(patch => patch.changeCount > 0).slice(0, 2)), new Promise(done => setTimeout(done, 2_500).unref())]);
+    if (catalogCards) value.patches = catalogCards.fill(value.patches);
     snapshot = { value, expiresAt: now() + dependencies.ttlMs };
     // Started only now: read alongside the archive it still slowed the first answer down.
     loadArtwork();
@@ -236,7 +220,9 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
   return {
     /** Adds before/after pictures of the card history; waits a few seconds for an unread patch, never fails. */
     async withCardVersions(snapshot: PatchNotesSnapshot, patches: PatchNotesDetail[]): Promise<PatchNotesDetail[]> {
-      return cardVersions ? cardVersions.attach(snapshot.patches, patches) : patches;
+      if (!cardVersions) return patches;
+      await catalogCards?.load(patches);
+      return cardVersions.attach(snapshot.patches, catalogCards ? catalogCards.fill(patches) : patches);
     },
     async load(): Promise<PatchNotesSnapshot> {
       if (snapshot && snapshot.expiresAt > now()) return snapshot.value;
