@@ -14,6 +14,5 @@ export function ArenaClassesSkeleton() {
         <LoadingBlock className="arena-class-meter arena-class-meter--loading relative h-7 sm:h-8 rounded-full overflow-hidden sm:flex-grow" />
       </div>)}
     </div>
-    <div className="arena-classes-chart arena-classes-chart--loading"><LoadingBlock /></div>
   </LoadingSurface>;
 }

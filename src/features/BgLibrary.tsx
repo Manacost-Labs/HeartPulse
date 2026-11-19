@@ -26,6 +26,7 @@ import { BattlegroundMinionStatsSections } from './BattlegroundMinionStatsSectio
 import { minionPlacementTone, minionStatsKpis } from './battlegroundMinionStatsModel';
 import { optimizedBattlegroundThumbnailUrl } from './battlegroundImageUrls';
 import { BattlegroundStrategyList } from './BattlegroundStrategyList';
+import { TierBadge } from '../modules/arenaTierList/public';
 import { strategyRows, type StrategyEntry } from './bgLibraryStrategyRows';
 import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
 import '../route-parchment.css';
@@ -763,6 +764,9 @@ function libraryTierLabel(card: LibraryCard): string {
   return `Тир ${normalized.toUpperCase()}`;
 }
 
+/** A rating letter that has a mark in `/tier-marks/`; the prizes' other tiers («Тир 1») stay plain text. */
+const isTierLetter = (value: string): boolean => /^[sabcdef]$/i.test(value);
+
 function libraryTierSortValue(card: LibraryCard): number {
   const value = libraryTierValue(card).toUpperCase();
   const order: Record<string, number> = { S: 0, A: 1, B: 2, C: 3, D: 4, E: 5, F: 6 };
@@ -772,10 +776,10 @@ function libraryTierSortValue(card: LibraryCard): number {
   return 99;
 }
 
-function libraryDisplayGroup(card: LibraryCard, kind: LibraryKind): { key: string; label: string; tavernTier?: number } {
+function libraryDisplayGroup(card: LibraryCard, kind: LibraryKind): { key: string; label: string; tavernTier?: number; tier?: string } {
   if (kind === 'darkmoon_prize') {
     const tierValue = libraryTierValue(card);
-    return { key: `darkmoon-prize-tier-${tierValue || 'none'}`, label: libraryTierLabel(card) };
+    return { key: `darkmoon-prize-tier-${tierValue || 'none'}`, label: libraryTierLabel(card), tier: isTierLetter(tierValue) ? tierValue : undefined };
   }
   if (card.tavern_tier) {
     return { key: `tavern-${card.tavern_tier}`, label: `Таверна ${card.tavern_tier}`, tavernTier: card.tavern_tier };
@@ -907,7 +911,9 @@ const LibraryCardTile = React.memo(function LibraryCardTile({
         <p className="line-clamp-2 font-hs text-sm leading-tight text-[#26374f]">{cardRuName(card)}</p>
         {englishName && <p lang="en" className="mt-1 line-clamp-2 text-xs leading-tight text-[#657893]">{englishName}</p>}
         <div className="mt-1 flex flex-wrap justify-center gap-1">
-          {cardKind === 'darkmoon_prize' && libraryTierValue(card) && <span className="rounded bg-[#f3e8ff] px-1.5 py-0.5 text-[11px] font-bold text-[#6d28d9]">{libraryTierLabel(card)}</span>}
+          {cardKind === 'darkmoon_prize' && libraryTierValue(card) && (isTierLetter(libraryTierValue(card))
+            ? <TierBadge tier={libraryTierValue(card)} small />
+            : <span className="rounded bg-[#f3e8ff] px-1.5 py-0.5 text-[11px] font-bold text-[#6d28d9]">{libraryTierLabel(card)}</span>)}
           {card.tavern_tier && cardKind !== 'minion' && <span className="rounded bg-[#fff3c4] px-1.5 py-0.5 text-[11px] font-bold text-[#7c5b24]">Т{card.tavern_tier}</span>}
           {!isBaseLibraryKind(cardKind) && <span className="rounded bg-[#eef4fd] px-1.5 py-0.5 text-[11px] font-bold text-[#4f6685]">{libraryKindLabel(cardKind)}</span>}
           {card.group?.name_ru && <span className="max-w-full truncate rounded bg-[#f6ead0] px-1.5 py-0.5 text-[11px] font-bold text-[#7c5b24]">{card.group.name_ru}</span>}
@@ -1023,7 +1029,7 @@ function LibraryListPage({ kind, pool, navigatePath, cacheScope }: { kind: Libra
     ? filtered.slice(archiveStart, archiveStart + ARCHIVE_PAGE_SIZE)
     : filtered.slice(0, visibleCount);
   const grouped = useMemo(() => {
-    const groups = new Map<string, { key: string; label: string; tavernTier?: number; items: LibraryCard[] }>();
+    const groups = new Map<string, { key: string; label: string; tavernTier?: number; tier?: string; items: LibraryCard[] }>();
     visible.forEach(card => {
       const group = libraryDisplayGroup(card, kind);
       if (!groups.has(group.key)) groups.set(group.key, { ...group, items: [] });
@@ -1100,7 +1106,7 @@ function LibraryListPage({ kind, pool, navigatePath, cacheScope }: { kind: Libra
             <div key={group.key}>
               <div className="mb-4 flex items-center gap-3">
                 {group.tavernTier && <img src={tavernIcon(group.tavernTier)} alt="" className="h-10 w-10" loading="lazy" />}
-                <h2 className="font-hs text-2xl text-[#26374f]">{group.label}</h2>
+                <h2 className="font-hs text-2xl text-[#26374f]">{group.tier ? <TierBadge tier={group.tier} /> : group.label}</h2>
                 <span className="rounded-full border border-[#d6e1f1] bg-white px-2.5 py-1 text-xs font-bold text-[#60718a]">{group.items.length}</span>
                 <div className="h-px flex-1 bg-[#cbd9ed]" />
               </div>

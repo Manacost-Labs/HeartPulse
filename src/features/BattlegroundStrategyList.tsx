@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { STRATEGY_ROWS_SHOWN, type StrategyRow } from './bgLibraryStrategyRows';
+import { TierBadge } from '../modules/arenaTierList/public';
 import './BattlegroundStrategyList.css';
 
 type BattlegroundStrategyListProps = {
@@ -17,6 +18,7 @@ export function BattlegroundStrategyList({ rows, onOpen }: BattlegroundStrategyL
         {shown.map(row => (
           <li key={row.key}>
             <a className="bg-strategy-list__row" href={row.href} onClick={event => onOpen(row.href, event)}>
+              {row.tier ? <TierBadge tier={row.tier} small /> : null}
               <span className="bg-strategy-list__copy">
                 <span className="bg-strategy-list__label">{row.label}</span>
                 <span className="bg-strategy-list__title">{row.title}</span>

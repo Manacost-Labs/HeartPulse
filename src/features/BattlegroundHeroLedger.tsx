@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
 import { publicResourceUrl } from '../publicResourceUrl';
+import { TierBadge } from '../modules/arenaTierList/public';
 import type {
   BattlegroundHeroMmr,
   BattlegroundHeroMode,
@@ -157,8 +158,8 @@ function LedgerRow({
     <div className={`bg-hero-ledger__row${flat ? ' bg-hero-ledger__row--flat' : ''}`} role="row">
       {!flat && <span className="sr-only" role="cell">Тир {tier}</span>}
       {flat && (
-        <div className={`bg-hero-ledger__tier-cell bg-hero-ledger__tier-mark--${tier.toLowerCase()}`} role="cell">
-          <span className="bg-hero-ledger__tier-emblem"><img src={`/bg-tier-emblem-${tier.toLowerCase()}-v1.svg`} alt={`Тир ${tier}`} width={72} height={84} /></span>
+        <div className="bg-hero-ledger__tier-cell" role="cell">
+          <TierBadge tier={tier} />
         </div>
       )}
       <div className="bg-hero-ledger__hero" role="cell">
@@ -316,8 +317,8 @@ export default function BattlegroundHeroLedger({
       {sortKey === 'tier'
         ? orderedSections.map(section => (
             <div key={section.tier} className="bg-hero-ledger__tier">
-              <div className={`bg-hero-ledger__tier-mark bg-hero-ledger__tier-mark--${section.tier.toLowerCase()}`} aria-hidden="true">
-                <span className="bg-hero-ledger__tier-emblem"><img src={`/bg-tier-emblem-${section.tier.toLowerCase()}-v1.svg`} alt={`Тир ${section.tier}`} width={72} height={84} /></span>
+              <div className="bg-hero-ledger__tier-mark" aria-hidden="true">
+                <TierBadge tier={section.tier} />
                 <span className="bg-hero-ledger__tier-count">{heroCountLabel(section.heroes.length)}</span>
               </div>
               <div className="bg-hero-ledger__rows" role="rowgroup" aria-label={`Тир ${section.tier}`}>

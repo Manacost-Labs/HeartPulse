@@ -19,8 +19,8 @@ test('builds sort by tier and lead with the page minion, then core cards', () =>
     { key: 'fs-s', source: 'Firestone', title: 'S build', tier: 'S', cards: [] },
   ], 7, id => `/art/${id}`);
   assert.deepEqual(rows.map(row => row.key), ['fs-s', 'fs-b', 'hs']);
-  assert.equal(rows[1].label, 'Firestone · B');
-  assert.equal(rows[2].label, 'HSReplay');
+  assert.deepEqual([rows[1].label, rows[1].tier], ['Firestone', 'B']);
+  assert.deepEqual([rows[2].label, rows[2].tier], ['HSReplay', null], 'a build without a tier has no mark');
   assert.equal(rows[1].minions.length, 5);
   assert.deepEqual(rows[2].minions.map(minion => [minion.name, minion.current]), [['Существо 7', true], ['Существо 2', false], ['Существо 1', false]]);
   assert.equal(rows[2].minions[0].image, '/art/BG_7');

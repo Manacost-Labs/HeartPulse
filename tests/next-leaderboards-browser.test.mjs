@@ -102,7 +102,13 @@ test('the leaderboards page renders the table on the server, switches modes, jum
       await page.setViewport({ width, height, isMobile: width < 600, hasTouch: width < 600 });
       await page.goto(`${pilot.origin}/leaderboards/?mode=battlegrounds`, { waitUntil: 'networkidle2' });
       await page.waitForSelector('.leaderboards-table tbody tr');
-      await page.waitForSelector('.leaderboards-charts svg');
+      await page.waitForSelector('.leaderboards-histogram__bars[role="img"]');
+      const footer = await page.$eval('.leaderboards', node => ({
+        charts: node.querySelectorAll('.analytics-chart, svg.analytics-chart__svg, [aria-label="Графики таблицы"]').length,
+        text: node.textContent ?? '',
+      }));
+      assert.equal(footer.charts, 0, `no charts under the table at ${width}px`);
+      assert.doesNotMatch(footer.text, /по дням|Данные — официальные таблицы лидеров|четыре раза в сутки/, `no chart titles or source line at ${width}px`);
       const state = await pageState(page);
       assert.deepEqual(state.h1, ['Таблицы лидеров']);
       assert.equal(state.overflow, false, `no horizontal overflow at ${width}px`);

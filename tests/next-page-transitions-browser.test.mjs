@@ -124,7 +124,8 @@ async function assertModePanelBehavior(page, root) {
     };
   }, root);
   const button = `${root} details.hp-mode > summary`;
-  assert.deepEqual(await state(), { open: false, visibleCards: 0, current: 0, focusOnButton: false }, 'the banners start closed');
+  // An opened drawer puts focus on its first control, which is the mode switch; the sidebar leaves it where it was.
+  assert.deepEqual(await state(), { open: false, visibleCards: 0, current: 0, focusOnButton: root === '#arena-mobile-menu' }, 'the banners start closed');
   await page.click(button);
   await page.waitForFunction(selector => document.querySelectorAll(`${selector} [data-mode-card]`).length === 4
     && [...document.querySelectorAll(`${selector} [data-mode-card]`)].every(card => card.checkVisibility()), {}, root);

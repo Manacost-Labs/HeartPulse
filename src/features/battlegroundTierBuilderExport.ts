@@ -20,6 +20,7 @@ const COLUMN_GAP = 20;
 const INNER_ROW_GAP = 16;
 const TIER_GAP = 36;
 const LABEL_HEIGHT = 80;
+const MARK_SIZE = 76;
 
 async function drawWallpaper(ctx: CanvasRenderingContext2D, width: number, height: number, url: string, load: LoadExportImage) {
   try {
@@ -70,17 +71,19 @@ export async function exportTierBuilderImage({ placement, cards, fileType, backg
     const tierCards = (placement[tier.id] ?? []).map(id => cards.get(id)).filter((card): card is TierBuilderCard => !!card);
     if (!tierCards.length) continue;
     const images = await Promise.all(tierCards.map(card => load(tierBuilderCardImage(card, '512x'))));
-    sections.push({ tier, images });
+    // The band is headed by the site's tier mark; without it the letter is written as before.
+    const mark = await load(`/tier-marks/${tier.id.toLowerCase()}-160.webp`).catch(() => null);
+    sections.push({ tier, images, mark });
   }
   if (!sections.length) return;
 
   const columns = Math.min(6, Math.max(...sections.map(section => Math.min(section.images.length, 6))));
   const cardWidth = (EXPORT_WIDTH - SIDE_PADDING * 2 - COLUMN_GAP * (columns - 1)) / columns;
-  const layouts = sections.map(({ tier, images }) => {
+  const layouts = sections.map(({ tier, images, mark }) => {
     const rows = Array.from({ length: Math.ceil(images.length / columns) }, (_, row) => images.slice(row * columns, (row + 1) * columns));
     const heights = rows.map(row => Math.max(...row.map(image => cardWidth * (image.height / image.width))));
     const content = heights.reduce((sum, height) => sum + height, 0) + Math.max(0, rows.length - 1) * INNER_ROW_GAP;
-    return { tier, rows, heights, content };
+    return { tier, mark, rows, heights, content };
   });
   const canvas = document.createElement('canvas');
   canvas.width = EXPORT_WIDTH;
@@ -97,7 +100,10 @@ export async function exportTierBuilderImage({ placement, cards, fileType, backg
     ctx.fillStyle = 'rgba(240, 215, 154, 0.95)';
     ctx.font = '700 56px "BgDisplay", Georgia, serif';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`${layout.tier.label} · ${layout.tier.description}`, SIDE_PADDING, y + LABEL_HEIGHT / 2);
+    if (layout.mark) {
+      ctx.drawImage(layout.mark, SIDE_PADDING, y + (LABEL_HEIGHT - MARK_SIZE) / 2, MARK_SIZE, MARK_SIZE);
+      ctx.fillText(layout.tier.description, SIDE_PADDING + MARK_SIZE + 24, y + LABEL_HEIGHT / 2);
+    } else ctx.fillText(`${layout.tier.label} · ${layout.tier.description}`, SIDE_PADDING, y + LABEL_HEIGHT / 2);
     ctx.restore();
     y += LABEL_HEIGHT;
     layout.rows.forEach((row, rowIndex) => {

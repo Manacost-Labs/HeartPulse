@@ -77,6 +77,9 @@
   --motion-drop: calc(var(--motion-rise) / -2); /* where an opening menu, drawer or panel starts: towards its trigger */
   --motion-lift: 3px; /* how far a content card rises on hover and keyboard focus */
   --motion-zoom: 1.03; /* how much a content card's picture grows on hover and focus */
+  --motion-panel: 200ms; /* a menu panel opening from its button */
+  --motion-step: 40ms; /* gap between the cards of an opening panel */
+  --motion-zoom-slow: 420ms; /* a banner's picture growing on hover and focus */
   --motion-loop: 1.1s; /* one beat of the loading pulse */
   --motion-reveal-delay: 160ms; /* a loading placeholder appears only after this wait */
 

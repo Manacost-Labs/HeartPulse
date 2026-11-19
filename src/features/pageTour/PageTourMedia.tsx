@@ -47,7 +47,7 @@ function Views() {
         <rect x="114" y="14" width="92" height="80" rx="4" className="ptm-panel" />
         {['S', 'A', 'B', 'C'].map((tier, index) => (
           <g key={tier}>
-            <text x="126" y={33 + index * 18} textAnchor="middle" className="ptm-label is-strong">{tier}</text>
+            <image href={`/tier-marks/${tier.toLowerCase()}-40.webp`} x="118" y={21 + index * 18} width="16" height="16" />
             <rect x="136" y={23 + index * 18} width={60 - index * 10} height="12" rx="2" className={index < 2 ? 'ptm-good' : 'ptm-even'} />
           </g>
         ))}

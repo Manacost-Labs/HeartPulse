@@ -35,9 +35,9 @@
 
 .bg-skeleton-badge {
   flex-shrink: 0;
-  inline-size: 2.75rem;
-  block-size: 2.75rem;
-  border-radius: 999px;
+  inline-size: 52px;
+  block-size: 52px;
+  border-radius: 12px;
 }
 
 .bg-hero-skeleton-back__fill {
@@ -70,7 +70,7 @@
 }
 
 .bg-tier-skeleton__badge {
-  inline-size: 46px;
+  inline-size: 52px;
   block-size: 52px;
 }
 

@@ -1,15 +1,8 @@
-import { useMemo, type CSSProperties, type ReactNode } from 'react';
+import { type CSSProperties, type ReactNode } from 'react';
 import { ArrowDownRight } from 'lucide-react';
-import { LineChart } from '../../../shared/ui/analytics/LineChart';
-import type { ChartPoint } from '../../../shared/ui/analytics/analyticsModel';
-import { LEADERBOARD_RATING_LABELS, formatLeaderboardDay, formatPlayers } from '../model/leaderboardsView';
+import { LEADERBOARD_RATING_LABELS, formatPlayers } from '../model/leaderboardsView';
 import { histogramBars, histogramTicks, summaryLine, type HistogramBar } from '../model/leaderboardSummary';
 import type { LeaderboardStats } from '../model/types';
-import '../../../shared/ui/analytics/Analytics.css';
-
-function dayTick(day: string): string {
-  return `${Number(day.slice(8, 10))}.${day.slice(5, 7)}`;
-}
 
 function RatingHistogram({ bars, unit }: { bars: HistogramBar[]; unit: string }) {
   const ticks = histogramTicks(bars);
@@ -58,30 +51,4 @@ export function LeaderboardSummary({ stats, onRank }: { stats: LeaderboardStats;
     {bars.length > 0 && <RatingHistogram bars={bars} unit={LEADERBOARD_RATING_LABELS[stats.board.mode] ?? 'Рейтинг'} />}
     {stats.snapshot.truncated && <p className="leaderboards-muted leaderboards-summary__note">Сохранены первые {formatPlayers(stats.snapshot.stored)} мест</p>}
   </div>;
-}
-
-/** Графики под таблицей второстепенны: ниже стандартных 240px. */
-const CHART_HEIGHT = 160;
-
-/** Графики под таблицей: игроки и порог топа по дням (распределение рейтинга — в сводке). */
-export function LeaderboardCharts({ stats }: { stats: LeaderboardStats }) {
-  const { board, series } = stats;
-  const unit = LEADERBOARD_RATING_LABELS[board.mode] ?? 'Рейтинг';
-  // Средние победы Арены дробные: целочисленная ось их бы округлила.
-  const ratingUnit = board.mode === 'arena' ? '' : 'count';
-  const players = useMemo<ChartPoint[]>(() => series.map(point => ({
-    x: point.day, y: point.players, tick: dayTick(point.day), label: formatLeaderboardDay(point.day),
-  })), [series]);
-  const thresholds = useMemo<ChartPoint[]>(() => series.map(point => ({
-    x: point.day, y: point.at1000 ?? point.at100, tick: dayTick(point.day), label: formatLeaderboardDay(point.day),
-  })), [series]);
-  const thresholdRank = series.some(point => point.at1000 !== null) ? 1000 : 100;
-
-  if (series.length < 2) return null;
-  return <section className="leaderboards-charts" aria-label="Графики таблицы">
-      <LineChart title="Игроков в таблице по дням" unit="count" color="#8d171d" points={players} xLabel="День" height={CHART_HEIGHT} />
-      {/* «топ-1000» без разделителя: в заголовочном шрифте неразрывный пробел выглядит двойным. */}
-      {board.rated && <LineChart title={`Порог топ-${thresholdRank} по дням`}
-        subtitle={unit} unit={ratingUnit} color="#8f536d" points={thresholds} xLabel="День" height={CHART_HEIGHT} />}
-  </section>;
 }

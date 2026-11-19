@@ -581,33 +581,50 @@ The owner found the accordion menu small, shaky and dull. Groups are gone.
    every item of the current mode (row ≥ 52 px, 56 px in the drawer; icon 40 px;
    label Inter 600 17 px; 4 px between rows). Item ids, paths, entitlements and
    `tabFromPath` did not change; `NAVIGATION_MODES` (`navigationData.ts`) names
-   the four modes, their description line and the item their banner opens.
-2. All four lists are in the server HTML; CSS shows one. The tree carries
+   the modes, their description line and the item their banner opens.
+2. The lists of all modes are in the server HTML; CSS shows one. The tree carries
    `data-page-mode` for a page with a mode (`modeOfTab`); on any other page
    (home, help, profile) `<html data-nav-mode>` decides, set by the head script
    from `localStorage` `hp:nav:mode` before first paint (`navigationPreference.ts`),
-   Standard by default and without script. A page of a mode stores it, so Home
-   shows the mode the reader used last. The new list slides in (opacity and an
-   8 px shift) only when the page's mode changes, never on first load.
+   the first mode by default and without script. The server marks the elements of
+   a mode with `data-for`, `data-page-current` (the page's own mode) and
+   `data-default` (the first mode), so the CSS names no mode except one list of
+   remembered-mode selectors; the banner panel takes its width from `--modes`
+   (the length of `NAVIGATION_MODES`) and wraps cards that do not fit, so a new
+   mode is a new entry of `NAVIGATION_MODES` plus one selector line. A page of
+   a mode stores it, so Home shows the mode the reader used last. The new list
+   slides in (opacity and an 8 px shift) only when the page's mode changes,
+   never on first load.
 3. The mode switch is a native `<details class="hp-mode">`: it works without
-   JavaScript and before hydration. Its panel holds four banner links; the
+   JavaScript and before hydration. Its panel holds one banner link per mode; the
    hidden panel is not in the accessibility tree. `useModePanels` closes it on
    Escape (focus back on the button, before the drawer's own Escape handler),
    on a press elsewhere, when focus leaves and when a banner is chosen. A
    banner is a plain `<a>`: with JavaScript it is a client navigation, the link
    is prefetched when the panel opens (the viewport prefetch sees it only then).
-4. Layout. The sidebar (296 px) no longer scrolls as a whole: its list does, so
-   the panel can open to the right over the page (4 cards in a row from 1360 px,
+4. Layout. Under the logo come the mode switch, «Главная» and the list, in that
+   order in the sidebar and in the drawer. The switch is a banner button (76 px,
+   80 px in the drawer) with the art of the current mode behind a darkening, the
+   mode emblem, the name and a round gold chevron. The sidebar (296 px) no longer
+   scrolls as a whole: its list does, so the panel can open to the right of the
+   button, its top level with it, over the page (4 cards in a row from 1360 px,
    2×2 below). In the drawer the panel unfolds inside, 2×2, its height animated
    by the browser (`::details-content`, `interpolate-size`). No horizontal
    scroll in either, at any window width and browser zoom
    (`tests/next-menu-overflow-browser.test.mjs`).
-5. Art. `src/app/shell/menuArt.json` lists the painted icons (`<id>`, `mode-<mode>`)
-   and banners; the search palette shows the same icons for pages.
-6. Motion: only transform and opacity, the site's tokens; hover lifts the icon
-   to 1.08 and shifts the label 2 px, a banner rises 4 px and its art grows
-   to 1.05, banners enter one after another; reduced motion removes the
-   movement.
+5. Art. `src/app/shell/menuArt.json` lists the ids of the painted icons (`<id>`,
+   `mode-<mode>`) and the modes that have banners. Icons are
+   `/menu/icons/<id>-{40,80,120}.webp` with a width-descriptor `srcset`, banners
+   `/menu/banners/<mode>-{440,571}.webp` with a `srcset`, and the face of the
+   switch `/menu/banners/<mode>-face.webp`. The four faces are in the server
+   HTML as `loading="lazy"` images inside `display: none` boxes, so a first
+   load requests one face only. The search palette shows the same icons for pages.
+6. Motion: only transform and opacity; hover lifts the icon to 1.08 and shifts
+   the label 2 px, a banner card rises 4 px, its art grows to 1.06 over 420 ms
+   and a band of light crosses it once, a press scales it to 0.985; the panel
+   appears from the button (opacity and scale 0.98→1, 200 ms) and the cards one
+   after another 40 ms apart; reduced motion removes the movement and leaves
+   the frame's colour change.
 
 Verification: `tests/public-navigation-shell.test.tsx`, `tests/routes.test.ts`,
 `tests/next-menu-overflow-browser.test.mjs`, the drawer, transitions, Back/Forward

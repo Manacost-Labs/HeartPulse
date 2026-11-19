@@ -65,5 +65,11 @@ export const Badges: Story = {
     <div role="group" aria-label="Компактные значки" style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
       {['S', 'A', 'B', 'C', 'D', 'E', 'F', 'U'].map(tier => <TierBadge key={tier} tier={tier} small />)}
     </div>
+    <h2 style={{ marginBlock: '24px 16px' }}>Крупные места и своё имя тира</h2>
+    <div role="group" aria-label="Крупные значки" style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+      {['S', 'a', 'U'].map(tier => <TierBadge key={tier} tier={tier} size="lg" />)}
+      <TierBadge tier="Мой тир" />
+      <TierBadge tier="X" small />
+    </div>
   </div>,
 };

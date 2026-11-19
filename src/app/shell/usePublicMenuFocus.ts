@@ -6,15 +6,18 @@ export function usePublicMenuFocus(open: boolean, menuRef: RefObject<HTMLElement
     if (!open) return undefined;
     const menu = menuRef.current;
     if (!menu) return undefined;
-    const focusable: HTMLElement[] = Array.from(menu.querySelectorAll<HTMLElement>('a[href],button:not(:disabled)'));
-    const first = focusable[0];
-    const last = focusable[focusable.length - 1];
-    first?.focus();
+    // Read at each use: the banners of the mode switch are focusable only while its panel is open.
+    const focusables = () => Array.from(menu.querySelectorAll<HTMLElement>('a[href],button:not(:disabled),summary'))
+      .filter(element => element.checkVisibility());
+    focusables()[0]?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         toggleRef.current?.focus();
         setOpen(false);
       }
+      const focusable = focusables();
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
       if (event.key !== 'Tab' || !first || !last) return;
       if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();

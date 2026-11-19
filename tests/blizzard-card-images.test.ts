@@ -4,6 +4,16 @@ import {
   downloadBlizzardCardImage,
   isBlizzardImageContentType,
 } from '../server/blizzardCards.js';
+import {
+  buildCardDbfIndex,
+  createCardDbfIndexLoader,
+  selectCardImageDbf,
+} from '../server/cardImageDbf.js';
+import {
+  CARD_IMAGE_REPAIR_CARD_IDS,
+  isCardImageRepairCard,
+  withCardImageRepairVersion,
+} from '../shared/cardImageRepairs.js';
 
 function jsonResponse(payload: unknown, status = 200) {
   return new Response(JSON.stringify(payload), {
@@ -190,7 +200,119 @@ async function assertOfficialImageDownloadPrecedesFallback() {
   );
 }
 
+// Фикстуры #472. HearthstoneJSON (enUS, 2026-11-19): Sylvanas 119707, Alleria 119705, Vereesa 119706.
+const hearthstoneJsonCards = [
+  { id: 'TIME_609', dbfId: 119707, name: 'Ranger General Sylvanas' },
+  { id: 'TIME_609t1', dbfId: 119705, name: 'Ranger Captain Alleria' },
+  { id: 'TIME_609t2', dbfId: 119706, name: 'Ranger Initiate Vereesa' },
+  { id: 'CS2_062', dbfId: 950, name: 'Hellfire' },
+  { id: 'CORE_CS2_062', dbfId: 69519, name: 'Hellfire' },
+];
+// Устаревший cards_ru.json (2026-06-08): dbf сдвинуты на одну карту.
+const staleCardsRu: Record<string, number> = {
+  TIME_609: 119705,
+  TIME_609t1: 119706,
+  TIME_609t2: 119707,
+  CS2_062: 69519,
+  TIME_999t1: 119706,
+};
+// «Blizzard»: по dbf отдаёт картинку именно этой карты.
+const blizzardArtByDbf = new Map([
+  [119707, 'art:sylvanas'], [119705, 'art:alleria'], [119706, 'art:vereesa'],
+]);
+
+async function renderedArtFor(cardId: string, legacy: Record<string, number>) {
+  const index = buildCardDbfIndex(hearthstoneJsonCards);
+  const { dbfId } = selectCardImageDbf({ cardId, index, legacyDbfId: legacy[cardId] ?? null });
+  if (!dbfId) return 'fallback:hearthstonejson';
+  const buffer = await downloadBlizzardCardImage({
+    dbfId,
+    client: { configured: true, getImageUrl: async id => `https://d15f34w2p8l1cc.cloudfront.net/hearthstone/${id}.png` },
+    fetchImpl: async input => {
+      const id = Number(/\/(\d+)\.png$/.exec(String(input))?.[1]);
+      return new Response(Buffer.from(blizzardArtByDbf.get(id) ?? 'art:unknown'), { status: 200, headers: { 'Content-Type': 'image/png' } });
+    },
+  });
+  return buffer?.toString();
+}
+
+async function assertTokensGetTheirOwnBlizzardArt() {
+  // До фикса dbf брался из cards_ru.json: Вериса получала рендер Сильваны.
+  assert.equal(blizzardArtByDbf.get(staleCardsRu.TIME_609t2), 'art:sylvanas', 'fixture reproduces the shifted dbf');
+  assert.equal(await renderedArtFor('TIME_609', staleCardsRu), 'art:sylvanas');
+  assert.equal(await renderedArtFor('TIME_609t1', staleCardsRu), 'art:alleria');
+  assert.equal(await renderedArtFor('TIME_609t2', staleCardsRu), 'art:vereesa');
+}
+
+function assertDbfSelectionRules() {
+  const index = buildCardDbfIndex(hearthstoneJsonCards);
+  const warnings: string[] = [];
+  const mismatch = selectCardImageDbf({ cardId: 'TIME_609t2', index, legacyDbfId: 119707, onMismatch: message => warnings.push(message) });
+  assert.deepEqual(mismatch, { dbfId: 119706, source: 'hearthstonejson' });
+  assert.equal(warnings.length, 1, 'a replaced dbf is logged');
+  // Совпадающий dbf — без предупреждения.
+  selectCardImageDbf({ cardId: 'TIME_609', index, legacyDbfId: 119707, onMismatch: message => warnings.push(message) });
+  assert.equal(warnings.length, 1);
+  // Карты нет в HearthstoneJSON, а её dbf там принадлежит другой карте: Blizzard не используем (fallback).
+  assert.deepEqual(
+    selectCardImageDbf({ cardId: 'TIME_999t1', index, legacyDbfId: 119706, onMismatch: message => warnings.push(message) }),
+    { dbfId: null, source: 'none' },
+  );
+  assert.equal(warnings.length, 2);
+  // CORE-двойник — та же картинка, не конфликт.
+  const coreOnlyIndex = buildCardDbfIndex([{ id: 'CORE_CS2_062', dbfId: 69519 }]);
+  assert.deepEqual(selectCardImageDbf({ cardId: 'CS2_062', index: coreOnlyIndex, legacyDbfId: 69519 }), { dbfId: 69519, source: 'legacy' });
+  assert.deepEqual(selectCardImageDbf({ cardId: 'CORE_CS2_062', index, legacyDbfId: 950 }), { dbfId: 69519, source: 'hearthstonejson' });
+  // Индекс недоступен: прежнее поведение, без падения.
+  assert.deepEqual(selectCardImageDbf({ cardId: 'TIME_609', index: null, legacyDbfId: 119705 }), { dbfId: 119705, source: 'legacy' });
+  assert.deepEqual(selectCardImageDbf({ cardId: 'TIME_609', index: null, legacyDbfId: null }), { dbfId: null, source: 'none' });
+}
+
+async function assertDbfIndexLoaderCachesAndRecovers() {
+  let clock = 1_000;
+  let requests = 0;
+  let fail = true;
+  const errors: unknown[] = [];
+  const load = createCardDbfIndexLoader({
+    url: 'https://hearthstonejson.test/cards.json',
+    now: () => clock,
+    ttlMs: 10_000,
+    retryMs: 1_000,
+    onError: error => errors.push(error),
+    fetchImpl: async () => {
+      requests += 1;
+      return fail ? new Response('down', { status: 503 }) : jsonResponse(hearthstoneJsonCards);
+    },
+  });
+  assert.equal(await load(), null);
+  assert.equal(await load(), null, 'a failed load is not retried immediately');
+  assert.equal(requests, 1);
+  assert.equal(errors.length, 1);
+  clock += 1_500;
+  fail = false;
+  assert.equal((await load())?.byCardId.get('TIME_609t2'), 119706);
+  await load();
+  assert.equal(requests, 2, 'a loaded index is reused until its ttl');
+  fail = true;
+  clock += 11_000;
+  assert.equal((await load())?.byCardId.get('TIME_609t2'), 119706, 'the previous index survives an upstream failure');
+}
+
+function assertRepairListIsTargeted() {
+  for (const cardId of ['TIME_609', 'TIME_609t1', 'TIME_609t2']) {
+    assert.ok(isCardImageRepairCard(cardId), cardId);
+    assert.match(withCardImageRepairVersion('card_img_v6_blizzard', cardId), /^card_img_v6_blizzard-dbf472$/);
+  }
+  assert.equal(isCardImageRepairCard('EX1_001'), false);
+  assert.equal(withCardImageRepairVersion('card_img_v6_blizzard', 'EX1_001'), 'card_img_v6_blizzard');
+  assert.equal(new Set(CARD_IMAGE_REPAIR_CARD_IDS).size, CARD_IMAGE_REPAIR_CARD_IDS.length);
+}
+
 assertBlizzardCdnImageContentTypes();
+await assertTokensGetTheirOwnBlizzardArt();
+assertDbfSelectionRules();
+await assertDbfIndexLoaderCachesAndRecovers();
+assertRepairListIsTargeted();
 await assertDisabledWithoutCredentials();
 await assertCatalogAndTokenCaching();
 await assertUnauthorizedRequestRefreshesToken();
