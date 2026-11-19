@@ -48,9 +48,9 @@
 .hp-mode__head .hp-mode__title {
   margin: 0;
   color: #fff3cf;
-  font-family: var(--font-display);
+  font-family: var(--font-body);
   font-size: clamp(1.5rem, 4.2vw, 2rem);
-  font-weight: 400;
+  font-weight: 800;
   line-height: 1.15;
   overflow-wrap: anywhere;
   text-shadow: 0 2px 0 #2e160b, 0 0 14px rgba(0, 0, 0, 0.65);

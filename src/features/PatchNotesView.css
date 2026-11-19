@@ -149,6 +149,8 @@
 
 /* One current picture with its plates beside it. */
 .hp-pc[data-variant='single'] { grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.hp-pc__diff { grid-column: 1 / -1; margin: 0; font-size: 0.95rem; line-height: 1.5; }
+.hp-pc__diff .hp-plate__text { margin: 0; }
 .hp-pc__side { display: grid; gap: 0.6rem; min-width: 0; align-content: start; }
 
 @container hp-pc (max-width: 27rem) {

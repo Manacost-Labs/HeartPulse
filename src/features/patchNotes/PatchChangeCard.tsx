@@ -48,9 +48,27 @@ function currentPicture(card: PatchCardView): Picture | null {
   return { src: publicResourceImageUrl(`/api/public-resource/hsjson/v1/render/latest/ruRU/512x/${encodeURIComponent(card.cardId)}.png`, { width: 480 }), ...SIZE.battleground, contain: false };
 }
 
-/** The rule text of a card shown without a picture: the old words struck out, the new ones marked, in one paragraph. */
-function RuleText({ before, after }: { before: string | null; after: string | null }) {
-  const tokens = before && after ? patchDiffHunks(wordDiff(before, after)) : [{ text: (before ?? after) ?? '', op: before && !after ? 'remove' as const : 'same' as const }];
+const CONTEXT_WORDS = 3;
+
+/** Unchanged stretches shrink to a few words around each edit; "…" marks what was left out. */
+function trimContext(tokens: { text: string; op: 'same' | 'add' | 'remove' }[]) {
+  const last = tokens.length - 1;
+  return tokens.map((token, index) => {
+    const words = token.text.split(/(?<=\s)/);
+    if (token.op !== 'same' || words.length <= CONTEXT_WORDS * 2) return token;
+    const head = words.slice(0, CONTEXT_WORDS).join('');
+    const tail = words.slice(-CONTEXT_WORDS).join('');
+    return { ...token, text: index === 0 ? `… ${tail}` : index === last ? `${head}…` : `${head}… ${tail}` };
+  });
+}
+
+/**
+ * The rule text of a change in one paragraph: the old words struck out, the new ones marked. With `compact`
+ * (a card whose picture shows only today's text) only the changed fragment and a few words around it are printed.
+ */
+function RuleText({ before, after, compact = false }: { before: string | null; after: string | null; compact?: boolean }) {
+  const diff = before && after ? patchDiffHunks(wordDiff(before, after)) : [{ text: (before ?? after) ?? '', op: before && !after ? 'remove' as const : 'same' as const }];
+  const tokens = compact ? trimContext(diff) : diff;
   return (
     <span className="hp-plate__text">
       {tokens.map((token, index) => (token.op === 'same'
@@ -136,6 +154,9 @@ export function PatchChangeCard({ card, eager }: { card: PatchCardView; eager: b
           {list(false)}
           {note}
         </div>
+        {plates.filter(plate => plate.text).map((plate, index) => (
+          <p key={index} className="hp-pc__diff"><RuleText before={plate.text?.before ?? null} after={plate.text?.after ?? null} compact /></p>
+        ))}
       </article>
     );
   }

@@ -41,10 +41,9 @@ test('a change with a picture shows no "Было / Стало" text; a card with
   assert.match(single, /data-variant="single"[\s\S]*Сейчас/);
   assert.match(single, /src="\/api\/public-resource\/hsjson\/v1\/render\/latest\/ruRU\/512x\/BE_013t1\.png\?[^"]*width=480/, 'a card the dictionary lacks shows its catalog render');
   assert.match(single, /Способность К’Туна/);
-  for (const withPicture of [pair, single]) {
-    assert.ok(!withPicture.includes('hp-plate__text'), 'the picture shows the text');
-    assert.ok(!/Было:|Стало:|Наносит 7/.test(withPicture));
-  }
+  assert.ok(!pair.includes('hp-plate__text'), 'a pair shows the text on its pictures');
+  assert.match(single, /<p class="hp-pc__diff">[^]*<del><span class="sr-only">было <\/span>7<\/del>[^]*<ins><span class="sr-only">стало <\/span>6<\/ins>/, 'a single picture adds the changed words only');
+  assert.ok(!/Было:|Стало:/.test(pair + single));
   assert.match(single, /<span class="hp-plate__label">Текст<\/span>/, 'the plate only says the text changed');
   assert.match(line, /data-variant="line"/);
   assert.match(line, /<span>Уничтожает <\/span><ins><span class="sr-only">стало <\/span>нелегендарное <\/ins><span>существо, а затем возрождает его\.<\/span>/);
@@ -97,4 +96,23 @@ test('a text change is the plate "Текст" and carries both texts for the car
   assert.deepEqual([plate.label, plate.before, plate.after, plate.text], ['Текст', null, null, { before: 'a', after: 'b' }]);
   const [mana] = changePlates({ mode: 'constructed', changes: [{ label: 'Стоимость', before: 9, after: 10, better: 'lower', direction: 'nerf' }] });
   assert.deepEqual([mana.label, mana.before, mana.after, mana.direction], ['Мана', '9', '10', 'nerf']);
+});
+
+test('a single-picture card prints only the changed fragment with a few words around it; a pair prints none', () => {
+  const contract = entry({
+    id: 'contract', name: 'Криминальный контракт', cardId: 'CAP_405t6', cardType: 'spell', format: null,
+    renderUrl: 'https://art.hearthstonejson.com/v1/render/latest/ruRU/512x/CAP_405t6.png',
+    changes: [{ label: 'Текст', before: 'Призывает трех случайных существ за (3).', after: 'Призывает трех случайных существ за (2).' }],
+  });
+  const long = entry({
+    id: 'long', name: 'Длинная', cardId: 'X_1', cardType: 'spell', format: null, renderUrl: 'https://art.hearthstonejson.com/v1/render/latest/ruRU/512x/X_1.png',
+    changes: [{ label: 'Текст', before: 'Один два три четыре пять шесть наносит 7 ед. урона всем врагам на поле боя сразу.', after: 'Один два три четыре пять шесть наносит 6 ед. урона всем врагам на поле боя сразу.' }],
+  });
+  const html = page([contract, long, knight]);
+  const cards = html.split('<article').slice(1);
+  const [single, longCard, pair] = ['id="card-contract"', 'id="card-long"', 'id="card-knight"'].map(id => cards.find(card => card.includes(id)) as string);
+  assert.match(single, /<p class="hp-pc__diff"><span class="hp-plate__text"><span>Призывает трех случайных существ за <\/span><del><span class="sr-only">было <\/span>\(3\)\.<\/del>/);
+  assert.match(longCard, /<span>… пять шесть наносит <\/span>/);
+  assert.ok(!longCard.includes('Один два'), 'the start of a long text is cut to the words around the edit');
+  assert.ok(!pair.includes('hp-pc__diff'));
 });
