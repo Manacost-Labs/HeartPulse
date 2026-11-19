@@ -33,6 +33,16 @@ function render<P extends object>(View: ComponentType<P> | undefined, props: P):
   return View ? <div className="arena-paid-view"><View {...props} /></div> : pending;
 }
 
+const idle = { current: () => null, load: () => new Promise<null>(() => undefined) };
+
+/**
+ * Whether the Battlegrounds module is loaded. Nothing is downloaded until `enabled` (the viewer may open the
+ * paid views), so a page with an open part keeps it on screen until the paid view can replace it in one render.
+ */
+export function useBattlegroundsModuleLoaded(enabled: boolean): boolean {
+  return useLoadedModule<BattlegroundsModule | null>(enabled ? battlegrounds : idle) !== null;
+}
+
 export function BattlegroundHeroesRoute(props: ComponentProps<BattlegroundsModule['BattlegroundHeroesRoute']>) {
   return render(useLoadedModule(battlegrounds)?.BattlegroundHeroesRoute, props);
 }

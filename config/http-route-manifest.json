@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 110,
-    "routeRegistrations": 297,
-    "middlewareRegistrations": 152,
+    "sourceFiles": 111,
+    "routeRegistrations": 298,
+    "middlewareRegistrations": 153,
     "explicitGuardRouteRegistrations": 73,
     "unresolvedPaths": 0
   },
@@ -1455,6 +1455,18 @@
       "sourceOrder": 0
     },
     {
+      "kind": "route",
+      "method": "GET",
+      "path": "/bg/heroes/public",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/battlegroundHeroRankingRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
       "kind": "middleware",
       "paths": [
         "/"
@@ -1505,6 +1517,19 @@
       "sourceOrder": 3
     },
     {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "createBattlegroundHeroRankingRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/battlegroundProxyRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
       "kind": "route",
       "method": "GET",
       "path": "/battlegrounds-library",
@@ -1518,7 +1543,7 @@
         "dependencies.requireAccess"
       ],
       "source": "server/battlegroundProxyRoutes.ts",
-      "sourceOrder": 0,
+      "sourceOrder": 1,
       "expansionOrder": 0
     },
     {
@@ -1535,7 +1560,7 @@
         "dependencies.requireAccess"
       ],
       "source": "server/battlegroundProxyRoutes.ts",
-      "sourceOrder": 0,
+      "sourceOrder": 1,
       "expansionOrder": 1
     },
     {
@@ -1552,7 +1577,7 @@
         "dependencies.requireAccess"
       ],
       "source": "server/battlegroundProxyRoutes.ts",
-      "sourceOrder": 0,
+      "sourceOrder": 1,
       "expansionOrder": 2
     },
     {
@@ -1569,7 +1594,7 @@
         "dependencies.requireAccess"
       ],
       "source": "server/battlegroundProxyRoutes.ts",
-      "sourceOrder": 0,
+      "sourceOrder": 1,
       "expansionOrder": 3
     },
     {
@@ -1586,7 +1611,7 @@
         "dependencies.requireAccess"
       ],
       "source": "server/battlegroundProxyRoutes.ts",
-      "sourceOrder": 0,
+      "sourceOrder": 1,
       "expansionOrder": 4
     },
     {
@@ -1603,7 +1628,7 @@
         "dependencies.requireAccess"
       ],
       "source": "server/battlegroundProxyRoutes.ts",
-      "sourceOrder": 0,
+      "sourceOrder": 1,
       "expansionOrder": 5
     },
     {
@@ -1620,7 +1645,7 @@
         "dependencies.requireAccess"
       ],
       "source": "server/battlegroundProxyRoutes.ts",
-      "sourceOrder": 1,
+      "sourceOrder": 2,
       "expansionOrder": 0
     },
     {
@@ -1637,7 +1662,7 @@
         "dependencies.requireAccess"
       ],
       "source": "server/battlegroundProxyRoutes.ts",
-      "sourceOrder": 1,
+      "sourceOrder": 2,
       "expansionOrder": 1
     },
     {
@@ -1654,7 +1679,7 @@
         "dependencies.requireAccess"
       ],
       "source": "server/battlegroundProxyRoutes.ts",
-      "sourceOrder": 1,
+      "sourceOrder": 2,
       "expansionOrder": 2
     },
     {
@@ -1671,7 +1696,7 @@
         "dependencies.requireAccess"
       ],
       "source": "server/battlegroundProxyRoutes.ts",
-      "sourceOrder": 1,
+      "sourceOrder": 2,
       "expansionOrder": 3
     },
     {
@@ -1688,7 +1713,7 @@
         "dependencies.requireAccess"
       ],
       "source": "server/battlegroundProxyRoutes.ts",
-      "sourceOrder": 1,
+      "sourceOrder": 2,
       "expansionOrder": 4
     },
     {
@@ -1705,7 +1730,7 @@
         "dependencies.requireAccess"
       ],
       "source": "server/battlegroundProxyRoutes.ts",
-      "sourceOrder": 1,
+      "sourceOrder": 2,
       "expansionOrder": 5
     },
     {
@@ -1722,7 +1747,7 @@
         "dependencies.requireAccess"
       ],
       "source": "server/battlegroundProxyRoutes.ts",
-      "sourceOrder": 2
+      "sourceOrder": 3
     },
     {
       "kind": "route",
@@ -1738,7 +1763,7 @@
         "dependencies.requireAccess"
       ],
       "source": "server/battlegroundProxyRoutes.ts",
-      "sourceOrder": 3
+      "sourceOrder": 4
     },
     {
       "kind": "route",
@@ -1754,7 +1779,7 @@
         "dependencies.requireAccess"
       ],
       "source": "server/battlegroundProxyRoutes.ts",
-      "sourceOrder": 4
+      "sourceOrder": 5
     },
     {
       "kind": "route",
@@ -1770,7 +1795,7 @@
         "dependencies.requireAccess"
       ],
       "source": "server/battlegroundProxyRoutes.ts",
-      "sourceOrder": 5
+      "sourceOrder": 6
     },
     {
       "kind": "route",
@@ -1786,7 +1811,7 @@
         "dependencies.requireAccess"
       ],
       "source": "server/battlegroundProxyRoutes.ts",
-      "sourceOrder": 6
+      "sourceOrder": 7
     },
     {
       "kind": "route",
@@ -1802,7 +1827,7 @@
         "dependencies.requireAccess"
       ],
       "source": "server/battlegroundProxyRoutes.ts",
-      "sourceOrder": 7
+      "sourceOrder": 8
     },
     {
       "kind": "route",

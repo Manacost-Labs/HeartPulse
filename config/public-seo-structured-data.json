@@ -1295,9 +1295,55 @@
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/heroes/#collection",
         "name": "Герои Полей сражений Hearthstone",
-        "description": "Тир-лист героев Hearthstone Battlegrounds с отдельными страницами героев.",
+        "description": "Рейтинг героев Hearthstone Battlegrounds: тир, среднее место, топ-4, частота выбора и краткий совет для режимов Соло и Дуо, с отдельными страницами героев.",
         "url": "https://hearthpulse.net/heroes/",
         "inLanguage": "ru"
+      },
+      {
+        "@type": "Dataset",
+        "@id": "https://hearthpulse.net/heroes/#dataset",
+        "name": "Рейтинг героев Полей сражений Hearthstone",
+        "description": "Рейтинг героев Hearthstone Battlegrounds по данным HSReplay. На открытой странице — полный рейтинг диапазона «Топ 50%» для Соло и Дуо: тир, среднее место, доля топ-4, частота выбора и краткий совет. Сравнение рейтинговых диапазонов и динамика между патчами доступны по подписке.",
+        "url": "https://hearthpulse.net/heroes/",
+        "isAccessibleForFree": false,
+        "hasPart": {
+          "@type": "WebPageElement",
+          "isAccessibleForFree": false,
+          "cssSelector": ".paywalled-heroes"
+        },
+        "isBasedOn": [
+          {
+            "@type": "Dataset",
+            "name": "HSReplay: Battlegrounds Heroes",
+            "url": "https://hsreplay.net/battlegrounds/heroes/"
+          }
+        ],
+        "variableMeasured": [
+          {
+            "@type": "PropertyValue",
+            "name": "Среднее место героя"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Доля топ-4",
+            "unitText": "%"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Частота выбора героя",
+            "unitText": "%"
+          }
+        ],
+        "keywords": [
+          "Hearthstone",
+          "Поля сражений",
+          "герои",
+          "тир-лист героев"
+        ],
+        "about": {
+          "@type": "VideoGame",
+          "name": "Hearthstone"
+        }
       }
     ],
     "/library": [

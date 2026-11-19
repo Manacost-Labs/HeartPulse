@@ -1,11 +1,60 @@
 # Battleground heroes access
 
-`/heroes/` publishes its title, description and canonical URL to every visitor.
-The detailed tier list continues to use the existing `/api/bg/heroes` client
-and requires the `battlegrounds` entitlement. An administrator may use the
-same statistics without a separate subscription, matching the Express access
-policy. The Next.js page waits for account verification before mounting the
-statistics client, so no protected request or data appears in guest HTML.
+`/heroes/` publishes its title, description, canonical URL and, since E21 OL2a
+(#305), the open hero ranking to every visitor. The interactive tier list and
+the narrower rating ranges continue to use the existing `/api/bg/heroes`
+client and require the `battlegrounds` entitlement. An administrator may use
+the same statistics without a separate subscription, matching the Express
+access policy.
+
+## Open ranking (`/heroes/`)
+
+Express answers `GET /api/bg/heroes/public?mode=solo|duos` (default `solo`)
+from `server/battlegroundHeroRankingRoutes.ts`. The rating range is fixed by
+the server (`TOP_50_PERCENT`, `server/battlegroundHeroRankingSource.ts`); any
+`mmr` parameter or other mode is a 400, so a caller cannot ask for a closed
+range. The projection (`server/battlegroundHeroRankingProjection.ts`) copies
+fields by name (an allowlist):
+
+- hero: `dbfId`, `cardId`, `name`, `image` (same-origin public-resource path),
+  `tier`;
+- figures: `avgPlacement`, `top4Rate` (sum of the first four places of the
+  eight-place distribution, percent to 0.1; `null` in duos, which has four
+  places), `pickRate`, `games` only if the source row has a sample size;
+- short tip: `heroPowerName`, `bestComposition`, up to three `keyMinions`
+  names;
+- `updatedAt` (`fetched_at`), `source`, `mode`, `mmr`.
+
+A hero the source has not rated (no tier or average place) is not in the
+ranking. Rows are ordered by average place. The route has its own store per
+mode (five minutes, own ETag) that is also the last known copy: a failing
+source answers it with `warning: "stale"`; no copy at all is a 503 with
+`Retry-After`, never an empty list. Closed and never copied: other rating
+ranges, the full placement distribution, `adjusted_avg_placement`,
+`anomaly_adjusted`, history between patches. `/api/bg/heroes` (every range),
+`/api/bg/heroes/compositions` and `/api/bg/heroes/:dbfId/details` stay behind
+the access guard.
+
+The Next page (`apps/public-web/app/heroes/page.tsx`, ISR 5 minutes) reads
+both modes anonymously (`lib/publicBattlegroundHeroes.ts`, which re-parses
+field by field in `publicBattlegroundHeroesData.ts`) and renders
+`BattlegroundHeroesPublicRanking`: a table per mode (Solo and Duos both in the
+HTML, anchors `#heroes-solo` and `#heroes-duos`, no script needed). The same
+HTML goes to every visitor and robot. A visitor without access (a guest or a
+signed-in non-subscriber) sees the table and, in the closed part wrapped in
+`.paywalled-heroes`, locked buttons «Топ 20% / 5% / 1%» that carry no data; a
+press opens the subscription offer. A subscriber has the interactive view in
+place of the table (it is unmounted, not hidden: no duplicate). JSON-LD:
+`CollectionPage` with an `ItemList` of the solo table (same names and URLs)
+and a `Dataset` with `isAccessibleForFree: false` and
+`hasPart.cssSelector: ".paywalled-heroes"`.
+
+Tests: `tests/battleground-hero-ranking-public.test.ts` (projection, route,
+guard, JSON-LD) and `tests/next-heroes-ranking.test.mjs` (built page: HTML,
+RSC payload, JSON-LD); the fixture `tests/helpers/battlegroundHeroesFixture.ts`
+gives every closed figure a unique value and the tests fail if one is found.
+
+## Detail route
 
 The Next.js list route is staged while public Nginx traffic remains on the
 legacy page. The `/heroes/:dbfId/` detail route is also staged in Next.js.

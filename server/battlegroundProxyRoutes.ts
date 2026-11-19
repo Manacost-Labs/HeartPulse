@@ -1,4 +1,7 @@
 import { Router, type Request, type RequestHandler, type Response } from 'express';
+import { createBattlegroundHeroRankingRouter } from './battlegroundHeroRankingRoutes.js';
+import { createBattlegroundHeroCatalogLoader } from './battlegroundHeroRankingSource.js';
+import type { PublicHeroRankingMode } from './battlegroundHeroRankingProjection.js';
 
 type PayloadEnricher = (payload: any) => any;
 type ProxyHandler = (request: Request, response: Response, upstreamPath: string, enrich?: PayloadEnricher) => unknown;
@@ -9,6 +12,8 @@ export type BattlegroundProxyRouterDependencies = {
   proxyApp: ProxyHandler;
   proxyExtraLibrary: (request: Request, response: Response, library: string) => unknown;
   enrichHeroPayload: PayloadEnricher;
+  /** Source of the open hero ranking (the base rating range); defaults to the loopback Battlegrounds service. */
+  loadHeroRankingCatalog?: (mode: PublicHeroRankingMode) => Promise<unknown>;
 };
 
 export function compactBattlegroundHeroCompositionsPayload(payload: any): any {
@@ -38,6 +43,11 @@ export function compactBattlegroundHeroCompositionsPayload(payload: any): any {
 
 export function createBattlegroundProxyRouter(dependencies: BattlegroundProxyRouterDependencies): Router {
   const router = Router();
+  // Open, allowlisted ranking for guests; every route below stays behind `requireAccess`.
+  router.use(createBattlegroundHeroRankingRouter({
+    loadCatalog: dependencies.loadHeroRankingCatalog ?? createBattlegroundHeroCatalogLoader(),
+    onError: error => console.error('[bg heroes public] upstream failed:', (error as Error)?.message ?? error),
+  }));
   const legacyRoutes: Array<[string, string]> = [
     ['/battlegrounds-library', '/api/battlegrounds-library'],
     ['/battlegrounds-spells', '/api/battlegrounds-spells'],

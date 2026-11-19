@@ -1,6 +1,8 @@
 import assert from 'node:assert/strict';
 import express from 'express';
 import { createBattlegroundHeroSeoRouter } from '../server/battlegroundSeoRoutes.js';
+// The open ranking of /heroes/ (E21 OL2a): hosted here until its own file can be added to tests/test-suites.json.
+import './battleground-hero-ranking-public.check';
 
 const privateSentinels = [
   'QA_BG_PRIVATE_PICK_RATE_97_77',

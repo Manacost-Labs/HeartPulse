@@ -47,9 +47,10 @@
         "assertions": [{ "selector": ".arena-paywall", "minCount": 1 }]
       },
       {
-        "id": "battlegrounds-heroes-paywall",
+        "id": "battlegrounds-heroes-open-ranking",
         "path": "/heroes",
-        "assertions": [{ "selector": ".arena-paywall", "minCount": 1 }]
+        "assertions": [{ "selector": ".bg-heroes-public tbody tr", "minCount": 20 }],
+        "forbiddenSelectors": [".arena-paywall"]
       },
       {
         "id": "battlegrounds-library-paywall",

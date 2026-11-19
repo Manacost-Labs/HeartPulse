@@ -341,7 +341,7 @@ test('pages pass the access decision to their gates and reserve the gate height'
   assert.ok(/\.arena-paywall-pending,\s*\.arena-paid-view \{\s*min-height: var\(--subscription-gate-min-height\);\s*\}/.test(paywallCss),
     'the placeholder and a mounting paid view must reserve the gate height token');
   assert.match(read('../src/styles/tokens.css'), /--subscription-gate-min-height: 760px;/);
-  for (const pageClient of ['BattlegroundHeroesPageClient', 'BattlegroundHeroDetailPageClient', 'BattlegroundLibraryPageClient',
+  for (const pageClient of ['BattlegroundHeroDetailPageClient', 'BattlegroundLibraryPageClient',
     'BattlegroundLibraryDetailPageClient', 'BattlegroundTierListPageClient', 'BattlegroundTierBuilderPageClient',
     'BattlegroundStrategiesPageClient', 'GuidesArchivePageClient', 'GuideArchiveDetailPageClient']) {
     const source = read(`../apps/public-web/ui/${pageClient}.tsx`);
@@ -350,4 +350,7 @@ test('pages pass the access decision to their gates and reserve the gate height'
     assert.match(source, /pending\s*\?\s*<PaywallPending\b/, `${pageClient} must reserve the gate while access is pending`);
     assert.ok(!/<p[^>]*aria-busy/.test(source), `${pageClient} must not render a bare pending line`);
   }
+  // /heroes/ is not in the list: it has an open ranking and no gate to reserve. Its behaviour (open tables for a
+  // guest, no placeholder, no layout shift when a subscriber's view replaces them) is checked in a browser by
+  // tests/next-paywall-access-check-browser.test.mjs.
 });
