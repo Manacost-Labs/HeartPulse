@@ -76,6 +76,12 @@ donors[3].options[0].half = 'x';
 const twoHalves = projectCardAssemble(halves)?.bases[0].donors;
 assert.deepEqual(twoHalves?.map(donor => donor.card.cardId), ['EDR_492']);
 assert.deepEqual(twoHalves?.[0].options.map(option => option.half), ['effect', 'trigger']);
+const extra = structuredClone(CONTRACT);
+const [d0, d1, d2] = extra.data.bases[0].donors;
+d0.options = [d0.options[0], d0.options[1], d0.options[0]];
+d1.options = [d1.options[0], d1.options[0]];
+d2.options = [d2.options[0], d2.options[1], { half: 'x' }];
+assert.deepEqual(projectCardAssemble(extra)?.bases[0].donors?.map(donor => donor.card.cardId), ['BE_550'], 'three or doubled options drop the donor');
 for (const donor of projected.bases[0].donors!) assert.equal(donor.options.length, 2);
 
 // The answer must be for the requested card and format (the id may be the dbf id too).

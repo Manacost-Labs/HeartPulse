@@ -133,18 +133,12 @@ function readOption(value: unknown): AssembleOption | null {
   };
 }
 
-/** Both halves, effect first; `null` when either is missing, doubled or broken. */
+/** Exactly two different valid halves, effect first; anything else is `null`. */
 function readOptions(value: unknown): AssembleOption[] | null {
-  const byHalf = new Map<AssembleHalf, AssembleOption>();
-  if (Array.isArray(value)) {
-    for (const item of value.slice(0, 8)) {
-      const option = readOption(item);
-      if (option && !byHalf.has(option.half)) byHalf.set(option.half, option);
-    }
-  }
-  const effect = byHalf.get('effect');
-  const trigger = byHalf.get('trigger');
-  return effect && trigger ? [effect, trigger] : null;
+  if (!Array.isArray(value) || value.length !== 2) return null;
+  const [first, second] = [readOption(value[0]), readOption(value[1])];
+  if (!first || !second || first.half === second.half) return null;
+  return first.half === 'effect' ? [first, second] : [second, first];
 }
 
 function readDonor(value: unknown): AssembleDonor | null {
