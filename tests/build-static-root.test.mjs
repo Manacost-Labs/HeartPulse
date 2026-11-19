@@ -47,7 +47,6 @@ test('static root is assembled from public assets and SEO registries', () => {
       `${routeInventory.canonicalOrigin}/sitemaps/standard-cards.xml`,
       `${routeInventory.canonicalOrigin}/sitemaps/wild-cards.xml`,
       `${routeInventory.canonicalOrigin}/sitemaps/battleground-minions.xml`,
-      `${routeInventory.canonicalOrigin}/sitemaps/battleground-spells.xml`,
       `${routeInventory.canonicalOrigin}/sitemaps/battleground-heroes.xml`,
       `${routeInventory.canonicalOrigin}/sitemaps/cosmetics.xml`,
       `${routeInventory.canonicalOrigin}/sitemaps/guides-archive.xml`,

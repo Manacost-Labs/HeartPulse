@@ -8,7 +8,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import express from 'express';
 import { createBattlegroundLibrarySeoRouter } from '../server/battlegroundLibrarySeoRoutes.ts';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
-import { fetchImpl as libraryFixtureFetch } from './helpers/battlegroundLibraryOpenFixture.ts';
+import { fetchImpl as libraryFixtureFetch, slug as librarySlug } from './helpers/battlegroundLibraryOpenFixture.ts';
 
 // The open projection `GET /api/bg/heroes/public` as Express answers it (six ranked heroes), served as it is.
 const openRanking = mode => ({
@@ -360,7 +360,7 @@ test('/heroes/<id>/ shows the open statistics without a placeholder and keeps th
   }
 });
 
-// The library has an open layer too (`/library/minions/` the list): nobody waits
+// The library has an open layer too (`/library/minions/` the list, `/library/minions/<slug>-<id>/` the card): nobody waits
 // behind a placeholder or a gate; a confirmed subscriber keeps the open layer on screen until the paid view's chunk has
 // loaded (here it arrives late), and the view then replaces it in one render, without a layout shift.
 test('the library keeps its open layer until the paid view has loaded, without a layout shift', async () => {
@@ -396,6 +396,7 @@ test('the library keeps its open layer until the paid view has loaded, without a
       headless: true, args: ['--no-sandbox'] });
     const pages = [
       ['/library/minions/', '.bg-library-public tbody tr', 4, '.bg-library-locks button'],
+      [`/library/minions/${librarySlug('Первый зверь')}-1001/`, '#card-facts dt', 5, '.bg-library-locks button'],
     ];
     for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true, hasTouch: true }]) {
       for (const [path, openSelector, openCount, lockSelector] of pages) {
