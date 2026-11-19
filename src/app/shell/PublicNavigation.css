@@ -846,13 +846,15 @@
 
   .hp-mode[data-variant='mobile'] .hp-mode-card-text::before {
     inset: 0;
-    background: linear-gradient(90deg, rgba(14, 2, 4, 0.94), rgba(14, 2, 4, 0.82) 60%, rgba(14, 2, 4, 0.3));
+    /* Dense under the text, gone by the right third, which stays bright. */
+    background: linear-gradient(90deg, rgba(14, 2, 4, 0.88) 0, rgba(14, 2, 4, 0.72) 42%, rgba(14, 2, 4, 0.18) 72%, transparent);
   }
 
   .hp-mode[data-variant='mobile'] .hp-mode-card-emblem { grid-area: emblem; width: 40px; height: 40px; margin: 0; }
   .hp-mode[data-variant='mobile'] .hp-mode-card-text strong { grid-area: name; font-size: 17px; }
   .hp-mode[data-variant='mobile'] .hp-mode-card-desc { grid-area: desc; font-size: 12.5px; }
-  .hp-mode[data-variant='mobile'] .hp-mode-badge { top: 50%; right: 12px; left: auto; translate: 0 -50%; }
+  /* Above the text block (which comes later in the card): the gold plate stays opaque. */
+  .hp-mode[data-variant='mobile'] .hp-mode-badge { top: 50%; right: 12px; left: auto; z-index: 3; translate: 0 -50%; }
   .hp-mode[data-variant='mobile'] .hp-mode-panel { animation: none; }
 }
 
