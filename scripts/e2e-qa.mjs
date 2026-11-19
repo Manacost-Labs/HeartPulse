@@ -4379,7 +4379,7 @@ for (const [device, viewport] of [
   await mockApplicationApi(page, { authenticated: false });
   try {
     await page.goto(`${BASE}/library`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await page.waitForSelector('.arena-app-battlegrounds .arena-paywall', { visible: true, timeout: 20_000 });
+    await page.waitForSelector('.arena-app-battlegrounds .bg-library-locks', { visible: true, timeout: 20_000 });
     const surface = await page.evaluate(() => {
       const app = document.querySelector('.arena-app-battlegrounds');
       const workspace = document.querySelector('.arena-workspace');

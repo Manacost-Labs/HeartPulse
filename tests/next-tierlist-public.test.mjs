@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createServer, request as httpRequest } from 'node:http';
 import { existsSync } from 'node:fs';
+import { DATA_PAGES } from '../scripts/lib/post-deploy-data-pages.mjs';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
@@ -232,7 +233,8 @@ test('the post-deploy warm-up revalidates again until /tierlist/ carries its sli
     const { code, output } = await stand.warm({ WARM_TOTAL_MS: '30000' });
     assert.equal(code, 0, output);
     assert.ok(stand.revalidations.length >= 2, `a page left without data is revalidated again: ${output}`);
-    assert.deepEqual([...stand.revalidations[0]].sort(), ['/articles', '/classes', '/heroes', '/legendaries', '/standard/meta', '/tierlist'],
+    assert.deepEqual([...stand.revalidations[0]].sort(), ['/articles', '/classes', '/heroes', '/legendaries', '/library', ...['anomalies', 'dark-gifts', 'darkmoon-prizes', 'minions', 'quests',
+      'rewards', 'spells', 'timewarped', 'trinkets'].map(kind => `/library/${kind}`), '/standard/meta', '/tierlist'],
       'the real route regenerates exactly the pages that render data');
     assert.match(output, /\[warm\] \/tierlist\/: with data/, output);
     // What a visitor gets right after the warm-up, with no clock shifted and no second request needed.
@@ -377,4 +379,14 @@ test('the post-deploy warm-up regenerates /legendaries/ and /heroes/ through the
   } finally {
     await stand.close();
   }
+});
+
+// The warm-up table lists exactly the ISR pages the real revalidate route regenerates (that literal is asserted against the
+// real route by the warm-up test above).
+test('DATA_PAGES marked isr are the 16 pages of the revalidate route', () => {
+  const expected = ['/articles', '/classes', '/heroes', '/legendaries', '/library', ...['anomalies', 'dark-gifts', 'darkmoon-prizes', 'minions', 'quests',
+    'rewards', 'spells', 'timewarped', 'trinkets'].map(kind => `/library/${kind}`), '/standard/meta', '/tierlist'];
+  assert.equal(expected.length, 16);
+  assert.deepEqual(DATA_PAGES.filter(page => page.isr).map(page => page.path.replace(/\/$/, '')).sort(), [...expected].sort());
+  assert.equal(DATA_PAGES.find(page => page.path === '/library/').marker, 'bg-library-public__size', 'the hub marker is not on the copy without sizes');
 });

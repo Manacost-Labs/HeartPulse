@@ -54,10 +54,22 @@ export function battlegroundLibraryListing(path: string) {
   return seo && heading ? { pathname: `${normalized}/`, heading, description: seo.description, seo } : null;
 }
 
+/**
+ * Metadata of a prerendered listing: it reads no request data, so the page stays prerendered (the query
+ * robots of a filtered URL are sent by nginx as `X-Robots-Tag`, as for the other prerendered data pages).
+ */
+export function battlegroundLibraryStaticMetadata(path: string): Promise<Metadata> {
+  return libraryMetadata(path, '');
+}
+
 export async function battlegroundLibraryMetadata(path: string, searchParams: LibrarySearch): Promise<Metadata> {
+  return libraryMetadata(path, searchParamsQuery(await searchParams));
+}
+
+async function libraryMetadata(path: string, query: string): Promise<Metadata> {
   const listing = battlegroundLibraryListing(path);
   if (!listing) throw new Error(`Missing Battleground library SEO contract: ${path}`);
-  const policy = await resolvePublicUrlPolicy(path, searchParamsQuery(await searchParams));
+  const policy = await resolvePublicUrlPolicy(path, query);
   const canonical = policy.canonicalUrl ?? `https://hearthpulse.net${listing.pathname}`;
   return {
     title: listing.seo.title, description: listing.seo.description,
