@@ -61,3 +61,23 @@ missing | ready | error`; ordinary cards send no request).
   are small samples, the best of them with `lowSample: true`; a tie goes to the
   higher pick rate. `null` when a donor is not in the loaded donors of the base
   or no variant has a winrate.
+
+## Section (HeartPulse#494)
+
+`CardAssembleSection` (`src/modules/constructedCards/ui/`, lazy, rendered by
+`StandardCardDetail` for `isAssembleCard(card)` next to the choices section)
+is open to everyone, like «Что берут из Открытия».
+
+- Header: pool size, mean winrate after assembling, the best base by
+  winrate among real samples, and the period.
+- «Что выпало?»: round portraits of the bases, most offered first. The first 24
+  are shown, «Показать всех» opens the rest, a search field appears above 20.
+  A tap loads that base's donors (`base=<dbf>`); the ribbon stays on screen.
+- «Лучшие сборки»: one plate per donor option, ten at first and «Показать
+  все». The base's half is ink, the donor's half a gold marker, a stitched
+  seam between them; screen readers get «От донора»/«От базы» prefixes.
+- «Мне предложили»: two slots and the donors of the base that have HSReplay
+  winrate data. Two chosen give their four builds, the best (`bestOfOffered`)
+  first, glowing and marked «Лучший выбор».
+- `missing` (404) renders nothing; `no_data` or no bases says «Мало данных»;
+  an error keeps a retry button.

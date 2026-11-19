@@ -1,0 +1,127 @@
+/* «Сборка»: a workbench on parchment. Base half in ink, donor half in gold marker; no tables. */
+.assemble { font-family: var(--font-body); }
+.assemble-sr { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.assemble-header { display: flex; gap: 0.6rem 1.2rem; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.assemble-header > div { min-width: 0; flex: 1 1 22rem; }
+.assemble-summary { display: flex; gap: 0.2rem 1.1rem; margin: 0; flex-wrap: wrap; color: #735e49; font-size: 0.9rem; line-height: 1.5; }
+.assemble-summary b { color: #30251c; font-weight: 800; }
+.assemble-period { flex: 0 0 auto; padding: 0.25rem 0.7rem; border: 1px solid #b78a51; color: #4a2d1b; background: rgba(255, 250, 232, 0.6); font-size: 0.75rem; font-weight: 800; }
+.assemble-title { margin: 1.1rem 0 0.2rem; color: #30251c; font-family: var(--font-body); font-size: 1.1rem; font-weight: 800; }
+
+/* Round portraits: the base ribbon and the donor picker. */
+.assemble-portrait { display: block; flex: 0 0 auto; width: 64px; height: 64px; overflow: hidden; border: 2px solid #b78a51; border-radius: 50%; background: #5f371d; box-shadow: 0 2px 5px rgba(67, 37, 15, 0.35), inset 0 0 0 1px rgba(255, 240, 200, 0.4); transition: transform var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease); }
+.assemble-portrait img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.assemble-portrait--big { width: 76px; height: 76px; border-color: #d9ab49; }
+
+.assemble-search { display: block; margin: 0.4rem 0 0.2rem; }
+.assemble-search input { width: min(100%, 22rem); min-height: 44px; padding: 0 0.9rem; border: 1px solid #b78a51; color: #30251c; background: rgba(255, 252, 240, 0.8); font: inherit; font-size: 1rem; }
+.assemble-search input:focus-visible { outline: 3px solid #7b151b; outline-offset: 2px; }
+.assemble-picker__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 0.35rem 0.3rem; margin: 0.4rem 0 0; padding: 0; list-style: none; }
+.assemble-picker--small .assemble-picker__list { grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); }
+.assemble-picker--small .assemble-portrait { width: 52px; height: 52px; }
+.assemble-picker__list li { display: flex; min-width: 0; }
+.assemble-picker__list button { display: grid; width: 100%; min-height: 44px; padding: 0.4rem 0.2rem 0.45rem; border: 1px solid transparent; justify-items: center; align-content: start; gap: 0.2rem; color: #4a2d1b; background: transparent; font: inherit; text-align: center; cursor: pointer; transition: transform var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease); }
+.assemble-picker__name { display: -webkit-box; max-width: 100%; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 0.8125rem; font-weight: 800; line-height: 1.2; overflow-wrap: anywhere; }
+.assemble-picker__note { color: #735e49; font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.assemble-picker__list button:focus-visible { outline: 3px solid #7b151b; outline-offset: 1px; }
+.assemble-picker__list button:active { transform: scale(0.96); }
+.assemble-picker__list button[aria-pressed='true'] { border-color: #c79a3e; background: rgba(239, 201, 111, 0.3); }
+.assemble-picker__list button[aria-pressed='true'] .assemble-portrait { border-color: #efc96f; box-shadow: 0 0 0 3px rgba(217, 171, 73, 0.55), 0 0 14px rgba(239, 201, 111, 0.7); }
+.assemble-note { margin: 0.8rem 0 0; color: #735e49; font-size: 0.875rem; line-height: 1.45; }
+.assemble-picker .card-choices__more { margin-top: 0.6rem; }
+
+/* The chosen base. */
+.assemble-base { display: flex; gap: 0.5rem 1rem; align-items: center; flex-wrap: wrap; margin-top: 1rem; padding: 0.7rem 0.9rem; border: 1px solid #b78a51; background: linear-gradient(180deg, rgba(255, 250, 232, 0.7), rgba(239, 214, 160, 0.45)); box-shadow: inset 0 0 0 2px rgba(255, 252, 236, 0.3); }
+.assemble-base > div:first-of-type { min-width: 0; flex: 1 1 12rem; }
+.assemble-base__label { margin: 0; color: #735e49; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.assemble-base__name { color: #4a2d1b; font-size: 1.2rem; font-weight: 900; line-height: 1.2; text-decoration: none; overflow-wrap: anywhere; }
+.assemble-base__name:hover, .assemble-base__name:focus-visible { color: #731c1d; text-decoration: underline; text-underline-offset: 0.18rem; }
+.assemble-base__facts { display: flex; gap: 0.3rem 1.3rem; margin: 0; flex-wrap: wrap; }
+.assemble-base__facts div { display: grid; gap: 0.1rem; }
+.assemble-base__facts dt { color: #735e49; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.assemble-base__facts dd { margin: 0; color: #30251c; font-size: 1.15rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.assemble-base__facts dd.is-positive, .assemble-metric dd.is-positive { color: #2f7a3e; }
+.assemble-base__facts dd.is-negative, .assemble-metric dd.is-negative { color: #a33a3a; }
+
+/* View switch: same family as the rank switch. */
+.assemble-tabs { display: flex; margin-top: 1.1rem; border: 1px solid #b78a51; background: rgba(255, 250, 232, 0.6); }
+.assemble-tabs button { flex: 1 1 50%; min-height: 46px; padding: 0 0.95rem; border: 0; color: #4a2d1b; background: transparent; font: inherit; font-size: 0.95rem; font-weight: 800; cursor: pointer; transition: background-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease); }
+.assemble-tabs button + button { border-left: 1px solid #b78a51; }
+.assemble-tabs button:hover { background: rgba(224, 191, 117, 0.3); }
+.assemble-tabs button[aria-pressed='true'] { color: #fff0c8; background: #8d171d; }
+.assemble-tabs button:focus-visible { outline: 3px solid #7b151b; outline-offset: -3px; }
+@media (min-width: 641px) { .assemble-tabs { display: inline-flex; } .assemble-tabs button { flex: 0 0 auto; padding: 0 1.4rem; } }
+
+/* Legend and the two halves of a card text. */
+.assemble-legend { display: flex; gap: 0.1rem 0.15rem; margin: 0.9rem 0 0; align-items: baseline; flex-wrap: wrap; color: #735e49; font-size: 0.875rem; }
+.assemble-text .is-base, .assemble-legend .is-base { color: #30251c; }
+.assemble-text .is-donor, .assemble-legend .is-donor { padding: 0 0.12rem; color: #6e4300; font-weight: 800; background: linear-gradient(180deg, transparent 52%, rgba(217, 171, 73, 0.62) 52%); box-decoration-break: clone; -webkit-box-decoration-break: clone; }
+.assemble-seam { display: inline-block; width: 0; height: 1em; margin: 0 0.5em; border-left: 2px dashed #b78a51; vertical-align: -0.15em; }
+
+.assemble-rows { display: grid; gap: 0.55rem; margin: 0.6rem 0 0; padding: 0; list-style: none; }
+.assemble-row { position: relative; display: grid; grid-template-columns: 76px minmax(0, 1fr) auto; gap: 0.3rem 1rem; align-items: center; padding: 0.8rem 1rem 0.8rem 0.8rem; border: 1px solid rgba(121, 79, 38, 0.34); background: linear-gradient(180deg, rgba(255, 252, 238, 0.82), rgba(244, 224, 176, 0.55)); box-shadow: inset 0 0 0 2px rgba(255, 252, 236, 0.4), 0 2px 5px rgba(67, 37, 15, 0.08); transition: transform var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease); }
+.assemble-row.is-thin { opacity: 0.8; }
+.assemble-row__portrait { display: block; justify-self: center; border-radius: 50%; }
+.assemble-row__portrait .assemble-portrait { width: 64px; height: 64px; }
+.assemble-row__portrait:focus-visible { outline: 3px solid #7b151b; outline-offset: 2px; }
+.assemble-row__body { min-width: 0; }
+.assemble-row__head { display: flex; gap: 0.2rem 0.6rem; align-items: center; flex-wrap: wrap; }
+.assemble-row__name { color: #4a2d1b; font-size: 1rem; font-weight: 900; line-height: 1.25; text-decoration: none; overflow-wrap: anywhere; }
+.assemble-row__name:hover, .assemble-row__name:focus-visible { color: #731c1d; text-decoration: underline; text-underline-offset: 0.16rem; }
+.assemble-row__half { color: #735e49; font-size: 0.8125rem; font-weight: 700; }
+.assemble-text { margin: 0.25rem 0 0; font-size: 1.0625rem; line-height: 1.5; overflow-wrap: anywhere; }
+.assemble-text.is-missing { color: #735e49; font-style: italic; }
+.assemble-row__metrics { display: grid; grid-template-columns: 9.5rem 5.5rem; gap: 0.6rem 1rem; margin: 0; }
+.assemble-metric { display: grid; gap: 0.15rem; min-width: 0; }
+.assemble-metric dt { color: #735e49; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+.assemble-metric dd { margin: 0; color: #30251c; font-size: 1.25rem; font-weight: 900; font-variant-numeric: tabular-nums; }
+.assemble-row .card-choices__bar { height: 6px; }
+
+/* The best of the offered four. */
+.assemble-row.is-best { border-color: #c79a3e; background: linear-gradient(180deg, rgba(255, 246, 214, 0.95), rgba(246, 218, 140, 0.6)); box-shadow: inset 0 0 0 2px rgba(255, 244, 200, 0.7), 0 0 0 1px #d9ab49, 0 0 22px rgba(239, 201, 111, 0.75); animation: assemble-best-arrive var(--motion-slow) var(--motion-ease) both; }
+.assemble-row.is-best .assemble-portrait { border-color: #efc96f; box-shadow: 0 0 0 3px rgba(217, 171, 73, 0.55), 0 0 14px rgba(239, 201, 111, 0.8); }
+.assemble-row__best { position: absolute; top: -0.7rem; left: 1rem; padding: 0.15rem 0.7rem; border: 1px solid #a8792c; color: #3b2306; background: linear-gradient(180deg, #f6d77e, #d9ab49); box-shadow: 0 2px 4px rgba(67, 37, 15, 0.3); font-size: 0.8125rem; font-weight: 900; }
+@keyframes assemble-best-arrive { from { opacity: 0.4; transform: scale(0.985); } to { opacity: 1; transform: none; } }
+
+/* Offered: two slots, then the picker. */
+.assemble-offer__hint { margin: 0.9rem 0 0; color: #735e49; font-size: 0.9375rem; line-height: 1.45; }
+.assemble-slots { display: flex; gap: 0.6rem; margin-top: 0.7rem; flex-wrap: wrap; }
+.assemble-slot { display: flex; min-width: 0; flex: 1 1 14rem; align-items: center; gap: 0.7rem; padding: 0.5rem 0.8rem 0.5rem 0.5rem; border: 2px dashed rgba(121, 79, 38, 0.45); color: #735e49; background: rgba(255, 252, 240, 0.4); font: inherit; text-align: left; transition: transform var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease); }
+.assemble-slot.is-filled { min-height: 44px; border-style: solid; border-color: #c79a3e; color: #30251c; background: rgba(239, 201, 111, 0.28); cursor: pointer; }
+.assemble-slot.is-filled:active { transform: scale(0.98); }
+.assemble-slot:focus-visible { outline: 3px solid #7b151b; outline-offset: 2px; }
+.assemble-slot__empty { display: grid; flex: 0 0 auto; width: 52px; height: 52px; border: 2px dashed rgba(121, 79, 38, 0.45); border-radius: 50%; place-items: center; font-size: 1.3rem; font-weight: 900; }
+.assemble-slot .assemble-portrait { width: 52px; height: 52px; }
+.assemble-slot__name { min-width: 0; font-size: 0.95rem; font-weight: 800; line-height: 1.25; overflow-wrap: anywhere; }
+.assemble-offer .assemble-rows { margin-top: 1.1rem; }
+
+.assemble-loading { margin-top: 0.85rem; }
+.assemble-loading__rows { display: grid; gap: 0.55rem; }
+.assemble-loading__row { display: block; height: 96px; }
+
+@media (hover: hover) {
+  .assemble-picker__list button:hover { transform: translateY(-3px); background: rgba(224, 191, 117, 0.26); }
+  .assemble-picker__list button:hover .assemble-portrait { transform: scale(1.1) rotate(-3deg); border-color: #efc96f; box-shadow: 0 5px 12px rgba(67, 37, 15, 0.4), 0 0 0 2px rgba(217, 171, 73, 0.5); }
+  .assemble-row:hover { transform: translateY(-2px); border-color: #c79a3e; box-shadow: inset 0 0 0 2px rgba(255, 252, 236, 0.5), 0 8px 18px rgba(67, 37, 15, 0.18); }
+  .assemble-row.is-best:hover { box-shadow: inset 0 0 0 2px rgba(255, 244, 200, 0.7), 0 0 0 1px #d9ab49, 0 0 28px rgba(239, 201, 111, 0.9); }
+  .assemble-row:hover .assemble-portrait { transform: scale(1.08) rotate(-4deg); }
+  .assemble-slot.is-filled:hover { transform: translateY(-2px); }
+}
+
+/* Phones: portrait and text on one line, the metrics under them. */
+@media (max-width: 640px) {
+  .assemble-picker__list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .assemble-picker--small .assemble-picker__list { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .assemble-row { grid-template-columns: 56px minmax(0, 1fr); padding: 0.75rem 0.7rem; gap: 0.4rem 0.7rem; }
+  .assemble-row__portrait .assemble-portrait { width: 52px; height: 52px; }
+  .assemble-row__metrics { grid-column: 1 / -1; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .assemble-row__best { left: 0.7rem; }
+  .assemble-base { padding: 0.6rem 0.7rem; }
+  .assemble-text { font-size: 1rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .assemble-row.is-best { animation: none; }
+  .assemble-portrait, .assemble-picker__list button, .assemble-row, .assemble-slot { transition: none; }
+  .assemble-picker__list button:hover, .assemble-picker__list button:hover .assemble-portrait, .assemble-row:hover, .assemble-row:hover .assemble-portrait, .assemble-slot.is-filled:hover { transform: none; }
+}

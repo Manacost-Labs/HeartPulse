@@ -139,3 +139,26 @@ export function bestOfOffered(
   if (!pool.length) return null;
   return { best: pool.reduce(better), lowSample: !solid.length, variants };
 }
+
+/** The base whose donors are loaded: the one the answer was requested for. */
+export function assembleActiveBase(data: CardAssembleData): AssembleBase | null {
+  return data.bases.find(base => base.donors !== null) ?? null;
+}
+
+/** The base with the highest winrate among those with a real sample; `null` without one. */
+export function assembleBestBase(data: CardAssembleData): AssembleBase | null {
+  const solid = data.bases.filter(base => !base.lowSample && base.winRate !== null);
+  return solid.length ? solid.reduce((best, base) => ((base.winRate ?? 0) > (best.winRate ?? 0) ? base : best)) : null;
+}
+
+/** Donors of a base that «Мне предложили» can rank: those with HSReplay winrate data, most offered first. */
+export function assembleRankableDonors(base: AssembleBase): AssembleDonor[] {
+  return (base.donors ?? [])
+    .filter(donor => donor.options.some(option => option.winRate !== null))
+    .sort((a, b) => byDescending(a.offerRate, b.offerRate));
+}
+
+/** Bases in the order of the «Что выпало?» ribbon: most offered first, ties by name. */
+export function assembleBasesByOffer(data: CardAssembleData): AssembleBase[] {
+  return [...data.bases].sort((a, b) => byDescending(a.offerRate, b.offerRate) || a.card.name.localeCompare(b.card.name, 'ru'));
+}
