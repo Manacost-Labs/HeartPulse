@@ -151,9 +151,29 @@ export const ModePanel: Story = {
     await userEvent.click(button);
     const panel = canvasElement.querySelector('.arena-sidebar details.hp-mode') as HTMLDetailsElement;
     await expect(panel.open).toBe(true);
-    await expect(canvasElement.querySelectorAll('.arena-sidebar [data-mode-card]')).toHaveLength(4);
+    await expect(canvasElement.querySelectorAll('.arena-sidebar [data-mode-card]')).toHaveLength(5);
     await userEvent.keyboard('{Escape}');
     await waitFor(() => expect(panel.open).toBe(false));
     await expect(button).toHaveFocus();
+  },
+};
+
+/** A Standard page opened in Wild: the Wild list, its item current, the banner of Wild marked «Текущий»; choosing the Standard banner switches back. */
+export const WildMode: Story = {
+  args: {
+    activeTab: 'wild-matchups',
+    mobileMenuOpen: false,
+  },
+  play: async ({ canvasElement }) => {
+    const sidebar = canvasElement.querySelector('.arena-sidebar') as HTMLElement;
+    const matchups = sidebar.querySelector<HTMLAnchorElement>('.hp-nav-list[data-for="wild"] a[href="/standard/matchups/?format=wild"]');
+    await expect(matchups).toHaveAttribute('aria-current', 'page');
+    await expect(sidebar.querySelector('.hp-nav-list[data-for="wild"]')).toBeVisible();
+    await expect(sidebar.querySelector('.hp-nav-list[data-for="standard"]')).not.toBeVisible();
+    await expect(sidebar.querySelector('.hp-mode-card[data-mode="wild"]')).toHaveAttribute('aria-current', 'true');
+    await userEvent.click(sidebar.querySelector('details.hp-mode > summary') as HTMLElement);
+    await userEvent.click(sidebar.querySelector('[data-mode-card][data-mode="standard"]') as HTMLElement);
+    await waitFor(() => expect(sidebar.querySelector('.hp-nav-list[data-for="standard"]')).toBeVisible());
+    await expect(sidebar.querySelector('.hp-nav-list[data-for="wild"]')).not.toBeVisible();
   },
 };
