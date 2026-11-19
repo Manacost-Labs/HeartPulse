@@ -180,31 +180,19 @@ test('public previews render on the server and hydrate without a guest data requ
     assert.equal(slowHtml.match(/class="standard-meta-card"/g)?.length, 3, 'the read fits the budget');
     state.delay = 0;
 
-    // A stalled Express during a regeneration: it gives up after the 5 s
-    // budget with the loader (no 500), and the browser loads the teaser itself.
+    // A stalled Express at the deploy's warm-up: the revalidate route's probe gives up after its 5 s budget and leaves the page as it
+    // is, so nobody waits for a regeneration that has no data and nobody gets a 500 or the loader instead of the earlier copy.
     state.stall = true;
-    await regenerate();
     started = Date.now();
-    const stalled = await (await fetch(`${origin}/standard/meta/`)).text();
-    const stalledMs = Date.now() - started;
-    assert.ok(stalledMs >= 4500 && stalledMs < 9000, `a stalled Express read gives up at the budget (${stalledMs} ms)`);
-    assert.match(stalled, /data-loading-surface="panel"/, 'without data the page renders its loader');
-    assert.match(stalled, /Архетипов<\/dt><dd><span class="loading-block loading-value"/, 'and no fake zero: a value placeholder');
-    const page = await browser.newPage();
-    await page.setViewport({ width: 390, height: 844 });
-    const errors = [];
-    page.on('pageerror', error => errors.push(error.message));
-    const browserReads = [];
-    page.on('request', request => {
-      if (new URL(request.url()).pathname === '/api/standard-meta/public') browserReads.push(request.url());
-    });
-    await page.goto(`${origin}/standard/meta/`, { waitUntil: 'networkidle0' });
-    await page.waitForSelector('#root .standard-meta-card', { visible: true });
-    assert.ok(browserReads.length >= 1, 'the browser loads the teaser the server could not');
-    assert.match(await page.$eval('#root .traditional-mode-banner__summary dd', node => node.textContent), /^3$/);
-    assert.match(await summaryValue(page, 'Игр в выборке'), /^52\s500$/, 'the teaser the browser loads itself shows the slice sample too');
-    assert.deepEqual(errors, []);
-    await page.close();
+    const answer = await (await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).json();
+    const probeMs = Date.now() - started;
+    assert.ok(probeMs < 9000, `the probe gives up at its budget (${probeMs} ms)`);
+    assert.ok(answer.skipped.some(item => item.path === '/standard/meta' && item.reason === 'source-unavailable'), 'the meta page is skipped');
+    assert.ok(!answer.revalidated.includes('/standard/meta'));
+    started = Date.now();
+    const kept = await (await fetch(`${origin}/standard/meta/`)).text();
+    assert.ok(Date.now() - started < 1500, 'the earlier copy is served at once');
+    assert.equal(kept.match(/class="standard-meta-card"/g)?.length, 3, 'with the numbers it had');
     state.stall = false;
   } finally {
     if (browser) await browser.close();
