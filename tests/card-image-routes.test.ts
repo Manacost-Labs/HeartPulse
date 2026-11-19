@@ -85,6 +85,14 @@ try {
   assert.equal(tile.status, 200);
   assert.deepEqual(ensured.at(-1), { cardId: 'EX1_001', variant: 'tile' });
 
+  const deckRow = await get('/card-image/TOY_330t97/row.webp');
+  assert.equal(deckRow.status, 200);
+  assert.deepEqual(ensured.at(-1), { cardId: 'TOY_330t97', variant: 'row' });
+
+  const portrait = await get('/card-image/CORE_EX1_049/portrait.webp');
+  assert.equal(portrait.status, 200);
+  assert.deepEqual(ensured.at(-1), { cardId: 'CORE_EX1_049', variant: 'portrait' });
+
   image = { path: '/safe/fallback.webp', source: 'fallback' };
   const fallback = await get('/card-image/123/full.webp');
   assert.equal(fallback.status, 200);

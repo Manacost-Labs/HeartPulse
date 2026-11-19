@@ -18,6 +18,6 @@ export default async function Page() {
   const teaser = await loadPublicClassesTeaser();
   return <>
     <SeoStructuredData path="/classes" data={teaser} />
-    <ClassesPageClient teaser={<ClassesPublicTeaser data={teaser} />} />
+    <ClassesPageClient hasOpenData={teaser !== null} teaser={<ClassesPublicTeaser data={teaser} />} />
   </>;
 }

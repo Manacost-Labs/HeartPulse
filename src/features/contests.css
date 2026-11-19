@@ -4095,3 +4095,32 @@
   .admin-parser-run-drawer { animation: none; }
   .admin-tailadmin-shell .admin-parser-progress > span { transition: none; }
 }
+
+.admin-fun-decks__badges { display: inline-flex; flex-wrap: wrap; gap: 0.3rem; margin-left: 0.4rem; vertical-align: middle; }
+.admin-fun-decks__badges span {
+  padding: 0.1rem 0.45rem;
+  border: 1px solid #d5dee7;
+  border-radius: 999px;
+  background: #f7f9fb;
+  color: var(--admin-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+.admin-fun-decks__badges .is-pinned { border-color: var(--admin-blue); color: var(--admin-blue); background: #eff8fe; }
+.admin-fun-decks__badges .is-hidden { border-color: #d9b4a8; color: #8e342f; background: #fbf1ee; }
+.admin-fun-decks__moderation { display: flex; flex-wrap: wrap; align-items: center; gap: 0.45rem; }
+.admin-fun-decks__moderation .admin-parser-empty { margin: 0; }
+.admin-fun-decks__hidden { display: grid; gap: 0.5rem; }
+.admin-fun-decks__hidden h3 { margin: 0; font-size: 0.9rem; }
+.admin-fun-decks__hidden ul { display: grid; gap: 0.4rem; margin: 0; padding: 0; list-style: none; }
+.admin-fun-decks__hidden li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--admin-divider);
+  border-radius: 8px;
+  font-size: 0.78rem;
+}

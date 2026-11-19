@@ -13,7 +13,6 @@ const requiredTours = [
   'standard-vicious-gold',
   'standard-cards',
   'standard-card-detail',
-  'standard-patches',
   'arena-classes',
   'arena-tier-list',
   'arena-legendaries',

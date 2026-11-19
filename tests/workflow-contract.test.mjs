@@ -95,8 +95,8 @@ for (const event of ['merge_group', 'push', 'workflow_dispatch']) {
   assert.deepEqual(planTestShards({ event, status: 0, output: '{"mode":"none","files":{}}', registry: { suites: [] } }), {
     mode: 'all',
     reason: `${event} always runs every test`,
-    registryShards: [1, 2],
-    browserShards: [1, 2, 3, 4, 5, 6, 7, 8, 9],
+    registryShards: [1, 2, 3, 4],
+    browserShards: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
     affectedTests: '',
   }, `${event} runs the full matrices`);
 }
@@ -221,8 +221,8 @@ assert.ok(ciJobs['test-suites'].includes(onlyFilesRun(
 assert.ok(suiteRun, 'the non-browser shards must run registry suites and derive the total from the matrix');
 assert.deepEqual([...suiteRun.split(','), 'browser'].sort(), [...TEST_SUITE_IDS].sort(),
   'every registry suite runs in exactly one job');
-assert.deepEqual(FULL_SHARDS, { registry: 2, browser: 9 },
-  'a full run has two registry shards (a third only added runner minutes outside the critical path) and nine browser shards');
+assert.deepEqual(FULL_SHARDS, { registry: 4, browser: 12 },
+  'a full run has four registry and twelve browser shards: with refreshed durations the slowest shard of each is about two minutes, under the observatory (GitHub Team allows 60 concurrent jobs)');
 assert.ok(
   ciJobs['browser-tests'].includes(onlyFilesRun(
     'npm run test:suite -- browser --shard ${{ matrix.shard }}/${{ strategy.job-total }} --retry-failed-once --continue-on-failure --quarantine exclude',

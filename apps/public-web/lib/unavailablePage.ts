@@ -1,5 +1,5 @@
 import { canonicalPagePath } from '@/src/app/routing/canonicalPagePath';
-import { NAVIGATION_DATA, type NavigationGroupId } from '@/src/app/routing/navigationData';
+import { NAVIGATION_DATA, NAVIGATION_MODES, WILD_NAVIGATION_ITEMS, type NavigationGroupId } from '@/src/app/routing/navigationData';
 import { FOOTER_COLUMNS, FOOTER_LEGAL_LINKS } from '@/src/components/siteFooterContent';
 import { UNAVAILABLE_PAGE_CSS } from './unavailablePageStyles';
 
@@ -15,9 +15,10 @@ type Link = { label: string; path: string; hint?: string };
 type Section = { title?: string; links: readonly Link[] };
 
 /** Menu blocks in the order of the site menu (`PublicNavigation`); a group missing here is not shown. */
-const MENU_BLOCKS: readonly { groups: readonly NavigationGroupId[]; title?: string }[] = [
+const MENU_BLOCKS: readonly { groups: readonly (NavigationGroupId | 'wild')[]; title?: string }[] = [
   { groups: ['home'] },
   { groups: ['standard'], title: 'Стандарт' },
+  { groups: ['wild'], title: NAVIGATION_MODES.find(mode => mode.id === 'wild')?.label },
   { groups: ['arena'], title: 'Арена' },
   { groups: ['battlegrounds'], title: 'Поля сражений' },
   { groups: ['community'], title: 'Сообщество' },
@@ -26,7 +27,8 @@ const MENU_BLOCKS: readonly { groups: readonly NavigationGroupId[]; title?: stri
 /** The site menu, built from the shared navigation data: the help page (FAQ) lives in the header and the admin items stay out. */
 const UNAVAILABLE_PAGE_NAVIGATION: readonly Section[] = MENU_BLOCKS.map(block => ({
   title: block.title,
-  links: block.groups.flatMap(group => NAVIGATION_DATA
+  // The Wild items repeat the labels of their Standard twins: the block's title is their mode.
+  links: block.groups.flatMap(group => (group === 'wild' ? WILD_NAVIGATION_ITEMS : NAVIGATION_DATA)
     .filter(route => route.group === group && route.id !== 'faq')
     .map(route => ({ label: route.label, path: canonicalPagePath(route.path) }))),
 }));

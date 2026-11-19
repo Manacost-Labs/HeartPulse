@@ -129,14 +129,14 @@ test('public previews render on the server and hydrate without a guest data requ
     assert.doesNotMatch(archetypesHtml, /PAID_BUILD_CODE/, 'builds are paid data');
 
     const funHtml = await (await fetch(`${origin}/standard/fun-decks/`)).text();
-    assert.equal(funHtml.match(/class="fun-deck-card"/g)?.length, 3);
+    assert.equal(funHtml.match(/class="fun-deck-tiles"/g)?.length, 3, 'the default tile view renders the free preview on the server');
     for (const code of ['FREE_DECK_A', 'FREE_DECK_B', 'FREE_DECK_C']) assert.match(funHtml, new RegExp(code));
     assert.doesNotMatch(funHtml, /PAID_DECK_/, 'only the free preview of the selection reaches the HTML');
 
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
     for (const [path, ready] of [['/standard/meta/', '.standard-meta-card'], ['/standard/archetypes/', '.archetype-row'],
-      ['/standard/fun-decks/', '.fun-deck-card']]) {
+      ['/standard/fun-decks/', '.fun-deck-tiles']]) {
       const page = await browser.newPage();
       // Another zone than the server's: a date rendered differently would break hydration.
       await page.emulateTimezone('Asia/Vladivostok');

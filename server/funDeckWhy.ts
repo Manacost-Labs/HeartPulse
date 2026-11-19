@@ -1,4 +1,13 @@
+/** `off_meta`: a forgotten archetype; every other deck, and any row of an API that predates the field, is a brew. */
+export type FunDeckKind = 'brew' | 'off_meta';
+
+export function normalizeFunDeckKind(value: unknown): FunDeckKind {
+  return value === 'off_meta' ? 'off_meta' : 'brew';
+}
+
 const REASON_LABELS: Record<string, string> = {
+  unique_list: 'Уникальный список',
+  far_from_ladder: 'Далеко от меты',
   meta_core_outlier: 'Далеко от меты',
   low_meta_overlap: 'Мало общего с метой',
   concept_title: 'Концепт',
@@ -23,8 +32,8 @@ const PACKAGE_NAMES: Record<string, string> = {
 };
 
 /** What makes a deck unusual first, how far it is from the meta last. */
-const WHY_ORDER = ['package', 'highlander_shape', 'xl_shape', 'concept_title', 'meme_low_winrate',
-  'cheese_high_winrate', 'rare_archetype_name', 'meta_core_outlier', 'low_meta_overlap'];
+const WHY_ORDER = ['off_meta', 'package', 'unique_list', 'highlander_shape', 'xl_shape', 'concept_title', 'meme_low_winrate',
+  'cheese_high_winrate', 'rare_archetype_name', 'far_from_ladder', 'meta_core_outlier', 'low_meta_overlap'];
 
 /** The reason codes the page filters by, and the tag each stands for. */
 const TAG_BY_REASON: Record<string, string> = {
@@ -38,11 +47,12 @@ const TAG_BY_REASON: Record<string, string> = {
 /**
  * What a deck says about itself, from the API's machine-readable `reasons`:
  * `why` is every Russian reason in order of interest (the page shows the first
- * three), `tags` the filter tags it carries. The API's internal codes (score
+ * three), `tags` the filter tags it carries (`offmeta` follows the deck's `kind`, not a reason). The API's internal codes (score
  * arithmetic, rejection reasons) and unknown ones produce nothing.
  */
-export function funDeckWhy(reasons: readonly string[]): { why: string[]; tags: string[] } {
+export function funDeckWhy(reasons: readonly string[], kind: FunDeckKind = 'brew'): { why: string[]; tags: string[] } {
   const found = new Map<string, string>();
+  if (kind === 'off_meta') found.set('off_meta', 'Офф-мета');
   for (const reason of reasons) {
     // Own keys only: a code such as "valueOf" must not find a label on Object.prototype.
     if (Object.hasOwn(REASON_LABELS, reason)) found.set(reason, REASON_LABELS[reason]);
@@ -52,6 +62,9 @@ export function funDeckWhy(reasons: readonly string[]): { why: string[]; tags: s
   if (reasons.includes('card_package') && !found.has('package')) found.set('package', 'Пакет карт');
   return {
     why: [...found].sort(([a], [b]) => WHY_ORDER.indexOf(a) - WHY_ORDER.indexOf(b)).map(([, label]) => label),
-    tags: Object.keys(TAG_BY_REASON).filter(reason => reasons.includes(reason)).map(reason => TAG_BY_REASON[reason]),
+    tags: [
+      ...Object.keys(TAG_BY_REASON).filter(reason => reasons.includes(reason)).map(reason => TAG_BY_REASON[reason]),
+      ...(kind === 'off_meta' ? ['offmeta'] : []),
+    ],
   };
 }

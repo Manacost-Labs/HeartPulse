@@ -4,5 +4,3 @@
 .fun-deck-skeleton-metrics { height: 57.6px; }
 .fun-deck-skeleton-preview { aspect-ratio: 1; }
 .fun-deck-card--loading .fun-deck-card__copy { display: flex; }
-.fun-deck-skeleton-source { height: 36.25px; }
-@media (max-width: 640px) { .fun-deck-skeleton-source { height: 50.25px; } }

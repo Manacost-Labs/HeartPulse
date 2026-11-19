@@ -13,6 +13,7 @@ import {
   type DeckBuilderResolvedCard,
   type DeckBuilderResolveResult,
 } from './deckBuilderResolve.js';
+import { withCardPagePaths } from './deckCardPagePaths.js';
 import {
   fetchHsGuruArchetypeName,
   loadArchetypeDeckCandidates,
@@ -165,7 +166,7 @@ export async function resolveDeckPayload(
     });
     if (localOnly?.archetype) resolved.archetype = localOnly.archetype;
   }
-  return resolved;
+  return withCardPagePaths(resolved, { standard: standardCards, wild: wildCards });
 }
 
 export function createDeckBuilderRouter(dependencies: DeckBuilderRouterDependencies): Router {

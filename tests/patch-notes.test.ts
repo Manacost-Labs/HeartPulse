@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import express from 'express';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parsePatchArticle, splitStatedCard, statedChanges } from '../server/modules/patchNotes/parser.js';
@@ -15,6 +15,7 @@ import { createArtworkLookup, createDbfLookup, withHistory } from '../server/mod
 import {
   createBattlegroundCatalogLoader, createBattlegroundNameResolver, loadBattlegroundCatalog, type BattlegroundCatalogCard,
 } from '../server/modules/patchNotes/battlegroundCatalog.js';
+import { pickVersionPair } from '../server/modules/patchNotes/cardVersions.js';
 import { createPatchNotesRouter } from '../server/modules/patchNotes/routes.js';
 import { shortPatchVersion } from '../server/modules/patchNotes/contract.js';
 
@@ -90,7 +91,8 @@ test('articles become per-card changes with their notes, modes and resolved card
   const serpent = entries.find(entry => entry.name === 'Змей ветреных вершин');
   assert.deepEqual(serpent, {
     id: 'constructed-змей-ветреных-вершин', name: 'Змей ветреных вершин', sourceName: null, mode: 'constructed',
-    cardId: 'TLC_600', cardClass: 'WARRIOR', cardType: 'minion', renderUrl: null, artwork: null, format: null, archetypes: [], history: [],
+    cardId: 'TLC_600', cardClass: 'WARRIOR', cardType: 'minion', renderUrl: null, artwork: null, beforeRenderUrl: null, afterRenderUrl: null, format: null,
+    archetypes: [], history: [],
     subtitle: null,
     note: 'Родня срабатывала слишком рано.',
     changes: [{ label: 'Текст', before: 'Боевой клич: наносит 5 ед. урона. Родня: стоит на (3) меньше.',
@@ -354,7 +356,7 @@ test('history links a card to earlier patches that changed it, newest first', ()
     version, build: version, title: version, publishedAt: null, sourceUrl: null, officialUrl: null, changeCount: ids.length,
     summary: null, missingBefore: 0, pictureSections: [], generalChanges: [], meta: null,
     entries: ids.map(id => ({ id: `e-${id}-${version}`, name: id, sourceName: null, mode: 'constructed' as const, cardId: id,
-      cardClass: null, cardType: null, renderUrl: null, artwork: null, format: null, archetypes: [], history: [], subtitle: null, changes: [], note: null })),
+      cardClass: null, cardType: null, renderUrl: null, artwork: null, beforeRenderUrl: null, afterRenderUrl: null, format: null, archetypes: [], history: [], subtitle: null, changes: [], note: null })),
   });
   const [newest, middle, oldest] = withHistory([patch('3.0.0', ['A', 'B']), patch('2.0.0', ['A']), patch('1.0.0', ['A', 'B'])]);
   assert.deepEqual(newest.entries[0].history.map(item => [item.version, item.entryId]), [['2.0.0', 'e-A-2.0.0'], ['1.0.0', 'e-A-1.0.0']]);
@@ -670,4 +672,132 @@ test('37.0.2 contains every official before/after pair and trinket cost, with Ru
   assert.deepEqual(mother?.changes, [{ label: 'Стоимость', before: 9, after: 10, better: 'lower' }]);
   const greaterGlass = patch.entries.find(entry => entry.name === 'Бокал свежего взгляда' && entry.subtitle?.includes('Большой'));
   assert.deepEqual(greaterGlass?.changes, [{ label: 'Стоимость', before: 3, after: 4, better: 'lower' }]);
+});
+
+// Before/after pictures: the card history of the data API, as it answered on 2026-11-19 (trimmed to the picture fields).
+const cardHistory = JSON.parse(readFileSync(new URL('./fixtures/card-history-37-0-2-20261119.json', import.meta.url), 'utf8')) as
+  Record<string, { data: { versions: unknown[] } }>;
+const ARCHIVE = 'https://api.kolodahearthstone.com/uploads/card-history-media/';
+const patch3702 = { from: Date.parse('2026-11-03T15:55:00+00:00'), until: null };
+
+test('card versions: "before" is the last archived picture before the patch, "after" the first different one inside it', () => {
+  assert.deepEqual(pickVersionPair(cardHistory.BE_036.data.versions, 'image_url', patch3702, 'https://api.kolodahearthstone.com'), {
+    before: `${ARCHIVE}f1d0a999db274d35cbe0007314c676ce0712b33fa8332c3d1ae4aaeab0224958.png`,
+    after: `${ARCHIVE}9a947b36a7df4bb529a5e06e51ee2262d2f65663178fd88497aa15e7eb6bbfbc.png`,
+  }, 'M.O.T.H.E.R.: 9 mana before, 10 after');
+  assert.deepEqual(pickVersionPair(cardHistory.BG36_362.data.versions, 'card_image', patch3702, 'https://api.kolodahearthstone.com'), {
+    before: `${ARCHIVE}6acc7c499a8c7fca0fd53930bcfed62888c7bcbb09b01ed6584017330b44e99f.png`,
+    after: `${ARCHIVE}c5a1e1ead804ed3f8c173eec57e2bf43dc293d3abbd225de8e8af960f00e296e.png`,
+  });
+  // 37.0.0 came out on 2026-10-12 16:55: the history starts a day earlier, but nothing after it before 37.0.2 differs from the next.
+  const v3700 = { from: Date.parse('2026-10-12T16:55:00+00:00'), until: patch3702.from };
+  assert.equal(pickVersionPair(cardHistory.BE_036.data.versions, 'image_url', v3700, 'https://api.kolodahearthstone.com')?.after,
+    `${ARCHIVE}f1d0a999db274d35cbe0007314c676ce0712b33fa8332c3d1ae4aaeab0224958.png`);
+  // The window ends at the next patch: a change after it is not this patch's.
+  const narrow = { from: patch3702.from, until: Date.parse('2026-11-03T20:00:00Z') };
+  assert.equal(pickVersionPair(cardHistory.BE_036.data.versions, 'image_url', narrow, 'https://api.kolodahearthstone.com'), null);
+  // A patch older than the history has no "before"; the unverified baseline is never a picture.
+  assert.equal(pickVersionPair(cardHistory.BE_036.data.versions, 'image_url',
+    { from: Date.parse('2026-10-01T15:55:00+00:00'), until: Date.parse('2026-10-12T16:55:00+00:00') }, 'https://api.kolodahearthstone.com'), null);
+  assert.equal(pickVersionPair('nope', 'image_url', patch3702, 'https://api.kolodahearthstone.com'), null);
+});
+
+test('card versions: pairs reach the patch entries; an unreachable history leaves every card single and the route answers 200', async () => {
+  const entry = (id: string, name: string, mode: 'constructed' | 'battlegrounds', cardId: string | null) => ({
+    id, name, sourceName: null, mode, cardId, cardClass: null, cardType: null, renderUrl: null, artwork: null, beforeRenderUrl: null,
+    afterRenderUrl: null, format: null, archetypes: [], history: [], subtitle: null, changes: [], note: null,
+  });
+  const entries = [entry('a', 'Матриарх', 'constructed', 'BE_036'), entry('b', 'Страж', 'battlegrounds', 'BG36_362'),
+    entry('c', 'Без карты', 'constructed', null), entry('d', 'Аксессуар', 'battlegrounds', 'BG36_MagicItem_403')];
+  const detail = (version: string, publishedAt: string) => ({
+    version, build: `${version}.1`, title: `Патч ${version}`, publishedAt, sourceUrl: null, officialUrl: null, changeCount: entries.length,
+    summary: null, entries, missingBefore: 0, pictureSections: [], generalChanges: [], meta: null,
+  });
+  const archive = [detail('37.0.2', '2026-11-03T15:55:00+00:00'), detail('37.0.0', '2026-10-12T16:55:00+00:00')];
+  const snapshot = { patches: archive, updatedAt: '2026-11-19T00:00:00.000Z' };
+  let active = 0; let peak = 0; const requested: string[] = [];
+  const service = createPatchNotesService({
+    fetchJson: async () => ({ patches: [] }), patchesUrl: 'x', ttlMs: 1000, loadCardNames: async () => ({}),
+    cardHistoryBaseUrl: 'https://api.kolodahearthstone.com/api/v1',
+    fetchCardHistory: async url => {
+      requested.push(url); active += 1; peak = Math.max(peak, active);
+      await new Promise(resolve => setTimeout(resolve, 5));
+      active -= 1;
+      const id = url.split('/').pop() as string;
+      if (!cardHistory[id]) throw Object.assign(new Error('not found'), { status: 404 });
+      return cardHistory[id];
+    },
+  });
+  const [latest] = await service.withCardVersions(snapshot, [archive[0]]);
+  const picture = (value: string | null) => value?.slice(ARCHIVE.length, ARCHIVE.length + 8) ?? null;
+  assert.deepEqual(latest.entries.map(item => [item.id, picture(item.beforeRenderUrl), picture(item.afterRenderUrl)]), [
+    ['a', 'f1d0a999', '9a947b36'], ['b', '6acc7c49', 'c5a1e1ea'], ['c', null, null], ['d', null, null],
+  ]);
+  assert.deepEqual(requested.sort(), [
+    'https://api.kolodahearthstone.com/api/v1/card-history/card/BG36_362',
+    'https://api.kolodahearthstone.com/api/v1/card-history/card/BG36_MagicItem_403',
+    'https://api.kolodahearthstone.com/api/v1/card-history/constructed_card/BE_036',
+  ], 'Constructed cards read their own history, Battlegrounds cards theirs; a card without an id is not asked');
+  assert.ok(peak >= 2 && peak <= 4, 'requests overlap, but never more than four at once');
+  await service.withCardVersions(snapshot, [archive[0]]);
+  assert.equal(requested.length, 3, 'a patch does not change once out: the pairs are kept');
+
+  // The history is down: no pictures, no failure, and the patch is asked again later.
+  const failing = createPatchNotesService({
+    fetchJson: async () => ({ patches: [] }), patchesUrl: 'x', ttlMs: 1000, loadCardNames: async () => ({}),
+    cardHistoryBaseUrl: 'https://api.kolodahearthstone.com/api/v1', fetchCardHistory: async () => { throw new Error('down'); },
+  });
+  const app = express().use('/api', createPatchNotesRouter({ load: async () => snapshot, withCardVersions: failing.withCardVersions }));
+  const server = app.listen(0);
+  try {
+    const { port } = server.address() as { port: number };
+    const response = await fetch(`http://127.0.0.1:${port}/api/patch-notes/recent`);
+    assert.equal(response.status, 200);
+    const body = await response.json() as { patches: { version: string; entries: { beforeRenderUrl: string | null; afterRenderUrl: string | null }[] }[] };
+    assert.deepEqual(body.patches.map(patch => patch.version), ['37.0.2', '37.0.0']);
+    assert.ok(body.patches.every(patch => patch.entries.every(item => item.beforeRenderUrl === null && item.afterRenderUrl === null)));
+    assert.equal((await fetch(`http://127.0.0.1:${port}/api/patch-notes/37.0.0`)).status, 200);
+  } finally {
+    server.close();
+  }
+});
+
+test('the page is the two newest patches: each card before → after, no search, filters, contents or version switcher', async () => {
+  const { createElement } = await import('react');
+  const { renderToStaticMarkup } = await import('react-dom/server');
+  const { PatchNotesView } = await import('../src/features/PatchNotesView.js');
+  const entry = (id: string, name: string, cardId: string | null, mode: 'constructed' | 'battlegrounds', changes: object[], pair = false) => ({
+    id, name, sourceName: null, mode, cardId, cardClass: null, cardType: mode === 'battlegrounds' ? 'minion' : 'minion', renderUrl: null,
+    artwork: null, format: mode === 'constructed' ? 'standard' : null, archetypes: [], history: [], subtitle: null, note: id === 'matriarch' ? 'Слишком рано.' : null,
+    changes, beforeRenderUrl: pair ? `${ARCHIVE}f1d0a999db274d35cbe0007314c676ce0712b33fa8332c3d1ae4aaeab0224958.png` : null,
+    afterRenderUrl: pair ? `${ARCHIVE}9a947b36a7df4bb529a5e06e51ee2262d2f65663178fd88497aa15e7eb6bbfbc.png` : null,
+  });
+  const patch = (version: string, entries: ReturnType<typeof entry>[]) => ({
+    version, build: `${version}.1`, title: `Обновление ${version}: балансные изменения`, publishedAt: '2026-11-03T15:55:00+00:00',
+    sourceUrl: 'https://hs-manacost.ru/37-0-2/', officialUrl: null, changeCount: entries.length, summary: null, entries, missingBefore: 0,
+    pictureSections: [], generalChanges: [{ mode: 'battlegrounds' as const, lines: ['Аберрации больше не встречаются в каждом матче.'] }], meta: null,
+  });
+  const html = renderToStaticMarkup(createElement(PatchNotesView, { patches: [
+    patch('37.0.2', [
+      entry('matriarch', 'Матриарх', 'BE_036', 'constructed', [{ label: 'Стоимость', before: 9, after: 10, better: 'lower' }], true),
+      entry('hyena', 'Алчная гиена', 'BG21_009', 'battlegrounds', [{ label: 'Уровень таверны', before: 4, after: 5 }]),
+      entry('ghost', 'Карта вне каталога', null, 'constructed', [{ label: 'Атака', before: 5, after: 6, better: 'higher' }]),
+    ]),
+    patch('37.0.0', []),
+  ] as never }));
+  assert.deepEqual([...html.matchAll(/<h2[^>]*>(.*?)<\/h2>/g)].map(match => match[1]), ['Патч 37.0.2', 'Патч 37.0.0']);
+  assert.match(html, /<h1[^>]*>Патчноуты Hearthstone<\/h1>/);
+  const pair = html.slice(html.indexOf('data-variant="pair"'), html.indexOf('data-variant="single"'));
+  assert.match(pair, /<figcaption>До<\/figcaption><img src="\/api\/public-resource\/db\/uploads\/card-history-media\/f1d0a999[^"]*" alt="Матриарх до патча" width="404" height="558"/);
+  assert.match(pair, /<figcaption>После<\/figcaption><img src="\/api\/public-resource\/db\/uploads\/card-history-media\/9a947b36/);
+  assert.match(pair, /Мана<\/span><span class="hp-plate__values"><s><span class="sr-only">было <\/span>9<\/s>[\s\S]*<b><span class="sr-only">стало <\/span>10<\/b>/);
+  assert.match(pair, /Слишком рано\./);
+  assert.match(html, /data-variant="single"[\s\S]*Сейчас[\s\S]*Тир/, 'a card without a pair is one current picture and a tier plate');
+  assert.match(html, /data-variant="line"[\s\S]*Карта вне каталога[\s\S]*Атака/, 'a card the catalog lacks is one line');
+  assert.match(html, /Аберрации больше не встречаются в каждом матче\./, 'general changes are a plain list');
+  assert.equal((html.match(/loading="eager"/g) ?? []).length, 3, 'the pictures of the first cards load eagerly');
+  assert.equal((html.match(/loading="lazy"/g) ?? []).length, 0, 'the first four cards of the page are all there is here');
+  for (const gone of ['type="search"', '<select', '<details', 'hp-patch-toc', 'hp-patch-hero', 'Главное в патче', 'Подробнее']) {
+    assert.ok(!html.includes(gone), `${gone} is gone from the page`);
+  }
 });

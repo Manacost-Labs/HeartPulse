@@ -23,30 +23,48 @@ async function pageState(page) {
   }));
 }
 
-test('patch notes render the stored article as compact change cards, and the home board ranks the public meta teaser', { timeout: 240000 }, async () => {
-  const pilot = await startPublicCardPilot({ pagesEnabled: true });
+// The card history of the data API, as the fixture serves it: Hammer of Twilight changed on 2026-10-02, a day after 36.6.3.
+const ARCHIVE_PATH = '/uploads/card-history-media/';
+const version = (observed, sha) => ({ observed_at: observed, media: { card_image: { status: 'archived', archive_url: `${ARCHIVE_PATH}${sha}.png`, sha256: sha } } });
+const hammerHistory = { data: { card_id: 'BG36_MagicItem_403', versions: [
+  version('2026-10-02 10:00:00.000000', 'b'.repeat(64)), version('2026-09-20 10:00:00.000000', 'a'.repeat(64)),
+] } };
+const externalRoutes = { '/api/v1/card-history/card/BG36_MagicItem_403': () => hammerHistory };
+
+test('patch notes show the two newest patches as cards before → after, and the home board ranks the public meta teaser', { timeout: 240000 }, async () => {
+  const pilot = await startPublicCardPilot({ pagesEnabled: true, externalRoutes });
   let browser;
   try {
-    const latest = await (await fetch(`${pilot.origin}/api/patch-notes/latest`)).json();
+    const recent = await (await fetch(`${pilot.origin}/api/patch-notes/recent`)).json();
+    // Reviewed official notes (37.0.2) come before the upstream fixture's 36.6.3 article; older patches are not on the page.
+    assert.deepEqual(recent.patches.map(patch => patch.version), ['37.0.2', '36.6.3']);
+    const hammer = recent.patches[1].entries.find(entry => entry.cardId === 'BG36_MagicItem_403');
+    assert.equal(hammer.beforeRenderUrl, `${pilot.externalOrigin}${ARCHIVE_PATH}${'a'.repeat(64)}.png`,
+      'the last picture before the patch is "before"');
+    assert.equal(hammer.afterRenderUrl, `${pilot.externalOrigin}${ARCHIVE_PATH}${'b'.repeat(64)}.png`,
+      'the first different picture inside the patch is "after"');
+    assert.equal(recent.patches[0].entries.some(entry => entry.beforeRenderUrl !== null), false, 'a patch the history does not reach has no pairs');
     // The first request to a fresh server loads the route's modules, which can
     // outlast the 600 ms first-paint read budget on a busy runner.
     await (await fetch(`${pilot.origin}/standard/patches/`)).text();
     const latestHtml = await (await fetch(`${pilot.origin}/standard/patches/`)).text();
-    assert.ok(latestHtml.includes(`<option value="${latest.version}" selected="">`),
-      'the default page selects the latest patch, including official supplements');
-    // Reviewed official notes may be newer than the upstream fixture's article.
+    assert.deepEqual([...latestHtml.matchAll(/<h2[^>]*>(Патч [\d.]+)<\/h2>/g)].map(match => match[1]), ['Патч 37.0.2', 'Патч 36.6.3'],
+      'the default page is the two newest patches, newest first');
+    // The site's own header and menu keep their search and mode switch; the patch column has none of them.
+    const column = latestHtml.slice(latestHtml.indexOf('class="hp-patch"'));
+    for (const gone of ['<select', '<details', 'type="search"', 'hp-patch-toc', 'Главное в патче']) {
+      assert.ok(!column.includes(gone), `${gone} is not in the patch column`);
+    }
     const fixturePath = '/standard/patches/?version=36.6.3';
     await (await fetch(`${pilot.origin}${fixturePath}`)).text();
     const document = await fetch(`${pilot.origin}${fixturePath}`);
     assert.equal(document.status, 200);
     const html = await document.text();
-    assert.match(html, /Балансные изменения Стандарта и Полей сражений<\/h2>/, 'the selected article is in the server HTML, its title without the version prefix');
-    assert.match(html, /<option value="36\.6\.3" selected="">Патч 36\.6\.3<\/option>/, 'the version is the switcher');
+    assert.deepEqual([...html.matchAll(/<h2[^>]*>(Патч [\d.]+)<\/h2>/g)].map(match => match[1]), ['Патч 36.6.3'], 'one version is one patch');
+    assert.match(html, /Балансные изменения Стандарта и Полей сражений/, 'the article title leads the patch');
     assert.match(html, /Змей ветреных вершин/);
     assert.match(html, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/standard\/patches\/"/);
-    assert.match(html, /<link rel="preload" as="image" fetchPriority="high" imageSrcSet="\/(?:patch-notes|archetype-art\/classes)\//,
-      'the header plate is preloaded from the server HTML');
-    assert.match(html, /class="hp-patch-hero__plate"[^>]*fetchPriority="high"/);
+    assert.match(html, /class="hp-release__title"/, 'the marker of the post-deploy check is in the server HTML');
 
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
@@ -54,49 +72,30 @@ test('patch notes render the stored article as compact change cards, and the hom
     page.on('pageerror', error => errors.push(error.message));
     for (const [width, height] of [[1440, 900], [412, 915]]) {
       await page.setViewport({ width, height, isMobile: width < 600, hasTouch: width < 600 });
-      await page.goto(`${pilot.origin}${fixturePath}`, { waitUntil: 'networkidle2' });
-      await page.waitForSelector('.hp-patch-card');
+      await page.goto(`${pilot.origin}/standard/patches/`, { waitUntil: 'networkidle2' });
+      await page.waitForSelector('.hp-pc');
       const state = await pageState(page);
       assert.deepEqual(state.h1, ['Патчноуты Hearthstone']);
       assert.equal(state.overflow, false, `no horizontal overflow at ${width}px`);
       assert.deepEqual(state.violations, [], `axe at ${width}px`);
+      assert.deepEqual(await page.$$eval('.hp-release__title', nodes => nodes.map(node => node.textContent)), ['Патч 37.0.2', 'Патч 36.6.3']);
+      assert.equal(await page.$$eval('.hp-patch input, .hp-patch select, .hp-patch details, .hp-patch nav', nodes => nodes.length), 0,
+        'no search, filters, contents, switcher or card menus');
     }
-    assert.deepEqual(await page.$$eval('.hp-patch-section .hp-patch-card', cards => cards.map(card => [
-      card.querySelector('.hp-patch-card__name')?.textContent, card.dataset.kind])), [
-      // The fixture blocks HearthstoneJSON, so Constructed cards stay unmatched; trinkets resolve through the catalog.
-      // Inside a group nerfs come first, then buffs, then reworks.
-      ['Паучок', 'nerf'], ['Змей ветреных вершин', 'rework'], ['Молот Сумерек', 'nerf'], ['Пагубные благовония', 'buff'],
-    ]);
-    const toc = await page.$$eval('.hp-patch-toc > ol > li > a', links => links.map(link => link.getAttribute('href')));
-    assert.deepEqual(toc.filter(href => href.startsWith('#hp-patch-section-')),
-      await page.$$eval('.hp-patch-section', sections => sections.map(section => `#${section.id}`)),
-      'the table of contents links every section');
-    assert.equal(await page.$eval('.hp-patch-jump select', node => node.checkVisibility()), true, 'a phone jumps through the select');
-    assert.equal(await page.$eval('.hp-patch-toc', node => node.checkVisibility()), false, 'and has no table of contents');
-    assert.equal(await page.$$eval('.hp-patch-section .hp-change[data-stat="gold"] .hp-stat', nodes => nodes.length) > 0, true,
-      'Battlegrounds costs are gold, not mana');
-    assert.equal(await page.$eval('.hp-patch-drawer .hp-patch-archive [aria-current="page"] b', node => node.textContent), '36.6.3',
-      'the archive drawer marks the open patch');
-    assert.equal(await page.$eval('.hp-patch-drawer', node => node.open), false, 'the archive waits behind "Все патчи"');
-    const incense = '.hp-patch-section .hp-patch-card[data-kind="buff"]';
-    assert.equal(await page.$eval(`${incense} .hp-patch-card__meta`, node => node.checkVisibility()), false,
-      'secondary details are folded');
-    await page.click(`${incense} .hp-patch-card__more summary`);
-    assert.match(await page.$eval(`${incense} .hp-patch-card__meta`, node => node.textContent ?? ''),
-      /Малый аксессуар · Baleful Incense/, 'the article\'s English name stays behind the card\'s "…"');
-    assert.equal(await page.$$eval('.hp-patch-card del', nodes => nodes.some(node => node.textContent?.includes('(3)'))), true,
-      'the old text is struck out');
-    await page.click('.hp-patch-kinds button[data-kind="nerf"]');
-    await page.waitForFunction(() => document.querySelectorAll('.hp-patch-card').length === 2);
-    // At 412 px the switcher sits in the header; the newer arrow leads to the next archived version.
-    await page.select('.hp-patch-versions select', '35.6.2');
-    // Its title only names the version, so the header says "Патч 35.6.2".
-    await page.waitForFunction(() => document.querySelector('.hp-patch-hero__title')?.textContent === 'Патч 35.6.2');
-    const nextVersion = await page.$eval('.hp-patch-versions select', node => node.options[node.selectedIndex - 1].value);
-    assert.equal(await page.$eval('.hp-patch-versions a[rel="next"]', node => node.getAttribute('href')),
-      nextVersion === latest.version ? '/standard/patches/' : `/standard/patches/?version=${nextVersion}`,
-      'the newer patch link selects the next archived version');
-    assert.equal(new URL(page.url()).searchParams.get('version'), '35.6.2');
+    // 1440 px: two cards in a row; a phone: one.
+    await page.setViewport({ width: 1440, height: 900 });
+    await page.goto(`${pilot.origin}${fixturePath}`, { waitUntil: 'networkidle2' });
+    await page.waitForSelector('.hp-pc');
+    const tops = await page.$$eval('.hp-pc-grid > li', items => items.slice(0, 2).map(item => Math.round(item.getBoundingClientRect().top)));
+    assert.equal(tops[0], tops[1], 'two cards share a row on a wide page');
+    assert.deepEqual(await page.$$eval('.hp-pc', cards => cards.map(card => [
+      card.querySelector('.hp-pc__name')?.textContent, [...card.querySelectorAll('.hp-plate__label')].map(label => label.textContent)])), [
+      // The fixture blocks HearthstoneJSON, so Constructed cards stay unmatched lines; trinkets resolve through the catalog.
+      ['Змей ветреных вершин', ['Текст']], ['Паучок', ['Здоровье']], ['Пагубные благовония', ['Золото']], ['Молот Сумерек', ['Золото']],
+    ], 'cards and their plates read in the article\'s own order, mode by mode');
+    assert.equal(await page.$$eval('.hp-pc[data-variant="pair"]', nodes => nodes.length), 0,
+      'an archive picture from a host the image proxy does not know is not drawn as a pair');
+    assert.equal(await page.$$eval('.hp-pc del, .hp-patch-toc', nodes => nodes.length), 0);
     assert.equal((await fetch(`${pilot.origin}/api/patch-notes/9.9.9`)).status, 404);
 
     await page.setRequestInterception(true);

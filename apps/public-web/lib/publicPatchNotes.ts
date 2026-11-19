@@ -7,7 +7,7 @@ import type { PublicPatchNotes } from './publicPatchNotesData';
 export type { PublicPatchNotes } from './publicPatchNotesData';
 
 /**
- * The patch and the archive for the first paint, read anonymously. A copy
+ * The patches for the first paint, read anonymously. A copy
  * the process already holds is used at once; a part never read before waits
  * at most `COLD_READ_WAIT_MS`, else it is `null` (`proxy.ts` has answered 503
  * by then) and the browser loads it. Patch notes are public, so nothing here

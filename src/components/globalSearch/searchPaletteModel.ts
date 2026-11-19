@@ -1,5 +1,6 @@
 import { canonicalPagePath } from '../../app/routing/canonicalPagePath';
 import { NAVIGATION_ROUTES } from '../../app/routing/navigationDefinitions';
+import { WILD_NAVIGATION_ITEMS } from '../../app/routing/navigationData';
 
 export type SearchArticle = {
   id: string;
@@ -53,9 +54,12 @@ export const MINIMUM_REMOTE_QUERY = 2;
 const RECENT_KEY = 'hp:search:recent';
 const RECENT_LIMIT = 5;
 
-const SECTION_LABELS: Record<(typeof NAVIGATION_ROUTES)[number]['group'], string> = {
+type PaletteGroupId = (typeof NAVIGATION_ROUTES)[number]['group'] | 'wild';
+
+const SECTION_LABELS: Record<PaletteGroupId, string> = {
   home: '',
   standard: 'Стандарт',
+  wild: 'Вольный',
   arena: 'Арена',
   battlegrounds: 'Поля сражений',
   community: 'Сообщество',
@@ -64,7 +68,14 @@ const SECTION_LABELS: Record<(typeof NAVIGATION_ROUTES)[number]['group'], string
 };
 
 /** Sections in the order of the menu; help and legal pages last. */
-const GROUP_ORDER: (typeof NAVIGATION_ROUTES)[number]['group'][] = ['home', 'standard', 'arena', 'battlegrounds', 'community', 'admin', 'footer'];
+const GROUP_ORDER: PaletteGroupId[] = ['home', 'standard', 'wild', 'arena', 'battlegrounds', 'community', 'admin', 'footer'];
+
+/** The pages of the palette: the sections of the menu and the Standard pages opened in Wild, which a page shared by both formats (patch notes) does not repeat. */
+type PalettePage = { id: string; label: string; path: string; group: PaletteGroupId; adminOnly?: boolean };
+const PALETTE_PAGES: readonly PalettePage[] = [
+  ...NAVIGATION_ROUTES,
+  ...WILD_NAVIGATION_ITEMS.filter(item => !('shared' in item)),
+];
 
 /** Case- and «ё»-insensitive form of a query or a label. */
 export function normalizeSearchText(value: string): string {
@@ -73,18 +84,17 @@ export function normalizeSearchText(value: string): string {
 
 /** Site sections whose name or mode contains every word of the query; all of them for an empty query. */
 /** Labels used by more than one section («Тир-лист» of Arena and Battlegrounds) carry their mode. */
-const REPEATED_LABELS = new Set(NAVIGATION_ROUTES.map(route => route.label)
+const REPEATED_LABELS = new Set(PALETTE_PAGES.map(route => route.label)
   .filter((label, index, labels) => labels.indexOf(label) !== index));
 
 export function matchPages(query: string, admin: boolean): PaletteEntry[] {
   const terms = normalizeSearchText(query).split(' ').filter(Boolean);
-  return [...NAVIGATION_ROUTES]
+  return [...PALETTE_PAGES]
     .sort((left, right) => GROUP_ORDER.indexOf(left.group) - GROUP_ORDER.indexOf(right.group))
-    .filter(route => admin || (route.group !== 'admin' && !('adminOnly' in route && route.adminOnly)))
+    .filter(route => admin || (route.group !== 'admin' && !route.adminOnly))
     .filter(route => {
-      // The mode still matches the query («тир поля»), it is only not printed.
-      // Standard pages answer «вольный» too: the format filters of those pages cover both.
-      const haystack = normalizeSearchText(`${route.label} ${SECTION_LABELS[route.group]} ${route.group === 'standard' ? 'и Вольный' : ''}`);
+      // The mode still matches the query («тир поля»), even where it is not printed.
+      const haystack = normalizeSearchText(`${route.label} ${SECTION_LABELS[route.group]}`);
       return terms.every(term => haystack.includes(term));
     })
     .map(route => ({

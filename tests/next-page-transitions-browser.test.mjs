@@ -111,7 +111,7 @@ async function openModeFor(page, linkSelector) {
   await page.waitForFunction(selector => document.querySelector(selector)?.getClientRects().length > 0, { timeout: 15_000 }, linkSelector);
 }
 
-/** The mode switch as a reader uses it: opens on a click, shows the four banners with the current one marked, and closes on Escape (focus back on its button) or a press elsewhere. */
+/** The mode switch as a reader uses it: opens on a click, shows the five banners with the current one marked, and closes on Escape (focus back on its button) or a press elsewhere. */
 async function assertModePanelBehavior(page, root) {
   const state = () => page.evaluate(selector => {
     const panel = document.querySelector(`${selector} details.hp-mode`);
@@ -127,9 +127,9 @@ async function assertModePanelBehavior(page, root) {
   // An opened drawer puts focus on its first control, which is the mode switch; the sidebar leaves it where it was.
   assert.deepEqual(await state(), { open: false, visibleCards: 0, current: 0, focusOnButton: root === '#arena-mobile-menu' }, 'the banners start closed');
   await page.click(button);
-  await page.waitForFunction(selector => document.querySelectorAll(`${selector} [data-mode-card]`).length === 4
+  await page.waitForFunction(selector => document.querySelectorAll(`${selector} [data-mode-card]`).length === 5
     && [...document.querySelectorAll(`${selector} [data-mode-card]`)].every(card => card.checkVisibility()), {}, root);
-  assert.deepEqual(await state(), { open: true, visibleCards: 4, current: 1, focusOnButton: true }, 'a click opens four banners, one marked «Текущий»');
+  assert.deepEqual(await state(), { open: true, visibleCards: 5, current: 1, focusOnButton: true }, 'a click opens five banners, one marked «Текущий»');
   await page.keyboard.press('Escape');
   await page.waitForFunction(selector => !document.querySelector(`${selector} details.hp-mode`).open
     && [...document.querySelectorAll(`${selector} [data-mode-card]`)].every(card => !card.checkVisibility()), {}, root);
