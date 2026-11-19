@@ -160,15 +160,16 @@ The Next pages read the list anonymously
 list of the process and re-parsing field by field in
 `publicBattlegroundBuildsData.ts`). The tier list is prerendered (ISR five
 minutes); the strategies page stays rendered per request, because its robots
-policy depends on the query. Both render `BattlegroundBuildsPublicList`: tiers S to D, each build with its title, facts
-(archetype, difficulty, average place, popularity), conditions, key minions,
-the rest of the example board and a link to `/battlegrounds/tier-builder/`. A
-guest, a robot and a signed-in visitor without a subscription get the same
-HTML; a subscriber keeps the list on screen until the paid chunk has loaded
-and the paid view replaces it in one render. A failed read never turns into an
-empty page: the page uses the last good list of the process, and with none the
-tier list's regeneration throws, so Next keeps the copy it has (the strategies
-page, which has no copy to keep, says the builds are temporarily unavailable).
+policy depends on the query. Both render `BattlegroundBuildsPublicList`:
+tiers S to D, each build with its title, facts (archetype, difficulty, average
+place, popularity), conditions, key minions, the rest of the example board and
+a link to `/battlegrounds/tier-builder/`. A guest, a robot and a signed-in
+visitor without a subscription get the same HTML; a subscriber keeps the list
+on screen until the paid chunk has loaded and the paid view replaces it in one
+render. A failed read never turns into an empty page: the page uses the last
+good list of the process, and with none the tier list's regeneration throws,
+so Next keeps the copy it has (the strategies page, which has no copy to keep,
+says the builds are temporarily unavailable).
 Only the build, which has no Express, renders without the list.
 
 JSON-LD: `ItemList` of the printed builds (anchors `#build-<key>`) and a
