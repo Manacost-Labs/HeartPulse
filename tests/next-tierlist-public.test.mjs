@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createServer, request as httpRequest } from 'node:http';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { DATA_PAGES } from '../scripts/lib/post-deploy-data-pages.mjs';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
@@ -377,4 +378,16 @@ test('the post-deploy warm-up regenerates /legendaries/ and /heroes/ through the
   } finally {
     await stand.close();
   }
+});
+
+// The warm-up table and the revalidate route list the same ISR pages (the route's list has no trailing slash).
+test('DATA_PAGES marked isr match the pages the revalidate route regenerates', () => {
+  const source = readFileSync('apps/public-web/app/health/next/revalidate/route.ts', 'utf8');
+  const routePaths = [...source.slice(source.indexOf('const DATA_PAGES'), source.indexOf('as const')).matchAll(/'(\/[^']*)'/g)].map(match => match[1]);
+  const isrPaths = DATA_PAGES.filter(page => page.isr).map(page => page.path.replace(/\/$/, ''));
+  assert.deepEqual([...routePaths].sort(), [...isrPaths].sort());
+  assert.ok(routePaths.includes('/library') && routePaths.includes('/library/minions'));
+  const library = DATA_PAGES.filter(page => page.path.startsWith('/library'));
+  assert.equal(library.length, 10);
+  assert.equal(library[0].marker, 'bg-library-public__size', 'the hub marker is not on the copy without sizes');
 });

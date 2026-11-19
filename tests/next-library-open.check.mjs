@@ -104,12 +104,12 @@ test('the guest HTML of the library carries the open layer and nothing closed', 
     let hub = await get('/library/');
     assert.equal(hub.status, 200);
     assert.match(hub.html, /<a href="\/library\/minions\/">Существа<\/a>/, 'the build copy keeps the links without the sizes');
-    for (let attempt = 0; attempt < 40 && !hub.html.includes('<span>4</span>'); attempt += 1) {
+    for (let attempt = 0; attempt < 40 && !hub.html.includes('<span class="bg-library-public__size">4</span>'); attempt += 1) {
       process.kill(next.pid, 'SIGUSR2');
       await delay(250);
       hub = await get('/library/');
     }
-    assert.match(hub.html, /<a href="\/library\/minions\/">Существа<span>4<\/span><\/a>/);
+    assert.match(hub.html, /<a href="\/library\/minions\/">Существа<span class="bg-library-public__size">4<\/span><\/a>/);
     assert.match(hub.html, /<a href="\/library\/archive\/">Архив<\/a>/);
 
     // A listing source that fails: the last verified listing is served, never an empty page.

@@ -11,7 +11,7 @@ export function BattlegroundLibraryPublicIndex({ sizes }: { sizes: Partial<Recor
   return <nav className="bg-library-public" aria-label="Разделы библиотеки">
     <ul className="bg-library-public__kinds">
       {LIBRARY_LISTING_KINDS.map(kind => <li key={kind}>
-        <a href={`/library/${kind}/`}>{LABELS[kind]}{sizes[kind] ? <span>{sizes[kind]}</span> : null}</a>
+        <a href={`/library/${kind}/`}>{LABELS[kind]}{sizes[kind] ? <span className="bg-library-public__size">{sizes[kind]}</span> : null}</a>
       </li>)}
       <li><a href="/library/archive/">Архив</a></li>
     </ul>
