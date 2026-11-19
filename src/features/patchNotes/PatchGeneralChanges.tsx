@@ -32,6 +32,12 @@ export function lineParts(text: string, marks: readonly PatchNotesMention[]): (s
   return parts;
 }
 
+/** A card picture only through the site's image proxy; any other URL is `null`, and the HSJSON render is shown. */
+export function proxiedCardImage(url: string | null | undefined): string | null {
+  const source = publicResourceUrl(url);
+  return source.startsWith('/api/public-resource/') ? source : null;
+}
+
 /**
  * Tabbing to a name below the fold scrolls the page, and the tooltip closes on any scroll. The scroll event of the
  * focus is dispatched on the next frame, so the tooltip opens one frame later, if the name still has the focus.
@@ -46,7 +52,7 @@ export function PatchGeneralChanges({ group }: { group: PatchNotesGeneralChanges
   const [preview, setPreview] = useState<CardPreviewTarget | null>(null);
   const [sheet, setSheet] = useState<CardPreviewSheetCard | null>(null);
   const target = (mark: PatchNotesMention, element: HTMLElement): CardPreviewTarget => ({
-    id: mark.cardId, name: mark.name, imageUrl: mark.renderUrl, rect: element.getBoundingClientRect(),
+    id: mark.cardId, name: mark.name, imageUrl: proxiedCardImage(mark.renderUrl), rect: element.getBoundingClientRect(),
   });
   return (
     <div className="hp-general">
@@ -67,7 +73,7 @@ export function PatchGeneralChanges({ group }: { group: PatchNotesGeneralChanges
                   onPointerLeave={() => setPreview(null)}
                   onFocus={event => openAfterFocusScroll(event.currentTarget, element => setPreview(target(part, element)))}
                   onBlur={() => setPreview(null)}
-                  onClick={() => { setPreview(null); setSheet({ id: part.cardId, name: part.name, imageUrl: publicResourceUrl(part.renderUrl) || null }); }}
+                  onClick={() => { setPreview(null); setSheet({ id: part.cardId, name: part.name, imageUrl: proxiedCardImage(part.renderUrl) }); }}
                 >
                   {line.slice(part.start, part.end)}
                 </button>

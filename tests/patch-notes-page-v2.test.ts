@@ -3,7 +3,7 @@ import test from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { PatchNotesView } from '../src/features/PatchNotesView.js';
-import { lineParts } from '../src/features/patchNotes/PatchGeneralChanges.js';
+import { lineParts, proxiedCardImage } from '../src/features/patchNotes/PatchGeneralChanges.js';
 import { changePlates } from '../src/features/patchNotes/patchChangePlates.js';
 
 const ARCHIVE = 'https://api.kolodahearthstone.com/uploads/card-history-media/';
@@ -89,6 +89,19 @@ test('line parts split a sentence around its marks and ignore a mark outside it'
   const mark = (start: number, end: number) => ({ line: 0, start, end, cardId: 'X', name: 'X', renderUrl: null });
   assert.deepEqual(lineParts('ab cd ef', [mark(3, 5)]), ['ab ', mark(3, 5), ' ef']);
   assert.deepEqual(lineParts('ab cd', [mark(3, 99), mark(0, 2)]), [mark(0, 2), ' cd']);
+});
+
+test('a catalog picture from a host the image proxy does not serve never reaches an img src: the HSJSON render is shown', () => {
+  const evil = 'https://attacker.invalid/v1/render/latest/ruRU/512x/BG36_362.png';
+  assert.equal(proxiedCardImage(evil), null);
+  assert.equal(proxiedCardImage('javascript:alert(1)'), null);
+  assert.equal(proxiedCardImage(null), null);
+  assert.equal(proxiedCardImage('https://art.hearthstonejson.com/v1/bgs/latest/ruRU/512x/BG36_362.png'),
+    '/api/public-resource/hsjson/v1/bgs/latest/ruRU/512x/BG36_362.png');
+  const html = page([entry({ id: 'bg', name: 'Страж', mode: 'battlegrounds', format: null, cardId: 'BG36_362', renderUrl: evil, changes: [] })],
+    [{ mode: 'battlegrounds', lines: ['Страж больше не может.'], marks: [{ line: 0, start: 0, end: 5, cardId: 'BG36_362', name: 'Страж', renderUrl: evil }] }]);
+  assert.doesNotMatch(html, /attacker\.invalid/);
+  assert.match(html, /<img[^>]*src="\/api\/card-image\/BG36_362\/thumb\.webp"/);
 });
 
 test('a text change is the plate "Текст" and carries both texts for the card with no picture', () => {

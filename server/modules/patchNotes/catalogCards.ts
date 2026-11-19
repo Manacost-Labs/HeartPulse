@@ -1,5 +1,6 @@
 import type { PatchNotesDetail, PatchNotesEntry } from './contract.js';
 import { nameKey, splitCardName } from './cardNames.js';
+import { proxiedRenderUrl } from './renderUrl.js';
 
 /**
  * Cards of a patch that the collectible dictionary does not know: tokens,
@@ -38,7 +39,7 @@ export function pickCatalogCard(rows: unknown, name: string, ability: boolean): 
     const card = (row.name ?? {}) as Row;
     const images = (row.images ?? {}) as Row;
     const id = text(row.card_id);
-    const render = /^https:\/\//i.test(text(images.card)) ? text(images.card) : null;
+    const render = proxiedRenderUrl(images.card);
     const type = lower((row.card_type as Row | undefined)?.slug);
     return id && render && type !== 'enchantment' && nameKey(text(card.ru)) === wanted
       ? [{ id, cardClass: text(row.class) || null, cardType: type || null, name: text(card.ru), renderUrl: render }]

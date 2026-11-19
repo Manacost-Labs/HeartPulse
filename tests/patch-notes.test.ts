@@ -173,6 +173,9 @@ test('Battlegrounds catalog: paged lists, Russian and English names, last good c
     if (url.startsWith('https://kolodahs.test/cards')) {
       return { data: [{ card_id: 'S1', name: { ru: 'Банан', en: 'Banana' }, card_type: { slug: 'spell' } }, { card_id: '', name: {} }] };
     }
+    if (url.startsWith('https://kolodahs.test/heroes')) {
+      return { data: [{ card_id: 'H1', name: { ru: 'Герой' }, images: { card: 'https://attacker.invalid/v1/x.png', hero: 'https://attacker.invalid/hero.png' } }] };
+    }
     return { data: [] };
   };
   const cards = await loadBattlegroundCatalog(fetchJson, 'https://kolodahs.test');
@@ -180,7 +183,9 @@ test('Battlegrounds catalog: paged lists, Russian and English names, last good c
     ['S1', 'spell', null, null],
     ['T1', 'trinket', 'lesser', 'https://art.hearthstonejson.com/v1/bgs/latest/ruRU/512x/T1.png'],
     ['T2', 'trinket', 'lesser', null],
+    ['H1', 'hero', null, null],
   ]);
+  assert.ok(!JSON.stringify(cards).includes('attacker.invalid'), 'a host the image proxy does not serve never leaves the catalog parser');
   assert.ok(requested.includes('https://kolodahs.test/trinkets?per_page=200&page=2'));
   const resolve = createBattlegroundNameResolver(cards);
   assert.equal(resolve('trinket  2', { mode: 'battlegrounds', subtitle: null })?.name, 'Аксессуар 2');
@@ -188,12 +193,12 @@ test('Battlegrounds catalog: paged lists, Russian and English names, last good c
 
   let clock = 0;
   const load = createBattlegroundCatalogLoader({ fetchJson, baseUrl: 'https://kolodahs.test', ttlMs: 1000, now: () => clock });
-  assert.equal((await load()).length, 3);
+  assert.equal((await load()).length, 4);
   const calls = requested.length;
   await load();
   assert.equal(requested.length, calls, 'a fresh copy is reused');
   clock = 2000; down = true;
-  assert.equal((await load()).length, 3, 'a failed reload keeps the last good copy');
+  assert.equal((await load()).length, 4, 'a failed reload keeps the last good copy');
 });
 
 test('Constructed entries carry today\'s format from the Standard catalog, reprints included', () => {

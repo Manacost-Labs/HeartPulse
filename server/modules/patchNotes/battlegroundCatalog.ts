@@ -1,4 +1,5 @@
 import type { PatchCardResolver } from './parser.js';
+import { proxiedRenderUrl } from './renderUrl.js';
 
 /** One Battlegrounds card of the kolodahs catalog, reduced to what a patch entry needs. */
 export type BattlegroundCatalogCard = {
@@ -34,7 +35,6 @@ const PAGE_SIZE = 200;
 const MAX_PAGES = 20;
 
 const text = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
-const httpUrl = (value: unknown) => (/^https:\/\//i.test(text(value)) ? text(value) : null);
 
 function catalogCard(row: Row, library: (typeof LIBRARIES)[number]): BattlegroundCatalogCard | null {
   const id = text(row.card_id);
@@ -51,7 +51,7 @@ function catalogCard(row: Row, library: (typeof LIBRARIES)[number]): Battlegroun
     group: text((row.group as Row | undefined)?.slug) || null,
     timewarped: library.timewarped === true,
     tier: Number.isInteger(row.tavern_tier) ? Number(row.tavern_tier) : null,
-    renderUrl: httpUrl(images.card) ?? httpUrl(images.hero),
+    renderUrl: proxiedRenderUrl(images.card) ?? proxiedRenderUrl(images.hero),
   };
 }
 

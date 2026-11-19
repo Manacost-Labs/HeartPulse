@@ -71,7 +71,11 @@ general rules are preserved; developer commentary is summarized in Russian.
   greater trinket of one name, the armor table picks heroes, and a regular
   card wins over its Timewarped copy. The entry then carries the catalog's
   Russian `name`, the article's spelling in `sourceName` (trinket lists are in
-  English), `cardType` and the catalog render in `renderUrl`.
+  English), `cardType` and the catalog render in `renderUrl`. A catalog
+  render (here and in the full card catalog) is kept only when the site's
+  image proxy serves its host and path (`renderUrl.ts`, a subset of
+  `shared/publicResourceUrl.ts`, checked by a test);
+  any other URL is `null`, and the page shows the HearthstoneJSON render.
 - A change heading (`Изменения …`) with no text under it before the next
   heading is reported in `pictureSections`: the article shows those changes
   only as pictures, so the page names them and links the article instead of
@@ -206,7 +210,9 @@ archived renders of the card in the card history of the data API
   counts only when it is long and written like a name. Battlegrounds modes
   search the Battlegrounds catalog, the others the collectible dictionary.
   A mark is a button: tooltip on hover and focus (`CardPreviewTooltip`), the
-  full card in `CardPreviewSheet` on a press. A line without a mark is text.
+  full card in `CardPreviewSheet` on a press. Both receive a picture only as
+  an `/api/public-resource/` path, else `null` and the HSJSON fallback. A line
+  without a mark is text.
 - A pair card: the name (a link to the card page for Constructed cards of a
   known format), the picture "До", an arrow with the plates of the change, the
   picture "После", and the developers' comment as one line. A plate is the

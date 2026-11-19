@@ -4,6 +4,8 @@ import { readFileSync } from 'node:fs';
 import { createPatchCardResolver } from '../server/modules/patchNotes/cardNames.js';
 import { splitCardName } from '../server/modules/patchNotes/cardNames.js';
 import { createCatalogCards, pickCatalogCard } from '../server/modules/patchNotes/catalogCards.js';
+import { proxiedRenderUrl, RENDER_URL_PREFIXES } from '../server/modules/patchNotes/renderUrl.js';
+import { publicResourceUrl } from '../shared/publicResourceUrl.js';
 import { pickVersionPair } from '../server/modules/patchNotes/cardVersions.js';
 import { cardFacts, diffFacts, reconcileChanges } from '../server/modules/patchNotes/versionChanges.js';
 import { battlegroundNamed, collectibleNamed, createMentionFinder, sameWordStem, withMentions } from '../server/modules/patchNotes/generalMentions.js';
@@ -56,6 +58,20 @@ test('a catalog answer picks the exact name with a card face, an ability preferr
   assert.equal(pickCatalogCard(catalogRows, 'Гнев К’Туна', false)?.id, 'BE_013t1');
   assert.equal(pickCatalogCard(catalogRows.slice(1, 2), 'Гнев К’Туна', true), null, 'an enchantment has no face');
   assert.equal(pickCatalogCard('nope', 'Гнев К’Туна', true), null);
+  const foreign = [{ card_id: 'EVIL_1', name: { ru: 'Чужая' }, card_type: { slug: 'SPELL' }, images: { card: 'https://attacker.invalid/v1/render/x.png' } }];
+  assert.equal(pickCatalogCard(foreign, 'Чужая', false), null, 'a picture outside the image proxy is no card face');
+});
+
+test('a catalog render is kept only on a host and path the image proxy serves', () => {
+  for (const prefix of RENDER_URL_PREFIXES) {
+    const url = `${prefix}x/BG36_362.png`;
+    assert.equal(proxiedRenderUrl(url), url);
+    assert.match(publicResourceUrl(url), /^\/api\/public-resource\//, `${prefix} stays inside the proxy allowlist`);
+  }
+  for (const url of ['https://attacker.invalid/v1/x.png', 'http://art.hearthstonejson.com/v1/x.png', 'https://art.hearthstonejson.com.attacker.invalid/v1/x.png',
+    'https://user@art.hearthstonejson.com/v1/x.png', 'https://api.kolodahearthstone.com/api/x.png', 'javascript:alert(1)', '', null]) {
+    assert.equal(proxiedRenderUrl(url), null, String(url));
+  }
 });
 
 const entry = (name: string, over: Partial<PatchNotesEntry> = {}): PatchNotesEntry => ({
