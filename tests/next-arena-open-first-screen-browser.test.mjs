@@ -69,6 +69,8 @@ async function startStack() {
     if (url.pathname === '/api/tierlist' || url.pathname === '/api/winrates') {
       if (!reader) return json(401, { error: 'subscription required' });
       state.protectedReads += 1;
+      if (state.protectedFail === '500') return void setTimeout(() => json(500, { error: 'boom' }), 200);
+      if (state.protectedFail === 'broken') return void setTimeout(() => response.writeHead(200, { 'Content-Type': 'application/json' }).end('{"sections":'), 200);
       return void setTimeout(() => json(200, url.pathname === '/api/tierlist' ? protectedTierlist() : protectedClasses()), PROTECTED_DELAY_MS);
     }
     if (url.pathname.startsWith('/api/card-image/') || url.pathname.endsWith('.webp')) {
@@ -236,6 +238,20 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
       assert.deepEqual(classes.errors, []);
       await classes.page.close();
     }
+
+    // The protected answer fails (a 5xx or a broken body): the subscriber keeps the open list, never an empty or error view.
+    for (const failure of ['500', 'broken']) {
+      stack.protectedFail = failure;
+      for (const [path, open1, full] of [['/tierlist/', '.tierlist-public-pool', '.arena-tier-controls, .arena-paywall'],
+        ['/classes/', '.classes-public-teaser', '.arena-class-row, .arena-classes-notice, .arena-paywall']]) {
+        const failed = await open(browser, stack.origin, path, { session: 'reader' });
+        await delay(2500);
+        assert.ok(await failed.page.$(open1), `${path} (${failure}): the open data must stay when the protected answer fails`);
+        assert.equal(await failed.page.$(full), null, `${path} (${failure}): no empty or error full view`);
+        await failed.page.close();
+      }
+    }
+    stack.protectedFail = null;
 
     // No snapshot: the page is still a 200, and a guest gets the full view's subscription gate, as before.
     stack.openDown = true;

@@ -43,7 +43,7 @@
 .classes-public-teaser col:nth-child(1) { inline-size: 3rem; }
 .classes-public-teaser col:nth-child(3) { inline-size: 5rem; }
 .classes-public-teaser col:nth-child(4) { inline-size: 4.5rem; }
-.classes-public-teaser col:nth-child(5) { inline-size: 3rem; }
+.classes-public-teaser col:nth-child(5) { inline-size: 3.75rem; }
 
 .classes-public-teaser th,
 .classes-public-teaser td {
@@ -95,7 +95,6 @@
   cursor: pointer;
 }
 
-.classes-public-teaser__lock span { display: none; }
 
 .classes-public-teaser__lock:hover,
 .classes-public-teaser__lock:focus-visible { background: rgb(123 21 27 / 16%); }
@@ -105,5 +104,4 @@
   .classes-public-teaser col:nth-child(5) { inline-size: 6rem; }
   .classes-public-teaser th,
   .classes-public-teaser td { padding-inline: 0.75rem; }
-  .classes-public-teaser__lock span { display: inline; }
 }

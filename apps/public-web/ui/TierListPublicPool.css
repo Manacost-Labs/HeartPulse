@@ -106,7 +106,7 @@
 /* Name takes the rest; the figures and the lock keep widths that fit their headings at 360 px. */
 .tierlist-public-pool col:nth-child(2) { inline-size: 5.75rem; }
 .tierlist-public-pool col:nth-child(3) { inline-size: 4.75rem; }
-.tierlist-public-pool__col-lock { inline-size: 3rem; }
+.tierlist-public-pool__col-lock { inline-size: 3.75rem; }
 
 .tierlist-public-pool th,
 .tierlist-public-pool td {
@@ -161,14 +161,12 @@
   cursor: pointer;
 }
 
-.tierlist-public-pool__lock span { display: none; }
 
 @media (min-width: 640px) {
   .tierlist-public-pool col:nth-child(-n + 3):not(:first-child) { inline-size: 7rem; }
   .tierlist-public-pool__col-lock { inline-size: 6rem; }
   .tierlist-public-pool th,
   .tierlist-public-pool td { padding-inline: 0.6rem; }
-  .tierlist-public-pool__lock span { display: inline; }
 }
 
 .tierlist-public-pool__lock:hover,
