@@ -841,13 +841,13 @@
     grid-template-areas: 'emblem name' 'emblem desc';
     column-gap: 11px;
     align-items: center;
-    padding: 12px 96px 12px 12px;
+    padding: 12px 132px 12px 12px;
   }
 
   .hp-mode[data-variant='mobile'] .hp-mode-card-text::before {
     inset: 0;
     /* Dense under the text, gone by the right third, which stays bright. */
-    background: linear-gradient(90deg, rgba(14, 2, 4, 0.88) 0, rgba(14, 2, 4, 0.72) 42%, rgba(14, 2, 4, 0.18) 72%, transparent);
+    background: linear-gradient(90deg, rgba(14, 2, 4, 0.9) 0, rgba(14, 2, 4, 0.8) 52%, rgba(14, 2, 4, 0.2) 76%, transparent);
   }
 
   .hp-mode[data-variant='mobile'] .hp-mode-card-emblem { grid-area: emblem; width: 40px; height: 40px; margin: 0; }
