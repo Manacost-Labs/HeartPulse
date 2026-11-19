@@ -5,8 +5,6 @@
  * crosses the line is decided here and nowhere else: the page's meta robots and
  * the sitemap projection both import these functions.
  */
-import { INDEXABLE_ARCHETYPE_MIN_GAMES } from './constructedArchetypeIndexing.js';
-
 /** Own words of a page's main content, without menu, footer and other shared chrome. */
 export const INDEX_MIN_OWN_WORDS = 150;
 
@@ -14,15 +12,15 @@ export const INDEX_MIN_OWN_WORDS = 150;
 export const INDEX_MIN_OWN_FACTS = 10;
 
 /**
- * Sample size below which a templated statistics page is noise. Archetypes keep
- * their pilot value from `shared/constructedArchetypeIndexing.ts`, re-exported
- * so that every threshold is read from this module.
+ * Sample size below which a templated statistics page is noise: the one source
+ * of the number. Archetype pilot value: it keeps about a third of the Standard
+ * catalog; tune it from Search Console coverage, here and nowhere else.
+ * `constructedArchetypeIndexing.ts` reads it (its `INDEXABLE_ARCHETYPE_MIN_GAMES`
+ * is this value under the old name) and decides with `meetsSampleThreshold`.
  */
 export const INDEX_MIN_SAMPLE_GAMES = {
-  archetype: INDEXABLE_ARCHETYPE_MIN_GAMES,
+  archetype: 1000,
 } as const;
-
-export { INDEXABLE_ARCHETYPE_MIN_GAMES };
 
 export type IndexContentFacts = {
   /** Words of the page's own content. */

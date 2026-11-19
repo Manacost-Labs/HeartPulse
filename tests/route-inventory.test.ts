@@ -2,13 +2,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { TABS } from '../src/app/routing/navigationRoutes';
 import { resolvePublicUrlPolicy } from '../src/shared/seo/publicUrlPolicy';
-import { isIndexableArchetype } from '../shared/constructedArchetypeIndexing';
+import { INDEXABLE_ARCHETYPE_MIN_GAMES, isIndexableArchetype } from '../shared/constructedArchetypeIndexing';
 import {
   INDEX_MIN_OWN_FACTS,
   INDEX_MIN_OWN_WORDS,
   INDEX_MIN_SAMPLE_GAMES,
   indexThresholdNotice,
   meetsContentThreshold,
+  meetsSampleThreshold,
 } from '../shared/seoIndexThreshold';
 import { projectConstructedArchetypeSitemapCatalog } from '../server/entitySitemapProjections';
 
@@ -343,6 +344,16 @@ assert.throws(() => projectConstructedArchetypeSitemapCatalog([archetypeRow(arch
 // The threshold module: 150 own words or 10 own facts; the notice names the sample.
 assert.equal(INDEX_MIN_OWN_WORDS, 150);
 assert.equal(INDEX_MIN_OWN_FACTS, 10);
+assert.equal(INDEXABLE_ARCHETYPE_MIN_GAMES, archetypeMin, 'the archetype readers see the number of the threshold module, not a second constant');
+// One rule: the archetype predicate and the sitemap projection agree with the shared sample threshold at the boundary.
+for (const games of [0, archetypeMin - 1, archetypeMin, archetypeMin + 1]) {
+  const expected = meetsSampleThreshold(games, archetypeMin);
+  assert.equal(isIndexableArchetype(archetypeRow(games).item as never), expected, `isIndexableArchetype at ${games} games`);
+  const listed = (() => {
+    try { return projectConstructedArchetypeSitemapCatalog([archetypeRow(games)]).length === 1; } catch { return false; }
+  })();
+  assert.equal(listed, expected, `sitemap projection at ${games} games`);
+}
 assert.equal(archetypeMin, 1000, 'the archetype sample minimum is the existing constant, read from the threshold module');
 assert.equal(meetsContentThreshold({ ownWords: 149, ownFacts: 9 }), false);
 assert.equal(meetsContentThreshold({ ownWords: 150, ownFacts: 0 }), true);
