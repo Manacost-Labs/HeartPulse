@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 111,
-    "routeRegistrations": 299,
+    "sourceFiles": 112,
+    "routeRegistrations": 300,
     "middlewareRegistrations": 154,
     "explicitGuardRouteRegistrations": 73,
     "unresolvedPaths": 0
@@ -5681,6 +5681,18 @@
       "guardSignals": [],
       "source": "server/socialOAuthRoutes.ts",
       "sourceOrder": 2
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/standard/matchups/public",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/standardMatchupPublicSlice.ts",
+      "sourceOrder": 0
     },
     {
       "kind": "route",
