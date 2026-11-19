@@ -101,7 +101,9 @@ async function openModeFor(page, linkSelector) {
     const card = document.querySelector(selector);
     return card?.checkVisibility() && !card.getAnimations({ subtree: true }).length && getComputedStyle(card).opacity === '1';
   }, {}, `${root} [data-mode-card][data-mode="${mode}"]`);
+  const destination = await page.$eval(`${root} [data-mode-card][data-mode="${mode}"]`, card => new URL(card.href).pathname);
   await page.click(`${root} [data-mode-card][data-mode="${mode}"]`);
+  await page.waitForFunction(path => location.pathname === path && !document.querySelector('[data-navigation-progress="pending"]'), { timeout: 15_000 }, destination);
   await page.waitForFunction(selector => document.querySelector(selector)?.getClientRects().length > 0, { timeout: 15_000 }, linkSelector);
   if (root === '#arena-mobile-menu' && !(await page.$eval(root, node => node.matches(':popover-open')))) {
     await page.click('button[aria-controls="arena-mobile-menu"]');
@@ -220,8 +222,8 @@ test('public navigation preserves the frame, sidebar state and native link behav
       'a fragment on the current canonical path/query must remain native');
     await assertSameFrame(page);
     const popupReady = browser.waitForTarget(target => target.type() === 'page' && target.url() === `${gateway.origin}/tierlist/`, { timeout: 10_000 });
-    await page.keyboard.down('Control');
     await openModeFor(page, '.arena-sidebar a[href="/tierlist/"]');
+    await page.keyboard.down('Control');
     await page.click('.arena-sidebar a[href="/tierlist/"]');
     await page.keyboard.up('Control');
     const popup = await (await popupReady).page();

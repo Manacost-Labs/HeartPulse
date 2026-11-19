@@ -5280,8 +5280,14 @@ for (const [device, viewport] of [
     await auditAccessibility(page, 'home lazy sections and support prompt');
     if (runtimeErrors.length) failures.push(`home lazy sections: ${runtimeErrors.join(' | ')}`);
     await page.click('.support-prompt__close');
-    // Home opens only the Standard group; the reader opens Arena to reach its pages.
-    await page.click('.arena-sidebar [aria-controls="arena-sidebar-arena"]');
+    // Home lists Standard; the reader picks the Arena banner of the mode switch to reach its pages.
+    await page.click('.arena-sidebar details.hp-mode > summary');
+    await page.waitForFunction(() => {
+      const card = document.querySelector('.arena-sidebar [data-mode-card][data-mode="arena"]');
+      return card?.checkVisibility() && !card.getAnimations({ subtree: true }).length && getComputedStyle(card).opacity === '1';
+    }, { timeout: 5_000 });
+    await page.click('.arena-sidebar [data-mode-card][data-mode="arena"]');
+    await page.waitForSelector('.arena-sidebar a[href="/classes/"]', { visible: true, timeout: 15_000 });
     await page.click('.arena-sidebar a[href="/classes/"]');
     await page.waitForFunction(() => document.title.startsWith('Винрейт классов'), { timeout: 5_000 });
     const seoRegistryState = await page.evaluate(() => ({
@@ -5464,10 +5470,13 @@ for (const [device, viewport] of [
       const brand = sidebar?.querySelector('.arena-sidebar-brand');
       const brandName = brand?.querySelector('strong');
       const nav = sidebar?.querySelector('.arena-sidebar-nav');
-      const section = sidebar?.querySelector('.arena-sidebar-group-trigger');
-      const inactiveLink = sidebar?.querySelector('a.arena-sidebar-link:not(.arena-sidebar-link-active)');
-      const activeLink = sidebar?.querySelector('.arena-sidebar-link-active');
-      const inactiveIcon = inactiveLink?.querySelector('.arena-sidebar-link-icon');
+      const section = sidebar?.querySelector('details.hp-mode > summary');
+      const list = [...(sidebar?.querySelectorAll('.hp-nav-list') ?? [])].find(item => item.checkVisibility());
+      const inactiveLink = list?.querySelector('a.hp-nav-link:not([aria-current="page"])');
+      const activeLink = list?.querySelector('a.hp-nav-link[aria-current="page"]');
+      const inactiveIcon = inactiveLink?.querySelector('.hp-nav-icon');
+      const modeName = [...(sidebar?.querySelectorAll('.hp-mode-name') ?? [])].find(item => item.checkVisibility());
+      const scrollRegion = sidebar?.querySelector('.hp-nav-scroll');
       const status = sidebar?.querySelector('.arena-sidebar-status');
       const profile = sidebar?.querySelector('.arena-sidebar-profile');
       let profileIcon = profile?.querySelector('.arena-sidebar-profile-icon');
@@ -5488,7 +5497,6 @@ for (const [device, viewport] of [
       const sidebarStyles = sidebar ? getComputedStyle(sidebar) : null;
       const brandStyles = brand ? getComputedStyle(brand) : null;
       const navStyles = nav ? getComputedStyle(nav) : null;
-      const sectionStyles = section ? getComputedStyle(section) : null;
       const inactiveStyles = inactiveLink ? getComputedStyle(inactiveLink) : null;
       const inactiveIconStyles = inactiveIcon ? getComputedStyle(inactiveIcon) : null;
       const activeStyles = activeLink ? getComputedStyle(activeLink) : null;
@@ -5526,12 +5534,18 @@ for (const [device, viewport] of [
         navMarginTop: navStyles?.marginTop || '',
         navPadding: navStyles?.padding || '',
         navBorderColor: navStyles?.borderTopColor || '',
-        sectionText: section?.textContent?.trim() || '',
-        coinCount: sidebar ? sidebar.querySelectorAll('.arena-nav-section-icon').length : -1,
-        openGroups: [...(sidebar?.querySelectorAll('.arena-sidebar-group-trigger[aria-expanded="true"]') ?? [])].map(item => item.getAttribute('aria-controls')),
-        sectionColor: sectionStyles?.color || '',
-        sectionSize: sectionStyles?.fontSize || '',
-        sectionWeight: sectionStyles?.fontWeight || '',
+        modeName: modeName?.textContent?.trim() || '',
+        modeButtonHeight: section?.getBoundingClientRect().height || 0,
+        modeNameFont: modeName ? getComputedStyle(modeName).fontFamily : '',
+        modeNameSize: modeName ? getComputedStyle(modeName).fontSize : '',
+        visibleLists: [...(sidebar?.querySelectorAll('.hp-nav-list') ?? [])].filter(item => item.checkVisibility()).length,
+        listLinks: [...(list?.querySelectorAll('a') ?? [])].map(item => item.getBoundingClientRect().height),
+        listGap: list ? getComputedStyle(list).rowGap : '',
+        overflowX: scrollRegion ? scrollRegion.scrollWidth - scrollRegion.clientWidth : -1,
+        asideOverflowX: sidebar ? sidebar.scrollWidth - sidebar.clientWidth : -1,
+        linkFont: inactiveStyles?.fontFamily || '',
+        iconIsImage: Boolean(inactiveIcon?.querySelector('img')) && !inactiveIcon?.querySelector('svg'),
+        iconImage: inactiveIcon?.querySelector('img') ? { w: inactiveIcon.querySelector('img').getAttribute('width'), h: inactiveIcon.querySelector('img').getAttribute('height'), loading: inactiveIcon.querySelector('img').getAttribute('loading'), alt: inactiveIcon.querySelector('img').getAttribute('alt') } : null,
         linkMinHeight: inactiveStyles?.minHeight || '',
         linkGap: inactiveStyles?.gap || '',
         linkPadding: inactiveStyles?.padding || '',
@@ -5551,16 +5565,12 @@ for (const [device, viewport] of [
         iconRadius: inactiveIconStyles?.borderRadius || '',
         iconColor: inactiveIconStyles?.color || '',
         iconBackground: inactiveIconStyles?.backgroundColor || '',
-        iconSvgSize: inactiveIcon?.querySelector('svg')?.getAttribute('width') || '',
-        iconSvgStroke: inactiveIcon?.querySelector('svg')?.getAttribute('stroke-width') || '',
-        activeBorder: activeStyles?.borderLeftColor || '',
         // The current item's gold bar is drawn by ::after (transform/opacity only).
         activeIndicator: activeLink ? getComputedStyle(activeLink, '::after').opacity : '',
-        activeIconColor: activeLink ? getComputedStyle(activeLink.querySelector('.arena-sidebar-link-icon')).color : '',
         activeColor: activeStyles?.color || '',
         activeBackground: activeStyles?.backgroundImage || '',
         activeShadow: activeStyles?.boxShadow || '',
-        activeBeforeDisplay: activeLink ? getComputedStyle(activeLink, '::before').display : '',
+        activePlate: activeLink ? getComputedStyle(activeLink, '::before').opacity : '',
         statusPresent: Boolean(status),
         profilePosition: profileStyles?.position || '',
         profileMinHeight: profileStyles?.minHeight || '',
@@ -5596,10 +5606,13 @@ for (const [device, viewport] of [
         mainPaddingTop: mainStyles?.paddingTop || '',
       };
     });
-    if (!sidebarState.sectionText.startsWith('Стандарт и Вольный')) failures.push(`desktop sidebar: unexpected first group label ${sidebarState.sectionText}`);
-    if (sidebarState.coinCount !== 0) failures.push('desktop sidebar: group titles must carry no coin emblems');
-    if (JSON.stringify(sidebarState.openGroups) !== '["arena-sidebar-arena"]') failures.push(`desktop sidebar: only the group of the current page opens (${JSON.stringify(sidebarState.openGroups)})`);
-    if (Math.abs(sidebarState.width - 258) > 0.1
+    if (sidebarState.modeName !== 'Арена') failures.push(`desktop sidebar: the mode button names ${sidebarState.modeName}, the page is Arena`);
+    if (sidebarState.visibleLists !== 1) failures.push(`desktop sidebar: ${sidebarState.visibleLists} lists are shown, exactly one is expected`);
+    if (sidebarState.overflowX > 0 || sidebarState.asideOverflowX > 0) failures.push(`desktop sidebar: scrolls horizontally (${sidebarState.overflowX}/${sidebarState.asideOverflowX} px)`);
+    if (!sidebarState.iconIsImage || JSON.stringify(sidebarState.iconImage) !== '{"w":"40","h":"40","loading":"lazy","alt":""}') failures.push(`desktop sidebar: item icon is not a 40 px painted image (${JSON.stringify(sidebarState.iconImage)})`);
+    if (/hsdisplay|hs-display/i.test(sidebarState.linkFont) || /hsdisplay|hs-display/i.test(sidebarState.modeNameFont)) failures.push('desktop sidebar: menu text must not use the HSDisplay font');
+    if (sidebarState.listLinks.some(height => height < 52) || sidebarState.modeButtonHeight < 72 || sidebarState.listGap !== '4px') failures.push(`desktop sidebar: sizes shrank (${JSON.stringify([sidebarState.listLinks, sidebarState.modeButtonHeight, sidebarState.listGap])})`);
+    if (Math.abs(sidebarState.width - 296) > 0.1
       || sidebarState.height < sidebarState.viewportHeight
       || sidebarState.padding !== '14.4px 11.52px'
       || sidebarState.borderRight !== '14px'
@@ -5615,41 +5628,31 @@ for (const [device, viewport] of [
       || sidebarState.brandSize !== '18.56px'
       || sidebarState.brandLineHeight !== '19.488px'
       || sidebarState.brandShadow === 'none'
-      || sidebarState.navGap !== '2.08px'
-      || sidebarState.navMarginTop !== '7.2px'
-      || sidebarState.navPadding !== '7.2px 0px'
+      || sidebarState.navGap !== '12px'
+      || sidebarState.navMarginTop !== '11.2px'
+      || sidebarState.navPadding !== '11.2px 0px 0px'
       || sidebarState.navBorderColor !== 'rgba(232, 192, 103, 0.2)'
-      || sidebarState.sectionColor !== 'rgb(227, 189, 106)'
-      || sidebarState.sectionSize !== '12px'
-      || sidebarState.sectionWeight !== '800'
-      || sidebarState.linkMinHeight !== '40px'
-      || sidebarState.linkGap !== '9.92px'
-      || sidebarState.linkPadding !== '8.32px 9.92px'
+      || sidebarState.linkMinHeight !== '52px'
+      || sidebarState.linkGap !== '12px'
+      || sidebarState.linkPadding !== '6px 12px 6px 10px'
       || sidebarState.linkBorderTop !== '0px'
-      || sidebarState.linkBorderLeft !== '3px'
-      || sidebarState.linkRadius !== '2px'
-      || sidebarState.linkColor !== 'rgb(247, 223, 176)'
+      || sidebarState.linkBorderLeft !== '0px'
+      || sidebarState.linkRadius !== '12px'
+      || sidebarState.linkColor !== 'rgb(251, 239, 213)'
       || sidebarState.linkBackground !== 'rgba(0, 0, 0, 0)'
-      || sidebarState.linkSize !== '13.44px'
-      || sidebarState.linkWeight !== '700'
+      || sidebarState.linkSize !== '17px'
+      || sidebarState.linkWeight !== '600'
       || sidebarState.linkShadow === 'none'
       || sidebarState.linkBoxShadow !== 'none'
-      || sidebarState.iconWidth !== '22px'
-      || sidebarState.iconHeight !== '22px'
-      || sidebarState.iconFlexBasis !== '22px'
+      || sidebarState.iconWidth !== '40px'
+      || sidebarState.iconHeight !== '40px'
+      || sidebarState.iconFlexBasis !== '40px'
       || sidebarState.iconBorder !== '0px'
       || sidebarState.iconRadius !== '0px'
-      || sidebarState.iconColor !== 'rgb(227, 187, 98)'
       || sidebarState.iconBackground !== 'rgba(0, 0, 0, 0)'
-      || sidebarState.iconSvgSize !== '22'
-      || sidebarState.iconSvgStroke !== '1.7'
-      || sidebarState.activeBorder !== 'rgba(0, 0, 0, 0)'
+      || sidebarState.activePlate !== '1'
       || sidebarState.activeIndicator !== '1'
-      || sidebarState.activeIconColor !== 'rgb(255, 216, 119)'
-      || sidebarState.activeColor !== 'rgb(255, 247, 223)'
-      || sidebarState.activeBackground === 'none'
-      || sidebarState.activeShadow === 'none'
-      || sidebarState.activeBeforeDisplay !== 'none'
+      || sidebarState.activeColor !== 'rgb(255, 250, 240)'
       || sidebarState.statusPresent
       || sidebarState.profilePosition !== 'relative'
       || sidebarState.profileMinHeight !== '74px'
@@ -5671,8 +5674,8 @@ for (const [device, viewport] of [
       || sidebarState.profileLabelShadow === 'none'
       || sidebarState.profileHintColor !== 'rgb(210, 183, 127)'
       || sidebarState.profileHintSize !== '11.36px'
-      || sidebarState.workspaceMarginLeft !== '258px'
-      || Math.abs(sidebarState.workspaceLeft - 258) > 0.1
+      || sidebarState.workspaceMarginLeft !== '296px'
+      || Math.abs(sidebarState.workspaceLeft - 296) > 0.1
       || sidebarState.shellBackgroundColor !== 'rgb(234, 214, 167)'
       || !sidebarState.shellBackgroundImage.includes('arena-parchment-v2.webp')
       || sidebarState.shellBackgroundRepeat !== 'repeat, repeat'
@@ -5685,69 +5688,72 @@ for (const [device, viewport] of [
       || sidebarState.mainPaddingTop !== '16px') {
       failures.push(`desktop sidebar: parchment frame changed (${JSON.stringify(sidebarState)})`);
     }
-    const hoverTarget = '.arena-sidebar a.arena-sidebar-link:not(.arena-sidebar-link-active)';
-    await page.hover(hoverTarget);
-    await new Promise(resolve => setTimeout(resolve, 220));
-    const hoveredLink = await page.$eval(hoverTarget, element => ({
-      transform: getComputedStyle(element).transform,
+    // Hover is a transform on the icon and a plate that fades in; nothing else moves.
+    const hoverTarget = '.arena-sidebar .hp-nav-list a.hp-nav-link:not([aria-current="page"])';
+    const firstVisible = await page.evaluateHandle(selector => [...document.querySelectorAll(selector)].find(item => item.checkVisibility()), hoverTarget);
+    await firstVisible.hover();
+    await new Promise(resolve => setTimeout(resolve, 260));
+    const hoveredLink = await firstVisible.evaluate(element => ({
+      iconTransform: getComputedStyle(element.querySelector('.hp-nav-icon')).transform,
+      labelTransform: getComputedStyle(element.querySelector('.hp-nav-label')).transform,
+      plate: getComputedStyle(element, '::before').opacity,
       color: getComputedStyle(element).color,
-      background: getComputedStyle(element).backgroundColor,
     }));
-    if (hoveredLink.transform !== 'matrix(1, 0, 0, 1, 2, 0)'
-      || hoveredLink.color !== 'rgb(255, 244, 212)'
-      || hoveredLink.background !== 'rgba(50, 4, 7, 0.22)') {
+    if (hoveredLink.iconTransform !== 'matrix(1.08, 0, 0, 1.08, 0, 0)'
+      || hoveredLink.labelTransform !== 'matrix(1, 0, 0, 1, 2, 0)'
+      || hoveredLink.plate !== '1'
+      || hoveredLink.color !== 'rgb(255, 250, 240)') {
       failures.push(`desktop sidebar: hover treatment changed (${JSON.stringify(hoveredLink)})`);
     }
-    const standardTrigger = '[aria-controls="arena-sidebar-standard"]';
-    await page.hover(standardTrigger);
-    await new Promise(resolve => setTimeout(resolve, 220));
-    const hoverGroup = await page.$eval(standardTrigger, element => ({
-      expanded: element.getAttribute('aria-expanded'),
-      hidden: getComputedStyle(document.getElementById(element.getAttribute('aria-controls') || '')).display === 'none',
-    }));
-    if (hoverGroup.expanded !== 'false' || hoverGroup.hidden !== true) failures.push('desktop sidebar: standard group expanded on hover instead of click');
-    await page.click(standardTrigger);
-    const expandedGroup = await page.$eval(standardTrigger, element => ({
-      expanded: element.getAttribute('aria-expanded'),
-      hidden: getComputedStyle(document.getElementById(element.getAttribute('aria-controls') || '')).display === 'none',
-    }));
-    if (expandedGroup.expanded !== 'true' || expandedGroup.hidden !== false) failures.push('desktop sidebar: standard group did not expand');
-    await page.$eval(hoverTarget, element => element.focus());
-    const persistedGroup = await page.$eval(standardTrigger, element => ({
-      expanded: element.getAttribute('aria-expanded'),
-      hidden: getComputedStyle(document.getElementById(element.getAttribute('aria-controls') || '')).display === 'none',
-    }));
-    if (persistedGroup.expanded !== 'true' || persistedGroup.hidden !== false) failures.push('desktop sidebar: standard group closed without a click');
-    await page.click(standardTrigger);
-    const collapsedGroup = await page.$eval(standardTrigger, element => ({
-      expanded: element.getAttribute('aria-expanded'),
-      hidden: getComputedStyle(document.getElementById(element.getAttribute('aria-controls') || '')).display === 'none',
-    }));
-    if (collapsedGroup.expanded !== 'false' || collapsedGroup.hidden !== true) failures.push('desktop sidebar: standard group did not collapse on the second click');
-    const communityTrigger = '[aria-controls="arena-sidebar-community"]';
-    await page.focus(communityTrigger);
-    // Public behaviour, not attributes: a group the reader opened by keyboard shows its link, and the link
-    // still shows after the click took the reader to that page.
-    const visibleLink = href => page.evaluate(target => {
-      const link = document.querySelector(`.arena-sidebar a[href="${target}"]`);
-      const box = link?.getBoundingClientRect();
-      return Boolean(link && box && box.width > 0 && box.height > 0 && getComputedStyle(link).visibility === 'visible');
-    }, href);
-    if (await visibleLink('/streamers/')) failures.push('desktop sidebar: community link is visible before its group is opened');
+    // The mode switch opens on a click only, shows the four banners and closes on Escape with focus back on its button.
+    const switchState = () => page.evaluate(() => {
+      const panel = document.querySelector('.arena-sidebar details.hp-mode');
+      const cards = [...panel.querySelectorAll('[data-mode-card]')];
+      const box = panel.getBoundingClientRect();
+      return {
+        open: panel.open,
+        shown: cards.filter(card => card.checkVisibility()).length,
+        current: cards.filter(card => card.getAttribute('aria-current') === 'true').map(card => card.dataset.mode),
+        badge: cards.filter(card => card.checkVisibility() && getComputedStyle(card.querySelector('.hp-mode-badge')).display !== 'none').map(card => card.dataset.mode),
+        columns: new Set(cards.filter(card => card.checkVisibility()).map(card => Math.round(card.getBoundingClientRect().left))).size,
+        inViewport: cards.every(card => { const rect = card.getBoundingClientRect(); return rect.bottom <= innerHeight && rect.right <= innerWidth; }),
+        focusOnButton: document.activeElement === panel.querySelector('summary'),
+      };
+    });
+    await page.hover('.arena-sidebar details.hp-mode > summary');
+    await new Promise(resolve => setTimeout(resolve, 260));
+    if ((await switchState()).open) failures.push('desktop sidebar: the mode switch opened on hover instead of a click');
+    await page.click('.arena-sidebar details.hp-mode > summary');
+    await page.waitForFunction(() => [...document.querySelectorAll('.arena-sidebar [data-mode-card]')].every(card => card.checkVisibility() && !card.getAnimations({ subtree: true }).length), { timeout: 5_000 });
+    const opened = await switchState();
+    // 4 in a row from 1360 px, 2×2 below.
+    if (!opened.open || opened.shown !== 4 || JSON.stringify(opened.current) !== '["arena"]' || JSON.stringify(opened.badge) !== '["arena"]' || opened.columns !== 4 || !opened.inViewport) {
+      failures.push(`desktop sidebar: the mode panel is wrong (${JSON.stringify(opened)})`);
+    }
+    await page.screenshot({ path: `${OUT}/desktop-mode-panel.png`, fullPage: false });
+    await page.keyboard.press('Escape');
+    await page.waitForFunction(() => [...document.querySelectorAll('.arena-sidebar [data-mode-card]')].every(card => !card.checkVisibility()), { timeout: 5_000 });
+    const closed = await switchState();
+    if (closed.open || !closed.focusOnButton) failures.push(`desktop sidebar: Escape did not close the panel and return focus (${JSON.stringify(closed)})`);
+    // Choosing a banner opens the mode's main page, and the list of that mode replaces the current one.
     await page.keyboard.press('Enter');
-    if (!await visibleLink('/streamers/')) failures.push('desktop sidebar: community group did not show its links after Enter');
+    await page.waitForFunction(() => [...document.querySelectorAll('.arena-sidebar [data-mode-card]')].every(card => card.checkVisibility() && !card.getAnimations({ subtree: true }).length), { timeout: 5_000 });
+    await page.click('.arena-sidebar [data-mode-card][data-mode="community"]');
+    await page.waitForFunction(() => location.pathname === '/articles/' || location.pathname === '/articles', { timeout: 15_000 });
+    await page.waitForSelector('.arena-sidebar a[href="/streamers/"]', { visible: true, timeout: 15_000 });
+    const afterPick = await page.evaluate(() => ({
+      mode: [...document.querySelectorAll('.arena-sidebar .hp-mode-name')].find(item => item.checkVisibility())?.textContent,
+      current: document.querySelector('.arena-sidebar a[aria-current="page"]')?.getAttribute('href'),
+      arenaShown: Boolean(document.querySelector('.arena-sidebar a[href="/classes/"]')?.checkVisibility()),
+      panelOpen: document.querySelector('.arena-sidebar details.hp-mode').open,
+    }));
+    if (afterPick.mode !== 'Сообщество' || afterPick.current !== '/articles/' || afterPick.arenaShown || afterPick.panelOpen) failures.push(`desktop sidebar: choosing a banner did not switch the list (${JSON.stringify(afterPick)})`);
     await page.click('.arena-sidebar a[href="/streamers/"]');
     await page.waitForFunction(() => location.pathname === '/streamers/' || location.pathname === '/streamers', { timeout: 15_000 });
     await page.waitForFunction(() => document.querySelector('.arena-sidebar a[href="/streamers/"][aria-current="page"]'), { timeout: 15_000 });
-    const afterVisit = await page.evaluate(() => ({
-      expanded: document.querySelector('[aria-controls="arena-sidebar-community"]')?.getAttribute('aria-expanded'),
-      sameSidebar: Boolean(document.querySelector('.arena-sidebar')),
-    }));
-    if (!await visibleLink('/streamers/') || afterVisit.expanded !== 'true') failures.push(`desktop sidebar: the group opened by the reader closed after navigating (${JSON.stringify(afterVisit)})`);
-    if (!await visibleLink('/classes/')) failures.push('desktop sidebar: the Arena group opened earlier closed after navigating');
     await auditAccessibility(page, 'desktop sidebar');
     await page.screenshot({ path: `${OUT}/desktop-sidebar.png`, fullPage: false });
-    console.log('✓ desktop sidebar frame, click-only expandable navigation');
+    console.log('✓ desktop sidebar frame, mode switch and flat list');
   } catch (error) {
     failures.push(`desktop sidebar: ${error.message}`);
   } finally {
@@ -5779,18 +5785,12 @@ for (const [device, viewport] of [
       const toggle = document.querySelector('.arena-mobile-nav-toggle');
       const menu = document.querySelector('.arena-mobile-menu');
       const profile = document.querySelector('.arena-mobile-menu-profile');
-      const inactiveLink = menu?.querySelector('.arena-mobile-menu-link:not(.arena-mobile-menu-link-active)');
-      let activeLink = menu?.querySelector('.arena-mobile-menu-link-active');
-      let activeFixture = null;
-      if (!activeLink && menu) {
-        activeFixture = document.createElement('a');
-        activeFixture.className = 'arena-mobile-menu-link arena-mobile-menu-link-active';
-        activeFixture.setAttribute('aria-hidden', 'true');
-        activeFixture.style.visibility = 'hidden';
-        menu.append(activeFixture);
-        activeLink = activeFixture;
-      }
-      const section = menu?.querySelector('.arena-mobile-menu-group-trigger');
+      const list = [...(menu?.querySelectorAll('.hp-nav-list') ?? [])].find(item => item.checkVisibility());
+      const inactiveLink = list?.querySelector('a.hp-nav-link:not([aria-current="page"])');
+      // Home is the current page here, so its own row carries the current-page treatment.
+      const activeLink = menu?.querySelector('a.hp-nav-link[aria-current="page"]');
+      const section = menu?.querySelector('details.hp-mode > summary');
+      const modeName = [...(menu?.querySelectorAll('.hp-mode-name') ?? [])].find(item => item.checkVisibility());
       const rect = profile?.getBoundingClientRect();
       const topbarStyles = topbar ? getComputedStyle(topbar) : null;
       const toggleStyles = toggle ? getComputedStyle(toggle) : null;
@@ -5802,20 +5802,20 @@ for (const [device, viewport] of [
         borderColor: activeLinkStyles?.borderLeftColor || '',
         color: activeLinkStyles?.color || '',
         background: activeLinkStyles?.backgroundColor || '',
-        beforeDisplay: activeLink ? getComputedStyle(activeLink, '::before').display : '',
+        plate: activeLink ? getComputedStyle(activeLink, '::before').opacity : '',
         indicator: activeLink ? getComputedStyle(activeLink, '::after').opacity : '',
       };
-      activeFixture?.remove();
       return {
         bodyPosition: getComputedStyle(document.body).position,
         htmlOverflow: getComputedStyle(document.documentElement).overflow,
         profileWidth: rect?.width || 0,
         profileRight: rect?.right || 0,
         viewportWidth: innerWidth,
-        groupTriggers: ['standard', 'arena', 'battlegrounds', 'community'].filter(group => document.querySelector(`[aria-controls="arena-mobile-${group}"]`)).length,
-        coinCount: menu ? menu.querySelectorAll('.arena-nav-section-icon').length : -1,
-        openGroups: [...(menu?.querySelectorAll('.arena-mobile-menu-group-trigger[aria-expanded="true"]') ?? [])].map(item => item.getAttribute('aria-controls')),
-        iconSizes: [...new Set([...(menu?.querySelectorAll('.arena-mobile-menu-link-icon svg') ?? [])].map(svg => `${svg.getAttribute('width')}/${svg.getAttribute('stroke-width')}`))],
+        modeName: modeName?.textContent?.trim() || '',
+        visibleLists: [...(menu?.querySelectorAll('.hp-nav-list') ?? [])].filter(item => item.checkVisibility()).length,
+        modeButtons: menu ? menu.querySelectorAll('details.hp-mode > summary').length : 0,
+        iconSizes: [...new Set([...(menu?.querySelectorAll('.hp-nav-list .hp-nav-art') ?? [])].map(img => `${img.getAttribute('width')}x${img.getAttribute('height')}`))],
+        overflowX: menu ? menu.scrollWidth - menu.clientWidth : -1,
         avatarFallback: document.querySelector('.auth-avatar > span')?.textContent || '',
         avatarImageHidden: getComputedStyle(document.querySelector('.auth-avatar img')).display === 'none',
         avatarFrame: getComputedStyle(document.querySelector('.auth-avatar')).backgroundImage,
@@ -5864,14 +5864,13 @@ for (const [device, viewport] of [
         linkSize: inactiveLinkStyles?.fontSize || '',
         linkWeight: inactiveLinkStyles?.fontWeight || '',
         linkShadow: inactiveLinkStyles?.textShadow || '',
-        activeBorderColor: activeContract.borderColor,
         activeColor: activeContract.color,
         activeBackground: activeContract.background,
-        activeBeforeDisplay: activeContract.beforeDisplay,
+        activePlate: activeContract.plate,
         activeIndicator: activeContract.indicator,
-        sectionText: section?.textContent?.trim() || '',
-        sectionColor: section ? getComputedStyle(section).color : '',
-        sectionSize: section ? getComputedStyle(section).fontSize : '',
+        modeButtonHeight: section?.getBoundingClientRect().height || 0,
+        linkHeight: inactiveLink?.getBoundingClientRect().height || 0,
+        linkFont: inactiveLinkStyles?.fontFamily || '',
         profilePosition: profileStyles?.position || '',
         profileMinHeight: profileStyles?.minHeight || '',
         profilePadding: profileStyles?.padding || '',
@@ -5883,19 +5882,20 @@ for (const [device, viewport] of [
         profileShadow: profileStyles?.boxShadow || '',
         profileAfterDisplay: profile ? getComputedStyle(profile, '::after').display : '',
         undersizedControls: [...document.querySelectorAll('#arena-mobile-menu a[href], #arena-mobile-menu button:not([disabled])')]
-          .filter(element => !element.closest('[hidden], [data-closed]'))
+          .filter(element => element.checkVisibility())
           .map(element => element.getBoundingClientRect())
           .filter(rect => rect.width < 44 || rect.height < 44)
           .length,
       };
     });
     if (openState.bodyPosition !== 'fixed' || openState.htmlOverflow !== 'hidden') failures.push('mobile menu: background is not scroll-locked');
-    if (!openState.sectionText.startsWith('Стандарт и Вольный')) failures.push(`mobile menu: unexpected first group label ${openState.sectionText}`);
-    if (openState.coinCount !== 0) failures.push('mobile menu: group titles must carry no coin emblems');
-    if (JSON.stringify(openState.openGroups) !== '["arena-mobile-standard"]') failures.push(`mobile menu: on Home only Standard is open (${JSON.stringify(openState.openGroups)})`);
-    if (openState.iconSizes.length !== 1 || openState.iconSizes[0] !== '22/1.7') failures.push(`mobile menu: icons must share one size and stroke (${openState.iconSizes})`);
+    if (openState.modeName !== 'Стандарт') failures.push(`mobile menu: on Home the mode button names ${openState.modeName}, the default is Standard`);
+    if (openState.visibleLists !== 1 || openState.modeButtons !== 1) failures.push(`mobile menu: ${openState.visibleLists} lists / ${openState.modeButtons} mode buttons, one of each is expected`);
+    if (openState.iconSizes.length !== 1 || openState.iconSizes[0] !== '40x40') failures.push(`mobile menu: icons must be painted 40 px images (${openState.iconSizes})`);
+    if (openState.overflowX > 0) failures.push(`mobile menu: the drawer scrolls horizontally by ${openState.overflowX} px`);
+    if (/hsdisplay|hs-display/i.test(openState.linkFont)) failures.push('mobile menu: menu text must not use the HSDisplay font');
+    if (openState.linkHeight < 56 || openState.modeButtonHeight < 72) failures.push(`mobile menu: rows shrank (${openState.linkHeight} / ${openState.modeButtonHeight})`);
     if (!openState.profileWidth || openState.profileRight > openState.viewportWidth + 1) failures.push('mobile menu: profile control frame overflows');
-    if (openState.groupTriggers !== 4) failures.push('mobile menu: grouped navigation controls are missing');
     if (openState.missingRoutes.length) failures.push(`mobile menu: missing routes ${openState.missingRoutes.join(', ')}`);
     if (openState.avatarFallback !== 'QS' || !openState.avatarImageHidden) failures.push('mobile menu: broken avatar did not fall back to user initials');
     if (!openState.avatarFrame.includes('conic-gradient') || !openState.avatarSurface.includes('radial-gradient')) failures.push('mobile menu: branded avatar frame or personalized surface is missing');
@@ -5917,8 +5917,8 @@ for (const [device, viewport] of [
       || openState.toggleBackground !== 'rgba(45, 4, 7, 0.62)'
       || openState.toggleShadow === 'none'
       || openState.menuTop !== '61px'
-      || openState.menuGap !== '3.2px'
-      || openState.menuPadding !== '9.6px 11.2px 16px'
+      || openState.menuGap !== '8px'
+      || openState.menuPadding !== '11.2px 11.2px 16px'
       || openState.menuBorder !== '0px'
       || !openState.menuBorderImage.includes('main-page-rail-border.png')
       || openState.menuBorderImageWidth !== '0 7px 0 0'
@@ -5926,23 +5926,19 @@ for (const [device, viewport] of [
       || !openState.menuBackground.includes('arena-rail-red.jpg')
       || openState.menuShadow === 'none'
       || openState.menuBackdrop !== 'none'
-      || openState.linkMinHeight !== '46px'
-      || openState.linkPadding !== '9.28px 10.88px'
+      || openState.linkMinHeight !== '56px'
+      || openState.linkPadding !== '6px 12px 6px 10px'
       || openState.linkBorderTop !== '0px'
-      || openState.linkBorderLeft !== '3px'
-      || openState.linkRadius !== '2px'
-      || openState.linkColor !== 'rgb(248, 223, 173)'
+      || openState.linkBorderLeft !== '0px'
+      || openState.linkRadius !== '12px'
+      || openState.linkColor !== 'rgb(251, 239, 213)'
       || openState.linkBackground !== 'rgba(0, 0, 0, 0)'
-      || openState.linkSize !== '15.04px'
-      || openState.linkWeight !== '700'
+      || openState.linkSize !== '17px'
+      || openState.linkWeight !== '600'
       || openState.linkShadow === 'none'
-      || openState.activeBorderColor !== 'rgba(0, 0, 0, 0)'
       || openState.activeIndicator !== '1'
-      || openState.activeColor !== 'rgb(255, 247, 223)'
-      || openState.activeBackground !== 'rgba(40, 3, 6, 0.38)'
-      || openState.activeBeforeDisplay !== 'none'
-      || openState.sectionColor !== 'rgb(227, 189, 106)'
-      || openState.sectionSize !== '12px'
+      || openState.activeColor !== 'rgb(255, 250, 240)'
+      || openState.activePlate !== '1'
       || openState.profilePosition !== 'relative'
       || openState.profileMinHeight !== '50px'
       || openState.profilePadding !== '10.88px 12.8px'
@@ -5962,7 +5958,7 @@ for (const [device, viewport] of [
     await page.evaluate(() => {
       const menu = document.querySelector('#arena-mobile-menu');
       const visible = [...menu.querySelectorAll('a[href], button:not([disabled])')]
-        .filter(element => !element.closest('[hidden], [data-closed]'));
+        .filter(element => element.checkVisibility());
       visible.at(-1)?.focus();
     });
     await page.keyboard.press('Tab');
@@ -5973,7 +5969,7 @@ for (const [device, viewport] of [
     await page.keyboard.up('Shift');
     const cycledToLast = await page.evaluate(() => {
       const visible = [...document.querySelectorAll('#arena-mobile-menu a[href], #arena-mobile-menu button:not([disabled])')]
-        .filter(element => !element.closest('[hidden], [data-closed]'));
+        .filter(element => element.checkVisibility());
       return document.activeElement === visible.at(-1);
     });
     if (!cycledToLast) failures.push('mobile menu: Shift+Tab escaped instead of cycling to the last control');
