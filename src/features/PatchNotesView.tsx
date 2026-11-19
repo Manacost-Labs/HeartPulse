@@ -1,29 +1,14 @@
 'use client';
 
-import React, { useCallback, useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { ScrollText, SearchX } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
+import { ExternalLink } from 'lucide-react';
 import {
-  filterPatchView, patchHighlights, patchMetaFlow, patchModePictureNote, toPatchView,
-  type PatchFilter, type PatchNotesDetail, type PatchNotesMode, type PatchNotesSummary, type PatchView,
+  PATCH_SECTION_TITLES, patchHeadline, patchModePictureNote, toPatchView,
+  type PatchCardView, type PatchNotesDetail, type PatchNotesMode, type PatchSectionId,
 } from '../modules/patchNotes/public';
+import { pluralRu } from '../shared/text/pluralRu';
 import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
-import CardPreviewTooltip, { fallbackCardRender, type CardPreviewTarget } from './CardPreviewTooltip';
-import type { CardPreviewSheetCard } from './CardPreviewSheet';
-import { EAGER_CARDS, previewSource, type CardHandlers } from './patchNotes/PatchCard';
-import { PatchHero } from './patchNotes/PatchHero';
-import { PatchMetaFlow } from './patchNotes/PatchMetaFlow';
-import { PatchBar, VersionSwitcher } from './patchNotes/PatchNotesNavigation';
-import { Highlights, PatchSections, PictureNote } from './patchNotes/PatchNotesSections';
-import { PatchToc } from './patchNotes/PatchToc';
-import { patchPageNavigation } from './patchNotes/patchTocEntries';
-import { registerLightboxModule } from '../shared/ui/lightboxIntent';
-import './PatchNotesView.css';
-import './patchNotes/PatchNotesShowcase.css';
-
-const loadCardPreviewSheet = () => import('./CardPreviewSheet');
-const CardPreviewSheet = React.lazy(loadCardPreviewSheet);
-// The sheet's chunk downloads at idle, and at the latest on a hover, focus or touch (lightboxIntent).
-registerLightboxModule('card-preview', loadCardPreviewSheet, { idle: true });
+import { PatchChangeCard } from './patchNotes/PatchChangeCard';
 
 const dateFormats = new Map<string, Intl.DateTimeFormat>();
 
@@ -31,7 +16,7 @@ const dateFormats = new Map<string, Intl.DateTimeFormat>();
 function dateFormat(timeZone = ''): Intl.DateTimeFormat {
   let format = dateFormats.get(timeZone);
   if (!format) {
-    format = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', year: 'numeric', ...(timeZone ? { timeZone } : {}) });
+    format = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'long', year: 'numeric', ...(timeZone ? { timeZone } : {}) });
     dateFormats.set(timeZone, format);
   }
   return format;
@@ -41,161 +26,105 @@ function formatDate(value: string | null, timeZone?: string): string | null {
   return value && Number.isFinite(Date.parse(value)) ? dateFormat(timeZone).format(new Date(value)) : null;
 }
 
-const INITIAL_FILTER: PatchFilter = { section: 'all', kind: 'all', group: 'all', query: '' };
-const MODES: PatchNotesMode[] = ['constructed', 'arena', 'battlegrounds', 'other'];
+/** Pictures of the first cards of the page load at once; the rest wait for the scroll. */
+const EAGER_CARDS = 4;
 
-/**
- * A `#card-…` link opens its section and scrolls to the card. The browser does
- * this for server-rendered HTML; a patch loaded in the browser needs the nudge.
- */
-function useCardTarget(version: string) {
+/** A `#card-…` link scrolls to its card; the browser does it for server HTML, a patch loaded later needs the nudge. */
+function useCardTarget(versions: string) {
   useEffect(() => {
     const id = decodeURIComponent(window.location.hash.slice(1));
-    if (!id.startsWith('card-')) return;
-    const target = document.getElementById(id);
-    const details = target?.closest('details');
-    if (details) details.open = true;
-    target?.scrollIntoView({ block: 'start' });
-  }, [version]);
+    if (id.startsWith('card-')) document.getElementById(id)?.scrollIntoView({ block: 'start' });
+  }, [versions]);
 }
+
+type Block = { id: PatchSectionId; mode: PatchNotesMode; title: string; general: string[]; cards: PatchCardView[] };
 
 /**
- * Notes of a mode go under its first section. A mode without cards gets a section only for its general
- * changes; one with nothing but pictures is a line of the source note, not a banner over a single sentence.
+ * The patch by game mode: its general changes as a plain list, then its cards.
+ * A mode's general changes sit under its first section; a mode that has only
+ * general changes gets a section of its own.
  */
-function notesPlacement(patch: PatchNotesDetail, view: PatchView) {
-  const notesHome = new Map<PatchNotesMode, string>();
-  for (const section of view.sections) if (!notesHome.has(section.mode)) notesHome.set(section.mode, section.id);
-  const cardless = MODES.filter(mode => !notesHome.has(mode));
-  const withGeneral = new Set(patch.generalChanges.map(item => item.mode));
-  const notesOnly = cardless.filter(mode => withGeneral.has(mode));
-  const picturesOnly = cardless.filter(mode => !withGeneral.has(mode))
-    .map(mode => ({ mode, note: patchModePictureNote(patch.pictureSections, mode, false) }))
-    .filter((item): item is { mode: PatchNotesMode; note: string } => item.note !== null);
-  return { notesHome, notesOnly, picturesOnly };
-}
-
-/** Hover or focus shows the current card beside its render; a tap or click opens it in a sheet. */
-function useCardPreview() {
-  const [preview, setPreview] = useState<CardPreviewTarget | null>(null);
-  const [opened, setOpened] = useState<CardPreviewSheetCard | null>(null);
-  const handlers = useMemo<CardHandlers>(() => ({
-    onPreview: (card, target) => {
-      // Touch taps open the sheet; a hover card would cover it.
-      if (!card.cardId || window.matchMedia?.('(hover: none)').matches) return;
-      setPreview({ id: card.cardId, name: `${card.name} — текущая версия`, imageUrl: previewSource(card) || null, rect: target.getBoundingClientRect() });
-    },
-    onPreviewEnd: () => setPreview(null),
-    onOpen: card => {
-      if (card.cardId) setOpened({ id: card.cardId, name: card.name, imageUrl: previewSource(card) || fallbackCardRender(card.cardId) });
-    },
-  }), []);
-
-  return { handlers, preview, opened, close: useCallback(() => setOpened(null), []) };
-}
-
-function defaultSelectVersion(href: string) {
-  window.location.assign(href);
-}
-
-/**
- * One patch for reading, one way to do each thing: the header with the
- * version switcher, one sticky bar of modes, search and filters, what matters
- * first, then collapsible sections by mode grouped by class or card type.
- * Every value comes from the stored article; what it does not state is said.
- */
-export function PatchNotesView({ patch, archive, onSelectVersion = defaultSelectVersion }: {
-  patch: PatchNotesDetail; archive: PatchNotesSummary[]; onSelectVersion?: (href: string) => void;
-}) {
-  const timeZone = useViewerTimeZone();
-  const view = useMemo(() => toPatchView(patch), [patch]);
-  const highlights = useMemo(() => patchHighlights(view), [view]);
-  const [filter, setFilter] = useState<PatchFilter>(INITIAL_FILTER);
-  const deferredQuery = useDeferredValue(filter.query);
-  const groups = useMemo(() => filterPatchView(view, { ...filter, query: deferredQuery }), [view, filter, deferredQuery]);
-  const change = useCallback((next: Partial<PatchFilter>) => setFilter(current => ({ ...current, ...next })), []);
-  const { handlers, preview, opened, close } = useCardPreview();
-  useCardTarget(patch.version);
-  const flow = useMemo(() => patchMetaFlow(view), [view]);
-  const filtered = filter.kind !== 'all' || filter.group !== 'all' || deferredQuery.trim() !== '';
-  const meta = patch.meta !== null && flow.links.length >= 2 ? patch.meta : null;
-  const { notesHome, notesOnly, picturesOnly } = notesPlacement(patch, view);
-  const { showHighlights, archetypes, toc } = patchPageNavigation({
-    filtered, highlights: highlights.length >= 2, archetypes: meta,
-    sections: view.sections, groups, notesOnly,
+function blocksOf(patch: PatchNotesDetail): Block[] {
+  const view = toPatchView(patch);
+  const generalOf = (mode: PatchNotesMode) => patch.generalChanges.filter(item => item.mode === mode).flatMap(item => item.lines);
+  const placed = new Set<PatchNotesMode>();
+  const blocks = view.sections.map((section): Block => {
+    const general = placed.has(section.mode) ? [] : generalOf(section.mode);
+    placed.add(section.mode);
+    return {
+      id: section.id, mode: section.mode, title: section.title, general,
+      cards: view.groups.filter(group => group.section === section.id).flatMap(group => group.entries),
+    };
   });
+  for (const mode of ['constructed', 'arena', 'battlegrounds', 'other'] as const) {
+    if (!placed.has(mode) && generalOf(mode).length) {
+      blocks.push({ id: mode, mode, title: PATCH_SECTION_TITLES[mode], general: generalOf(mode), cards: [] });
+    }
+  }
+  return blocks;
+}
 
-  const formatPatchDate = (value: string | null) => formatDate(value, timeZone);
+/** Headings the article shows only as pictures, named once in a quiet line. */
+function pictureNote(patch: PatchNotesDetail): string | null {
+  const modes = ['constructed', 'arena', 'battlegrounds', 'other'] as const;
+  const notes = modes.map(mode => patchModePictureNote(patch.pictureSections, mode, true)).filter((note): note is string => note !== null);
+  return notes.length ? notes.join('; ') : null;
+}
 
+function PatchRelease({ patch, timeZone, eager }: { patch: PatchNotesDetail; timeZone: string | undefined; eager: boolean }) {
+  const blocks = useMemo(() => blocksOf(patch), [patch]);
+  const date = formatDate(patch.publishedAt, timeZone);
+  const headline = patchHeadline(patch.title);
+  const note = pictureNote(patch);
+  const headingId = `hp-patch-${patch.version}`;
+  let rendered = 0;
+  return (
+    <section className="hp-release" aria-labelledby={headingId} id={`patch-${patch.version}`}>
+      <header className="hp-release__head">
+        <h2 id={headingId} className="hp-release__title">{`Патч ${patch.version}`}</h2>
+        <p className="hp-release__line">
+          {date && <time dateTime={patch.publishedAt ?? undefined}>{date}</time>}
+          {patch.changeCount > 0 && <span>{patch.changeCount} {pluralRu(patch.changeCount, 'изменение', 'изменения', 'изменений')}</span>}
+          {patch.sourceUrl && <a href={patch.sourceUrl} target="_blank" rel="noreferrer">Статья hs-manacost.ru <ExternalLink aria-hidden="true" /></a>}
+          {patch.officialUrl && <a href={patch.officialUrl} target="_blank" rel="noreferrer">Патчноут Blizzard <ExternalLink aria-hidden="true" /></a>}
+        </p>
+        {headline && headline !== `Патч ${patch.version}` && <p className="hp-release__lead">{headline}</p>}
+      </header>
+      {blocks.length === 0 && (
+        <p className="hp-release__empty" role="status">В статье нет изменений карт в виде «было → стало». Полный текст — по ссылке выше.</p>
+      )}
+      {blocks.map(block => (
+        <section key={block.id} className="hp-mode" aria-labelledby={`${headingId}-${block.id}`}>
+          <h3 id={`${headingId}-${block.id}`} className="hp-mode__title">{block.title}</h3>
+          {block.general.length > 0 && (
+            <ul className="hp-mode__general" aria-label="Общие изменения">{block.general.map(line => <li key={line}>{line}</li>)}</ul>
+          )}
+          {block.cards.length > 0 && (
+            <ul className="hp-pc-grid">
+              {block.cards.map(card => <li key={card.id}><PatchChangeCard card={card} eager={eager && rendered++ < EAGER_CARDS} /></li>)}
+            </ul>
+          )}
+        </section>
+      ))}
+      {note && <p className="hp-release__pictures">{note} — в статье только картинками.</p>}
+    </section>
+  );
+}
+
+/**
+ * The newest patches for reading: each one is its modes, and each changed
+ * card is the card before the patch, what changed, and the card after it.
+ * Every value comes from the stored article; the pictures from the card history.
+ */
+export function PatchNotesView({ patches }: { patches: PatchNotesDetail[] }) {
+  const timeZone = useViewerTimeZone();
+  useCardTarget(patches.map(patch => patch.version).join());
   return (
     <div className="hp-patch">
-      <PatchHero patch={patch} view={view} highlights={highlights} date={formatPatchDate(patch.publishedAt)}
-        versions={archive.length > 1
-          ? <VersionSwitcher patches={archive} current={patch.version} onSelect={onSelectVersion} formatDate={formatPatchDate} />
-          : null} />
-      <div className="hp-patch-layout" data-toc={toc ? '' : undefined}>
-        <div className="hp-patch-main">
-          {/* One or two changes are read at a glance; a search and filters would outweigh them. */}
-          {view.total > 2 && <PatchBar view={view} filter={filter} onChange={change} toc={toc} />}
-          {showHighlights && <Highlights cards={highlights} handlers={handlers} />}
-          {archetypes && <PatchMetaFlow flow={flow} meta={archetypes} />}
-          <PatchEmptyState total={view.total} matched={groups.length} onReset={() => setFilter(INITIAL_FILTER)} />
-          <PatchSections view={view} groups={groups} patch={patch} filtered={filtered} notesHome={notesHome} notesOnly={notesOnly}
-            eagerFrom={showHighlights ? EAGER_CARDS : 0} handlers={handlers} />
-          <SourceFooter patch={patch} view={view} pictures={filtered ? [] : picturesOnly} />
-        </div>
-        {toc && <PatchToc entries={toc} />}
-      </div>
-      {preview && <CardPreviewTooltip preview={preview} />}
-      {opened && (
-        <React.Suspense fallback={null}>
-          <CardPreviewSheet card={opened} onClose={close} />
-        </React.Suspense>
-      )}
+      <h1 className="hp-patch__title">Патчноуты Hearthstone</h1>
+      {patches.map((patch, index) => (
+        <PatchRelease key={patch.version} patch={patch} timeZone={timeZone} eager={index === 0} />
+      ))}
     </div>
-  );
-}
-
-/** A patch the article lists no line-by-line changes for, or filters that leave nothing. */
-function PatchEmptyState({ total, matched, onReset }: { total: number; matched: number; onReset: () => void }) {
-  if (total === 0) {
-    return (
-      <div className="hp-patch-blank" role="status">
-        <ScrollText aria-hidden="true" />
-        <p>
-          <b>Изменения карт этого патча не расписаны построчно.</b>
-          {' '}В статье нет пар «было → стало», поэтому карточек здесь нет. Полный текст — по ссылкам в шапке.
-        </p>
-      </div>
-    );
-  }
-  if (matched > 0) return null;
-  return (
-    <div className="hp-patch-empty" role="status">
-      <SearchX aria-hidden="true" />
-      <p>Под эти фильтры не попало ни одно изменение.</p>
-      <button type="button" className="hp-patch-reset" onClick={onReset}>Сбросить фильтры</button>
-    </div>
-  );
-}
-
-function SourceFooter({ patch, view, pictures }: {
-  patch: PatchNotesDetail; view: PatchView; pictures: { mode: PatchNotesMode; note: string }[];
-}) {
-  const cards = view.groups.flatMap(group => group.entries);
-  const unmatched = cards.filter(card => !card.cardId).length;
-  const sourceUrl = patch.sourceUrl ?? patch.officialUrl;
-  const sourceLabel = patch.sourceUrl ? 'статья hs-manacost.ru' : 'патчноут Blizzard';
-  return (
-    <footer className="hp-patch-notes__source">
-      {pictures.map(item => <PictureNote key={item.mode} patch={patch} note={item.note} />)}
-      <p>
-        Источник — {sourceUrl ? <a href={sourceUrl} target="_blank" rel="noreferrer">{sourceLabel}</a> : 'статья о патче'}.
-        {' '}Усиление и ослабление — только по числам; текст и уровень таверны — «Переработка». Картинки — текущие версии карт,
-        формат — сегодняшний{patch.meta ? ', архетипы — на день до выхода патча' : ''}.
-      </p>
-      {patch.missingBefore > 0 && <p>У {patch.missingBefore} изм. в статье нет прежнего значения — показано только новое.</p>}
-      {unmatched > 0 && <p>Без картинки {unmatched} из {cards.length}: их названия не нашлись в каталоге карт.</p>}
-    </footer>
   );
 }

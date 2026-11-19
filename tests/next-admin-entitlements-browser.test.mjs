@@ -67,8 +67,8 @@ test('Next preserves administrator API access and anonymous archetype summaries 
       }) });
     });
     await funDecks.goto(`${runtime.origin}/standard/fun-decks/`, { waitUntil: 'networkidle2' });
-    await funDecks.waitForSelector('.fun-deck-card');
-    assert.equal(await funDecks.$$eval('.fun-deck-card', cards => cards.length), 4,
+    await funDecks.waitForSelector('.fun-deck-tiles');
+    assert.equal(await funDecks.$$eval('.fun-deck-tiles', cards => cards.length), 4,
       'administrator must see the full fun-decks collection without a subscription');
     await funDecks.close();
     await context.close();
