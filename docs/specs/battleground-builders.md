@@ -155,9 +155,12 @@ projected again with `warning: "fallback"`, and else a 503 with `Retry-After`
 (never a 502 or an empty list). `/api/bg/tier-lists` and `/api/bg-comps` stay
 behind the access guard.
 
-The Next pages (ISR five minutes) read the list anonymously
+The Next pages read the list anonymously
 (`apps/public-web/lib/publicBattlegroundBuilds.ts`, which re-parses field by
-field in `publicBattlegroundBuildsData.ts`) and render
+field in `publicBattlegroundBuildsData.ts`). The tier list is prerendered (ISR
+five minutes); the strategies page stays rendered per request, because its
+robots policy depends on the query, and reads through Express's own cache.
+Both render
 `BattlegroundBuildsPublicList`: tiers S to D, each build with its title, facts
 (archetype, difficulty, average place, popularity), conditions, key minions,
 the rest of the example board and a link to `/battlegrounds/tier-builder/`. A
@@ -165,15 +168,16 @@ guest, a robot and a signed-in visitor without a subscription get the same
 HTML; a subscriber keeps the list on screen until the paid chunk has loaded
 and the paid view replaces it in one render. A failed read never turns into an
 empty page: the page uses the last good list of the process, and with none the
-regeneration throws, so Next keeps the copy it has. Only the build, which has
-no Express, renders without the list.
+tier list's regeneration throws, so Next keeps the copy it has (the strategies
+page, which has no copy to keep, says the builds are temporarily unavailable).
+Only the build, which has no Express, renders without the list.
 
 JSON-LD: `ItemList` of the printed builds (anchors `#build-<key>`) and a
 `Dataset` with `isAccessibleForFree: false` and `hasPart` pointing at
 `.paywalled-builds`, the closed part under the list. The strategies page is a
-`CollectionPage` for that reason. Production observer entries
-`battlegrounds-tier-list-open-builds` and `battlegrounds-strategies-open-builds`
-check `.bg-builds-public article`.
+`CollectionPage` for that reason (it names the printed list). Production
+observer entries `battlegrounds-tier-list-open-builds` and
+`battlegrounds-strategies-open-builds` check `.bg-builds-public article`.
 
 Warm-up and edge rules for both pages are handled by the final E21 slice
 (#476): the page paths are `/battlegrounds/tier-list` and

@@ -22,10 +22,11 @@ export function BattlegroundStrategiesPageClient({ builds }: { builds: ReactNode
   return <PublicPageShell activeTab="bg-strategies" pathname={pathname}
     access={access} navigate={navigate} wide>
     <section className="space-y-5">
-      <BattlegroundsStrategyBuilderSearchIntro />
+      {/* The builder has its own heading: the intro (the page's H1) stays only while the open list is shown. */}
       {allowed && paidViewReady
         ? <BattlegroundStrategyBuilderEmbed key={access.user?.id} />
         : <>
+          <BattlegroundsStrategyBuilderSearchIntro />
           {builds}
           <div className="paywalled-builds" style={{ display: 'contents' }}>
             <BattlegroundBuildsLocks authUser={access.user} subscriptionStatus={access.subscription}

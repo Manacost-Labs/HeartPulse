@@ -78,7 +78,7 @@ test('the guest HTML of both builds pages carries every open build and nothing c
   await once(legacyServer, 'listening');
   const next = await startNextServer({ legacyOrigin: `http://127.0.0.1:${legacyServer.address().port}`,
     env: { NODE_OPTIONS: `--require=${resolve('tests/helpers/shiftableClock.cjs')}` } });
-  // Both pages are five-minute ISR pages: move the server's clock past that window until the regenerated copy is served.
+  // The tier list is a five-minute ISR page (the strategies page is rendered per request): move the server's clock past that window until the regenerated copy is served.
   const regenerated = async (path, ready, phase, headers = { 'User-Agent': BROWSER_UA, Cookie: 'session=guest-fixture' }) => {
     for (let attempt = 0; attempt < 40; attempt += 1) {
       process.kill(next.pid, 'SIGUSR2');

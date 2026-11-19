@@ -86,12 +86,12 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
       const guest = await page.goto(`${nextOrigin}/battlegrounds/tier-list/`, { waitUntil: 'networkidle2' });
       // The page is prerendered: a repeat visit revalidates its ETag (304).
       assert.ok([200, 304].includes(guest.status()), `${guest.status()}`);
-      await page.waitForFunction(() => !document.body.textContent.includes('Проверяем доступ к тир-листу...'));
       await page.evaluate(axe);
       const state = await page.evaluate(async () => ({
         headings: [...document.querySelectorAll('h1')].map(node => node.textContent?.trim()),
         canonical: document.querySelector('link[rel="canonical"]')?.href,
-        teaser: document.body.textContent.includes('доступен подписчикам'),
+        // The open builds replace the gate: the closed part is a note and a button, no subscription dialog.
+        teaser: Boolean(document.querySelector('.paywalled-builds .bg-builds-locks button')) && !document.querySelector('.arena-paywall'),
         overflow: document.documentElement.scrollWidth > innerWidth,
         violations: (await axe.run(document,
           { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } })).violations.map(item => item.id),
@@ -112,8 +112,8 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
     for (let attempt = 0; malformedAuthResponsesRemaining > 0 && attempt < 30; attempt += 1) await delay(100);
     assert.equal(malformedAuthResponsesRemaining, 0, 'all three bounded auth attempts must fail');
     await delay(100);
-    assert.match(await page.$eval('main', node => node.textContent), /Проверяем доступ к тир-листу/,
-      'a remembered session must stay pending after a transient auth failure');
+    assert.doesNotMatch(await page.$eval('main', node => node.textContent), /Подписка не найдена|доступен подписчикам/,
+      'a remembered session must not read as a refusal after a transient auth failure');
     // The prerendered page cannot vary its meta by query; the response header carries the policy.
     const deepLink = await fetch(`${nextOrigin}/battlegrounds/tier-list/?list=strategies&source=hsreplay`);
     await deepLink.arrayBuffer();
@@ -135,7 +135,7 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
     failedSubscriptionResponsesRemaining = 1;
     await page.reload({ waitUntil: 'networkidle2' });
     assert.equal(failedSubscriptionResponsesRemaining, 0);
-    assert.match(await page.$eval('main', node => node.textContent), /Проверяем доступ к тир-листу/,
+    assert.doesNotMatch(await page.$eval('main', node => node.textContent), /Подписка не найдена|доступен подписчикам/,
       'a temporary subscription API failure must not appear as a revoked entitlement');
     await page.waitForSelector('[data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]', { timeout: 10000 });
     tierStatus = 503;
