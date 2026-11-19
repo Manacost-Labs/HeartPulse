@@ -25,6 +25,15 @@ assert.equal(publicDataRouteTemplate('/bg/library/public/minion/123?x=1'), '/api
 assert.equal(publicDataRouteTemplate('/legendaries/public'), '/api/legendaries/public');
 assert.equal(publicDataRouteTemplate('/guides-archive/teaser/my-secret-slug'), '/api/guides-archive/teaser/*');
 
+for (const path of [
+  '/legendaries/PUBLIC', '/Legendaries/Public', '/FUN-DECKS', '/Standard-Meta/Teaser', '/legendaries/public/', '/legendaries//public',
+  '//legendaries/public', '/legendaries/%70ublic', '/legendaries%2Fpublic', '/bg/library/Public/minion/1', '/PUBLIC/constructed-cards/x/y',
+  '/API/legendaries/public', '/legendaries/public?x=1', '/fun-decks/',
+]) assert.equal(isPublicDataApiRequest('GET', path), true, path);
+assert.equal(isPublicDataApiRequest('GET', '/ADMIN/fun-decks'), false);
+assert.equal(isPublicDataApiRequest('GET', '/Public-Resource/db/a.png'), false);
+assert.equal(publicDataRouteTemplate('/Bg/Library/PUBLIC/minion/1'), '/api/bg/library/public/*');
+
 // Contract: every unguarded GET registration with a public-data path is classified as public.
 const manifest = JSON.parse(readFileSync(new URL('../config/http-route-manifest.json', import.meta.url), 'utf8'));
 const publicPattern = /(^|\/)(public|teaser|public-teaser)(\/|$)|^(\/api)?\/(public|fun-decks)(\/|$)/;

@@ -112,6 +112,8 @@ export interface ScrapeGuardOptions {
 
 export interface ScrapeGuard {
   middleware: RequestHandler;
+  /** True when this guard alone budgets the request, so the generic API limiter must skip it. */
+  ownsBudget(req: Request): boolean;
   /** Exposed for tests and admin tooling. */
   trackedClients(): number;
 }
@@ -160,32 +162,35 @@ export function createPublicDataScrapeGuard(options: ScrapeGuardOptions): Scrape
       accountKey = null;
     }
     const prefix = scrapeGuardClientKey(ip);
-    const key = accountKey ? `account:${accountKey}` : `ip:${prefix}`;
-    const factor = accountKey ? config.accountMultiplier : 1;
     const time = now();
-    const entry = touch(key, time);
-    entry.short.count += 1;
-    entry.long.count += 1;
-
-    const shortLimit = config.shortMax * factor;
-    const longLimit = config.longMax * factor;
-    const shortOver = entry.short.count > shortLimit;
-    const longOver = entry.long.count > longLimit;
-    if (!shortOver && !longOver) return next();
-
-    const exceeded = longOver ? { name: 'long', bucket: entry.long, ms: longMs, limit: longLimit }
-      : { name: 'short', bucket: entry.short, ms: shortMs, limit: shortLimit };
+    // The IP budget always counts; a live session only raises it, so extra accounts
+    // on one IP cannot add budget. The account has its own budget across IPs.
+    const factor = accountKey ? config.accountMultiplier : 1;
+    const checks = [{ key: `ip:${prefix}`, factor }];
+    if (accountKey) checks.push({ key: `account:${accountKey}`, factor });
+    let exceeded: { name: string; bucket: Bucket; ms: number; limit: number } | null = null;
+    for (const check of checks) {
+      const entry = touch(check.key, time);
+      entry.short.count += 1;
+      entry.long.count += 1;
+      const longLimit = config.longMax * check.factor;
+      const shortLimit = config.shortMax * check.factor;
+      if (entry.long.count > longLimit) exceeded = { name: 'long', bucket: entry.long, ms: longMs, limit: longLimit };
+      else if (!exceeded && entry.short.count > shortLimit) exceeded = { name: 'short', bucket: entry.short, ms: shortMs, limit: shortLimit };
+    }
+    if (!exceeded) return next();
+    const over = exceeded;
     const route = publicDataRouteTemplate(req.path);
-    const retryAfter = Math.max(1, Math.ceil((exceeded.bucket.start + exceeded.ms - time) / 1000));
+    const retryAfter = Math.max(1, Math.ceil((over.bucket.start + over.ms - time) / 1000));
     const logExceeded = () => {
-      if (exceeded.bucket.count === exceeded.limit + 1) {
+      if (over.bucket.count === over.limit + 1) {
         emit({
           type: 'limit_exceeded',
-          window: exceeded.name,
+          window: over.name,
           client: accountKey ? 'account' : prefix,
           route,
-          count: exceeded.bucket.count,
-          limit: exceeded.limit,
+          count: over.bucket.count,
+          limit: over.limit,
           botClaim: family?.name ?? null,
         });
       }
@@ -209,5 +214,9 @@ export function createPublicDataScrapeGuard(options: ScrapeGuardOptions): Scrape
     }, () => reject());
   };
 
-  return { middleware, trackedClients: () => clients.size };
+  return {
+    middleware,
+    ownsBudget: req => config.mode === 'enforce' && isPublicDataApiRequest(req.method, req.path),
+    trackedClients: () => clients.size,
+  };
 }

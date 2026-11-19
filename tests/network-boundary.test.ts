@@ -127,9 +127,19 @@ try {
       log: line => logs.push(line),
       resolveAccountKey: req => (req.headers['x-test-account'] ? String(req.headers['x-test-account']) : null),
     });
+    if (typeof overrides.apiLimiterMax === 'number') {
+      guardApp.use('/api/', rateLimit({
+        windowMs: 60_000,
+        max: overrides.apiLimiterMax,
+        standardHeaders: true,
+        legacyHeaders: false,
+        skip: req => guard.ownsBudget(req) || req.ip === '127.0.0.1',
+      }));
+    }
     guardApp.use('/api/', guard.middleware);
     guardApp.get('/api/legendaries/public', (_req, res) => res.json({ ok: true }));
     guardApp.get('/api/bg/library/public/minion/:id', (_req, res) => res.json({ ok: true }));
+    guardApp.get('/api/Legendaries/Public', (_req, res) => res.json({ ok: true }));
     guardApp.get('/api/standard-meta', (_req, res) => res.json({ ok: true }));
     const guardServer = guardApp.listen(0, '127.0.0.1');
     await new Promise<void>(resolve => guardServer.once('listening', resolve));
@@ -228,6 +238,36 @@ try {
     assert.equal(limited.status, 429);
     assert.ok(Date.now() - started < 1500);
   }, { reverse: () => new Promise<string[]>(() => {}), forward: async () => [] });
+
+  // With the generic API limiter mounted first: in enforce mode the guard is the only budget
+  // (verified bot and account are not cut by the 120/min style limiter); in log mode the
+  // generic limiter stays as the protective ceiling.
+  await withGuard({ mode: 'enforce', shortMax: 50, longMax: 500, apiLimiterMax: 3 }, async call => {
+    for (let i = 0; i < 12; i += 1) assert.equal((await call('/api/legendaries/public', xff(GOOGLE_IP, { 'User-Agent': GOOGLE_UA }))).status, 200, 'bot under both middleware');
+    for (let i = 0; i < 12; i += 1) assert.equal((await call('/api/legendaries/public', xff('203.0.113.30', { 'x-test-account': 'u9' }))).status, 200, 'account under both middleware');
+    for (let i = 0; i < 3; i += 1) assert.equal((await call('/api/standard-meta', xff('203.0.113.31'))).status, 200);
+    assert.equal((await call('/api/standard-meta', xff('203.0.113.31'))).status, 429, 'non-public API still uses the generic limiter');
+  });
+  await withGuard({ mode: 'log', shortMax: 50, longMax: 500, apiLimiterMax: 3 }, async call => {
+    for (let i = 0; i < 3; i += 1) assert.equal((await call('/api/legendaries/public', xff('203.0.113.32'))).status, 200);
+    assert.equal((await call('/api/legendaries/public', xff('203.0.113.32'))).status, 429, 'log mode keeps the generic ceiling');
+  });
+
+  // Case-variant paths are the same Express route and count against the same budget.
+  await withGuard({ shortMax: 2, longMax: 100 }, async call => {
+    assert.equal((await call('/api/legendaries/public', xff('203.0.113.33'))).status, 200);
+    assert.equal((await call('/api/Legendaries/Public', xff('203.0.113.33'))).status, 200);
+    assert.equal((await call('/api/legendaries/PUBLIC', xff('203.0.113.33'))).status, 429);
+  });
+
+  // Several accounts on one IP do not add budget: the IP ceiling is raised x3 once.
+  await withGuard({ shortMax: 2, longMax: 100, accountMultiplier: 3 }, async call => {
+    let ok = 0;
+    for (let i = 0; i < 12; i += 1) {
+      if ((await call('/api/legendaries/public', xff('203.0.113.34', { 'x-test-account': `acc${i % 3}` }))).status === 200) ok += 1;
+    }
+    assert.equal(ok, 6, 'IP total capped at shortMax x multiplier');
+  });
 
   // Log mode never blocks, but still records the excess.
   await withGuard({ mode: 'log', shortMax: 2, longMax: 100 }, async (call, ctx) => {

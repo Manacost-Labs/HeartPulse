@@ -2709,10 +2709,10 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createPublicDataScrapeGuard({ config: loadScrapeGuardConfig(join(APP_ROOT_DIR, 'config', 'public-data-api-guard.json')),\n  resolveAccountKey: req => sessionAccountKey(authTokenCandidatesFromReq(req), (hash, now) => dbGet('SELECT user_id FROM sessions WHERE token_hash = ? AND expires_at > ?', hash, now)?.user_id) }).middleware"
+        "publicDataScrapeGuard.middleware"
       ],
       "guardSignals": [
-        "createPublicDataScrapeGuard({ config: loadScrapeGuardConfig(join(APP_ROOT_DIR, 'config', 'public-data-api-guard.json')),\n  resolveAccountKey: req => sessionAccountKey(authTokenCandidatesFromReq(req), (hash, now) => dbGet('SELECT user_id FROM sessions WHERE token_hash = ? AND expires_at > ?', hash, now)?.user_id) }).middleware"
+        "publicDataScrapeGuard.middleware"
       ],
       "source": "server/index.ts",
       "sourceOrder": 8

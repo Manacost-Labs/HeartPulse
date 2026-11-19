@@ -14,9 +14,20 @@ export function isPublicMediaApiRequest(method: string, path: string): boolean {
 
 const PUBLIC_DATA_MARKER_SEGMENTS = new Set(['public', 'teaser', 'public-teaser']);
 
+function decodeSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
+/** Express routes case-insensitively and ignores a trailing slash; match the same way. */
 function publicDataSegments(path: string): string[] {
-  const clean = String(path).split('?')[0].replace(/^\/api(?=\/|$)/, '');
-  return clean.split('/').filter(Boolean);
+  const clean = String(path).split(/[?#]/)[0];
+  const decoded = clean.split('/').map(decodeSegment).join('/').toLowerCase();
+  const segments = decoded.split(/[/\\;]+/).filter(Boolean);
+  return segments[0] === 'api' ? segments.slice(1) : segments;
 }
 
 /**
