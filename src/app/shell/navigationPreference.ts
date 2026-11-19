@@ -30,3 +30,36 @@ export function setCompactNavigation(compact: boolean) {
   } catch { /* the choice lasts for this page */ }
   listeners.forEach(listener => listener());
 }
+
+/**
+ * The last chosen mode of the menu (Standard, Arena, Battlegrounds, Community).
+ * A page that belongs to a mode shows that mode's list; every other page (home,
+ * help, profile) shows this one. The head script writes it to `<html>` before the
+ * first paint, so the list never flashes; without storage or script the menu
+ * lists Standard.
+ */
+export const MODE_NAVIGATION_KEY = 'hp:nav:mode';
+export const MODE_NAVIGATION_ATTRIBUTE = 'data-nav-mode';
+const MODES = ['standard', 'arena', 'battlegrounds', 'community'] as const;
+export type RememberedNavigationMode = (typeof MODES)[number];
+
+export const MODE_NAVIGATION_SCRIPT = `try{var m=localStorage.getItem(${JSON.stringify(MODE_NAVIGATION_KEY)});if(${MODES.map(mode => `m===${JSON.stringify(mode)}`).join('||')})document.documentElement.setAttribute(${JSON.stringify(MODE_NAVIGATION_ATTRIBUTE)},m)}catch(e){}`;
+
+const modeListeners = new Set<() => void>();
+
+export function subscribeNavigationMode(listener: () => void) {
+  modeListeners.add(listener);
+  return () => { modeListeners.delete(listener); };
+}
+
+export function readNavigationMode(): RememberedNavigationMode {
+  const value = document.documentElement.getAttribute(MODE_NAVIGATION_ATTRIBUTE);
+  return MODES.find(mode => mode === value) ?? 'standard';
+}
+
+export function setNavigationMode(mode: RememberedNavigationMode) {
+  if (document.documentElement.getAttribute(MODE_NAVIGATION_ATTRIBUTE) === mode) return;
+  document.documentElement.setAttribute(MODE_NAVIGATION_ATTRIBUTE, mode);
+  try { localStorage.setItem(MODE_NAVIGATION_KEY, mode); } catch { /* the choice lasts for this page */ }
+  modeListeners.forEach(listener => listener());
+}

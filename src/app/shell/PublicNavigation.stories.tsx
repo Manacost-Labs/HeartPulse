@@ -1,41 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
 import { expect, userEvent, waitFor, within } from 'storybook/test';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { ARENA_TABS, COMMUNITY_TABS, type TabId } from '../routing/navigationRoutes';
+import { ARENA_TABS, COMMUNITY_TABS, modeOfTab, type TabId } from '../routing/navigationRoutes';
 import '../../parchment-theme.css';
 import { PublicNavigation } from './PublicNavigation';
-import type { NavigationBadges, NavigationGroup } from './NavigationItems';
+import type { NavigationBadges } from './NavigationItems';
+import { useModePanels } from './useModePanels';
 import { COMPACT_NAVIGATION_ATTRIBUTE } from './navigationPreference';
 import { useNavigationTooltip } from './useNavigationFeedback';
 
 type StoryArgs = {
   activeTab: TabId;
   mobileMenuOpen: boolean;
-  mobileNavGroup: NavigationGroup | null;
-  sidebarNavGroup: NavigationGroup | null;
   compact?: boolean;
   badges?: NavigationBadges;
-};
-
-const groupSet = (group: NavigationGroup | null): ReadonlySet<NavigationGroup> => new Set(group ? [group] : []);
-const toggled = (groups: ReadonlySet<NavigationGroup>, group: NavigationGroup) => {
-  const next = new Set(groups);
-  if (!next.delete(group)) next.add(group);
-  return next;
 };
 
 function PublicNavigationPreview({
   activeTab: initialActiveTab,
   mobileMenuOpen: initialMobileMenuOpen,
-  mobileNavGroup: initialMobileNavGroup,
-  sidebarNavGroup: initialSidebarNavGroup,
   compact: initialCompact = false,
   badges = {},
 }: StoryArgs) {
   const [activeTab, setActiveTab] = useState(initialActiveTab);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(initialMobileMenuOpen);
-  const [mobileNavGroups, setMobileNavGroups] = useState(() => groupSet(initialMobileNavGroup));
-  const [sidebarNavGroups, setSidebarNavGroups] = useState(() => groupSet(initialSidebarNavGroup));
   const [compact, setCompact] = useState(initialCompact);
   // The rail is driven by the document attribute, as in the Next layout.
   useEffect(() => {
@@ -43,6 +31,7 @@ function PublicNavigationPreview({
     return () => document.documentElement.removeAttribute(COMPACT_NAVIGATION_ATTRIBUTE);
   }, [compact]);
   useNavigationTooltip(compact);
+  useModePanels();
   const mobileMenuRef = useRef<HTMLElement>(null);
   const mobileMenuToggleRef = useRef<HTMLButtonElement>(null);
 
@@ -50,8 +39,7 @@ function PublicNavigationPreview({
     <PublicNavigation
       activeTab={activeTab}
       mobileMenuOpen={mobileMenuOpen}
-      mobileNavGroups={mobileNavGroups}
-      sidebarNavGroups={sidebarNavGroups}
+      mode={modeOfTab(activeTab) ?? 'standard'}
       compact={compact}
       badges={badges}
       onToggleCompact={() => setCompact(value => !value)}
@@ -73,8 +61,6 @@ function PublicNavigationPreview({
       onCloseMobileMenu={() => {
         setMobileMenuOpen(false);
       }}
-      onToggleMobileNavGroup={group => setMobileNavGroups(current => toggled(current, group))}
-      onToggleSidebarNavGroup={group => setSidebarNavGroups(current => toggled(current, group))}
     />
   );
 }
@@ -95,8 +81,6 @@ export const DesktopCurrentPage: Story = {
   args: {
     activeTab: 'standard-meta',
     mobileMenuOpen: false,
-    mobileNavGroup: null,
-    sidebarNavGroup: 'standard',
   },
 };
 
@@ -104,17 +88,13 @@ export const MobileDrawer: Story = {
   args: {
     activeTab: 'bg-heroes',
     mobileMenuOpen: true,
-    mobileNavGroup: null,
-    sidebarNavGroup: null,
   },
 };
 
-export const BattlegroundsOpen: Story = {
+export const BattlegroundsMode: Story = {
   args: {
     activeTab: 'bg-strategies',
     mobileMenuOpen: false,
-    mobileNavGroup: null,
-    sidebarNavGroup: 'battlegrounds',
   },
 };
 
@@ -124,8 +104,6 @@ export const NewPatchBadge: Story = {
   args: {
     activeTab: 'standard-meta',
     mobileMenuOpen: false,
-    mobileNavGroup: null,
-    sidebarNavGroup: null,
     badges: patchBadge,
   },
 };
@@ -134,8 +112,6 @@ export const CompactRail: Story = {
   args: {
     activeTab: 'tierlist',
     mobileMenuOpen: false,
-    mobileNavGroup: null,
-    sidebarNavGroup: null,
     compact: true,
     badges: patchBadge,
   },
@@ -152,20 +128,19 @@ export const CompactRail: Story = {
   },
 };
 
-export const IndependentGroups: Story = {
+export const ModePanel: Story = {
   args: {
     activeTab: 'gallery',
     mobileMenuOpen: false,
-    mobileNavGroup: null,
-    sidebarNavGroup: 'community',
   },
   play: async ({ canvasElement }) => {
     const sidebar = within(canvasElement.querySelector('.arena-sidebar') as HTMLElement);
-    const community = sidebar.getByRole('button', { name: /Сообщество/ });
-    const before = community.getBoundingClientRect().top;
-    await userEvent.click(sidebar.getByRole('button', { name: /Стандарт и Вольный/ }));
-    await expect(community).toHaveAttribute('aria-expanded', 'true');
-    // Opening a group pushes the groups below it once and never pulls a control back.
-    await expect(community.getBoundingClientRect().top).toBeGreaterThan(before);
+    const button = sidebar.getByText('Режим', { selector: '.hp-mode-kicker' }).closest('summary') as HTMLElement;
+    await userEvent.click(button);
+    const panel = canvasElement.querySelector('.arena-sidebar details.hp-mode') as HTMLDetailsElement;
+    await expect(panel.open).toBe(true);
+    await expect(canvasElement.querySelectorAll('.arena-sidebar [data-mode-card]')).toHaveLength(4);
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => expect(panel.open).toBe(false));
   },
 };

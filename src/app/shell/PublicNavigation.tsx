@@ -1,7 +1,7 @@
 import { isPlainNavigationClick } from '../routing/isPlainNavigationClick';
 import {
-  NavigationRouteLinks, NavigationGroupControl,
-  type NavigationBadges, type NavigationRoute, type NavigationGroup,
+  NavigationRouteLinks, NavigationModeLists, NavigationModePicker,
+  type NavigationBadges, type NavigationRoute,
 } from './NavigationItems';
 import type { ReactNode, RefObject } from 'react';
 import { Menu, PanelLeftClose, PanelLeftOpen, X } from 'lucide-react';
@@ -10,15 +10,16 @@ import {
   BATTLEGROUNDS_TABS,
   HOME_TABS,
   STANDARD_TABS,
+  modeOfTab,
   type TabId,
 } from '../routing/navigationRoutes';
+import type { NavigationModeId } from '../routing/navigationData';
 
 export type PublicNavigationProps = {
   activeTab: TabId;
   mobileMenuOpen: boolean;
-  /** Groups open in the drawer and in the sidebar. They open independently, so an opening group never moves the one above it. */
-  mobileNavGroups: ReadonlySet<NavigationGroup>;
-  sidebarNavGroups: ReadonlySet<NavigationGroup>;
+  /** The mode whose items the menu lists: the page's own, else the last chosen one. */
+  mode: NavigationModeId;
   /** Desktop rail of icons with tooltips instead of the full sidebar. */
   compact: boolean;
   badges: NavigationBadges;
@@ -36,46 +37,28 @@ export type PublicNavigationProps = {
   onNavigateLogin: () => void;
   onToggleMobileMenu: () => void;
   onCloseMobileMenu: () => void;
-  onToggleMobileNavGroup: (group: NavigationGroup) => void;
-  onToggleSidebarNavGroup: (group: NavigationGroup) => void;
   onToggleCompact: () => void;
 };
 
-/** Modes and topics of the menu; the tooltip of a compact item names its group. */
-const GROUPS: Record<NavigationGroup, { title: string }> = {
-  standard: { title: 'Стандарт и Вольный' },
-  arena: { title: 'Арена' },
-  battlegrounds: { title: 'Поля сражений' },
-  community: { title: 'Сообщество' },
+type TreeProps = Pick<PublicNavigationProps, 'activeTab' | 'appIsContestAdmin' | 'badges' | 'mode' | 'onNavigate' | 'visibleArenaTabs' | 'visibleCommunityTabs'> & {
+  variant: 'mobile' | 'sidebar';
 };
 
-function NavigationTree({ variant, activeTab, appIsContestAdmin, badges, openGroups, onNavigate, onToggleGroup, visibleArenaTabs, visibleCommunityTabs }: {
-  variant: 'mobile' | 'sidebar';
-  activeTab: TabId;
-  appIsContestAdmin: boolean;
-  badges: NavigationBadges;
-  openGroups: ReadonlySet<NavigationGroup>;
-  onNavigate: (tab: TabId) => void;
-  onToggleGroup: (group: NavigationGroup) => void;
-  visibleArenaTabs: readonly NavigationRoute[];
-  visibleCommunityTabs: readonly NavigationRoute[];
-}) {
+/** «Главная» and the mode switch stay above the list; the list scrolls on a low window while the switch's panel opens beside it. */
+function NavigationTree({ variant, activeTab, appIsContestAdmin, badges, mode, onNavigate, visibleArenaTabs, visibleCommunityTabs }: TreeProps) {
   const linkProps = { activeTab, variant, badges, onNavigate };
-  const groupRoutes: Record<NavigationGroup, readonly NavigationRoute[]> = {
-    standard: STANDARD_TABS, arena: visibleArenaTabs, battlegrounds: BATTLEGROUNDS_TABS, community: visibleCommunityTabs,
-  };
-  const group = (key: NavigationGroup) => (
-    <NavigationGroupControl key={key} active={groupRoutes[key].some(tab => tab.id === activeTab)} group={key}
-      isOpen={openGroups.has(key)} onToggle={() => onToggleGroup(key)} title={GROUPS[key].title} variant={variant}>
-      <NavigationRouteLinks routes={groupRoutes[key]} context={GROUPS[key].title} {...linkProps} />
-    </NavigationGroupControl>
-  );
   return <>
-    <NavigationRouteLinks routes={HOME_TABS} {...linkProps} />
-    {(Object.keys(GROUPS) as NavigationGroup[]).map(group)}
-    {appIsContestAdmin && <div className={`arena-${variant === 'mobile' ? 'mobile-menu' : 'sidebar'}-admin`}>
-      <NavigationRouteLinks routes={ADMIN_TABS} {...linkProps} />
-    </div>}
+    <div className="hp-nav-top">
+      <NavigationRouteLinks routes={HOME_TABS} {...linkProps} />
+      <NavigationModePicker variant={variant} mode={mode} onNavigate={onNavigate} />
+    </div>
+    <div className="hp-nav-scroll">
+      <NavigationModeLists {...linkProps}
+        routesOf={{ standard: STANDARD_TABS, arena: visibleArenaTabs, battlegrounds: BATTLEGROUNDS_TABS, community: visibleCommunityTabs }} />
+      {appIsContestAdmin && <div className="hp-nav-admin">
+        <NavigationRouteLinks routes={ADMIN_TABS} {...linkProps} />
+      </div>}
+    </div>
   </>;
 }
 
@@ -106,16 +89,16 @@ function MobileTopbar({ mobileMenuOpen, mobileMenuToggleRef, onCloseMobileMenu, 
 }
 
 function MobileMenu(props: PublicNavigationProps) {
-  const { mobileMenuOpen, mobileMenuRef, mobileNavGroups, mobileProfile, onCloseMobileMenu, onNavigate, onNavigateLogin, onToggleMobileNavGroup, profileLabel, wantsLogin } = props;
+  const { mobileMenuOpen, mobileMenuRef, mobileProfile, onCloseMobileMenu, onNavigate, onNavigateLogin, profileLabel, wantsLogin } = props;
   // Always rendered, closed: the server HTML carries the drawer, so its links
   // work before hydration. `data-open` shows it where popovers are unsupported.
   // Every link closes the drawer as the page leaves: the scroll lock is released
   // first, so the history entry keeps the reader's position for Back.
   return (
     <>
-      <nav ref={mobileMenuRef} id="arena-mobile-menu" popover="auto" data-open={mobileMenuOpen ? '' : undefined} className="arena-mobile-menu lg:hidden" aria-label="Мобильная навигация">
-        <NavigationTree {...props} variant="mobile" openGroups={mobileNavGroups} onToggleGroup={onToggleMobileNavGroup}
-          onNavigate={(tab: TabId) => { onCloseMobileMenu(); onNavigate(tab); }} />
+      <nav ref={mobileMenuRef} id="arena-mobile-menu" popover="auto" data-open={mobileMenuOpen ? '' : undefined} data-page-mode={modeOfTab(props.activeTab) ?? undefined}
+        className="arena-mobile-menu hp-nav lg:hidden" aria-label="Мобильная навигация">
+        <NavigationTree {...props} variant="mobile" onNavigate={(tab: TabId) => { onCloseMobileMenu(); onNavigate(tab); }} />
         <a href="/?login" onClick={event => { if (!isPlainNavigationClick(event)) return; event.preventDefault(); onCloseMobileMenu(); onNavigateLogin(); }} className={`arena-mobile-menu-link arena-mobile-menu-profile ${wantsLogin ? 'arena-mobile-menu-link-active' : ''}`} aria-label={profileLabel}>
           {mobileProfile}
         </a>
@@ -127,7 +110,7 @@ function MobileMenu(props: PublicNavigationProps) {
 }
 
 function DesktopSidebar(props: PublicNavigationProps) {
-  const { compact, onNavigate, onNavigateLogin, onToggleCompact, onToggleSidebarNavGroup, profileLabel, sidebarNavGroups, sidebarProfile, wantsLogin } = props;
+  const { compact, onNavigate, onNavigateLogin, onToggleCompact, profileLabel, sidebarProfile, wantsLogin } = props;
   return (
     <aside className="arena-sidebar" aria-label="Основная навигация">
       <div className="arena-sidebar-head">
@@ -154,8 +137,8 @@ function DesktopSidebar(props: PublicNavigationProps) {
         </button>
       </div>
 
-      <nav className="arena-sidebar-nav" aria-label="Разделы сайта">
-        <NavigationTree {...props} variant="sidebar" openGroups={sidebarNavGroups} onToggleGroup={onToggleSidebarNavGroup} />
+      <nav className="arena-sidebar-nav hp-nav" aria-label="Разделы сайта" data-page-mode={modeOfTab(props.activeTab) ?? undefined}>
+        <NavigationTree {...props} variant="sidebar" />
       </nav>
 
       <a

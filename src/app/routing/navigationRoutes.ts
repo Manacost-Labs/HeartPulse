@@ -4,6 +4,7 @@
  * module only decides which navigation entry is highlighted.
  */
 import { NAVIGATION_ROUTES } from './navigationDefinitions';
+import type { NavigationModeId } from './navigationData';
 
 export const TABS = NAVIGATION_ROUTES;
 export type TabId = (typeof TABS)[number]['id'];
@@ -17,6 +18,12 @@ export const COMMUNITY_TABS = group('community');
 export const ADMIN_TABS = group('admin');
 export const ADMIN_ONLY_TAB_IDS = new Set<TabId>(TABS.filter(route => 'adminOnly' in route && route.adminOnly).map(route => route.id));
 export const BG_TAB_IDS = new Set<TabId>(BATTLEGROUNDS_TABS.map(route => route.id));
+
+/** The mode whose list holds the item; null for the home page, help pages and the admin panel, which keep the reader's last mode. */
+export function modeOfTab(tab: TabId): NavigationModeId | null {
+  const found = TABS.find(route => route.id === tab)?.group;
+  return found === 'standard' || found === 'arena' || found === 'battlegrounds' || found === 'community' ? found : null;
+}
 
 /** The navigation surface for a path; a path outside every section belongs to the home surface. */
 export function tabFromPath(path: string): TabId {

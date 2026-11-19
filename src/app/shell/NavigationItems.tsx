@@ -1,20 +1,18 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties } from 'react';
 import { ChevronDown } from 'lucide-react';
 import { canonicalPagePath } from '../routing/canonicalPagePath';
+import { NAVIGATION_MODES, type NavigationModeId } from '../routing/navigationData';
 import type { TABS, TabId } from '../routing/navigationRoutes';
 import { ArenaEmblem, BattlegroundsEmblem, CommunityEmblem, StandardEmblem, type MenuIcon } from './menuIcons';
-
+import { NavigationIcon, modeBannerSrc } from './NavigationIcon';
 import { isPlainNavigationClick } from '../routing/isPlainNavigationClick';
 
 export type NavigationRoute = (typeof TABS)[number];
-export type NavigationGroup = 'standard' | 'arena' | 'battlegrounds' | 'community';
+export type NavigationGroup = NavigationModeId;
+export { NAV_ICON_SIZE } from './NavigationIcon';
 
-/** Every icon of the menu shares one size and one stroke, so no item outweighs another. */
-export const NAV_ICON_SIZE = 22;
-export const NAV_ICON_STROKE = 1.7;
-
-/** One coat of arms per group, drawn in the icons' own style. */
-const GROUP_EMBLEMS: Record<NavigationGroup, MenuIcon> = {
+/** One coat of arms per mode, drawn in the icons' own style. */
+export const MODE_EMBLEMS: Record<NavigationModeId, MenuIcon> = {
   standard: StandardEmblem, arena: ArenaEmblem, battlegrounds: BattlegroundsEmblem, community: CommunityEmblem,
 };
 /** A short honest marker next to a menu item, e.g. «Новый» for a patch published since the last visit. */
@@ -24,24 +22,14 @@ type NavigationRouteLinksProps = {
   routes: readonly NavigationRoute[];
   activeTab: TabId;
   variant: 'mobile' | 'sidebar';
-  /** Section name the compact rail's tooltip adds, so the two «Тир-лист» items stay distinguishable. */
+  /** Mode name the compact rail's tooltip adds, so the two «Тир-лист» items stay distinguishable. */
   context?: string;
   badges?: NavigationBadges;
   onNavigate: (tab: TabId) => void;
 };
 
-export function NavigationRouteLinks({
-  routes,
-  activeTab,
-  variant,
-  context,
-  badges,
-  onNavigate,
-}: NavigationRouteLinksProps) {
-  const classPrefix = variant === 'mobile' ? 'arena-mobile-menu' : 'arena-sidebar';
+export function NavigationRouteLinks({ routes, activeTab, variant, context, badges, onNavigate }: NavigationRouteLinksProps) {
   return routes.map(tab => {
-    const Icon = tab.icon;
-    const active = activeTab === tab.id;
     const badge = badges?.[tab.id];
     return (
       <a
@@ -52,60 +40,96 @@ export function NavigationRouteLinks({
           event.preventDefault();
           onNavigate(tab.id);
         }}
-        aria-current={active ? 'page' : undefined}
+        aria-current={activeTab === tab.id ? 'page' : undefined}
         data-nav-link=""
         data-nav-tip={context ? `${tab.label} · ${context}` : tab.label}
-        className={`${classPrefix}-link ${active ? `${classPrefix}-link-active` : ''}`}
-        style={variant === 'sidebar' ? { textDecoration: 'none' } : undefined}
+        data-variant={variant}
+        className="hp-nav-link"
       >
-        <span className={`${classPrefix}-link-icon flex-shrink-0`} aria-hidden="true">
-          <Icon size={NAV_ICON_SIZE} strokeWidth={NAV_ICON_STROKE} />
-        </span>
-        <span className="arena-nav-label">{tab.label}</span>
+        <span className="hp-nav-icon" aria-hidden="true"><NavigationIcon id={tab.id} Icon={tab.icon} /></span>
+        <span className="hp-nav-label">{tab.label}</span>
         {badge && <span className="arena-nav-badge" title={badge.title}>{badge.label}</span>}
       </a>
     );
   });
 }
 
-/** A collapsible mode of the menu: the title is the button, its links stay in the server HTML while it is closed (`data-closed`, not `hidden`: Tailwind's preflight makes `[hidden]` unoverridable, and the compact rail must show every item). */
-export function NavigationGroupControl({
-  active,
-  children,
-  group,
-  isOpen,
-  onToggle,
-  title,
-  variant,
-}: {
-  active: boolean;
-  children: ReactNode;
-  group: NavigationGroup;
-  isOpen: boolean;
-  onToggle: () => void;
-  title: string;
-  variant: 'mobile' | 'sidebar';
+/**
+ * One list per mode, all in the server HTML. CSS shows the list of the page's mode
+ * (`data-page-mode` of the tree) or, on a page without a mode, the last chosen one
+ * (`data-nav-mode` of `<html>`, set before the first paint), so no list flashes.
+ */
+export function NavigationModeLists({ routesOf, ...links }: Omit<NavigationRouteLinksProps, 'routes' | 'context'> & {
+  routesOf: Record<NavigationModeId, readonly NavigationRoute[]>;
 }) {
-  const classPrefix = variant === 'mobile' ? 'arena-mobile-menu' : 'arena-sidebar';
-  const groupId = `arena-${variant}-${group}`;
-  const Emblem = GROUP_EMBLEMS[group];
-  return (
-    <div className={`${classPrefix}-group`}>
-      <button
-        type="button"
-        className={`${classPrefix}-group-trigger`}
-        aria-expanded={isOpen}
-        aria-controls={groupId}
-        data-current={active ? '' : undefined}
-        onClick={onToggle}
-      >
-        <span className="arena-nav-group-emblem" aria-hidden="true"><Emblem size={NAV_ICON_SIZE} strokeWidth={NAV_ICON_STROKE} /></span>
-        <span className="arena-nav-label">{title}</span>
-        <ChevronDown size={16} strokeWidth={1.75} aria-hidden="true" className="arena-nav-group-chevron" />
-      </button>
-      <div id={groupId} className={`${classPrefix}-group-items`} data-closed={isOpen ? undefined : ''}>
-        {children}
-      </div>
+  return NAVIGATION_MODES.map(mode => (
+    <div key={mode.id} className="hp-nav-list" data-for={mode.id} data-variant={links.variant}>
+      <NavigationRouteLinks routes={routesOf[mode.id]} context={mode.label} {...links} />
     </div>
+  ));
+}
+
+/**
+ * The mode switch: a native `<details>`, so the banners open without JavaScript
+ * and before hydration. Each banner is a link to the mode's main page. The face
+ * of the button and the «Текущий» badge exist once per mode and CSS shows the
+ * current one, in step with the lists.
+ */
+export function NavigationModePicker({ variant, mode, onNavigate }: {
+  variant: 'mobile' | 'sidebar';
+  mode: NavigationModeId;
+  onNavigate: (tab: TabId) => void;
+}) {
+  return (
+    <details className="hp-mode" data-variant={variant}>
+      <summary className="hp-mode-button" data-nav-tip="Режим: выбрать формат">
+        {NAVIGATION_MODES.map(item => {
+          const Emblem = MODE_EMBLEMS[item.id];
+          return (
+            <span key={item.id} className="hp-mode-face" data-for={item.id}>
+              <span className="hp-mode-emblem" aria-hidden="true"><Emblem size={44} strokeWidth={1.3} /></span>
+              <span className="hp-mode-copy">
+                <span className="hp-mode-kicker">Режим</span>
+                <span className="hp-mode-name">{item.label}</span>
+              </span>
+            </span>
+          );
+        })}
+        <ChevronDown className="hp-mode-chevron" size={20} strokeWidth={2.2} aria-hidden="true" />
+      </summary>
+      <div className="hp-mode-panel" role="group" aria-label="Режимы сайта">
+        {NAVIGATION_MODES.map((item, index) => {
+          const Emblem = MODE_EMBLEMS[item.id];
+          const banner = modeBannerSrc(item.id);
+          return (
+            <a
+              key={item.id}
+              href={canonicalPagePath(item.path)}
+              className="hp-mode-card"
+              data-mode={item.id}
+              data-mode-card=""
+              aria-current={item.id === mode ? 'true' : undefined}
+              style={{ '--i': index } as CSSProperties}
+              onClick={event => {
+                if (!isPlainNavigationClick(event)) return;
+                event.preventDefault();
+                onNavigate(item.homeTab as TabId);
+              }}
+            >
+              <span className="hp-mode-art" aria-hidden="true">
+                {banner
+                  ? <img src={banner} width={400} height={560} loading="lazy" decoding="async" alt="" />
+                  : <span className="hp-mode-art-fallback"><Emblem size={96} strokeWidth={1} /></span>}
+              </span>
+              <span className="hp-mode-badge" data-for={item.id}>Текущий</span>
+              <span className="hp-mode-card-text">
+                <strong>{item.label}</strong>
+                <span>{item.description}</span>
+              </span>
+            </a>
+          );
+        })}
+      </div>
+    </details>
   );
 }

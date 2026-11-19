@@ -29,15 +29,14 @@ export const Desktop: Story = {
   play: async ({ canvasElement, args }) => {
     const sidebar = canvasElement.querySelector<HTMLElement>('.arena-sidebar');
     if (!sidebar) throw new Error('Persistent sidebar is missing');
-    const canvas = within(sidebar as HTMLElement);
-    await userEvent.click(canvas.getByRole('button', { name: /Арена/ }));
-    await userEvent.click(canvas.getByRole('button', { name: /Сообщество/ }));
-    // Groups open independently: the first stays open under the second.
-    await expect(canvasElement.querySelector('#arena-sidebar-arena')).toBeVisible();
-    await userEvent.click(canvas.getByRole('link', { name: 'Архив гайдов' }));
+    const panel = sidebar.querySelector<HTMLDetailsElement>('details.hp-mode');
+    if (!panel) throw new Error('Mode switch is missing');
+    await userEvent.click(panel.querySelector('summary') as HTMLElement);
+    await expect(panel.open).toBe(true);
+    await userEvent.click(panel.querySelector('[data-mode-card][data-mode="community"]') as HTMLElement);
+    await expect(args.navigate).toHaveBeenCalledWith('/articles');
+    await expect(panel.open).toBe(false);
     await expect(canvasElement.querySelector('.arena-sidebar')).toBe(sidebar);
-    await expect(canvas.getByRole('button', { name: /Сообщество/ })).toHaveAttribute('aria-expanded', 'true');
-    await expect(args.navigate).toHaveBeenCalledWith('/guides-archive');
     await expect(within(canvasElement).getByRole('heading', { name: 'Другая страница' })).toBeVisible();
   },
 };
@@ -46,14 +45,14 @@ export const Mobile: Story = {
   play: async ({ canvasElement, args }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByRole('button', { name: 'Открыть меню' }));
-    const menu = within(canvasElement.querySelector('#arena-mobile-menu') as HTMLElement);
-    await userEvent.click(menu.getByRole('button', { name: /Арена/ }));
-    await expect(canvasElement.querySelector('#arena-mobile-arena')).toBeVisible();
-    const destination = canvasElement.querySelector<HTMLAnchorElement>('#arena-mobile-menu a[href="/tierlist/"]');
-    if (!destination) throw new Error('Arena tier-list link is missing');
-    await userEvent.click(destination);
+    const drawer = canvasElement.querySelector<HTMLElement>('#arena-mobile-menu');
+    const panel = drawer?.querySelector<HTMLDetailsElement>('details.hp-mode');
+    if (!drawer || !panel) throw new Error('Mode switch is missing in the drawer');
+    await userEvent.click(panel.querySelector('summary') as HTMLElement);
+    await expect(panel.open).toBe(true);
+    await userEvent.click(panel.querySelector('[data-mode-card][data-mode="arena"]') as HTMLElement);
     await expect(canvas.getByRole('button', { name: 'Открыть меню' })).toHaveAttribute('aria-expanded', 'false');
-    await expect(args.navigate).toHaveBeenCalledWith('/tierlist');
+    await expect(args.navigate).toHaveBeenCalledWith('/classes');
     await expect(canvas.getByRole('heading', { name: 'Другая страница' })).toBeVisible();
   },
 };
