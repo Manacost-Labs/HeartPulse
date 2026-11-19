@@ -233,7 +233,8 @@ test('the post-deploy warm-up revalidates again until /tierlist/ carries its sli
     const { code, output } = await stand.warm({ WARM_TOTAL_MS: '30000' });
     assert.equal(code, 0, output);
     assert.ok(stand.revalidations.length >= 2, `a page left without data is revalidated again: ${output}`);
-    assert.deepEqual([...stand.revalidations[0]].sort(), ['/articles', '/classes', '/heroes', '/legendaries', '/standard/meta', '/tierlist'],
+    assert.deepEqual([...stand.revalidations[0]].sort(), ['/articles', '/classes', '/heroes', '/legendaries', '/library', ...['anomalies', 'dark-gifts', 'darkmoon-prizes', 'minions', 'quests',
+      'rewards', 'spells', 'timewarped', 'trinkets'].map(kind => `/library/${kind}`), '/standard/meta', '/tierlist'],
       'the real route regenerates exactly the pages that render data');
     assert.match(output, /\[warm\] \/tierlist\/: with data/, output);
     // What a visitor gets right after the warm-up, with no clock shifted and no second request needed.
