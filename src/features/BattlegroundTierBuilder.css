@@ -224,6 +224,9 @@
   overscroll-behavior: contain;
 }
 
+/* The tier mark of a row: 52 px on a wide window, 40 px in the narrow label column. */
+.bg-tier-builder .ui-tier-list__label .arena-tier-badge { margin-inline: auto; }
+
 /* Spells, heroes and trinkets are whole cards: the square shows their art, not the frame. */
 .bg-tier-builder__portrait:not([data-source='MINION']) .ui-game-image > img {
   object-position: 50% 30%;
@@ -250,6 +253,11 @@
 
   .bg-tier-builder .ui-tier-list {
     border-width: 8px;
+  }
+
+  .bg-tier-builder .ui-tier-list__label .arena-tier-badge {
+    width: 40px;
+    height: 40px;
   }
 
   .bg-tier-builder__toolbar .builder-draft-status {

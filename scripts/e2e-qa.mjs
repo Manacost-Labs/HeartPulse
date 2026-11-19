@@ -5972,18 +5972,19 @@ for (const [device, viewport] of [
     stage = 'forward focus trap';
     await page.evaluate(() => {
       const menu = document.querySelector('#arena-mobile-menu');
-      const visible = [...menu.querySelectorAll('a[href], button:not([disabled])')]
+      const visible = [...menu.querySelectorAll('a[href], button:not([disabled]), summary')]
         .filter(element => element.checkVisibility());
       visible.at(-1)?.focus();
     });
     await page.keyboard.press('Tab');
-    const cycledToFirst = await page.evaluate(() => document.activeElement === document.querySelector('#arena-mobile-menu a[href], #arena-mobile-menu button:not([disabled])'));
+    // The first control of the drawer is the mode switch, then «Главная» and the list.
+    const cycledToFirst = await page.evaluate(() => document.activeElement === document.querySelector('#arena-mobile-menu summary.hp-mode-button'));
     if (!cycledToFirst) failures.push('mobile menu: Tab escaped instead of cycling to the first control');
     await page.keyboard.down('Shift');
     await page.keyboard.press('Tab');
     await page.keyboard.up('Shift');
     const cycledToLast = await page.evaluate(() => {
-      const visible = [...document.querySelectorAll('#arena-mobile-menu a[href], #arena-mobile-menu button:not([disabled])')]
+      const visible = [...document.querySelectorAll('#arena-mobile-menu a[href], #arena-mobile-menu button:not([disabled]), #arena-mobile-menu summary')]
         .filter(element => element.checkVisibility());
       return document.activeElement === visible.at(-1);
     });

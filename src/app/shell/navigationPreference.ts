@@ -5,6 +5,8 @@
  * the attribute. Storage may be unavailable (private mode): the rail then
  * starts expanded and the choice lasts for the page's lifetime.
  */
+import { NAVIGATION_MODES, type NavigationModeId } from '../routing/navigationData';
+
 export const COMPACT_NAVIGATION_KEY = 'hp:nav:compact';
 export const COMPACT_NAVIGATION_ATTRIBUTE = 'data-nav-compact';
 
@@ -32,7 +34,7 @@ export function setCompactNavigation(compact: boolean) {
 }
 
 /**
- * The last chosen mode of the menu (Standard, Arena, Battlegrounds, Community).
+ * The last chosen mode of the menu (any of `NAVIGATION_MODES`).
  * A page that belongs to a mode shows that mode's list; every other page (home,
  * help, profile) shows this one. The head script writes it to `<html>` before the
  * first paint, so the list never flashes; without storage or script the menu
@@ -40,8 +42,8 @@ export function setCompactNavigation(compact: boolean) {
  */
 export const MODE_NAVIGATION_KEY = 'hp:nav:mode';
 export const MODE_NAVIGATION_ATTRIBUTE = 'data-nav-mode';
-const MODES = ['standard', 'arena', 'battlegrounds', 'community'] as const;
-export type RememberedNavigationMode = (typeof MODES)[number];
+const MODES: readonly NavigationModeId[] = NAVIGATION_MODES.map(mode => mode.id);
+export type RememberedNavigationMode = NavigationModeId;
 
 export const MODE_NAVIGATION_SCRIPT = `try{var m=localStorage.getItem(${JSON.stringify(MODE_NAVIGATION_KEY)});if(${MODES.map(mode => `m===${JSON.stringify(mode)}`).join('||')})document.documentElement.setAttribute(${JSON.stringify(MODE_NAVIGATION_ATTRIBUTE)},m)}catch(e){}`;
 
@@ -54,7 +56,7 @@ export function subscribeNavigationMode(listener: () => void) {
 
 export function readNavigationMode(): RememberedNavigationMode {
   const value = document.documentElement.getAttribute(MODE_NAVIGATION_ATTRIBUTE);
-  return MODES.find(mode => mode === value) ?? 'standard';
+  return MODES.find(mode => mode === value) ?? NAVIGATION_MODES[0].id;
 }
 
 export function setNavigationMode(mode: RememberedNavigationMode) {

@@ -70,6 +70,17 @@ test('the sidebar and the drawer have no horizontal scroll at any window width a
           const open = await read();
           const label = `${path} window ${width} zoom ${zoom} (layout ${layoutWidth})`;
           measured.push(label);
+          // The open panel opens from the button: in the sidebar to its right with the tops level and wholly inside the window, in the drawer below it.
+          const place = await page.evaluate(selector => {
+            const button = document.querySelector(`${selector} details.hp-mode > summary`).getBoundingClientRect();
+            const panel = document.querySelector(`${selector} .hp-mode-panel`).getBoundingClientRect();
+            return { right: panel.right - innerWidth, bottom: panel.bottom - innerHeight, top: panel.top - button.top, left: panel.left - button.right, below: panel.top - button.bottom };
+          }, root);
+          if (drawer) assert.ok(place.below >= 0 && place.below <= 24, `${label}: the drawer's panel sits under the button, ${JSON.stringify(place)}`);
+          else {
+            assert.ok(Math.abs(place.top) <= 1, `${label}: the panel's top is level with the button, ${JSON.stringify(place)}`);
+            assert.ok(place.left > 0 && place.right <= 0 && place.bottom <= 0, `${label}: the panel is right of the sidebar and inside the window, ${JSON.stringify(place)}`);
+          }
           assert.deepEqual(closed, { region: 0, list: 0, page: 0, labels: 0 }, `${label}: closed menu`);
           // With the panel open the aside's own scroll width includes the popover; its list and the page must still fit.
           assert.deepEqual({ ...open, region: drawer ? open.region : 0 }, { region: 0, list: 0, page: 0, labels: 0 }, `${label}: menu with the mode panel open`);

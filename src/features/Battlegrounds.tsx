@@ -199,13 +199,6 @@ const BG_TIER_VISIBLE_STEP: Record<BattlegroundTierListKey, number> = {
   spells: 18,
   trinkets: 24,
 };
-const BG_TIER_BADGES: Record<string, string> = {
-  S: 'bg-gradient-to-br from-[#f8e7ad] to-[#b58a2f] text-[#3d2a1e] border-[#fff3c4]',
-  A: 'bg-gradient-to-br from-[#d9c287] to-[#8a6830] text-[#2b2116] border-[#f3dfaa]',
-  B: 'bg-gradient-to-br from-[#b8d4f4] to-[#4f78a8] text-[#15263a] border-[#dcecff]',
-  C: 'bg-gradient-to-br from-[#9ed5b4] to-[#4e8d67] text-[#173322] border-[#caefd7]',
-  D: 'bg-gradient-to-br from-[#d9ad91] to-[#965a3c] text-[#2e1c14] border-[#f4cfb8]',
-};
 
 interface BattlegroundHeroDetailPayload {
   ok?: boolean;
@@ -1108,8 +1101,8 @@ function BattlegroundHeroLedgerRow({
   return (
     <div className={`bg-hero-ledger__row${flat ? ' bg-hero-ledger__row--flat' : ''}`} role="row">
       {flat && (
-        <div className={`bg-hero-ledger__tier-cell bg-hero-ledger__tier-mark--${tier.toLowerCase()}`} role="cell">
-          <span className="bg-hero-ledger__tier-emblem"><strong>{tier}</strong></span>
+        <div className="bg-hero-ledger__tier-cell" role="cell">
+          <TierBadge tier={tier} />
         </div>
       )}
       <div className="bg-hero-ledger__hero" role="cell">
@@ -1951,7 +1944,7 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate, teaser }: { dbfId: stri
             >
               <div className="bg-hero-stat-plaque rounded-2xl border border-[#d7b66a]/65 bg-[#fff8ea]/92 p-3">
                 <p className="text-[11px] uppercase">Тир</p>
-                <p className="font-hs text-2xl">{hero.tier || '—'}</p>
+                <p className="font-hs text-2xl">{hero.tier ? <TierBadge tier={hero.tier} small /> : '—'}</p>
               </div>
               <div className="bg-hero-stat-plaque rounded-2xl border border-[#d7b66a]/65 bg-[#fff8ea]/92 p-3">
                 <p className="text-[11px] uppercase">Среднее место</p>
@@ -2799,9 +2792,7 @@ function BattlegroundHeroTierList({ onNavigate, onRetry }: { onNavigate: (path: 
                 return (
                   <section key={section.tier} className="rounded-lg border border-[#c4a46a]/35 bg-[#fff3d8]/65 p-3 sm:p-4">
                     <div className="mb-3 flex items-center gap-3">
-                      <span className={`inline-flex h-11 w-11 items-center justify-center rounded-full border-2 text-lg font-hs shadow ${BG_TIER_BADGES[section.tier] || BG_TIER_BADGES.C}`}>
-                        {section.tier}
-                      </span>
+                      <TierBadge tier={section.tier} />
                       <div>
                         <h3 className="font-hs text-lg text-[#3d2a1e]">{section.title || `Тир ${section.tier}`}</h3>
                         <p className="text-xs text-[#8b6c42]">{bgHeroCountLabel(heroes.length)}</p>

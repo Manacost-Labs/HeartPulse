@@ -24,7 +24,8 @@ test('on a 390 px phone a guest opens the menu, keeps focus inside it, closes it
     await clickByRole(page, 'button', 'Открыть меню');
     await findByRole(page, 'navigation', MENU);
     assert.equal(await ariaState(page, role('button', 'Закрыть меню'), 'aria-expanded'), 'true');
-    await waitForFocus(page, 'link', 'Главная');
+    // The mode switch is the first control of the drawer, so focus lands on it.
+    await page.waitForFunction(() => document.activeElement?.matches('#arena-mobile-menu summary.hp-mode-button'), { timeout: 5_000 });
     assert.equal(await ariaState(page, inMenu('link', 'Карты'), 'aria-current'), 'page', 'the menu marks the open section');
     await page.keyboard.down('Shift');
     await page.keyboard.press('Tab');

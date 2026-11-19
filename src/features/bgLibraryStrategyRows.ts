@@ -20,7 +20,9 @@ export interface StrategyEntry {
 
 export type StrategyRow = {
   key: string;
+  /** The build's source, e.g. «Firestone»; its tier is drawn as a mark next to it. */
   label: string;
+  tier: string | null;
   title: string;
   description: string | null;
   minions: Array<{ key: string; name: string; image: string; current: boolean }>;
@@ -67,7 +69,8 @@ export function strategyRows(entries: readonly StrategyEntry[], currentDbfId: nu
       const tier = String(entry.tier ?? '').trim().toUpperCase();
       return {
         key: entry.key,
-        label: tier ? `${entry.source} · ${tier}` : entry.source,
+        label: entry.source,
+        tier: tier || null,
         title: entry.title,
         description: strategyDescription(entry),
         minions: ordered.slice(0, MINIONS_SHOWN).map(card => ({

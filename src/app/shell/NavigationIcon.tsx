@@ -1,17 +1,30 @@
 import type { ReactNode } from 'react';
 import menuArt from './menuArt.json';
 
-/** Menu art is drawn at 96 px for dense displays and shown at 40 px. */
+/** Menu art is painted at 40, 80 and 120 px and shown at 40 px, so a 1x screen takes the small file and a dense one the larger. */
 export const NAV_ICON_SIZE = 40;
 export const MODE_EMBLEM_SIZE = 48;
 
-const ICONS: Readonly<Record<string, string>> = menuArt.icons;
-const BANNERS: Readonly<Record<string, string>> = menuArt.banners;
+const ICONS: ReadonlySet<string> = new Set(menuArt.icons);
+const BANNERS: ReadonlySet<string> = new Set(menuArt.banners);
+
+/** `/menu/icons/<id>-{40,80,120}.webp` as a width-descriptor srcset; the files are listed in `menuArt.json`. */
+export const menuIconSrcSet = (id: string): string => [40, 80, 120].map(width => `/menu/icons/${id}-${width}.webp ${width}w`).join(', ');
 
 /** The painted icon of a menu item or `mode-<id>` emblem; nothing for an id without art (tests/routes.test.ts keeps every menu item covered). */
 export function NavigationIcon({ id, size = NAV_ICON_SIZE, fallback = null }: { id: string; size?: number; fallback?: ReactNode }) {
-  const src = ICONS[id];
-  return src ? <img className="hp-nav-art" src={src} width={size} height={size} loading="lazy" decoding="async" alt="" /> : fallback;
+  if (!ICONS.has(id)) return fallback;
+  // `sizes` is the real slot: at 48 px a 1x screen takes the 80 px file, not the 40 px one stretched.
+  return <img className="hp-nav-art" src={`/menu/icons/${id}-80.webp`} srcSet={menuIconSrcSet(id)} sizes={`${size}px`} width={size} height={size} loading="lazy" decoding="async" alt="" />;
 }
 
-export const modeBannerSrc = (mode: string): string | undefined => BANNERS[mode];
+/** Width of the two banner files; `sizes` of the cards says which one a card needs. */
+export const MODE_BANNER_WIDTHS = [440, 571] as const;
+
+/** `srcset` of a mode's banner art (440×616 and 571×800), or nothing for a mode without art. */
+export const modeBannerSrcSet = (mode: string): string | undefined => BANNERS.has(mode)
+  ? MODE_BANNER_WIDTHS.map(width => `/menu/banners/${mode}-${width}.webp ${width}w`).join(', ')
+  : undefined;
+
+/** The wide strip behind the face of the mode button (520×160). */
+export const modeFaceSrc = (mode: string): string | undefined => BANNERS.has(mode) ? `/menu/banners/${mode}-face.webp` : undefined;
