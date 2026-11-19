@@ -254,9 +254,9 @@ try {
   assert.equal(await page.$eval('#storybook-root h1', heading => heading.textContent), 'Воровской Жрец');
   assert.equal(await page.$$eval('.archetype-history .analytics-chart', charts => charts.length), 3);
   assert.equal(await page.$$eval('.archetype-history .analytics-chart__band', bands => bands.length) > 0, true, 'the winrate carries its Wilson band');
-  assert.equal(await page.$$eval('.archetype-deck-card', cards => cards.length), 6);
-  assert.equal(await page.$$eval('.archetype-deck-card .deck-tile', cards => cards.length), 30);
-  assert.equal(await page.$$eval('.archetype-deck-card .deck-list-view__expand', buttons => buttons.length), 6);
+  assert.equal(await page.$$eval('.archetype-deck-card', cards => cards.length), 8, 'the first page holds eight builds');
+  assert.equal(await page.$$eval('.archetype-deck-card .deck-tile', cards => cards.length), 40);
+  assert.equal(await page.$$eval('.archetype-deck-card .deck-list-view__expand', buttons => buttons.length), 8);
   const hsReplayDeckTile = await page.$eval('.archetype-deck-card .deck-tile__art', element => {
     const rect = element.getBoundingClientRect();
     const tile = element.closest('.deck-tile');
@@ -388,7 +388,7 @@ try {
   await page.$eval('.archetype-builds__more', button => button.click());
   await page.waitForFunction(() => document.querySelectorAll('.archetype-deck-card').length === 14);
   const revealedDeckLoadingStates = await page.$$eval(
-    '.archetype-builds .archetype-deck-card:nth-child(n + 7) .deck-render-preview',
+    '.archetype-builds .archetype-deck-card:nth-child(n + 9) .deck-render-preview',
     previews => previews.map(preview => {
       const placeholder = preview.querySelector('.deck-render-preview__loading');
       const placeholderRect = placeholder?.getBoundingClientRect();
