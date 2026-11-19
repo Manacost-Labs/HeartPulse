@@ -129,13 +129,15 @@ export const SKELETON_ROUTES = [
     // The server's 600 ms first-paint read fails, so the browser request is the one held.
     respond: (url, { browser, variant }) => url.pathname === '/api/fun-decks' ? (browser ? json(funDecks(variant)) : unavailable) : undefined,
     hold: (url, { browser }) => browser && url.pathname === '/api/fun-decks',
-    skeleton: '.loading-surface__blocks.fun-decks-grid', loaded: 'section.fun-decks-grid > .fun-deck-card',
+    // The default tile view: columns of builder tiles; a list that cannot load keeps the height the skeleton reserves.
+    skeleton: '.loading-surface__blocks.fun-decks-tiles-grid', loaded: 'section.fun-decks-tiles-grid > .fun-deck-tiles',
     parts: [
-      { name: 'grid', skeleton: '.loading-surface__blocks.fun-decks-grid', loaded: 'section.fun-decks-grid', check: 'viewport' },
+      { name: 'grid', skeleton: '.loading-surface__blocks.fun-decks-tiles-grid', loaded: 'section.fun-decks-tiles-grid', check: 'viewport' },
       ...[0, 1, 2].map(index => ({ name: `card ${index + 1}`, index, check: 'text', top: index === 0,
-        skeleton: '.loading-surface__blocks.fun-decks-grid > .fun-deck-card', loaded: 'section.fun-decks-grid > .fun-deck-card' })),
-      { name: 'card 1 metrics', skeleton: '.fun-deck-card--loading .fun-deck-skeleton-metrics', loaded: 'section.fun-decks-grid .fun-deck-card__metrics', check: 'fixed', top: false },
-      { name: 'card 1 preview+copy', skeleton: '.fun-deck-card--loading .fun-deck-card__deck', loaded: 'section.fun-decks-grid .fun-deck-card__deck', check: 'fixed', top: false },
+        skeleton: '.loading-surface__blocks.fun-decks-tiles-grid > .fun-deck-tiles', loaded: 'section.fun-decks-tiles-grid > .fun-deck-tiles' })),
+      { name: 'card 1 metrics', skeleton: '.fun-deck-tiles--loading .fun-deck-tiles-skeleton-stats', loaded: 'section.fun-decks-tiles-grid .fun-deck-tiles__stats', check: 'fixed', top: false },
+      { name: 'card 1 list', skeleton: '.fun-deck-tiles--loading .fun-deck-tiles__deck', loaded: 'section.fun-decks-tiles-grid .fun-deck-tiles__deck', check: 'fixed', top: false },
+      { name: 'card 1 copy', skeleton: '.fun-deck-tiles--loading .fun-deck-tiles__foot', loaded: 'section.fun-decks-tiles-grid .fun-deck-tiles__foot', check: 'fixed', top: false },
     ],
   },
   {

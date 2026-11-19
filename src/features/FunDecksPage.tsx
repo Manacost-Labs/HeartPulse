@@ -6,7 +6,6 @@ import React, {
 } from 'react';
 import {
   Copy,
-  ExternalLink,
   RefreshCw,
   Search,
   TriangleAlert,
@@ -17,8 +16,6 @@ import DeckListView from './decklist/DeckListView';
 import DeckRenderPreview from './deckrender/DeckRenderPreview';
 import { useResolvedDeck } from './decklist/useResolvedDeck';
 import {
-  FUN_DECK_CLASSES,
-  funDeckClassId,
   selectFunDecks,
   type FunDeckRow,
   type FunDeckTagId,
@@ -32,6 +29,11 @@ import './FunDecksPage.css';
 import { FunDecksSkeleton } from './FunDecksSkeleton';
 import { FunDecksFilters } from './FunDecksFilters';
 import { useFunDecksFilters } from './useFunDecksFilters';
+import { funDeckClassMeta, funDeckFormat, funDeckFormatLabel } from './funDecks/deckMeta';
+import { useCopyDeckCode } from './funDecks/useCopyDeckCode';
+import { FunDeckLayoutSwitch, useFunDeckLayout, type FunDeckLayout } from './funDecks/FunDeckLayoutSwitch';
+import { FunDeckRowCard } from './funDecks/FunDeckRowCard';
+import { FunDeckTilesCard } from './funDecks/FunDeckTilesCard';
 
 const EMPTY_DATA: FunDecksPayload = {
   fetchedAt: null,
@@ -47,28 +49,6 @@ const DEFAULT_PAYWALL_ACCESS: PaywallAccessState = {
   onRefreshSubscription: async () => null,
 };
 
-const CLASS_META: Record<string, { label: string; color: string; icon: string }> = Object.fromEntries(
-  FUN_DECK_CLASSES.map(item => [item.id, item]),
-);
-
-const HERO_CLASS_BY_DBF: Record<number, string> = {
-  7: 'warrior',
-  31: 'hunter',
-  274: 'druid',
-  637: 'mage',
-  671: 'paladin',
-  813: 'priest',
-  893: 'warlock',
-  930: 'rogue',
-  1066: 'shaman',
-  56550: 'demonhunter',
-  78065: 'deathknight',
-};
-
-function formatOf(deck: FunDeckRow): 'standard' | 'wild' {
-  return deck.format.toLowerCase() === 'wild' ? 'wild' : 'standard';
-}
-
 function timestamp(value: string | null): number {
   const parsed = Date.parse(value || '');
   return Number.isFinite(parsed) ? parsed : 0;
@@ -80,34 +60,7 @@ function isRecentlyAdded(deck: FunDeckRow, fetchedAt: string | null): boolean {
   return firstSeen > 0 && firstSeen >= reference - 72 * 60 * 60 * 1_000;
 }
 
-async function writeClipboardText(value: string): Promise<void> {
-  if (navigator.clipboard?.writeText) {
-    try {
-      await navigator.clipboard.writeText(value);
-      return;
-    } catch {
-      // Fall through for browsers that expose Clipboard API but deny writes.
-    }
-  }
-
-  const textarea = document.createElement('textarea');
-  textarea.value = value;
-  textarea.readOnly = true;
-  textarea.setAttribute('aria-hidden', 'true');
-  textarea.style.position = 'fixed';
-  textarea.style.opacity = '0';
-  document.body.appendChild(textarea);
-  textarea.focus();
-  textarea.select();
-  textarea.setSelectionRange(0, value.length);
-
-  try {
-    if (!document.execCommand('copy')) throw new Error('Clipboard write failed');
-  } finally {
-    textarea.remove();
-  }
-}
-
+/** The «Картинки» view: the Deckview picture of the deck, as the page showed it before. */
 function FunDeckCard({
   deck,
   fresh = false,
@@ -122,41 +75,13 @@ function FunDeckCard({
   /** Tags the reader filters by: the card shows them first. */
   pinnedTags?: readonly FunDeckTagId[];
 }) {
-  const [copyState, setCopyState] = useState<'idle' | 'ok' | 'error'>('idle');
-  const format = formatOf(deck);
+  const format = funDeckFormat(deck);
   const { data, error, reload } = useResolvedDeck(deck.deckCode, {
     format,
     archetype: deck.nearestArchetype || undefined,
   });
-  const resolvedClass = data ? HERO_CLASS_BY_DBF[data.heroDbfId] : '';
-  const classMeta = CLASS_META[funDeckClassId(deck)] || CLASS_META[resolvedClass] || {
-    label: deck.className && deck.className !== '—' ? deck.className : 'Класс определяется',
-    color: '#67131c',
-    icon: '/arena-logo-icon.webp',
-  };
-  const copyLabel = {
-    idle: 'Скопировать код колоды',
-    ok: 'Код скопирован',
-    error: 'Не удалось скопировать',
-  }[copyState];
-
-  useEffect(() => {
-    if (copyState === 'idle') return undefined;
-    const timeout = window.setTimeout(
-      () => setCopyState('idle'),
-      copyState === 'ok' ? 1600 : 2000,
-    );
-    return () => window.clearTimeout(timeout);
-  }, [copyState]);
-
-  const copyDeckCode = async () => {
-    try {
-      await writeClipboardText(deck.deckCode);
-      setCopyState('ok');
-    } catch {
-      setCopyState('error');
-    }
-  };
+  const classMeta = funDeckClassMeta(deck, data?.heroDbfId);
+  const { state: copyState, label: copyLabel, copy: copyDeckCode } = useCopyDeckCode(deck.deckCode);
 
   return (
     <article className="fun-deck-card">
@@ -164,7 +89,7 @@ function FunDeckCard({
         <img src={classMeta.icon} alt="" width="64" height="64" loading="lazy" decoding="async" />
         <div>
           <span>
-            {format === 'wild' ? 'Вольный формат' : 'Стандарт'}
+            {funDeckFormatLabel(deck)}
             {fresh ? <strong>Новая</strong> : null}
           </span>
           <h2>{deck.title}</h2>
@@ -192,7 +117,7 @@ function FunDeckCard({
               cards={data.cards}
               sideboards={data.sideboards}
               title={classMeta.label}
-              subtitle={format === 'wild' ? 'Вольный формат' : 'Стандарт'}
+              subtitle={funDeckFormatLabel(deck)}
               headerColor={classMeta.color}
               totalCards={data.totalCards}
               deckSizeLimit={data.deckSizeLimit}
@@ -226,17 +151,22 @@ function FunDeckCard({
           <span aria-live="polite">{copyLabel}</span>
         </button>
       </div>
-
-      {deck.url ? (
-        <footer className="fun-deck-card__source">
-          <a href={deck.url} target="_blank" rel="noreferrer">
-            Открыть на HSGuru
-            <ExternalLink aria-hidden="true" />
-          </a>
-        </footer>
-      ) : null}
     </article>
   );
+}
+
+const DECK_VIEWS: Record<FunDeckLayout, { className: string; Card: typeof FunDeckCard }> = {
+  tiles: { className: 'fun-decks-tiles-grid', Card: FunDeckTilesCard },
+  rows: { className: 'fun-decks-rows', Card: FunDeckRowCard },
+  images: { className: 'fun-decks-grid', Card: FunDeckCard },
+};
+
+function decksWord(count: number): string {
+  const tens = count % 100;
+  const units = count % 10;
+  if (tens >= 11 && tens <= 14) return 'колод';
+  if (units === 1) return 'колода';
+  return units >= 2 && units <= 4 ? 'колоды' : 'колод';
 }
 
 /**
@@ -294,6 +224,8 @@ export default function FunDecksPage({
   const error = loadError && (hasFullAccess || !data.decks.length) ? loadError : '';
   const [arrivesLater] = useState(!initialPreview);
   const { filters, query, view, visibleCount, filtered, change, search, reset, showMore } = useFunDecksFilters();
+  const [layout, setLayout] = useFunDeckLayout();
+  const deckView = DECK_VIEWS[layout];
   const filteredDecks = useMemo(
     () => selectFunDecks(data.decks, view, hasFullAccess),
     [data.decks, view, hasFullAccess],
@@ -365,8 +297,15 @@ export default function FunDecksPage({
         onReset={reset}
       />
 
+      {!error && (loading || settling || visibleDecks.length) ? (
+        <div className="fun-decks-layout-bar">
+          <p>{loading || settling ? '\u00a0' : `${filteredDecks.length} ${decksWord(filteredDecks.length)}`}</p>
+          <FunDeckLayoutSwitch layout={layout} onChange={setLayout} />
+        </div>
+      ) : null}
+
       {loading || settling ? (
-        <FunDecksSkeleton />
+        <FunDecksSkeleton layout={layout} />
       ) : error ? (
         <section className="fun-decks-page__state fun-decks-page__state--error" role="alert">
           <TriangleAlert aria-hidden="true" />
@@ -379,11 +318,11 @@ export default function FunDecksPage({
         </section>
       ) : visibleDecks.length ? (
         <>
-          <section className={`fun-decks-grid data-surface${arrivesLater ? ' data-arrive' : ''}`} aria-label="Подборка фан-колод"
+          <section className={`${deckView.className} data-surface${arrivesLater ? ' data-arrive' : ''}`} aria-label="Подборка фан-колод"
             aria-busy={hasFullAccess && !complete}>
             {visibleDecks.map((deck, index) => (
               <React.Fragment key={`${deck.format}:${deck.deckCode}`}>
-                <FunDeckCard
+                <deckView.Card
                   deck={deck}
                   fresh={isRecentlyAdded(deck, data.fetchedAt)}
                   tourAnchor={index === 0}
