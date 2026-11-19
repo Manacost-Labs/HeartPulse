@@ -18,7 +18,7 @@ export function BuildRow({ variant, base, format, best, bestThin }: {
   const text = option.text;
   const donorHalf = option.half;
   return (
-    <li className={`assemble-row${best ? ' is-best' : ''}${option.lowSample ? ' is-thin' : ''}`}>
+    <li className={`assemble-row${best ? ' is-best' : ''}${option.lowSample && !donor.noStats ? ' is-thin' : ''}${donor.noStats ? ' is-nodata' : ''}`}>
       {best && <span className="assemble-row__best">{bestThin ? 'Лучший из того, что есть' : 'Лучший выбор'}</span>}
       <a className="assemble-row__portrait" href={cardHref(format, donor.card.cardId)} tabIndex={-1} aria-hidden="true">
         <Portrait card={donor.card} />
@@ -28,7 +28,7 @@ export function BuildRow({ variant, base, format, best, bestThin }: {
           <a className="assemble-row__name" href={cardHref(format, donor.card.cardId)}>{donor.card.name}</a>
           <span className="assemble-row__half">{donorHalf === 'effect' ? 'берём эффект' : 'берём условие'}</span>
           {option.undervalued && <span className="card-choices__badge" title="Винрейт выше среднего по сборкам, а берут реже большинства">Недооценённый выбор</span>}
-          {option.lowSample && <span className="card-choices__thin">Мало данных</span>}
+          {option.lowSample && !donor.noStats && <span className="card-choices__thin">Мало данных</span>}
         </div>
         {text
           ? (
@@ -46,17 +46,21 @@ export function BuildRow({ variant, base, format, best, bestThin }: {
           )
           : <p className="assemble-text is-missing">Текст этой сборки ещё не собран.</p>}
       </div>
-      <dl className="assemble-row__metrics">
-        <div className="assemble-metric">
-          <dt>Берут</dt>
-          <dd>{formatChoicePercent(option.pickRate)}</dd>
-          <span className="card-choices__bar" aria-hidden="true"><span style={{ width: `${pick}%` }} /></span>
-        </div>
-        <div className="assemble-metric">
-          <dt>Винрейт</dt>
-          <dd className={`is-${tone}`}>{formatChoicePercent(option.winRate)}</dd>
-        </div>
-      </dl>
+      {donor.noStats
+        ? <p className="assemble-row__nodata"><b>Нет данных</b> не встречался в играх с этой основой</p>
+        : (
+        <dl className="assemble-row__metrics">
+          <div className="assemble-metric">
+            <dt>Берут</dt>
+            <dd>{formatChoicePercent(option.pickRate)}</dd>
+            <span className="card-choices__bar" aria-hidden="true"><span style={{ width: `${pick}%` }} /></span>
+          </div>
+          <div className="assemble-metric">
+            <dt>Винрейт</dt>
+            <dd className={`is-${tone}`}>{formatChoicePercent(option.winRate)}</dd>
+          </div>
+        </dl>
+        )}
     </li>
   );
 }

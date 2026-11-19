@@ -4,8 +4,11 @@ import express from 'express';
 import { createCardAssembleRouter, projectCardAssemble } from '../server/modules/constructedCards/public.js';
 import {
   assembleFullText, assembleMeanWinrate, assembleOptionsOfBase, assembleWinrateTone, bestOfOffered, isAssembleCard,
-  type AssembleBase, type AssembleDonor, type AssembleOption,
+  type AssembleBase, type AssembleDonor, type AssembleOption, type CardAssembleData,
 } from '../src/modules/constructedCards/model/cardAssemble.js';
+import {
+  assembleBasesForClass, assembleClassDependent, assembleOfferedDonors, assembleOfferedVariants,
+} from '../src/modules/constructedCards/model/cardAssemblePool.js';
 
 // Contract fixture of hs-data-api #136 (`/v1/hsreplay/assemble`, F3TCH3R): shape per the contract, numbers illustrative except Cairne's.
 const CONTRACT = JSON.parse(readFileSync(new URL('./fixtures/card-assemble-contract-be044.json', import.meta.url), 'utf8'));
@@ -253,3 +256,70 @@ assert.equal(bestOfOffered(tie, 'B_TWO', 'A_ONE')?.best.donor.card.cardId, 'B_TW
 // No winrate anywhere: nothing to recommend.
 const blank = baseOf([donorOf('A_ONE', [option('effect', null, 5, false)]), donorOf('B_TWO', [option('effect', null, 5, false)])]);
 assert.equal(bestOfOffered(blank, 'A_ONE', 'B_TWO'), null);
+
+// Full donor pool of hs-data-api #160/#161: `bases[].donor_pool[]` and `data.donor_pool_status`.
+const poolCard = (id: string, dbf: number, cardClass: string, name = id) => ({ card_id: id, dbf_id: dbf, name, name_ru: name, card_class: cardClass, cost: 4, type: 'MINION', rarity: 'COMMON' });
+const half = (kind: string, trigger: string, effect: string) => ({ half: kind, text: { ru: { trigger, effect }, en: { trigger: 't', effect: 'e' } } });
+const pool = (id: string, dbf: number, cardClass: string, hasStats: boolean) => ({
+  card: poolCard(id, dbf, cardClass), has_stats: hasStats,
+  options: [half('effect', 'В конце вашего хода', `эффект ${id}`), half('trigger', `условие ${id}`, 'существа в руке получают +1/+1.')],
+});
+const poolBody = (state: string, poolRows: unknown, classDependent = true) => {
+  const copy = structuredClone(CONTRACT);
+  copy.data.donor_pool_status = { state, class_dependent: classDependent, player_class: null, observed_pairs: 10, uncovered_pairs: 0, uncovered_offer_share: 0 };
+  copy.data.bases[0].donor_pool = poolRows;
+  return copy;
+};
+const poolRows = [
+  pool('CORE_EX1_110', 69667, 'NEUTRAL', true),
+  pool('MAGE_ONE', 9001, 'MAGE', false),
+  pool('ROGUE_ONE', 9002, 'ROGUE', false),
+  pool('NEUTRAL_TWO', 9003, 'NEUTRAL', false),
+];
+
+// Projection: the pool and its status pass the allowlist, with Russian texts and no statistics fields.
+const withPool = projectCardAssemble(poolBody('ok', poolRows));
+assert.equal(withPool?.donorPoolStatus?.state, 'ok');
+assert.equal(withPool?.donorPoolStatus?.classDependent, true);
+assert.deepEqual(withPool?.bases[0].donorPool?.map(donor => [donor.card.cardId, donor.hasStats]), [['CORE_EX1_110', true], ['MAGE_ONE', false], ['ROGUE_ONE', false], ['NEUTRAL_TWO', false]]);
+assert.equal(withPool?.bases[0].donorPool?.[1]?.options[0]?.text?.effect, 'эффект MAGE_ONE');
+assert.deepEqual(Object.keys(withPool?.bases[0].donorPool?.[1] ?? {}).sort(), ['card', 'hasStats', 'options']);
+assert.equal(withPool?.bases[1].donorPool, null, 'only the requested base carries a pool');
+
+// Not ok, absent or hostile: no pool, the rest of the answer as before.
+assert.equal(projectCardAssemble(poolBody('mismatch', poolRows))?.bases[0].donorPool, null);
+assert.equal(projectCardAssemble(poolBody('unavailable', poolRows))?.bases[0].donorPool, null);
+assert.equal(projectCardAssemble(poolBody('ok', 'garbage'))?.bases[0].donorPool, null);
+assert.equal(projectCardAssemble(poolBody('ok', []))?.bases[0].donorPool, null);
+assert.equal(projectCardAssemble(CONTRACT)?.donorPoolStatus, null);
+assert.equal(projectCardAssemble(CONTRACT)?.bases[0].donors?.length, projectCardAssemble(poolBody('ok', poolRows))?.bases[0].donors?.length);
+const oneHalf = projectCardAssemble(poolBody('ok', [{ ...poolRows[0], options: [poolRows[0]?.options[0]] }, poolRows[1], { ...poolRows[2], has_stats: 'yes' }]));
+assert.deepEqual(oneHalf?.bases[0].donorPool?.map(donor => donor.card.cardId), ['MAGE_ONE'], 'exactly two halves and a boolean has_stats, or the donor is dropped');
+const state = projectCardAssemble(poolBody('weird', poolRows));
+assert.equal(state?.donorPoolStatus, null);
+assert.equal(state?.bases[0].donorPool, null);
+
+// Model: the pool of the chosen class and neutral donors, with statistics first.
+const poolData = projectCardAssemble(poolBody('ok', poolRows)) as unknown as CardAssembleData;
+const poolBase = poolData.bases[0] as CardAssembleData['bases'][number];
+assert.equal(assembleClassDependent(poolData), true);
+assert.deepEqual(assembleOfferedDonors(poolData, poolBase, null), [], 'the class is needed first');
+const mage = assembleOfferedDonors(poolData, poolBase, 'MAGE');
+assert.deepEqual(mage.map(donor => [donor.card.cardId, donor.noStats === true]), [['CORE_EX1_110', false], ['MAGE_ONE', true], ['NEUTRAL_TWO', true]]);
+const bare = mage[1];
+assert.equal(bare?.options.every(option => option.winRate === null && option.pickRate === null), true);
+assert.equal(bare?.options[0]?.text?.effect, 'эффект MAGE_ONE');
+// A class card (not class dependent) keeps every donor of its pool.
+const fixed = projectCardAssemble(poolBody('ok', poolRows, false)) as unknown as CardAssembleData;
+assert.equal(assembleOfferedDonors(fixed, fixed.bases[0] as CardAssembleData['bases'][number], null).length, 4);
+// No pool: the donors with winrate data, as before.
+const mismatch = projectCardAssemble(poolBody('mismatch', poolRows)) as unknown as CardAssembleData;
+assert.equal(assembleClassDependent(mismatch), false);
+assert.ok(assembleOfferedDonors(mismatch, mismatch.bases[0] as CardAssembleData['bases'][number], null).every(donor => !donor.noStats));
+// Variants: four, those without percentages last.
+const [first, second] = [mage[0], mage[1]];
+assert.deepEqual(assembleOfferedVariants(first as never, second as never).map(variant => variant.donor.card.cardId), ['CORE_EX1_110', 'CORE_EX1_110', 'MAGE_ONE', 'MAGE_ONE']);
+// Bases of a class: its own and neutral ones; all without a class.
+const bases = [{ card: { cardClass: 'MAGE' } }, { card: { cardClass: 'ROGUE' } }, { card: { cardClass: 'NEUTRAL' } }] as never[];
+assert.equal(assembleBasesForClass(bases, 'MAGE').length, 2);
+assert.equal(assembleBasesForClass(bases, null).length, 3);

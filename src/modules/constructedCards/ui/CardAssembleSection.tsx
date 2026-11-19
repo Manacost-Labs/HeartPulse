@@ -7,6 +7,8 @@ import {
 import { cardChoiceDate, formatChoicePercent } from '../model/cardChoices';
 import { useCardAssemble } from '../useCardAssemble';
 import { BuildRow, BuildsSkeleton, Legend } from './AssembleBuilds';
+import { assembleBasesForClass, assembleClassDependent } from '../model/cardAssemblePool';
+import { ClassChooser } from './AssembleClasses';
 import { BaseSummary, OfferedPanel } from './AssembleOffered';
 import { PortraitPicker, type PickerItem } from './AssemblePicker';
 import '../../../shared/ui/LoadingSurface.css';
@@ -44,6 +46,7 @@ export function CardAssembleSection({ format, cardId }: CardAssembleSectionProps
   const [reload, setReload] = useState(0);
   const [view, setView] = useState<'best' | 'offered'>('best');
   const [showAll, setShowAll] = useState(false);
+  const [playerClass, setPlayerClass] = useState<string | null>(null);
   const state = useCardAssemble(format, cardId, selected, true, reload);
   const [styled, setStyled] = useState(false);
   useEffect(() => {
@@ -55,7 +58,8 @@ export function CardAssembleSection({ format, cardId }: CardAssembleSectionProps
   const [kept, setKept] = useState<CardAssembleData | null>(null);
   useEffect(() => { if (state.status === 'ready') setKept(state.data); }, [state]);
   const data = state.status === 'ready' ? state.data : kept;
-  const ribbon = useMemo(() => (data ? assembleBasesByOffer(data) : []), [data]);
+  const classDependent = assembleClassDependent(data);
+  const ribbon = useMemo(() => (data ? assembleBasesForClass(assembleBasesByOffer(data), classDependent ? playerClass : null) : []), [data, classDependent, playerClass]);
 
   // «not_collected»: the source does not track this card yet, so there is nothing to show (as for a 404).
   if (!styled || state.status === 'missing' || state.status === 'idle' || (state.status === 'ready' && state.data.state === 'not_collected')) return null;
@@ -107,6 +111,7 @@ export function CardAssembleSection({ format, cardId }: CardAssembleSectionProps
 
       {data && hasBases && (
         <>
+          {classDependent && <ClassChooser value={playerClass} onChange={setPlayerClass} />}
           <h3 className="assemble-title">Что выпало?</h3>
           <PortraitPicker items={items} selected={shownBase ? [String(shownBase.card.dbfId)] : []} onPick={chooseBase}
             label="Существа, которых игра может выбрать основой" searchLabel="Найти существо по названию" size="large" />
@@ -142,7 +147,7 @@ export function CardAssembleSection({ format, cardId }: CardAssembleSectionProps
               )
               : <p className="card-choices__empty">По этой основе пока нет данных о сборках.</p>
           )}
-          {!loadingBase && active && view === 'offered' && <OfferedPanel key={active.card.dbfId} base={active} format={format} />}
+          {!loadingBase && active && view === 'offered' && <OfferedPanel key={`${active.card.dbfId}:${playerClass ?? ''}`} base={active} data={data} format={format} playerClass={playerClass} />}
 
           <p className="card-choices__source">
             Источник: {data.sourceUrl ? <a href={data.sourceUrl} target="_blank" rel="noreferrer">HSReplay</a> : 'HSReplay'} · {data.format === 'standard' ? 'Стандарт' : 'Вольный'}
