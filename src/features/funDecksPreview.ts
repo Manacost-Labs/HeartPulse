@@ -1,3 +1,5 @@
+import { DECK_CLASSES as FUN_DECK_CLASSES } from './deckViews/deckClass';
+
 export type FunDeckRow = {
   title: string;
   deckCode: string;
@@ -73,20 +75,8 @@ export const FUN_DECK_TAGS: ReadonlyArray<{ id: FunDeckTagId; label: string; sho
   { id: 'offmeta', label: 'Офф-мета' },
 ];
 
-/** Hero classes by the lower-case Latin key of `className`, listed in the order of their Russian names. */
-export const FUN_DECK_CLASSES: ReadonlyArray<{ id: string; label: string; color: string; icon: string }> = [
-  ['warrior', 'Воин', '#8e342f'],
-  ['druid', 'Друид', '#8b4d25'],
-  ['priest', 'Жрец', '#6e6862'],
-  ['mage', 'Маг', '#326c97'],
-  ['hunter', 'Охотник', '#3f792f'],
-  ['demonhunter', 'Охотник на демонов', '#556d24'],
-  ['paladin', 'Паладин', '#a77816'],
-  ['rogue', 'Разбойник', '#55545b'],
-  ['deathknight', 'Рыцарь смерти', '#397b87'],
-  ['warlock', 'Чернокнижник', '#694477'],
-  ['shaman', 'Шаман', '#345aa0'],
-].map(([id, label, color]) => ({ id, label, color, icon: `/class_icon/ui/${id}-64.webp` }));
+/** Hero classes by the lower-case Latin key of `className` (deckViews/deckClass). */
+export { FUN_DECK_CLASSES };
 
 /** Decks a guest sees; the rest of the selection is for Diamond subscribers. */
 export const FUN_DECKS_FREE_PREVIEW_COUNT = 3;

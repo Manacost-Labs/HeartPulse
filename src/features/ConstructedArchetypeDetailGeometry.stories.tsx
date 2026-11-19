@@ -14,6 +14,8 @@ const SQUARE_DECK = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg
 
 /** The archetype fixture, with deck renders answered at once by a square image as the renderer produces. */
 function installSquareDeckRenders() {
+  // The picture view has a fixed shape to compare; the tile and row lists grow with the deck.
+  try { window.localStorage.setItem('hp:deck-layout', 'images'); } catch { /* storage may be blocked */ }
   const restore = installConstructedArchetypeFixtures();
   const fixtureFetch = globalThis.fetch;
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => String(input).includes('/api/deck/render')

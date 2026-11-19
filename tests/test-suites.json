@@ -535,6 +535,7 @@
         "tests/media-lightbox-browser.test.mjs",
         "tests/deck-render-preview-browser.test.mjs",
         "tests/fun-deck-layouts-browser.test.mjs",
+        "tests/deck-views-sitewide-browser.test.mjs",
         "tests/card-assemble-browser.test.mjs",
         "tests/next-admin-entitlements-browser.test.mjs",
         "tests/next-arena-guest-paywall-browser.test.mjs",

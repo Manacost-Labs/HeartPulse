@@ -41,7 +41,7 @@ const meta = {
     const original = window.fetch;
     const many = Boolean((args as { manyDecks?: boolean }).manyDecks);
     const kinds = Boolean((args as { kinds?: boolean }).kinds);
-    try { window.localStorage.removeItem('hp:fun-decks:layout'); } catch { /* storage may be blocked */ }
+    try { window.localStorage.removeItem('hp:deck-layout'); window.localStorage.removeItem('hp:fun-decks:layout'); } catch { /* storage may be blocked */ }
     window.fetch = (input, init) => {
       const url = new URL(String(input), window.location.origin);
       if (url.pathname === '/api/fun-decks') return Promise.resolve(Response.json(many ? manyDecks() : kinds ? kindDecks() : fixture.funDecks));

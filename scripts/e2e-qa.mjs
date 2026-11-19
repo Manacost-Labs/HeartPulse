@@ -2872,6 +2872,8 @@ for (const [device, viewport] of [
     const archetypeViolationCount = await auditArchetypeCatalog(page, `archetype catalog [${device}]`);
     await page.screenshot({ path: `${OUT}/archetype-catalog-${device}.png`, fullPage: false });
 
+    // The build checks cover the «Картинки» deck view (Deckview pictures); the default tiles are checked in browser tests.
+    await page.evaluate(() => { try { localStorage.setItem('hp:deck-layout', 'images'); } catch { /* storage is optional */ } });
     await tapFirstArchetypeRow(page);
     await page.waitForSelector('.archetype-detail-page .archetype-history .analytics-chart', { timeout: 20_000 });
     await page.waitForSelector('.archetype-builds', { timeout: 20_000 });
@@ -2920,6 +2922,7 @@ for (const [device, viewport] of [
     await page.waitForFunction(() => document.querySelectorAll('.archetype-deck-card').length === 12);
     await auditAccessibility(page, `archetype detail [${device}]`, '.archetype-detail-page');
     await page.screenshot({ path: `${OUT}/archetype-detail-${device}.png`, fullPage: false });
+    await page.evaluate(() => { try { localStorage.removeItem('hp:deck-layout'); } catch { /* storage is optional */ } });
     await page.click('.archetype-breadcrumb a');
     await page.waitForSelector('.archetype-row', { timeout: 20_000 });
 
@@ -3573,6 +3576,8 @@ for (const [device, viewport] of [
         value: { writeText: async value => { window.__qaViciousDeckCode = value; } },
       });
     });
+    // The deck block checks cover the «Картинки» deck view; the default tiles are checked in browser tests.
+    await page.evaluate(() => { try { localStorage.setItem('hp:deck-layout', 'images'); } catch { /* storage is optional */ } });
     await page.click('.vsgold-build__open');
     await page.waitForSelector('.vsgold-deck-composition .archetype-deck-card .deck-list-view__body');
     const viciousDeckListState = await page.evaluate(() => ({
@@ -3593,6 +3598,7 @@ for (const [device, viewport] of [
       failures.push(`vicious gold [${device}]: graphical copy control failed (${JSON.stringify(viciousCopyState)})`);
     }
     await page.screenshot({ path: `${OUT}/vicious-gold-copy-${device}.png`, fullPage: false });
+    await page.evaluate(() => { try { localStorage.removeItem('hp:deck-layout'); } catch { /* storage is optional */ } });
     if (device === 'mobile') {
       await page.$eval('.vsgold-classbars button', button => {
         const rect = button.getBoundingClientRect();
@@ -3776,6 +3782,8 @@ for (const [device, viewport] of [
     await page.click('.constructed-cards__view button:first-child');
     // The gallery renders from a deferred value, a moment after the toggle.
     await page.waitForSelector('.constructed-cards__gallery-card-link');
+    // The deck checks of the card page cover the «Картинки» deck view, as on the archetype page.
+    await page.evaluate(() => { try { localStorage.setItem('hp:deck-layout', 'images'); } catch { /* storage is optional */ } });
     await page.$eval('.constructed-cards__gallery-card-link', element => element.click());
     await page.waitForSelector('.constructed-card-detail__hero');
     await page.waitForSelector('.constructed-card-detail__pool-toggle');
@@ -3876,6 +3884,7 @@ for (const [device, viewport] of [
       failures.push(`constructed card decks [${device}]: rendered deck grid, pagination or copy flow regressed (${JSON.stringify(expandedDeckState)})`);
     }
     await page.screenshot({ path: `${OUT}/constructed-card-decks-${device}.png`, fullPage: false });
+    await page.evaluate(() => { try { localStorage.removeItem('hp:deck-layout'); } catch { /* storage is optional */ } });
     await page.click('.constructed-card-detail__visual-button');
     await page.waitForSelector('[role="dialog"]');
     const constructedLightboxState = await page.evaluate(() => ({
@@ -3957,6 +3966,8 @@ for (const [device, viewport] of [
   const runtimeErrors = collectRuntimeErrors(page);
   await page.setViewport({ width: 2048, height: 1152, deviceScaleFactor: 1 });
   await mockApplicationApi(page, { authenticated: true, admin: true, adminState: {} });
+  // The wide check is about the Deckview pictures: the «Картинки» deck view.
+  await page.evaluateOnNewDocument(() => { try { localStorage.setItem('hp:deck-layout', 'images'); } catch { /* storage is optional */ } });
   try {
     await page.goto(`${BASE}/standard/cards/standard/CARD_QA_1`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForSelector('.constructed-card-detail__decks', { timeout: 20_000 });
@@ -3993,6 +4004,7 @@ for (const [device, viewport] of [
   } catch (error) {
     failures.push(`constructed card decks [2048px]: ${error.message}`);
   } finally {
+    await page.evaluate(() => { try { localStorage.removeItem('hp:deck-layout'); } catch { /* storage is optional */ } }).catch(() => {});
     await page.close();
   }
 }

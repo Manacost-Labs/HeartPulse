@@ -60,6 +60,9 @@ try {
     void request.continue();
   });
 
+  // The build checks below cover the «Картинки» view: the Deckview picture card.
+  // The tile and row views are covered by tests/deck-views-sitewide-browser.test.mjs.
+  await page.evaluateOnNewDocument(() => window.localStorage.setItem('hp:deck-layout', 'images'));
   await page.setViewport({ width: 1440, height: 1100, deviceScaleFactor: 1 });
   await page.goto(fixture('format=wild'), { waitUntil: 'networkidle0' });
   await page.waitForSelector('.archetype-row');

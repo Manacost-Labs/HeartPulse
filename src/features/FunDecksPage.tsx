@@ -33,7 +33,7 @@ import { useFunDeckCardPreview } from './funDecks/useFunDeckCardPreview';
 import { useNearScreen } from './funDecks/useNearScreen';
 import { funDeckClassMeta, funDeckFormat, funDeckFormatLabel } from './funDecks/deckMeta';
 import { useCopyDeckCode } from './funDecks/useCopyDeckCode';
-import { FunDeckLayoutSwitch, useFunDeckLayout, type FunDeckLayout } from './funDecks/FunDeckLayoutSwitch';
+import { DeckLayoutSwitch, useDeckLayout, type DeckLayout } from './deckViews/DeckLayoutSwitch';
 import { FunDeckRowCard } from './funDecks/FunDeckRowCard';
 import { FunDeckTilesCard } from './funDecks/FunDeckTilesCard';
 
@@ -159,7 +159,7 @@ function FunDeckCard({
   );
 }
 
-const DECK_VIEWS: Record<FunDeckLayout, { className: string; Card: typeof FunDeckCard }> = {
+const DECK_VIEWS: Record<DeckLayout, { className: string; Card: typeof FunDeckCard }> = {
   tiles: { className: 'fun-decks-tiles-grid', Card: FunDeckTilesCard },
   rows: { className: 'fun-decks-rows', Card: FunDeckRowCard },
   images: { className: 'fun-decks-grid', Card: FunDeckCard },
@@ -229,7 +229,7 @@ export default function FunDecksPage({
   const [arrivesLater] = useState(!initialPreview);
   const { filters, query, view, filtered, change, search, reset } = useFunDecksFilters();
   const { listeners: previewListeners, tooltip: cardPreview } = useFunDeckCardPreview();
-  const [layout, setLayout] = useFunDeckLayout();
+  const [layout, setLayout] = useDeckLayout();
   const deckView = DECK_VIEWS[layout];
   const filteredDecks = useMemo(
     () => selectFunDecks(data.decks, view, hasFullAccess),
@@ -302,7 +302,7 @@ export default function FunDecksPage({
       {!error && (loading || settling || visibleDecks.length) ? (
         <div className="fun-decks-layout-bar">
           <p>{loading || settling ? '\u00a0' : `${filteredDecks.length} ${decksWord(filteredDecks.length)}`}</p>
-          <FunDeckLayoutSwitch layout={layout} onChange={setLayout} />
+          <DeckLayoutSwitch layout={layout} onChange={setLayout} />
         </div>
       ) : null}
 

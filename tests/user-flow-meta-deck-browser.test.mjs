@@ -47,8 +47,9 @@ test('a subscriber goes from the home page through the meta tier list to an arch
     await findByRole(page, 'region', 'Сборки архетипа');
     assert.match(await mainText(page), /^1 сборка$/m, 'one build is counted in the singular');
 
-    await clickByRole(page, 'button', 'Скопировать код колоды: сборка 1');
-    await findByRole(page, 'button', 'Код скопирован: сборка 1');
+    // Builds open as builder tiles by default; the copy button names its build.
+    await clickByRole(page, 'button', 'Скопировать код колоды: Сборка 1');
+    await findByRole(page, 'button', 'Код скопирован: Сборка 1');
     assert.equal(await clipboardText(page), CONTROL_WARRIOR_DECK_CODE, 'the deck code is ready to paste into Hearthstone');
     assert.deepEqual(errors, []);
   } finally {
