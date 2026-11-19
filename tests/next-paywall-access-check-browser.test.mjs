@@ -378,7 +378,7 @@ test('the builds pages show the open list without a placeholder and keep it unti
   legacy.get('/api/bg/tier-lists/public', (request, response) => response.json(openBuilds(request.query.list)));
   legacy.use((_request, response) => response.status(401).end());
   const legacyServer = legacy.listen(0, '127.0.0.1');
-  let next; let gateway; let browser;
+  let next; let gateway; let browser; let front;
   try {
     await new Promise(done => legacyServer.once('listening', done));
     next = await startNextServer({ legacyOrigin: `http://127.0.0.1:${legacyServer.address().port}`,
@@ -394,7 +394,7 @@ test('the builds pages show the open list without a placeholder and keep it unti
     }
     gateway = await startGateway(next.origin);
     gateway.server.removeAllListeners('request');
-    const front = http.createServer((request, response) => {
+    front = http.createServer((request, response) => {
       const subscriber = /(?:^|;\s*)pending_reader=1/.test(request.headers.cookie ?? '');
       const json = payload => response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(payload));
       if (request.url === '/api/auth/me') return void setTimeout(() => json({ user: subscriber ? SUBSCRIBER : null }), SESSION_DELAY_MS);
@@ -467,6 +467,7 @@ test('the builds pages show the open list without a placeholder and keep it unti
   } finally {
     if (browser) await browser.close();
     if (gateway) await closeLocal(gateway.server);
+    if (front) await closeLocal(front);
     if (next) await next.close();
     legacyServer.closeAllConnections();
     await new Promise(done => legacyServer.close(done));
