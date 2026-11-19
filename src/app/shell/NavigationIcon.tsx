@@ -13,7 +13,7 @@ const BANNERS: ReadonlySet<string> = new Set(menuArt.banners);
  * a redrawn icon gets a new URL instead of the browser's 30-day copy. `version` is a hash of
  * `public/menu/` (tests/routes.test.ts recomputes it), so redrawn art without a new version fails the tests.
  */
-const artUrl = (path: string): string => `${path}?v=${menuArt.version}`;
+export const artUrl = (path: string): string => `${path}?v=${menuArt.version}`;
 
 /** `/menu/icons/<id>-{40,80,120}.webp` as a width-descriptor srcset; the files are listed in `menuArt.json`. */
 export const menuIconSrcSet = (id: string): string => [40, 80, 120].map(width => `${artUrl(`/menu/icons/${id}-${width}.webp`)} ${width}w`).join(', ');
