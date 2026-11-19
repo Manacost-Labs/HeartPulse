@@ -335,69 +335,32 @@ only what the page itself shows:
   `ItemList`s, so the tier-list, legendaries and Battlegrounds tier-list pages
   have none, and no registry node holds a hard-coded `numberOfItems`.
 
-## Arena pages: methodology text (E9 S4a)
+## Arena pages: no explanation text (E22 D1)
 
 `/tierlist/`, `/classes/` and `/legendaries/` show a guest the page frame and a
-paywall: their data sits behind the `arena` entitlement and there is no public
-teaser. Without text of their own they weigh less than the 404 page in the HTML,
-while «тир лист арены», «арена хс какой класс» and «легендарки арены» are among
-the queries the site wants to answer.
+paywall (the tier list and classes also an open slice of their data). Until E22
+they carried a server-rendered «О странице» block (100–180 words, question
+headings, kept as a JSON data file) to give search engines text. The
+owner decided on 2026-11-19 that the pages end with their data and the block was
+removed with its component, data file, loader, styles and tests. The expected
+SEO cost is 250–400 words fewer on three indexed pages.
 
-- Each page renders a server-side block of 100–180 words in a single
-  collapsed `<details>` with the summary «О странице»
-  (`apps/public-web/ui/SeoPageIntro.tsx`, passed to the client page as
-  `children`, so the client bundle only grows by the pass-through), inside
-  `<main>` below the H1. A guest sees one quiet line; the text is in the HTML
-  without the `open` attribute. There are two or three sections, each headed by
-  a question («Что показывает тир-лист Арены Hearthstone (хс)?», «Откуда берутся
-  оценки и как они обновляются?», «Что доступно без подписки?»). The block was
-  250–400 words with six sections until E22 (#450).
-- The text is data, not code: `config/public-seo-page-copy.json`, read through
-  `src/seo/pageCopy.ts` (`parseSeoPageCopy` rejects a page outside the SEO
-  registry, a heading that is no question, an empty block and a link that is not
-  the canonical address of a registry page). A paragraph is a string, a bullet
-  list an array of strings, `[text](/path/)` a link. The title and the
-  description stay in `config/public-seo-pages.json`; there is no second source.
-- It states only what the code and `public/llms.txt` state: the S–F scale and
-  its Russian labels (`server/index.ts` `TIER_LABEL_FULL`, `TIER_DESC_MAP`),
-  the sources of each page (tier list: HSReplay, HearthArena, Firestone; classes:
-  HSReplay, Firestone as the reserve; legendaries: HSReplay, Firestone) and the
-  level that opens the figures («Любитель Арены»). The scale is not the same in
-  every source: HSReplay's letter comes from the Arenasmith Score and stops at E
-  (`server/hsreplayArenasmith.ts` `tierFromArenasmithScore`), HearthArena and
-  Firestone use all seven letters, and «Без тира» (a card without Arenasmith
-  Score in the current HSReplay slice) is a mark, not a grade.
-- **It promises no update frequency.** `deploy/hs-arena-scraper.timer` (every 6
-  hours) is the schedule of the scraper, not how often the datasets behind the
-  pages change. The Data API has its own timers: an evening refresh once a day
-  (`hs-data-api-docker-refresh-api.timer`), five runs a day only in the
-  post-patch window (`…-refresh-post-patch-tierlists.timer`) and the HSReplay
-  Arena classes every second day
-  (`…-refresh-hsreplay-arena-classes-firecrawl.timer`). The text says «данные
-  обновляются автоматически», and so do the descriptions, the `Dataset` and
-  `llms.txt`. A frequency may return only when the Data API or HearthPulse code
-  confirms it per dataset.
-- **It contains no statistics**: no digit, no percentage, count or ranking.
-  Whether any Arena figure becomes public is the owner's decision (#310);
-  until then the tests fail on a digit, a `%` or a frequency phrase in the
-  block, the `Dataset` and the descriptions.
+- The pages carry no FAQ or other markup about text they do not show.
+- The `Dataset` of the three pages keeps `isAccessibleForFree:
+  false`, names its sources and the subscription and states no figure or update
+  frequency (`deploy/hs-arena-scraper.timer` is the scraper's schedule, not the
+  refresh rate of the datasets). The `/classes` description no longer mentions a reading guide.
+- Titles stay static with the year: «Тир-лист Арены Hearthstone (хс), {year}»,
+  «Винрейт классов Арены Hearthstone, {year}», «Легендарки Арены Hearthstone,
+  {year}». The classes title starts with «Винрейт классов» and its description
+  keeps «винрейты всех 11 классов» because the client navigation check in
+  `scripts/e2e-qa.mjs` waits for both. The descriptions are at most 160
+  characters and say that access is by subscription.
 - «хс» appears only next to the game's name («Hearthstone (хс)»): alone it
   also means Honkai: Star Rail.
-- Titles are static with the year, no teaser exists to date them:
-  «Тир-лист Арены Hearthstone (хс), {year}», «Винрейт классов Арены
-  Hearthstone, {year}», «Легендарки Арены Hearthstone, {year}». The classes
-  title starts with «Винрейт классов» and its description keeps «винрейты всех
-  11 классов» because the client navigation check in `scripts/e2e-qa.mjs`
-  waits for both. The descriptions are at most 160 characters and say that
-  access is by subscription.
-- The `Dataset` of `/classes/` and `/tierlist/` has `isAccessibleForFree: false`
-  and a description that names the same sources and the same subscription as
-  the text and no figure or frequency; `tests/seo-structured-data.test.ts`
-  compares the two. `/legendaries/` has no `Dataset`.
-- Tests: the HTML Next serves (`tests/next-seo-page-metadata.test.mjs`) for the
-  word count, headings, the absence of figures and frequency phrases, the scale
-  of the tier list and the 150 words over the 404 frame;
-  `tests/seo-structured-data.test.ts` for the copy parser and the dataset.
+- Tests: `tests/next-seo-page-metadata.test.mjs` (titles, descriptions, no
+  explanation block, no FAQ markup, paywall present, dataset claims) and
+  `tests/seo-structured-data.test.ts` (dataset).
 
 ## Documentation impact
 

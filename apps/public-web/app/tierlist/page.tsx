@@ -3,7 +3,6 @@ import '@/src/features/TraditionalModeBanner.css';
 import { TierListPageClient } from '@/apps/public-web/ui/TierListPageClient';
 import { seoStaticPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
 import { loadPublicTierlist } from '@/apps/public-web/lib/publicTierlist';
-import { SeoPageIntro } from '@/apps/public-web/ui/SeoPageIntro';
 import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 import { TierListPublicPool } from '@/apps/public-web/ui/TierListPublicPool';
 
@@ -20,7 +19,6 @@ export default async function Page() {
     <SeoStructuredData path="/tierlist" data={pool} />
     <TierListPageClient>
       <TierListPublicPool data={pool} />
-      <SeoPageIntro path="/tierlist" />
     </TierListPageClient>
   </>;
 }

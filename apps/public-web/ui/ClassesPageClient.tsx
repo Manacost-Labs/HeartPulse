@@ -10,11 +10,10 @@ import { navigate, navigateTab } from './navigation';
 const ignoreUpdatedAt = (_value: string | null) => undefined;
 
 /**
- * `children` is server-rendered content (the page's text) shown below the page, inside the shell's `<main>`.
  * `teaser` is the server-rendered open slice of the ranking, shown next to the H1 to everyone who has no
  * access; a subscriber has the full ranking instead.
  */
-export function ClassesPageClient({ children, teaser }: { children?: ReactNode; teaser?: ReactNode }) {
+export function ClassesPageClient({ teaser }: { teaser?: ReactNode }) {
   const access = usePublicAccess();
   const { allowed, pending } = paidAccess(access, 'arena');
   const { state, retry } = useArenaClasses(access.user?.id, allowed, ignoreUpdatedAt);
@@ -39,6 +38,5 @@ export function ClassesPageClient({ children, teaser }: { children?: ReactNode; 
       </PaywallGate>
       </div>
     </ArenaClassesPage>
-    {children}
   </PublicPageShell>;
 }

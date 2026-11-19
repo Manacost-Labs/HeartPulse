@@ -142,7 +142,7 @@ test('the guest HTML of /tierlist/ carries the whole open pool and nothing paid'
     const empty = await regenerated(page => !hasSlice(page), 'slice disappears without data');
     assert.doesNotMatch(empty, /tierlist-public-pool/, 'no slice without data');
     assert.match(empty, /class="paywalled-tierlist"/);
-    assert.match(empty, /class="seo-page-intro"/, 'the page text stays');
+    assert.doesNotMatch(empty, /О странице/, 'no explanation block is printed');
   } finally {
     await next.close();
     legacyServer.closeAllConnections();

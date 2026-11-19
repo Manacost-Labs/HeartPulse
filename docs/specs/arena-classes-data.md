@@ -10,8 +10,8 @@ and anything beyond that slice are never embedded in shared HTML. The browser
 loads statistics only after entitlement or administrator access succeeds.
 
 Ranking meters use the actual 0–100% winrate, including a zero-width fill for
-zero wins. The expandable «График классов и скачивание» reuses the shared bar
-chart with labelled axes, source sample counts and local PNG/SVG export.
+zero wins. The page ends with the ranking: there is no chart disclosure under
+it (removed in E22 D1; the shared bar chart stays for other pages).
 Class icons, ranking order and loading/error/retry states remain in the compact
 ranking; unavailable sample counts are explicit rather than shown as zero.
 

@@ -40,7 +40,6 @@ is a separate administrator workspace and retains its permission gate.
 | `lib/analyticsLoader.ts` | Inline Plausible loader: canonical host only, after a prerendered page is opened |
 | `lib/expressApi.ts` | `fetchPublicExpress()`: anonymous server reads of Express `/api/` paths |
 | `lib/seoPageMetadata.ts` | Metadata of pages in `config/public-seo-pages.json` |
-| `ui/SeoPageIntro.tsx` | Server-rendered text of a page whose data is closed to a guest, in one collapsed «О странице» `<details>` (`/tierlist/`, `/classes/`, `/legendaries/`), from `config/public-seo-page-copy.json`; passed to the client page as `children` |
 | `lib/public*.ts` | Server-only loaders that validate public Express projections |
 | `lib/ogImage.tsx`, `app/og/…/route.tsx` | Link-preview PNGs (`next/og`, the OTF of `HSDisplay`, card art from `/api/card-image/`), cached in the process; [spec](../../docs/specs/embeds-and-oembed.md) |
 | `lib/embedDocument.ts`, `lib/embedBodies.ts`, `app/embed/…/route.ts` | Embeds for other sites' iframes and their oEmbed: hand-written HTML outside the layout, `frame-ancestors *`, no site scripts |
