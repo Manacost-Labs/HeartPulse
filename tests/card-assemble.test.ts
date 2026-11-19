@@ -60,12 +60,31 @@ const cleaned = projectCardAssemble(hostile);
 assert.ok(cleaned);
 assert.equal(cleaned.sourceUrl, null);
 assert.equal(cleaned.bases.length, 3);
-assert.equal(cleaned.bases[0].donors?.length, 4);
-assert.deepEqual(cleaned.bases[0].donors![0].options.map(option => option.half), ['trigger']);
-assert.equal(cleaned.bases[0].donors![1].pickRate, null);
-assert.equal(cleaned.bases[0].donors![1].winRate, null);
-assert.equal(cleaned.bases[0].donors![1].picks, null);
-assert.equal(cleaned.bases[0].donors![2].options[0].text?.locale, 'en', 'an over-long ru text falls back to en');
+assert.deepEqual(cleaned.bases[0].donors?.map(donor => donor.card.cardId), ['JAIL_007', 'EDR_492', 'BE_550'], 'the donor with a broken half is dropped');
+assert.equal(cleaned.bases[0].donors![0].pickRate, null);
+assert.equal(cleaned.bases[0].donors![0].winRate, null);
+assert.equal(cleaned.bases[0].donors![0].picks, null);
+assert.equal(cleaned.bases[0].donors![1].options[0].text?.locale, 'en', 'an over-long ru text falls back to en');
+
+// A donor has exactly two different halves, effect first; anything else drops the donor.
+const halves = structuredClone(CONTRACT);
+const donors = halves.data.bases[0].donors;
+donors[0].options = [donors[0].options[0]];
+donors[1].options = [donors[1].options[0], donors[1].options[0]];
+donors[2].options = [donors[2].options[1], donors[2].options[0]];
+donors[3].options[0].half = 'x';
+const twoHalves = projectCardAssemble(halves)?.bases[0].donors;
+assert.deepEqual(twoHalves?.map(donor => donor.card.cardId), ['EDR_492']);
+assert.deepEqual(twoHalves?.[0].options.map(option => option.half), ['effect', 'trigger']);
+for (const donor of projected.bases[0].donors!) assert.equal(donor.options.length, 2);
+
+// The answer must be for the requested card and format (the id may be the dbf id too).
+assert.ok(projectCardAssemble(CONTRACT, { cardId: 'BE_044', format: 'standard' }));
+assert.ok(projectCardAssemble(CONTRACT, { cardId: 'be_044', format: 'standard' }));
+assert.ok(projectCardAssemble(CONTRACT, { cardId: '128892', format: 'standard' }));
+assert.equal(projectCardAssemble(CONTRACT, { cardId: 'BE_045', format: 'standard' }), null);
+assert.equal(projectCardAssemble(CONTRACT, { cardId: 'BE_044', format: 'wild' }), null);
+assert.equal(projectCardAssemble(CONTRACT, { cardId: '128893', format: 'standard' }), null);
 const flood = structuredClone(CONTRACT);
 flood.data.bases = Array.from({ length: 1000 }, (_, index) => ({ ...CONTRACT.data.bases[1], card: { ...CONTRACT.data.bases[1].card, dbf_id: index + 1 } }));
 flood.data.bases[0].donors = Array.from({ length: 500 }, () => CONTRACT.data.bases[0].donors[0]);
@@ -88,6 +107,7 @@ app.use('/api', createCardAssembleRouter({
     if (path.includes('card=CORE_EX1_110')) return new Response('{"detail":"not assemble"}', { status: 404 });
     if (path.includes('card=BE_045')) return new Response('{"detail":"oops"}', { status: 500 });
     if (path.includes('card=BE_046')) return new Response('{"data":{}}', { status: 200 });
+    if (path.includes('card=BE_047') || path.includes('format=wild')) return new Response(JSON.stringify(CONTRACT), { status: 200 });
     return new Response(JSON.stringify(CONTRACT), { status: 200, headers: { 'Content-Type': 'application/json' } });
   },
   cacheMs: 1_000,
@@ -125,6 +145,13 @@ try {
 
   // Upstream 404 is 404; a cold 500 or contract mismatch is 503 with Retry-After.
   assert.equal((await fetch(`${root}/card-assemble/standard/CORE_EX1_110`)).status, 404);
+  // A valid answer for another card or format is a contract mismatch and is never cached.
+  for (const path of ['standard/BE_047', 'wild/BE_044']) {
+    assert.equal((await fetch(`${root}/card-assemble/${path}`)).status, 503, path);
+  }
+  failUpstream = true;
+  assert.equal((await fetch(`${root}/card-assemble/standard/BE_047`)).status, 503, 'not cached');
+  failUpstream = false;
   for (const id of ['BE_045', 'BE_046']) {
     const cold = await fetch(`${root}/card-assemble/standard/${id}`);
     assert.equal(cold.status, 503, id);
@@ -143,12 +170,14 @@ try {
   await new Promise(resolve => server.close(resolve));
 }
 
-// Detection by the keyword in the Russian or English text; literals of the 13 cards are from HSJ.
-for (const ru of [
-  '<b>Боевой клич:</b> <b>собирает</b> существо за (4).',
-  '<b>Собирает</b> существо с…',
-]) assert.equal(isAssembleCard({ text: { ru, en: null } }), true, ru);
-assert.equal(isAssembleCard({ text: { ru: null, en: '<b>Battlecry:</b> <b>Assemble</b> a 4-Cost minion.' } }), true);
+// Detection by the keyword in the Russian or English text; literals of the 13 cards are from HSJ ruRU/enUS (2026-11-19).
+const HSJ_TEXTS = JSON.parse(readFileSync(new URL('./fixtures/card-assemble-hsj-texts.json', import.meta.url), 'utf8')) as Record<string, { ru: string; en: string }>;
+assert.equal(Object.keys(HSJ_TEXTS).length, 13);
+for (const [id, texts] of Object.entries(HSJ_TEXTS)) {
+  assert.equal(isAssembleCard({ text: { ru: texts.ru, en: null } }), true, `${id} ru`);
+  assert.equal(isAssembleCard({ text: { ru: null, en: texts.en } }), true, `${id} en`);
+}
+assert.equal(isAssembleCard({ text: { ru: HSJ_TEXTS.BE_740.ru, en: null } }), true, 'Вы <b>собираете</b>');
 assert.equal(isAssembleCard({ mechanics: ['BATTLECRY', 'ASSEMBLE'], text: null }), true);
 assert.equal(isAssembleCard({ text: { ru: '<b>Раскопка</b> сокровища.', en: '<b>Excavate</b> a treasure.' }, mechanics: ['EXCAVATE'] }), false);
 assert.equal(isAssembleCard({ text: { ru: 'Собирает всё, что плохо лежит.', en: 'Assemble your team.' } }), false, 'plain words are not the keyword');

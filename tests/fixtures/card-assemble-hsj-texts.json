@@ -1,0 +1,54 @@
+{
+  "BE_004": {
+    "ru": "[x]<b>Боевой клич:</b> <b>собирает</b>\nсущество любого класса.\nОно становится <b>пассивной</b>\nсилой героя.",
+    "en": "<b>Battlecry:</b> <b>Assemble</b> a minion from any class. Transform it into a <b>Passive</b> Hero Power."
+  },
+  "BE_044": {
+    "ru": "<b>Боевой клич:</b> <b>собирает</b> существо за (4).",
+    "en": "<b>Battlecry:</b> <b>Assemble</b> a\n4-Cost minion."
+  },
+  "BE_045": {
+    "ru": "[x]<b>Провокация</b>\n<b>Боевой клич:</b> <b>собирает</b>\nсущество за (3) или меньше\n      из карт стоимостью от (5).   ",
+    "en": "[x]<b>Taunt</b>. <b>Battlecry:</b> <b>Assemble</b>\na minion that costs (3) or\nless with cards that cost\n(5) or more."
+  },
+  "BE_087": {
+    "ru": "[x]Призывает двух стражей\n0/3 с <b>«Провокацией»</b>.\n<b>Собирает</b> существо.",
+    "en": "Summon two 0/3 Guards with <b>Taunt</b>.\n<b>Assemble</b> a minion."
+  },
+  "BE_114": {
+    "ru": "[x]<b>Собирает</b> существо.\nОно стоит на (2) меньше.",
+    "en": "<b>Assemble</b> a minion. It costs (2) less."
+  },
+  "BE_229": {
+    "ru": "<b>Боевой клич:</b> <b>собирает</b> существо с эффектом, срабатывающим в конце вашего хода.",
+    "en": "<b>Battlecry:</b> <b>Assemble</b> a minion with an end of your turn effect."
+  },
+  "BE_257": {
+    "ru": "<b>Собирает</b> существо мага. В конце каждого вашего хода его стоимость уменьшается на (1).",
+    "en": "<b>Assemble</b> a Mage minion. At the end of\nyour turns, reduce its\nCost by (1)."
+  },
+  "BE_262": {
+    "ru": "<b>Боевой клич:</b> <b>собирает</b> существо за (1).",
+    "en": "<b>Battlecry:</b> <b>Assemble</b> a\n1-Cost minion."
+  },
+  "BE_553": {
+    "ru": "[x]<b>Собирает</b> механизм.\nВы получаете «Форсаж».",
+    "en": "<b>Assemble</b> a Mech.\nGet an 'Overdrive'."
+  },
+  "BE_571": {
+    "ru": "[x]<b>Собирает</b> существо с\n<b>«Предсмертным хрипом»</b>.\nСущества у вас в руке\nполучают +2/+2.",
+    "en": "[x]<b>Assemble</b> a <b>Deathrattle</b>\nminion. Give all minions\n in your hand +2/+2."
+  },
+  "BE_702": {
+    "ru": "<b>Серия приемов</b>: <b>собирает</b> существо другого класса.",
+    "en": "[x]<b>Combo</b>: <b>Assemble</b> a\nminion from another class."
+  },
+  "BE_740": {
+    "ru": "[x]Вы <b>собираете</b> существо\nс <b>«Провокацией»</b>.\nОно получает +2/+3.",
+    "en": "<b>Assemble</b> a <b>Taunt</b> minion. Give it +2/+3."
+  },
+  "BE_851": {
+    "ru": "<b>Боевой клич:</b> вы <b>собираете</b> зверя.",
+    "en": "<b>Battlecry:</b> <b>Assemble</b>\na Beast."
+  }
+}

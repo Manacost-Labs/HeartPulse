@@ -26,8 +26,11 @@ base; the other bases carry `donors: null` and `donorsTotal`.
   safe integers (otherwise the row is dropped); percentages are finite numbers
   in 0–100 (otherwise `null`); `half` is `effect` or `trigger`; `source_url`
   starts with `https://hsreplay.net/`; texts are strings up to 400 characters;
-  at most 300 bases, 200 donors per base and two options (`effect`, `trigger`)
-  per donor.
+  at most 300 bases and 200 donors per base. A donor needs exactly two
+  different halves (`effect`, then `trigger`); otherwise it is dropped.
+- The answer must be for the requested card (id or dbf id) and format; another
+  card or format is a contract mismatch (503 or the last cached answer) and is
+  never cached under the requested key.
 - Only what the Russian site renders goes out: `name_ru ?? name`, and the text
   `{ trigger, effect, locale }` from `text.ru ?? text.en` (`locale` says which;
   `null` when neither exists). English names, `unresolved_rows` and `game_type`
@@ -44,13 +47,13 @@ base; the other bases carry `donors: null` and `donorsTotal`.
 `useCardAssemble(format, cardId, base, enabled)` (states `idle | loading |
 missing | ready | error`; ordinary cards send no request).
 
-- `isAssembleCard(card)`: a bold «Собирает»/«Assemble» in the Russian or English
+- `isAssembleCard(card)`: a bold «Собирает»/«собираете»/«Assemble» in the Russian or English
   text, or the `ASSEMBLE` mechanic. HSJ marks none of the 13 cards with it.
 - `assembleOptionsOfBase(base)`: «Лучшие сборки», every donor option by pick rate
   descending, small samples last.
 - `assembleMeanWinrate(base)` / `assembleWinrateTone(value, base)`: winrate
   tone against the average of the base's real samples (the thresholds of
-  `cardChoiceWinrateTone`); percent format is `formatChoicePercent`.
+  `cardChoiceWinrateTone`); percent format is `formatChoicePercent` (re-exported from the Assemble model).
 - `bestOfOffered(base, donorA, donorB)` («Мне предложили»): the best of the four
   variants of two donors by winrate among variants with a real sample; if all
   are small samples, the best of them with `lowSample: true`; a tie goes to the

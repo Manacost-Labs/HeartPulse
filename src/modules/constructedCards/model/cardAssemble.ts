@@ -1,5 +1,7 @@
 import { cardChoiceWinrateTone } from './cardChoices';
 
+export { formatChoicePercent } from './cardChoices';
+
 /**
  * «Сборка» (Assemble) of a card, as `/api/card-assemble/:format/:cardId` answers it
  * (the Express projection of hs-data-api `/v1/hsreplay/assemble`). Percentages are 0–100.
@@ -62,8 +64,8 @@ export type AssembleBestOffered = {
   variants: AssembleVariant[];
 };
 
-// The keyword is a bold «Собирает» / «Assemble». No HSJ card carries the ASSEMBLE mechanic (checked 2026-11-18).
-const ASSEMBLE_KEYWORD = /<b>\s*(?:собирает|assemble)(?![\p{L}])/iu;
+// The keyword is a bold «Собирает» / «собираете» ("Вы собираете…") / «Assemble». No HSJ card carries the ASSEMBLE mechanic (checked 2026-11-18).
+const ASSEMBLE_KEYWORD = /<b>\s*(?:собира(?:ет|ете)|assemble)(?![\p{L}])/iu;
 
 /** A card with the Assemble keyword in its Russian or English text (or the ASSEMBLE mechanic, for later). */
 export function isAssembleCard(card: {
