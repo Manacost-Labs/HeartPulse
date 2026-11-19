@@ -65,8 +65,8 @@ test('the patch header is the version, the date and the sources; no count, no le
 
 test('a mode is a heading on a strip of its own art with its emblem; Battlegrounds uses the Battlegrounds strip', () => {
   const html = page([knight, entry({ id: 'bg', name: 'Страж', mode: 'battlegrounds', format: null, cardId: 'BG36_362', cardType: 'minion', changes: [{ label: 'Атака', before: 5, after: 6, better: 'higher' }] })]);
-  assert.match(html, /<header class="hp-mode__head" data-mode="standard"><img class="hp-mode__art" src="\/menu\/banners\/standard-face\.webp"[^>]*\/?><img class="hp-nav-art" src="\/menu\/icons\/mode-standard-80\.webp"[^>]*\/?><h3[^>]*class="hp-mode__title">Стандарт<\/h3>/);
-  assert.match(html, /data-mode="battlegrounds"><img class="hp-mode__art" src="\/menu\/banners\/battlegrounds-face\.webp"/);
+  assert.match(html, /<header class="hp-mode__head" data-mode="standard"><img class="hp-mode__art" src="\/menu\/banners\/standard-face\.webp\?v=[0-9a-f]{10}"[^>]*\/?><img class="hp-nav-art" src="\/menu\/icons\/mode-standard-80\.webp\?v=[0-9a-f]{10}"[^>]*\/?><h3[^>]*class="hp-mode__title">Стандарт<\/h3>/);
+  assert.match(html, /data-mode="battlegrounds"><img class="hp-mode__art" src="\/menu\/banners\/battlegrounds-face\.webp\?v=[0-9a-f]{10}"/);
   assert.match(html, /mode-battlegrounds-80\.webp/);
   assert.match(html, /<h3[^>]*>Поля сражений<\/h3>/);
 });

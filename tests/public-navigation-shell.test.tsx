@@ -61,13 +61,13 @@ assert.equal(html.match(/>Текущий</g)?.length, 10, 'every banner carries 
 assert.match(html, /<nav[^>]*class="arena-sidebar-nav hp-nav"[^>]*data-page-mode="community"/);
 assert.doesNotMatch(renderToStaticMarkup(<PublicNavigation {...props} activeTab="home" />), /data-page-mode/);
 // Menu art: a painted icon of 40 px in three files (width descriptors), the emblem of a mode at 48 px, no inline line icons left.
-assert.match(html, /<img class="hp-nav-art" src="\/menu\/icons\/standard-meta-80\.webp" srcSet="\/menu\/icons\/standard-meta-40\.webp 40w, \/menu\/icons\/standard-meta-80\.webp 80w, \/menu\/icons\/standard-meta-120\.webp 120w" sizes="40px" width="40" height="40" loading="lazy" decoding="async" alt=""\/>/);
-assert.match(html, /srcSet="\/menu\/icons\/mode-community-40\.webp 40w[^"]*" sizes="48px" width="48" height="48"/);
+assert.match(html, /<img class="hp-nav-art" src="\/menu\/icons\/standard-meta-80\.webp\?v=[0-9a-f]{10}" srcSet="\/menu\/icons\/standard-meta-40\.webp\?v=[0-9a-f]{10} 40w, \/menu\/icons\/standard-meta-80\.webp\?v=[0-9a-f]{10} 80w, \/menu\/icons\/standard-meta-120\.webp\?v=[0-9a-f]{10} 120w" sizes="40px" width="40" height="40" loading="lazy" decoding="async" alt=""\/>/);
+assert.match(html, /srcSet="\/menu\/icons\/mode-community-40\.webp\?v=[0-9a-f]{10} 40w[^"]*" sizes="48px" width="48" height="48"/);
 // A banner card takes its art from a two-file srcset and shows the emblem of its mode; the button's face is a wide strip per mode.
-assert.match(html, /srcSet="\/menu\/banners\/arena-440\.webp 440w, \/menu\/banners\/arena-571\.webp 571w" sizes="200px" width="440" height="616"/);
+assert.match(html, /srcSet="\/menu\/banners\/arena-440\.webp\?v=[0-9a-f]{10} 440w, \/menu\/banners\/arena-571\.webp\?v=[0-9a-f]{10} 571w" sizes="200px" width="440" height="616"/);
 assert.equal(html.match(/class="hp-mode-card-emblem"/g)?.length, 10, 'each banner carries the emblem of its mode');
-assert.equal(html.match(/<img class="hp-mode-face-art" src="\/menu\/banners\/(?:standard|wild|arena|battlegrounds|community)-face\.webp" width="520" height="160" loading="lazy"/g)?.length, 10, 'five faces in each switch, all lazy');
-assert.equal(html.match(/<img class="hp-mode-art-wide" src="\/menu\/banners\/wild-face\.webp"/g)?.length, 2, 'a banner card also carries the wide strip, which only the drawer shows');
+assert.equal(html.match(/<img class="hp-mode-face-art" src="\/menu\/banners\/(?:standard|wild|arena|battlegrounds|community)-face\.webp\?v=[0-9a-f]{10}" width="520" height="160" loading="lazy"/g)?.length, 10, 'five faces in each switch, all lazy');
+assert.equal(html.match(/<img class="hp-mode-art-wide" src="\/menu\/banners\/wild-face\.webp\?v=[0-9a-f]{10}"/g)?.length, 2, 'a banner card also carries the wide strip, which only the drawer shows');
 assert.doesNotMatch(html, /\/menu\/icons\/[a-z-]+\.webp|\/menu\/banners\/(?:standard|wild|arena|battlegrounds|community)\.webp/, 'no file in the old single-size naming is referenced');
 // The page's own mode is marked on the server (`data-page-current`) and the first mode is the default, so CSS shows one mode without naming them.
 assert.equal(html.match(/data-page-current=""/g)?.length, 6, 'the page mode marks its list, face and badge in the drawer and in the sidebar');
@@ -160,7 +160,7 @@ for (const list of wildLists) {
   const hrefs = [...list.matchAll(/<a href="([^"]+)"/g)].map(match => match[1].replace(/&amp;/g, '&'));
   assert.deepEqual(hrefs, ['/standard/meta/?format=wild', '/standard/matchups/?format=wild', '/standard/archetypes/?format=wild',
     '/standard/fun-decks/?format=wild', '/standard/cards/wild/', '/standard/deck-builder/?format=wild', '/standard/patches/']);
-  assert.match(list, /src="\/menu\/icons\/standard-meta-80\.webp"/, 'a Wild item shows the icon of its twin');
+  assert.match(list, /src="\/menu\/icons\/standard-meta-80\.webp\?v=[0-9a-f]{10}"/, 'a Wild item shows the icon of its twin');
   assert.doesNotMatch(list, /vicious-gold|VS Gold/);
   assert.match(list, /data-nav-tip="Мета · Вольный"/, 'the rail names the mode of the item');
   assert.match(list, /patch-notes-80\.webp[\s\S]*Новый/, 'the patch badge follows the twin');

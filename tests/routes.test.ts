@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { existsSync, readdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import {
   ADMIN_ONLY_TAB_IDS,
   ADMIN_TABS,
@@ -78,6 +79,12 @@ assert.deepEqual([...menuArt.icons].sort(), [...new Set(iconIds)].sort(), 'menuA
 assert.deepEqual([...menuArt.banners].sort(), NAVIGATION_MODES.map(mode => mode.id).sort(), 'menuArt.json lists a banner for each mode');
 assert.deepEqual(readdirSync('public/menu/icons').filter(file => !/-(?:40|80|120)\.webp$/.test(file)), [], 'no icon in the old single-size naming stays in public/menu/icons');
 assert.deepEqual(readdirSync('public/menu/banners').filter(file => !/-(?:440|571|face)\.webp$/.test(file)), [], 'no banner in the old naming stays in public/menu/banners');
+// The art is cached `immutable` under fixed names: redrawn art must come with a new `version` (its URL query), or browsers keep the old files for 30 days.
+const artHash = createHash('sha256');
+for (const dir of ['icons', 'banners']) {
+  for (const file of readdirSync(`public/menu/${dir}`).sort()) artHash.update(`${dir}/${file}`).update(readFileSync(`public/menu/${dir}/${file}`));
+}
+assert.equal(menuArt.version, artHash.digest('hex').slice(0, 10), 'menuArt.json version must be the hash of public/menu/ — update it when the art changes');
 // A banner leads to the main page of its mode: its address puts the reader in that mode, on that item.
 assert.deepEqual(NAVIGATION_MODES.map(mode => {
   const [path, search = ''] = pathOfMenuItem(mode.homeTab).split(/(?=\?)/);

@@ -4,7 +4,7 @@ import { canonicalPagePath } from '../routing/canonicalPagePath';
 import { NAVIGATION_MODES, type NavigationModeId } from '../routing/navigationData';
 import type { TabId } from '../routing/navigationRoutes';
 import type { MenuItemId } from '../routing/navigationPlace';
-import { MODE_EMBLEM_SIZE, NavigationIcon, modeBannerSrcSet, modeFaceSrc } from './NavigationIcon';
+import { MODE_EMBLEM_SIZE, NavigationIcon, modeBannerSrc, modeBannerSrcSet, modeFaceSrc } from './NavigationIcon';
 import { isPlainNavigationClick } from '../routing/isPlainNavigationClick';
 
 /**
@@ -139,7 +139,7 @@ export function NavigationModePicker({ variant, mode, pageMode, onNavigate }: {
               }}
             >
               <span className="hp-mode-art" aria-hidden="true">
-                {srcSet && <img className="hp-mode-art-tall" src={`/menu/banners/${item.id}-440.webp`} srcSet={srcSet} sizes={MODE_CARD_SIZES} width={440} height={616} loading="lazy" decoding="async" alt="" />}
+                {srcSet && <img className="hp-mode-art-tall" src={modeBannerSrc(item.id)} srcSet={srcSet} sizes={MODE_CARD_SIZES} width={440} height={616} loading="lazy" decoding="async" alt="" />}
                 {srcSet && <img className="hp-mode-art-wide" src={modeFaceSrc(item.id)} width={520} height={160} loading="lazy" decoding="async" alt="" />}
               </span>
               <span className="hp-mode-badge" {...modeMarks(item.id, pageMode)}>Текущий</span>

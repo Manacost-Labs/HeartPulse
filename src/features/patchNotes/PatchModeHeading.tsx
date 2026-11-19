@@ -1,5 +1,5 @@
 import type { PatchSectionId } from '../../modules/patchNotes/public';
-import { NavigationIcon } from '../../app/shell/NavigationIcon';
+import { NavigationIcon, artUrl } from '../../app/shell/NavigationIcon';
 
 /*
  * The title of a game mode inside a patch: the mode's own emblem (the gold of
@@ -9,11 +9,11 @@ import { NavigationIcon } from '../../app/shell/NavigationIcon';
 
 /** Strip art of a mode: the menu's wide strips, else the mode's old patch-page banner. */
 const ART: Record<PatchSectionId, string> = {
-  standard: '/menu/banners/standard-face.webp',
-  constructed: '/menu/banners/standard-face.webp',
+  standard: artUrl('/menu/banners/standard-face.webp'),
+  constructed: artUrl('/menu/banners/standard-face.webp'),
   wild: '/patch-notes/constructed-640.webp',
-  arena: '/menu/banners/arena-face.webp',
-  battlegrounds: '/menu/banners/battlegrounds-face.webp',
+  arena: artUrl('/menu/banners/arena-face.webp'),
+  battlegrounds: artUrl('/menu/banners/battlegrounds-face.webp'),
   other: '/patch-notes/other-640.webp',
 };
 
