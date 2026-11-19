@@ -49,9 +49,10 @@ no tag matches.
   interval is present; the note
   "мало игр" when `games < 100`.
 - **Filters and sorts.** A class (icons, any of the selected) and a type
-  (Хайлендер, XL, Мем, Сыр, Концепт; any of the selected, matched against the
-  deck's `tags`) narrow the list together with format and search.
-  Sorts: `newest` (default), `fun`, `reliable` (the lower bound of the
+  (Хайлендер, XL, Мем, Сыр, Концепт, Офф-мета; any of the selected, matched
+  against the deck's `tags`) narrow the list together with format and search.
+  Pinned decks (`pinned: true`) lead under every sort. Sorts: `newest`
+  (default), `fun`, `reliable` (the lower bound of the
   interval, then the win rate; a deck without it goes last), `distant` (least
   like the meta first). Each key breaks ties by the next; decks equal on all
   of them keep the API's order.
@@ -66,3 +67,34 @@ unknown values are left out, other parameters stay, the search text is not
 kept. The page reads the address after hydration (the server renders the
 defaults) and shows the loader instead of a guest preview while the complete
 list, which a filtered view needs, is on its way.
+
+## Off-meta and moderation
+
+The API's concept-v8 rows carry `kind`: `brew` or `off_meta` (a forgotten
+archetype). `normalizeFunDeckRow` passes it on; a missing or unknown `kind`
+(an older API) is `brew`. `kind === 'off_meta'` adds the `offmeta` tag (filter
+"Офф-мета", kept in the address as `tag=offmeta`) and the card's reason chip
+"Офф-мета", which comes first. The new reasons are labelled `unique_list` →
+"Уникальный список" and `far_from_ladder` → "Далеко от меты". The server HTML's
+field allowlist (`publicFunDecksPreviewData.ts`) carries `kind` and `pinned`.
+
+An administrator moderates the selection in the admin card "Фановые колоды":
+`POST /api/admin/fun-decks/moderation` `{format: standard|wild, deckCode,
+action: hide|pin|clear, note?}`, behind the admin guard (401 without a
+session, 403 for a non-admin; every action goes to the admin audit log as
+`fun-deck.<action>`). The decision is stored in HeartPulse's own SQLite table
+`fun_deck_moderation`, keyed by format and deck code, with a snapshot of the
+deck row, so it survives a new dataset and a restart. `hide` and `pin` for a
+deck that is not in the current dataset are 404 unless a decision already
+exists for it; `clear` is idempotent.
+
+- Public `GET /api/fun-decks`: hidden decks are left out (and `stats` follow);
+  a pinned deck carries `pinned: true`, leads its format, and, if the dataset
+  no longer has it, comes from its snapshot. A failure to read the decisions
+  is reported and the unmoderated dataset is served. The response is cached
+  up to 5 minutes, so a decision reaches the page within that time. The guest
+  sees pinned decks first like everyone; no public "pinned" badge.
+- Admin `GET /api/admin/fun-decks`: every deck with `moderation`
+  (`hide`/`pin`/`null`), plus `hidden`, the hidden decks from their snapshots
+  with the note, the actor and the time. The card shows the kind and the
+  decision, the buttons "Скрыть", "Закрепить", "Вернуть", and a block "Скрытые".

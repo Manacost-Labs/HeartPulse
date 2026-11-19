@@ -9501,6 +9501,7 @@ const funDeckPreviewCoordinator = createFunDeckPreviewCoordinator({
 
 app.use('/api', createPublicFunDecksRouter({
   loadFunDecks: loadFunDecksDataset,
+  getDatabase: db,
   loadArchetypeLabels: async () => {
     const { map } = await getStandardArchetypeTranslations();
     return name => archetypeLabel(name, map);
@@ -9511,9 +9512,8 @@ app.use('/api', createPublicFunDecksRouter({
 }));
 
 app.use('/api', createAdminFunDecksRouter({
-  adminGuard: adminIdGuard,
-  setPrivateNoStore,
-  loadFunDecks: loadFunDecksDataset,
+  adminGuard: adminIdGuard, setPrivateNoStore, loadFunDecks: loadFunDecksDataset,
+  getDatabase: db, adminAuth, recordAudit: (actor, action, entityId, details) => recordAdminAuditByActorId(actor.id, action, 'fun-deck', entityId, details),
   onError: error => console.error('[admin fun decks]', error instanceof Error ? error.message : error),
 }));
 

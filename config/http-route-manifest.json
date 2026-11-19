@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 111,
-    "routeRegistrations": 299,
-    "middlewareRegistrations": 153,
-    "explicitGuardRouteRegistrations": 73,
+    "sourceFiles": 112,
+    "routeRegistrations": 300,
+    "middlewareRegistrations": 154,
+    "explicitGuardRouteRegistrations": 74,
     "unresolvedPaths": 0
   },
   "registrations": [
@@ -495,6 +495,22 @@
     },
     {
       "kind": "route",
+      "method": "POST",
+      "path": "/admin/fun-decks/moderation",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [
+        "dependencies.adminGuard"
+      ],
+      "handler": "<inline-handler>",
+      "guardSignals": [
+        "dependencies.adminGuard"
+      ],
+      "source": "server/adminFunDeckModerationRoutes.ts",
+      "sourceOrder": 0
+    },
+    {
+      "kind": "route",
       "method": "GET",
       "path": "/fun-decks",
       "pathKind": "string",
@@ -522,6 +538,19 @@
       "sourceOrder": 1
     },
     {
+      "kind": "middleware",
+      "paths": [
+        "/"
+      ],
+      "receiver": "router",
+      "handlers": [
+        "createAdminFunDeckModerationRouter(...)"
+      ],
+      "guardSignals": [],
+      "source": "server/adminFunDecksRoutes.ts",
+      "sourceOrder": 2
+    },
+    {
       "kind": "route",
       "method": "GET",
       "path": "/admin/fun-decks",
@@ -531,7 +560,7 @@
       "handler": "<inline-handler>",
       "guardSignals": [],
       "source": "server/adminFunDecksRoutes.ts",
-      "sourceOrder": 2
+      "sourceOrder": 3
     },
     {
       "kind": "route",
