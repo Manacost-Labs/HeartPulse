@@ -2,6 +2,7 @@ import {
   localizeConstructedMediaLabel,
   localizeConstructedSoundDescription,
 } from '../../shared/constructedCardTranslations';
+import { withCardImageRepairVersion } from '../../shared/cardImageRepairs';
 import { publicResourceUrl } from '../publicResourceUrl';
 import { cardImageDeliveryUrl } from '../config/publicAssetDelivery';
 import { constructedCardImageIdentity } from './constructedCardImageIdentity';
@@ -67,7 +68,7 @@ export function constructedCardRenderImage(
   const cardId = String(cardIdValue ?? '').trim();
   if (/^[A-Za-z0-9_]{1,80}$/.test(cardId)) {
     return cardImageDeliveryUrl(
-      `/api/card-image/${encodeURIComponent(cardId)}/${variant}.webp?v=${constructedCardImageVersion(fallbackValue)}`,
+      `/api/card-image/${encodeURIComponent(cardId)}/${variant}.webp?v=${withCardImageRepairVersion(constructedCardImageVersion(fallbackValue), cardId)}`,
     );
   }
   const fallback = String(fallbackValue ?? '').trim();

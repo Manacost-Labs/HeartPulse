@@ -177,6 +177,8 @@ import { validateStatisticsPayload } from './modules/playerGames/public.js';
 import { normalizeBoostyPaymentDates } from './modules/readerEntitlements/public.js';
 import { serializeApplicationProfileUser, serializeApplicationSubscription } from './app/applicationAuthProfile.js';
 import { createBlizzardCardImageClient, downloadBlizzardCardImage } from './blizzardCards.js';
+import { beginCardImageRepair, resolveCardImageDbf } from './cardImageDbf.js';
+import { withCardImageRepairVersion } from '../shared/cardImageRepairs.js';
 import { resolveConstructedCardImageSourceUrl } from './constructedCardImageOverrides.js';
 import {
   CARD_IMAGE_CACHE_VERSION,
@@ -4534,7 +4536,7 @@ function getRuCard(cardId: string): any | null {
 }
 
 function cardImageProxyUrl(cardId: string, variant: 'thumb' | 'full' = 'thumb'): string {
-  return `/api/card-image/${encodeURIComponent(cardId)}/${variant}.webp?v=${CARD_IMAGE_CACHE_VERSION}`;
+  return `/api/card-image/${encodeURIComponent(cardId)}/${variant}.webp?v=${withCardImageRepairVersion(CARD_IMAGE_CACHE_VERSION, cardId)}`;
 }
 
 function cardImageCachePath(cardId: string, variant: 'thumb' | 'full', source: CardImageSource): string {
@@ -4577,12 +4579,8 @@ async function resolveCardImageDbfId(requestedCardId: string, resolvedCardId: st
   const numericRequest = positiveDbfId(requestedCardId);
   if (numericRequest) return numericRequest;
 
-  const cachedCard = getRuCard(resolvedCardId);
-  const cachedDbfId = positiveDbfId(cachedCard?.dbf ?? cachedCard?.dbfId);
-  if (cachedDbfId) return cachedDbfId;
-
-  const cards = await ensureRuCardsData();
-  return positiveDbfId(cards?.[resolvedCardId]?.dbf ?? cards?.[resolvedCardId]?.dbfId);
+  const legacy = async () => (getRuCard(resolvedCardId) ?? (await ensureRuCardsData())?.[resolvedCardId])?.dbf;
+  return resolveCardImageDbf({ cardId: resolvedCardId, legacyDbfId: legacy }); // HearthstoneJSON главнее cards_ru.json (#472)
 }
 
 async function ensureCardImagePlaceholder(cardId: string, variant: 'thumb' | 'full', message = 'Нет изображения'): Promise<CachedCardImage> {
@@ -4680,9 +4678,10 @@ async function ensureCardImage(cardId: string, variant: 'thumb' | 'full'): Promi
   const dbfId = requestedDbfId ?? await resolveCardImageDbfId(cardId, resolvedCardId);
   const preferredSource: CardImageSource = dbfId && blizzardCardImageClient.configured ? 'blizzard' : 'fallback';
   const preferredPath = cardImageCachePath(resolvedCardId, variant, preferredSource);
-  if (existsSync(preferredPath)) return { path: preferredPath, source: preferredSource };
+  const repair = beginCardImageRepair({ cacheDir: CARD_IMAGE_CACHE_DIR, cardId: resolvedCardId, variant, blizzardPath: cardImageCachePath(resolvedCardId, variant, 'blizzard') });
+  if (!repair.pending && existsSync(preferredPath)) return { path: preferredPath, source: preferredSource };
   const cachedFallbackPath = cardImageCachePath(resolvedCardId, variant, 'fallback');
-  if (preferredSource === 'blizzard' && existsSync(cachedFallbackPath)) {
+  if (!repair.pending && preferredSource === 'blizzard' && existsSync(cachedFallbackPath)) {
     return { path: cachedFallbackPath, source: 'fallback' };
   }
 
@@ -4700,6 +4699,7 @@ async function ensureCardImage(cardId: string, variant: 'thumb' | 'full'): Promi
           .resize({ width, withoutEnlargement: true })
           .webp({ quality, effort: 4 })
           .toFile(outPath);
+        repair.complete();
         return { path: outPath, source: remoteImage.source };
       } catch (err: any) {
         console.warn('[api/card-image] fallback placeholder:', resolvedCardId, err?.message ?? err);
