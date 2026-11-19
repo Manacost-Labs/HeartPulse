@@ -47,6 +47,9 @@ export type LibraryListingDependencies = {
 
 const CACHE_HEADER = 'public, max-age=300, stale-while-revalidate=600';
 const CACHE_MS = 300_000;
+/** A listing built on stale statistics is held briefly, so recovery is picked up quickly. */
+const DEGRADED_CACHE_MS = 30_000;
+const DEGRADED_CACHE_HEADER = 'public, max-age=60, stale-while-revalidate=60';
 const PAGE_SIZE = 100;
 const MAX_PAGES = 6;
 
@@ -158,7 +161,7 @@ export function createBattlegroundLibraryListingRouter(dependencies: LibraryList
     if (running) return running;
     const request = (async (): Promise<Entry> => {
       const body = await build(kind);
-      const entry = { body, etag: etagOf(body), expiresAt: now() + CACHE_MS };
+      const entry = { body, etag: etagOf(body), expiresAt: now() + (body.warning ? DEGRADED_CACHE_MS : CACHE_MS) };
       store.set(kind, entry);
       return entry;
     })().finally(() => inFlight.delete(kind));
@@ -169,10 +172,10 @@ export function createBattlegroundLibraryListingRouter(dependencies: LibraryList
   /** The live copy, a fresh read, or the last known good copy marked stale; rejects with no copy at all. */
   async function snapshot(kind: LibraryListingKind): Promise<{ body: PublicLibraryListing; etag: string; stale: boolean; fromMemory: boolean }> {
     const cached = store.get(kind);
-    if (cached && cached.expiresAt > now()) return { body: cached.body, etag: cached.etag, stale: false, fromMemory: true };
+    if (cached && cached.expiresAt > now()) return { body: cached.body, etag: cached.etag, stale: Boolean(cached.body.warning), fromMemory: true };
     try {
       const entry = await refresh(kind);
-      return { body: entry.body, etag: entry.etag, stale: false, fromMemory: false };
+      return { body: entry.body, etag: entry.etag, stale: Boolean(entry.body.warning), fromMemory: false };
     } catch (error) {
       try { dependencies.onError?.(error); } catch { /* diagnostics are best-effort */ }
       if (!cached) throw error;
@@ -193,10 +196,11 @@ export function createBattlegroundLibraryListingRouter(dependencies: LibraryList
     const kinds = results.flatMap((result, index) => result.status === 'fulfilled'
       ? [{ kind: LIBRARY_LISTING_KINDS[index], total: result.value.body.total }] : []);
     if (kinds.length === 0) return unavailable(response, 'Library listings temporarily unavailable');
-    const complete = kinds.length === LIBRARY_LISTING_KINDS.length;
+    const complete = kinds.length === LIBRARY_LISTING_KINDS.length
+      && results.every(result => result.status === 'fulfilled' && !result.value.stale);
     const body = { kinds };
     return sendDatasetJsonCached(request, response, body, etagOf(body),
-      complete ? CACHE_HEADER : 'public, max-age=60', 'memory');
+      complete ? CACHE_HEADER : DEGRADED_CACHE_HEADER, 'memory');
   });
 
   router.get('/api/bg/library/public/listing/:kind', async (request, response) => {
@@ -209,7 +213,7 @@ export function createBattlegroundLibraryListingRouter(dependencies: LibraryList
     try {
       const read = await snapshot(kind);
       return sendDatasetJsonCached(request, response, read.body, read.etag,
-        read.stale ? 'public, max-age=60' : CACHE_HEADER, read.stale ? 'memory-stale' : read.fromMemory ? 'memory' : 'origin');
+        read.stale ? DEGRADED_CACHE_HEADER : CACHE_HEADER, read.stale ? 'memory-stale' : read.fromMemory ? 'memory' : 'origin');
     } catch {
       return unavailable(response, 'Library listing temporarily unavailable');
     }

@@ -28,7 +28,7 @@ export async function BattlegroundLibraryListingJsonLd({ path, heading, descript
   if (listing?.items.some(item => item.stats)) {
     nodes.push({
       '@type': 'Dataset', '@id': `${url}#dataset`, name: `Статистика существ Полей сражений Hearthstone`,
-      description: 'Среднее место с существом и без него, популярность и число игр в рейтинге «Топ 50%» текущего патча по данным HSReplay. Статистика по ходам, позиции на столе, покупки, история и узкие рейтинговые диапазоны доступны по подписке.',
+      description: 'Среднее место с существом и популярность в рейтинге «Топ 50%» текущего патча по данным HSReplay. Статистика по ходам, позиции на столе, покупки, история и узкие рейтинговые диапазоны доступны по подписке.',
       url, inLanguage: 'ru', isAccessibleForFree: false, hasPart: PAYWALLED,
       isBasedOn: [{ '@type': 'Dataset', name: 'HSReplay: Battlegrounds Minions', url: 'https://hsreplay.net/battlegrounds/minions/' }],
       variableMeasured: [

@@ -86,6 +86,27 @@ try {
   assert.equal(cold.headers.get('retry-after'), '45');
   assert.match(cold.headers.get('cache-control') ?? '', /no-store/);
   state.down = false;
+  // Stale statistics: the listing built on them is degraded (short header) and not held as fresh, so recovery shows at once.
+  {
+    let t = 1_000;
+    const hold = { down: false };
+    const flaky: typeof fetch = async (input, init) => (hold.down && String(input).includes('minion-stats')
+      ? new Response('down', { status: 500 }) : fetchImpl(input, init));
+    const store = createLibraryStatsStore({ fetchImpl: flaky, now: () => t, ttlMs: 1_000 });
+    const app = express();
+    app.use(createBattlegroundLibraryListingRouter({ loadBaseCards: catalogByKind, stats: store, fetchImpl, apiBaseUrl: 'https://api.example.test/api/v1', now: () => t }));
+    const o = await listen(app);
+    const url = `${o}/api/bg/library/public/listing/minions`;
+    assert.equal((await fetch(url)).headers.get('cache-control'), 'public, max-age=300, stale-while-revalidate=600');
+    hold.down = true; t += 400_000;
+    const degraded = await fetch(url);
+    assert.equal((await degraded.json()).warning, 'stale');
+    assert.equal(degraded.headers.get('cache-control'), 'public, max-age=60, stale-while-revalidate=60');
+    hold.down = false; t += 31_000;
+    const recovered = await fetch(url);
+    assert.equal((await recovered.json()).warning, undefined, 'recovery is not held back by the degraded copy');
+    assert.match(recovered.headers.get('cache-control') ?? '', /max-age=300/);
+  }
   // A failing statistics source with no copy is a 503 as well, never minions without their figures.
   state.statsDown = true;
   const coldStats = createLibraryStatsStore({ fetchImpl, now: () => clock });
