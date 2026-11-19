@@ -22,6 +22,7 @@ export const BG_TAB_IDS = new Set<TabId>(BATTLEGROUNDS_TABS.map(route => route.i
 /** The mode whose list holds the item; null for the home page, help pages and the admin panel, which keep the reader's last mode. */
 export function modeOfTab(tab: TabId): NavigationModeId | null {
   const found = TABS.find(route => route.id === tab)?.group;
+  // A Standard page may be shown in Wild: `navigationPlace` decides from the address.
   return found === 'standard' || found === 'arena' || found === 'battlegrounds' || found === 'community' ? found : null;
 }
 
