@@ -208,7 +208,7 @@
   transition: transform var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
 }
 
-@media (hover: hover) {
+@media (hover: hover), (min-width: 1024px) {
   .hp-nav-link:hover { color: #fffaf0; }
   .hp-nav-link:hover::before { opacity: 1; }
   .hp-nav-link:hover .hp-nav-icon { transform: scale(1.08); filter: brightness(1.12); }
@@ -325,7 +325,7 @@
 .hp-mode[open] > .hp-mode-button { border-color: rgba(255, 224, 150, 0.8); }
 .hp-mode[open] > .hp-mode-button .hp-mode-chevron { transform: rotate(180deg); }
 
-@media (hover: hover) {
+@media (hover: hover), (min-width: 1024px) {
   .hp-mode-button:hover {
     border-color: rgba(255, 224, 150, 0.78);
     background-color: rgba(76, 8, 13, 0.6);
@@ -467,7 +467,7 @@
   line-height: 1.3;
 }
 
-@media (hover: hover) {
+@media (hover: hover), (min-width: 1024px) {
   .hp-mode-card:hover { transform: translateY(-4px); }
   .hp-mode-card:hover::before { opacity: 1; }
   .hp-mode-card:hover .hp-mode-art { transform: scale(1.05); }
@@ -536,6 +536,7 @@
 
   .arena-sidebar .arena-sidebar-nav {
     display: flex;
+    border-color: rgba(232, 192, 103, 0.2);
     flex: 1 1 auto;
     flex-direction: column;
     gap: 12px;

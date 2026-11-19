@@ -5588,6 +5588,7 @@ for (const [device, viewport] of [
         profileIconColor: profileIconContract.color,
         profileIconBackground: profileIconContract.background,
         profileLabelColor: profileLabel ? getComputedStyle(profileLabel).color : '',
+        profileLabelFont: profileLabel ? getComputedStyle(profileLabel).fontFamily : '',
         profileLabelSize: profileLabel ? getComputedStyle(profileLabel).fontSize : '',
         profileLabelShadow: profileLabel ? getComputedStyle(profileLabel).textShadow : '',
         profileHintColor: profileHint ? getComputedStyle(profileHint).color : '',
@@ -5607,6 +5608,7 @@ for (const [device, viewport] of [
       };
     });
     if (sidebarState.modeName !== 'Арена') failures.push(`desktop sidebar: the mode button names ${sidebarState.modeName}, the page is Arena`);
+    if (/hsdisplay|hs-display/i.test(sidebarState.profileLabelFont)) failures.push('desktop sidebar: the profile block must not use the HSDisplay font');
     if (sidebarState.visibleLists !== 1) failures.push(`desktop sidebar: ${sidebarState.visibleLists} lists are shown, exactly one is expected`);
     if (sidebarState.overflowX > 0 || sidebarState.asideOverflowX > 0) failures.push(`desktop sidebar: scrolls horizontally (${sidebarState.overflowX}/${sidebarState.asideOverflowX} px)`);
     if (!sidebarState.iconIsImage || JSON.stringify(sidebarState.iconImage) !== '{"w":"40","h":"40","loading":"lazy","alt":""}') failures.push(`desktop sidebar: item icon is not a 40 px painted image (${JSON.stringify(sidebarState.iconImage)})`);
@@ -5670,7 +5672,7 @@ for (const [device, viewport] of [
       || sidebarState.profileIconColor !== 'rgb(231, 185, 78)'
       || sidebarState.profileIconBackground !== 'rgba(48, 4, 7, 0.31)'
       || sidebarState.profileLabelColor !== 'rgb(255, 244, 211)'
-      || sidebarState.profileLabelSize !== '16.48px'
+      || sidebarState.profileLabelSize !== '17px'
       || sidebarState.profileLabelShadow === 'none'
       || sidebarState.profileHintColor !== 'rgb(210, 183, 127)'
       || sidebarState.profileHintSize !== '11.36px'
@@ -5768,6 +5770,8 @@ for (const [device, viewport] of [
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   await mockApplicationApi(page, { authenticated: true });
   try {
+    // A reader who remembered no mode: Home lists Standard (earlier scenarios in this profile chose others).
+    await page.evaluateOnNewDocument(() => { try { localStorage.removeItem('hp:nav:mode'); } catch { /* storage is optional */ } });
     await page.goto(`${BASE}/`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await waitForAuthenticatedShell(page);
     stage = 'open';
