@@ -6992,8 +6992,9 @@ const apiLimiter = rateLimit({
     || !cookieMutationCsrfAllowed(req) || twitchStateStreamRequest(req.method, req.path)
   ),
 });
+app.use('/api/', apiLimiter);
 // Open JSON data (E21, #479): per-client budget after the generic limiter; mode in config/public-data-api-guard.json.
-app.use('/api/', apiLimiter, createPublicDataScrapeGuard({ config: loadScrapeGuardConfig(join(APP_ROOT_DIR, 'config', 'public-data-api-guard.json')),
+app.use('/api/', createPublicDataScrapeGuard({ config: loadScrapeGuardConfig(join(APP_ROOT_DIR, 'config', 'public-data-api-guard.json')),
   resolveAccountKey: req => sessionAccountKey(authTokenCandidatesFromReq(req), (hash, now) => dbGet('SELECT user_id FROM sessions WHERE token_hash = ? AND expires_at > ?', hash, now)?.user_id) }).middleware);
 
 const authCodeRequestLimiter = rateLimit({
