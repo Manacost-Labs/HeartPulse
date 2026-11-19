@@ -628,7 +628,7 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    width: calc(3 * 200px + 2 * 12px + 28px);
+    width: calc(3 * 200px + 2 * 12px + 28px + 2px);
     max-height: calc(100dvh - 150px);
     padding: 14px;
     overflow-y: auto;
