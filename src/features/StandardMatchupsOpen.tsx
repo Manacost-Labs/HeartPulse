@@ -54,20 +54,22 @@ export function StandardMatchupsOpen({ initial, paywall }: {
     return () => controller.abort();
   }, [format, complete, attempt]);
 
-  const updated = moscowDate(data?.updatedAt ?? null);
-  const label = FORMATS.find(([value]) => value === (data?.format ?? format))?.[1] ?? '';
+  // The other format's numbers never stay under the chosen one: until its answer comes, there is no matrix.
+  const shown = data?.format === format ? data : null;
+  const updated = moscowDate(shown?.updatedAt ?? null);
+  const label = FORMATS.find(([value]) => value === format)?.[1] ?? '';
   return (
     <section className="standard-matchups standard-matchups-open space-y-5 sm:space-y-6" id="matchups-overview">
       <header className="traditional-mode-banner">
         <div className="traditional-mode-banner__copy">
           <h1>Матчапы</h1>
-          {data ? (
+          {shown ? (
             <p className="standard-matchups-open__line">
-              {label} · {data.rankLabel || 'Все ранги'} · от {data.minGames} игр в паре
-              {updated && data.updatedAt ? <> · данные на <time dateTime={data.updatedAt}>{updated}</time></> : null}
+              {label} · {shown.rankLabel || 'Все ранги'} · от {shown.minGames} игр в паре
+              {updated && shown.updatedAt ? <> · данные на <time dateTime={shown.updatedAt}>{updated}</time></> : null}
               {' · источник '}
-              {/^https:\/\/(?:www\.)?hsguru\.com\//.test(data.sourceUrl)
-                ? <a href={data.sourceUrl} rel="noopener noreferrer">HSGuru</a> : 'HSGuru'}
+              {/^https:\/\/(?:www\.)?hsguru\.com\//.test(shown.sourceUrl)
+                ? <a href={shown.sourceUrl} rel="noopener noreferrer">HSGuru</a> : 'HSGuru'}
             </p>
           ) : null}
         </div>
@@ -108,12 +110,12 @@ export function StandardMatchupsOpen({ initial, paywall }: {
       {status === 'failed' ? (
         <div className="standard-matchups__error flex flex-wrap items-center gap-2 text-sm" role="alert">
           <AlertTriangle size={15} aria-hidden="true" />
-          <span>{data ? 'Не удалось загрузить формат «' + (FORMATS.find(([value]) => value === format)?.[1] ?? '') + '».' : 'Данные временно недоступны.'}</span>
+          <span>{shown ? 'Не удалось загрузить формат «' + (FORMATS.find(([value]) => value === format)?.[1] ?? '') + '».' : 'Данные временно недоступны.'}</span>
           <button type="button" onClick={() => setAttempt(value => value + 1)}>Повторить</button>
         </div>
       ) : null}
 
-      {data ? <OpenMatrix data={data} busy={status === 'loading'} />
+      {shown ? <OpenMatrix data={shown} busy={status === 'loading'} />
         : status === 'failed' ? null : <div className="standard-matchups-open__empty" aria-busy="true">Загружаем матчапы…</div>}
     </section>
   );

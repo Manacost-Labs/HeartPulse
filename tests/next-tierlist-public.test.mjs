@@ -13,6 +13,7 @@ import { createBattlegroundHeroRankingRouter } from '../server/battlegroundHeroR
 import { createTierlistRouter } from '../server/tierlistRoutes.ts';
 import { buildHeroCatalog } from './helpers/battlegroundHeroesFixture.ts';
 import { openAnswer } from './helpers/legendariesOpenLayerFixture.ts';
+import { openAnswer as matchupsOpenAnswer } from './helpers/standardMatchupsOpenFixture.ts';
 import { buildFixtureCards, buildTierlistFixture, closedValues, guestPercent, CLASS_IDS, PAID_KEYS } from './helpers/tierlistPublicFixture.ts';
 
 // The built /tierlist/ page against an Express that serves the real open
@@ -53,6 +54,9 @@ function startLegacy(state) {
   // The open projections of the other two ISR data pages the warm-up regenerates (they answer while `state.down` is false).
   app.get('/api/legendaries/public', (_request, response) => (state.down
     ? response.status(503).set('Retry-After', '60').json({ error: 'no snapshot' }) : response.json(openAnswer())));
+  app.get('/api/standard/matchups/public', (request, response) => (state.down
+    ? response.status(503).set('Retry-After', '60').json({ error: 'no snapshot' })
+    : response.json(matchupsOpenAnswer({ noise: true, format: request.query.format === 'wild' ? 'wild' : 'standard' }))));
   const heroes = createBattlegroundHeroRankingRouter({
     loadCatalog: async mode => {
       if (state.down) throw new Error('service down');
@@ -222,7 +226,7 @@ test('the post-deploy warm-up revalidates again until /tierlist/ carries its sli
     const { code, output } = await stand.warm({ WARM_TOTAL_MS: '30000' });
     assert.equal(code, 0, output);
     assert.ok(stand.revalidations.length >= 2, `a page left without data is revalidated again: ${output}`);
-    assert.deepEqual([...stand.revalidations[0]].sort(), ['/articles', '/classes', '/heroes', '/legendaries', '/standard/meta', '/tierlist'],
+    assert.deepEqual([...stand.revalidations[0]].sort(), ['/articles', '/classes', '/heroes', '/legendaries', '/standard/matchups', '/standard/meta', '/tierlist'],
       'the real route regenerates exactly the pages that render data');
     assert.match(output, /\[warm\] \/tierlist\/: with data/, output);
     // What a visitor gets right after the warm-up, with no clock shifted and no second request needed.
@@ -333,12 +337,13 @@ test('/tierlist/ in a browser: the whole pool without JS, the class filter with 
 
 // /legendaries/ and /heroes/ are ISR pages whose build copy has no data. The real revalidate route must regenerate
 // them, so that right after a deploy a visitor gets the open layer and not «temporarily unavailable».
-test('the post-deploy warm-up regenerates /legendaries/ and /heroes/ through the revalidate route', async () => {
+test('the post-deploy warm-up regenerates /legendaries/, /heroes/ and /standard/matchups/ through the revalidate route', async () => {
   const stand = await warmStand({});
   try {
     const pages = [
       { path: '/legendaries/', data: 'legendary-group-card', copy: 'Данные временно недоступны' },
       { path: '/heroes/', data: 'id="heroes-solo"', copy: 'Рейтинг героев временно недоступен' },
+      { path: '/standard/matchups/', data: 'standard-matchups-open__matrix', copy: 'Загружаем матчапы' },
     ];
     for (const { path, data, copy } of pages) {
       const response = await fetch(`${stand.next.origin}${path}`);
@@ -348,11 +353,11 @@ test('the post-deploy warm-up regenerates /legendaries/ and /heroes/ through the
       assert.equal(html.includes(data), false, `the build copy of ${path} has no data`);
       assert.ok(html.includes(copy), `the build copy of ${path} says it is unavailable`);
     }
-    const { code, output } = await stand.warm({ WARM_ONLY: '/legendaries/,/heroes/', WARM_TOTAL_MS: '30000' });
+    const { code, output } = await stand.warm({ WARM_ONLY: '/legendaries/,/heroes/,/standard/matchups/', WARM_TOTAL_MS: '30000' });
     assert.equal(code, 0, output);
     assert.ok(stand.revalidations.length >= 1, `the warm-up asked the route to regenerate: ${output}`);
-    for (const path of ['/legendaries', '/heroes']) assert.ok(stand.revalidations[0].includes(path), `the route regenerates ${path}`);
-    for (const path of ['/legendaries/', '/heroes/']) assert.match(output, new RegExp(`\\[warm\\] ${path}: with data`), output);
+    for (const path of ['/legendaries', '/heroes', '/standard/matchups']) assert.ok(stand.revalidations[0].includes(path), `the route regenerates ${path}`);
+    for (const path of ['/legendaries/', '/heroes/', '/standard/matchups/']) assert.match(output, new RegExp(`\\[warm\\] ${path}: with data`), output);
     // What a visitor gets right after the warm-up, with no clock shifted: the data and not the message.
     for (const { path, data, copy } of pages) {
       const html = (await (await fetch(`${stand.next.origin}${path}`)).text()).replaceAll('<!-- -->', '');

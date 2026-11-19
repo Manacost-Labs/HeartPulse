@@ -19,7 +19,7 @@ const PROTECTED_DELAY_MS = 800;
 const DESKTOP = { width: 1440, height: 900 };
 
 async function startStack() {
-  const state = { next: null, publicReads: [], protectedReads: 0 };
+  const state = { next: null, publicReads: [], protectedReads: 0, wildDown: false };
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://stack');
     const reader = /(?:^|;\s*)mx_session=reader/.test(request.headers.cookie ?? '');
@@ -29,6 +29,10 @@ async function startStack() {
     if (url.pathname === '/api/subscription/status') return reader ? json(200, SUBSCRIBED) : json(401, { error: 'guest' });
     if (url.pathname === '/api/standard/matchups/public') {
       state.publicReads.push(`${url.pathname}${url.search}`);
+      if (url.searchParams.get('format') === 'wild' && state.wildDown) {
+        return void setTimeout(() => response.writeHead(503, { 'Content-Type': 'application/json', 'Retry-After': '60' })
+          .end(JSON.stringify({ error: 'no snapshot' })), 1200);
+      }
       return json(200, openAnswer({ noise: true, format: url.searchParams.get('format') === 'wild' ? 'wild' : 'standard' }));
     }
     if (url.pathname === '/api/standard/matchups') {
@@ -91,6 +95,24 @@ test('a guest and a subscriber on /standard/matchups/ in a real browser', { time
     assert.deepEqual(SENTINELS.filter(value => guestText.includes(value)), []);
     assert.deepEqual(errors, []);
     await guest.close();
+
+    // Wild is slow and then fails: the Standard numbers must not stay on the screen under the chosen Wild.
+    stack.wildDown = true;
+    const slow = await browser.newPage();
+    await slow.setViewport(DESKTOP);
+    await slow.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'networkidle0' });
+    assert.ok(await slow.$('.standard-matchups-open__matrix'), 'Standard is up first');
+    await slow.evaluate(() => [...document.querySelectorAll('.standard-matchups__segmented button')].at(1).click());
+    await slow.waitForFunction(() => document.querySelector('.standard-matchups__segmented button[aria-pressed="true"]')?.textContent.includes('Вольный'));
+    assert.equal(await slow.$('.standard-matchups-open__matrix'), null, 'no Standard matrix while Wild loads');
+    assert.equal(await slow.$('.standard-matchups-open__row'), null, 'no Standard row while Wild loads');
+    await slow.waitForSelector('.standard-matchups__error', { timeout: 15000 });
+    assert.equal(await slow.$('.standard-matchups-open__matrix'), null, 'no Standard matrix after Wild failed');
+    assert.equal(await slow.$('.standard-matchups-open__row'), null, 'no Standard row after Wild failed');
+    assert.ok(!(await slow.evaluate(() => document.querySelector('.standard-matchups-open__line')?.textContent ?? '')).includes('Стандарт'),
+      'the line does not describe Standard under Wild');
+    await slow.close();
+    stack.wildDown = false;
 
     // A subscriber: the open view stays until the matrix is ready, then the matrix replaces it without shifting.
     const reader = await browser.newPage();
