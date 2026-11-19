@@ -23,6 +23,7 @@ export const DATA_PAGES = [
   { path: '/classes/', isr: true, marker: 'classes-public-teaser', copyWords: 469, dataWords: 554 },
   { path: '/legendaries/', isr: true, marker: 'legendary-group-card', copyWords: 346, dataWords: 4931 },
   { path: '/heroes/', isr: true, marker: 'bg-heroes-public__hero', copyWords: 172, dataWords: 2250 },
+  { path: '/battlegrounds/tier-list/', isr: true, marker: 'bg-builds-public__builder', copyWords: 95, dataWords: 1500 },
   { path: '/leaderboards/', marker: 'leaderboards-table__rank', copyWords: 197, dataWords: 811 },
   { path: '/cosmetics/', marker: 'cosmetics-hero-card', copyWords: 192, dataWords: 314 },
   { path: '/cosmetics/heroes/', marker: 'cosmetics-hero-card', copyWords: 193, dataWords: 315 },

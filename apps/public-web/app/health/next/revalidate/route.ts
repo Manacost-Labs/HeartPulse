@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { isLocalRevalidateRequest } from '@/apps/public-web/lib/localRevalidateRequest';
 
 /** Prerendered pages whose build copy has no data (CI builds without the Express API). */
-const DATA_PAGES = ['/standard/meta', '/articles', '/tierlist', '/classes', '/legendaries', '/heroes'] as const;
+const DATA_PAGES = ['/standard/meta', '/articles', '/tierlist', '/classes', '/legendaries', '/heroes', '/battlegrounds/tier-list'] as const;
 
 /**
  * Marks the prerendered data pages stale right after a deploy, so the next
