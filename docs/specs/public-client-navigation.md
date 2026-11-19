@@ -581,13 +581,18 @@ The owner found the accordion menu small, shaky and dull. Groups are gone.
    every item of the current mode (row ≥ 52 px, 56 px in the drawer; icon 40 px;
    label Inter 600 17 px; 4 px between rows). Item ids, paths, entitlements and
    `tabFromPath` did not change; `NAVIGATION_MODES` (`navigationData.ts`) names
-   the four modes, their description line and the item their banner opens.
-2. All four lists are in the server HTML; CSS shows one. The tree carries
+   the modes, their description line and the item their banner opens.
+2. The lists of all modes are in the server HTML; CSS shows one. The tree carries
    `data-page-mode` for a page with a mode (`modeOfTab`); on any other page
    (home, help, profile) `<html data-nav-mode>` decides, set by the head script
    from `localStorage` `hp:nav:mode` before first paint (`navigationPreference.ts`),
-   Standard by default and without script. A page of a mode stores it, so Home
-   shows the mode the reader used last. The new list slides in (opacity and an
+   the first mode by default and without script. The server marks the elements of
+   a mode with `data-for`, `data-page-current` (the page's own mode) and
+   `data-default` (the first mode), so the CSS names no mode except one list of
+   remembered-mode selectors; the banner panel takes its width from `--modes`
+   (the length of `NAVIGATION_MODES`) and wraps cards that do not fit, so a new
+   mode is a new entry of `NAVIGATION_MODES` plus one selector line. A page of
+   a mode stores it, so Home shows the mode the reader used last. The new list slides in (opacity and an
    8 px shift) only when the page's mode changes, never on first load.
 3. The mode switch is a native `<details class="hp-mode">`: it works without
    JavaScript and before hydration. Its panel holds four banner links; the
