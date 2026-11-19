@@ -14,6 +14,7 @@ import {
   type TabId,
 } from '../src/app/routing/navigationRoutes';
 import { NAVIGATION_MODES } from '../src/app/routing/navigationData';
+import { navigationPlace, pathOfMenuItem } from '../src/app/routing/navigationPlace';
 import menuArt from '../src/app/shell/menuArt.json';
 import { seoPageForNavigationRoute } from '../src/seo/registry';
 
@@ -77,8 +78,12 @@ assert.deepEqual([...menuArt.icons].sort(), [...new Set(iconIds)].sort(), 'menuA
 assert.deepEqual([...menuArt.banners].sort(), NAVIGATION_MODES.map(mode => mode.id).sort(), 'menuArt.json lists a banner for each mode');
 assert.deepEqual(readdirSync('public/menu/icons').filter(file => !/-(?:40|80|120)\.webp$/.test(file)), [], 'no icon in the old single-size naming stays in public/menu/icons');
 assert.deepEqual(readdirSync('public/menu/banners').filter(file => !/-(?:440|571|face)\.webp$/.test(file)), [], 'no banner in the old naming stays in public/menu/banners');
-assert.deepEqual(NAVIGATION_MODES.map(mode => mode.homeTab).map(tab => tabFromPath(TABS.find(route => route.id === tab)?.path ?? '')), NAVIGATION_MODES.map(mode => mode.homeTab),
-  'a banner leads to the main page of its mode');
+// A banner leads to the main page of its mode: its address puts the reader in that mode, on that item.
+assert.deepEqual(NAVIGATION_MODES.map(mode => {
+  const [path, search = ''] = pathOfMenuItem(mode.homeTab).split(/(?=\?)/);
+  const place = navigationPlace(path, search, null);
+  return [mode.path, place.mode, place.item];
+}), NAVIGATION_MODES.map(mode => [pathOfMenuItem(mode.homeTab), mode.id, mode.homeTab]), 'a banner leads to the main page of its mode');
 
 for (const route of TABS) {
   const seo = seoPageForNavigationRoute(route.id);

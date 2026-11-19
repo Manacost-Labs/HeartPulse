@@ -42,6 +42,13 @@ export type PatchNotesEntry = {
    * Standard catalog lists it, else `wild`; `null` when unknown.
    */
   format: PatchNotesFormat | null;
+  /**
+   * The card as it looked before and after this patch: absolute archive URLs of the card-history
+   * (`api.kolodahearthstone.com/uploads/card-history-media/…`). Both are `null` unless the history holds a
+   * version on each side of the patch whose picture differs; one side is never filled alone.
+   */
+  beforeRenderUrl: string | null;
+  afterRenderUrl: string | null;
   /** Archetypes of the day before the patch whose listed builds play the card (Constructed only). */
   archetypes: PatchNotesArchetypeUse[];
   /** Earlier patches of the archive that changed the same card, newest first. */

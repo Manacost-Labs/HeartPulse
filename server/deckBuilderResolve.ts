@@ -31,6 +31,8 @@ export type DeckBuilderResolvedCard = {
   cardImage: string;
   collectible: boolean;
   sideboardKeyDbfId: number | null;
+  /** The card's page on the site, or null for tokens and modules without one. */
+  pagePath?: string | null;
 };
 
 export type DeckBuilderResolvedSideboard = {

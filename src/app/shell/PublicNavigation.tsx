@@ -10,13 +10,20 @@ import {
   BATTLEGROUNDS_TABS,
   HOME_TABS,
   STANDARD_TABS,
+  WILD_TABS,
   modeOfTab,
   type TabId,
 } from '../routing/navigationRoutes';
+import type { MenuItemId } from '../routing/navigationPlace';
 import type { NavigationModeId } from '../routing/navigationData';
 
 export type PublicNavigationProps = {
+  /** The surface of the page (its own tab, whatever the format). */
   activeTab: TabId;
+  /** The highlighted item of the list: `activeTab`, or its twin in the Wild list. */
+  activeItem?: MenuItemId;
+  /** The mode the address names for the page; null when it names none yet. Without it the page's tab decides. */
+  pageMode?: NavigationModeId | null;
   mobileMenuOpen: boolean;
   /** The mode whose items the menu lists: the page's own, else the last chosen one. */
   mode: NavigationModeId;
@@ -33,21 +40,21 @@ export type PublicNavigationProps = {
   mobileProfile: ReactNode;
   sidebarProfile: ReactNode;
   profileLabel: string;
-  onNavigate: (tab: TabId) => void;
+  onNavigate: (item: MenuItemId) => void;
   onNavigateLogin: () => void;
   onToggleMobileMenu: () => void;
   onCloseMobileMenu: () => void;
   onToggleCompact: () => void;
 };
 
-type TreeProps = Pick<PublicNavigationProps, 'activeTab' | 'appIsContestAdmin' | 'badges' | 'mode' | 'onNavigate' | 'visibleArenaTabs' | 'visibleCommunityTabs'> & {
+type TreeProps = Pick<PublicNavigationProps, 'activeTab' | 'activeItem' | 'pageMode' | 'appIsContestAdmin' | 'badges' | 'mode' | 'onNavigate' | 'visibleArenaTabs' | 'visibleCommunityTabs'> & {
   variant: 'mobile' | 'sidebar';
 };
 
 /** The mode switch and «Главная» stay above the list, in that order; the list scrolls on a low window while the switch's panel opens beside it. */
-function NavigationTree({ variant, activeTab, appIsContestAdmin, badges, mode, onNavigate, visibleArenaTabs, visibleCommunityTabs }: TreeProps) {
-  const linkProps = { activeTab, variant, badges, onNavigate };
-  const pageMode = modeOfTab(activeTab);
+function NavigationTree({ variant, activeTab, activeItem, pageMode: namedMode, appIsContestAdmin, badges, mode, onNavigate, visibleArenaTabs, visibleCommunityTabs }: TreeProps) {
+  const linkProps = { activeItem: activeItem ?? activeTab, variant, badges, onNavigate };
+  const pageMode = pageModeOf({ pageMode: namedMode, activeTab }) ?? null;
   return <>
     <div className="hp-nav-top">
       <NavigationModePicker variant={variant} mode={mode} pageMode={pageMode} onNavigate={onNavigate} />
@@ -55,12 +62,16 @@ function NavigationTree({ variant, activeTab, appIsContestAdmin, badges, mode, o
     </div>
     <div className="hp-nav-scroll">
       <NavigationModeLists {...linkProps} pageMode={pageMode}
-        routesOf={{ standard: STANDARD_TABS, arena: visibleArenaTabs, battlegrounds: BATTLEGROUNDS_TABS, community: visibleCommunityTabs }} />
+        routesOf={{ standard: STANDARD_TABS, wild: WILD_TABS, arena: visibleArenaTabs, battlegrounds: BATTLEGROUNDS_TABS, community: visibleCommunityTabs }} />
       {appIsContestAdmin && <div className="hp-nav-admin">
         <NavigationRouteLinks routes={ADMIN_TABS} {...linkProps} />
       </div>}
     </div>
   </>;
+}
+
+function pageModeOf({ pageMode, activeTab }: Pick<PublicNavigationProps, 'pageMode' | 'activeTab'>): NavigationModeId | undefined {
+  return (pageMode === undefined ? modeOfTab(activeTab) : pageMode) ?? undefined;
 }
 
 // The drawer is a native popover, so the toggle opens it before React has
@@ -97,9 +108,9 @@ function MobileMenu(props: PublicNavigationProps) {
   // first, so the history entry keeps the reader's position for Back.
   return (
     <>
-      <nav ref={mobileMenuRef} id="arena-mobile-menu" popover="auto" data-open={mobileMenuOpen ? '' : undefined} data-page-mode={modeOfTab(props.activeTab) ?? undefined}
+      <nav ref={mobileMenuRef} id="arena-mobile-menu" popover="auto" data-open={mobileMenuOpen ? '' : undefined} data-page-mode={pageModeOf(props)}
         className="arena-mobile-menu hp-nav lg:hidden" aria-label="Мобильная навигация">
-        <NavigationTree {...props} variant="mobile" onNavigate={(tab: TabId) => { onCloseMobileMenu(); onNavigate(tab); }} />
+        <NavigationTree {...props} variant="mobile" onNavigate={(item: MenuItemId) => { onCloseMobileMenu(); onNavigate(item); }} />
         <a href="/?login" onClick={event => { if (!isPlainNavigationClick(event)) return; event.preventDefault(); onCloseMobileMenu(); onNavigateLogin(); }} className={`arena-mobile-menu-link arena-mobile-menu-profile ${wantsLogin ? 'arena-mobile-menu-link-active' : ''}`} aria-label={profileLabel}>
           {mobileProfile}
         </a>
@@ -138,7 +149,7 @@ function DesktopSidebar(props: PublicNavigationProps) {
         </button>
       </div>
 
-      <nav className="arena-sidebar-nav hp-nav" aria-label="Разделы сайта" data-page-mode={modeOfTab(props.activeTab) ?? undefined}>
+      <nav className="arena-sidebar-nav hp-nav" aria-label="Разделы сайта" data-page-mode={pageModeOf(props)}>
         <NavigationTree {...props} variant="sidebar" />
       </nav>
 

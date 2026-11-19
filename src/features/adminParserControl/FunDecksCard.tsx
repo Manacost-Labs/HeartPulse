@@ -1,48 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Copy, ExternalLink, RefreshCw, Sparkles } from 'lucide-react';
-import { fetchWithDeadline } from '../../shared/http/fetchWithDeadline';
-
-type FunDeckRow = {
-  title: string;
-  deckCode: string;
-  format: string;
-  className: string;
-  streamer: string | null;
-  funScore: number | null;
-  maxMetaSimilarity: number | null;
-  nearestArchetype: string | null;
-  winRate: number | null;
-  games: number | null;
-  reasons: string[];
-  url: string | null;
-};
-
-type FunDecksPayload = {
-  fetchedAt: string | null;
-  detectorVersion: string | null;
-  stats: Record<string, unknown>;
-  cadence: {
-    label: string;
-    timers: string[];
-    schedule: string;
-  };
-  decks: FunDeckRow[];
-};
-
-type FormatFilter = 'all' | 'Standard' | 'Wild';
-
-async function fetchFunDecks(signal?: AbortSignal): Promise<FunDecksPayload> {
-  const response = await fetchWithDeadline('/api/admin/fun-decks', {
-    cache: 'no-store',
-    headers: { Accept: 'application/json' },
-    signal,
-  });
-  const payload = await response.json().catch(() => ({})) as FunDecksPayload & { error?: string };
-  if (!response.ok) {
-    throw new Error(typeof payload.error === 'string' ? payload.error : 'Не удалось загрузить фановые колоды');
-  }
-  return payload;
-}
+import { FunDeckModerationControls, FunDeckStatusBadges, HiddenFunDecks } from './FunDeckModerationControls';
+import { fetchFunDecks, type FormatFilter, type FunDeckRow, type FunDecksPayload } from './funDecksAdminApi';
 
 function formatPercent(value: number | null, digits = 1): string {
   return value == null || !Number.isFinite(value) ? '—' : `${value.toFixed(digits)}%`;
@@ -83,6 +42,17 @@ async function copyText(value: string): Promise<boolean> {
       return false;
     }
   }
+}
+
+function FunDeckMetrics({ deck }: { deck: FunDeckRow }) {
+  return (
+    <div className="admin-fun-decks__metrics">
+      <span>fun {formatScore(deck.funScore)}</span>
+      <span>sim {formatSimilarity(deck.maxMetaSimilarity)}</span>
+      <span>WR {formatPercent(deck.winRate)}</span>
+      <span>{deck.games ?? '—'} игр</span>
+    </div>
+  );
 }
 
 export default function FunDecksCard() {
@@ -192,6 +162,8 @@ export default function FunDecksCard() {
             ))}
           </div>
 
+          <HiddenFunDecks hidden={payload.hidden ?? []} onChanged={() => void reload()} />
+
           {!decks.length && <p className="admin-parser-empty" role="status">По выбранному фильтру колод нет.</p>}
 
           <div className="admin-fun-decks__list" aria-live="polite">
@@ -199,7 +171,7 @@ export default function FunDecksCard() {
               <article key={`${deck.format}:${deck.deckCode}`} className="admin-fun-decks__item">
                 <div className="admin-fun-decks__item-head">
                   <div>
-                    <h3>{deck.title}</h3>
+                    <h3>{deck.title} <FunDeckStatusBadges deck={deck} /></h3>
                     <p>
                       <span>{deck.format}</span>
                       <span>{deck.className}</span>
@@ -207,12 +179,7 @@ export default function FunDecksCard() {
                       {deck.nearestArchetype && <span>рядом: {deck.nearestArchetype}</span>}
                     </p>
                   </div>
-                  <div className="admin-fun-decks__metrics">
-                    <span>fun {formatScore(deck.funScore)}</span>
-                    <span>sim {formatSimilarity(deck.maxMetaSimilarity)}</span>
-                    <span>WR {formatPercent(deck.winRate)}</span>
-                    <span>{deck.games ?? '—'} игр</span>
-                  </div>
+                  <FunDeckMetrics deck={deck} />
                 </div>
 
                 {deck.reasons.length > 0 && (
@@ -220,6 +187,8 @@ export default function FunDecksCard() {
                     {deck.reasons.map(reason => <span key={reason}>{reason}</span>)}
                   </div>
                 )}
+
+                <FunDeckModerationControls deck={deck} onChanged={() => void reload()} />
 
                 <div className="admin-fun-decks__code-row">
                   <code title={deck.deckCode}>{deck.deckCode}</code>

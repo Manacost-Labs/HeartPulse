@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useLayoutEffect, useRef, useSyncExternalStore } from 'react';
 import { motionEasing, motionMs, prefersReducedMotion } from '../../shared/ui/motionTokens';
-import { modeOfTab, type TabId } from '../routing/navigationRoutes';
+import { NAVIGATION_MODES } from '../routing/navigationData';
+import { navigationPlace, type NavigationPlace } from '../routing/navigationPlace';
 import {
   readNavigationMode, setNavigationMode, subscribeNavigationMode, type RememberedNavigationMode,
 } from './navigationPreference';
@@ -17,20 +18,21 @@ export function closeModePanels(focus = false) {
 }
 
 /**
- * The mode the menu lists: the page's own, else the last chosen one (read from
- * `<html>`, where the head script put it before first paint; the server and
- * hydration render Standard, and CSS already shows the right list meanwhile).
- * A page that belongs to a mode becomes the remembered one.
+ * Where the address puts the reader in the menu (`navigationPlace`) and the mode whose list
+ * the menu shows: the page's own, else the last chosen one (read from `<html>`, where the head
+ * script put it before first paint). The server and hydration know neither the query nor the
+ * remembered mode, so they render Standard while CSS already shows the right list; the query
+ * arrives right after hydration. A page that names a mode makes it the remembered one.
  */
-export function useNavigationMode(activeTab: TabId): RememberedNavigationMode {
-  const stored = useSyncExternalStore(subscribeNavigationMode, readNavigationMode, () => 'standard' as const);
-  const pageMode = modeOfTab(activeTab);
-  useEffect(() => { if (pageMode) setNavigationMode(pageMode); }, [pageMode]);
+export function useNavigationPlace(path: string, search: string | null): { place: NavigationPlace; mode: RememberedNavigationMode } {
+  const stored = useSyncExternalStore(subscribeNavigationMode, readNavigationMode, () => null);
+  const place = navigationPlace(path, search, stored);
+  // Before paint, so the list of the new mode is the first one the reader sees (the tree marks the page's mode too).
+  useLayoutEffect(() => { if (place.mode) setNavigationMode(place.mode); }, [place.mode]);
   // The list of a new mode slides in. Read from <html>, which already shows the right list, so hydration never replays it.
   const shown = useRef<RememberedNavigationMode | null>(null);
-  const current = pageMode ?? stored;
   useLayoutEffect(() => {
-    const now = pageMode ?? readNavigationMode();
+    const now = place.mode ?? readNavigationMode();
     const before = shown.current;
     shown.current = now;
     if (!before || before === now || prefersReducedMotion()) return;
@@ -41,8 +43,8 @@ export function useNavigationMode(activeTab: TabId): RememberedNavigationMode {
         list.animate([{ opacity: 0, transform: 'translateX(8px)' }, { opacity: 1, transform: 'none' }], { duration, easing: motionEasing('--motion-ease') });
       }
     }
-  }, [pageMode, stored]);
-  return current;
+  }, [place.mode, stored]);
+  return { place, mode: place.mode ?? stored ?? NAVIGATION_MODES[0].id };
 }
 
 /**

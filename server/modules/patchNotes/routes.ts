@@ -1,13 +1,17 @@
 import { Router, type Response } from 'express';
-import { shortPatchVersion, type PatchNotesArchive } from './contract.js';
+import { shortPatchVersion, type PatchNotesArchive, type PatchNotesDetail } from './contract.js';
 import { patchNotesSummary, type PatchNotesSnapshot } from './service.js';
 
 export type PatchNotesRouterDependencies = {
   load: () => Promise<PatchNotesSnapshot>;
+  /** Adds before/after card pictures; without it entries keep the `null` pair of the snapshot. */
+  withCardVersions?: (snapshot: PatchNotesSnapshot, patches: PatchNotesDetail[]) => Promise<PatchNotesDetail[]>;
   onError?: (error: unknown) => void;
 };
 
 const PUBLIC_CACHE = 'public, max-age=600, stale-while-revalidate=1800';
+/** How many of the newest patches with card changes `/patch-notes/recent` serves. */
+const RECENT_PATCHES = 2;
 
 /** Anonymous patch notes: the archive of patches with card changes and one patch by version. */
 export function createPatchNotesRouter(dependencies: PatchNotesRouterDependencies): Router {
@@ -35,6 +39,24 @@ export function createPatchNotesRouter(dependencies: PatchNotesRouterDependencie
     response.json(body);
   });
 
+  const withPictures = async (snapshot: PatchNotesSnapshot, patches: PatchNotesDetail[]) => {
+    try {
+      return await (dependencies.withCardVersions?.(snapshot, patches) ?? patches);
+    } catch (error) {
+      dependencies.onError?.(error);
+      return patches;
+    }
+  };
+
+  // The patch page: the newest patches with card changes, each with its before/after pictures.
+  router.get('/patch-notes/recent', async (_request, response) => {
+    const snapshot = await read(response);
+    if (!snapshot) return;
+    const patches = snapshot.patches.filter(patch => patch.changeCount > 0).slice(0, RECENT_PATCHES);
+    response.set('Cache-Control', PUBLIC_CACHE);
+    response.json({ patches: await withPictures(snapshot, patches), updatedAt: snapshot.updatedAt });
+  });
+
   router.get('/patch-notes/:version', async (request, response) => {
     const wanted = request.params.version === 'latest' ? 'latest' : shortPatchVersion(request.params.version);
     if (!wanted) {
@@ -51,7 +73,7 @@ export function createPatchNotesRouter(dependencies: PatchNotesRouterDependencie
       return response.status(404).json({ error: 'Патч не найден' });
     }
     response.set('Cache-Control', PUBLIC_CACHE);
-    return response.json(patch);
+    return response.json((await withPictures(snapshot, [patch]))[0]);
   });
 
   return router;

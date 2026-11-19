@@ -1,35 +1,19 @@
 /*
- * Patch notes on one vertical rhythm — the header, then the changes column
- * (sticky filters bar, what matters, the archetypes, the sections) beside a
- * sticky table of contents on wide content. Large type carries the point, small
- * muted type the details; borders and fills only where they separate things.
+ * Patch notes: the newest patches, each one its game modes, each changed card
+ * the card before, the plates of what changed, and the card after. Large type
+ * names the patch and the mode, pictures carry the rest; the only frames are a
+ * wood rule under each heading and a quiet border around a card.
  */
 
 .hp-patch {
   --patch-buff: #2f6e39;
   --patch-nerf: #93202a;
-  --patch-rework: #7a582e;
-  --patch-paper: rgba(255, 251, 238, 0.86);
-  --patch-line: rgba(122, 88, 46, 0.22);
-  /* The sticky toolbar is opaque, so rows never show through it. */
-  --patch-toolbar: #f8ecce;
-  /* Every control of the toolbar has this height. */
-  --patch-control: 38px;
-  /* The one vertical step between blocks and its half inside them. */
-  --patch-step: 1.5rem;
-  --patch-step-sm: 0.75rem;
-  /* Just under the site's sticky search bar (49 px) on wide screens, its mobile header otherwise. */
-  --patch-sticky-top: 3.1rem;
-  /* The layout follows the content column, not the viewport: the site rail takes its own width. */
-  container: hp-patch / inline-size;
+  --patch-line: rgba(95, 55, 29, 0.3);
+  --patch-paper: rgba(255, 251, 238, 0.62);
   display: grid;
-  gap: var(--patch-step);
+  gap: 2.75rem;
   min-width: 0;
   color: var(--arena-ink);
-}
-
-@media (max-width: 1023px) {
-  .hp-patch { --patch-sticky-top: var(--arena-mobile-sticky-offset, 70px); }
 }
 
 .hp-patch a {
@@ -38,760 +22,190 @@
   text-underline-offset: 2px;
 }
 
-/* ── Layout: the changes and, on wide content, a sticky table of contents ── */
-
-.hp-patch-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--patch-step) 2rem;
-  min-width: 0;
-}
-
-/* The changes column is its own container: rows and the bar follow its width, not the page's. */
-.hp-patch-main {
-  container-type: inline-size;
-  display: grid;
-  gap: var(--patch-step);
-  align-content: start;
-  min-width: 0;
-}
-
-.hp-patch-toc { display: none; }
-
-/* Named: the jump select sits in the changes column, which is a container of its own. */
-@container hp-patch (min-width: 1000px) {
-  .hp-patch-layout[data-toc] { grid-template-columns: minmax(0, 1fr) 13rem; }
-  .hp-patch-layout[data-toc] .hp-patch-jump { display: none; }
-
-  .hp-patch-toc {
-    position: sticky;
-    top: calc(var(--patch-sticky-top) + 0.75rem);
-    display: block;
-    align-self: start;
-    max-height: calc(100vh - var(--patch-sticky-top) - 1.5rem);
-    overflow-y: auto;
-    overscroll-behavior: contain;
-    scrollbar-width: thin;
-  }
-}
-
-.hp-patch-toc__title {
-  margin: 0 0 0.5rem;
-  color: var(--arena-muted-ink);
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.hp-patch-toc ol { display: grid; gap: 0.1rem; margin: 0; padding: 0; list-style: none; }
-.hp-patch-toc ol ol { margin: 0.1rem 0 0.35rem 0.75rem; padding-left: 0.6rem; border-left: 1px solid var(--patch-line); }
-
-.hp-patch .hp-patch-toc a {
-  display: block;
-  padding: 0.25rem 0;
+.hp-patch__title,
+.hp-release__title,
+.hp-mode__title {
+  margin: 0;
   color: var(--arena-ink);
   font-family: var(--font-display);
-  font-size: 1rem;
-  line-height: 1.25;
-  text-decoration: none;
+  font-weight: 400;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
 }
 
-.hp-patch .hp-patch-toc ol ol a { padding: 0.2rem 0; color: var(--arena-muted-ink); font-family: var(--font-body); font-size: 0.84rem; }
-.hp-patch .hp-patch-toc a:hover { color: var(--arena-red); }
-.hp-patch .hp-patch-toc a[aria-current='location'] { color: var(--arena-red); font-weight: 700; }
-.hp-patch .hp-patch-toc a:focus-visible { outline: 2px solid #8d171d; outline-offset: 2px; }
+.hp-patch__title { font-size: clamp(1.75rem, 5vw, 2.4rem); }
 
-/* ── The filters bar: search, the narrow jump and the kind toggles ────────── */
+/* A link to a card or a mode lands below the site's sticky search bar (a phone's header is taller). */
+.hp-mode__title,
+.hp-pc { scroll-margin-top: 4.5rem; }
 
-.hp-patch-bar {
-  position: sticky;
-  top: var(--patch-sticky-top);
-  z-index: 5;
+@media (max-width: 1023px) {
+  .hp-mode__title,
+  .hp-pc { scroll-margin-top: calc(var(--arena-mobile-sticky-offset, 70px) + 1rem); }
+}
+
+/* ── A patch ── */
+
+.hp-release { display: grid; gap: 2rem; min-width: 0; }
+
+.hp-release__head {
+  display: grid;
+  gap: 0.4rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 5px solid transparent;
+  border-image: linear-gradient(90deg, #5f371d 0%, rgba(95, 55, 29, 0.55) 60%, rgba(95, 55, 29, 0.1) 100%) 1;
+}
+
+.hp-release__title { font-size: clamp(1.6rem, 4.5vw, 2.1rem); }
+
+.hp-release__line {
   display: flex;
-  gap: 0.5rem 0.75rem;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.1rem;
   align-items: center;
-  padding: 0.45rem;
-  border: 1px solid var(--patch-line);
-  border-radius: 8px;
-  background: var(--patch-toolbar);
-}
-
-.hp-patch-bar__sticky {
-  display: flex;
-  flex: none;
-  gap: 0.5rem;
-  align-items: center;
-  min-width: 0;
-}
-
-.hp-patch-jump { display: flex; flex: 1 1 auto; min-width: 0; }
-
-.hp-patch-jump select {
-  width: 100%;
-  min-width: 0;
-  max-width: 16rem;
-  min-height: var(--patch-control);
-  padding: 0 0.5rem;
-  border: 1px solid var(--patch-line);
-  border-radius: 999px;
-  background: #fffaf0;
-  color: inherit;
-  font: inherit;
-  font-size: 0.85rem;
-  font-weight: 700;
-}
-
-.hp-patch-search {
-  position: relative;
-  flex: 1 1 12rem;
-  min-width: 0;
-}
-
-.hp-patch-search svg {
-  position: absolute;
-  top: 50%;
-  left: 0.7rem;
-  width: 1rem;
-  height: 1rem;
+  margin: 0;
   color: var(--arena-muted-ink);
-  transform: translateY(-50%);
-  pointer-events: none;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
 }
 
-.hp-patch-search input {
-  box-sizing: border-box;
-  width: 100%;
-  min-height: var(--patch-control);
-  padding: 0.35rem 0.75rem 0.35rem 2.2rem;
-  border: 1px solid var(--patch-line);
-  border-radius: 999px;
-  background: #fffaf0;
-  color: inherit;
-  font: inherit;
-  font-size: 0.92rem;
+.hp-release__line a { display: inline-flex; gap: 0.3rem; align-items: center; min-height: 2.6rem; }
+.hp-release__line svg { width: 0.9rem; height: 0.9rem; }
+.hp-release__lead { margin: 0; font-family: var(--font-body); font-size: 1.1rem; font-weight: 600; line-height: 1.4; }
+
+.hp-release__empty,
+.hp-release__pictures {
+  margin: 0;
+  color: var(--arena-muted-ink);
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
-.hp-patch-kinds {
-  display: flex;
-  flex: none;
-  gap: 2px;
-  padding: 2px;
-  border-radius: 999px;
-  background: rgba(84, 51, 22, 0.1);
+/* ── A mode of a patch ── */
+
+.hp-mode { display: grid; gap: 1.25rem; min-width: 0; }
+
+.hp-mode__title {
+  padding-bottom: 0.4rem;
+  border-bottom: 3px solid transparent;
+  border-image: linear-gradient(90deg, rgba(95, 55, 29, 0.7) 0%, rgba(95, 55, 29, 0.12) 100%) 1;
+  font-size: clamp(1.3rem, 3.6vw, 1.6rem);
 }
 
-.hp-patch-kinds button,
-.hp-patch-reset {
-  display: inline-flex;
-  gap: 0.3rem;
-  align-items: center;
-  min-height: calc(var(--patch-control) - 4px);
-  padding: 0 0.7rem;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: inherit;
-  font-size: 0.85rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  cursor: pointer;
-}
-
-.hp-patch-kinds button svg { width: 1rem; height: 1rem; }
-.hp-patch-kinds button[data-kind] { justify-content: center; min-width: 2.75rem; }
-.hp-patch-kinds button[data-kind='buff'] svg { color: var(--patch-buff); }
-.hp-patch-kinds button[data-kind='nerf'] svg { color: var(--patch-nerf); }
-.hp-patch-kinds button[data-kind='rework'] svg { color: var(--patch-rework); }
-.hp-patch-kinds button[aria-pressed='true'] { background: #4a3323; color: #fff6dc; }
-.hp-patch-kinds button[aria-pressed='true'] svg { color: #efc96f; }
-.hp-patch-kinds button[data-kind='buff'][aria-pressed='true'] { background: var(--patch-buff); }
-.hp-patch-kinds button[data-kind='nerf'][aria-pressed='true'] { background: var(--patch-nerf); }
-.hp-patch-kinds button:disabled { cursor: default; opacity: 0.4; }
-.hp-patch-reset { min-height: var(--patch-control); border: 1px solid var(--patch-line); background: #fffaf0; }
-
-/*
- * Narrow content: the search scrolls away and only the jump and kind row
- * sticks. `display: contents` lets that row stick against the changes column
- * instead of this bar.
- */
-@container (max-width: 760px) {
-  .hp-patch-bar { display: contents; }
-
-  .hp-patch-search { margin-bottom: calc(var(--patch-step-sm) - var(--patch-step)); }
-
-  .hp-patch-bar__sticky {
-    position: sticky;
-    top: var(--patch-sticky-top);
-    z-index: 5;
-    padding: 0.4rem;
-    border: 1px solid var(--patch-line);
-    border-radius: 8px;
-    background: var(--patch-toolbar);
-  }
-
-  .hp-patch-jump select { max-width: none; }
-  .hp-patch-kinds button { padding: 0 0.55rem; }
-  .hp-patch-kinds button[data-kind] { min-width: 2.6rem; }
-}
-
-/* ── Blocks before the sections: "Главное" and the archetypes ────────────── */
-
-.hp-patch-block {
+.hp-mode__general {
   display: grid;
-  gap: var(--patch-step-sm);
-  min-width: 0;
+  gap: 0.4rem;
+  margin: 0;
+  padding-left: 1.25rem;
+  font-family: var(--font-body);
+  font-size: 1rem;
+  line-height: 1.5;
 }
 
-.hp-patch-block__aside { margin-left: auto; color: var(--arena-muted-ink); font-size: 0.82rem; text-align: right; }
-
-@container (max-width: 640px) {
-  .hp-patch-block__head { flex-wrap: wrap; row-gap: 0; }
-  .hp-patch-block__head > h3 { flex: 1 1 0; min-width: 0; }
-  .hp-patch-block__aside { flex-basis: 100%; margin: 0 0 0 2.6rem; text-align: left; }
-}
-
-.hp-patch-highlights__list,
-.hp-patch-group__list {
+/* Two pairs in a row when the column allows, one pair otherwise. */
+.hp-pc-grid {
   display: grid;
-  gap: var(--patch-step-sm);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 33rem), 1fr));
+  gap: 1.25rem 1.5rem;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/*
- * Highlights share one paper panel: stacked rows on phones, two a row on
- * medium content and all of them in one row on wide content, split by hairlines.
- */
-.hp-patch-highlights__list {
-  gap: 0;
-  overflow: hidden;
+.hp-pc-grid > li { container: hp-pc / inline-size; min-width: 0; }
+
+/* ── A changed card ── */
+
+.hp-pc {
+  display: grid;
+  gap: 0.75rem;
+  align-content: start;
+  height: 100%;
+  padding: 1rem;
   border: 1px solid var(--patch-line);
   border-radius: 6px;
   background: var(--patch-paper);
-}
-
-.hp-patch-highlights__list > li + li { border-top: 1px solid var(--patch-line); }
-
-@container (min-width: 700px) {
-  .hp-patch-highlights__list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .hp-patch-highlights__list > li + li { border-top: 0; }
-  .hp-patch-highlights__list > li:nth-child(even) { border-left: 1px solid var(--patch-line); }
-  .hp-patch-highlights__list > li:nth-child(n + 3) { border-top: 1px solid var(--patch-line); }
-}
-
-@container (min-width: 1080px) {
-  .hp-patch-highlights__list[data-count='3'] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .hp-patch-highlights__list[data-count='4'] { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-  .hp-patch-highlights__list:is([data-count='3'], [data-count='4']) > li + li { border-top: 0; border-left: 1px solid var(--patch-line); }
-}
-
-.hp-patch-highlights__list > li,
-.hp-patch-group__list > li { display: grid; min-width: 0; }
-
-/* ── Sections and groups ────────────────────────────────────────────────── */
-
-.hp-patch-section { min-width: 0; }
-
-/*
- * Change rows run in one, two or three columns by content width. A group of
- * one or two cards spans only its columns, so a class with one change sits
- * beside the next one instead of leaving the rest of its row empty; larger
- * groups take the full width. Groups and their rows share the section's
- * columns (subgrid), so hairlines line up across groups.
- */
-.hp-patch-section__body {
-  --patch-cols: 1;
-  display: grid;
-  grid-template-columns: repeat(var(--patch-cols), minmax(0, 1fr));
-  gap: var(--patch-step) 2rem;
-  padding-top: var(--patch-step-sm);
-}
-
-@container (min-width: 700px) {
-  .hp-patch-section__body { --patch-cols: 2; }
-  .hp-patch-group[data-size='1'] { grid-column: span 1; }
-}
-
-@container (min-width: 1080px) {
-  .hp-patch-section__body { --patch-cols: 3; }
-  .hp-patch-group[data-size='2'] { grid-column: span 2; }
-}
-
-.hp-patch-group {
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-  align-content: start;
-  row-gap: var(--patch-step-sm);
-  min-width: 0;
-}
-
-.hp-patch-group__title,
-.hp-patch-section-notes { grid-column: 1 / -1; }
-
-.hp-patch-group__list {
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-  gap: 0 normal;
-}
-
-/* ── Change row ─────────────────────────────────────────────────────────── */
-
-/* A row on the parchment, not a box: one hairline above, the kind told once by the mark before the name. */
-.hp-patch-card {
-  position: relative;
-  display: grid;
-  grid-template-columns: 3rem minmax(0, 1fr);
-  gap: 0 0.8rem;
-  align-content: start;
-  min-width: 0;
-  height: 100%;
-  box-sizing: border-box;
-  padding: 0.6rem 0;
-  border-top: 1px solid var(--patch-line);
-}
-
-/* Every picture sits in the same card-shaped box, so cards line up whatever the source. */
-.hp-patch-card__art {
-  position: relative;
-  display: grid;
-  place-items: center;
-  align-self: start;
-  width: 100%;
-  aspect-ratio: 0.7;
-  padding: 0;
-  overflow: hidden;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  cursor: zoom-in;
-}
-
-.hp-patch-card__art img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  filter: drop-shadow(0 3px 4px rgba(36, 19, 6, 0.3));
-  transition: transform var(--motion-fast) var(--motion-ease);
-}
-
-.hp-patch-card__art:hover img { transform: scale(1.04); }
-
-.hp-patch-card__art[data-contain] img {
-  height: auto;
-  border: 1px solid rgba(84, 51, 22, 0.35);
-  border-radius: 8px;
-  filter: none;
-}
-
-.hp-patch-card__art[data-empty] {
-  border: 1px dashed rgba(84, 51, 22, 0.3);
-  color: var(--arena-muted-ink);
-  cursor: default;
-}
-
-.hp-patch-card__art[data-empty] svg { width: 1.2rem; height: 1.2rem; opacity: 0.55; }
-.hp-patch-card__art:focus-visible { outline: 2px solid #8d171d; outline-offset: 2px; }
-
-.hp-patch-card__body {
-  display: grid;
-  gap: 0.35rem;
-  align-content: start;
-  min-width: 0;
-  padding-top: 0.1rem;
-}
-
-.hp-patch-card__title {
-  display: flex;
-  gap: 0.35rem;
-  align-items: baseline;
-  min-width: 0;
-  /* Room for the "…" in the corner; the change lines below use the full width. */
-  padding-right: 2.25rem;
-}
-
-.hp-patch-card__name {
-  min-width: 0;
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: 1.02rem;
-  font-weight: 400;
-  line-height: 1.25;
-  overflow-wrap: break-word;
-}
-
-/* The page's one colour signal: the kind glyph (and the kind heading of a long group). */
-.hp-patch-kind {
-  display: inline-grid;
-  flex: none;
-  place-items: center;
-  align-self: flex-start;
-  width: 1rem;
-  height: 1.25rem;
-  color: var(--patch-rework);
-}
-
-.hp-patch-kind svg { width: 0.9rem; height: 0.9rem; stroke-width: 2.5; }
-.hp-patch-kind[data-kind='buff'] { color: var(--patch-buff); }
-.hp-patch-kind[data-kind='nerf'] { color: var(--patch-nerf); }
-
-/* A long mixed group names each kind once: a small label line above its rows. */
-.hp-patch-kind-block {
-  display: flex;
-  grid-column: 1 / -1;
-  gap: 0.35rem;
-  align-items: center;
-  margin: var(--patch-step-sm) 0 0;
-  color: var(--arena-muted-ink);
   font-family: var(--font-body);
-  font-size: 0.72rem;
-  font-weight: 800;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
 }
 
-.hp-patch-kind-block svg { width: 0.9rem; height: 0.9rem; stroke-width: 2.5; color: var(--patch-rework); }
-.hp-patch-kind-block[data-kind='buff'] svg { color: var(--patch-buff); }
-.hp-patch-kind-block[data-kind='nerf'] svg { color: var(--patch-nerf); }
-.hp-patch-group__title + .hp-patch-kind-block { margin-top: 0; }
+.hp-pc__name { margin: 0; font-family: var(--font-body); font-size: 1.15rem; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+.hp-pc__name a { color: inherit; text-decoration: none; }
+.hp-pc__name a:hover { color: var(--arena-red); text-decoration: underline; }
+.hp-pc__meta { margin: 0.15rem 0 0; color: var(--arena-muted-ink); font-size: 0.85rem; }
+.hp-pc__note { margin: 0; color: var(--arena-muted-ink); font-size: 0.92rem; line-height: 1.45; }
 
-.hp-patch-card__changes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem 0.9rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
+.hp-pc__fig { display: grid; gap: 0.35rem; justify-items: center; align-content: start; margin: 0; min-width: 0; }
+.hp-pc__fig figcaption { color: var(--arena-muted-ink); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+.hp-pc__fig img { display: block; width: 100%; max-width: 17rem; height: auto; object-fit: cover; }
+.hp-pc__fig img[data-contain] { object-fit: contain; }
 
-.hp-change {
-  display: inline-flex;
-  gap: 0.4rem;
-  align-items: center;
-  font-size: 0.9rem;
-}
-
-.hp-change__label { color: var(--arena-muted-ink); font-size: 0.78rem; }
-
-.hp-change__values {
-  display: inline-flex;
-  gap: 0.35rem;
-  align-items: center;
-  font-variant-numeric: tabular-nums;
-}
-
-.hp-change__values s { color: var(--arena-muted-ink); text-decoration-thickness: 1.5px; }
-.hp-change__arrow { color: var(--arena-muted-ink); font-size: 0.85rem; }
-/* The new value is plain ink: the kind glyph already says better or worse. */
-.hp-change__values b { min-width: 1ch; font-size: 1.05rem; font-weight: 800; }
-.hp-change__unknown { color: var(--arena-muted-ink); cursor: help; }
-
-.hp-change--text {
+/* Before, the change, after. */
+.hp-pc__pair {
   display: grid;
-  flex: 1 1 100%;
-  gap: 0.15rem;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: center;
 }
 
-.hp-change__text {
-  margin: 0;
-  color: #3b2414;
-  font-size: 0.9rem;
-  line-height: 1.5;
+.hp-pc__change { display: grid; gap: 0.6rem; justify-items: center; }
+.hp-pc__arrow { width: 1.9rem; height: 1.9rem; color: var(--arena-muted-ink); }
+
+.hp-pc__plates { display: grid; gap: 0.45rem; margin: 0; padding: 0; list-style: none; }
+
+/* A phone: both pictures side by side, the plates under them. */
+@container hp-pc (max-width: 27rem) {
+  .hp-pc__pair { grid-template-columns: minmax(0, 1fr) 1.5rem minmax(0, 1fr); gap: 0.4rem; align-items: start; }
+  .hp-pc__change { display: contents; }
+  .hp-pc__arrow { grid-column: 2; grid-row: 1; align-self: center; width: 1.5rem; height: 1.5rem; margin-top: 1.4rem; }
+  .hp-pc__pair > .hp-pc__fig:first-child { grid-column: 1; grid-row: 1; }
+  .hp-pc__pair > .hp-pc__fig:last-child { grid-column: 3; grid-row: 1; }
+  .hp-pc__plates { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); margin-top: 0.5rem; }
 }
 
-.hp-change__text small { color: var(--arena-muted-ink); font-size: 0.78rem; font-style: italic; }
+/* One current picture with its plates beside it. */
+.hp-pc[data-variant='single'] { grid-template-columns: minmax(0, 13rem) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.hp-pc__side { display: grid; gap: 0.6rem; min-width: 0; align-content: start; }
 
-/* «было → стало» in one sentence: the old phrase fades under a strike, the new one is bold ink on a soft gold stroke. */
-.hp-change__text del {
-  color: var(--arena-muted-ink);
-  text-decoration-color: rgba(115, 94, 73, 0.75);
-  text-decoration-thickness: 1px;
+@container hp-pc (max-width: 27rem) {
+  .hp-pc[data-variant='single'] { grid-template-columns: minmax(0, 45%) minmax(0, 1fr); gap: 0.75rem; }
 }
 
-.hp-change__text ins {
-  background: linear-gradient(transparent 62%, rgba(217, 171, 73, 0.3) 62%);
-  color: var(--arena-ink);
-  font-weight: 700;
-  text-decoration: none;
-}
+/* A card the catalog does not know: a line of text. */
+.hp-pc[data-variant='line'] { gap: 0.5rem; }
 
-.hp-patch-card__note {
-  margin: 0;
-  color: var(--arena-muted-ink);
-  font-size: 0.8rem;
-  font-style: italic;
-  line-height: 1.45;
-}
+/* ── The plate of one change ── */
 
-/* ── Card details: folded behind the "…" in the corner ──────────────────── */
-
-.hp-patch-card__more { grid-column: 1 / -1; min-width: 0; }
-
-.hp-patch-card__more > summary {
-  position: absolute;
-  top: 0.45rem;
-  right: -0.35rem;
+.hp-plate {
   display: grid;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  color: var(--arena-muted-ink);
-  list-style: none;
-  cursor: pointer;
-}
-
-.hp-patch-card__more > summary::-webkit-details-marker { display: none; }
-
-/* The "…" stays quiet until its row is pointed at or focused. */
-@media (hover: hover) {
-  .hp-patch-card__more > summary { opacity: 0.45; transition: opacity var(--motion-fast) var(--motion-ease); }
-  .hp-patch-card:is(:hover, :focus-within) .hp-patch-card__more > summary,
-  .hp-patch-card__more[open] > summary { opacity: 1; }
-}
-.hp-patch-card__more > summary svg { width: 1.1rem; height: 1.1rem; }
-.hp-patch-card__more > summary:hover,
-.hp-patch-card__more[open] > summary { background: rgba(84, 51, 22, 0.1); color: #7b151b; }
-.hp-patch-card__more > summary:focus-visible { outline: 2px solid #8d171d; outline-offset: 1px; }
-
-.hp-patch-card__details {
-  display: grid;
-  gap: 0.5rem;
-  margin: 0.6rem 0 0;
-  padding-top: 0.6rem;
-  border-top: 1px solid var(--patch-line);
-  font-size: 0.8rem;
-}
-
-.hp-patch-card__meta { margin: 0; color: var(--arena-muted-ink); }
-.hp-patch-card__meta [lang='en'] { font-style: italic; }
-.hp-patch-card__meta-use { display: grid; gap: 0.3rem; }
-.hp-patch-card__meta-use > span { color: var(--arena-muted-ink); }
-
-.hp-patch-card__meta-use ul {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.hp-patch .hp-patch-card__meta-use a {
-  display: inline-flex;
-  gap: 0.3rem;
-  align-items: center;
-  min-height: 28px;
-  padding: 0 0.55rem 0 0.25rem;
-  border-radius: 999px;
-  background: rgba(84, 51, 22, 0.07);
-  color: var(--arena-ink);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.hp-patch .hp-patch-card__meta-use a:hover { background: rgba(84, 51, 22, 0.13); color: #7b151b; }
-.hp-patch-card__meta-use .hp-patch-class-icon { width: 1.1rem; height: 1.1rem; }
-.hp-patch-card__meta-use li > span { display: inline-flex; align-items: center; min-height: 28px; padding: 0 0.3rem; color: var(--arena-muted-ink); }
-
-.hp-patch-card__history {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  align-items: center;
-  margin: 0;
-  color: var(--arena-muted-ink);
-}
-
-.hp-patch-card__history svg { width: 0.9rem; height: 0.9rem; }
-
-.hp-patch-card__links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem 1rem;
-  align-items: center;
-  justify-content: space-between;
-  margin: 0;
-}
-
-.hp-patch .hp-patch-card__links a {
-  display: inline-flex;
-  gap: 0.3rem;
-  align-items: center;
-  min-height: 32px;
-  font-weight: 700;
-}
-
-.hp-patch-card__links svg { width: 0.95rem; height: 0.95rem; }
-
-.hp-patch-card__copy {
-  display: inline-flex;
-  gap: 0.3rem;
-  align-items: center;
-  min-height: 32px;
-  padding: 0 0.5rem;
-  border: 0;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--arena-muted-ink);
-  font: inherit;
-  cursor: pointer;
-}
-
-.hp-patch-card__copy:hover,
-.hp-patch-card__copy:focus-visible { background: rgba(84, 51, 22, 0.08); color: #7b151b; }
-.hp-patch-card__copy svg { width: 0.95rem; height: 0.95rem; }
-
-/* A linked change is marked when the page opens on it. */
-.hp-patch-card:target {
-  outline: 3px solid rgba(217, 171, 73, 0.9);
-  outline-offset: 2px;
-  animation: hp-patch-target var(--motion-loop) var(--motion-ease) 1;
-}
-
-@keyframes hp-patch-target {
-  from { box-shadow: 0 0 0 8px rgba(217, 171, 73, 0.45); }
-}
-
-/* Clears the site header and the sticky bar when a link jumps to a card, group or section. */
-.hp-patch-card,
-.hp-patch-group,
-.hp-patch-block,
-.hp-patch-section { scroll-margin-top: calc(var(--patch-sticky-top) + 4.5rem); }
-
-/* ── Empty states, notes and source ─────────────────────────────────────── */
-
-.hp-patch-empty {
-  display: grid;
-  gap: 0.5rem;
+  gap: 0.1rem;
   justify-items: center;
-  padding: 2rem 1rem;
-  color: var(--arena-muted-ink);
+  padding: 0.4rem 0.75rem 0.45rem;
+  border: 1px solid rgba(95, 55, 29, 0.5);
+  border-radius: 6px;
+  background: rgba(255, 251, 238, 0.95);
   text-align: center;
 }
 
-.hp-patch-empty svg { width: 2rem; height: 2rem; opacity: 0.6; }
-.hp-patch-empty p { margin: 0; }
+.hp-plate__label { color: var(--arena-muted-ink); font-size: 0.78rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.hp-plate__values { font-size: 1.2rem; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.hp-plate__values s { color: var(--arena-muted-ink); font-weight: 500; text-decoration-thickness: 1px; }
+.hp-plate__now { color: var(--arena-muted-ink); font-size: 0.9rem; font-weight: 500; }
+.hp-plate[data-direction='buff'] b { color: var(--patch-buff); }
+.hp-plate[data-direction='nerf'] b { color: var(--patch-nerf); }
 
-/* Opening a section fades its cards in; reduced motion skips it. */
-.hp-patch-section[open] > .hp-patch-section__body {
-  animation: hp-patch-open var(--motion-fast) var(--motion-ease);
-}
+.hp-plate__text { display: grid; gap: 0.3rem; margin-top: 0.3rem; font-size: 0.9rem; line-height: 1.45; text-align: left; }
+.hp-plate__text i { color: var(--arena-muted-ink); font-style: normal; font-weight: 700; }
 
-@keyframes hp-patch-open {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: none; }
-}
+.hp-pc[data-variant='single'] .hp-pc__plates,
+.hp-pc[data-variant='line'] .hp-pc__plates { grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); }
+.hp-pc[data-variant='single'] .hp-plate,
+.hp-pc[data-variant='line'] .hp-plate { justify-items: start; text-align: left; }
+.hp-pc[data-variant='single'] .hp-plate:has(.hp-plate__text),
+.hp-pc[data-variant='line'] .hp-plate:has(.hp-plate__text) { grid-column: 1 / -1; }
 
-@media (prefers-reduced-motion: reduce) {
-  .hp-patch-section[open] > .hp-patch-section__body,
-  .hp-patch-card:target { animation: none; }
-  .hp-patch-section > summary::after,
-  .hp-patch-card__art img { transition: none; }
-  .hp-patch-card__art:hover img { transform: none; }
-}
+/* ── While the patches load ── */
 
-.hp-patch-section-notes { display: grid; gap: var(--patch-step-sm); }
-
-.hp-patch-general h4 {
-  margin: 0 0 0.35rem;
-  font-family: var(--font-display);
-  font-size: 1.1rem;
-  font-weight: 400;
-}
-
-.hp-patch-general ul {
-  display: grid;
-  gap: 0.25rem;
-  margin: 0;
-  padding-left: 1.1rem;
-  font-size: 0.9rem;
-  line-height: 1.5;
-}
-
-.hp-patch-pictures {
-  display: flex;
-  gap: 0.5rem;
-  align-items: flex-start;
-  margin: 0;
-  color: var(--arena-muted-ink);
-  font-size: 0.85rem;
-  line-height: 1.5;
-}
-
-.hp-patch-pictures svg { flex: none; width: 1rem; height: 1rem; margin-top: 0.2rem; }
-
-.hp-patch-notes__notice,
-.hp-patch-notes__source {
-  margin: 0;
-  color: var(--arena-muted-ink);
-  font-size: 0.8rem;
-  line-height: 1.5;
-}
-
-.hp-patch-notes__notice {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.hp-patch-notes__notice a {
-  color: var(--arena-red);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-
-.hp-patch-notes__source {
-  display: grid;
-  gap: 0.25rem;
-  padding-top: var(--patch-step-sm);
-  border-top: 1px solid var(--patch-line);
-}
-
-.hp-patch-notes__source p { margin: 0; }
-
-@media (max-width: 640px) {
-  .hp-patch { --patch-step: 1.25rem; }
-}
-
-@container (max-width: 640px) {
-  .hp-patch-card { grid-template-columns: 2.75rem minmax(0, 1fr); gap: 0 0.75rem; }
-}
-
-/* ── Loading: the page's own geometry (PatchNotesSkeleton) ──────────────── */
-
-.hp-patch-skeleton__hero { display: grid; gap: 0.7rem; width: min(100%, 36rem); }
-.hp-patch-skeleton__hero .loading-block { background: rgba(255, 240, 200, 0.14); }
-.hp-patch-skeleton__switcher { inline-size: 18rem; max-inline-size: 100%; block-size: 2.25rem; border-radius: 999px; }
-.hp-patch-skeleton__title { block-size: 2.4rem; }
-.hp-patch-skeleton__digest { inline-size: 80%; block-size: 1rem; }
-.hp-patch-skeleton__main { gap: var(--patch-step-sm); }
-.hp-patch-skeleton__bar { block-size: calc(var(--patch-control) + 0.9rem + 2px); border-radius: 8px; }
-.hp-patch-skeleton__head { inline-size: 14rem; block-size: 2.75rem; margin-top: var(--patch-step-sm); }
-
-.hp-patch-skeleton__rows {
-  display: grid;
-  grid-template-columns: repeat(var(--patch-cols, 1), minmax(0, 1fr));
-  gap: var(--patch-step-sm) 2rem;
-}
-
-@container (min-width: 700px) {
-  .hp-patch-skeleton__rows { --patch-cols: 2; }
-}
-
-@container (min-width: 1080px) {
-  .hp-patch-skeleton__rows { --patch-cols: 3; }
-}
-
-.hp-patch-skeleton__row { block-size: 5.25rem; }
-.hp-patch-skeleton__toc { gap: 0.55rem; }
-.hp-patch-skeleton__toc-line { block-size: 1rem; }
-.hp-patch-skeleton__toc-line:nth-child(n + 3) { inline-size: 75%; margin-left: 0.75rem; }
-
-@container hp-patch (min-width: 1000px) {
-  .hp-patch-skeleton__toc { display: grid; }
-}
+.hp-patch--loading .hp-patch__skeleton { display: grid; gap: 1rem; }
+.hp-patch__skeleton-head { height: 3.6rem; }
+.hp-patch__skeleton-card { height: 24rem; }

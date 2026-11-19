@@ -632,3 +632,55 @@ and access tests (`next-mobile-menu`, `next-page-transitions`, `next-bfcache`,
 `next-instant-access`, `user-flow-mobile-navigation`), the sidebar and drawer
 blocks of `scripts/e2e-qa.mjs`, and the Storybook stories `App shell/Public
 navigation` and `App shell/Persistent navigation`.
+
+### Menu: «Вольный» as a fifth mode (2026-11-19, #475)
+
+The owner asked to split Standard and Wild. Wild is a mode of its own with its
+own banner and list; it adds no page and no route.
+
+1. `NAVIGATION_MODES` has five entries in the order Standard, Wild, Arena,
+   Battlegrounds, Community. The Wild list (`WILD_NAVIGATION_ITEMS`,
+   `navigationData.ts`) is the Standard pages opened in the Wild format:
+   Мета, Матчапы, Архетипы, Фан-колоды (`?format=wild`), Карты
+   (`/standard/cards/wild/`), Конструктор колод (`?format=wild`) and the shared
+   Патчноуты. VS Gold has no Wild data and stays in Standard. An item takes its
+   icon, label, entitlement and «Новый» badge from its twin; it is not an entry
+   of `NAVIGATION_DATA`, so routes, the footer and the maps do not see it.
+2. One pure function says where an address puts the reader:
+   `navigationPlace(path, search, remembered)` in `routing/navigationPlace.ts`
+   returns the mode and the highlighted item. A Standard page is Wild when the
+   query has `format=wild` or the path has a `/wild/` segment (`/standard/cards/
+   wild/`, `/standard/archetypes/wild/<slug>`, `/standard/meta/wild/<slug>`),
+   otherwise Standard. Patch notes keep the mode the reader chose last
+   (Standard by default). `tests/navigation-place.test.ts` is the table.
+3. The query is part of the page's address: `shared/navigation/locationSearch.ts`
+   is a store over `pushState`, `replaceState` and `popstate`, and
+   `pageFormat.ts` reads and writes `?format=wild` (Standard leaves no
+   parameter). The meta page takes its format from it and pushes a history entry
+   on a switch, so Back restores the format and the menu follows; the deck
+   builder starts from it (a restored draft or a `?code=` deck names its own
+   format) and writes its format back. Matchups, archetypes, fun decks and
+   cards already wrote the format; the menu now follows it. One helper is the
+   place where the meta page's format meets the address.
+4. The menu follows the destination at once: the layout keeps the optimistic
+   path and query together (`PublicNavigationLayout`), so a click on a Wild item
+   or banner marks it and switches the list before the page commits.
+5. No blink. The prerendered HTML has no query, so the server marks a page's mode
+   (`data-page-mode`, `data-page-current`) only where the path alone decides, and
+   marks nothing on a page that `?format=wild` could turn into Wild. The head
+   script (`MODE_NAVIGATION_SCRIPT`) writes `<html data-nav-mode>` from the query
+   for those pages (and Wild or Standard for patch notes) before first paint; CSS
+   shows that list. `tests/navigation-mode-script.test.ts` runs the script against
+   `navigationPlace` for every address. The whitelist of modes in the script and
+   in `localStorage` is `NAVIGATION_MODES`.
+6. Panel. From 1360 px the five cards stand in one row, sharing the width right
+   of the sidebar (182 px each at 1360 px); from 1024 px three and two, the
+   second row centered (a wrapping flex row, so any count works); in the drawer
+   one column of rows at least 88 px high with the wide strip of the mode
+   (`<mode>-face.webp`) behind its emblem, name and description, «Текущий» on the
+   right. A name is never broken inside a word.
+7. The palette lists the Wild items with their mode («Мета», «Вольный»); patch
+   notes appear once. The 503 page builds its list from `NAVIGATION_DATA`, which
+   has no Wild items, so it shows no duplicates.
+8. SEO is unchanged: `/standard/meta/?format=wild` is the same page as
+   `/standard/meta/` with a query, with the same canonical and robots.

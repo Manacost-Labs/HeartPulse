@@ -13,7 +13,6 @@ export const PAGE_TOUR_ROUTES: ReadonlyArray<{ id: string; paths: readonly strin
   { id: 'standard-fun-decks', paths: ['/standard/fun-decks'] },
   { id: 'standard-vicious-gold', paths: ['/standard/vicious-gold'] },
   { id: 'standard-cards', paths: ['/standard/cards', '/standard/cards/:format'] },
-  { id: 'standard-patches', paths: ['/standard/patches'] },
   { id: 'standard-card-detail', paths: ['/standard/cards/:format/:cardId'] },
   { id: 'arena-classes', paths: ['/classes'] },
   { id: 'arena-tier-list', paths: ['/tierlist'] },

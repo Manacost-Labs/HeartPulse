@@ -74,8 +74,8 @@ export async function probePublicData(pathname: string, searchParams: URLSearchP
   if (path === '/standard/patches') {
     const version = normalizePatchVersion(searchParams.get('version') ?? undefined) || null;
     const reader = patchNotesReader();
-    const { patch } = await reader(version, Date.now() + COLD_READ_WAIT_MS);
-    if (patch) return 'ready';
+    const { patches } = await reader(version, Date.now() + COLD_READ_WAIT_MS);
+    if (patches) return 'ready';
     return reader.isMissing(version) ? 'none' : 'unavailable';
   }
   const kind = cosmeticsListing(path)?.kind;
