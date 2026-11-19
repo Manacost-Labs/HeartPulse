@@ -8,6 +8,16 @@ import type { SubscriptionEntitlementKey } from '../../modules/subscriptions/pub
  */
 export type NavigationGroupId = 'home' | 'standard' | 'arena' | 'battlegrounds' | 'community' | 'footer' | 'admin';
 
+/** The four modes of the site: the menu shows the items of one at a time and a banner switches between them. */
+export type NavigationModeId = Extract<NavigationGroupId, 'standard' | 'arena' | 'battlegrounds' | 'community'>;
+
+export const NAVIGATION_MODES = [
+  { id: 'standard', label: 'Стандарт', description: 'Мета, матчапы, колоды, карты', homeTab: 'standard-meta', path: '/standard/meta' },
+  { id: 'arena', label: 'Арена', description: 'Классы, тир-лист, легендарки', homeTab: 'winrates', path: '/classes' },
+  { id: 'battlegrounds', label: 'Поля сражений', description: 'Герои, тир-лист, библиотека', homeTab: 'bg-heroes', path: '/heroes' },
+  { id: 'community', label: 'Сообщество', description: 'Подборка, стримеры, конкурсы', homeTab: 'articles', path: '/articles' },
+] as const satisfies readonly { id: NavigationModeId; label: string; description: string; homeTab: string; path: `/${string}` }[];
+
 type NavigationDatum = {
   id: string;
   label: string;

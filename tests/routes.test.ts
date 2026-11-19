@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { existsSync } from 'node:fs';
 import {
   ADMIN_ONLY_TAB_IDS,
   ADMIN_TABS,
@@ -12,7 +13,8 @@ import {
   TABS,
   type TabId,
 } from '../src/app/routing/navigationRoutes';
-import { NAVIGATION_ROUTES } from '../src/app/routing/navigationDefinitions';
+import { NAVIGATION_MODES } from '../src/app/routing/navigationData';
+import menuArt from '../src/app/shell/menuArt.json';
 import { seoPageForNavigationRoute } from '../src/seo/registry';
 
 // The order is the order of the menu: home, Standard, Arena, Battlegrounds, community, then the pages outside the menu.
@@ -63,10 +65,15 @@ assert.deepEqual(STANDARD_TABS.map(route => route.id).filter(id => id === 'deck-
 assert.deepEqual(BATTLEGROUNDS_TABS.map(route => route.id), ['bg-heroes', 'bg-tier-list', 'bg-library', 'bg-strategies', 'bg-tier-builder'],
   'Battlegrounds builders are plain items of the group');
 
-// Every item has an icon of its own: two look-alike rows are what made the menu hard to scan.
-const iconUsers = new Map<unknown, string[]>();
-for (const route of NAVIGATION_ROUTES) iconUsers.set(route.icon, [...(iconUsers.get(route.icon) ?? []), route.id]);
-assert.deepEqual([...iconUsers.values()].filter(ids => ids.length > 1), [], 'menu icons must not repeat');
+// Every item of the menu has a painted icon and every mode an emblem and a banner, each a file that exists.
+const artFiles = [
+  ...grouped.map(id => menuArt.icons[id as keyof typeof menuArt.icons]),
+  ...NAVIGATION_MODES.map(mode => menuArt.icons[`mode-${mode.id}` as keyof typeof menuArt.icons]),
+  ...NAVIGATION_MODES.map(mode => menuArt.banners[mode.id as keyof typeof menuArt.banners]),
+];
+assert.deepEqual(artFiles.filter(file => !file || !existsSync(`public${file}`)), [], 'menu art must exist for every item and mode');
+assert.deepEqual(NAVIGATION_MODES.map(mode => mode.homeTab).map(tab => tabFromPath(TABS.find(route => route.id === tab)?.path ?? '')), NAVIGATION_MODES.map(mode => mode.homeTab),
+  'a banner leads to the main page of its mode');
 
 for (const route of TABS) {
   const seo = seoPageForNavigationRoute(route.id);

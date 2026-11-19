@@ -55,7 +55,7 @@ const RECENT_LIMIT = 5;
 
 const SECTION_LABELS: Record<(typeof NAVIGATION_ROUTES)[number]['group'], string> = {
   home: '',
-  standard: 'Стандарт и Вольный',
+  standard: 'Стандарт',
   arena: 'Арена',
   battlegrounds: 'Поля сражений',
   community: 'Сообщество',
@@ -83,7 +83,8 @@ export function matchPages(query: string, admin: boolean): PaletteEntry[] {
     .filter(route => admin || (route.group !== 'admin' && !('adminOnly' in route && route.adminOnly)))
     .filter(route => {
       // The mode still matches the query («тир поля»), it is only not printed.
-      const haystack = normalizeSearchText(`${route.label} ${SECTION_LABELS[route.group]}`);
+      // Standard pages answer «вольный» too: the format filters of those pages cover both.
+      const haystack = normalizeSearchText(`${route.label} ${SECTION_LABELS[route.group]} ${route.group === 'standard' ? 'и Вольный' : ''}`);
       return terms.every(term => haystack.includes(term));
     })
     .map(route => ({

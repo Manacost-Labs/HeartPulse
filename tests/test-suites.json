@@ -557,6 +557,7 @@
         "tests/next-canonical-links-browser.test.mjs",
         "tests/next-bfcache-browser.test.mjs",
         "tests/next-mobile-menu-browser.test.mjs",
+        "tests/next-menu-overflow-browser.test.mjs",
         "tests/next-bg-hero-detail-browser.test.mjs",
         "tests/next-bg-library-listings-browser.test.mjs",
         "tests/bg-library-controls-browser.test.mjs",

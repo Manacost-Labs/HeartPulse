@@ -1,11 +1,62 @@
 /*
- * Public menu: current-page indicator, pressed feedback, group titles, badges,
- * the compact desktop rail and the phone drawer. Loaded by the root layout
- * after parchment-theme.css, whose menu surfaces it refines. Motion uses the
- * site tokens only (src/styles/tokens.css); reduced motion is global (index.css).
+ * Public menu: a full flat list of the current mode, a mode switch that opens
+ * a panel of banners, the compact desktop rail and the phone drawer. Loaded by
+ * the root layout after parchment-theme.css, whose red leather surface it
+ * dresses. Motion uses the site tokens only (src/styles/tokens.css) and only
+ * transform and opacity move; reduced motion is global (index.css) and here.
  */
 
-/* ─── Shared: labels, mode emblems, badges ────────────────────────────── */
+/* ─── Which mode is shown ─────────────────────────────────────────────── */
+
+/*
+ * Every mode's list, button face and «Текущий» badge are in the server HTML
+ * (`data-for`); exactly one mode is current: the page's own (`data-page-mode`
+ * of the tree), else the last chosen one (`data-nav-mode` of <html>, written by
+ * the head script before first paint), else Standard.
+ */
+.hp-nav [data-for] { display: none; }
+
+.hp-nav-list:is(
+  .hp-nav[data-page-mode='standard'] [data-for='standard'],
+  .hp-nav[data-page-mode='arena'] [data-for='arena'],
+  .hp-nav[data-page-mode='battlegrounds'] [data-for='battlegrounds'],
+  .hp-nav[data-page-mode='community'] [data-for='community'],
+  html:not([data-nav-mode='arena'], [data-nav-mode='battlegrounds'], [data-nav-mode='community']) .hp-nav:not([data-page-mode]) [data-for='standard'],
+  html[data-nav-mode='arena'] .hp-nav:not([data-page-mode]) [data-for='arena'],
+  html[data-nav-mode='battlegrounds'] .hp-nav:not([data-page-mode]) [data-for='battlegrounds'],
+  html[data-nav-mode='community'] .hp-nav:not([data-page-mode]) [data-for='community']
+) {
+  display: grid;
+  gap: 4px;
+}
+
+.hp-mode-face:is(
+  .hp-nav[data-page-mode='standard'] [data-for='standard'],
+  .hp-nav[data-page-mode='arena'] [data-for='arena'],
+  .hp-nav[data-page-mode='battlegrounds'] [data-for='battlegrounds'],
+  .hp-nav[data-page-mode='community'] [data-for='community'],
+  html:not([data-nav-mode='arena'], [data-nav-mode='battlegrounds'], [data-nav-mode='community']) .hp-nav:not([data-page-mode]) [data-for='standard'],
+  html[data-nav-mode='arena'] .hp-nav:not([data-page-mode]) [data-for='arena'],
+  html[data-nav-mode='battlegrounds'] .hp-nav:not([data-page-mode]) [data-for='battlegrounds'],
+  html[data-nav-mode='community'] .hp-nav:not([data-page-mode]) [data-for='community']
+) {
+  display: contents;
+}
+
+.hp-mode-badge:is(
+  .hp-nav[data-page-mode='standard'] [data-for='standard'],
+  .hp-nav[data-page-mode='arena'] [data-for='arena'],
+  .hp-nav[data-page-mode='battlegrounds'] [data-for='battlegrounds'],
+  .hp-nav[data-page-mode='community'] [data-for='community'],
+  html:not([data-nav-mode='arena'], [data-nav-mode='battlegrounds'], [data-nav-mode='community']) .hp-nav:not([data-page-mode]) [data-for='standard'],
+  html[data-nav-mode='arena'] .hp-nav:not([data-page-mode]) [data-for='arena'],
+  html[data-nav-mode='battlegrounds'] .hp-nav:not([data-page-mode]) [data-for='battlegrounds'],
+  html[data-nav-mode='community'] .hp-nav:not([data-page-mode]) [data-for='community']
+) {
+  display: inline-flex;
+}
+
+/* ─── Shared ───────────────────────────────────────────────────────────── */
 
 .arena-nav-label {
   min-width: 0;
@@ -14,53 +65,50 @@
   white-space: nowrap;
 }
 
-/* A group title is the toggle; its chevron turns instead of the label changing. */
-.arena-nav-group-chevron { margin-left: auto; }
+.arena-mobile-nav-toggle:focus-visible,
+.arena-sidebar-brand:focus-visible,
+.arena-mobile-menu-profile:focus-visible {
+  outline: 2px solid #f7d77d;
+  outline-offset: 3px;
+}
 
-/* Group emblem: a small gold coat of arms in front of the title, never a coin. */
-.arena-nav-group-emblem {
+.hp-nav { min-width: 0; }
+
+/* The profile block shares the menu's type: Inter, never the decorative display face. */
+.arena-sidebar-profile-label,
+.arena-mobile-menu-profile {
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.arena-sidebar-profile-label { font-size: 1.0625rem; }
+.arena-mobile-menu-profile { font-size: 1.0625rem; }
+
+.hp-nav-top,
+.hp-nav-scroll,
+.hp-nav-list { min-width: 0; }
+
+.hp-nav-top { display: grid; gap: 8px; }
+
+.hp-nav-scroll {
   display: grid;
-  flex: 0 0 22px;
-  width: 22px;
-  height: 22px;
-  place-items: center;
-  color: #e3bb62;
+  align-content: start;
+  gap: 4px;
+  overflow-x: hidden;
 }
 
-.arena-nav-group-emblem svg { display: block; }
-
-:is(.arena-sidebar-group-trigger, .arena-mobile-menu-group-trigger)[data-current] .arena-nav-group-emblem { color: #ffd877; }
-
-/* Icons lift and warm up on hover; only transform and colour move. */
-:is(.arena-sidebar-link, .arena-mobile-menu-link) :is(.arena-sidebar-link-icon, .arena-mobile-menu-link-icon) {
-  transition: transform var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
-}
-
-@media (hover: hover) {
-  :is(.arena-sidebar-link, .arena-mobile-menu-link):hover :is(.arena-sidebar-link-icon, .arena-mobile-menu-link-icon) {
-    color: #ffd877;
-    transform: translateY(-1px) scale(1.08);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  :is(.arena-sidebar-link, .arena-mobile-menu-link) :is(.arena-sidebar-link-icon, .arena-mobile-menu-link-icon) { transition: none; }
-  :is(.arena-sidebar-link, .arena-mobile-menu-link):hover :is(.arena-sidebar-link-icon, .arena-mobile-menu-link-icon) { transform: none; }
-}
-
-/* The administrator's panel sits apart, below the last group. */
-.arena-sidebar-admin,
-.arena-mobile-menu-admin {
+.hp-nav-admin {
   display: grid;
-  margin-top: 0.7rem;
-  padding-top: 0.6rem;
-  border-top: 1px solid rgba(232, 192, 103, 0.18);
+  margin-top: 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(232, 192, 103, 0.2);
 }
 
 .arena-nav-badge {
   flex: 0 0 auto;
   margin-left: auto;
-  padding: 0.12rem 0.42rem;
+  padding: 0.14rem 0.5rem;
   border-radius: 999px;
   color: #3b0609;
   background: linear-gradient(180deg, #fff0c2, #e2b24e);
@@ -74,84 +122,382 @@
   text-transform: uppercase;
 }
 
-/* ─── Current page and pressed feedback ───────────────────────────────── */
+/* ─── A menu item ──────────────────────────────────────────────────────── */
 
-/* The gold bar is the indicator; it grows in on transform and opacity only. */
-:is(.arena-sidebar-link, .arena-mobile-menu-link):not(.arena-mobile-menu-profile)::after {
+.hp-nav-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  min-height: 52px;
+  padding: 6px 12px 6px 10px;
+  border-radius: 12px;
+  color: #fbefd5;
+  font-family: var(--font-body);
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-decoration: none;
+  text-shadow: 0 1px 1px rgba(36, 3, 6, 0.55);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* The plate behind an item: invisible until hover, focus or the current page, drawn as a layer so only its opacity moves. */
+.hp-nav-link::before {
   content: '';
   position: absolute;
-  left: -3px;
-  top: 7px;
-  bottom: 7px;
-  width: 3px;
-  border-radius: 2px;
-  background: linear-gradient(180deg, #fff3c4, #f2c85d 45%, #b7791f);
-  box-shadow: 0 0 10px rgba(252, 211, 77, 0.55);
+  inset: 0;
+  z-index: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(90deg, rgba(255, 226, 157, 0.2), rgba(255, 226, 157, 0.04) 78%, transparent),
+    rgba(40, 3, 6, 0.34);
+  box-shadow: inset 0 0 0 1px rgba(246, 218, 160, 0.24), inset 0 1px rgba(255, 235, 188, 0.2), inset 0 -2px rgba(20, 2, 4, 0.3);
   opacity: 0;
-  transform: scaleY(0.35);
-  transition: opacity var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-ease);
+  transition: opacity var(--motion-fast) var(--motion-ease);
+  pointer-events: none;
 }
 
-.arena-mobile-menu-link { position: relative; }
-
-.arena-sidebar .arena-sidebar-link,
-.arena-mobile-menu .arena-mobile-menu-link:not(.arena-mobile-menu-profile) {
-  border-left-color: transparent;
+/* The gold bar of the current page; it grows in on transform and opacity only. */
+.hp-nav-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 11px;
+  bottom: 11px;
+  width: 4px;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, #fff3c4, #f2c85d 45%, #b7791f);
+  box-shadow: 0 0 12px rgba(252, 211, 77, 0.6);
+  opacity: 0;
+  transform: scaleY(0.3);
+  transform-origin: center;
+  transition: opacity var(--motion-fast) var(--motion-ease), transform var(--motion-base) var(--motion-ease);
+  pointer-events: none;
 }
 
-/* A press marks its link before the click; the old current item steps back
-   meanwhile. As specific as the hidden bar above, plus one class. */
-:is(.arena-sidebar-link, .arena-mobile-menu-link):not(.arena-mobile-menu-profile):is(.arena-sidebar-link-active, .arena-mobile-menu-link-active, [data-nav-pressed])::after {
+.hp-nav-icon,
+.hp-nav-label,
+.hp-nav-link .arena-nav-badge { position: relative; z-index: 1; }
+
+.hp-nav-icon {
+  position: relative;
+  display: grid;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  transition: transform var(--motion-fast) var(--motion-ease), filter var(--motion-fast) var(--motion-ease);
+}
+
+.hp-nav-art {
+  position: relative;
+  display: block;
+  width: 40px;
+  height: 40px;
+}
+
+.hp-nav-art { object-fit: contain; }
+
+.hp-nav-label {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  transition: transform var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+}
+
+@media (hover: hover), (min-width: 1024px) {
+  .hp-nav-link:hover { color: #fffaf0; }
+  .hp-nav-link:hover::before { opacity: 1; }
+  .hp-nav-link:hover .hp-nav-icon { transform: scale(1.08); filter: brightness(1.12); }
+  .hp-nav-link:hover .hp-nav-label { transform: translateX(2px); }
+}
+
+.hp-nav-link:focus-visible {
+  outline: 2px solid #f7d77d;
+  outline-offset: 1px;
+}
+
+/* A press marks the item before the click (data-nav-pressed, useNavigationFeedback); the old current item steps back meanwhile. */
+.hp-nav-link:active,
+.hp-nav-link[data-nav-pressed] { transform: scale(0.98); }
+
+.hp-nav-link:is([aria-current='page'], [data-nav-pressed]) { color: #fffaf0; }
+
+.hp-nav-link:is([aria-current='page'], [data-nav-pressed])::before { opacity: 1; }
+
+.hp-nav-link:is([aria-current='page'], [data-nav-pressed])::after {
   opacity: 1;
   transform: none;
 }
 
-.arena-sidebar .arena-sidebar-link:is(.arena-sidebar-link-active, [data-nav-pressed]),
-.arena-mobile-menu .arena-mobile-menu-link:is(.arena-mobile-menu-link-active, [data-nav-pressed]):not(.arena-mobile-menu-profile) {
-  color: #fff7df;
-  background:
-    linear-gradient(90deg, rgba(246, 218, 160, 0.17), rgba(246, 218, 160, 0.04) 70%, transparent),
-    rgba(40, 3, 6, 0.38);
-  /* An embossed plaque: a gold hairline, a lit top edge and a dark lower lip. */
-  box-shadow: inset 0 0 0 1px rgba(246, 218, 160, 0.2), inset 0 1px rgba(255, 235, 188, 0.18), inset 0 -2px rgba(20, 2, 4, 0.32);
-}
+.hp-nav-link:is([aria-current='page'], [data-nav-pressed]) .hp-nav-icon { filter: brightness(1.1); }
 
-.arena-sidebar :is(.arena-sidebar-link-active, [data-nav-pressed]) .arena-sidebar-link-icon,
-.arena-mobile-menu :is(.arena-mobile-menu-link-active, [data-nav-pressed]) .arena-mobile-menu-link-icon {
-  color: #ffd877;
-  filter: drop-shadow(0 0 5px rgba(255, 207, 99, 0.5));
-}
-
-:is(.arena-sidebar-nav, .arena-mobile-menu):has([data-nav-pressed]) :is(.arena-sidebar-link-active, .arena-mobile-menu-link-active):not([data-nav-pressed]):not(.arena-mobile-menu-profile) {
-  color: #f7dfb0;
-  background: transparent;
-  box-shadow: none;
-}
-
-:is(.arena-sidebar-nav, .arena-mobile-menu):has([data-nav-pressed]) :is(.arena-sidebar-link-active, .arena-mobile-menu-link-active):not([data-nav-pressed])::after {
+.hp-nav:has([data-nav-pressed]) .hp-nav-link[aria-current='page']:not([data-nav-pressed]) { color: #fbefd5; }
+.hp-nav:has([data-nav-pressed]) .hp-nav-link[aria-current='page']:not([data-nav-pressed])::before { opacity: 0; }
+.hp-nav:has([data-nav-pressed]) .hp-nav-link[aria-current='page']:not([data-nav-pressed])::after {
   opacity: 0;
-  transform: scaleY(0.35);
+  transform: scaleY(0.3);
+}
+.hp-nav:has([data-nav-pressed]) .hp-nav-link[aria-current='page']:not([data-nav-pressed]) .hp-nav-icon { filter: none; }
+
+/* ─── The mode switch ──────────────────────────────────────────────────── */
+
+.hp-mode { position: relative; }
+
+.hp-mode-button {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 72px;
+  padding: 8px 16px 8px 12px;
+  border: 1px solid rgba(238, 201, 116, 0.42);
+  border-radius: 16px;
+  color: #fff3d0;
+  background:
+    linear-gradient(180deg, rgba(255, 226, 157, 0.16), rgba(255, 226, 157, 0.03) 46%, rgba(30, 2, 5, 0.34)),
+    rgba(52, 5, 9, 0.5);
+  box-shadow: inset 0 1px rgba(255, 240, 201, 0.2), 0 8px 18px rgba(28, 3, 5, 0.34);
+  cursor: pointer;
+  list-style: none;
+  transition: border-color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
-:is(.arena-sidebar-nav, .arena-mobile-menu):has([data-nav-pressed]) :is(.arena-sidebar-link-active, .arena-mobile-menu-link-active):not([data-nav-pressed]) :is(.arena-sidebar-link-icon, .arena-mobile-menu-link-icon) {
-  color: #e3bb62;
-  filter: none;
+.hp-mode-button::-webkit-details-marker { display: none; }
+.hp-mode-button::marker { content: ''; }
+
+.hp-mode-button:focus-visible {
+  outline: 2px solid #f7d77d;
+  outline-offset: 2px;
 }
 
-.arena-sidebar-link:active,
-.arena-mobile-menu-link:active,
-[data-nav-pressed] {
-  transform: scale(0.985);
+.hp-mode-button:active { transform: scale(0.98); }
+
+.hp-mode-emblem {
+  display: grid;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  transition: transform var(--motion-fast) var(--motion-ease);
 }
 
-/* ─── Desktop sidebar ─────────────────────────────────────────────────── */
+.hp-mode-emblem img { display: block; width: 100%; height: 100%; }
+
+.hp-mode-copy {
+  display: grid;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 2px;
+}
+
+.hp-mode-kicker {
+  color: #d9b567;
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+
+.hp-mode-name {
+  overflow-wrap: anywhere;
+  color: #fffaf0;
+  font-family: var(--font-body);
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.15;
+  text-shadow: 0 1px 2px rgba(30, 3, 5, 0.6);
+}
+
+.hp-mode-chevron {
+  flex: 0 0 20px;
+  color: #f0c869;
+  transition: transform var(--motion-base) var(--motion-ease);
+}
+
+.hp-mode[open] > .hp-mode-button { border-color: rgba(255, 224, 150, 0.8); }
+.hp-mode[open] > .hp-mode-button .hp-mode-chevron { transform: rotate(180deg); }
+
+@media (hover: hover), (min-width: 1024px) {
+  .hp-mode-button:hover {
+    border-color: rgba(255, 224, 150, 0.78);
+    background-color: rgba(76, 8, 13, 0.6);
+  }
+
+  .hp-mode-button:hover .hp-mode-emblem { transform: scale(1.06); }
+  .hp-mode-button:hover .hp-mode-chevron { transform: translateY(2px); }
+  .hp-mode[open] > .hp-mode-button:hover .hp-mode-chevron { transform: rotate(180deg) translateY(2px); }
+}
+
+/* The panel of banners. A closed <details> hides it; the content box fades in and out where the browser animates it. */
+.hp-mode::details-content {
+  opacity: 0;
+  transition: opacity var(--motion-base) var(--motion-ease), content-visibility var(--motion-base) allow-discrete;
+}
+
+.hp-mode[open]::details-content { opacity: 1; }
+
+.hp-mode-panel {
+  display: grid;
+  gap: 12px;
+}
+
+@keyframes hp-mode-panel-in {
+  from { transform: scale(0.96); }
+}
+
+@keyframes hp-mode-card-in {
+  from { opacity: 0; transform: translateY(12px); }
+}
+
+.hp-mode[open] .hp-mode-panel { animation: hp-mode-panel-in var(--motion-base) var(--motion-ease); }
+
+.hp-mode[open] .hp-mode-card {
+  animation: hp-mode-card-in var(--motion-base) var(--motion-ease) backwards;
+  animation-delay: calc(var(--i) * var(--motion-stagger));
+}
+
+.hp-mode-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-width: 0;
+  height: 232px;
+  overflow: hidden;
+  border-radius: 16px;
+  color: #fff7df;
+  background: #2a0709;
+  box-shadow: 0 6px 16px rgba(10, 1, 2, 0.45), inset 0 0 0 1px rgba(246, 218, 160, 0.26);
+  isolation: isolate;
+  text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform var(--motion-base) var(--motion-ease);
+}
+
+/* A golden frame with a glow: its own layer, so hover only fades it in. */
+.hp-mode-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px #f3cf79, 0 0 22px rgba(247, 205, 99, 0.5);
+  opacity: 0;
+  transition: opacity var(--motion-base) var(--motion-ease);
+  pointer-events: none;
+}
+
+.hp-mode-card[aria-current='true']::before { opacity: 0.55; }
+
+/* The darkening under the title keeps it readable over any art. */
+.hp-mode-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, transparent 38%, rgba(14, 2, 4, 0.78) 70%, rgba(12, 1, 3, 0.94));
+  pointer-events: none;
+}
+
+.hp-mode-art {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  display: block;
+  overflow: hidden;
+  transition: transform calc(var(--motion-slow) * 2) var(--motion-ease);
+}
+
+.hp-mode-art img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 20%;
+}
+
+.hp-mode-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  align-items: center;
+  padding: 4px 9px;
+  border-radius: 7px;
+  color: #3b0609;
+  background: linear-gradient(180deg, #fbe19a, #dba43a);
+  box-shadow: 0 2px 8px rgba(10, 1, 2, 0.5), inset 0 1px rgba(255, 255, 255, 0.5);
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+
+.hp-mode-card-text {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  gap: 4px;
+  padding: 0 14px 14px;
+  font-family: var(--font-body);
+}
+
+.hp-mode-card-text strong {
+  overflow-wrap: anywhere;
+  font-size: 20px;
+  font-weight: 800;
+  line-height: 1.15;
+  text-shadow: 0 2px 6px rgba(10, 1, 2, 0.7);
+}
+
+.hp-mode-card-text span {
+  color: #ecd9b0;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+@media (hover: hover), (min-width: 1024px) {
+  .hp-mode-card:hover { transform: translateY(-4px); }
+  .hp-mode-card:hover::before { opacity: 1; }
+  .hp-mode-card:hover .hp-mode-art { transform: scale(1.05); }
+}
+
+.hp-mode-card:focus-visible {
+  outline: 2px solid #f7d77d;
+  outline-offset: 2px;
+}
+
+.hp-mode-card:focus-visible::before { opacity: 1; }
+.hp-mode-card:active { transform: scale(0.98); }
+
+/* ─── Desktop sidebar ──────────────────────────────────────────────────── */
 
 .arena-sidebar-compact-toggle,
 .arena-nav-tooltip { display: none; }
 
 @media (min-width: 1024px) {
+  /* The sidebar no longer scrolls as a whole: the list does, so the panel of banners can open beside it, over the page. */
+  .arena-sidebar.arena-sidebar {
+    width: 296px;
+    overflow: visible;
+  }
+
+  .arena-workspace.arena-workspace { margin-left: 296px; }
+
   .arena-sidebar-head {
     display: flex;
+    flex: 0 0 auto;
     align-items: center;
     gap: 0.35rem;
     border-bottom: 1px solid rgba(237, 199, 111, 0.25);
@@ -188,22 +534,67 @@
     outline-offset: 2px;
   }
 
-  .arena-sidebar .arena-sidebar-link { min-height: 40px; }
-
-  .arena-sidebar .arena-sidebar-link:is(.arena-sidebar-link-active, [data-nav-pressed]):hover {
-    color: #fff7df;
+  .arena-sidebar .arena-sidebar-nav {
+    display: flex;
+    border-color: rgba(232, 192, 103, 0.2);
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    margin-top: 0.7rem;
+    margin-bottom: 0.7rem;
+    padding: 0.7rem 0 0;
   }
 
-  /* Rail: icons, group titles as dividers and one shared tooltip. Applied
-     before first paint from the remembered choice (navigationPreference.ts). */
-  html[data-nav-compact] .arena-sidebar {
+  .arena-sidebar .hp-nav-top { flex: 0 0 auto; }
+
+  .arena-sidebar .hp-nav-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 2px 2px 4px 0;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(228, 190, 106, 0.5) transparent;
+  }
+
+  /* The panel opens to the right of the sidebar, over the page: 4 banners in a row, 2×2 on a narrower window. */
+  .hp-mode[data-variant='sidebar'] .hp-mode-panel {
+    position: absolute;
+    top: -6px;
+    left: calc(100% + 0.72rem + 14px + 10px);
+    z-index: 70;
+    grid-template-columns: repeat(2, 200px);
+    max-height: calc(100dvh - 140px);
+    padding: 14px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border: 1px solid rgba(246, 206, 120, 0.5);
+    border-radius: 22px;
+    background:
+      radial-gradient(circle at 0% 0%, rgba(160, 36, 28, 0.35), transparent 60%),
+      linear-gradient(180deg, #2c070a, #1b0406);
+    box-shadow: 0 28px 64px rgba(8, 1, 2, 0.6), 0 0 0 1px rgba(8, 1, 2, 0.6), inset 0 1px rgba(255, 233, 180, 0.16);
+    transform-origin: top left;
+  }
+
+  @media (min-width: 1360px) {
+    .hp-mode[data-variant='sidebar'] .hp-mode-panel {
+      grid-template-columns: repeat(4, 200px);
+      overflow-y: visible;
+    }
+
+    .hp-mode[data-variant='sidebar'] .hp-mode-card { height: 280px; }
+  }
+
+  /* Rail: icons only, the mode button is its coat of arms, one shared tooltip. Applied before first paint from the remembered choice (navigationPreference.ts). */
+  html[data-nav-compact] .arena-sidebar.arena-sidebar {
     width: 84px;
     padding-inline: 0.55rem;
   }
 
-  html[data-nav-compact] .arena-workspace { margin-left: 84px; }
+  html[data-nav-compact] .arena-workspace.arena-workspace { margin-left: 84px; }
 
-  html[data-nav-compact] .arena-sidebar :is(.arena-nav-label, .arena-nav-group-chevron, .arena-sidebar-profile-copy) {
+  html[data-nav-compact] .arena-sidebar :is(.arena-nav-label, .hp-nav-label, .hp-mode-copy, .hp-mode-chevron, .arena-sidebar-profile-copy) {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -224,31 +615,25 @@
     padding: 0.45rem 0 0.2rem;
   }
 
-  html[data-nav-compact] .arena-sidebar .arena-sidebar-link {
+  html[data-nav-compact] .arena-sidebar .hp-nav-link {
     justify-content: center;
     gap: 0;
     padding-inline: 0;
   }
 
-  /* Every item shows in the rail: the group title becomes a hairline and its closed list opens. */
-  html[data-nav-compact] .arena-sidebar-group-trigger { display: none; }
-
-  html[data-nav-compact] .arena-sidebar-group::before {
-    content: '';
-    height: 1px;
-    margin: 0.35rem 0.4rem 0.25rem;
-    background: rgba(232, 192, 103, 0.2);
+  html[data-nav-compact] .arena-sidebar .hp-mode-button {
+    justify-content: center;
+    min-height: 64px;
+    padding: 8px 0;
   }
 
-  html[data-nav-compact] .arena-sidebar-group-items[data-closed] { display: grid; }
-
-  html[data-nav-compact] .arena-sidebar-group { margin-top: 0; gap: 0.13rem; }
-  html[data-nav-compact] .arena-sidebar-admin { margin-top: 0.4rem; padding-top: 0.4rem; }
+  html[data-nav-compact] .hp-mode[data-variant='sidebar'] .hp-mode-panel { left: calc(100% + 0.55rem + 14px + 10px); }
 
   html[data-nav-compact] .arena-sidebar .arena-nav-badge {
     position: absolute;
     top: 4px;
-    left: calc(50% + 8px);
+    left: calc(50% + 10px);
+    z-index: 2;
     width: 9px;
     height: 9px;
     padding: 0;
@@ -275,14 +660,15 @@
     z-index: 60;
     display: block;
     max-width: 260px;
-    padding: 0.38rem 0.62rem;
+    padding: 0.4rem 0.7rem;
     border: 1px solid rgba(242, 200, 93, 0.55);
-    border-radius: 4px;
+    border-radius: 6px;
     color: #fff3d6;
     background: #3a0609;
     box-shadow: 0 8px 18px rgba(20, 2, 4, 0.4);
-    font-family: var(--font-display);
-    font-size: 0.82rem;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    font-weight: 600;
     line-height: 1.2;
     white-space: nowrap;
     pointer-events: none;
@@ -297,7 +683,7 @@
   }
 }
 
-/* ─── Phone drawer ────────────────────────────────────────────────────── */
+/* ─── Phone drawer ─────────────────────────────────────────────────────── */
 
 @media (max-width: 1023.98px) {
   /* A full-height drawer from the left edge under the top bar: it slides on
@@ -308,18 +694,20 @@
     bottom: 0;
     left: 0;
     right: auto;
-    width: min(88vw, 360px);
+    width: min(92vw, 380px);
     /* The popover UA style is `height: fit-content`: without this the drawer
        grows past the screen and cannot scroll. */
     height: auto;
     max-height: none;
     align-content: start;
+    gap: 8px;
+    overflow-x: hidden;
     overscroll-behavior: contain;
     touch-action: pan-y;
     border-width: 0 7px 0 0;
     border-image-width: 0 7px 0 0;
     border-radius: 0;
-    padding: 0.6rem 0.7rem calc(1rem + env(safe-area-inset-bottom));
+    padding: 0.7rem 0.7rem calc(1rem + env(safe-area-inset-bottom));
   }
 
   .arena-mobile-menu.arena-mobile-menu[popover] {
@@ -333,5 +721,46 @@
     .arena-mobile-menu.arena-mobile-menu:is([data-open], :popover-open) { translate: -100% 0; }
   }
 
-  .arena-mobile-menu .arena-mobile-menu-link:not(.arena-mobile-menu-profile) { min-height: 46px; }
+  .arena-mobile-menu .hp-nav-top,
+  .arena-mobile-menu .hp-nav-scroll { gap: 8px; }
+
+  /* The drawer itself scrolls; its list never becomes a second scroll area. */
+  .arena-mobile-menu .hp-nav-scroll { overflow: visible; }
+
+  .arena-mobile-menu .hp-nav-link { min-height: 56px; }
+
+  /* The panel unfolds inside the drawer: 2×2 banners, the height animated by the browser where it can. */
+  html { interpolate-size: allow-keywords; }
+
+  .hp-mode[data-variant='mobile']::details-content {
+    block-size: 0;
+    overflow: clip;
+    transition:
+      block-size var(--motion-base) var(--motion-ease),
+      opacity var(--motion-base) var(--motion-ease),
+      content-visibility var(--motion-base) allow-discrete;
+  }
+
+  .hp-mode[data-variant='mobile'][open]::details-content { block-size: auto; }
+
+  .hp-mode[data-variant='mobile'] .hp-mode-panel {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    padding: 12px 0 4px;
+  }
+
+  .hp-mode[data-variant='mobile'] .hp-mode-card { height: 196px; }
+  .hp-mode[data-variant='mobile'] .hp-mode-card-text { padding: 0 11px 11px; }
+  .hp-mode[data-variant='mobile'] .hp-mode-card-text strong { font-size: 17px; }
+  .hp-mode[data-variant='mobile'] .hp-mode-card-text span { font-size: 12.5px; }
+  .hp-mode[data-variant='mobile'] .hp-mode-panel { animation: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-nav-link:hover .hp-nav-icon,
+  .hp-nav-link:hover .hp-nav-label,
+  .hp-mode-card:hover,
+  .hp-mode-card:hover .hp-mode-art,
+  .hp-nav-link:active,
+  .hp-mode-card:active { transform: none; }
 }

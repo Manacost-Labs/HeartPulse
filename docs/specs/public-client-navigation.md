@@ -572,3 +572,46 @@ among the Battlegrounds builders and «Разное» was a dump.
    the same titles. «Подборка» keeps its name: the SEO decision of #400.
 5. The compact rail shows every item (a closed group is shown in full there)
    and replaces group titles with hairlines; the tooltip reads «Пункт · Группа».
+
+### Menu v3: flat list and mode banners (2026-11-19, #458)
+
+The owner found the accordion menu small, shaky and dull. Groups are gone.
+
+1. One flat list. The sidebar and the drawer show «Главная», the mode switch and
+   every item of the current mode (row ≥ 52 px, 56 px in the drawer; icon 40 px;
+   label Inter 600 17 px; 4 px between rows). Item ids, paths, entitlements and
+   `tabFromPath` did not change; `NAVIGATION_MODES` (`navigationData.ts`) names
+   the four modes, their description line and the item their banner opens.
+2. All four lists are in the server HTML; CSS shows one. The tree carries
+   `data-page-mode` for a page with a mode (`modeOfTab`); on any other page
+   (home, help, profile) `<html data-nav-mode>` decides, set by the head script
+   from `localStorage` `hp:nav:mode` before first paint (`navigationPreference.ts`),
+   Standard by default and without script. A page of a mode stores it, so Home
+   shows the mode the reader used last. The new list slides in (opacity and an
+   8 px shift) only when the page's mode changes, never on first load.
+3. The mode switch is a native `<details class="hp-mode">`: it works without
+   JavaScript and before hydration. Its panel holds four banner links; the
+   hidden panel is not in the accessibility tree. `useModePanels` closes it on
+   Escape (focus back on the button, before the drawer's own Escape handler),
+   on a press elsewhere, when focus leaves and when a banner is chosen. A
+   banner is a plain `<a>`: with JavaScript it is a client navigation, the link
+   is prefetched when the panel opens (the viewport prefetch sees it only then).
+4. Layout. The sidebar (296 px) no longer scrolls as a whole: its list does, so
+   the panel can open to the right over the page (4 cards in a row from 1360 px,
+   2×2 below). In the drawer the panel unfolds inside, 2×2, its height animated
+   by the browser (`::details-content`, `interpolate-size`). No horizontal
+   scroll in either, at any window width and browser zoom
+   (`tests/next-menu-overflow-browser.test.mjs`).
+5. Art. `src/app/shell/menuArt.json` lists the painted icons (`<id>`, `mode-<mode>`)
+   and banners; the search palette shows the same icons for pages.
+6. Motion: only transform and opacity, the site's tokens; hover lifts the icon
+   to 1.08 and shifts the label 2 px, a banner rises 4 px and its art grows
+   to 1.05, banners enter one after another; reduced motion removes the
+   movement.
+
+Verification: `tests/public-navigation-shell.test.tsx`, `tests/routes.test.ts`,
+`tests/next-menu-overflow-browser.test.mjs`, the drawer, transitions, Back/Forward
+and access tests (`next-mobile-menu`, `next-page-transitions`, `next-bfcache`,
+`next-instant-access`, `user-flow-mobile-navigation`), the sidebar and drawer
+blocks of `scripts/e2e-qa.mjs`, and the Storybook stories `App shell/Public
+navigation` and `App shell/Persistent navigation`.

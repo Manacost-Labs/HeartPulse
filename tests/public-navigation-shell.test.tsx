@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import React, { createRef, type ReactElement, type ReactNode } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
-import { NavigationRouteLinks } from '../src/app/shell/NavigationItems.js';
+import { NavigationModePicker, NavigationRouteLinks } from '../src/app/shell/NavigationItems.js';
 import { PublicNavigation, type PublicNavigationProps } from '../src/app/shell/PublicNavigation.js';
 import { COMMUNITY_TABS } from '../src/app/routing/navigationRoutes.js';
 
@@ -10,8 +10,7 @@ const noop = () => {};
 const props: PublicNavigationProps = {
   activeTab: 'articles',
   mobileMenuOpen: true,
-  mobileNavGroups: new Set(['battlegrounds'] as const),
-  sidebarNavGroups: new Set(['community'] as const),
+  mode: 'community',
   compact: false,
   badges: { 'patch-notes': { label: 'Новый', title: 'Новый патч 37.0.0' } },
   visibleArenaTabs: [],
@@ -28,8 +27,6 @@ const props: PublicNavigationProps = {
   onNavigateLogin: noop,
   onToggleMobileMenu: noop,
   onCloseMobileMenu: noop,
-  onToggleMobileNavGroup: noop,
-  onToggleSidebarNavGroup: noop,
   onToggleCompact: noop,
 };
 
@@ -39,31 +36,38 @@ assert.match(html, /aria-label="Мобильная навигация"/);
 assert.match(html, /aria-label="Основная навигация"/);
 assert.match(html, /HearthPulse/);
 assert.match(html, /src="\/hearthpulse-logo\.webp"/);
-assert.match(html, /arena-(?:mobile-menu|sidebar)-link-icon/);
 assert.match(html, /aria-current="page"/);
 assert.doesNotMatch(html, /href="\/[^"?#.]*[^\/"?#.]"/, 'navigation links must target canonical trailing-slash URLs');
-for (const title of ['Стандарт и Вольный', 'Арена', 'Поля сражений', 'Сообщество']) assert.match(html, new RegExp(`<span class="arena-nav-label">${title}</span>`));
-assert.doesNotMatch(html, /Конструкторы|Разное|Традиционный режим/, 'the old groups are gone');
-assert.match(html, /aria-expanded="true"/);
-assert.match(html, /id="arena-mobile-battlegrounds"/);
-assert.match(html, /id="arena-sidebar-community"/);
 assert.doesNotMatch(html, /arena-sidebar-status|Дата обновления данных|Обновлено/);
-// No decorative captions under groups and no gold coins; each group carries a coat of arms instead.
-assert.doesNotMatch(html, /Мета и колоды|Драфт и выборы|Герои и тактика|Создавайте и сравнивайте|Материалы и события/);
-assert.doesNotMatch(html, /arena-nav-section-icon|arena-(?:sidebar|mobile-menu)-section/, 'group titles carry no coins');
-// A group title is a button tied to its list; the links of a closed group stay in the HTML for crawlers and no-JS readers.
-assert.match(html, /<button[^>]*aria-expanded="false"[^>]*aria-controls="arena-sidebar-standard"/);
-assert.match(html, /id="arena-sidebar-standard"[^>]*data-closed=""[^>]*>[\s\S]*?href="\/standard\/deck-builder\/"/, 'the deck builder is in the Standard group');
-assert.equal(html.match(/class="arena-nav-group-emblem"/g)?.length, 8, 'every group title has its own emblem');
-assert.equal(html.match(/arena-(?:sidebar|mobile-menu)-group-trigger/g)?.length, 8, 'four collapsible groups in the drawer and four in the sidebar');
-// Groups open independently: opening one never collapses another under the pointer.
-const bothOpen = renderToStaticMarkup(<PublicNavigation {...props} sidebarNavGroups={new Set(['standard', 'community'] as const)} />);
-assert.match(bothOpen, /id="arena-sidebar-standard"(?![^>]*data-closed)/);
-assert.match(bothOpen, /id="arena-sidebar-community"(?![^>]*data-closed)/);
+assert.doesNotMatch(html, /Конструкторы|Разное|Традиционный режим|Стандарт и Вольный/, 'the old groups are gone');
+// The items of all four modes are in the server HTML of the drawer and of the sidebar; CSS shows one list.
+for (const path of ['/standard/matchups/', '/standard/deck-builder/', '/battlegrounds/tier-list/', '/battlegrounds/tier-builder/', '/guides-archive/']) {
+  assert.equal(html.split(`href="${path}"`).length - 1, 2, `${path} is listed in the drawer and in the sidebar`);
+}
+assert.equal(html.match(/class="hp-nav-list"/g)?.length, 8, 'four lists in the drawer and four in the sidebar');
+// The mode switch is a native <details>: it opens without JavaScript. Its four banners are plain links to the mode's main page.
+assert.equal(html.match(/<details class="hp-mode"/g)?.length, 2, 'one switch in the drawer and one in the sidebar');
+for (const [mode, path] of [['standard', '/standard/meta/'], ['arena', '/classes/'], ['battlegrounds', '/heroes/'], ['community', '/articles/']]) {
+  assert.equal(html.split(`<a href="${path}" class="hp-mode-card" data-mode="${mode}"`).length - 1, 2, `the ${mode} banner leads to ${path}`);
+}
+assert.equal(html.match(/<a[^>]*class="hp-mode-card"[^>]*aria-current="true"/g)?.length, 2, 'only the current mode is marked');
+assert.match(html, /<a[^>]*data-mode="community"[^>]*aria-current="true"/);
+assert.doesNotMatch(html, /<a[^>]*data-mode="arena"[^>]*aria-current/);
+for (const title of ['Стандарт', 'Арена', 'Поля сражений', 'Сообщество']) assert.match(html, new RegExp(`<strong>${title}</strong>`));
+assert.match(html, /Мета, матчапы, колоды, карты/);
+assert.equal(html.match(/>Текущий</g)?.length, 8, 'every banner carries the badge, CSS shows the current one');
+// The page's mode picks the list on its own; a page without a mode leaves it to the remembered choice.
+assert.match(html, /<nav[^>]*class="arena-sidebar-nav hp-nav"[^>]*data-page-mode="community"/);
+assert.doesNotMatch(renderToStaticMarkup(<PublicNavigation {...props} activeTab="home" />), /data-page-mode/);
+// Menu art: a painted icon of 40 px for each item, no inline line icons left.
+assert.match(html, /<img class="hp-nav-art" src="\/menu\/icons\/standard-meta\.webp" width="40" height="40" loading="lazy" decoding="async" alt=""\/>/);
+assert.match(html, /src="\/menu\/icons\/mode-community\.webp" width="48" height="48"/);
+assert.match(html, /src="\/menu\/banners\/arena\.webp"/);
+assert.doesNotMatch(html, /class="hp-nav-icon"[^>]*><svg/, 'no line icons are left in the items');
 // The administrator panel hangs below the groups, and only when the access allows it.
 assert.doesNotMatch(html, /href="\/admin\/"/);
 const adminHtml = renderToStaticMarkup(<PublicNavigation {...props} appIsContestAdmin />);
-assert.match(adminHtml, /arena-sidebar-admin"[^>]*>[\s\S]*?href="\/admin\/"[\s\S]*?Админ-панель/);
+assert.match(adminHtml, /hp-nav-admin"[^>]*>[\s\S]*?href="\/admin\/"[\s\S]*?Админ-панель/);
 // A badge is plain text next to its link.
 assert.match(html, /href="\/standard\/patches\/"[^>]*>[\s\S]*?<span class="arena-nav-badge" title="Новый патч 37\.0\.0">Новый<\/span>/);
 // The compact rail keeps one name per item for its tooltip and a pressed toggle state.
@@ -100,17 +104,17 @@ function elementsOf(node: ReactNode, found: Element[] = []): Element[] {
 const calls: string[] = [];
 const spied: PublicNavigationProps = {
   ...props,
-  mobileNavGroups: new Set(['community'] as const),
   visibleCommunityTabs: COMMUNITY_TABS,
   onNavigate: tab => calls.push(`navigate ${tab}`),
   onNavigateLogin: () => calls.push('login'),
   onCloseMobileMenu: () => calls.push('close'),
 };
 const [topbar, drawer] = (PublicNavigation(spied) as Element).props.children as Element[];
-const drawerLinks = elementsOf(drawer).filter(element => element.type === NavigationRouteLinks);
-assert.ok(drawerLinks.length >= 5, 'the drawer renders its route lists');
+const drawerLinks = elementsOf(drawer).filter(element => element.type === NavigationRouteLinks || element.type === NavigationModePicker);
+assert.ok(drawerLinks.some(links => links.type === NavigationModePicker), 'a banner chosen in the drawer closes it');
+assert.ok(drawerLinks.length >= 6, 'the drawer renders its route lists');
 for (const links of drawerLinks) {
-  const [first] = links.props.routes as readonly { id: string }[];
+  const [first] = links.type === NavigationModePicker ? [{ id: 'standard-meta' }] : links.props.routes as readonly { id: string }[];
   if (!first) continue;
   calls.length = 0;
   (links.props.onNavigate as (tab: string) => void)(first.id);

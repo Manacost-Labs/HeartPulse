@@ -17,7 +17,7 @@ type Section = { title?: string; links: readonly Link[] };
 /** Menu blocks in the order of the site menu (`PublicNavigation`); a group missing here is not shown. */
 const MENU_BLOCKS: readonly { groups: readonly NavigationGroupId[]; title?: string }[] = [
   { groups: ['home'] },
-  { groups: ['standard'], title: 'Стандарт и Вольный' },
+  { groups: ['standard'], title: 'Стандарт' },
   { groups: ['arena'], title: 'Арена' },
   { groups: ['battlegrounds'], title: 'Поля сражений' },
   { groups: ['community'], title: 'Сообщество' },

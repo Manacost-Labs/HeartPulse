@@ -1,0 +1,77 @@
+{
+  "reason": "Меню v3 (#458, E22 C): панель баннеров режимов, плоский список с крупными пунктами и hover-состояния дают около 1,3 КБ несжатого CSS, который нужен меню при первой отрисовке на каждой странице. Рост укладывается в округление до 64 B (968 B на /heroes/, где меню ложится поверх тяжёлого стиля страницы); на /legendaries/ и /tierlist/ к росту меню добавился CSS открытых слоёв из #452 и #440, одобрение этих двух маршрутов округлено до 1 KiB (на /tierlist/ 1,25 KiB: после #460 запас ещё меньше); JS меню, наоборот, уменьшился: набор из 29 SVG-иконок заменён рисованными картинками из public/menu.",
+  "routes": {
+    "/articles/": {
+      "cssGzipBytes": 320
+    },
+    "/battlegrounds/tier-list/": {
+      "cssGzipBytes": 128
+    },
+    "/classes/": {
+      "cssGzipBytes": 320
+    },
+    "/connect/": {
+      "cssGzipBytes": 128
+    },
+    "/contests/": {
+      "cssGzipBytes": 128
+    },
+    "/cosmetics/": {
+      "cssGzipBytes": 128
+    },
+    "/developers/api/": {
+      "cssGzipBytes": 128
+    },
+    "/faq/": {
+      "cssGzipBytes": 128
+    },
+    "/gallery/": {
+      "cssGzipBytes": 320
+    },
+    "/guides-archive/": {
+      "cssGzipBytes": 128
+    },
+    "/heroes/": {
+      "cssGzipBytes": 1024
+    },
+    "/": {
+      "cssGzipBytes": 128
+    },
+    "/legendaries/": {
+      "cssGzipBytes": 1024
+    },
+    "/library/minions/": {
+      "cssGzipBytes": 128
+    },
+    "/library/": {
+      "cssGzipBytes": 128
+    },
+    "/privacy/": {
+      "cssGzipBytes": 128
+    },
+    "/standard/cards/standard/": {
+      "cssGzipBytes": 192
+    },
+    "/standard/cards/": {
+      "cssGzipBytes": 192
+    },
+    "/standard/deck-builder/": {
+      "cssGzipBytes": 128
+    },
+    "/standard/fun-decks/": {
+      "cssGzipBytes": 256
+    },
+    "/standard/matchups/": {
+      "cssGzipBytes": 384
+    },
+    "/standard/meta/": {
+      "cssGzipBytes": 192
+    },
+    "/standard/vicious-gold/": {
+      "cssGzipBytes": 448
+    },
+    "/tierlist/": {
+      "cssGzipBytes": 1280
+    }
+  }
+}
