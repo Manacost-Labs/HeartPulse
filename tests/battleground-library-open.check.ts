@@ -102,7 +102,10 @@ try {
     const degraded = await fetch(url);
     assert.equal((await degraded.json()).warning, 'stale');
     assert.equal(degraded.headers.get('cache-control'), 'public, max-age=60, stale-while-revalidate=60');
+    // The aggregate index follows: degraded while the minion listing is stale, normal again once it recovers.
+    assert.equal((await fetch(`${o}/api/bg/library/public/listing`)).headers.get('cache-control'), 'public, max-age=60, stale-while-revalidate=60');
     hold.down = false; t += 31_000;
+    assert.match((await fetch(`${o}/api/bg/library/public/listing`)).headers.get('cache-control') ?? '', /max-age=300/);
     const recovered = await fetch(url);
     assert.equal((await recovered.json()).warning, undefined, 'recovery is not held back by the degraded copy');
     assert.match(recovered.headers.get('cache-control') ?? '', /max-age=300/);
