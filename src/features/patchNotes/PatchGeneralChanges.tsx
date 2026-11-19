@@ -32,6 +32,16 @@ export function lineParts(text: string, marks: readonly PatchNotesMention[]): (s
   return parts;
 }
 
+/**
+ * Tabbing to a name below the fold scrolls the page, and the tooltip closes on any scroll. The scroll event of the
+ * focus is dispatched on the next frame, so the tooltip opens one frame later, if the name still has the focus.
+ */
+function openAfterFocusScroll(element: HTMLElement, open: (element: HTMLElement) => void) {
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    if (document.activeElement === element) open(element);
+  }));
+}
+
 export function PatchGeneralChanges({ group }: { group: PatchNotesGeneralChanges }) {
   const [preview, setPreview] = useState<CardPreviewTarget | null>(null);
   const [sheet, setSheet] = useState<CardPreviewSheetCard | null>(null);
@@ -55,7 +65,7 @@ export function PatchGeneralChanges({ group }: { group: PatchNotesGeneralChanges
                   aria-label={`${line.slice(part.start, part.end)}: показать карту «${part.name}»`}
                   onPointerEnter={event => { if (event.pointerType === 'mouse') setPreview(target(part, event.currentTarget)); }}
                   onPointerLeave={() => setPreview(null)}
-                  onFocus={event => setPreview(target(part, event.currentTarget))}
+                  onFocus={event => openAfterFocusScroll(event.currentTarget, element => setPreview(target(part, element)))}
                   onBlur={() => setPreview(null)}
                   onClick={() => { setPreview(null); setSheet({ id: part.cardId, name: part.name, imageUrl: publicResourceUrl(part.renderUrl) || null }); }}
                 >
