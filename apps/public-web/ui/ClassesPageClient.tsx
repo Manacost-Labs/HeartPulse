@@ -29,8 +29,8 @@ export function ClassesPageClient({ teaser, hasOpenData = true }: { teaser?: Rea
       day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
     })
     : 'Нет данных';
-  // With an open ranking the full one needs the protected data itself: a failed or empty answer leaves the open ranking.
-  const showPaid = allowed && (hasOpenData ? state.data !== null : state.status !== 'loading');
+  // With an open ranking the full one needs the protected data itself: a failed answer or one without classes leaves the open ranking.
+  const showPaid = allowed && (hasOpenData ? (state.data?.classes.length ?? 0) > 0 : state.status !== 'loading');
 
   return <PublicPageShell activeTab="winrates" pathname="/classes/" parchmentPreload="tablet-up" access={access}
     navigate={navigate} updatedAtLabel={updatedAtLabel}>

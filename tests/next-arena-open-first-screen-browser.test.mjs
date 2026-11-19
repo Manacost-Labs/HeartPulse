@@ -70,6 +70,11 @@ async function startStack() {
       if (!reader) return json(401, { error: 'subscription required' });
       state.protectedReads += 1;
       if (state.protectedFail === '500') return void setTimeout(() => json(500, { error: 'boom' }), 200);
+      if (state.protectedFail === 'empty') {
+        return void setTimeout(() => json(200, url.pathname === '/api/tierlist'
+          ? { sections: [], cards: {}, updatedAt: UPDATED_AT, source: 'hsreplay.net' }
+          : { classes: [], updatedAt: UPDATED_AT, source: 'hsreplay.net' }), 200);
+      }
       if (state.protectedFail === 'broken') return void setTimeout(() => response.writeHead(200, { 'Content-Type': 'application/json' }).end('{"sections":'), 200);
       return void setTimeout(() => json(200, url.pathname === '/api/tierlist' ? protectedTierlist() : protectedClasses()), PROTECTED_DELAY_MS);
     }
@@ -239,8 +244,8 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
       await classes.page.close();
     }
 
-    // The protected answer fails (a 5xx or a broken body): the subscriber keeps the open list, never an empty or error view.
-    for (const failure of ['500', 'broken']) {
+    // The protected answer fails (a 5xx, a broken body or a valid answer without rows): the subscriber keeps the open list, never an empty or error view.
+    for (const failure of ['500', 'broken', 'empty']) {
       stack.protectedFail = failure;
       for (const [path, open1, full] of [['/tierlist/', '.tierlist-public-pool', '.arena-tier-controls, .arena-paywall'],
         ['/classes/', '.classes-public-teaser', '.arena-class-row, .arena-classes-notice, .arena-paywall']]) {

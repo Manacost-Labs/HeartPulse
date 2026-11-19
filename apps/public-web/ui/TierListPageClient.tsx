@@ -55,8 +55,8 @@ export function TierListPageClient({ children, hasOpenData = true }: { children?
     void import('@/src/features/DeferredRoutes').then(module => { if (current) setPaid({ view: module.TierList }); });
     return () => { current = false; };
   }, [wantsPaid]);
-  // With an open list the full view needs the protected data itself: a failed or empty answer leaves the open list.
-  const showPaid = Paid !== null && (hasOpenData ? allowed && tierlist.state.data !== null : true);
+  // With an open list the full view needs the protected data itself: a failed answer or one without sections leaves the open list.
+  const showPaid = Paid !== null && (hasOpenData ? allowed && (tierlist.state.data?.sections.length ?? 0) > 0 : true);
 
   return <PublicPageShell activeTab="tierlist" pathname="/tierlist/" parchmentPreload="tablet-up" access={access}
     navigate={navigate} updatedAtLabel={updatedAtLabel}>
