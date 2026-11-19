@@ -2025,8 +2025,8 @@
       "jobs": [],
       "cacheNamespaces": [],
       "dataStores": [],
-      "externalServices": ["api.kolodahearthstone.com patch archive (/api/patches)", "api.hearthstonejson.com ruRU collectible cards", "api.kolodahearthstone.com Battlegrounds catalog (/api/v1 cards, trinkets, heroes and other lists)"],
-      "tests": ["tests/patch-notes.test.ts"],
+      "externalServices": ["api.kolodahearthstone.com patch archive (/api/patches)", "api.hearthstonejson.com ruRU collectible cards", "api.kolodahearthstone.com Battlegrounds catalog (/api/v1 cards, trinkets, heroes and other lists)", "api.kolodahearthstone.com full card catalog (/api/v1/card-catalog) and card history snapshots"],
+      "tests": ["tests/patch-notes.test.ts", "tests/patch-notes-cards-v2.test.ts"],
       "allowedDependencies": ["Express at the routes boundary"],
       "forbiddenImports": ["src/**", "other server module internals"]
     },
@@ -2044,7 +2044,7 @@
       "cacheNamespaces": [],
       "dataStores": [],
       "externalServices": [],
-      "tests": ["tests/patch-notes.test.ts"],
+      "tests": ["tests/patch-notes.test.ts", "tests/patch-notes-page-v2.test.ts"],
       "allowedDependencies": [],
       "forbiddenImports": ["server/**", "other frontend module internals"]
     },
