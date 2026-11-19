@@ -105,9 +105,9 @@ facts needed; a typical hero has eleven, a margin of one); a hero rated in one
 mode only, however full, makes the page `noindex, follow` without JSON-LD,
 and the hero segment of the sitemap (`loadBattlegroundHeroSitemapRows`)
 filters by the same function over the same ranking. JSON-LD of an
-indexable hero page: the entity graph plus a `Dataset` with `isAccessibleForFree: false` and
-`hasPart.cssSelector: ".paywalled-hero"`. The best build and key minions are
-printed only when the source gives their names (today it gives
+indexable hero page: the entity graph plus a `Dataset` with
+`isAccessibleForFree: false` and `hasPart.cssSelector: ".paywalled-hero"`.
+The best build and key minions are printed only when the source gives their names (today it gives
 `best_composition_id` only, #305); neither the page nor the Dataset
 promises them.
 
