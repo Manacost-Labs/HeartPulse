@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createServer, request as httpRequest } from 'node:http';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { DATA_PAGES } from '../scripts/lib/post-deploy-data-pages.mjs';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -381,14 +381,12 @@ test('the post-deploy warm-up regenerates /legendaries/ and /heroes/ through the
   }
 });
 
-// The warm-up table and the revalidate route list the same ISR pages (the route's list has no trailing slash).
-test('DATA_PAGES marked isr match the pages the revalidate route regenerates', () => {
-  const source = readFileSync('apps/public-web/app/health/next/revalidate/route.ts', 'utf8');
-  const routePaths = [...source.slice(source.indexOf('const DATA_PAGES'), source.indexOf('as const')).matchAll(/'(\/[^']*)'/g)].map(match => match[1]);
-  const isrPaths = DATA_PAGES.filter(page => page.isr).map(page => page.path.replace(/\/$/, ''));
-  assert.deepEqual([...routePaths].sort(), [...isrPaths].sort());
-  assert.ok(routePaths.includes('/library') && routePaths.includes('/library/minions'));
-  const library = DATA_PAGES.filter(page => page.path.startsWith('/library'));
-  assert.equal(library.length, 10);
-  assert.equal(library[0].marker, 'bg-library-public__size', 'the hub marker is not on the copy without sizes');
+// The warm-up table lists exactly the ISR pages the real revalidate route regenerates (that literal is asserted against the
+// real route by the warm-up test above).
+test('DATA_PAGES marked isr are the 16 pages of the revalidate route', () => {
+  const expected = ['/articles', '/classes', '/heroes', '/legendaries', '/library', ...['anomalies', 'dark-gifts', 'darkmoon-prizes', 'minions', 'quests',
+    'rewards', 'spells', 'timewarped', 'trinkets'].map(kind => `/library/${kind}`), '/standard/meta', '/tierlist'];
+  assert.equal(expected.length, 16);
+  assert.deepEqual(DATA_PAGES.filter(page => page.isr).map(page => page.path.replace(/\/$/, '')).sort(), [...expected].sort());
+  assert.equal(DATA_PAGES.find(page => page.path === '/library/').marker, 'bg-library-public__size', 'the hub marker is not on the copy without sizes');
 });
