@@ -1,9 +1,13 @@
 /*
  * Patch notes: the newest patches, each one its game modes, each changed card
  * the card before, the plates of what changed, and the card after. Large type
- * names the patch and the mode, pictures carry the rest; the only frames are a
- * wood rule under each heading and a quiet border around a card.
+ * names the patch, a strip of the mode's own art names the mode, pictures carry
+ * the rest; the only frames are a wood rule under the patch and a quiet border
+ * around a card.
  */
+
+@import './patchNotes/PatchModeHeading.css';
+@import './patchNotes/PatchGeneralChanges.css';
 
 .hp-patch {
   --patch-buff: #2f6e39;
@@ -23,8 +27,7 @@
 }
 
 .hp-patch__title,
-.hp-release__title,
-.hp-mode__title {
+.hp-release__title {
   margin: 0;
   color: var(--arena-ink);
   font-family: var(--font-display);
@@ -36,11 +39,11 @@
 .hp-patch__title { font-size: clamp(1.75rem, 5vw, 2.4rem); }
 
 /* A link to a card or a mode lands below the site's sticky search bar (a phone's header is taller). */
-.hp-mode__title,
+.hp-mode__head,
 .hp-pc { scroll-margin-top: 4.5rem; }
 
 @media (max-width: 1023px) {
-  .hp-mode__title,
+  .hp-mode__head,
   .hp-pc { scroll-margin-top: calc(var(--arena-mobile-sticky-offset, 70px) + 1rem); }
 }
 
@@ -61,20 +64,18 @@
 .hp-release__line {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem 1.1rem;
+  gap: 0 1rem;
   align-items: center;
   margin: 0;
   color: var(--arena-muted-ink);
   font-family: var(--font-body);
-  font-size: 0.95rem;
+  font-size: 1rem;
 }
 
-.hp-release__line a { display: inline-flex; gap: 0.3rem; align-items: center; min-height: 2.6rem; }
+.hp-release__line a { display: inline-flex; gap: 0.3rem; align-items: center; min-height: 2.75rem; }
 .hp-release__line svg { width: 0.9rem; height: 0.9rem; }
-.hp-release__lead { margin: 0; font-family: var(--font-body); font-size: 1.1rem; font-weight: 600; line-height: 1.4; }
 
-.hp-release__empty,
-.hp-release__pictures {
+.hp-release__empty {
   margin: 0;
   color: var(--arena-muted-ink);
   font-family: var(--font-body);
@@ -85,23 +86,6 @@
 /* ── A mode of a patch ── */
 
 .hp-mode { display: grid; gap: 1.25rem; min-width: 0; }
-
-.hp-mode__title {
-  padding-bottom: 0.4rem;
-  border-bottom: 3px solid transparent;
-  border-image: linear-gradient(90deg, rgba(95, 55, 29, 0.7) 0%, rgba(95, 55, 29, 0.12) 100%) 1;
-  font-size: clamp(1.3rem, 3.6vw, 1.6rem);
-}
-
-.hp-mode__general {
-  display: grid;
-  gap: 0.4rem;
-  margin: 0;
-  padding-left: 1.25rem;
-  font-family: var(--font-body);
-  font-size: 1rem;
-  line-height: 1.5;
-}
 
 /* Two pairs in a row when the column allows, one pair otherwise. */
 .hp-pc-grid {
@@ -164,11 +148,16 @@
 }
 
 /* One current picture with its plates beside it. */
-.hp-pc[data-variant='single'] { grid-template-columns: minmax(0, 13rem) minmax(0, 1fr); gap: 1rem; align-items: start; }
+.hp-pc[data-variant='single'] { grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); gap: 0.6rem 1rem; align-items: start; align-content: start; }
+.hp-pc[data-variant='single'] > .hp-pc__fig { grid-row: 1 / span 3; }
+.hp-pc__diff { grid-column: 2; grid-row: 2; margin: 0; font-size: 0.95rem; line-height: 1.5; }
+.hp-pc__diff .hp-plate__text { margin: 0; }
 .hp-pc__side { display: grid; gap: 0.6rem; min-width: 0; align-content: start; }
 
 @container hp-pc (max-width: 27rem) {
   .hp-pc[data-variant='single'] { grid-template-columns: minmax(0, 45%) minmax(0, 1fr); gap: 0.75rem; }
+  .hp-pc[data-variant='single'] > .hp-pc__fig { grid-row: 1; }
+  .hp-pc__diff { grid-column: 1 / -1; grid-row: auto; }
 }
 
 /* A card the catalog does not know: a line of text. */
@@ -194,11 +183,12 @@
 .hp-plate[data-direction='buff'] b { color: var(--patch-buff); }
 .hp-plate[data-direction='nerf'] b { color: var(--patch-nerf); }
 
-.hp-plate__text { display: grid; gap: 0.3rem; margin-top: 0.3rem; font-size: 0.9rem; line-height: 1.45; text-align: left; }
-.hp-plate__text i { color: var(--arena-muted-ink); font-style: normal; font-weight: 700; }
+.hp-plate__text { margin-top: 0.3rem; font-size: 0.95rem; line-height: 1.5; text-align: left; overflow-wrap: anywhere; }
+.hp-plate__text del { color: var(--arena-muted-ink); text-decoration-thickness: 1px; }
+.hp-plate__text ins { padding: 0 0.15em; border-radius: 3px; background: rgba(217, 171, 73, 0.3); color: var(--arena-ink); font-weight: 700; text-decoration: none; }
 
 .hp-pc[data-variant='single'] .hp-pc__plates,
-.hp-pc[data-variant='line'] .hp-pc__plates { grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); }
+.hp-pc[data-variant='line'] .hp-pc__plates { grid-template-columns: repeat(auto-fill, minmax(7rem, 9.5rem)); }
 .hp-pc[data-variant='single'] .hp-plate,
 .hp-pc[data-variant='line'] .hp-plate { justify-items: start; text-align: left; }
 .hp-pc[data-variant='single'] .hp-plate:has(.hp-plate__text),

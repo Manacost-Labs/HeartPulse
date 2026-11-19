@@ -3,12 +3,13 @@
 import { useEffect, useMemo } from 'react';
 import { ExternalLink } from 'lucide-react';
 import {
-  PATCH_SECTION_TITLES, patchHeadline, patchModePictureNote, toPatchView,
-  type PatchCardView, type PatchNotesDetail, type PatchNotesMode, type PatchSectionId,
+  PATCH_SECTION_TITLES, toPatchView,
+  type PatchCardView, type PatchNotesDetail, type PatchNotesGeneralChanges, type PatchNotesMode, type PatchSectionId,
 } from '../modules/patchNotes/public';
-import { pluralRu } from '../shared/text/pluralRu';
 import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
 import { PatchChangeCard } from './patchNotes/PatchChangeCard';
+import { PatchGeneralChanges } from './patchNotes/PatchGeneralChanges';
+import { PatchModeHeading } from './patchNotes/PatchModeHeading';
 
 const dateFormats = new Map<string, Intl.DateTimeFormat>();
 
@@ -37,7 +38,19 @@ function useCardTarget(versions: string) {
   }, [versions]);
 }
 
-type Block = { id: PatchSectionId; mode: PatchNotesMode; title: string; general: string[]; cards: PatchCardView[] };
+type Block = { id: PatchSectionId; mode: PatchNotesMode; title: string; general: PatchNotesGeneralChanges | null; cards: PatchCardView[] };
+
+/** The article's "general" and "other" headings of one mode are one list: lines in order, marks moved to their new line numbers. */
+function mergeGeneral(groups: PatchNotesGeneralChanges[]): PatchNotesGeneralChanges | null {
+  if (groups.length === 0) return null;
+  let offset = 0;
+  const marks = groups.flatMap(group => {
+    const moved = (group.marks ?? []).map(mark => ({ ...mark, line: mark.line + offset }));
+    offset += group.lines.length;
+    return moved;
+  });
+  return { mode: groups[0].mode, lines: groups.flatMap(group => group.lines), ...(marks.length ? { marks } : {}) };
+}
 
 /**
  * The patch by game mode: its general changes as a plain list, then its cards.
@@ -46,10 +59,10 @@ type Block = { id: PatchSectionId; mode: PatchNotesMode; title: string; general:
  */
 function blocksOf(patch: PatchNotesDetail): Block[] {
   const view = toPatchView(patch);
-  const generalOf = (mode: PatchNotesMode) => patch.generalChanges.filter(item => item.mode === mode).flatMap(item => item.lines);
+  const generalOf = (mode: PatchNotesMode) => mergeGeneral(patch.generalChanges.filter(item => item.mode === mode));
   const placed = new Set<PatchNotesMode>();
   const blocks = view.sections.map((section): Block => {
-    const general = placed.has(section.mode) ? [] : generalOf(section.mode);
+    const general = placed.has(section.mode) ? null : generalOf(section.mode);
     placed.add(section.mode);
     return {
       id: section.id, mode: section.mode, title: section.title, general,
@@ -57,25 +70,16 @@ function blocksOf(patch: PatchNotesDetail): Block[] {
     };
   });
   for (const mode of ['constructed', 'arena', 'battlegrounds', 'other'] as const) {
-    if (!placed.has(mode) && generalOf(mode).length) {
+    if (!placed.has(mode) && generalOf(mode)) {
       blocks.push({ id: mode, mode, title: PATCH_SECTION_TITLES[mode], general: generalOf(mode), cards: [] });
     }
   }
   return blocks;
 }
 
-/** Headings the article shows only as pictures, named once in a quiet line. */
-function pictureNote(patch: PatchNotesDetail): string | null {
-  const modes = ['constructed', 'arena', 'battlegrounds', 'other'] as const;
-  const notes = modes.map(mode => patchModePictureNote(patch.pictureSections, mode, true)).filter((note): note is string => note !== null);
-  return notes.length ? notes.join('; ') : null;
-}
-
 function PatchRelease({ patch, timeZone, eager }: { patch: PatchNotesDetail; timeZone: string | undefined; eager: boolean }) {
   const blocks = useMemo(() => blocksOf(patch), [patch]);
   const date = formatDate(patch.publishedAt, timeZone);
-  const headline = patchHeadline(patch.title);
-  const note = pictureNote(patch);
   const headingId = `hp-patch-${patch.version}`;
   let rendered = 0;
   return (
@@ -84,21 +88,17 @@ function PatchRelease({ patch, timeZone, eager }: { patch: PatchNotesDetail; tim
         <h2 id={headingId} className="hp-release__title">{`Патч ${patch.version}`}</h2>
         <p className="hp-release__line">
           {date && <time dateTime={patch.publishedAt ?? undefined}>{date}</time>}
-          {patch.changeCount > 0 && <span>{patch.changeCount} {pluralRu(patch.changeCount, 'изменение', 'изменения', 'изменений')}</span>}
-          {patch.sourceUrl && <a href={patch.sourceUrl} target="_blank" rel="noreferrer">Статья hs-manacost.ru <ExternalLink aria-hidden="true" /></a>}
-          {patch.officialUrl && <a href={patch.officialUrl} target="_blank" rel="noreferrer">Патчноут Blizzard <ExternalLink aria-hidden="true" /></a>}
+          {patch.sourceUrl && <a href={patch.sourceUrl} target="_blank" rel="noreferrer">hs-manacost.ru <ExternalLink aria-hidden="true" /></a>}
+          {patch.officialUrl && <a href={patch.officialUrl} target="_blank" rel="noreferrer">Blizzard <ExternalLink aria-hidden="true" /></a>}
         </p>
-        {headline && headline !== `Патч ${patch.version}` && <p className="hp-release__lead">{headline}</p>}
       </header>
       {blocks.length === 0 && (
         <p className="hp-release__empty" role="status">В статье нет изменений карт в виде «было → стало». Полный текст — по ссылке выше.</p>
       )}
       {blocks.map(block => (
         <section key={block.id} className="hp-mode" aria-labelledby={`${headingId}-${block.id}`}>
-          <h3 id={`${headingId}-${block.id}`} className="hp-mode__title">{block.title}</h3>
-          {block.general.length > 0 && (
-            <ul className="hp-mode__general" aria-label="Общие изменения">{block.general.map(line => <li key={line}>{line}</li>)}</ul>
-          )}
+          <PatchModeHeading id={block.id} headingId={`${headingId}-${block.id}`} title={block.title} />
+          {block.general && <PatchGeneralChanges group={block.general} />}
           {block.cards.length > 0 && (
             <ul className="hp-pc-grid">
               {block.cards.map(card => <li key={card.id}><PatchChangeCard card={card} eager={eager && rendered++ < EAGER_CARDS} /></li>)}
@@ -106,7 +106,6 @@ function PatchRelease({ patch, timeZone, eager }: { patch: PatchNotesDetail; tim
           )}
         </section>
       ))}
-      {note && <p className="hp-release__pictures">{note} — в статье только картинками.</p>}
     </section>
   );
 }

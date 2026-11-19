@@ -1,4 +1,5 @@
 import type { PatchCardResolver } from './parser.js';
+import { proxiedRenderUrl } from './renderUrl.js';
 
 /** One Battlegrounds card of the kolodahs catalog, reduced to what a patch entry needs. */
 export type BattlegroundCatalogCard = {
@@ -10,6 +11,8 @@ export type BattlegroundCatalogCard = {
   /** `lesser` or `greater` for trinkets. */
   group: string | null;
   timewarped: boolean;
+  /** Tavern tier of a minion; versions of one card that differ by tier share a name. */
+  tier?: number | null;
   renderUrl: string | null;
 };
 
@@ -32,7 +35,6 @@ const PAGE_SIZE = 200;
 const MAX_PAGES = 20;
 
 const text = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
-const httpUrl = (value: unknown) => (/^https:\/\//i.test(text(value)) ? text(value) : null);
 
 function catalogCard(row: Row, library: (typeof LIBRARIES)[number]): BattlegroundCatalogCard | null {
   const id = text(row.card_id);
@@ -48,7 +50,8 @@ function catalogCard(row: Row, library: (typeof LIBRARIES)[number]): Battlegroun
     cardType: library.cardType ?? (slug === 'spell' ? 'spell' : 'minion'),
     group: text((row.group as Row | undefined)?.slug) || null,
     timewarped: library.timewarped === true,
-    renderUrl: httpUrl(images.card) ?? httpUrl(images.hero),
+    tier: Number.isInteger(row.tavern_tier) ? Number(row.tavern_tier) : null,
+    renderUrl: proxiedRenderUrl(images.card) ?? proxiedRenderUrl(images.hero),
   };
 }
 
@@ -121,7 +124,8 @@ export function createBattlegroundNameResolver(cards: BattlegroundCatalogCard[])
       : /малый/i.test(subtitle) ? (card: BattlegroundCatalogCard) => card.group === 'lesser'
         : /большой/i.test(subtitle) ? (card: BattlegroundCatalogCard) => card.group === 'greater'
           : null;
-    const pool = wanted ? candidates.filter(wanted) : candidates;
+    const sameTier = context?.tier ? candidates.filter(card => card.tier === context.tier) : [];
+    const pool = sameTier.length ? sameTier : wanted ? candidates.filter(wanted) : candidates;
     const card = [...(pool.length ? pool : candidates)].sort((left, right) => rank(left) - rank(right))[0];
     return { id: card.id, cardClass: null, cardType: card.cardType, name: card.ru, renderUrl: card.renderUrl };
   };

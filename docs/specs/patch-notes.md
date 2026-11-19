@@ -71,7 +71,11 @@ general rules are preserved; developer commentary is summarized in Russian.
   greater trinket of one name, the armor table picks heroes, and a regular
   card wins over its Timewarped copy. The entry then carries the catalog's
   Russian `name`, the article's spelling in `sourceName` (trinket lists are in
-  English), `cardType` and the catalog render in `renderUrl`.
+  English), `cardType` and the catalog render in `renderUrl`. A catalog
+  render (here and in the full card catalog) is kept only when the site's
+  image proxy serves its host and path (`renderUrl.ts`, a subset of
+  `shared/publicResourceUrl.ts`, checked by a test);
+  any other URL is `null`, and the page shows the HearthstoneJSON render.
 - A change heading (`Изменения …`) with no text under it before the next
   heading is reported in `pictureSections`: the article shows those changes
   only as pictures, so the page names them and links the article instead of
@@ -174,6 +178,16 @@ archived renders of the card in the card history of the data API
   with later answers. A finished patch is kept six hours, one whose reads
   failed is read again after five minutes, at most 16 patches are kept. A
   failed or unknown (`404`) card has no pair; the route never fails for it.
+- Plates from versions: the `snapshot` of the two versions of a pair says
+  what changed (`versionChanges.ts`): Constructed `mana_cost`, `attack`,
+  `health`, `durability`, `armor` and `text_ru`; Battlegrounds `tavern_tier`,
+  `attack`, `health` (no text). These numbers replace the article's own for
+  the same labels (the article's text change survives for Battlegrounds,
+  and a Constructed «Текст» only where `text_ru` really differs, ignoring
+  markup); changes a snapshot cannot state (a trinket's gold, hero armor)
+  stay as the article gives them. A pair whose versions differ in nothing a
+  plate shows keeps the article's changes. A card without a pair keeps the
+  article's changes.
 - The archive hosts are `api.kolodahearthstone.com/uploads/`, which the image
   proxy (`/api/public-resource/db/`) already allows; the page never loads the
   archive host directly.
@@ -181,13 +195,24 @@ archived renders of the card in the card history of the data API
 ## Page
 
 - Reading order: the page `h1`, then each patch: its `h2` ("Патч 37.0.2") with
-  the date, the number of changes and quiet links to the article and the
-  official notes, and the article title as a lead line; then each mode as an
-  `h3` ("Стандарт", "Вольный", "Арена", "Поля сражений", "Другие режимы") with
-  its general changes as a plain list, then its cards. A mode's general
-  changes sit under its first section; a mode with only general changes gets
-  a section of its own. Picture-only article headings are one quiet line at
-  the end of the patch. A patch without line-by-line changes says so.
+  the date and quiet links to the article and the official notes (no change
+  count, no lead line); then each mode as an `h3` ("Стандарт", "Вольный",
+  "Стандарт и Вольный", "Арена", "Поля сражений", "Другие режимы") on a strip
+  of that mode's own art with the gold emblem of the site menu
+  (`PatchModeHeading.tsx`), its general changes as a list, then its cards. A
+  mode's general changes sit under its first section; a mode with only
+  general changes gets a section of its own. A patch without line-by-line
+  changes says so.
+- General changes (`generalMentions.ts`): the server finds card names in each
+  line and ships them as `marks` (`line`, `start`, `end`, `cardId`, `name`,
+  `renderUrl`). Words match their card's name word by word with Russian case
+  endings tolerated («Живых азеритов» is «Живой азерит»); a single word
+  counts only when it is long and written like a name. Battlegrounds modes
+  search the Battlegrounds catalog, the others the collectible dictionary.
+  A mark is a button: tooltip on hover and focus (`CardPreviewTooltip`), the
+  full card in `CardPreviewSheet` on a press. Both receive a picture only as
+  an `/api/public-resource/` path, else `null` and the HSJSON fallback. A line
+  without a mark is text.
 - A pair card: the name (a link to the card page for Constructed cards of a
   known format), the picture "До", an arrow with the plates of the change, the
   picture "После", and the developers' comment as one line. A plate is the
@@ -196,11 +221,19 @@ archived renders of the card in the card history of the data API
   is coloured by direction (green better, red worse for the player) and the
   direction is also said to assistive technology. A rule-text change is the
   plate «Текст»: the text itself is on the pictures.
-- A card without a pair: one current picture ("Сейчас"; the card image of the
-  site, the Battlegrounds catalog render) and its plates beside it; a text
-  change then shows the old and the new text under its plate, because no
-  picture shows the old one. A card the catalog does not know is one line:
-  the name and its plates. There are no placeholders or apologies.
+- A card without a pair: one current picture ("Сейчас"; the Battlegrounds
+  catalog render, a catalog render of a card outside the collection, else the
+  game's latest render, which carries today's text) and its plates beside it.
+  Where a picture shows the card, no "Было / Стало" text is printed. A card
+  with no picture at all (a name no catalog knows) is one compact block: the
+  name, its plates and its text once, the old words struck out and the new
+  ones marked. There are no placeholders or apologies.
+- Names the article spells with a qualifier resolve through it
+  (`cardNames.ts`): «— Способность К’Туна» is cut off (it becomes the card's
+  line), «(2-й уровень)» picks the Battlegrounds version of that tavern tier.
+  A name the collectible dictionary lacks is looked up once in the catalog of
+  the data API (`GET /card-catalog?q=`, `catalogCards.ts`), kept a day; the
+  card is then outside both formats («Стандарт и Вольный»).
 - Layout (container queries on the card, grid auto-fit on the list): two
   pairs in a row from about 1100 px of content, one pair per row below;
   at card width under 27 rem (phones) the two pictures sit side by side,

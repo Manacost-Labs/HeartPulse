@@ -1,0 +1,497 @@
+{
+ "BE_285": {
+  "data": {
+   "versions": [
+    {
+     "observed_at": "2026-11-08 06:48:23.894439",
+     "event": "changed",
+     "media": {
+      "image_url": {
+       "status": "archived",
+       "reason": null,
+       "archive_url": "/uploads/card-history-media/0b324f4aaaacdaa07ae9688f46d1ec73f5ad75f932c9c46c3096a78f2074bf47.png",
+       "sha256": "0b324f4aaaacdaa07ae9688f46d1ec73f5ad75f932c9c46c3096a78f2074bf47"
+      }
+     },
+     "snapshot": {
+      "card_id": "BE_285",
+      "name_ru": "Рыцарь-гибрид",
+      "card_type": "MINION",
+      "mana_cost": 2,
+      "attack": 3,
+      "health": 4,
+      "durability": null,
+      "armor": null,
+      "text_ru": "<b>Похищение жизни</b>"
+     }
+    },
+    {
+     "observed_at": "2026-11-03 20:29:37.656389",
+     "event": "changed",
+     "media": {
+      "image_url": {
+       "status": "archived",
+       "reason": null,
+       "archive_url": "/uploads/card-history-media/0b324f4aaaacdaa07ae9688f46d1ec73f5ad75f932c9c46c3096a78f2074bf47.png",
+       "sha256": "0b324f4aaaacdaa07ae9688f46d1ec73f5ad75f932c9c46c3096a78f2074bf47"
+      }
+     },
+     "snapshot": {
+      "card_id": "BE_285",
+      "name_ru": "Рыцарь-гибрид",
+      "card_type": "MINION",
+      "mana_cost": 2,
+      "attack": 3,
+      "health": 4,
+      "durability": null,
+      "armor": null,
+      "text_ru": "<b>Похищение жизни</b>"
+     }
+    },
+    {
+     "observed_at": "2026-10-21 05:29:31.094665",
+     "event": "changed",
+     "media": {
+      "image_url": {
+       "status": "archived",
+       "reason": null,
+       "archive_url": "/uploads/card-history-media/a5ac8b73d068aa1cc9e5241d8c31fe4215fc8224629111970ff981f62a155f9a.png",
+       "sha256": "a5ac8b73d068aa1cc9e5241d8c31fe4215fc8224629111970ff981f62a155f9a"
+      }
+     },
+     "snapshot": {
+      "card_id": "BE_285",
+      "name_ru": "Рыцарь-гибрид",
+      "card_type": "MINION",
+      "mana_cost": 2,
+      "attack": 3,
+      "health": 3,
+      "durability": null,
+      "armor": null,
+      "text_ru": "<b>Похищение жизни</b>"
+     }
+    },
+    {
+     "observed_at": "2026-10-20 18:16:51.448352",
+     "event": "changed",
+     "media": {
+      "image_url": {
+       "status": "archived",
+       "reason": null,
+       "archive_url": "/uploads/card-history-media/a5ac8b73d068aa1cc9e5241d8c31fe4215fc8224629111970ff981f62a155f9a.png",
+       "sha256": "a5ac8b73d068aa1cc9e5241d8c31fe4215fc8224629111970ff981f62a155f9a"
+      }
+     },
+     "snapshot": {
+      "card_id": "BE_285",
+      "name_ru": "Рыцарь-гибрид",
+      "card_type": "MINION",
+      "mana_cost": 2,
+      "attack": 3,
+      "health": 3,
+      "durability": null,
+      "armor": null,
+      "text_ru": "<b>Похищение жизни</b>"
+     }
+    },
+    {
+     "observed_at": "2026-10-14 08:05:49.896594",
+     "event": "changed",
+     "media": {
+      "image_url": {
+       "status": "archived",
+       "reason": null,
+       "archive_url": "/uploads/card-history-media/a5ac8b73d068aa1cc9e5241d8c31fe4215fc8224629111970ff981f62a155f9a.png",
+       "sha256": "a5ac8b73d068aa1cc9e5241d8c31fe4215fc8224629111970ff981f62a155f9a"
+      }
+     },
+     "snapshot": {
+      "card_id": "BE_285",
+      "name_ru": "Рыцарь-гибрид",
+      "card_type": "MINION",
+      "mana_cost": 2,
+      "attack": 3,
+      "health": 3,
+      "durability": null,
+      "armor": null,
+      "text_ru": "<b>Похищение жизни</b>"
+     }
+    },
+    {
+     "observed_at": "2026-10-13 20:29:02.897633",
+     "event": "changed",
+     "media": {
+      "image_url": {
+       "status": "archived",
+       "reason": null,
+       "archive_url": "/uploads/card-history-media/a5ac8b73d068aa1cc9e5241d8c31fe4215fc8224629111970ff981f62a155f9a.png",
+       "sha256": "a5ac8b73d068aa1cc9e5241d8c31fe4215fc8224629111970ff981f62a155f9a"
+      }
+     },
+     "snapshot": {
+      "card_id": "BE_285",
+      "name_ru": "Рыцарь-гибрид",
+      "card_type": "MINION",
+      "mana_cost": 2,
+      "attack": 3,
+      "health": 3,
+      "durability": null,
+      "armor": null,
+      "text_ru": "<b>Похищение жизни</b>"
+     }
+    },
+    {
+     "observed_at": "2026-10-13 20:29:02.896926",
+     "event": "renamed",
+     "media": {
+      "image_url": {
+       "status": "unverified",
+       "reason": "historical_mutable_url",
+       "archive_url": null,
+       "sha256": null
+      }
+     },
+     "snapshot": {
+      "card_id": "BE_285",
+      "name_ru": "Рыцарь-гибрид",
+      "card_type": "minion",
+      "mana_cost": 2,
+      "attack": 3,
+      "health": 3,
+      "durability": null,
+      "armor": null,
+      "text_ru": "<b>Похищение жизни</b>"
+     }
+    }
+   ]
+  }
+ },
+ "BE_036": {
+  "data": {
+   "versions": [
+    {
+     "observed_at": "2026-11-15 06:39:57.150301",
+     "event": "changed",
+     "media": {
+      "image_url": {
+       "status": "archived",
+       "reason": null,
+       "archive_url": "/uploads/card-history-media/9a947b36a7df4bb529a5e06e51ee2262d2f65663178fd88497aa15e7eb6bbfbc.png",
+       "sha256": "9a947b36a7df4bb529a5e06e51ee2262d2f65663178fd88497aa15e7eb6bbfbc"
+      }
+     },
+     "snapshot": {
+      "card_id": "BE_036",
+      "name_ru": "МАТРИАРХ",
+      "card_type": "MINION",
+      "mana_cost": 10,
+      "attack": 9,
+      "health": 7,
+      "durability": null,
+      "armor": null,
+      "text_ru": "<b>Боевой клич</b>: уменьшает стоимость карты в вашей руке на (5). Затем эффект применяется к соседним картам, но ослабляется на (1)."
+     }
+    },
+    {
+     "observed_at": "2026-11-08 06:48:23.891336",
+     "event": "changed",
+     "media": {
+      "image_url": {
+       "status": "archived",
+       "reason": null,
+       "archive_url": "/uploads/card-history-media/9a947b36a7df4bb529a5e06e51ee2262d2f65663178fd88497aa15e7eb6bbfbc.png",
+       "sha256": "9a947b36a7df4bb529a5e06e51ee2262d2f65663178fd88497aa15e7eb6bbfbc"
+      }
+     },
+     "snapshot": {
+      "card_id": "BE_036",
+      "name_ru": "МАТРИАРХ",
+      "card_type": "MINION",
+      "mana_cost": 10,
+      "attack": 9,
+      "health": 7,
+      "durability": null,
+      "armor": null,
+      "text_ru": "<b>Боевой клич</b>: уменьшает стоимость карты в вашей руке на (5). Затем эффект применяется к соседним картам, но ослабляется на (1)."
+     }
+    },
+    {
+     "observed_at": "2026-11-03 20:29:37.596806",
+     "event": "changed",
+     "media": {
+      "image_url": {
+       "status": "archived",
+       "reason": null,
+       "archive_url": "/uploads/card-history-media/9a947b36a7df4bb529a5e06e51ee2262d2f65663178fd88497aa15e7eb6bbfbc.png",
+       "sha256": "9a947b36a7df4bb529a5e06e51ee2262d2f65663178fd88497aa15e7eb6bbfbc"
+      }
+     },
+     "snapshot": {
+      "card_id": "BE_036",
+      "name_ru": "МАТРИАРХ",
+      "card_type": "MINION",
+      "mana_cost": 10,
+      "attack": 9,
+      "health": 7,
+      "durability": null,
+      "armor": null,
+      "text_ru": "<b>Боевой клич</b>: уменьшает стоимость карты в вашей руке на (5). Затем эффект применяется к соседним картам, но ослабляется на (1)."
+     }
+    },
+    {
+     "observed_at": "2026-10-13 20:29:02.769992",
+     "event": "changed",
+     "media": {
+      "image_url": {
+       "status": "archived",
+       "reason": null,
+       "archive_url": "/uploads/card-history-media/f1d0a999db274d35cbe0007314c676ce0712b33fa8332c3d1ae4aaeab0224958.png",
+       "sha256": "f1d0a999db274d35cbe0007314c676ce0712b33fa8332c3d1ae4aaeab0224958"
+      }
+     },
+     "snapshot": {
+      "card_id": "BE_036",
+      "name_ru": "МАТРИАРХ",
+      "card_type": "MINION",
+      "mana_cost": 9,
+      "attack": 9,
+      "health": 7,
+      "durability": null,
+      "armor": null,
+      "text_ru": "<b>Боевой клич</b>: уменьшает стоимость карты в вашей руке на (5). Затем эффект применяется к соседним картам, но ослабляется на (1)."
+     }
+    },
+    {
+     "observed_at": "2026-10-12 00:26:13.468421",
+     "event": "changed",
+     "media": {
+      "image_url": {
+       "status": "archived",
+       "reason": null,
+       "archive_url": "/uploads/card-history-media/37cefbca7f87b464fa5ed9702ec875f46a4cfef1bbe173aa3caafb2262649d4c.png",
+       "sha256": "37cefbca7f87b464fa5ed9702ec875f46a4cfef1bbe173aa3caafb2262649d4c"
+      }
+     },
+     "snapshot": {
+      "card_id": "BE_036",
+      "name_ru": "МАТРИАРХ",
+      "card_type": "MINION",
+      "mana_cost": 9,
+      "attack": 9,
+      "health": 7,
+      "durability": null,
+      "armor": null,
+      "text_ru": "<b>Боевой клич</b>: уменьшает стоимость карты в вашей руке на (5). Затем эффект применяется к соседним картам, но ослабляется на (1)."
+     }
+    },
+    {
+     "observed_at": "2026-10-11 23:57:09.912017",
+     "event": "baseline",
+     "media": {
+      "image_url": {
+       "status": "unverified",
+       "reason": "historical_mutable_url",
+       "archive_url": null,
+       "sha256": null
+      }
+     },
+     "snapshot": {
+      "card_id": "BE_036",
+      "name_ru": "МАТРИАРХ",
+      "card_type": "MINION",
+      "mana_cost": 9,
+      "attack": 9,
+      "health": 7,
+      "durability": null,
+      "armor": null,
+      "text_ru": "<b>Боевой клич</b>: уменьшает стоимость карты в вашей руке на (5). Затем эффект применяется к соседним картам, но ослабляется на (1)."
+     }
+    }
+   ]
+  }
+ },
+ "LOOT_412": {
+  "data": {
+   "versions": [
+    {
+     "observed_at": "2026-11-08 06:48:23.897606",
+     "event": "changed",
+     "media": {
+      "image_url": {
+       "status": "archived",
+       "reason": null,
+       "archive_url": "/uploads/card-history-media/1e27ba5a30af015c6d4494377271a2b38e9aeb452231c4c578a940f90f9d785c.png",
+       "sha256": "1e27ba5a30af015c6d4494377271a2b38e9aeb452231c4c578a940f90f9d785c"
+      }
+     },
+     "snapshot": {
+      "card_id": "LOOT_412",
+      "name_ru": "Кобольд-иллюзионист",
+      "card_type": "MINION",
+      "mana_cost": 5,
+      "attack": 3,
+      "health": 3,
+      "durability": null,
+      "armor": null,
+      "text_ru": "<b>Предсмертный хрип:</b> призывает 1/1 копию случайного существа из вашей руки."
+     }
+    },
+    {
+     "observed_at": "2026-11-05 06:11:02.269928",
+     "event": "changed",
+     "media": {
+      "image_url": {
+       "status": "archived",
+       "reason": null,
+       "archive_url": "/uploads/card-history-media/1e27ba5a30af015c6d4494377271a2b38e9aeb452231c4c578a940f90f9d785c.png",
+       "sha256": "1e27ba5a30af015c6d4494377271a2b38e9aeb452231c4c578a940f90f9d785c"
+      }
+     },
+     "snapshot": {
+      "card_id": "LOOT_412",
+      "name_ru": "Кобольд-иллюзионист",
+      "card_type": "MINION",
+      "mana_cost": 5,
+      "attack": 3,
+      "health": 3,
+      "durability": null,
+      "armor": null,
+      "text_ru": "<b>Предсмертный хрип:</b> призывает 1/1 копию случайного существа из вашей руки."
+     }
+    },
+    {
+     "observed_at": "2026-11-03 20:30:21.213185",
+     "event": "changed",
+     "media": {
+      "image_url": {
+       "status": "archived",
+       "reason": null,
+       "archive_url": "/uploads/card-history-media/1e27ba5a30af015c6d4494377271a2b38e9aeb452231c4c578a940f90f9d785c.png",
+       "sha256": "1e27ba5a30af015c6d4494377271a2b38e9aeb452231c4c578a940f90f9d785c"
+      }
+     },
+     "snapshot": {
+      "card_id": "LOOT_412",
+      "name_ru": "Кобольд-иллюзионист",
+      "card_type": "MINION",
+      "mana_cost": 5,
+      "attack": 3,
+      "health": 3,
+      "durability": null,
+      "armor": null,
+      "text_ru": "<b>Предсмертный хрип:</b> призывает 1/1 копию случайного существа из вашей руки."
+     }
+    },
+    {
+     "observed_at": "2026-10-11 23:57:09.912017",
+     "event": "baseline",
+     "media": {
+      "image_url": {
+       "status": "archived",
+       "reason": null,
+       "archive_url": "/uploads/card-history-media/1e27ba5a30af015c6d4494377271a2b38e9aeb452231c4c578a940f90f9d785c.png",
+       "sha256": "1e27ba5a30af015c6d4494377271a2b38e9aeb452231c4c578a940f90f9d785c"
+      }
+     },
+     "snapshot": {
+      "card_id": "LOOT_412",
+      "name_ru": "Кобольд-иллюзионист",
+      "card_type": "MINION",
+      "mana_cost": 5,
+      "attack": 3,
+      "health": 3,
+      "durability": null,
+      "armor": null,
+      "text_ru": "<b>Предсмертный хрип:</b> призывает 1/1 копию случайного существа из вашей руки."
+     }
+    }
+   ]
+  }
+ },
+ "BG36_362": {
+  "data": {
+   "versions": [
+    {
+     "observed_at": "2026-11-04 09:22:32.236241",
+     "event": "changed",
+     "media": {
+      "card_image": {
+       "status": "archived",
+       "reason": null,
+       "archive_url": "/uploads/card-history-media/c5a1e1ead804ed3f8c173eec57e2bf43dc293d3abbd225de8e8af960f00e296e.png",
+       "sha256": "c5a1e1ead804ed3f8c173eec57e2bf43dc293d3abbd225de8e8af960f00e296e"
+      }
+     },
+     "snapshot": {
+      "card_id": "BG36_362",
+      "name": "Жертвенный страж гнева",
+      "card_type": "minion",
+      "tavern_tier": 4,
+      "attack": 6,
+      "health": 3
+     }
+    },
+    {
+     "observed_at": "2026-11-04 08:13:07.991560",
+     "event": "changed",
+     "media": {
+      "card_image": {
+       "status": "archived",
+       "reason": null,
+       "archive_url": "/uploads/card-history-media/c5a1e1ead804ed3f8c173eec57e2bf43dc293d3abbd225de8e8af960f00e296e.png",
+       "sha256": "c5a1e1ead804ed3f8c173eec57e2bf43dc293d3abbd225de8e8af960f00e296e"
+      }
+     },
+     "snapshot": {
+      "card_id": "BG36_362",
+      "name": "Жертвенный страж гнева",
+      "card_type": "minion",
+      "tavern_tier": 4,
+      "attack": 6,
+      "health": 3
+     }
+    },
+    {
+     "observed_at": "2026-10-11 23:57:19.761770",
+     "event": "changed",
+     "media": {
+      "card_image": {
+       "status": "archived",
+       "reason": null,
+       "archive_url": "/uploads/card-history-media/6acc7c499a8c7fca0fd53930bcfed62888c7bcbb09b01ed6584017330b44e99f.png",
+       "sha256": "6acc7c499a8c7fca0fd53930bcfed62888c7bcbb09b01ed6584017330b44e99f"
+      }
+     },
+     "snapshot": {
+      "card_id": "BG36_362",
+      "name": "Жертвенный страж гнева",
+      "card_type": "minion",
+      "tavern_tier": 4,
+      "attack": 5,
+      "health": 3
+     }
+    },
+    {
+     "observed_at": "2026-10-11 23:57:11.686966",
+     "event": "baseline",
+     "media": {
+      "card_image": {
+       "status": "unverified",
+       "reason": "historical_mutable_url",
+       "archive_url": null,
+       "sha256": null
+      }
+     },
+     "snapshot": {
+      "card_id": "BG36_362",
+      "name": "Жертвенный страж гнева",
+      "card_type": "minion",
+      "tavern_tier": 4,
+      "attack": 5,
+      "health": 3
+     }
+    }
+   ]
+  }
+ }
+}

@@ -103,6 +103,8 @@
         "tests/player-stats-format.test.ts",
         "tests/public-url-canonical-property.test.ts",
         "tests/parser-control-idempotence-property.test.ts",
+        "tests/patch-notes-cards-v2.test.ts",
+        "tests/patch-notes-page-v2.test.ts",
         "tests/arena-classes-data.test.ts",
         "tests/arena-legendaries-client.test.ts",
         "tests/arena-legendaries-open-layer.test.ts",

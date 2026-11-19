@@ -173,6 +173,9 @@ test('Battlegrounds catalog: paged lists, Russian and English names, last good c
     if (url.startsWith('https://kolodahs.test/cards')) {
       return { data: [{ card_id: 'S1', name: { ru: 'Банан', en: 'Banana' }, card_type: { slug: 'spell' } }, { card_id: '', name: {} }] };
     }
+    if (url.startsWith('https://kolodahs.test/heroes')) {
+      return { data: [{ card_id: 'H1', name: { ru: 'Герой' }, images: { card: 'https://attacker.invalid/v1/x.png', hero: 'https://attacker.invalid/hero.png' } }] };
+    }
     return { data: [] };
   };
   const cards = await loadBattlegroundCatalog(fetchJson, 'https://kolodahs.test');
@@ -180,7 +183,9 @@ test('Battlegrounds catalog: paged lists, Russian and English names, last good c
     ['S1', 'spell', null, null],
     ['T1', 'trinket', 'lesser', 'https://art.hearthstonejson.com/v1/bgs/latest/ruRU/512x/T1.png'],
     ['T2', 'trinket', 'lesser', null],
+    ['H1', 'hero', null, null],
   ]);
+  assert.ok(!JSON.stringify(cards).includes('attacker.invalid'), 'a host the image proxy does not serve never leaves the catalog parser');
   assert.ok(requested.includes('https://kolodahs.test/trinkets?per_page=200&page=2'));
   const resolve = createBattlegroundNameResolver(cards);
   assert.equal(resolve('trinket  2', { mode: 'battlegrounds', subtitle: null })?.name, 'Аксессуар 2');
@@ -188,12 +193,12 @@ test('Battlegrounds catalog: paged lists, Russian and English names, last good c
 
   let clock = 0;
   const load = createBattlegroundCatalogLoader({ fetchJson, baseUrl: 'https://kolodahs.test', ttlMs: 1000, now: () => clock });
-  assert.equal((await load()).length, 3);
+  assert.equal((await load()).length, 4);
   const calls = requested.length;
   await load();
   assert.equal(requested.length, calls, 'a fresh copy is reused');
   clock = 2000; down = true;
-  assert.equal((await load()).length, 3, 'a failed reload keeps the last good copy');
+  assert.equal((await load()).length, 4, 'a failed reload keeps the last good copy');
 });
 
 test('Constructed entries carry today\'s format from the Standard catalog, reprints included', () => {
@@ -681,11 +686,12 @@ const ARCHIVE = 'https://api.kolodahearthstone.com/uploads/card-history-media/';
 const patch3702 = { from: Date.parse('2026-11-03T15:55:00+00:00'), until: null };
 
 test('card versions: "before" is the last archived picture before the patch, "after" the first different one inside it', () => {
-  assert.deepEqual(pickVersionPair(cardHistory.BE_036.data.versions, 'image_url', patch3702, 'https://api.kolodahearthstone.com'), {
+  const pictures = (pair: ReturnType<typeof pickVersionPair>) => pair && { before: pair.before, after: pair.after };
+  assert.deepEqual(pictures(pickVersionPair(cardHistory.BE_036.data.versions, 'image_url', patch3702, 'https://api.kolodahearthstone.com')), {
     before: `${ARCHIVE}f1d0a999db274d35cbe0007314c676ce0712b33fa8332c3d1ae4aaeab0224958.png`,
     after: `${ARCHIVE}9a947b36a7df4bb529a5e06e51ee2262d2f65663178fd88497aa15e7eb6bbfbc.png`,
   }, 'M.O.T.H.E.R.: 9 mana before, 10 after');
-  assert.deepEqual(pickVersionPair(cardHistory.BG36_362.data.versions, 'card_image', patch3702, 'https://api.kolodahearthstone.com'), {
+  assert.deepEqual(pictures(pickVersionPair(cardHistory.BG36_362.data.versions, 'card_image', patch3702, 'https://api.kolodahearthstone.com')), {
     before: `${ARCHIVE}6acc7c499a8c7fca0fd53930bcfed62888c7bcbb09b01ed6584017330b44e99f.png`,
     after: `${ARCHIVE}c5a1e1ead804ed3f8c173eec57e2bf43dc293d3abbd225de8e8af960f00e296e.png`,
   });
@@ -733,14 +739,15 @@ test('card versions: pairs reach the patch entries; an unreachable history leave
   assert.deepEqual(latest.entries.map(item => [item.id, picture(item.beforeRenderUrl), picture(item.afterRenderUrl)]), [
     ['a', 'f1d0a999', '9a947b36'], ['b', '6acc7c49', 'c5a1e1ea'], ['c', null, null], ['d', null, null],
   ]);
-  assert.deepEqual(requested.sort(), [
+  assert.deepEqual(requested.filter(url => url.includes('/card-history/')).sort(), [
     'https://api.kolodahearthstone.com/api/v1/card-history/card/BG36_362',
     'https://api.kolodahearthstone.com/api/v1/card-history/card/BG36_MagicItem_403',
     'https://api.kolodahearthstone.com/api/v1/card-history/constructed_card/BE_036',
   ], 'Constructed cards read their own history, Battlegrounds cards theirs; a card without an id is not asked');
   assert.ok(peak >= 2 && peak <= 4, 'requests overlap, but never more than four at once');
+  assert.equal(requested.filter(url => url.includes('/card-catalog?')).length, 1, 'a card the dictionary lacks is looked up in the catalog, once');
   await service.withCardVersions(snapshot, [archive[0]]);
-  assert.equal(requested.length, 3, 'a patch does not change once out: the pairs are kept');
+  assert.equal(requested.length, 4, 'a patch does not change once out: the pairs and the catalog answers are kept');
 
   // The history is down: no pictures, no failure, and the patch is asked again later.
   const failing = createPatchNotesService({
@@ -796,8 +803,28 @@ test('the page is the two newest patches: each card before → after, no search,
   assert.match(html, /data-variant="line"[\s\S]*Карта вне каталога[\s\S]*Атака/, 'a card the catalog lacks is one line');
   assert.match(html, /Аберрации больше не встречаются в каждом матче\./, 'general changes are a plain list');
   assert.equal((html.match(/loading="eager"/g) ?? []).length, 3, 'the pictures of the first cards load eagerly');
-  assert.equal((html.match(/loading="lazy"/g) ?? []).length, 0, 'the first four cards of the page are all there is here');
+  assert.equal((html.match(/<figure.*?<\/figure>/g) ?? []).filter(figure => figure.includes('loading="lazy"')).length, 0, 'the first four cards of the page are all there is here');
   for (const gone of ['type="search"', '<select', '<details', 'hp-patch-toc', 'hp-patch-hero', 'Главное в патче', 'Подробнее']) {
     assert.ok(!html.includes(gone), `${gone} is gone from the page`);
+  }
+});
+
+test('an answer built while the catalog is still being read is cached only briefly', async () => {
+  const patch = { version: '37.0.2', build: '37.0.2.1', title: 'Патч', publishedAt: '2026-11-03T15:55:00+00:00', sourceUrl: null, officialUrl: null,
+    changeCount: 1, summary: null, entries: [], missingBefore: 0, pictureSections: [], generalChanges: [], meta: null };
+  let incomplete = true;
+  const app = express().use('/api', createPatchNotesRouter({
+    load: async () => ({ patches: [patch], updatedAt: 'x' }), incomplete: () => incomplete,
+  }));
+  const server = app.listen(0);
+  try {
+    const { port } = server.address() as { port: number };
+    const cache = async (path: string) => (await fetch(`http://127.0.0.1:${port}${path}`)).headers.get('cache-control');
+    assert.equal(await cache('/api/patch-notes/recent'), 'public, max-age=10');
+    assert.equal(await cache('/api/patch-notes/37.0.2'), 'public, max-age=10');
+    incomplete = false;
+    assert.match(await cache('/api/patch-notes/recent') ?? '', /max-age=600/);
+  } finally {
+    server.close();
   }
 });

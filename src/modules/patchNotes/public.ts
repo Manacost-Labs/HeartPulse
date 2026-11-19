@@ -16,5 +16,5 @@ export {
 export { normalizePatchVersion } from './model/types';
 export type {
   PatchNotesArchive, PatchNotesChange, PatchNotesDetail, PatchNotesEntry, PatchNotesGeneralChanges, PatchNotesMode,
-  PatchNotesPictureSection, PatchNotesSummary, PatchNotesArchetypeUse, PatchNotesArtwork, PatchNotesMeta,
+  PatchNotesMention, PatchNotesPictureSection, PatchNotesSummary, PatchNotesArchetypeUse, PatchNotesArtwork, PatchNotesMeta,
 } from './model/types';

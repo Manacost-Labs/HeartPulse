@@ -29,9 +29,39 @@ const version = (observed, sha) => ({ observed_at: observed, media: { card_image
 const hammerHistory = { data: { card_id: 'BG36_MagicItem_403', versions: [
   version('2026-10-02 10:00:00.000000', 'b'.repeat(64)), version('2026-09-20 10:00:00.000000', 'a'.repeat(64)),
 ] } };
-const externalRoutes = { '/api/v1/card-history/card/BG36_MagicItem_403': () => hammerHistory };
+// Two Battlegrounds minions the general changes of 37.0.2 name, so their lines carry card buttons.
+const battlegroundMinions = { data: [
+  { card_id: 'BG33_Reflector', name: { ru: 'Неутомимый отражатель', en: 'Tireless Reflector' }, card_type: { slug: 'minion' }, tavern_tier: 4, images: {} },
+  { card_id: 'BG28_707', name: { ru: 'Живой азерит', en: 'Living Azerite' }, card_type: { slug: 'minion' }, tavern_tier: 3, images: {} },
+], pagination: { page: 1, has_next: false } };
+const externalRoutes = {
+  '/api/v1/card-history/card/BG36_MagicItem_403': () => hammerHistory,
+  '/api/v1/cards': () => battlegroundMinions,
+};
 
-test('patch notes show the two newest patches as cards before → after, and the home board ranks the public meta teaser', { timeout: 240000 }, async () => {
+const MENTIONS = ['Неутомимый отражатель', 'живых азеритов'];
+
+/** Scrolls a card name into view first: the tooltip closes on any scroll, so it must open on a still page. */
+async function mention(page, text) {
+  const handle = await page.evaluateHandle(label => [...document.querySelectorAll('.hp-card-mention')]
+    .find(node => node.textContent === label), text);
+  assert.ok(handle.asElement(), `the general changes name «${text}» as a card button`);
+  await handle.evaluate(node => node.scrollIntoView({ block: 'center' }));
+  await new Promise(resolve => setTimeout(resolve, 150));
+  return handle;
+}
+
+/** The open tooltip: inside the viewport, naming the card, and gone once the pointer or the focus leaves. */
+async function tooltipFor(page, name) {
+  await page.waitForSelector('.card-preview-tooltip[role="tooltip"]', { visible: true, timeout: 5000 });
+  return page.$eval('.card-preview-tooltip', (node, wanted) => {
+    const rect = node.getBoundingClientRect();
+    return { named: node.textContent?.includes(wanted) ?? false,
+      inside: rect.left >= 0 && rect.top >= 0 && rect.right <= innerWidth && rect.bottom <= innerHeight };
+  }, name);
+}
+
+test('patch notes show the two newest patches as cards before → after, and the home board ranks the public meta teaser', { timeout: 420000 }, async () => {
   const pilot = await startPublicCardPilot({ pagesEnabled: true, externalRoutes });
   let browser;
   try {
@@ -61,7 +91,7 @@ test('patch notes show the two newest patches as cards before → after, and the
     assert.equal(document.status, 200);
     const html = await document.text();
     assert.deepEqual([...html.matchAll(/<h2[^>]*>(Патч [\d.]+)<\/h2>/g)].map(match => match[1]), ['Патч 36.6.3'], 'one version is one patch');
-    assert.match(html, /Балансные изменения Стандарта и Полей сражений/, 'the article title leads the patch');
+    assert.doesNotMatch(html, /Балансные изменения Стандарта и Полей сражений/, 'the header is the version, the date and the sources: no article title');
     assert.match(html, /Змей ветреных вершин/);
     assert.match(html, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/standard\/patches\/"/);
     assert.match(html, /class="hp-release__title"/, 'the marker of the post-deploy check is in the server HTML');
@@ -95,8 +125,75 @@ test('patch notes show the two newest patches as cards before → after, and the
     ], 'cards and their plates read in the article\'s own order, mode by mode');
     assert.equal(await page.$$eval('.hp-pc[data-variant="pair"]', nodes => nodes.length), 0,
       'an archive picture from a host the image proxy does not know is not drawn as a pair');
-    assert.equal(await page.$$eval('.hp-pc del, .hp-patch-toc', nodes => nodes.length), 0);
+    assert.equal(await page.$$eval('.hp-patch-toc', nodes => nodes.length), 0);
+    // A card with no picture prints its text once, the changed words marked; no "Было / Стало" blocks anywhere.
+    assert.equal(await page.$$eval('.hp-pc[data-variant="line"] .hp-plate__text ins', nodes => nodes.length > 0), true);
+    assert.equal(await page.$$eval('.hp-patch', nodes => /Было:|Стало:|только картинками/.test(nodes[0].textContent ?? '')), false);
+    assert.equal(await page.$$eval('.hp-mode__head', nodes => nodes.every(node => node.querySelector('img.hp-mode__art') && node.querySelector('h3'))), true,
+      'every mode is a heading on a strip of its art');
     assert.equal((await fetch(`${pilot.origin}/api/patch-notes/9.9.9`)).status, 404);
+
+    // A card named in the general changes opens: on hover and keyboard focus a tooltip (1440 px), on a tap a sheet (390 px).
+    await page.setViewport({ width: 1440, height: 900 });
+    await page.goto(`${pilot.origin}/standard/patches/`, { waitUntil: 'networkidle2' });
+    await page.waitForSelector('.hp-card-mention');
+    assert.deepEqual(await page.$$eval('.hp-card-mention', nodes => nodes.map(node => node.textContent)), MENTIONS);
+    for (const [label, card] of [[MENTIONS[0], 'Неутомимый отражатель'], [MENTIONS[1], 'Живой азерит']]) {
+      const button = await mention(page, label);
+      await button.hover();
+      assert.deepEqual(await tooltipFor(page, card), { named: true, inside: true }, `hover on «${label}» shows the card inside the page`);
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, 'an open tooltip adds no horizontal scroll');
+      await page.mouse.move(5, 5);
+      await page.waitForSelector('.card-preview-tooltip', { hidden: true });
+    }
+    // Keyboard: Tab reaches the button, its focus opens the tooltip, the next Tab closes it.
+    await page.mouse.move(5, 5);
+    await (await mention(page, MENTIONS[0])).evaluate(node => {
+      const before = [...document.querySelectorAll('a[href], button')].filter(item => item.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING).at(-1);
+      before?.focus();
+    });
+    await page.keyboard.press('Tab');
+    assert.equal(await page.evaluate(() => document.activeElement?.textContent), MENTIONS[0], 'Tab lands on the card name');
+    assert.equal(await page.evaluate(() => document.activeElement?.matches(':focus-visible')), true, 'the keyboard focus is visible');
+    assert.deepEqual(await tooltipFor(page, 'Неутомимый отражатель'), { named: true, inside: true }, 'keyboard focus shows the card');
+    await page.keyboard.press('Tab');
+    await page.waitForSelector('.card-preview-tooltip', { hidden: true });
+
+    // The page and an open preview at 390/768/1440 px and at 90–150 % zoom of a 1440 px window: no sideways scroll, no axe violations.
+    const sizes = [[390, 844, 1], [768, 1024, 1], [1440, 900, 1], ...[0.9, 1.1, 1.25, 1.5].map(zoom => [Math.round(1440 / zoom), Math.round(900 / zoom), zoom])];
+    for (const [width, height, zoom] of sizes) {
+      const touch = width < 600;
+      const where = zoom === 1 ? `${width}px` : `${Math.round(zoom * 100)}% zoom`;
+      await page.setViewport({ width, height, deviceScaleFactor: zoom, isMobile: touch, hasTouch: touch });
+      await page.goto(`${pilot.origin}/standard/patches/`, { waitUntil: 'networkidle2' });
+      await page.waitForSelector('.hp-card-mention');
+      const state = await pageState(page);
+      assert.equal(state.overflow, false, `no horizontal overflow at ${where}`);
+      assert.deepEqual(state.violations, [], `axe at ${where}`);
+      const button = await mention(page, MENTIONS[1]);
+      if (touch) {
+        await button.tap();
+        await page.waitForSelector('.card-preview-sheet', { visible: true, timeout: 5000 });
+        assert.equal(await page.$('.card-preview-tooltip'), null, 'a tap opens the sheet, not a hover tooltip');
+        const sheet = await page.$eval('.card-preview-sheet__panel', node => {
+          const rect = node.getBoundingClientRect();
+          return { text: node.textContent ?? '', inside: rect.left >= 0 && rect.right <= innerWidth };
+        });
+        assert.match(sheet.text, /Живой азерит/);
+        assert.equal(sheet.inside, true, `the sheet fits the ${where} screen`);
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `an open sheet adds no horizontal scroll at ${where}`);
+        await page.evaluate(axe);
+        assert.deepEqual(await page.evaluate(async () => (await axe.run(document.querySelector('.card-preview-sheet'), {
+          runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa'] } })).violations.map(item => item.id)), [], `axe of the open sheet at ${where}`);
+        await page.click('.card-preview-sheet__close');
+        await page.waitForSelector('.card-preview-sheet', { hidden: true });
+      } else {
+        await button.hover();
+        assert.deepEqual(await tooltipFor(page, 'Живой азерит'), { named: true, inside: true }, `the tooltip fits the page at ${where}`);
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `an open tooltip adds no horizontal scroll at ${where}`);
+        await page.mouse.move(5, 5);
+      }
+    }
 
     await page.setRequestInterception(true);
     page.on('request', request => {
