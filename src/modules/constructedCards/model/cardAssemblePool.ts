@@ -1,5 +1,5 @@
 import {
-  assembleRankableDonors,
+  assembleBasesByOffer, assembleRankableDonors,
   type AssembleBase, type AssembleDonor, type AssembleOption, type AssemblePoolDonor, type AssembleVariant, type CardAssembleData,
 } from './cardAssemble';
 
@@ -28,6 +28,13 @@ export function assembleClassDependent(data: CardAssembleData | null): boolean {
 /** Bases a player of this class can be rolled: the class's own and neutral ones (all, until a class is chosen). */
 export function assembleBasesForClass<T extends AssembleBase>(bases: readonly T[], playerClass: string | null): T[] {
   return playerClass ? bases.filter(base => base.card.cardClass === playerClass || base.card.cardClass === NEUTRAL) : [...bases];
+}
+
+/** The base to move to when the class changes: `null` while the shown base can still be rolled by the class. */
+export function assembleBaseAfterClassChange(data: CardAssembleData, shown: AssembleBase | null, next: string | null): number | null {
+  if (!next || !shown) return null;
+  const allowed = assembleBasesForClass(assembleBasesByOffer(data), next);
+  return allowed.some(base => base.card.dbfId === shown.card.dbfId) ? null : allowed[0]?.card.dbfId ?? null;
 }
 
 /** A donor that never met the base: its texts, and no percentage anywhere. */

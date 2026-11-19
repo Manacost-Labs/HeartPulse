@@ -126,6 +126,31 @@ try {
   assert.equal(await page.$('.assemble-offer li.is-best'), null);
   assert.match(await text('.assemble-offer'), /Лучшего выбора нет/);
   assert.match(await page.$eval('.assemble-offer [role="status"]', node => node.textContent), /Лучшего выбора нет/);
+  // Changing the class moves the screen to a base that class can roll, and clears the chosen donors.
+  await page.goto(storybook.storyUrl('card-detail-assemble--f-3-tch-3-r'), { waitUntil: 'networkidle0' });
+  await page.waitForSelector('[data-card-assemble] .assemble-row');
+  const bases = await page.evaluate(async () => (await (await fetch('/api/card-assemble/standard/BE_044?base=top')).json()).bases.map(base => [base.card.name, base.card.cardClass, base.offerRate]));
+  const firstOf = classes => bases.filter(base => classes.includes(base[1])).sort((a, b) => b[2] - a[2])[0][0];
+  const mageBase = bases.filter(base => base[1] === 'MAGE').sort((a, b) => b[2] - a[2])[0][0];
+  const clickClass = label => page.evaluate(name => [...document.querySelectorAll('ul[aria-label="Класс игрока"] button')].find(button => button.textContent === name)?.click(), label);
+  const baseName = () => page.$eval('.assemble-base__name', node => node.textContent);
+  await clickClass('Маг');
+  await page.evaluate(name => [...document.querySelectorAll('ul[aria-label^="Существа, которых игра"] button')].find(button => button.textContent.includes(name))?.click(), mageBase);
+  await page.waitForFunction(name => document.querySelector('.assemble-base__name')?.textContent === name, {}, mageBase);
+  await page.waitForSelector('ol[aria-label="Лучшие сборки"] > li');
+  await page.evaluate(() => [...document.querySelectorAll('.assemble-tabs button')].find(button => button.textContent === 'Мне предложили')?.click());
+  await page.waitForSelector('ul[aria-label="Существа, которых могла предложить игра"] button');
+  await page.click('ul[aria-label="Существа, которых могла предложить игра"] li:nth-child(1) button');
+  assert.equal(await page.$$eval('.assemble-slot.is-filled', slots => slots.length), 1);
+  const rogueBase = firstOf(['ROGUE', 'NEUTRAL']);
+  await clickClass('Разбойник');
+  await page.waitForFunction(name => document.querySelector('.assemble-base__name')?.textContent === name, {}, rogueBase);
+  assert.notEqual(await baseName(), mageBase);
+  assert.equal(await page.$$eval('.assemble-slot.is-filled', slots => slots.length), 0, 'the chosen donors are cleared with the class');
+  const ribbon = await page.$$eval('ul[aria-label^="Существа, которых игра"] .assemble-picker__name', names => names.map(name => name.textContent));
+  assert.ok(!ribbon.includes(mageBase), 'a Mage base is not in a Rogue ribbon');
+  assert.ok(ribbon.includes(await baseName()), 'the shown base is in the ribbon');
+
   // A failed pool check falls back to the donors with statistics, without the class choice.
   await page.goto(storybook.storyUrl('card-detail-assemble--pool-mismatch'), { waitUntil: 'networkidle0' });
   await page.waitForSelector('[data-card-assemble] .assemble-row');

@@ -7,7 +7,7 @@ import {
 import { cardChoiceDate, formatChoicePercent } from '../model/cardChoices';
 import { useCardAssemble } from '../useCardAssemble';
 import { BuildRow, BuildsSkeleton, Legend } from './AssembleBuilds';
-import { assembleBasesForClass, assembleClassDependent } from '../model/cardAssemblePool';
+import { assembleBaseAfterClassChange, assembleBasesForClass, assembleClassDependent } from '../model/cardAssemblePool';
 import { ClassChooser } from './AssembleClasses';
 import { BaseSummary, OfferedPanel } from './AssembleOffered';
 import { PortraitPicker, type PickerItem } from './AssemblePicker';
@@ -71,11 +71,12 @@ export function CardAssembleSection({ format, cardId }: CardAssembleSectionProps
   const hasBases = !!data && data.state === 'ok' && data.bases.length > 0;
   const variants = active ? assembleOptionsOfBase(active) : [];
   const visible = showAll ? variants : variants.slice(0, VISIBLE_BUILDS);
-  const items: PickerItem[] = ribbon.map(base => ({
-    id: String(base.card.dbfId),
-    card: base.card,
-    note: base.offerRate === null ? '' : `выпадает ${formatChoicePercent(base.offerRate)}`,
-  }));
+  const items: PickerItem[] = ribbon.map(base => ({ id: String(base.card.dbfId), card: base.card, note: base.offerRate === null ? '' : `выпадает ${formatChoicePercent(base.offerRate)}` }));
+  const changeClass = (next: string | null) => {
+    setPlayerClass(next);
+    const moveTo = data ? assembleBaseAfterClassChange(data, shownBase, next) : null;
+    if (moveTo !== null) { setSelected(moveTo); setShowAll(false); }
+  };
   const chooseBase = (id: string) => {
     setSelected(Number(id));
     setShowAll(false);
@@ -111,7 +112,7 @@ export function CardAssembleSection({ format, cardId }: CardAssembleSectionProps
 
       {data && hasBases && (
         <>
-          {classDependent && <ClassChooser value={playerClass} onChange={setPlayerClass} />}
+          {classDependent && <ClassChooser value={playerClass} onChange={changeClass} />}
           <h3 className="assemble-title">Что выпало?</h3>
           <PortraitPicker items={items} selected={shownBase ? [String(shownBase.card.dbfId)] : []} onPick={chooseBase}
             label="Существа, которых игра может выбрать основой" searchLabel="Найти существо по названию" size="large" />
