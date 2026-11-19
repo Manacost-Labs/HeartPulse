@@ -84,7 +84,6 @@ export function createPublicSeoModel(root = process.cwd()) {
       `${siteUrl}/sitemaps/standard-cards.xml`,
       `${siteUrl}/sitemaps/wild-cards.xml`,
       `${siteUrl}/sitemaps/battleground-minions.xml`,
-      `${siteUrl}/sitemaps/battleground-spells.xml`,
       `${siteUrl}/sitemaps/battleground-heroes.xml`,
       `${siteUrl}/sitemaps/cosmetics.xml`,
       `${siteUrl}/sitemaps/guides-archive.xml`,

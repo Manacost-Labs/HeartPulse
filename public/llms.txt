@@ -82,13 +82,15 @@
   только по подписке. Источники: HSReplay, Firestone. Обновление:
   автоматическое, как правило раз в сутки.
 - [Герои](https://hearthpulse.net/heroes/) и
-  [библиотека карт](https://hearthpulse.net/library/): списки и статистика —
-  по подписке, источники статистики: HSReplay, Firestone. Открыты страницы
-  отдельных героев (имя, изображение, сила героя) и отдельных карт библиотеки
-  (название, тип, текст, изображение), без статистики. Их адреса перечислены в
-  sitemap [героев](https://hearthpulse.net/sitemaps/battleground-heroes.xml),
-  [существ](https://hearthpulse.net/sitemaps/battleground-minions.xml) и
-  [заклинаний](https://hearthpulse.net/sitemaps/battleground-spells.xml).
+  [библиотека карт](https://hearthpulse.net/library/): открыты списки карт
+  библиотеки (название, уровень таверны, тип, атака и здоровье), страницы
+  отдельных героев (имя, изображение, сила героя) и отдельных карт
+  (характеристики, текст, связанные карты, у существ среднее место и
+  популярность в рейтинге «Топ 50%»). Статистика по ходам, позиции на столе и
+  история — по подписке, источники статистики: HSReplay, Firestone. Адреса
+  страниц с достаточным содержанием перечислены в sitemap
+  [героев](https://hearthpulse.net/sitemaps/battleground-heroes.xml) и
+  [существ](https://hearthpulse.net/sitemaps/battleground-minions.xml).
 
 ## Справка и материалы
 

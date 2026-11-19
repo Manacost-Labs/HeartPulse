@@ -6,8 +6,8 @@ import { publicBattlegroundHeroStatsOf } from './lib/publicBattlegroundHeroStats
 import { publicBattlegroundLibraryCard } from './lib/publicBattlegroundLibraryCardData';
 import { battlegroundLibraryDetailApiPath, type BattlegroundLibraryPool } from './lib/battlegroundLibraryDetailKinds';
 import { publicCardSeed } from './lib/publicCardSeed';
-import { encodePublicProjection, MISSING_PUBLIC_PROJECTION, PUBLIC_BG_PROJECTION_HEADER,
-  PUBLIC_CARD_PROJECTION_HEADER } from './lib/publicProjectionHeader';
+import { encodePublicProjection, encodePublicProjectionList, MISSING_PUBLIC_PROJECTION, PUBLIC_BG_PROJECTION_HEADER,
+  PUBLIC_BG_RELATED_HEADER, PUBLIC_CARD_PROJECTION_HEADER } from './lib/publicProjectionHeader';
 import { MISSING_COSMETICS_DETAIL_HEADER } from './lib/cosmeticsDetailContract';
 import { unavailablePageHtml } from './lib/unavailablePage';
 import { fetchPublicExpress } from './lib/expressApi';
@@ -71,9 +71,14 @@ async function checkBattlegroundDetail(probe: BattlegroundDetailProbe, headers: 
       if (!encodePublicProjection(projection)) projection = { hero };
     } else {
       const card = publicBattlegroundLibraryCard(value, probe.kindPath, probe.dbfId, probe.pool);
+      // The open facts and statistics ride along: the oversized case below stays a 503 (no second read can race it).
       projection = { card: { dbfId: card.dbfId, kind: card.kind, nameRu: card.name,
-        typeName: card.typeName, textRu: card.text, images: { card: card.image } },
-      canonicalPath: card.canonicalPath };
+        typeName: card.typeName, textRu: card.text, images: { card: card.image },
+        tavernTier: card.tavernTier, tribe: card.tribe, attack: card.attack, health: card.health,
+        mechanics: card.mechanics, golden: card.golden },
+      canonicalPath: card.canonicalPath, stats: card.stats };
+      const related = encodePublicProjectionList(card.related);
+      if (related) headers.set(PUBLIC_BG_RELATED_HEADER, related);
     }
     const encoded = encodePublicProjection(projection);
     // A large header can exceed an upstream request limit.
@@ -207,6 +212,7 @@ export async function proxy(request: NextRequest) {
   headers.delete('x-hearthpulse-card-id');
   headers.delete('x-hearthpulse-card-format');
   headers.delete(PUBLIC_BG_PROJECTION_HEADER);
+  headers.delete(PUBLIC_BG_RELATED_HEADER);
   headers.delete(PUBLIC_CARD_PROJECTION_HEADER);
   headers.delete(MISSING_COSMETICS_DETAIL_HEADER);
   if (route.page === 'detail' && route.cardId) {

@@ -4,9 +4,14 @@ import type { Metadata } from 'next';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { buildEntityStructuredData } from '@/shared/entitySeoStructuredData';
 import { loadPublicBattlegroundLibraryCard } from './publicBattlegroundLibraryCard';
+import { libraryCardIndexingFacts, type PublicBattlegroundLibraryCard } from './publicBattlegroundLibraryCardData';
+import { libraryCardSummary } from './battlegroundLibraryCardText';
 import type { BattlegroundLibraryPool } from './battlegroundLibraryDetailKinds';
 import { BattlegroundLibraryDetailPageClient } from '@/apps/public-web/ui/BattlegroundLibraryDetailPageClient';
-import { INDEXABLE_ROBOTS } from '@/src/shared/seo/robots';
+import { BattlegroundLibraryPublicCard } from '@/apps/public-web/ui/BattlegroundLibraryPublicCard';
+import { isIndexableBattlegroundLibraryCard } from '@/shared/battlegroundLibraryIndexing';
+import { INDEXABLE_ROBOTS, robotsContent } from '@/src/shared/seo/robots';
+import { fitMetaDescription } from '@/src/shared/seo/metaDescription';
 
 type Search = Promise<Record<string, string | string[] | undefined>>;
 export type BattlegroundDetailProps = {
@@ -32,7 +37,10 @@ async function resolveCard({ params, searchParams }: BattlegroundDetailProps, po
   return card;
 }
 
-function seo(card: NonNullable<Awaited<ReturnType<typeof loadPublicBattlegroundLibraryCard>>>, pool: BattlegroundLibraryPool) {
+/** The one indexing rule (shared/seoIndexThreshold.ts): the minion segment of the sitemap judges by the same function. */
+const isIndexable = (card: PublicBattlegroundLibraryCard) => isIndexableBattlegroundLibraryCard(libraryCardIndexingFacts(card));
+
+function seo(card: PublicBattlegroundLibraryCard, pool: BattlegroundLibraryPool) {
   const origin = 'https://hearthpulse.net';
   const canonical = new URL(card.canonicalPath, origin).href;
   const title = battlegroundCardTitle({ name: card.name, type: card.typeName, archive: pool === 'archive' });
@@ -41,7 +49,7 @@ function seo(card: NonNullable<Awaited<ReturnType<typeof loadPublicBattlegroundL
     : card.text
       ? `${card.name} — ${card.typeName.toLowerCase()} Hearthstone Battlegrounds. ${card.text}`.slice(0, 300)
       : `${card.name} — карта режима «Поля сражений» в Hearthstone.`;
-  return { origin, canonical, title, description };
+  return { origin, canonical, title, description: fitMetaDescription(description) };
 }
 
 export async function battlegroundDetailMetadata(props: BattlegroundDetailProps,
@@ -49,7 +57,7 @@ export async function battlegroundDetailMetadata(props: BattlegroundDetailProps,
   const card = await resolveCard(props, pool);
   const { canonical, title, description } = seo(card, pool);
   return {
-    title, description, alternates: { canonical }, robots: INDEXABLE_ROBOTS,
+    title, description, alternates: { canonical }, robots: isIndexable(card) ? INDEXABLE_ROBOTS : robotsContent('noindex-follow'),
     openGraph: { type: 'article', url: canonical, siteName: 'HearthPulse', locale: 'ru_RU',
       title, description, images: [card.image] },
   };
@@ -76,9 +84,29 @@ export async function battlegroundDetailPage(props: BattlegroundDetailProps,
       { name: card.name, item: canonical },
     ],
   });
+  if (card.stats) {
+    // The statistics are open for the base slice; the closed part is named for crawlers (`isAccessibleForFree: false`).
+    (structured['@graph'] as unknown[]).push({
+      '@type': 'Dataset',
+      '@id': `${canonical}#dataset`,
+      name: `Статистика ${card.name} в Полях сражений Hearthstone`,
+      description: `Среднее место с существом ${card.name} и без него, популярность и число игр в рейтинге «Топ 50%» текущего патча по данным HSReplay. Сила по ходам, покупки, позиции на столе и история доступны по подписке.`,
+      url: canonical,
+      inLanguage: 'ru',
+      isAccessibleForFree: false,
+      hasPart: { '@type': 'WebPageElement', isAccessibleForFree: false, cssSelector: '.paywalled-library-card' },
+      isBasedOn: [{ '@type': 'Dataset', name: 'HSReplay: Battlegrounds Minions', url: 'https://hsreplay.net/battlegrounds/minions/' }],
+      variableMeasured: [
+        { '@type': 'PropertyValue', name: 'Среднее место с существом' },
+        { '@type': 'PropertyValue', name: 'Популярность', unitText: '%' },
+      ],
+      about: { '@type': 'VideoGame', name: 'Hearthstone' },
+    });
+  }
   return <>
-    <script type="application/ld+json" data-server-entity-jsonld data-entity-path={card.canonicalPath}
-      dangerouslySetInnerHTML={{ __html: JSON.stringify(structured).replace(/</g, '\\u003c') }} />
-    <BattlegroundLibraryDetailPageClient card={card} />
+    {isIndexable(card) ? <script type="application/ld+json" data-server-entity-jsonld data-entity-path={card.canonicalPath}
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(structured).replace(/</g, '\\u003c') }} /> : null}
+    <BattlegroundLibraryDetailPageClient card={card} summary={libraryCardSummary(card)}
+      open={<BattlegroundLibraryPublicCard card={card} />} />
   </>;
 }
