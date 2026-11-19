@@ -592,10 +592,11 @@ The owner found the accordion menu small, shaky and dull. Groups are gone.
    remembered-mode selectors; the banner panel takes its width from `--modes`
    (the length of `NAVIGATION_MODES`) and wraps cards that do not fit, so a new
    mode is a new entry of `NAVIGATION_MODES` plus one selector line. A page of
-   a mode stores it, so Home shows the mode the reader used last. The new list slides in (opacity and an
-   8 px shift) only when the page's mode changes, never on first load.
+   a mode stores it, so Home shows the mode the reader used last. The new list
+   slides in (opacity and an 8 px shift) only when the page's mode changes,
+   never on first load.
 3. The mode switch is a native `<details class="hp-mode">`: it works without
-   JavaScript and before hydration. Its panel holds four banner links; the
+   JavaScript and before hydration. Its panel holds one banner link per mode; the
    hidden panel is not in the accessibility tree. `useModePanels` closes it on
    Escape (focus back on the button, before the drawer's own Escape handler),
    on a press elsewhere, when focus leaves and when a banner is chosen. A
