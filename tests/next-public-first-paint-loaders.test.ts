@@ -199,6 +199,11 @@ assert.equal(JSON.stringify(funPreview).includes('PRIVATE_'), false);
   assert.deepEqual([newer?.winRateCiLow, newer?.winRateCiHigh, newer?.variants, newer?.sourceTitle, newer?.nearestArchetypeLabel],
     [41.5, 67.2, 1, 'STD Deck 2', 'Вихлепых Друид']);
   assert.deepEqual([newer?.why, newer?.tags], [['Концепт'], ['concept']], 'the reasons and the filter tags reach the guest\'s first view');
+  // `kind` and `pinned` reach the guest's first view; a response without them is a brew, not pinned.
+  const flagged = publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), kind: 'off_meta', pinned: true }] })?.decks[0];
+  assert.deepEqual([flagged?.kind, flagged?.pinned], ['off_meta', true]);
+  assert.deepEqual([funPreview?.decks[0].kind, funPreview?.decks[0].pinned], ['brew', undefined]);
+  assert.equal(publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), kind: 'hacked', pinned: 'yes' }] })?.decks[0].kind, 'brew');
   const older = funPreview?.decks[0];
   assert.deepEqual([older?.winRateCiLow, older?.winRateCiHigh, older?.variants, older?.sourceTitle, older?.nearestArchetypeLabel],
     [null, null, null, null, null]);

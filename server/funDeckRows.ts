@@ -1,5 +1,5 @@
 import { decodeDeckDefinition } from './deckBuilderResolve.js';
-import { funDeckWhy } from './funDeckWhy.js';
+import { funDeckWhy, normalizeFunDeckKind, type FunDeckKind } from './funDeckWhy.js';
 
 export type FunDeckRow = {
   title: string;
@@ -7,6 +7,12 @@ export type FunDeckRow = {
   format: string;
   className: string;
   streamer: string | null;
+  /** `off_meta`: a forgotten archetype. A dataset that predates concept-v8 has no kind: every deck is a brew. */
+  kind: FunDeckKind;
+  /** Set by the public selection on a deck the admin pinned. */
+  pinned?: boolean;
+  /** Admin selection only: the moderation decision on the deck. */
+  moderation?: 'hide' | 'pin' | null;
   funScore: number | null;
   maxMetaSimilarity: number | null;
   nearestArchetype: string | null;
@@ -115,12 +121,14 @@ export function normalizeFunDeckRow(row: unknown): FunDeckRow {
   const recordStats = statsFromRecord(item.record);
   const interval = winRateInterval(item.win_rate_ci_low, item.win_rate_ci_high);
   const reasons = stringList(item.reasons);
+  const kind = normalizeFunDeckKind(item.kind);
   return {
     title: text(item.title) || 'Без названия',
     deckCode,
     format: text(item.format) || '—',
     className: text(item.class) || classFromDeckCode(deckCode) || '—',
     streamer: text(item.streamer) || null,
+    kind,
     funScore: numberOrNull(item.fun_score),
     maxMetaSimilarity: numberOrNull(item.max_meta_similarity),
     nearestArchetype: text(item.nearest_archetype) || null,
@@ -132,7 +140,7 @@ export function normalizeFunDeckRow(row: unknown): FunDeckRow {
     sourceTitle: text(item.source_title) || null,
     games: numberOrNull(item.games) ?? recordStats?.games ?? null,
     reasons,
-    ...funDeckWhy(reasons),
+    ...funDeckWhy(reasons, kind),
     url: text(item.url) || null,
     candidateSourceId: text(item.candidate_source_id) || null,
     firstSeenAt: text(item.first_seen_at) || null,

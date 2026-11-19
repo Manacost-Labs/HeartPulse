@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
 import express from 'express';
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import fc from 'fast-check';
 import {
   createAdminFunDecksRouter,
@@ -7,6 +11,7 @@ import {
   normalizeFunDecksPayload,
   normalizePublicFunDecksPayload,
 } from '../server/adminFunDecksRoutes.js';
+import { listFunDeckModeration } from '../server/adminFunDeckModerationStore.js';
 import { funDeckWhy } from '../server/funDeckWhy.js';
 import { assertProperty } from './helpers/propertyRuns.js';
 
@@ -123,6 +128,22 @@ const withReasons = normalizeFunDecksPayload({ data: { structured: { rows: [
   { title: 'Reasoned', deck_code: 'R'.repeat(24), format: 'Standard', reasons: ['concept_title', 'xl_shape'] },
 ] } } }).decks[0];
 assert.deepEqual([withReasons.reasons, withReasons.why, withReasons.tags], [['concept_title', 'xl_shape'], ['XL-колода', 'Концепт'], ['xl', 'concept']]);
+
+// concept-v8: `kind` and the new reasons. An API that predates the field sends none: every deck is a brew.
+assert.deepEqual(said('unique_list', 'far_from_ladder'), { why: ['Уникальный список', 'Далеко от меты'], tags: [] });
+assert.deepEqual(funDeckWhy(['concept_title', 'far_from_ladder'], 'off_meta'),
+  { why: ['Офф-мета', 'Концепт', 'Далеко от меты'], tags: ['concept', 'offmeta'] }, 'the offmeta tag follows the kind, and the chip comes first');
+assert.deepEqual(funDeckWhy([], 'brew'), { why: [], tags: [] });
+const kindsOf = normalizeFunDecksPayload({ data: { structured: { rows: [
+  { title: 'Off', deck_code: 'O'.repeat(24), format: 'Standard', kind: 'off_meta', reasons: ['far_from_ladder'] },
+  { title: 'Brew', deck_code: 'B'.repeat(24), format: 'Standard', kind: 'brew' },
+  { title: 'Older API', deck_code: 'C'.repeat(24), format: 'Standard' },
+  { title: 'From the future', deck_code: 'D'.repeat(24), format: 'Standard', kind: 'something_new' },
+] } } }).decks;
+assert.deepEqual(kindsOf.map(deck => deck.kind), ['off_meta', 'brew', 'brew', 'brew']);
+assert.deepEqual(kindsOf[0].tags, ['offmeta']);
+assert.deepEqual(kindsOf.slice(1).map(deck => deck.tags), [[], [], []]);
+assert.ok(kindsOf.every(deck => deck.pinned === undefined && deck.moderation === undefined), 'the dataset carries no decision');
 
 const publicPayload = normalizePublicFunDecksPayload({
   source_id: 'hsguru_fun_decks',
@@ -242,4 +263,145 @@ try {
   await new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
 }
 
+await testModeration();
+
 console.log('admin fun decks routes tests passed');
+
+/** Hide / pin / clear through the routes, on a real SQLite file, and what the public selection and the admin list make of it. */
+async function testModeration() {
+  const directory = mkdtempSync(path.join(tmpdir(), 'fun-deck-moderation-'));
+  const database = new DatabaseSync(path.join(directory, 'ecosystem.sqlite'));
+  const code = (letter: string) => letter.repeat(24);
+  let rows = [
+    { title: 'Std A', deck_code: code('A'), format: 'Standard', fun_score: 0.9 },
+    { title: 'Std B', deck_code: code('B'), format: 'Standard', fun_score: 0.8, kind: 'off_meta' },
+    { title: 'Std C', deck_code: code('C'), format: 'Standard', fun_score: 0.7 },
+    { title: 'Wild D', deck_code: code('D'), format: 'Wild', fun_score: 0.6 },
+  ];
+  const loadFunDecks = async () => ({ data: { structured: { rows } } });
+  const audit: Array<[string, string, string]> = [];
+  const errors: unknown[] = [];
+  let storeBroken = false;
+  const adminGuard: express.RequestHandler = (request, response, next) => {
+    if (!request.headers['x-test-user']) return response.status(401).json({ error: 'Требуется вход' });
+    return request.headers['x-test-user'] === 'admin' ? next() : response.status(403).json({ error: 'Нет доступа' });
+  };
+  const setPrivateNoStore = (response: express.Response) => { response.set('Cache-Control', 'private, no-store'); };
+  const moderationApp = express();
+  moderationApp.use(express.json());
+  moderationApp.use('/api', createPublicFunDecksRouter({
+    loadFunDecks,
+    getDatabase: () => {
+      if (storeBroken) throw new Error('moderation table unreadable');
+      return database;
+    },
+    onError: error => errors.push(error),
+  }));
+  moderationApp.use('/api', createAdminFunDecksRouter({
+    adminGuard,
+    adminAuth: request => (request.headers['x-test-user'] === 'admin' ? { id: 'admin-1' } : null),
+    getDatabase: () => database,
+    loadFunDecks,
+    setPrivateNoStore,
+    recordAudit: (actor, action, entityId) => audit.push([actor.id, action, entityId]),
+  }));
+  const moderationServer = moderationApp.listen(0, '127.0.0.1');
+  await new Promise<void>(resolve => moderationServer.once('listening', resolve));
+  const { port } = moderationServer.address() as { port: number };
+  const call = (method: string, route: string, user?: string, body?: unknown) => fetch(`http://127.0.0.1:${port}/api${route}`, {
+    method,
+    headers: { 'Content-Type': 'application/json', ...(user ? { 'X-Test-User': user } : {}) },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+  });
+  const moderate = (body: unknown, user = 'admin') => call('POST', '/admin/fun-decks/moderation', user, body);
+  const titles = async (format?: string) => ((await (await call('GET', '/fun-decks')).json()) as any).decks
+    .filter((deck: any) => !format || deck.format === format).map((deck: any) => deck.title);
+  try {
+    // Without an admin nothing is written.
+    assert.equal((await moderate({ format: 'standard', deckCode: code('A'), action: 'hide' }, '')).status, 401);
+    assert.equal((await moderate({ format: 'standard', deckCode: code('A'), action: 'hide' }, 'user')).status, 403);
+    assert.equal(listFunDeckModeration(database).length, 0);
+    assert.deepEqual(audit, []);
+
+    // A bad command is a 400 with a Russian reason, and writes nothing.
+    for (const bad of [
+      { format: 'standard', deckCode: code('A'), action: 'delete' },
+      { format: 'standard', deckCode: code('A') },
+      { format: 'arena', deckCode: code('A'), action: 'hide' },
+      { format: 'standard', deckCode: '', action: 'hide' },
+      { format: 'standard', deckCode: 'X'.repeat(401), action: 'hide' },
+      { format: 'standard', deckCode: code('A'), action: 'hide', note: 'n'.repeat(501) },
+      { format: 'standard', deckCode: code('A'), action: 'hide', note: 5 },
+    ]) {
+      const response = await moderate(bad);
+      assert.equal(response.status, 400, JSON.stringify(bad).slice(0, 80));
+      assert.match(String(((await response.json()) as any).error), /[А-Яа-я]/);
+    }
+    assert.equal(listFunDeckModeration(database).length, 0);
+
+    // A deck the dataset does not have cannot be hidden or pinned.
+    assert.equal((await moderate({ format: 'standard', deckCode: code('Z'), action: 'pin' })).status, 404);
+    assert.equal((await moderate({ format: 'wild', deckCode: code('A'), action: 'hide' })).status, 404, 'the format is part of the key');
+
+    // Hide: gone from the public selection, counts follow, the admin sees it among the hidden.
+    const hidden = await moderate({ format: 'Standard', deckCode: code('A'), action: 'hide', note: ' дубль ' });
+    assert.equal(hidden.status, 200);
+    assert.deepEqual(await hidden.json(), { success: true, format: 'standard', deckCode: code('A'), moderation: 'hide' });
+    assert.equal(hidden.headers.get('cache-control'), 'private, no-store');
+    const afterHide = (await (await call('GET', '/fun-decks')).json()) as any;
+    assert.deepEqual(afterHide.decks.map((deck: any) => deck.title), ['Std B', 'Std C', 'Wild D']);
+    assert.deepEqual(afterHide.stats, { total: 3, standard: 2, wild: 1 });
+    const adminList = (await (await call('GET', '/admin/fun-decks', 'admin')).json()) as any;
+    assert.equal(adminList.decks.length, 4, 'the admin still sees every deck');
+    assert.equal(adminList.decks.find((deck: any) => deck.title === 'Std A').moderation, 'hide');
+    assert.equal(adminList.decks.find((deck: any) => deck.title === 'Std B').moderation, null);
+    assert.deepEqual(adminList.hidden.map((item: any) => [item.deckCode, item.note, item.updatedBy, item.deck.title]), [[code('A'), 'дубль', 'admin-1', 'Std A']]);
+    assert.equal((await call('GET', '/admin/fun-decks')).status, 401, 'the moderation state is admin-only');
+
+    // Pin: first in its format, flagged, and the other format is untouched.
+    assert.equal((await moderate({ format: 'standard', deckCode: code('C'), action: 'pin' })).status, 200);
+    assert.deepEqual(await titles(), ['Std C', 'Std B', 'Wild D']);
+    const pinnedDeck = ((await (await call('GET', '/fun-decks')).json()) as any).decks;
+    assert.deepEqual(pinnedDeck.map((deck: any) => deck.pinned), [true, undefined, undefined]);
+    assert.equal(pinnedDeck.every((deck: any) => !('moderation' in deck)), true, 'the public selection carries no moderation status');
+
+    // A second decision on the same deck replaces the first.
+    assert.equal((await moderate({ format: 'standard', deckCode: code('C'), action: 'hide' })).status, 200);
+    assert.equal(listFunDeckModeration(database).filter(item => item.deckCode === code('C')).length, 1);
+    assert.deepEqual(await titles(), ['Std B', 'Wild D']);
+    assert.equal((await moderate({ format: 'standard', deckCode: code('C'), action: 'pin' })).status, 200);
+
+    // A pinned deck the dataset dropped is shown from its snapshot; the admin can still return it.
+    rows = rows.filter(row => row.deck_code !== code('C'));
+    assert.deepEqual(await titles(), ['Std C', 'Std B', 'Wild D']);
+    const fromSnapshot = ((await (await call('GET', '/fun-decks')).json()) as any);
+    assert.deepEqual(fromSnapshot.stats, { total: 3, standard: 2, wild: 1 });
+    assert.equal(fromSnapshot.decks[0].pinned, true);
+    assert.equal((await moderate({ format: 'standard', deckCode: code('C'), action: 'hide' })).status, 200, 'a decision on a dropped deck works from its snapshot');
+    assert.equal((await moderate({ format: 'standard', deckCode: code('C'), action: 'pin' })).status, 200);
+
+    // Persisted: a fresh connection to the same file sees the same decisions.
+    const reopened = new DatabaseSync(path.join(directory, 'ecosystem.sqlite'));
+    assert.deepEqual(listFunDeckModeration(reopened).map(item => [item.deckCode, item.action]).sort(), [[code('A'), 'hide'], [code('C'), 'pin']]);
+    reopened.close();
+
+    // Clear returns the deck; clearing twice, or a deck that was never moderated, is fine.
+    assert.equal((await moderate({ format: 'standard', deckCode: code('A'), action: 'clear' })).status, 200);
+    assert.equal((await moderate({ format: 'standard', deckCode: code('A'), action: 'clear' })).status, 200);
+    assert.equal((await moderate({ format: 'wild', deckCode: code('Q'), action: 'clear' })).status, 200);
+    assert.deepEqual(await titles('Standard'), ['Std C', 'Std A', 'Std B']);
+    assert.deepEqual(audit.map(([, action]) => action).slice(0, 3), ['fun-deck.hide', 'fun-deck.pin', 'fun-deck.hide']);
+    assert.ok(audit.some(([actor, action, id]) => actor === 'admin-1' && action === 'fun-deck.clear' && id === `standard:${code('A')}`));
+
+    // An unreadable moderation table must not take the page down.
+    storeBroken = true;
+    const degraded = await call('GET', '/fun-decks');
+    assert.equal(degraded.status, 200);
+    assert.deepEqual(((await degraded.json()) as any).decks.map((deck: any) => deck.title), ['Std A', 'Std B', 'Wild D'], 'the dataset as it is');
+    assert.match(String(errors.at(-1) instanceof Error ? (errors.at(-1) as Error).message : errors.at(-1)), /moderation table unreadable/);
+  } finally {
+    await new Promise<void>((resolve, reject) => moderationServer.close(error => error ? reject(error) : resolve()));
+    database.close();
+    rmSync(directory, { recursive: true, force: true });
+  }
+}

@@ -44,6 +44,7 @@ function deck(raw: unknown): FunDeckRow {
   return {
     title: text(row.title, 200), deckCode: text(row.deckCode, 400), format: text(row.format, 20),
     className: text(row.className, 40), streamer: optionalText(row.streamer, 120),
+    kind: row.kind === 'off_meta' ? 'off_meta' : 'brew', ...(row.pinned === true ? { pinned: true } : {}),
     funScore: optionalNumber(row.funScore), maxMetaSimilarity: optionalNumber(row.maxMetaSimilarity),
     nearestArchetype: optionalText(row.nearestArchetype, 160), nearestArchetypeLabel: optionalText(row.nearestArchetypeLabel, 200),
     winRate: optionalNumber(row.winRate), winRateCiLow: optionalNumber(row.winRateCiLow), winRateCiHigh: optionalNumber(row.winRateCiHigh),
