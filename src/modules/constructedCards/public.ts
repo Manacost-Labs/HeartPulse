@@ -24,6 +24,6 @@ export { ConstructedCardTile } from './ui/ConstructedCardTile';
 export const CardChoicesSection = lazy(() => import('./ui/CardChoicesSection'));
 export { cardChoiceKindOf } from './model/cardChoices';
 /** Loaded on demand, like the choices section: only the 13 Assemble cards render it. */
-export const CardAssembleSection = lazy(() => import('./ui/CardAssembleSection'));
+export { CardAssembleSection } from './ui/CardAssembleLazy';
 export { isAssembleCard } from './model/cardAssemble';
 export type { CardChoiceKind, CardChoicesData } from './model/cardChoices';

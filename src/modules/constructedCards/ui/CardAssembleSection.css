@@ -125,3 +125,17 @@
   .assemble-portrait, .assemble-picker__list button, .assemble-row, .assemble-slot { transition: none; }
   .assemble-picker__list button:hover, .assemble-picker__list button:hover .assemble-portrait, .assemble-row:hover, .assemble-row:hover .assemble-portrait, .assemble-slot.is-filled:hover { transform: none; }
 }
+
+.assemble-edit { min-height: 44px; margin-top: 0.6rem; padding: 0 1rem; border: 1px solid #b78a51; color: #4a2d1b; background: rgba(255, 250, 232, 0.7); font: inherit; font-size: 0.9375rem; font-weight: 800; cursor: pointer; transition: background-color var(--motion-fast) var(--motion-ease), transform var(--motion-instant) var(--motion-ease); }
+.assemble-edit:hover { background: rgba(224, 191, 117, 0.35); }
+.assemble-edit:active { transform: scale(0.97); }
+.assemble-edit:focus-visible { outline: 3px solid #7b151b; outline-offset: 2px; }
+
+/* Phones: slots side by side and small, so the four builds start right under them. */
+@media (max-width: 640px) {
+  .assemble-slots { flex-wrap: nowrap; gap: 0.4rem; margin-top: 0.5rem; }
+  .assemble-slot { flex: 1 1 0; flex-direction: column; justify-content: center; gap: 0.3rem; padding: 0.5rem 0.3rem; text-align: center; }
+  .assemble-slot__name { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 0.8125rem; }
+  .assemble-offer__hint { margin-top: 0.6rem; font-size: 0.875rem; }
+  .assemble-offer .assemble-rows { margin-top: 1rem; }
+}

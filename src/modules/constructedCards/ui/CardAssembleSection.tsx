@@ -9,11 +9,16 @@ import {
 import { cardChoiceDate, formatChoicePercent } from '../model/cardChoices';
 import { useCardAssemble } from '../useCardAssemble';
 import '../../../shared/ui/LoadingSurface.css';
-import './CardChoicesSection.css';
-import './CardAssembleSection.css';
+
+// The stylesheets load with the section, not with the page: a static import would put them into
+// the initial CSS of every card page, and only 13 cards render this section.
+const loadStyles = () => Promise.all([import('./CardChoicesSection.css'), import('./CardAssembleSection.css')]);
 
 const VISIBLE_BUILDS = 10;
-const VISIBLE_PORTRAITS = 24;
+/** Portraits shown before «Показать всех»: three rows of eight on a desktop, two rows of three on a phone. */
+const VISIBLE_PORTRAITS = { wide: 24, phone: 6 };
+const PHONE_QUERY = '(max-width: 640px)';
+const visiblePortraits = () => (typeof window !== 'undefined' && window.matchMedia(PHONE_QUERY).matches ? VISIBLE_PORTRAITS.phone : VISIBLE_PORTRAITS.wide);
 /** Above this many portraits the ribbon gets a search field. */
 const SEARCH_FROM = 20;
 
@@ -57,9 +62,10 @@ function PortraitPicker({ items, selected, onPick, label, searchLabel, size }: {
 }) {
   const [query, setQuery] = useState('');
   const [all, setAll] = useState(false);
+  const [limit] = useState(visiblePortraits);
   const needle = query.trim().toLocaleLowerCase('ru');
   const matches = needle ? items.filter(item => item.card.name.toLocaleLowerCase('ru').includes(needle)) : items;
-  const shown = needle || all ? matches : matches.slice(0, VISIBLE_PORTRAITS);
+  const shown = needle || all ? matches : matches.slice(0, limit);
   return (
     <div className={`assemble-picker assemble-picker--${size}`}>
       {items.length > SEARCH_FROM && (
@@ -84,8 +90,10 @@ function PortraitPicker({ items, selected, onPick, label, searchLabel, size }: {
           </ul>
         )
         : <p className="assemble-note">По запросу «{query.trim()}» никого не нашли.</p>}
-      {!needle && !all && matches.length > VISIBLE_PORTRAITS && (
-        <button type="button" className="card-choices__more" onClick={() => setAll(true)}>Показать всех · {matches.length}</button>
+      {!needle && matches.length > limit && (
+        <button type="button" className="card-choices__more" aria-expanded={all} onClick={() => setAll(value => !value)}>
+          {all ? 'Свернуть' : `Показать всех · ${matches.length}`}
+        </button>
       )}
     </div>
   );
@@ -190,11 +198,15 @@ function BaseSummary({ base, format }: { base: AssembleBase; format: CardAssembl
 function OfferedPanel({ base, format }: { base: AssembleBase; format: CardAssembleData['format'] }) {
   const donors = useMemo(() => assembleRankableDonors(base), [base]);
   const [chosen, setChosen] = useState<string[]>([]);
+  // The picker folds away once two donors are chosen, so the four builds sit right under the slots.
+  const [editing, setEditing] = useState(false);
   const byId = (id: string | undefined) => donors.find(donor => donor.card.cardId === id) ?? null;
-  const pick = (id: string) => setChosen(current => {
-    if (current.includes(id)) return current.filter(item => item !== id);
-    return current.length < 2 ? [...current, id] : [current[0] as string, id];
-  });
+  const pick = (id: string) => {
+    const next = chosen.includes(id) ? chosen.filter(item => item !== id) : chosen.length < 2 ? [...chosen, id] : [chosen[0] as string, id];
+    setChosen(next);
+    setEditing(false);
+  };
+  const showPicker = chosen.length < 2 || editing;
   const result = chosen.length === 2 ? bestOfOffered(base, chosen[0] as string, chosen[1] as string) : null;
   const ordered = result
     ? [result.best, ...result.variants.filter(variant => variant !== result.best)
@@ -222,10 +234,13 @@ function OfferedPanel({ base, format }: { base: AssembleBase; format: CardAssemb
             );
         })}
       </div>
-      {donors.length > 0
+      {chosen.length === 2 && !editing && (
+        <button type="button" className="assemble-edit" onClick={() => setEditing(true)}>Изменить выбор</button>
+      )}
+      {showPicker && (donors.length > 0
         ? <PortraitPicker items={items} selected={chosen} onPick={pick} label="Существа, которых могла предложить игра" searchLabel="Найти существо" size="small" />
-        : <p className="assemble-note">По этой базе пока нет данных HSReplay о сборках.</p>}
-      {chosen.length === 2 && (result
+        : <p className="assemble-note">По этой базе пока нет данных HSReplay о сборках.</p>)}
+      {chosen.length === 2 && !editing && (result
         ? (
           <>
             <ol className="assemble-rows" aria-label="Четыре сборки из двух предложенных существ">
@@ -255,13 +270,19 @@ export function CardAssembleSection({ format, cardId }: CardAssembleSectionProps
   const [view, setView] = useState<'best' | 'offered'>('best');
   const [showAll, setShowAll] = useState(false);
   const state = useCardAssemble(format, cardId, selected, true, reload);
+  const [styled, setStyled] = useState(false);
+  useEffect(() => {
+    let alive = true;
+    void loadStyles().then(() => { if (alive) setStyled(true); }, () => { if (alive) setStyled(true); });
+    return () => { alive = false; };
+  }, []);
   // The ribbon stays on screen while the donors of another base load.
   const [kept, setKept] = useState<CardAssembleData | null>(null);
   useEffect(() => { if (state.status === 'ready') setKept(state.data); }, [state]);
   const data = state.status === 'ready' ? state.data : kept;
   const ribbon = useMemo(() => (data ? assembleBasesByOffer(data) : []), [data]);
 
-  if (state.status === 'missing' || state.status === 'idle') return null;
+  if (!styled || state.status === 'missing' || state.status === 'idle') return null;
   const loadingBase = state.status === 'loading';
   const active = state.status === 'ready' ? assembleActiveBase(state.data) : null;
   const shownBase = (selected === 'top' ? active : data?.bases.find(base => base.card.dbfId === selected)) ?? active;

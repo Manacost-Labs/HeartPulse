@@ -74,6 +74,13 @@ try {
   assert.equal(await page.$$eval('.assemble-offer ol > li', rows => rows.length), 4);
   assert.equal(await page.$$eval('.assemble-offer .assemble-row__best', labels => labels.length), 1);
   assert.match(await text('.assemble-row__best'), /^Лучший/);
+  // The picker folds away, the builds stay under the slots; «Изменить выбор» brings it back.
+  assert.equal(await page.$('ul[aria-label="Существа, которых могла предложить игра"]'), null);
+  await page.evaluate(() => [...document.querySelectorAll('.assemble-edit')][0]?.click());
+  await page.waitForSelector('ul[aria-label="Существа, которых могла предложить игра"]');
+  assert.equal(await page.$$eval('.assemble-offer ol > li', rows => rows.length), 0);
+  await page.click('ul[aria-label="Существа, которых могла предложить игра"] li:nth-child(3) button');
+  await page.waitForSelector('.assemble-offer ol > li.is-best');
   // Taking a chosen donor off the slot hides the answer.
   await page.click('.assemble-slot.is-filled');
   assert.equal(await page.$$eval('.assemble-offer ol > li', rows => rows.length), 0);
@@ -89,6 +96,19 @@ try {
   await page.$eval('.assemble-search input', input => { input.value = ''; });
   await page.type('.assemble-search input', 'яяяяя');
   assert.match(await text('[data-card-assemble]'), /никого не нашли/);
+
+  // A phone gets two rows of three portraits and the four builds right under the two slots.
+  await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
+  await page.goto(storybook.storyUrl('card-detail-assemble--f-3-tch-3-r'), { waitUntil: 'networkidle0' });
+  await page.waitForSelector('[data-card-assemble] .assemble-row');
+  assert.equal(await page.$$eval('ul[aria-label^="Существа, которых игра"] button', items => items.length), 6);
+  await page.evaluate(() => [...document.querySelectorAll('.assemble-tabs button')].find(button => button.textContent === 'Мне предложили')?.click());
+  await page.waitForSelector('ul[aria-label="Существа, которых могла предложить игра"] button');
+  await page.click('ul[aria-label="Существа, которых могла предложить игра"] li:nth-child(1) button');
+  await page.click('ul[aria-label="Существа, которых могла предложить игра"] li:nth-child(2) button');
+  await page.waitForSelector('.assemble-offer li.is-best');
+  const gap = await page.evaluate(() => document.querySelector('.assemble-offer ol').getBoundingClientRect().top - document.querySelector('.assemble-slots').getBoundingClientRect().bottom);
+  assert.ok(gap < 120, `the builds start ${gap}px under the slots`);
 
   // Nothing overflows at a phone width or at 150% zoom (a 960px viewport).
   for (const width of [390, 960]) {
