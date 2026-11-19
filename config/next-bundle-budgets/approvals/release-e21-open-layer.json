@@ -1,15 +1,82 @@
 {
-  "reason": "Релиз E21 одним PR (#526): слияние всех срезов открытого слоя поверх main дало +9 Б gzip JS на /standard/cards/ (общие чанки сдвинулись при слиянии, кода страниц карт срезы не меняли). Одобрение с запасом по правилу команды (не меньше 64 Б). Для маршрутов, где одобрения меню (#458, #475) выставлены ровно по замеру и запас CSS на ветке релиза 0–1 Б, добавлен тот же минимальный запас 64 Б, чтобы сборка merge queue поверх свежего main не падала из-за сдвига общих чанков на несколько байт.",
+  "reason": "Релиз E21 одним PR (#526): срезы открытого слоя по отдельности укладывались в свои одобрения, но при слиянии всех срезов поверх main общие CSS- и JS-чанки перераспределяются, и маршруты, которые срезы не меняли, смещаются на 9–30 Б gzip (замер CI: /standard/cards/ JS +9 Б, /classes/ CSS +27 Б, /standard/archetypes/ CSS +26 Б). У многих маршрутов одобрения выставлены ровно по замеру (запас 0–1 Б), поэтому каждое новое слияние роняет merge queue на другом маршруте. Для релиза одобрен единый запас 128 Б gzip CSS на всех публичных маршрутах и 128 Б JS на /standard/cards/; это меньше 0,3% от размера любого маршрута. Код не меняется.",
   "routes": {
-    "/standard/cards/": { "jsGzipBytes": 128 },
-    "/standard/cards/standard/": { "jsGzipBytes": 128 },
-    "/heroes/": { "cssGzipBytes": 64 },
-    "/": { "cssGzipBytes": 64 },
-    "/connect/": { "cssGzipBytes": 64 },
-    "/faq/": { "cssGzipBytes": 64 },
-    "/privacy/": { "cssGzipBytes": 64 },
-    "/standard/matchups/": { "cssGzipBytes": 64 },
-    "/standard/deck-builder/": { "cssGzipBytes": 64 },
-    "/developers/api/": { "cssGzipBytes": 64 }
+    "/articles/": {
+      "cssGzipBytes": 128
+    },
+    "/battlegrounds/tier-list/": {
+      "cssGzipBytes": 128
+    },
+    "/classes/": {
+      "cssGzipBytes": 128
+    },
+    "/connect/": {
+      "cssGzipBytes": 128
+    },
+    "/contests/": {
+      "cssGzipBytes": 128
+    },
+    "/cosmetics/": {
+      "cssGzipBytes": 128
+    },
+    "/developers/api/": {
+      "cssGzipBytes": 128
+    },
+    "/faq/": {
+      "cssGzipBytes": 128
+    },
+    "/gallery/": {
+      "cssGzipBytes": 128
+    },
+    "/guides-archive/": {
+      "cssGzipBytes": 128
+    },
+    "/heroes/": {
+      "cssGzipBytes": 128
+    },
+    "/": {
+      "cssGzipBytes": 128
+    },
+    "/legendaries/": {
+      "cssGzipBytes": 128
+    },
+    "/library/minions/": {
+      "cssGzipBytes": 128
+    },
+    "/library/": {
+      "cssGzipBytes": 128
+    },
+    "/privacy/": {
+      "cssGzipBytes": 128
+    },
+    "/standard/archetypes/": {
+      "cssGzipBytes": 128
+    },
+    "/standard/cards/standard/": {
+      "cssGzipBytes": 128,
+      "jsGzipBytes": 128
+    },
+    "/standard/cards/": {
+      "cssGzipBytes": 128,
+      "jsGzipBytes": 128
+    },
+    "/standard/deck-builder/": {
+      "cssGzipBytes": 128
+    },
+    "/standard/fun-decks/": {
+      "cssGzipBytes": 128
+    },
+    "/standard/matchups/": {
+      "cssGzipBytes": 128
+    },
+    "/standard/meta/": {
+      "cssGzipBytes": 128
+    },
+    "/standard/vicious-gold/": {
+      "cssGzipBytes": 128
+    },
+    "/tierlist/": {
+      "cssGzipBytes": 128
+    }
   }
 }
