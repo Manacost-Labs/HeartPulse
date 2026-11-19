@@ -1199,7 +1199,7 @@ function HSReplayCardsTable({ tiers, onCardOpen, previewSuppressed = false }: {
   );
 }
 
-export function TierList({ data, loading, error, companionIds, tierlistSource, onTierlistSourceChange, switchingTierlistSource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, accessGranted }: {
+export function TierList({ data, loading, error, companionIds, tierlistSource, onTierlistSourceChange, switchingTierlistSource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, accessGranted, initialClassId }: {
   data: TierlistData; loading: boolean; error: boolean;
   companionIds: Set<string>;
   tierlistSource: TierlistSource;
@@ -1212,8 +1212,10 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
   onRefreshSubscription: () => Promise<SubscriptionStatus | null>;
   /** Access decided by the page (e.g. administrators); defaults to the Arena entitlement. */
   accessGranted?: boolean;
+  /** The class the page was opened on (`?class=` of the open list); the default is all cards. */
+  initialClassId?: string;
 }) {
-  const [activeClassId, setActiveClassId] = useState<string>(ALL_CARDS_ID);
+  const [activeClassId, setActiveClassId] = useState<string>(initialClassId ?? ALL_CARDS_ID);
   const [searchQuery, setSearchQuery]     = useState('');
   const [selectedRarity, setSelectedRarity] = useState<string>('all');
   const [selectedManaCost, setSelectedManaCost] = useState<ManaFilterValue>('all');

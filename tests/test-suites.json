@@ -544,6 +544,7 @@
         "tests/next-first-paint-data-browser.test.mjs",
         "tests/next-tierlist-public.test.mjs",
         "tests/next-classes-teaser.test.mjs",
+        "tests/next-arena-open-first-screen-browser.test.mjs",
         "tests/next-legendaries-open-layer.test.mjs",
         "tests/next-legendaries-open-layer-browser.test.mjs",
         "tests/next-standard-meta-open-browser.test.mjs",

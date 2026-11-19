@@ -223,6 +223,8 @@ and provides a selector and a popularity filter to reduce crowded clusters.
 - Tier grid, source switching, card preview, lightbox and export behavior are protected.
 - The tier list, classes and legendaries pages end with their data: no explanatory block, FAQ, chart disclosure or note below it (owner rule, 2026-11-19).
 - Pages carry no explanation text; under the H1 there is at most one line (data freshness and source). No slogan that repeats the H1, no paragraph that retells the interface.
+- A guest's open data is the page's content from the first screen (`/tierlist/`, `/classes/`): no gate or dimmed preview over it, the same HTML for everyone. A paid value is shown as a lock in the data itself, not as a separate block: a hatched closed column with a dashed red lock button («Ещё») in the table head, and dashed lock chips among the filters. A tap opens the subscription offer and keeps the page address (class included). A subscriber's full view replaces the open one only once its data has loaded. The same dashed red lock is the one on the legendaries page.
+- The open tier list groups cards by tier under the site `TierBadge` (one mark per tier group, never one per card row); its columns keep their headings whole at 360 px («Винрейт, %», «Выбор, %»), and a table never scrolls sideways.
 
 ## Battlegrounds Pages
 
@@ -459,6 +461,7 @@ Rules:
 ## Changelog
 
 - **2026-11-19** — Menu v4 and tier marks (E22 D, #467): the mode switch moved to the top of the menu as a small banner with the art of the current mode, banner cards got a `srcset`, emblems, a gold frame and hover motion, menu icons moved to three sizes, and `TierBadge` became a painted image from `/tier-marks/` used everywhere a tier is drawn.
+- **2026-11-19** — Open data first (E21 R6, #410, #462): `/tierlist/` and `/classes/` show the open data from the first screen, paid values as locks in the data, tier groups under `TierBadge`, and the narrow-phone table headings fit.
 - **2026-11-19** — Clean UI (E22 D1, #468): the «О странице» block under the tier list, classes and legendaries pages and the «График классов и скачивание» disclosure under the classes ranking were removed with their code, text data and styles; the pages end with their data. Replaces the 2026-10-29 and 2026-11-18 entries about that text.
 - **2026-11-19** — Menu v3 (E22 C, #458): groups gave way to one flat list of the current mode and a mode switch that opens a panel of four banner cards; painted 40 px icons and mode emblems replaced the SVG set; menu text moved from HSDisplay to Inter 600 at 17 px.
 - **2026-11-18** — Menu cleanup (E22): groups by game mode (Стандарт и Вольный, Арена, Поля сражений, Сообщество) instead of «Конструкторы» and «Разное», the deck builder moved to Standard, builders of Battlegrounds became plain items, every item got its own icon from the site's duotone SVG set of one size and stroke, groups got coats of arms, icon plates and gold coin emblems removed, the active item sits on an embossed plaque, administrator panel moved to the bottom, `Ctrl K` hint in the header search.
