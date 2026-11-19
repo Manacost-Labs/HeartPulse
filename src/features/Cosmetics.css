@@ -294,13 +294,6 @@
   opacity: 0.45;
 }
 
-.cosmetics-source {
-  margin: 24px 0 0;
-  color: #7d6247;
-  font-size: 0.76rem;
-  text-align: right;
-}
-
 .cosmetics-relations-section,
 .cosmetics-detail-section {
   display: grid;
