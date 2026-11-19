@@ -527,6 +527,7 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     assert.equal(stale.title, `Мета Hearthstone, ${YEAR}: колоды и винрейты | HearthPulse`);
     assert.equal(stale.description,
       'Мета Хартстоуна (хс), обновлено 1 сентября 2026: тир-лист колод Стандарта. Лидер — Зоолок, 61% побед. Винрейт и популярность архетипов. Данные HSGuru.');
+    assert.doesNotMatch(stale.text, /Данные на |источник HSGuru|общий срез меты/, 'no data note under a stale table');
 
     // No data: the static text with the year, no date and no numbers, a normal page and a quiet log.
     state.meta = null;
