@@ -74,6 +74,17 @@
 
 .hp-nav { min-width: 0; }
 
+/* The profile block shares the menu's type: Inter, never the decorative display face. */
+.arena-sidebar-profile-label,
+.arena-mobile-menu-profile {
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.arena-sidebar-profile-label { font-size: 1.0625rem; }
+.arena-mobile-menu-profile { font-size: 1.0625rem; }
+
 .hp-nav-top,
 .hp-nav-scroll,
 .hp-nav-list { min-width: 0; }
