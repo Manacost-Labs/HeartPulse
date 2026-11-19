@@ -13,18 +13,10 @@ import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
 import '../shared/ui/LoadingSurface.css';
 import './ConstructedArchetypeDeckGallery.css';
 import { usePendingDecks, useReportedPending } from './archetypeDeckGalleryPending';
+import { DeckLayoutSwitch, useDeckLayout } from './deckViews/DeckLayoutSwitch';
+import { pluralRu } from './deckViews/deckClass';
+import { ArchetypeBuildView, GALLERY_CLASS, formatNumber, formatPercent, type ArchetypeBuild, type ArchetypeFormat } from './archetypeBuildViews';
 
-type ArchetypeFormat = 'standard' | 'wild';
-
-type ArchetypeBuild = {
-  deckCode: string;
-  games: number | null;
-  winrate: number | null;
-  sourceUrl: string;
-  updatedAt: string | null;
-  sampleRank: string;
-  samplePeriod: string;
-};
 
 type ResolvedDeck = {
   ok: boolean;
@@ -49,18 +41,6 @@ const CLASS_COLORS: Record<string, string> = {
   warlock: '#694477',
   warrior: '#8e342f',
 };
-
-function formatNumber(value: number | null): string {
-  return value === null || !Number.isFinite(value)
-    ? '—'
-    : Math.round(value).toLocaleString('ru-RU');
-}
-
-function formatPercent(value: number | null): string {
-  return value === null || !Number.isFinite(value)
-    ? '—'
-    : `${value.toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%`;
-}
 
 async function resolveDeck(
   build: ArchetypeBuild,
@@ -221,14 +201,22 @@ export default function ConstructedArchetypeDeckGallery({
   classKey: string | null;
 }) {
   const [pendingDecks, setDeckPending] = usePendingDecks();
+  const [layout, setLayout] = useDeckLayout();
   // The gallery owns one status while any card shows a placeholder; the cards'
   // placeholders are plain blocks. It sits outside the grid so card order and
   // nth-child positions do not change.
   return (
     <>
       {pendingDecks.size > 0 ? <LoadingSurface label="Загружаем сборки" quiet layout="rows" className="sr-only"><></></LoadingSurface> : null}
-      <div className="archetype-deck-gallery">
-        {builds.map((build, index) => (
+      <div className="fun-decks-layout-bar archetype-deck-gallery__bar">
+        <p>{builds.length} {pluralRu(builds.length, ['сборка', 'сборки', 'сборок'])}</p>
+        <DeckLayoutSwitch layout={layout} onChange={setLayout} />
+      </div>
+      <div className={GALLERY_CLASS[layout]}>
+        {builds.map((build, index) => layout !== 'images' ? (
+          <ArchetypeBuildView key={build.deckCode} build={build} index={index} format={format} archetype={archetype}
+            classKey={classKey} layout={layout} onPendingChange={setDeckPending} />
+        ) : (
           <DeckBuildCard
             key={build.deckCode}
             build={build}

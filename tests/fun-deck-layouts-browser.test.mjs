@@ -66,7 +66,7 @@ try {
   assert.equal(await pressed(), 'Строки');
   assert.equal(await page.$$eval('[aria-label^="Кривая маны"]', curves => curves.length), 3);
   await page.waitForFunction(() => document.querySelectorAll('img[src*="/portrait.webp"]').length > 0);
-  assert.equal(await page.evaluate(() => window.localStorage.getItem('hp:fun-decks:layout')), 'rows');
+  assert.equal(await page.evaluate(() => window.localStorage.getItem('hp:deck-layout')), 'rows');
   assert.equal(await page.$eval('a[aria-label="4 маны · Зиллиакс Делюкс 3000"]', link => link.getAttribute('href')), '/standard/cards/wild/TOY_330/');
 
   // Pictures: the earlier Deckview card with its copy button.

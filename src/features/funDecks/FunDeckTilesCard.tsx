@@ -28,7 +28,7 @@ function DeckTile({ card, configuredCost = null, eager }: { card: FunDeckCard; c
   );
 }
 
-function TileEntry({ entry, eager }: { entry: FunDeckEntry; eager: boolean }) {
+export function TileEntry({ entry, eager }: { entry: FunDeckEntry; eager: boolean }) {
   return (
     <li>
       <DeckTile card={entry.card} configuredCost={entry.configuredCost} eager={eager} />
@@ -69,7 +69,7 @@ export function FunDeckTilesCard({ deck, fresh = false, tourAnchor = false, eage
         ) : <DeckLoadState error={error} reload={reload} layout="tiles" empty={Boolean(data)} />}
       </div>
       <footer className="fun-deck-tiles__foot">
-        <CopyDeckButton deck={deck} className="fun-deck-tiles__copy" />
+        <CopyDeckButton deckCode={deck.deckCode} title={deck.title} className="fun-deck-tiles__copy" />
       </footer>
     </article>
   );

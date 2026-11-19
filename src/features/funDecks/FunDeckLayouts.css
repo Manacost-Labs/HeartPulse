@@ -1,5 +1,16 @@
 /* Deck views of the fun-decks page: tiles, rows and the Deckview picture. */
 
+/* The deck views also stand outside the fun-decks page (archetype builds, a
+   card's decks): their roots carry the page's colours themselves. */
+:is(.fun-decks-layout-bar, .fun-deck-tiles, .fun-deck-rowcard, .fun-deck-layout-state) {
+  --fun-parchment-light: #f7e8bf;
+  --fun-ink: #30251c;
+  --fun-muted: #735e49;
+  --fun-red: #8d171d;
+  --fun-red-dark: #5d0d13;
+  --fun-gold: #d9ab49;
+}
+
 .fun-decks-layout-bar {
   display: flex;
   flex-wrap: wrap;
@@ -103,7 +114,7 @@
 
 .fun-deck-tiles__head > div { min-width: 0; flex: 1; }
 
-.fun-deck-tiles__head h2 {
+.fun-deck-tiles__head :is(h2, h3) {
   display: -webkit-box;
   margin: 0;
   overflow: hidden;
@@ -140,7 +151,7 @@
 
 .fun-deck-tiles__stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--fun-deck-stats, 3), minmax(0, 1fr));
   margin: 0;
   padding: 5px 4px 4px;
   border-bottom: 1px solid rgba(145, 113, 63, 0.33);
@@ -422,7 +433,7 @@ a.fun-deck-tile:focus-visible { outline: 2px solid #f1c66d; outline-offset: -2px
 
 .fun-deck-rowcard__hero img { width: 36px; height: 36px; object-fit: contain; }
 
-.fun-deck-rowcard__identity h2 {
+.fun-deck-rowcard__identity :is(h2, h3) {
   margin: 0;
   overflow: hidden;
   color: var(--fun-ink);
@@ -449,7 +460,7 @@ a.fun-deck-tile:focus-visible { outline: 2px solid #f1c66d; outline-offset: -2px
 
 .fun-deck-rowcard__stats {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(var(--fun-deck-stats, 4), minmax(0, 1fr));
   margin: 0;
 }
 
@@ -711,3 +722,8 @@ a.fun-deck-portrait:focus-visible { outline: 2px solid var(--fun-red); outline-o
 
 /* While the list loads, the skeleton keeps the paywall and the footer below the screen so nothing visible moves. */
 .loading-surface__blocks:is(.fun-decks-tiles-grid, .fun-decks-rows) { min-height: 100vh; }
+
+/* A list whose heading already counts the decks: the bar holds only the switch. */
+.fun-decks-layout-bar--end { justify-content: flex-end; }
+/* The view switch while a page loads: one bar of the switch's size. */
+.fun-decks-layout-skeleton { width: min(100%, 300px); height: 44px; border-radius: 5px; }

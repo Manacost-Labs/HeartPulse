@@ -74,6 +74,8 @@ import {
   isPublicConstructedTerm,
   mergeConstructedTranslationSources,
 } from '../../shared/constructedCardTranslations';
+import { DeckLayoutSwitch, useDeckLayout, type DeckLayout } from './deckViews/DeckLayoutSwitch';
+import { ConstructedCardDeckView } from './constructedCardDeckViews';
 import {
   canonicalCardIdPath, cardName,
   mechanicLabel,
@@ -420,14 +422,22 @@ function ConstructedDeckCard({ deck, format }: {
   );
 }
 
-function ConstructedCardDecks({ decks, format }: { decks: ConstructedDeck[]; format: CardFormat }) {
+const CARD_DECK_GRID: Record<DeckLayout, string> = { tiles: 'fun-decks-tiles-grid', rows: 'fun-decks-rows', images: 'constructed-card-detail__deck-grid' };
+
+export function ConstructedCardDecks({ decks, format }: { decks: ConstructedDeck[]; format: CardFormat }) {
   const [visibleCount, setVisibleCount] = useState(3);
-  const visibleDecks = decks.slice(0, visibleCount);
+  const [layout, setLayout] = useDeckLayout();
+  // A row of tiles holds five decks.
+  const shown = layout === 'tiles' ? Math.max(visibleCount, 5) : visibleCount;
+  const visibleDecks = decks.slice(0, shown);
   return (
     <section className="constructed-card-detail__section constructed-card-detail__decks">
       <h2 data-tour-id="card-decks"><Layers3 size={19} /> Колоды с этой картой · {decks.length}</h2>
-      <div className="constructed-card-detail__deck-grid">{visibleDecks.map(deck => <ConstructedDeckCard key={deck.id} deck={deck} format={format} />)}</div>
-      {visibleCount < decks.length && <button type="button" className="constructed-card-detail__pool-toggle" onClick={() => setVisibleCount(count => Math.min(count + 3, decks.length))}>Показать больше · ещё {Math.min(3, decks.length - visibleCount)}</button>}
+      <div className="fun-decks-layout-bar fun-decks-layout-bar--end"><DeckLayoutSwitch layout={layout} onChange={setLayout} /></div>
+      <div className={CARD_DECK_GRID[layout]}>{visibleDecks.map(deck => layout === 'images'
+        ? <ConstructedDeckCard key={deck.id} deck={deck} format={format} />
+        : <ConstructedCardDeckView key={deck.id} deck={deck} format={format} layout={layout} />)}</div>
+      {shown < decks.length && <button type="button" className="constructed-card-detail__pool-toggle" onClick={() => setVisibleCount(Math.min(shown + 3, decks.length))}>Показать больше · ещё {Math.min(3, decks.length - visibleCount)}</button>}
     </section>
   );
 }

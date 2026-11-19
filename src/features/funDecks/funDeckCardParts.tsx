@@ -65,11 +65,11 @@ export function CardLink({ card, cost, className, children }: { card: FunDeckCar
   );
 }
 
-export function CopyDeckButton({ deck, className }: { deck: FunDeckRow; className: string }) {
-  const { state, label, copy } = useCopyDeckCode(deck.deckCode);
+export function CopyDeckButton({ deckCode, title, className }: { deckCode: string; title: string; className: string }) {
+  const { state, label, copy } = useCopyDeckCode(deckCode);
   return (
     <button type="button" className={`${className}${state === 'ok' ? ' is-copied' : ''}`}
-      aria-label={`${label}: ${deck.title}`} onClick={() => void copy()}>
+      aria-label={`${label}: ${title}`} onClick={() => void copy()}>
       <Copy aria-hidden="true" />
       <span aria-live="polite">{state === 'idle' ? 'Копировать код' : label}</span>
     </button>

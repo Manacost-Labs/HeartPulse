@@ -4,7 +4,7 @@ import { useDeckArt } from './useDeckArt';
 import { CardLink, CopyDeckButton, DeckLoadState, WhyTags, useFunDeck, winRate, winRateTone, type DeckCardProps } from './funDeckCardParts';
 
 /** «Строки»: one deck per line with round card portraits and the mana curve. */
-function DeckPortrait({ card, configuredCost = null, small = false, eager }: {
+export function DeckPortrait({ card, configuredCost = null, small = false, eager }: {
   card: FunDeckCard; configuredCost?: number | null; small?: boolean; eager: boolean;
 }) {
   const art = useDeckArt();
@@ -25,7 +25,7 @@ function DeckPortrait({ card, configuredCost = null, small = false, eager }: {
   );
 }
 
-function ManaCurve({ entries }: { entries: readonly FunDeckEntry[] }) {
+export function ManaCurve({ entries }: { entries: readonly FunDeckEntry[] }) {
   const curve = funDeckManaCurve(entries);
   const top = Math.max(1, ...curve);
   return (
@@ -60,7 +60,7 @@ export function FunDeckRowCard({ deck, fresh = false, tourAnchor = false, eager 
           <div><dt>Не похожа на мету</dt><dd>{metaDistance(deck.maxMetaSimilarity)}</dd></div>
           <div><dt>Индекс фана</dt><dd>{score(deck.funScore)}</dd></div>
         </dl>
-        <CopyDeckButton deck={deck} className="fun-deck-rowcard__copy" />
+        <CopyDeckButton deckCode={deck.deckCode} title={deck.title} className="fun-deck-rowcard__copy" />
       </header>
       <div className="fun-deck-rowcard__deck" data-tour-id={tourAnchor ? 'fun-decks-deck-list' : undefined}>
         {data?.cards.length ? (

@@ -8,6 +8,9 @@ import './ConstructedArchetypes.css';
 import './ConstructedArchetypeDetailSkeletons.css';
 import './ConstructedArchetypeInsights.css';
 import { Title, Value, Words } from './archetypeSkeletonText';
+import { useDeckLayout, type DeckLayout } from './deckViews/DeckLayoutSwitch';
+import { RowSkeleton as DeckRowSkeleton, TileSkeleton as DeckTileSkeleton } from './FunDecksSkeleton';
+import './ConstructedArchetypeDeckGallery.css';
 
 // Placeholders for the independently loaded parts of an archetype page. Each
 // one reuses the loaded view's own classes, so frames, paddings, grids and
@@ -30,6 +33,27 @@ export function ArchetypeDeckCardSkeleton() {
   </div>;
 }
 
+const GALLERY_SKELETON: Record<DeckLayout, { className: string; Card: () => React.JSX.Element }> = {
+  tiles: { className: 'fun-decks-tiles-grid archetype-deck-gallery--views', Card: DeckTileSkeleton },
+  rows: { className: 'fun-decks-rows archetype-deck-gallery--views', Card: DeckRowSkeleton },
+  images: { className: 'archetype-deck-gallery', Card: ArchetypeDeckCardSkeleton },
+};
+
+/** The gallery in the reader's deck view, under the bar with the view switch. */
+function BuildsGallerySkeleton({ cards }: { cards: number }) {
+  const [layout] = useDeckLayout();
+  const { className, Card } = GALLERY_SKELETON[layout];
+  return <>
+    <div className="fun-decks-layout-bar archetype-deck-gallery__bar">
+      <p><Words>6 сборок</Words></p>
+      <LoadingBlock className="fun-decks-layout-skeleton" />
+    </div>
+    <div className={className}>
+      {Array.from({ length: cards }, (_, index) => <Card key={index} />)}
+    </div>
+  </>;
+}
+
 /** Cards the gallery shows before «show more» (ConstructedArchetypes). */
 const FIRST_BUILDS = 6;
 
@@ -45,9 +69,7 @@ export function ArchetypeBuildsSkeleton({ deckCount = FIRST_BUILDS }: { deckCoun
         </div>
         <span className="archetype-section-heading__count"><Value /></span>
       </div>
-      <div className="archetype-deck-gallery">
-        {Array.from({ length: cards }, (_, index) => <ArchetypeDeckCardSkeleton key={index} />)}
-      </div>
+      <BuildsGallerySkeleton cards={cards} />
       {deckCount > FIRST_BUILDS ? <LoadingBlock className="archetype-builds__more" /> : null}
     </div>
   </LoadingSurface>;

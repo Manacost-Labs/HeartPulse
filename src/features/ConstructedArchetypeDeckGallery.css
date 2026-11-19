@@ -280,3 +280,7 @@
   .archetype-deck-card__number { flex-basis: 34px; width: 34px; height: 34px; }
   .archetype-deck-card__summary dl > div { padding-inline: 0.4rem; }
 }
+
+/* Tile and row views (deckViews/DeckViews.css) keep the gallery's inset. */
+.archetype-deck-gallery__bar { margin: 0; padding: 0.85rem 0.85rem 0; }
+.archetype-deck-gallery--views { padding: 0.85rem; }
