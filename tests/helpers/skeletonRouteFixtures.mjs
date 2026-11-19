@@ -34,7 +34,7 @@ function funDecks(variant) {
   const decks = FUN_CLASSES.map((className, index) => ({
     title: pick(variant, `Колода с очень длинным названием про необычную идею номер ${index + 1}, которая переносится`, `Идея ${index + 1}`),
     deckCode: `AAECAfixtureFunDeck${index + 1}`,
-    format: index % 3 === 2 ? 'wild' : 'standard',
+    format: 'wild',
     className,
     streamer: pick(variant, 'Стример с длинным псевдонимом', null),
     funScore: 0.71 - index * 0.01, maxMetaSimilarity: 0.31, nearestArchetype: 'Mech Mage', nearestArchetypeLabel: 'Мех-маг',
@@ -43,7 +43,7 @@ function funDecks(variant) {
     url: 'https://www.hsguru.com/decks/fixture',
     firstSeenAt: `2026-10-${String(19 - index).padStart(2, '0')}T10:00:00.000Z`, lastSeenAt: NOW,
   }));
-  return { fetchedAt: NOW, stats: { total: decks.length, standard: 5, wild: 3 },
+  return { fetchedAt: NOW, stats: { total: decks.length, standard: 0, wild: decks.length },
     methodology: { detectorVersion: 'fixture', minFunScore: 0.55, maxMetaSimilarity: 0.42 }, decks };
 }
 
