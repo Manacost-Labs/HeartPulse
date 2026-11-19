@@ -143,7 +143,7 @@ test('hero detail keeps buddies aligned and statistics navigable without a chart
   }
 });
 
-test('hero ledger keeps SVG tier ranks, sorting and readable cells on desktop and mobile', async () => {
+test('hero ledger keeps painted tier marks, sorting and readable cells on desktop and mobile', async () => {
   const runtime = await startStorybookStatic();
   const browser = await launchBrowser({ executablePath: '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
   try {
@@ -171,9 +171,9 @@ test('hero ledger keeps SVG tier ranks, sorting and readable cells on desktop an
       await page.click(`${sort} button::-p-text(${width <= 1120 ? 'Место' : 'Среднее место'})`);
       await page.waitForSelector('.bg-hero-ledger__row--flat');
       assert.equal(await page.$$eval('.bg-hero-ledger__row--flat', rows => rows.length), 5);
-      assert.equal(await page.$eval('.bg-hero-ledger__row--flat .bg-hero-ledger__tier-emblem img', image => image.alt), 'Тир S');
+      assert.equal(await page.$eval('.bg-hero-ledger__row--flat .bg-hero-ledger__tier-cell img', image => image.alt), 'Тир S');
       await page.click(`${sort} button::-p-text(${width <= 1120 ? 'Место' : 'Среднее место'})`);
-      await page.waitForFunction(() => document.querySelector('.bg-hero-ledger__row--flat .bg-hero-ledger__tier-emblem img')?.alt === 'Тир D');
+      await page.waitForFunction(() => document.querySelector('.bg-hero-ledger__row--flat .bg-hero-ledger__tier-cell img')?.alt === 'Тир D');
     }
     assert.deepEqual(errors, [], 'table stories and sorting produce no console errors');
   } finally { await browser.close(); await runtime.close(); }
