@@ -10,6 +10,8 @@ import { createWinrateRouter } from '../server/winrateRoutes.ts';
 import { buildClassesFixture, closedValues, OPEN_ROWS } from './helpers/classesTeaserFixture.ts';
 // The built /heroes/ page (E21 OL2a): hosted here until its own file can be added to tests/test-suites.json.
 import './next-heroes-ranking.check.mjs';
+// The built tier list and strategies pages (E21 R7): hosted here for the same reason.
+import './next-builds-open.check.mjs';
 
 // The built /classes/ page against an Express that serves the real open-slice
 // projection: a guest and a robot get the same HTML with the order of the

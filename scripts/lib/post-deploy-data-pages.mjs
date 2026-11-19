@@ -25,6 +25,7 @@ export const DATA_PAGES = [
   { path: '/legendaries/', isr: true, marker: 'legendary-group-card', copyWords: 346, dataWords: 4931 },
   { path: '/heroes/', isr: true, marker: 'bg-heroes-public__hero', copyWords: 172, dataWords: 2250 },
   { path: '/standard/matchups/', isr: true, marker: 'standard-matchups-open__matrix', copyWords: 120, dataWords: 1500 }, // words: an estimate, not a stand measurement
+  { path: '/battlegrounds/tier-list/', isr: true, marker: 'bg-builds-public__builder', copyWords: 95, dataWords: 1500 },
   { path: '/library/', isr: true, marker: 'bg-library-public__size', copyWords: 0, dataWords: 0 },
   { path: '/library/minions/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
   { path: '/library/spells/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },

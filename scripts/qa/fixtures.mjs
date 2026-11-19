@@ -162,9 +162,10 @@ export const fixtures = {
     list: 'spells',
     source: 'qa-fixture',
     fetchedAt: '2026-07-11T00:00:00.000Z',
-    count: 0,
-    tierCounts: {},
-    tiers: {},
+    // One entry: a subscriber's paid view replaces the open list only when its own answer has something to show.
+    count: 1,
+    tierCounts: { S: 1 },
+    tiers: { S: [{ key: 'qa-spell', title: 'Контрольное заклинание', name: 'Контрольное заклинание', tier: 'S', dbfId: 9101, tavernTier: 1 }] },
   },
   '/api/bg/heroes': {
     ok: true,

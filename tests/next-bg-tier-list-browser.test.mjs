@@ -16,6 +16,8 @@ const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8')
 test('Next BG tier list keeps its public teaser separate from subscriber data and restores URL state', async () => {
   const tierRequests = [];
   let tierStatus = 200;
+  // Lists whose protected answer fails (503) or comes back with nothing in it (200, no entries).
+  const failingLists = new Set(); const emptyLists = new Set();
   let malformedAuthResponsesRemaining = 0;
   let failedSubscriptionResponsesRemaining = 0;
   const reservation = http.createServer();
@@ -63,10 +65,12 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
         void respond(200, MENU_PATCH_ARCHIVE);
       } else if (url.pathname === '/api/bg/tier-lists') {
         tierRequests.push(url.search);
-        void respond(signedIn ? tierStatus : 401, !signedIn ? { error: 'guest' }
-          : tierStatus !== 200 ? { error: 'Данные временно недоступны' }
-            : { list: url.searchParams.get('list'), count: 0,
-              tiers: { S: [], A: [], B: [], C: [], D: [] } });
+        const list = url.searchParams.get('list');
+        void respond(signedIn ? (failingLists.has(list) ? 503 : tierStatus) : 401, !signedIn ? { error: 'guest' }
+          : tierStatus !== 200 || failingLists.has(list) ? { error: 'Данные временно недоступны' }
+            : emptyLists.has(list) ? { list, count: 0, tiers: {} }
+              : { list, count: 1,
+                tiers: { S: [{ key: 'fx', title: 'Фикстура', name: 'Фикстура', tier: 'S', dbfId: 1 }], A: [], B: [], C: [], D: [] } });
       } else if (/^\/(?:menu\/|tier-marks\/|wallpaper\/|fonts\/|ad\/|hearthpulse-logo\.webp$|favicon(?:-\d+)?\.(?:png|ico)$|apple-touch-icon\.png$)/.test(url.pathname)) {
         const mime = url.pathname.endsWith('.woff2') ? 'font/woff2'
           : url.pathname.endsWith('.otf') ? 'font/otf'
@@ -76,22 +80,25 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
           body: readFileSync(new URL(`../public${url.pathname}`, import.meta.url)) });
       } else void request.continue();
     });
+    // Whether the paid view is on screen (it is mounted, hidden, while the open list stays).
+    const shownPaid = () => page.evaluate(() => [...document.querySelectorAll('[data-tour-id="bg-tier-list-strategy"], .bg-tierlist-toolbar')].some(node => node.getClientRects().length > 0));
     const errors = []; const failed = []; const failedResponses = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
-    page.on('requestfailed', request => { if (!isAbortedRoutePrefetch(request)) failed.push(request.url()); });
+    // The subscriber's own data probe may be cut by the reload the test makes while it is in flight.
+    page.on('requestfailed', request => { if (!isAbortedRoutePrefetch(request) && !request.url().endsWith('/api/bg/tier-lists?list=minions')) failed.push(request.url()); });
     page.on('response', response => { if (response.status() >= 400 && !isMenuRoutePrefetch(response.request())) failedResponses.push(`${response.status()} ${response.url()}`); });
     for (const width of [1440, 390, 320]) {
       await page.setViewport({ width, height: 900 });
       const guest = await page.goto(`${nextOrigin}/battlegrounds/tier-list/`, { waitUntil: 'networkidle2' });
       // The page is prerendered: a repeat visit revalidates its ETag (304).
       assert.ok([200, 304].includes(guest.status()), `${guest.status()}`);
-      await page.waitForFunction(() => !document.body.textContent.includes('Проверяем доступ к тир-листу...'));
       await page.evaluate(axe);
       const state = await page.evaluate(async () => ({
         headings: [...document.querySelectorAll('h1')].map(node => node.textContent?.trim()),
         canonical: document.querySelector('link[rel="canonical"]')?.href,
-        teaser: document.body.textContent.includes('доступен подписчикам'),
+        // The open builds replace the gate: the closed part is a note and a button, no subscription dialog.
+        teaser: Boolean(document.querySelector('.paywalled-builds .bg-builds-locks button')) && !document.querySelector('.arena-paywall'),
         overflow: document.documentElement.scrollWidth > innerWidth,
         violations: (await axe.run(document,
           { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } })).violations.map(item => item.id),
@@ -112,8 +119,8 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
     for (let attempt = 0; malformedAuthResponsesRemaining > 0 && attempt < 30; attempt += 1) await delay(100);
     assert.equal(malformedAuthResponsesRemaining, 0, 'all three bounded auth attempts must fail');
     await delay(100);
-    assert.match(await page.$eval('main', node => node.textContent), /Проверяем доступ к тир-листу/,
-      'a remembered session must stay pending after a transient auth failure');
+    assert.doesNotMatch(await page.$eval('main', node => node.textContent), /Подписка не найдена|доступен подписчикам/,
+      'a remembered session must not read as a refusal after a transient auth failure');
     // The prerendered page cannot vary its meta by query; the response header carries the policy.
     const deepLink = await fetch(`${nextOrigin}/battlegrounds/tier-list/?list=strategies&source=hsreplay`);
     await deepLink.arrayBuffer();
@@ -131,17 +138,33 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.reload({ waitUntil: 'networkidle2' });
     assert.ok(await page.$('[data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]'));
-    assert.equal(await page.$eval('.bg-tierlist-toolbar__meta', node => node.textContent), '0');
+    assert.equal(await page.$eval('.bg-tierlist-toolbar__meta', node => node.textContent), '1');
     failedSubscriptionResponsesRemaining = 1;
     await page.reload({ waitUntil: 'networkidle2' });
     assert.equal(failedSubscriptionResponsesRemaining, 0);
-    assert.match(await page.$eval('main', node => node.textContent), /Проверяем доступ к тир-листу/,
+    assert.doesNotMatch(await page.$eval('main', node => node.textContent), /Подписка не найдена|доступен подписчикам/,
       'a temporary subscription API failure must not appear as a revoked entitlement');
     await page.waitForSelector('[data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]', { timeout: 10000 });
     tierStatus = 503;
     await page.reload({ waitUntil: 'networkidle2' });
-    await page.waitForFunction(() => document.querySelector('main')?.textContent.includes('Данные временно недоступны'));
-    assert.ok(await page.$('[data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]'));
+    // The subscriber's own data fails: the open list stays instead of the paid view's error.
+    await page.waitForSelector('.paywalled-builds .bg-builds-locks', { timeout: 10000 });
+    assert.equal(await shownPaid(), false, 'no paid view over a failed protected read');
+    // The list the paid view really asks for (the one in the address) decides, not another list: a failed or an
+    // empty answer for it keeps the open list, whatever the other lists answer.
+    tierStatus = 200;
+    for (const [query, list, mode] of [['list=strategies&source=hsreplay', 'strategies', 'failing'], ['list=trinkets', 'trinkets', 'failing'],
+      ['list=strategies&source=hsreplay', 'strategies', 'empty']]) {
+      (mode === 'failing' ? failingLists : emptyLists).add(list);
+      await page.goto(`${nextOrigin}/battlegrounds/tier-list/?${query}`, { waitUntil: 'networkidle2' });
+      await page.waitForSelector('.paywalled-builds .bg-builds-locks', { timeout: 10000 });
+      assert.equal(await shownPaid(), false, `${list} ${mode}: the open list stays`);
+      assert.equal(await page.$$eval('h1', nodes => nodes.filter(node => node.getClientRects().length > 0).length), 1, `${list} ${mode}: one visible H1`);
+      failingLists.clear(); emptyLists.clear();
+    }
+    await page.goto(`${nextOrigin}/battlegrounds/tier-list/?list=strategies&source=hsreplay`, { waitUntil: 'networkidle2' });
+    await page.waitForSelector('[data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]', { timeout: 10000 });
+    assert.equal(await page.$('.paywalled-builds'), null, 'a good answer replaces the open list');
     await page.close();
   } finally {
     if (browser) await browser.close();

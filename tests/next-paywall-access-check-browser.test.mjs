@@ -33,6 +33,17 @@ const openHero = {
 };
 const guardedCatalog = { ok: true, fetched_at: '2026-11-18T17:01:18.663Z', view: { heroes: [] } };
 
+const PIXEL = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+// The open projection `GET /api/bg/tier-lists/public` as Express answers it (six builds), served as it is.
+const openBuilds = list => ({
+  list, updatedAt: '2026-11-19T06:00:17.742Z', source: list === 'compositions' ? 'HSReplay' : 'Firestone',
+  builds: Array.from({ length: 6 }, (_, index) => ({
+    key: `fixture-${index}`, tier: 'SSAABB'[index], title: `Сборка ${index}`, description: `Условия ${index}`, difficulty: 'Средняя', archetype: `Архетип ${index}`,
+    avgPlacement: list === 'strategies' ? 3.2 + index / 10 : null, popularity: null,
+    coreCards: [{ dbfId: 2000 + index, cardId: `BG_FIXTURE_${index}`, name: `Существо ${index}`, image: null }], additionalCards: [],
+  })),
+});
+
 // The session check answers late, as it does on a phone after the scripts
 // download, so the access check is still pending when the page has painted.
 const SESSION_DELAY_MS = 1200;
@@ -80,8 +91,7 @@ test('gated pages keep the gate height while the access check runs', async () =>
       headless: true, args: ['--no-sandbox'] });
     const viewports = [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true, hasTouch: true }];
     for (const viewport of viewports) {
-      for (const path of ['/battlegrounds/tier-list/', '/battlegrounds/strategies/', '/guides-archive/',
-        '/standard/vicious-gold/']) {
+      for (const path of ['/guides-archive/', '/standard/vicious-gold/']) {
         const page = await browser.newPage();
         await page.setViewport(viewport);
         await page.evaluateOnNewDocument(() => {
@@ -449,6 +459,116 @@ test('the library keeps its open layer until the paid view has loaded, without a
   } finally {
     if (browser) await browser.close();
     if (gateway) await closeLocal(gateway.server);
+    if (next) await next.close();
+    legacyServer.closeAllConnections();
+    await new Promise(done => legacyServer.close(done));
+  }
+});
+
+// The tier list and the strategies page have open builds: nobody waits behind a placeholder or a gate. A guest and
+// a subscriber whose access is still being checked get the server-rendered list and the closed-part note at once;
+// a confirmed subscriber keeps the list on screen until the paid view's chunk has loaded (here it arrives late),
+// and the view then replaces it in one render, without a layout shift.
+test('the builds pages show the open list without a placeholder and keep it until the paid view has loaded', async () => {
+  const legacy = express();
+  legacy.get('/api/bg/tier-lists/public', (request, response) => response.json(openBuilds(request.query.list)));
+  legacy.use((_request, response) => response.status(401).end());
+  const legacyServer = legacy.listen(0, '127.0.0.1');
+  let next; let gateway; let browser; let front;
+  try {
+    await new Promise(done => legacyServer.once('listening', done));
+    next = await startNextServer({ legacyOrigin: `http://127.0.0.1:${legacyServer.address().port}`,
+      env: { NODE_OPTIONS: `--require=${resolve('tests/helpers/shiftableClock.cjs')}` } });
+    // The tier list's build copy has no builds (the build has no Express): regenerate it with data.
+    for (const path of ['/battlegrounds/tier-list/', '/battlegrounds/strategies/']) {
+      for (let attempt = 0; attempt < 40; attempt += 1) {
+        process.kill(next.pid, 'SIGUSR2');
+        const html = await (await fetch(`${next.origin}${path}`)).text();
+        if (html.includes('id="build-fixture-0"')) break;
+        await delay(250);
+      }
+    }
+    gateway = await startGateway(next.origin);
+    gateway.server.removeAllListeners('request');
+    front = http.createServer((request, response) => {
+      const subscriber = /(?:^|;\s*)pending_reader=1/.test(request.headers.cookie ?? '');
+      const json = payload => response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(payload));
+      if (request.url === '/api/auth/me') return void setTimeout(() => json({ user: subscriber ? SUBSCRIBER : null }), SESSION_DELAY_MS);
+      if (subscriber && request.url === '/api/subscription/status') return json(SUBSCRIBED);
+      // nginx serves the painted tier marks in production; here they are a pixel, so the mark has its size and no broken-image box.
+      if (request.url.startsWith('/tier-marks/')) return void response.writeHead(200, { 'Content-Type': 'image/png' }).end(PIXEL);
+      if (request.url.startsWith('/api/bg/tier-lists/public')) {
+        const upstream = http.request({ host: '127.0.0.1', port: legacyServer.address().port, path: request.url },
+          answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
+        return void upstream.end();
+      }
+      // The paid view's real request: the list it asked for, with one entry (an empty answer would keep the open list).
+      if (subscriber && request.url.startsWith('/api/bg/tier-lists')) return json({ list: new URL(request.url, 'http://x').searchParams.get('list'), count: 1,
+        tiers: { S: [{ key: 'fx', title: 'Фикстура', name: 'Фикстура', tier: 'S', dbfId: 1 }], A: [], B: [], C: [], D: [] } });
+      if (request.url.startsWith('/api/')) return void response.writeHead(401, { 'Content-Type': 'application/json' }).end('{"error":"guest"}');
+      const upstream = http.request(new URL(next.origin), { method: request.method, path: request.url, headers: request.headers },
+        answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
+      return void request.pipe(upstream);
+    });
+    const frontOrigin = await listenLocal(front);
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+      headless: true, args: ['--no-sandbox'] });
+    for (const path of ['/battlegrounds/tier-list/', '/battlegrounds/strategies/']) {
+      for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true, hasTouch: true }]) {
+        for (const subscriber of [false, true]) {
+          const page = await browser.newPage();
+          await page.setViewport(viewport);
+          if (subscriber) await page.setCookie({ name: 'pending_reader', value: '1', url: frontOrigin });
+          await page.evaluateOnNewDocument(() => {
+            window.__layoutShifts = [];
+            new PerformanceObserver(list => {
+              for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.__layoutShifts.push(entry.value);
+            }).observe({ type: 'layout-shift', buffered: true });
+          });
+          // The paid view's chunk arrives late: the script that holds the Battlegrounds view (found by a string only it has) waits.
+          let held = 0;
+          await page.setRequestInterception(true);
+          page.on('request', request => {
+            if (!subscriber || request.resourceType() !== 'script') return void request.continue().catch(() => {});
+            void fetch(request.url()).then(async answer => {
+              const body = await answer.text();
+              if (body.includes('API героев временно недоступен')) { held += 1; await delay(4000); }
+              await request.respond({ status: 200, contentType: 'application/javascript', body });
+            }).catch(() => request.continue().catch(() => {}));
+          });
+          await page.goto(`${frontOrigin}${path}`, { waitUntil: 'domcontentloaded' });
+          const articles = () => page.evaluate(() => document.querySelectorAll('.bg-builds-public article').length);
+          assert.equal(await articles(), 6, `${path}: the open builds are in the first paint`);
+          assert.equal(await page.$('.arena-paywall-pending'), null, 'no placeholder while access is checked');
+          assert.equal(await page.$('.arena-paywall'), null, 'no gate for a visitor of an open page');
+          if (subscriber) {
+            await page.waitForFunction(() => performance.getEntriesByType('resource').some(entry => entry.name.endsWith('/api/subscription/status')), { timeout: 10_000 });
+            await delay(1200);
+            // Access is confirmed, the chunk is still on its way: the list has not been replaced by a placeholder.
+            const state = await page.evaluate(() => ({ articles: document.querySelectorAll('.bg-builds-public article').length,
+              pending: !!document.querySelector('.arena-paywall-pending'), text: document.querySelector('main')?.innerText.slice(0, 200) }));
+            assert.equal(state.articles, 6, `${path}: the list stays until the paid view has loaded: ${JSON.stringify(state)}`);
+            assert.equal(await page.$('.arena-paywall-pending'), null, 'no placeholder while the paid view loads');
+            assert.ok(held > 0, 'the chunk of the paid view was held back (the scenario is real)');
+            await page.waitForSelector('.arena-paid-view', { timeout: 15_000 });
+            // The paid view is mounted hidden; it replaces the list once the data it asked for has come back.
+            if (path.includes('tier-list')) await page.waitForFunction(() => !document.querySelector('.bg-builds-public article'), { timeout: 10_000 });
+            assert.equal(await articles(), 0, 'the list is replaced, not doubled');
+            assert.equal(await page.$$eval('h1', nodes => nodes.filter(node => node.getClientRects().length > 0).length), 1, `${path}: a subscriber sees exactly one H1`);
+          } else {
+            await page.waitForSelector('.bg-builds-locks button', { timeout: 10_000 });
+          }
+          await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+          const total = (await page.evaluate(() => window.__layoutShifts)).reduce((sum, value) => sum + value, 0);
+          assert.ok(total < 0.01, `${path} ${subscriber ? 'subscriber' : 'guest'} at ${viewport.width}px shifted by ${total.toFixed(3)}`);
+          await page.close();
+        }
+      }
+    }
+  } finally {
+    if (browser) await browser.close();
+    if (gateway) await closeLocal(gateway.server);
+    if (front) await closeLocal(front);
     if (next) await next.close();
     legacyServer.closeAllConnections();
     await new Promise(done => legacyServer.close(done));

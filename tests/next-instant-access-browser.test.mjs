@@ -28,7 +28,7 @@ async function offeredRetryAt(page) {
   return page.evaluate(() => window.__frames.find(frame => frame.unavailable).at);
 }
 const PAID_PAGES = [
-  ['/battlegrounds/tier-list/', '.bg-tier-list-page'],
+  ['/battlegrounds/tier-builder/', '.arena-paid-view'],
   ['/standard/matchups/', '.standard-matchups'],
   ['/standard/vicious-gold/', '.vsgold'],
 ];
@@ -150,7 +150,7 @@ function recordFrames() {
           .some(node => node.childElementCount === 0 && /Проверяем доступ/.test(node.textContent) && visible(node))),
         viewer: text.includes('Подписчица'),
         hint: localStorage.getItem('hs_arena_viewer_hint'),
-        paid: Boolean(document.querySelector('.arena-paid-view, .bg-tier-list-page, .standard-matchups__table, .vsgold-section, .vsgold__loading, .standard-matchups [class*="loading"], [aria-busy="true"].standard-matchups')),
+        paid: Boolean(document.querySelector('.arena-paid-view, .standard-matchups__table, .vsgold-section, .vsgold__loading, .standard-matchups [class*="loading"], [aria-busy="true"].standard-matchups')),
       });
     }
   };
@@ -210,7 +210,7 @@ async function verifyOnce(context, origin, cookies, viewport) {
   const page = await context.newPage();
   await page.setViewport(viewport);
   await setCookies(page, origin, cookies);
-  await page.goto(`${origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
+  await page.goto(`${origin}/battlegrounds/tier-builder/`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => localStorage.getItem('hs_arena_viewer_hint'), { timeout: READY_MS });
   await page.close();
 }
@@ -315,7 +315,7 @@ test('a shared device never shows the previous viewer after the session ends', a
     await page.setViewport(viewport);
     await page.deleteCookie({ name: 'reader', url: gateway.origin }, { name: 'hp_viewer', url: gateway.origin });
     await page.evaluateOnNewDocument(recordFrames);
-    await page.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${gateway.origin}/battlegrounds/tier-builder/`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: READY_MS });
     const { frames, hint } = await page.evaluate(() => ({ frames: window.__frames,
       hint: localStorage.getItem('hs_arena_viewer_hint') }));
@@ -328,7 +328,7 @@ test('a shared device never shows the previous viewer after the session ends', a
     const other = await context.newPage();
     await setCookies(other, gateway.origin, { hp_viewer: 'another-session-tag-02' });
     await other.evaluateOnNewDocument(recordFrames);
-    await other.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
+    await other.goto(`${gateway.origin}/battlegrounds/tier-builder/`, { waitUntil: 'domcontentloaded' });
     await other.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: READY_MS });
     assert.deepEqual(await other.evaluate(() => window.__frames.filter(frame => frame.viewer).length), 0);
     await other.close();
@@ -349,7 +349,7 @@ test('a session check that keeps failing ends in a gate that can retry', async (
       await setCookies(page, gateway.origin, { reader: '1', fail, t });
       if (remembered) await page.evaluateOnNewDocument(() => localStorage.setItem('hs_arena_auth_cookie_hint', '1'));
       await page.evaluateOnNewDocument(recordFrames);
-      await page.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
+      await page.goto(`${gateway.origin}/battlegrounds/tier-builder/`, { waitUntil: 'domcontentloaded' });
       await page.waitForSelector('.arena-paywall-pending', { timeout: READY_MS });
       await page.waitForSelector('.arena-access-unavailable', { timeout: READY_MS });
       // The page's own clock: from its start to the retry offer, within the
@@ -378,7 +378,7 @@ test('a session check that keeps failing ends in a gate that can retry', async (
       // The retry action runs the check again; a recovered server lets the subscriber in.
       await page.deleteCookie({ name: 'fail', url: gateway.origin });
       await page.click('.arena-access-unavailable button');
-      await page.waitForSelector('.bg-tier-list-page', { timeout: READY_MS });
+      await page.waitForSelector('.arena-paid-view', { timeout: READY_MS });
       await page.close();
       await context.close();
     }));
@@ -393,7 +393,7 @@ test('a late answer about the previous session is never shown or remembered for 
     const page = await context.newPage();
     await page.setViewport(viewport);
     await page.evaluateOnNewDocument(recordFrames);
-    await page.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${gateway.origin}/battlegrounds/tier-builder/`, { waitUntil: 'domcontentloaded' });
     // Another tab signs in as another account while this page's session
     // check (sent with the subscriber's session) is still on its way.
     await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 500)));
@@ -420,7 +420,7 @@ test('a session check whose answer never finishes ends at its deadline without a
     await page.setViewport(viewports[0]);
     await setCookies(page, gateway.origin, { reader: '1', fail: 'hang' });
     await page.evaluateOnNewDocument(recordFrames);
-    await page.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${gateway.origin}/battlegrounds/tier-builder/`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.arena-access-unavailable', { timeout: READY_MS });
     assert.ok(await offeredRetryAt(page) < 20_000, 'the hung check ends within its deadline');
     assert.deepEqual(await page.evaluate(() => window.__frames.filter(frame => frame.gate).length), 0, 'never the lock');
@@ -437,14 +437,14 @@ test('a session check whose answer never finishes ends at its deadline and drops
     await page.setViewport(viewport);
     await setCookies(page, gateway.origin, { fail: 'hang' });
     await page.evaluateOnNewDocument(recordFrames);
-    await page.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${gateway.origin}/battlegrounds/tier-builder/`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.arena-access-unavailable', { timeout: READY_MS });
     const elapsed = await offeredRetryAt(page);
     assert.ok(elapsed < 20_000, `the hung check ends within its deadline (${Math.round(elapsed)} ms)`);
     assert.match(await page.$eval('.arena-access-unavailable', node => node.textContent), /Не удалось проверить доступ/);
     assert.deepEqual(await page.evaluate(() => window.__frames.filter(frame => frame.gate).length), 0, 'never the lock');
     const state = await page.evaluate(() => ({ viewer: document.body.textContent.includes('Подписчица'),
-      paid: Boolean(document.querySelector('.bg-tier-list-page')), shownEarlier: window.__frames.some(frame => frame.viewer) }));
+      paid: Boolean(document.querySelector('.arena-paid-view')), shownEarlier: window.__frames.some(frame => frame.viewer) }));
     assert.deepEqual(state, { viewer: false, paid: false, shownEarlier: true },
       'the remembered viewer shows at first, and goes when the check cannot confirm it');
     await page.close();
@@ -462,12 +462,12 @@ test('a late answer that put back the old session tag is dropped once another ta
     await first.setViewport(viewport);
     await setCookies(first, gateway.origin, { reader: '1' });
     await first.evaluateOnNewDocument(recordFrames);
-    await first.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
+    await first.goto(`${gateway.origin}/battlegrounds/tier-builder/`, { waitUntil: 'domcontentloaded' });
     // Meanwhile tab 2 signs in as another account and confirms it.
     const second = await context.newPage();
     await second.setViewport(viewport);
     await setCookies(second, gateway.origin, { reader: 'b', hp_viewer: TAGS.b });
-    await second.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
+    await second.goto(`${gateway.origin}/battlegrounds/tier-builder/`, { waitUntil: 'domcontentloaded' });
     await second.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: READY_MS });
     // Tab 1's late answer arrives and puts the subscriber's tag back; the
     // visitor returns to tab 1 (a background tab may defer its rendering).
@@ -491,12 +491,12 @@ test('a session that ends between the session and subscription answers leaves a 
     const page = await context.newPage();
     await page.setViewport(viewport);
     await setCookies(page, gateway.origin, { fail: 'status401' });
-    await page.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${gateway.origin}/battlegrounds/tier-builder/`, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => localStorage.getItem('hs_arena_verified_viewer') === 'guest', { timeout: READY_MS });
     await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: READY_MS });
     await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 300)));
     const state = await page.evaluate(() => ({ viewer: document.body.textContent.includes('Подписчица'),
-      paid: Boolean(document.querySelector('.bg-tier-list-page')),
+      paid: Boolean(document.querySelector('.arena-paid-view')),
       hint: localStorage.getItem('hs_arena_viewer_hint'), record: localStorage.getItem('hs_arena_verified_viewer'),
       session: localStorage.getItem('hs_arena_auth_cookie_hint') }));
     assert.deepEqual(state, { viewer: false, paid: false, hint: null, record: 'guest', session: null });
@@ -515,8 +515,8 @@ test('a remembered refusal stays pending until the server confirms it', async ()
     await page.setViewport(viewport);
     await setCookies(page, gateway.origin, { plan: 'active', statusdelay: '1' });
     await page.evaluateOnNewDocument(recordFrames);
-    await page.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('.bg-tier-list-page', { timeout: READY_MS });
+    await page.goto(`${gateway.origin}/battlegrounds/tier-builder/`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('.arena-paid-view', { timeout: READY_MS });
     const frames = await page.evaluate(() => window.__frames);
     assert.deepEqual(frames.filter(frame => frame.gate || frame.preview).slice(0, 1), [], 'no lock before the server refuses');
     assert.ok(frames.some(frame => frame.viewer), 'the account shows meanwhile');
@@ -574,11 +574,11 @@ test('a sign-in whose subscription answers late shows no lock on the next paid p
     await page.setViewport(viewports[0]);
     await page.evaluateOnNewDocument(recordFrames);
     await signIn(page, gateway.origin, 'statusdelay');
-    await openModeFor(page, '.arena-sidebar .hp-nav-list a[href="/battlegrounds/tier-list/"]');
-    await page.waitForFunction(() => document.querySelector('.arena-sidebar .hp-nav-list a[href="/battlegrounds/tier-list/"]')?.getClientRects().length > 0);
+    await openModeFor(page, '.arena-sidebar .hp-nav-list a[href="/battlegrounds/tier-builder/"]');
+    await page.waitForFunction(() => document.querySelector('.arena-sidebar .hp-nav-list a[href="/battlegrounds/tier-builder/"]')?.getClientRects().length > 0);
     await page.evaluate(() => { window.__frames.length = 0; });
-    await page.click('.arena-sidebar .hp-nav-list a[href="/battlegrounds/tier-list/"]');
-    await page.waitForSelector('.bg-tier-list-page', { timeout: READY_MS });
+    await page.click('.arena-sidebar .hp-nav-list a[href="/battlegrounds/tier-builder/"]');
+    await page.waitForSelector('.arena-paid-view', { timeout: READY_MS });
     const frames = await page.evaluate(() => window.__frames);
     assert.deepEqual(frames.filter(frame => frame.gate || frame.preview).slice(0, 1), [], 'no lock before the subscription answers');
     await context.close();
@@ -611,14 +611,14 @@ test('a late 401 about the previous session leaves the new session\'s memory alo
     const first = await context.newPage();
     await first.setViewport(viewport);
     await setCookies(first, gateway.origin, { reader: '1', hp_viewer: TAG, fail: 'late401' });
-    await first.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
+    await first.goto(`${gateway.origin}/battlegrounds/tier-builder/`, { waitUntil: 'domcontentloaded' });
     await first.waitForFunction(() => performance.getEntriesByType('resource')
       .some(entry => entry.name.endsWith('/api/auth/me')), { timeout: READY_MS });
     const second = await context.newPage();
     await second.setViewport(viewport);
     await second.deleteCookie({ name: 'fail', url: gateway.origin });
     await setCookies(second, gateway.origin, { reader: 'b', hp_viewer: TAGS.b });
-    await second.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
+    await second.goto(`${gateway.origin}/battlegrounds/tier-builder/`, { waitUntil: 'domcontentloaded' });
     await second.waitForFunction(() => JSON.parse(localStorage.getItem('hs_arena_viewer_hint') ?? 'null')?.user.id === 'instant-other',
       { timeout: READY_MS });
     const before = await second.evaluate(() => ({ ...localStorage }));
@@ -643,13 +643,13 @@ test('a late guest answer does not take the new session\'s tag away', async () =
     const first = await context.newPage();
     await first.setViewport(viewport);
     await setCookies(first, gateway.origin, { hp_viewer: 'ended-session-tag-0001', guestdelay: '1' });
-    await first.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
+    await first.goto(`${gateway.origin}/battlegrounds/tier-builder/`, { waitUntil: 'domcontentloaded' });
     // Meanwhile tab 2 signs in as another account.
     const second = await context.newPage();
     await second.setViewport(viewport);
     await second.deleteCookie({ name: 'guestdelay', url: gateway.origin });
     await setCookies(second, gateway.origin, { reader: 'b', hp_viewer: TAGS.b });
-    await second.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
+    await second.goto(`${gateway.origin}/battlegrounds/tier-builder/`, { waitUntil: 'domcontentloaded' });
     await second.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: READY_MS });
     await first.bringToFront();
     await first.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: READY_MS });
@@ -678,7 +678,7 @@ for (const path of ['session check', 'sign-in']) {
         await signIn(first, gateway.origin, held);
       } else {
         await setCookies(first, gateway.origin, { reader: '1', hp_viewer: TAG, bodydelay: held, t: held });
-        await first.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
+        await first.goto(`${gateway.origin}/battlegrounds/tier-builder/`, { waitUntil: 'domcontentloaded' });
       }
       const statusAsked = () => gateway.requests.some(request => request.t === held && request.url === '/api/subscription/status');
       for (const started = Date.now(); !statusAsked(); await new Promise(resolve => setTimeout(resolve, 50))) {
@@ -689,7 +689,7 @@ for (const path of ['session check', 'sign-in']) {
       await second.setViewport(viewport);
       await second.deleteCookie({ name: 'bodydelay', url: gateway.origin });
       await setCookies(second, gateway.origin, { reader: 'b', hp_viewer: TAGS.b });
-      await second.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
+      await second.goto(`${gateway.origin}/battlegrounds/tier-builder/`, { waitUntil: 'domcontentloaded' });
       await second.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: READY_MS });
       assert.equal(gateway.holdsBody(held), true, 'the subscriber\'s body is still on its way');
       gateway.releaseBody(held);
@@ -697,7 +697,7 @@ for (const path of ['session check', 'sign-in']) {
       await first.bringToFront();
       await first.waitForFunction(() => document.body.textContent.includes('Другая Читательница'), { timeout: READY_MS });
       await first.evaluate(() => new Promise(resolve => setTimeout(resolve, 1_000)));
-      const state = await first.evaluate(() => ({ paid: Boolean(document.querySelector('.bg-tier-list-page')),
+      const state = await first.evaluate(() => ({ paid: Boolean(document.querySelector('.arena-paid-view')),
         hint: JSON.parse(localStorage.getItem('hs_arena_viewer_hint') ?? 'null') }));
       assert.equal(state.paid, false, `${path}: the subscriber's grants never reach the other account`);
       assert.equal(state.hint?.user.id ?? 'instant-other', 'instant-other');
@@ -715,7 +715,7 @@ test('search shows no subscription lock while a remembered refusal is unconfirme
     const page = await context.newPage();
     await page.setViewport(viewport);
     await setCookies(page, gateway.origin, { plan: 'active', statusdelay: '1' });
-    await page.goto(`${gateway.origin}/battlegrounds/tier-list/`, { waitUntil: 'domcontentloaded' });
+    await page.goto(`${gateway.origin}/battlegrounds/tier-builder/`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.global-search__input', { timeout: READY_MS });
     // Typing reaches the search only once React has hydrated the input.
     await page.waitForFunction(() => Object.keys(document.querySelector('.global-search__input'))
@@ -738,7 +738,7 @@ test('search shows no subscription lock while a remembered refusal is unconfirme
       assert.ok(attempt < 2, 'search shows the article');
     }
     // Through the late subscription answer, which grants the article.
-    await page.waitForSelector('.bg-tier-list-page', { timeout: READY_MS });
+    await page.waitForSelector('.arena-paid-view', { timeout: READY_MS });
     assert.equal(await page.evaluate(() => window.__searchLocks.filter(Boolean).length), 0, 'no lock before the server refuses');
     await context.close();
   });

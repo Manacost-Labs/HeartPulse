@@ -1,30 +1,40 @@
 'use client';
 
-import PaywallGate from '@/src/components/PaywallGate';
-import PaywallPending from '@/src/components/PaywallPending';
+import type { ReactNode } from 'react';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { BattlegroundsStrategyBuilderSearchIntro } from '@/src/modules/searchLanding/public';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
-import { BattlegroundStrategyBuilderEmbed, loadBattlegrounds, usePaidViewPrefetch } from './lazyBattlegrounds';
+import { BattlegroundStrategyBuilderEmbed, loadBattlegrounds, useBattlegroundsModuleLoaded, usePaidViewPrefetch } from './lazyBattlegrounds';
+import { BattlegroundBuildsLocks } from './BattlegroundBuildsLocks';
 import { navigate } from './navigation';
 
 const pathname = '/battlegrounds/strategies/';
 
-export function BattlegroundStrategiesPageClient() {
+/**
+ * `builds` is the server-rendered open list of strategies: everyone without access sees it, a subscriber has
+ * the strategy builder in its place once its chunk has loaded (the list keeps its height until then).
+ */
+export function BattlegroundStrategiesPageClient({ builds }: { builds: ReactNode }) {
   const access = usePublicAccess();
   usePaidViewPrefetch(loadBattlegrounds);
-  const { allowed, pending } = paidAccess(access, 'battlegrounds');
+  const { allowed } = paidAccess(access, 'battlegrounds');
+  const paidViewReady = useBattlegroundsModuleLoaded(allowed);
   return <PublicPageShell activeTab="bg-strategies" pathname={pathname}
     access={access} navigate={navigate} wide>
-    {allowed
-      ? <BattlegroundStrategyBuilderEmbed key={access.user?.id} />
-      : <section className="space-y-5">
-        <BattlegroundsStrategyBuilderSearchIntro />
-        {pending
-          ? <PaywallPending>Проверяем доступ к конструктору стратегий...</PaywallPending>
-          : <PaywallGate active title="Конструктор стратегий доступен подписчикам"
-            headingLevel="h2" authUser={access.user} subscriptionStatus={access.subscription}
-            subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />}
-      </section>}
+    <section className="space-y-5">
+      {/* The builder has its own heading: the intro (the page's H1) stays only while the open list is shown. */}
+      {allowed && paidViewReady
+        ? <BattlegroundStrategyBuilderEmbed key={access.user?.id} />
+        : <>
+          <BattlegroundsStrategyBuilderSearchIntro />
+          {builds}
+          <div className="paywalled-builds" style={{ display: 'contents' }}>
+            <BattlegroundBuildsLocks authUser={access.user} subscriptionStatus={access.subscription}
+              subscriptionLoading={access.checking} onRefreshSubscription={access.refresh}
+              note="Конструктор стратегий, статистика по узким рейтинговым диапазонам и разбор развилок — по подписке."
+              title="Конструктор стратегий и разбор развилок доступны подписчикам" />
+          </div>
+        </>}
+    </section>
   </PublicPageShell>;
 }
