@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { readFirstPaintJson } from '../apps/public-web/lib/publicFirstPaintRead';
-import { loadStandardMetaTeaserSeed, standardMetaTeaserPath } from '../apps/public-web/lib/publicStandardMetaTeaserData';
+import { loadStandardMetaTeaserSeed, standardMetaPublicPath } from '../apps/public-web/lib/publicStandardMetaTeaserData';
 import { publicArchetypeCatalog } from '../apps/public-web/lib/publicArchetypeCatalogTeaserData';
 import { cosmeticsCatalogSeed, cosmeticsCatalogSeedRequest } from '../apps/public-web/lib/publicCosmeticsCatalogData';
 import { publicFunDecksPreview } from '../apps/public-web/lib/publicFunDecksPreviewData';
@@ -49,7 +49,7 @@ assert.equal(bodyAborted, true, 'the deadline covers a stalled JSON body, not on
 const metaItem = (index: number) => ({
   id: `a${index}`, slug: `a-${index}`, archetype: `Archetype ${index}`, archetypeLabel: `Архетип ${index}`,
   translated: true, classKey: 'mage', winrate: 51.2, popularity: 4.1, games: 1200 + index,
-  turns: 8.2, durationMinutes: 7.5, climbingSpeed: 1.1,
+  turns: null, durationMinutes: null, climbingSpeed: null,
 });
 const metaPayload = (period: string, items = [metaItem(1), metaItem(2), metaItem(3)]) => ({
   format: 'standard', formatLabel: 'Стандарт', rank: 'diamond_legend', rankLabel: 'Алмаз — Легенда', period,
@@ -57,52 +57,30 @@ const metaPayload = (period: string, items = [metaItem(1), metaItem(2), metaItem
   currentPatchPeriod: 'patch_36.6.3', coin: 'any_player', minGames: 100, source: 'hsguru', sourceUrl: '',
   translationSource: '', updatedAt: '2026-10-03T10:00:00.000Z', items,
 });
-assert.equal(standardMetaTeaserPath(null),
-  '/api/standard-meta/teaser?format=standard&rank=diamond_legend&coin=any_player&min_games=100');
+assert.equal(standardMetaPublicPath(), '/api/standard-meta/public?format=standard');
 const metaReads: string[] = [];
 const metaSeed = await loadStandardMetaTeaserSeed(async path => {
   metaReads.push(path);
-  return metaPayload(new URL(path, 'http://x').searchParams.get('period') ?? 'past_day');
+  return metaPayload('patch_36.6.3');
 });
-assert.deepEqual(metaReads, [standardMetaTeaserPath(null), standardMetaTeaserPath('patch_36.6.3')]);
+assert.deepEqual(metaReads, [standardMetaPublicPath()], 'one read of the open slice');
 assert.equal(metaSeed?.period, 'patch_36.6.3');
-assert.equal(metaSeed?.data.period, 'patch_36.6.3');
 assert.equal(metaSeed?.data.items.length, 3);
-// With the period resolved last time, both reads start together (one round trip, not two).
-const startedReads: string[] = [];
-let release: () => void = () => undefined;
-const gate = new Promise<void>(resolve => { release = resolve; });
-const parallelSeed = loadStandardMetaTeaserSeed(async path => {
-  startedReads.push(path);
-  await gate;
-  return metaPayload(new URL(path, 'http://x').searchParams.get('period') ?? 'past_day');
-}, 'patch_36.6.3');
-await new Promise(resolve => setTimeout(resolve, 10));
-assert.deepEqual(startedReads, [standardMetaTeaserPath(null), standardMetaTeaserPath('patch_36.6.3')],
-  'the expected period is read before the default read answers');
-release();
-assert.equal((await parallelSeed)?.data.period, 'patch_36.6.3');
-const changedPeriod: string[] = [];
-const changedSeed = await loadStandardMetaTeaserSeed(async path => {
-  changedPeriod.push(path);
-  return metaPayload(new URL(path, 'http://x').searchParams.get('period') ?? 'past_day');
-}, 'patch_36.6.2');
-assert.equal(changedSeed?.period, 'patch_36.6.3');
-assert.equal(changedPeriod.length, 3, 'a new patch reads the current period in turn');
-const oneRead: string[] = [];
-await loadStandardMetaTeaserSeed(async path => { oneRead.push(path); return metaPayload('patch_36.6.3'); });
-assert.equal(oneRead.length, 1, 'no second read when Express already answered the current period');
+const wholeSlice = await loadStandardMetaTeaserSeed(async () => metaPayload('patch_36.6.3',
+  [metaItem(1), metaItem(2), metaItem(3), metaItem(4), metaItem(5)]));
+assert.equal(wholeSlice?.data.items.length, 5, 'every row of the open slice reaches the page');
 assert.equal(await loadStandardMetaTeaserSeed(async () => null), null);
 assert.equal(await loadStandardMetaTeaserSeed(async () => ({ items: 'broken' })), null);
+assert.equal(await loadStandardMetaTeaserSeed(async () => metaPayload('patch_36.6.3', [])), null, 'an empty slice is not seeded');
+// A row that brings a paid column is not an open row: the page is left to the browser.
 assert.equal(await loadStandardMetaTeaserSeed(async () => metaPayload('patch_36.6.3',
-  [metaItem(1), metaItem(2), metaItem(3), metaItem(4)])), null, 'more than the top three is not a teaser');
-// The games of the whole slice reach the page; nothing else the teaser might carry does.
+  [{ ...metaItem(1), turns: 7.7 }])), null, 'a paid column is never printed into the HTML');
 const sampledSeed = await loadStandardMetaTeaserSeed(async () => ({
   ...metaPayload('patch_36.6.3'), totalGames: 4_500, deckCodes: ['PAID'],
 }));
 assert.equal(sampledSeed?.data.totalGames, 4_500);
 assert.deepEqual(Object.keys(sampledSeed?.data ?? {}).filter(key => !(key in metaPayload('patch_36.6.3'))), ['totalGames']);
-assert.equal(metaSeed?.data.totalGames, undefined, 'a teaser without the total stays without it');
+assert.equal(metaSeed?.data.totalGames, undefined, 'a slice without the total stays without it');
 for (const totalGames of [-1, 4_500.5, '4500']) {
   assert.equal(await loadStandardMetaTeaserSeed(async () => ({ ...metaPayload('patch_36.6.3'), totalGames })), null,
     `a total of ${JSON.stringify(totalGames)} is not a count of games`);

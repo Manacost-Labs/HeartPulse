@@ -6,6 +6,7 @@ import {
   type StandardMetaRouterDependencies,
 } from '../server/standardMetaRoutes.js';
 import { STANDARD_META_MEDIA_TYPE } from '../shared/standardMetaContract.js';
+import './standard-meta-public-sentinel.check.js';
 
 const calls: string[] = [];
 const sourceUpdatedAt = '2026-07-21T05:05:30.230Z';

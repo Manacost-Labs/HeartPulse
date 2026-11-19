@@ -430,7 +430,7 @@ const metaTeaser = (updatedAt, rows) => ({
   availablePeriods: ['past_day', 'past_week', 'patch_36.6.3'], currentPeriod: 'patch_36.6.3', currentPatchPeriod: 'patch_36.6.3',
   coin: 'any_player', minGames: 100, source: 'hsguru', sourceUrl: 'https://www.hsguru.com/meta', translationSource: '', updatedAt,
   items: rows.map(([label, winrate, games], index) => ({ id: `m${index}`, slug: `m${index}`, archetype: label, archetypeLabel: label,
-    translated: true, classKey: 'warlock', winrate, popularity: 20.4, games, turns: 8, durationMinutes: 7, climbingSpeed: 1 })),
+    translated: true, classKey: 'warlock', winrate, popularity: 20.4, games, turns: null, durationMinutes: null, climbingSpeed: null })),
 });
 const archetypeItem = (slug, label, format = 'standard') => ({
   slug, format, classKey: 'warlock', archetype: label, archetypeLabel: label, translated: true, games: 14800, winrate: 61.24,
@@ -446,7 +446,7 @@ function startFakeExpress(state) {
     const detail = url.pathname.match(/^\/api\/constructed-archetypes\/teaser\/(standard|wild)\/([a-z0-9-]+)$/);
     let payload = null;
     if (url.pathname === '/api/auth/me') payload = { user: null };
-    else if (url.pathname === '/api/standard-meta/teaser') payload = state.meta;
+    else if (url.pathname === '/api/standard-meta/public') payload = state.meta;
     else if (url.pathname === '/api/constructed-archetypes/teaser') {
       const format = url.searchParams.get('format') ?? 'standard';
       payload = state.catalog && {
@@ -506,7 +506,8 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     // The same HTML shows the same date, the slice and the source without JavaScript.
     assert.ok(meta.text.includes(`Данные на ${date}, `), 'the visible line carries the date of the description');
     assert.match(meta.text, / МСК · Стандарт · Алмаз — Легенда · период «Патч 36\.6\.3» · от 100 игр · источник HSGuru\./);
-    assert.ok(meta.text.includes('срез бесплатного предпросмотра'), 'the line says it is the free preview');
+    assert.ok(meta.text.includes('общий срез меты'), 'the line says it is the general slice');
+    assert.ok(meta.text.includes('Зоолок'), 'the open rows are in the server HTML');
     assert.match(meta.html, new RegExp(`<time datetime="${updatedAt}">`, 'i'), 'the date is machine-readable');
     assert.ok(meta.html.includes('<a href="https://www.hsguru.com/meta" rel="noopener noreferrer">HSGuru</a>'), 'the source is linked');
     assert.ok(meta.text.includes('Зоолок') && meta.text.includes('61%'), 'the leader of the snippet is on the page');
@@ -518,7 +519,7 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     assert.match(noLeader.description, new RegExp(`^Мета Хартстоуна \\(хс\\) на (${date}): тир-лист колод Стандарта\\. Винрейт и популярность архетипов\\. Данные HSGuru\\.$`));
 
     // A row without a winrate is never the leader; a source outside HSGuru is not linked as «HSGuru».
-    state.meta = { ...metaTeaser(updatedAt, [['Без винрейта', null, 5000], ['Зоолок', 61, 14800]]),
+    state.meta = { ...metaTeaser(updatedAt, [['Без винрейта', null, 5000], ['Зоолок', 61, 14800], TOP_ROWS[1], TOP_ROWS[2]]),
       sourceUrl: 'https://evil.example/meta' };
     const foreign = await page('/standard/meta/');
     assert.ok(foreign.description.includes('Лидер — Зоолок, 61% побед.'), foreign.description);
@@ -646,7 +647,9 @@ test('the meta page describes its teaser as a dataset dated by the teaser, from 
     assert.deepEqual(nodeOfType(graph, 'Dataset'), {
       '@type': 'Dataset', '@id': 'https://hearthpulse.net/standard/meta/#dataset', url: 'https://hearthpulse.net/standard/meta/',
       name: 'Мета Стандарта Hearthstone: винрейт, популярность и число игр архетипов',
-      description: 'Срез меты Стандарта Hearthstone по данным HSGuru: винрейт, популярность и число игр архетипов. На странице показан бесплатный срез; полная таблица доступна подписчикам.',
+      description: 'Общий срез меты Стандарта и Вольного формата Hearthstone по данным HSGuru: винрейт, популярность и число игр каждого архетипа открыты. Узкие срезы по рангу, очерёдности хода и периоду, динамика и рекомендации доступны по подписке.',
+      isAccessibleForFree: false,
+      hasPart: { '@type': 'WebPageElement', isAccessibleForFree: false, cssSelector: '.paywalled-standard-meta' },
       inLanguage: 'ru',
       dateModified: DATA_DATE, publisher: { '@id': 'https://hearthpulse.net/#org' },
       isBasedOn: { '@type': 'Dataset', name: 'HSGuru: Meta', url: HSGURU_META },
@@ -662,7 +665,7 @@ test('the meta page describes its teaser as a dataset dated by the teaser, from 
     assert.deepEqual(collection.about, { '@id': 'https://hearthpulse.net/standard/meta/#dataset' });
     // The line the reader sees carries the same instant.
     assert.match(html, new RegExp(`<time datetime="${DATA_DATE}">`, 'i'));
-    // Names of metrics, no values: no row of the teaser reaches the graph.
+    // Names of metrics, no values: no row of the open slice reaches the graph.
     assert.doesNotMatch(JSON.stringify(graph), /Зоолок|Граб|Н'зот|\b(61|58\.2|57\.4|14800|5400|258)\b|gameMode|temporalCoverage|\{\{/);
 
     // Data older than a week keeps its true date: the graph never pretends to be fresher than the teaser.

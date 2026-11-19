@@ -204,7 +204,11 @@ export function parseStandardMetaData(value: unknown): StandardMetaData {
   };
 }
 
-export function assessStandardMetaData(data: StandardMetaData, mode: DatasetMode): {
+/**
+ * `openLayer` judges the open guest slice, whose paid columns (turns, duration,
+ * climb speed) are empty by design: only winrate, popularity and games count.
+ */
+export function assessStandardMetaData(data: StandardMetaData, mode: DatasetMode, openLayer = false): {
   partial: boolean;
   quality: StandardMetaEnvelope['quality'];
 } {
@@ -234,14 +238,12 @@ export function assessStandardMetaData(data: StandardMetaData, mode: DatasetMode
     invalid('widespread extreme popularity failed plausibility gate');
   }
 
-  const metricSlots = data.items.length * 6;
+  const metricSlots = data.items.length * (openLayer ? 3 : 6);
   const presentMetrics = data.items.reduce((total, item) => total + [
     item.winrate,
     item.popularity,
     item.games,
-    item.turns,
-    item.durationMinutes,
-    item.climbingSpeed,
+    ...(openLayer ? [] : [item.turns, item.durationMinutes, item.climbingSpeed]),
   ].filter(value => value !== null).length, 0);
   const coverage = metricSlots === 0 ? 1 : Math.round((presentMetrics / metricSlots) * 10_000) / 10_000;
   const warnings: string[] = [];
@@ -279,7 +281,7 @@ export function parseStandardMetaEnvelope(value: unknown, now = Date.now()): Sta
   return envelope;
 }
 
-export function parseStandardMetaApiResponse(value: unknown, now = Date.now()): {
+export function parseStandardMetaApiResponse(value: unknown, now = Date.now(), openLayer = false): {
   data: StandardMetaData;
   envelope: StandardMetaEnvelope | null;
   legacy: boolean;
@@ -295,6 +297,6 @@ export function parseStandardMetaApiResponse(value: unknown, now = Date.now()): 
   // A legacy server had no mode/freshness envelope. Treat it as stable and run
   // the same plausibility gates rather than allowing N-1 compatibility to
   // reintroduce the historic 97–100% corruption.
-  assessStandardMetaData(data, 'stable');
+  assessStandardMetaData(data, 'stable', openLayer);
   return { data, envelope: null, legacy: true };
 }

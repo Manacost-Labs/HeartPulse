@@ -307,7 +307,9 @@ test('pages pass the access decision to their gates and reserve the gate height'
   const detailDataSource = read('../src/modules/constructedArchetypes/useArchetypeDetail.ts');
   const catalogDataSource = read('../src/modules/constructedArchetypes/useArchetypeCatalog.ts');
   assert.match(metaSource, /surface="meta"/);
-  assert.match(metaSource, /filteredItems\.slice\(0,\s*3\)/);
+  // The open layer: a guest reads every row of the general slice from the public route, with the format only.
+  assert.doesNotMatch(metaSource, /filteredItems\.slice\(0,\s*3\)/);
+  assert.match(metaSource, /'\/api\/standard-meta\/public'/);
   assert.match(detailDataSource, /hasFullAccess && !denied/);
   assert.match(detailDataSource, /hasFullAccess \? '' : '\/teaser'/);
   assert.match(catalogDataSource, /\/api\/constructed-archetypes\/teaser\?format=/);

@@ -7,6 +7,7 @@ import {
   Download,
   Gem,
   LayoutGrid,
+  Lock,
   Maximize2,
   RefreshCw,
   Search,
@@ -441,7 +442,7 @@ type StandardMetaPageProps = {
 function MetaSummary({ data, hasFullAccess }: { data: MetaPayload | null; hasFullAccess: boolean }) {
   return (
     <dl className="traditional-mode-banner__summary" aria-label="Сводка меты" data-teaser={hasFullAccess ? undefined : ''}>
-      <div><dt>{hasFullAccess ? 'Архетипов' : 'В предпросмотре'}</dt><dd>{data ? data.items.length : <LoadingValue />}</dd></div>
+      <div><dt>Архетипов</dt><dd>{data ? data.items.length : <LoadingValue />}</dd></div>
       <div><dt>Игр в выборке</dt><dd>{data ? (data.totalGames ?? data.items.reduce((sum, item) => sum + (item.games ?? 0), 0)).toLocaleString('ru-RU') : <LoadingValue wide />}</dd></div>
     </dl>
   );
@@ -473,6 +474,53 @@ function MetaCoinSelect({ value, onChange }: { value: MetaCoin; onChange: (coin:
   );
 }
 
+/** The place of a paid number in a guest's row: the same box as the number, so the row does not move. */
+function PaidValue() {
+  return <span className="standard-meta__paid-value" title="В подписке"><Lock size={13} aria-label="В подписке" /></span>;
+}
+
+/** A guest's view of a paid filter: the value of the open slice with a lock; a press points to the subscription. */
+function LockedFilter({ label, value, onOpen }: { label: string; value: string; onOpen: () => void }) {
+  return (
+    <button type="button" className="standard-meta__select standard-meta__locked-filter" onClick={onOpen} data-locked-filter>
+      <span className="standard-meta__control-label">{label}</span>
+      <span className="standard-meta__locked-value"><Lock size={14} aria-hidden="true" />{value}</span>
+    </button>
+  );
+}
+
+type PeriodOption = { id: MetaPeriod; label: string };
+
+/** Period, coin and game floor: selects for a subscriber, locks with the open slice's values for a guest. */
+function PeriodCoinFloorFilters({ hasFullAccess, selectedPeriod, periodOptions, onPeriod, coin, onCoin, minGames, onMinGames, onLocked }: {
+  hasFullAccess: boolean; selectedPeriod: MetaPeriod; periodOptions: PeriodOption[]; onPeriod: (period: MetaPeriod) => void;
+  coin: MetaCoin; onCoin: (coin: MetaCoin) => void; minGames: MetaMinGames; onMinGames: (minGames: MetaMinGames) => void;
+  onLocked: () => void;
+}) {
+  if (!hasFullAccess) {
+    return (<>
+      <LockedFilter label="Период" value={standardMetaPeriodLabel(selectedPeriod)} onOpen={onLocked} />
+      <LockedFilter label="Очерёдность хода" value="Любой игрок" onOpen={onLocked} />
+      <LockedFilter label="Минимум игр" value={minGames.toLocaleString('ru-RU')} onOpen={onLocked} />
+    </>);
+  }
+  return (<>
+    <label className="standard-meta__select">
+      <span className="standard-meta__control-label">Период</span>
+      <select value={selectedPeriod} onChange={event => onPeriod(event.target.value as MetaPeriod)}>
+        {periodOptions.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+      </select>
+    </label>
+    <MetaCoinSelect value={coin} onChange={onCoin} />
+    <label className="standard-meta__select">
+      <span className="standard-meta__control-label">Минимум игр</span>
+      <select value={minGames} onChange={event => onMinGames(Number(event.target.value) as MetaMinGames)}>
+        {MIN_GAMES.map(value => <option key={value} value={value}>{value.toLocaleString('ru-RU')}</option>)}
+      </select>
+    </label>
+  </>);
+}
+
 function StandardMetaContent({
   hasFullAccess,
   accessPending, teaserWaitsForAccess,
@@ -485,6 +533,9 @@ function StandardMetaContent({
   const [coin, setCoin] = useState<MetaCoin>(TEASER_SEED_FILTERS.coin);
   const [minGames, setMinGames] = useState<MetaMinGames>(TEASER_SEED_FILTERS.minGames);
   const [query, setQuery] = useState('');
+  // A guest's paid filters (rank, period, coin, floor) open the subscription offer instead of changing the slice.
+  const [lockedNotice, setLockedNotice] = useState(false);
+  const openOffer = () => setLockedNotice(true);
   const deferredQuery = useDeferredValue(query);
   const [view, setView] = useState<MetaView>('cards');
   const tableRef = useRef<HTMLTableElement>(null);
@@ -495,7 +546,7 @@ function StandardMetaContent({
   const summaryReady = hasPayload && !(hasFullAccess && data === initialTeaser?.data);
   const [arrivesLater] = useState(!initialTeaser);
   const [metaRevision, setMetaRevision] = useState(0);
-  const requestKey = metaRequestKey(format, rank, period, coin, minGames, metaRevision, hasFullAccess);
+  const requestKey = metaRequestKey(format, rank, hasFullAccess ? period : null, coin, minGames, metaRevision, hasFullAccess);
   const seedKey = teaserSeedKey(initialTeaser, hasFullAccess);
   const answeredKey = useRef(seedKey);
   const [resolvedRequestKey, setResolvedRequestKey] = useState(seedKey);
@@ -519,33 +570,29 @@ function StandardMetaContent({
     const currentRequest = ++requestId.current;
     const controller = new AbortController();
     let redirectedToCurrentPeriod = false;
-    const params = new URLSearchParams({
-      format,
-      rank,
-      coin,
-      min_games: String(minGames),
-    });
-    if (period) params.set('period', period);
-    const endpoint = hasFullAccess ? '/api/standard-meta' : '/api/standard-meta/teaser';
+    // A guest asks the open general slice of the format; the server fixes the other filters.
+    const params = new URLSearchParams(hasFullAccess ? { format, rank, coin, min_games: String(minGames) } : { format });
+    if (period && hasFullAccess) params.set('period', period);
+    const endpoint = hasFullAccess ? '/api/standard-meta' : '/api/standard-meta/public';
     void Promise.resolve().then(() => controller.signal.aborted ? Promise.reject(new DOMException('', 'AbortError'))
       : apiJson<unknown>(`${endpoint}?${params}`, {
         signal: hasFullAccess ? controller.signal : undefined,
         headers: { Accept: STANDARD_META_MEDIA_TYPE },
       }))
       .then(payload => {
-        const verified = parseStandardMetaApiResponse(payload);
+        const verified = parseStandardMetaApiResponse(payload, Date.now(), !hasFullAccess);
         if (currentRequest === requestId.current && !controller.signal.aborted) {
           const defaultPeriod = resolveStandardMetaDefaultPeriod(
             verified.data.availablePeriods,
             verified.data.currentPeriod,
             verified.data.currentPatchPeriod,
           );
-          if (!period && defaultPeriod) {
+          if (hasFullAccess && !period && defaultPeriod) {
             redirectedToCurrentPeriod = true;
             setPeriod(defaultPeriod);
             return;
           }
-          if (!period) setPeriod(verified.data.period);
+          if (hasFullAccess && !period) setPeriod(verified.data.period);
           setData(verified.data);
         }
       })
@@ -569,10 +616,7 @@ function StandardMetaContent({
     if (!normalized) return data.items;
     return data.items.filter(item => `${item.archetype} ${item.archetypeLabel}`.toLowerCase().includes(normalized));
   }, [data.items, deferredQuery]);
-  const visibleItems = useMemo(
-    () => hasFullAccess ? filteredItems : filteredItems.slice(0, 3),
-    [filteredItems, hasFullAccess],
-  );
+  const visibleItems = filteredItems;
   const rankById = useMemo(
     () => new Map(data.items.map((item, index) => [item.id, index + 1])),
     [data.items],
@@ -582,7 +626,7 @@ function StandardMetaContent({
       .map(id => ({ id, label: standardMetaPeriodLabel(id) })),
     [data.availablePeriods, data.currentPeriod, data.currentPatchPeriod],
   );
-  const selectedPeriod = period
+  const selectedPeriod = (hasFullAccess ? period : data.period)
     ?? resolveStandardMetaDefaultPeriod(data.availablePeriods, data.currentPeriod, data.currentPatchPeriod)
     ?? data.period;
 
@@ -597,7 +641,7 @@ function StandardMetaContent({
         <MetaSummary data={summaryReady ? data : null} hasFullAccess={hasFullAccess} />
       </section>
 
-      <section className="standard-meta__controls" aria-label="Фильтры меты" data-page-still data-tour-id="meta-filters">
+      <section className="standard-meta__controls paywalled-standard-meta" aria-label="Фильтры меты" data-page-still data-tour-id="meta-filters">
         <div className="standard-meta__panel-heading">
           <span aria-hidden="true"><Swords size={18} /></span>
           <div><strong>Управление срезом</strong></div>
@@ -628,8 +672,8 @@ function StandardMetaContent({
                     {group.ranks.map(rankId => {
                       const option = RANKS.find(candidate => candidate.id === rankId)!;
                       return (
-                        <button key={option.id} type="button" aria-pressed={rank === option.id} onClick={() => setRank(option.id)}>
-                          {option.label}
+                        <button key={option.id} type="button" aria-pressed={rank === option.id} onClick={() => hasFullAccess ? setRank(option.id) : openOffer()}>
+                          {!hasFullAccess && option.id !== rank ? <Lock size={12} aria-hidden="true" /> : null}{option.label}
                         </button>
                       );
                     })}
@@ -641,32 +685,26 @@ function StandardMetaContent({
           <select
             className="standard-meta__rank-select"
             value={rank}
-            onChange={event => setRank(event.target.value as MetaRank)}
+            onChange={event => hasFullAccess ? setRank(event.target.value as MetaRank) : openOffer()}
             aria-label="Рейтинг"
           >
             {RANKS.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
           </select>
         </div>
         <div className="standard-meta__secondary-filters">
-          <label className="standard-meta__select">
-            <span className="standard-meta__control-label">Период</span>
-            <select value={selectedPeriod} onChange={event => setPeriod(event.target.value as MetaPeriod)}>
-              {periodOptions.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
-            </select>
-          </label>
-          <MetaCoinSelect value={coin} onChange={setCoin} />
-          <label className="standard-meta__select">
-            <span className="standard-meta__control-label">Минимум игр</span>
-            <select value={minGames} onChange={event => setMinGames(Number(event.target.value) as MetaMinGames)}>
-              {MIN_GAMES.map(value => <option key={value} value={value}>{value.toLocaleString('ru-RU')}</option>)}
-            </select>
-          </label>
+          <PeriodCoinFloorFilters hasFullAccess={hasFullAccess} selectedPeriod={selectedPeriod} periodOptions={periodOptions}
+            onPeriod={setPeriod} coin={coin} onCoin={setCoin} minGames={minGames} onMinGames={setMinGames} onLocked={openOffer} />
           <label className="standard-meta__search" data-tour-id="meta-search">
             <Search size={18} />
             <span className="sr-only">Поиск архетипа</span>
             <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Найти архетип…" />
           </label>
         </div>
+        {lockedNotice && !hasFullAccess ? (
+          <p className="standard-meta__locked-note" role="status">
+            Другие ранги, периоды, очерёдность хода и порог игр — в подписке. <a href="#standard-meta-paywall">Смотреть предложение</a>
+          </p>
+        ) : null}
       </section>
 
       {loading && !hasPayload && (
@@ -703,7 +741,7 @@ function StandardMetaContent({
 
           <section className="standard-meta__results-toolbar" aria-label="Представление меты">
             <p data-tour-id="meta-results">
-              <strong>{visibleItems.length}</strong> {hasFullAccess ? 'архетипов в текущем срезе' : 'лидера текущего среза'}
+              <strong>{visibleItems.length}</strong> архетипов в текущем срезе
             </p>
             <MetaViewActions view={view} onView={setView} tableRef={tableRef} csvTitle={`Мета ${data.formatLabel}, ${data.rankLabel}`} />
           </section>
@@ -723,13 +761,13 @@ function StandardMetaContent({
                   <dl className="standard-meta-card__metrics">
                     <div><dt>Популярность</dt><dd>{formatNumber(item.popularity, '%')}</dd></div>
                     <div><dt>Игры</dt><dd>{item.games?.toLocaleString('ru-RU') ?? '—'}</dd></div>
-                    <div><dt>Ходы</dt><dd>{formatNumber(item.turns)}</dd></div>
-                    <div><dt>Длительность</dt><dd>{formatNumber(item.durationMinutes, ' мин')}</dd></div>
+                    <div><dt>Ходы</dt><dd>{hasFullAccess ? formatNumber(item.turns) : <PaidValue />}</dd></div>
+                    <div><dt>Длительность</dt><dd>{hasFullAccess ? formatNumber(item.durationMinutes, ' мин') : <PaidValue />}</dd></div>
                   </dl>
                   <div className={`standard-meta-card__climb ${item.climbingSpeed !== null && item.climbingSpeed < 0 ? 'standard-meta-card__climb--negative' : ''}`}>
                     <Swords size={17} />
                     <span>Скорость набора</span>
-                    <strong>{formatNumber(item.climbingSpeed, ' ★/ч')}</strong>
+                    <strong>{hasFullAccess ? formatNumber(item.climbingSpeed, ' ★/ч') : <PaidValue />}</strong>
                   </div>
                   <a
                     className="standard-meta__primary-button standard-meta__deck-action standard-meta-card__deck-button"
@@ -765,14 +803,16 @@ function StandardMetaContent({
           </ViewSwitch></ViewSwitch>
 
           {!hasFullAccess && !accessPending ? (
-            <PaywallGate
-              active
-              presentation="inline"
-              surface="meta"
-              variant="standard"
-              title="Вся мета — по рангам, периодам и форматам"
-              {...paywall}
-            />
+            <div id="standard-meta-paywall">
+              <PaywallGate
+                active
+                presentation="inline"
+                surface="meta"
+                variant="standard"
+                title="Узкие срезы, история и тренды — в подписке"
+                {...paywall}
+              />
+            </div>
           ) : null}
         </div>
       )}

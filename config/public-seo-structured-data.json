@@ -618,8 +618,14 @@
         "@type": "Dataset",
         "@id": "https://hearthpulse.net/standard/meta/#dataset",
         "name": "Мета Стандарта Hearthstone: винрейт, популярность и число игр архетипов",
-        "description": "Срез меты Стандарта Hearthstone по данным HSGuru: винрейт, популярность и число игр архетипов. На странице показан бесплатный срез; полная таблица доступна подписчикам.",
+        "description": "Общий срез меты Стандарта и Вольного формата Hearthstone по данным HSGuru: винрейт, популярность и число игр каждого архетипа открыты. Узкие срезы по рангу, очерёдности хода и периоду, динамика и рекомендации доступны по подписке.",
         "url": "https://hearthpulse.net/standard/meta/",
+        "isAccessibleForFree": false,
+        "hasPart": {
+          "@type": "WebPageElement",
+          "isAccessibleForFree": false,
+          "cssSelector": ".paywalled-standard-meta"
+        },
         "isBasedOn": {
           "@type": "Dataset",
           "name": "HSGuru: Meta",
