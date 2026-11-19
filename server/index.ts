@@ -46,6 +46,7 @@ import { createCoverAdminSsoRouter } from './modules/coverAdminSso/public.js';
 import { csrfRequestAllowed, requestTargetPath } from './csrf.js';
 import { configureLoopbackProxyTrust, corsOriginAllowed, getTrustedClientIp } from './networkBoundary.js';
 import { isPublicMediaApiRequest } from './apiRateLimitPolicy.js';
+import { createPublicDataScrapeGuard, loadScrapeGuardConfig } from './publicDataScrapeGuard.js';
 import { createRouteAwareJsonParser, createUploadAuthorizationGuard } from './jsonBody.js';
 import { createReferralRedirectHandler, createReferralRouter } from './referralRoutes.js';
 import { REFERRAL_ATTRIBUTION_SCHEMA_SQL, createReferralAttributionMiddleware } from './referralAttribution.js';
@@ -6996,6 +6997,20 @@ const apiLimiter = rateLimit({
   ),
 });
 app.use('/api/', apiLimiter);
+
+// Open JSON data (E21): per-client hour/minute budget, verified search bots exempt.
+// config/public-data-api-guard.json switches between "enforce" and "log".
+const publicDataScrapeGuard = createPublicDataScrapeGuard({
+  config: loadScrapeGuardConfig(join(APP_ROOT_DIR, 'config', 'public-data-api-guard.json')),
+  resolveAccountKey: (req) => {
+    for (const token of authTokenCandidatesFromReq(req)) {
+      const row = dbGet<{ user_id: string }>('SELECT user_id FROM sessions WHERE token_hash = ? AND expires_at > ?', sha256(token), Date.now());
+      if (row?.user_id) return String(row.user_id);
+    }
+    return null;
+  },
+});
+app.use('/api/', publicDataScrapeGuard.middleware);
 
 const authCodeRequestLimiter = rateLimit({
   windowMs: 15 * 60_000,
