@@ -1035,20 +1035,22 @@ describe('a closed Arena page explains itself in the HTML: questions, sources, u
       assert.ok(description.length <= 160, `${page.path} description is ${description.length} characters`);
       assert.ok(description.includes('Hearthstone'), `${page.path} description names the game`);
 
-      // One block, in <main>, after the H1.
+      // One collapsed block, in <main>, after the H1.
       assert.equal(html.split('class="seo-page-intro"').length - 1, 1, `${page.path} renders the text once`);
+      assert.match(html, /<details class="seo-page-intro"><summary>О странице<\/summary>/, `${page.path} text is a «О странице» details`);
+      assert.doesNotMatch(html, /<details class="seo-page-intro"[^>]*\sopen/, `${page.path} text is collapsed by default`);
       const at = html.indexOf('class="seo-page-intro"');
       assert.ok(html.indexOf('<main') < html.indexOf('<h1') && html.indexOf('<h1') < at && at < html.indexOf('</main>'),
         `${page.path} text sits in <main> below the H1`);
-      const block = html.match(/<section class="seo-page-intro">([\s\S]*?)<\/section>/)[1];
+      const block = html.match(/<details class="seo-page-intro">([\s\S]*?)<\/details>/)[1];
       const text = visibleText(block);
 
       const words = wordCount(text);
-      assert.ok(words >= 250 && words <= 400, `${page.path} text is ${words} words`);
+      assert.ok(words >= 100 && words <= 180, `${page.path} text is ${words} words`);
       assert.ok(wordCount(visibleText(html)) - frameWords >= 150, `${page.path} has 150 words more than the 404 frame`);
 
       const headings = [...block.matchAll(/<h2>(.*?)<\/h2>/g)].map(match => decoded(match[1]));
-      assert.ok(headings.length >= 4, `${page.path} has ${headings.length} headings`);
+      assert.ok(headings.length >= 2 && headings.length <= 3, `${page.path} has ${headings.length} headings`);
       assert.ok(headings.every(heading => heading.endsWith('?')), `${page.path} headings are questions: ${headings.join(' | ')}`);
       assert.ok(headings.includes(page.question), `${page.path} answers «${page.question}»`);
 
@@ -1079,13 +1081,11 @@ describe('a closed Arena page explains itself in the HTML: questions, sources, u
     });
   }
 
-  it('the tier list explains every grade of its scale, who stops at E, and what «Без тира» is', async () => {
+  it('the tier list names its scale, who stops at E, and what «Без тира» is', async () => {
     const text = visibleText(await (await fetch(`${runtime.nextOrigin}/tierlist/`)).text());
-    for (const line of ['S — «Отлично»', 'A — «Хорошо»', 'B — «Выше среднего»', 'C — «Средне»', 'D — «Ниже среднего»', 'E — «Плохо»', 'F — «Ужасно»']) {
-      assert.ok(text.includes(line), `the tier list explains ${line}`);
-    }
+    assert.ok(text.includes('буквами от S до F'), 'the tier list names the scale from S to F');
     // HSReplay never gives F (server/hsreplayArenasmith.ts), and a card without Arenasmith Score is no grade at all.
-    assert.ok(text.includes('у HSReplay буква выводится из Arenasmith Score, и там она заканчивается на E'), 'the HSReplay scale ends at E');
+    assert.ok(text.includes('У HSReplay буква выводится из Arenasmith Score и заканчивается на E'), 'the HSReplay scale ends at E');
     assert.ok(text.includes('группу «Без тира»: это не оценка, а отметка об отсутствии данных'), '«Без тира» is not a grade');
     assert.doesNotMatch(text, /одну из семи оценок/, 'not every card gets one of seven grades');
   });

@@ -52,7 +52,6 @@ function PowerSkeleton() {
     <div className="vsgold-section__head">
       <div>
         <div className="vsgold-skeleton__title"><Words>Power Tier List</Words></div>
-        <p><Words>Ожидаемый винрейт колоды против меты выбранного диапазона рангов: расчёт vS по матчапам и частоте соперников.</Words></p>
       </div>
     </div>
     <div className="vsgold-power__controls">

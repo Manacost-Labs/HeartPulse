@@ -9,8 +9,8 @@ import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { BgLibrary, loadBgLibrary, usePaidViewPrefetch } from './lazyBattlegrounds';
 import { navigate } from './navigation';
 
-export function BattlegroundLibraryPageClient({ pathname, heading, description }: {
-  pathname: string; heading: string; description: string;
+export function BattlegroundLibraryPageClient({ pathname, heading }: {
+  pathname: string; heading: string; description?: string;
 }) {
   const access = usePublicAccess();
   usePaidViewPrefetch(loadBgLibrary);
@@ -20,7 +20,7 @@ export function BattlegroundLibraryPageClient({ pathname, heading, description }
     {allowed
       ? <BgLibrary key={`${pathname}:${access.user?.id}`} currentPath={pathname} navigatePath={navigate} cacheScope={access.user ? String(access.user.id) : undefined} />
       : <section className="space-y-5">
-        <SectionBanner title={heading} subtitle={description} />
+        <SectionBanner title={heading} />
         {pending
           ? <PaywallPending>Проверяем доступ к библиотеке...</PaywallPending>
           : <PaywallGate active title="Библиотека Полей сражений доступна подписчикам"

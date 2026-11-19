@@ -77,8 +77,7 @@ export function LeaderboardsView({ initial }: { initial: LeaderboardsInitial }) 
     </section>
     {showsTable && stats.value && stats.status === 'ready' && <LeaderboardCharts stats={stats.value} />}
     <p className="leaderboards-muted leaderboards-source">
-      Данные — официальные таблицы лидеров Blizzard (hearthstone.blizzard.com). Текущие сезоны обновляются четыре раза в сутки;
-      ник показан без номера BattleTag, как у Blizzard. Значок стримера ставится по совпадению ника с каталогом стримеров.
+      Данные — официальные таблицы лидеров Blizzard (hearthstone.blizzard.com), текущие сезоны обновляются четыре раза в сутки.
     </p>
   </div>;
 }

@@ -235,6 +235,7 @@ a:is(.vsgold-power-row__name, .vsgold-deck-row__name):focus-visible { outline: 2
   text-align: left;
   cursor: pointer;
 }
+.vsgold-classbars button:hover { background: rgba(255, 250, 236, 0.6); }
 .vsgold-classbars button:focus-visible { outline: 2px solid var(--vs-wine); outline-offset: 2px; }
 .vsgold-classbars__class { display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 0.5rem; align-items: center; }
 .vsgold-classbars__class img { width: 32px; height: 32px; filter: drop-shadow(0 2px 3px rgba(48, 37, 28, 0.25)); }

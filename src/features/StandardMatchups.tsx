@@ -240,7 +240,6 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
       <header className="traditional-mode-banner">
         <div className="traditional-mode-banner__copy">
           <h1>Матчапы</h1>
-          <p>Сравнение силы актуальных архетипов против каждого соперника.</p>
         </div>
         <dl className="traditional-mode-banner__summary" aria-label="Сводка матчапов">
           <div><dt>Архетипов</dt><dd>{rows.length || '—'}</dd></div>
@@ -385,7 +384,6 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
         <aside id="matchups-summary" className="standard-matchups__summary scroll-mt-4">
           <section className="standard-matchups__summary-card rounded-2xl p-4 bg-[#fff8e4]/80 border border-[#d7b56e]/50">
             <h3 className="font-hs text-xl mb-1" style={{ color: '#3d2208' }} data-tour-id="matchups-summary">Сильнейшие архетипы</h3>
-            <p className="standard-matchups__summary-lead">Лучший винрейт против меты, их самая удобная и самая сложная пара. Нажмите, чтобы открыть обзор.</p>
             <StandardMatchupsLeaders data={matrixData} labelOf={getStandardArchetypeLabel}
               onOpen={archetype => { setSelectedArchetype(archetype); openOverviewSection('matchups-picker'); }} />
           </section>

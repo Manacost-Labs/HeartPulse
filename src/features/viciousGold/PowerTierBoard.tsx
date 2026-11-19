@@ -36,7 +36,6 @@ export function PowerTierBoard({ tierList, classes, copiedDeck, onCopy }: {
       <header className="vsgold-section__head" data-tour-id="vicious-power">
         <div>
           <h2 id="vsgold-power-title">Power Tier List</h2>
-          <p>Ожидаемый винрейт колоды против меты выбранного диапазона рангов: расчёт vS по матчапам и частоте соперников.</p>
         </div>
       </header>
 
@@ -57,7 +56,7 @@ export function PowerTierBoard({ tierList, classes, copiedDeck, onCopy }: {
       </div>
 
       <div className="vsgold-power__legend" aria-hidden="true">
-        <span>Колода</span><span>Винрейт: 40% · 50% · 60%</span>{baseline ? <span>п. п. к «{baseline}»</span> : <span />}
+        <span>Колода</span><span title="Ожидаемый винрейт колоды против меты выбранного диапазона рангов (расчёт Vicious Syndicate)">Винрейт: 40% · 50% · 60%</span>{baseline ? <span>п. п. к «{baseline}»</span> : <span />}
       </div>
 
       {groups.map(group => (

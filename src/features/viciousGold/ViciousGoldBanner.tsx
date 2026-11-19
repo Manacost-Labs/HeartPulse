@@ -10,7 +10,6 @@ export function ViciousGoldBanner({ children }: {
     <header className="traditional-mode-banner">
       <div className="traditional-mode-banner__copy">
         <h1>Vicious Syndicate Gold</h1>
-        <p>Расширенная статистика меты: популярность, готовые сборки и Power Tier.</p>
       </div>
       {children}
     </header>

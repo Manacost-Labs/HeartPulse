@@ -30,7 +30,6 @@ export function HomeLatestArticlesSkeleton() {
         <span>Новые материалы</span>
         <h2>Подборка статей</h2>
       </div>
-      <p>Свежие мета-отчёты, разборы патчей и практические гайды редакции.</p>
     </div>
     <div className="home-latest-articles-skeleton__board">
       {[0, 1, 2].map(index => <HomeArticleSkeleton key={index} />)}

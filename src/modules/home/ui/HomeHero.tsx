@@ -26,9 +26,6 @@ export function HomeHero({ homeSummaryData, loadingHomeSummary, onNavigate }: {
         <div className="home-stage__copy">
           <span className="home-stage__label"><span aria-hidden="true" /> Данные обновляются автоматически</span>
           <h1 id="draft-home-title">Мета Hearthstone <span>на сегодня</span></h1>
-          <p>
-            Лидеры Арены, свежесть данных и ключевые инструменты — на одном экране.
-          </p>
           <div className="home-stage__actions">
             <a
               href="/tierlist/"

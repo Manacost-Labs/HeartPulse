@@ -45,7 +45,7 @@ export default function StandardMetaChart({ items, format, formatLabel, rankLabe
           <span className="standard-meta-chart__icon" aria-hidden="true"><ChartScatter size={22} /></span>
           <div>
             <h2 id="standard-meta-chart-title">Карта меты</h2>
-            <p>Популярность, винрейт и доли игр · {formatLabel} · {rankLabel}</p>
+            <p>{formatLabel} · {rankLabel}</p>
           </div>
         </div>
         <div className="standard-meta-chart__header-actions">

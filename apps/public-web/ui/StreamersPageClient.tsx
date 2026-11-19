@@ -20,8 +20,7 @@ export function StreamersPageClient({ initial }: { initial: StreamersPage | null
   const data = useStreamersData({ path: '/api/streamers', defaults: DEFAULT_STREAMERS_FILTERS, initial, isPage: isStreamersPage, merge, shown });
   return <PublicPageShell activeTab="streamers" pathname="/streamers/" access={access} navigate={navigate} wide>
     <section className="streamers-page space-y-4">
-      <SectionBanner title="Стримеры"
-        subtitle="Колоды стримеров Hearthstone с HSGuru, ссылки на их Twitch и YouTube и кто сейчас в эфире" />
+      <SectionBanner title="Стримеры" />
       {data.page
         ? <StreamersView page={{ ...data.page, filters: data.filters }} live={data.page.live} loading={data.loading}
           loadingMore={data.loadingMore} onFilters={data.setFilters} onMore={data.more} />
