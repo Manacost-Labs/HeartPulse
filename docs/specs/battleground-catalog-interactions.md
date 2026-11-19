@@ -31,7 +31,8 @@ direction without motion. No leading ornament or open-state separator is used.
 The hero table uses an ivory surface, a dark brown header, restrained bronze
 and green metrics, and neutral tier gutters. The site's tier mark (`TierBadge`,
 painted images in `public/tier-marks/`) distinguishes S, A, B, C and D with
-gold, copper, amethyst, emerald and sapphire stone; its `alt` («Тир S») keeps
+gold, copper, amethyst, emerald and sapphire inlay in smooth gold with a
+thin dark rim; its `alt` («Тир S») keeps
 the rank identifiable without color. Distribution interaction
 does not resize bars. Grouped and sorted rows retain keyboard sorting, hero
 links, placement labels and readable layouts at 320–1440 px.
