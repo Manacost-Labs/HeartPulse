@@ -1,13 +1,14 @@
 'use client';
 import { useEffect, useId, useMemo, useState } from 'react';
-import { LoadingBlock, LoadingSurface } from '../../../shared/ui/LoadingSurface';
 import {
   assembleActiveBase, assembleBasesByOffer, assembleBestBase, assembleOptionsOfBase,
-  assembleRankableDonors, assembleWinrateTone, bestOfOffered,
-  type AssembleBase, type AssembleCard, type AssembleDonor, type AssembleVariant, type CardAssembleData,
+  type CardAssembleData,
 } from '../model/cardAssemble';
 import { cardChoiceDate, formatChoicePercent } from '../model/cardChoices';
 import { useCardAssemble } from '../useCardAssemble';
+import { BuildRow, BuildsSkeleton, Legend } from './AssembleBuilds';
+import { BaseSummary, OfferedPanel } from './AssembleOffered';
+import { PortraitPicker, type PickerItem } from './AssemblePicker';
 import '../../../shared/ui/LoadingSurface.css';
 
 // The stylesheets load with the section, not with the page: a static import would put them into
@@ -15,23 +16,12 @@ import '../../../shared/ui/LoadingSurface.css';
 const loadStyles = () => Promise.all([import('./CardChoicesSection.css'), import('./CardAssembleSection.css')]);
 
 const VISIBLE_BUILDS = 10;
-/** Portraits shown before «Показать всех»: three rows of eight on a desktop, two rows of three on a phone. */
-const VISIBLE_PORTRAITS = { wide: 24, phone: 6 };
-const PHONE_QUERY = '(max-width: 640px)';
-const visiblePortraits = () => (typeof window !== 'undefined' && window.matchMedia(PHONE_QUERY).matches ? VISIBLE_PORTRAITS.phone : VISIBLE_PORTRAITS.wide);
-/** Above this many portraits the ribbon gets a search field. */
-const SEARCH_FROM = 20;
 
 export type CardAssembleSectionProps = {
   format: CardAssembleData['format'];
   cardId: string;
 };
 
-const cardHref = (format: CardAssembleData['format'], cardId: string) => `/standard/cards/${format}/${encodeURIComponent(cardId)}/`;
-
-/** Trimmed original art, so the circle shows the creature and not the card frame. */
-const portraitUrl = (cardId: string) =>
-  `/api/public-resource/hsjson/v1/orig/${encodeURIComponent(cardId)}.png?width=160&quality=82&format=webp&trim=1`;
 
 function plural(count: number, one: string, few: string, many: string): string {
   const tail = count % 100;
@@ -41,221 +31,6 @@ function plural(count: number, one: string, few: string, many: string): string {
   return last >= 2 && last <= 4 ? few : many;
 }
 
-function Portrait({ card, className = '' }: { card: AssembleCard; className?: string }) {
-  return (
-    <span className={`assemble-portrait ${className}`.trim()}>
-      <img src={portraitUrl(card.cardId)} alt="" loading="lazy" decoding="async" width={80} height={80} />
-    </span>
-  );
-}
-
-type PickerItem = { id: string; card: AssembleCard; note: string };
-
-/** Round portraits of cards to choose from: a wrapped ribbon, with a search field when there are many. */
-function PortraitPicker({ items, selected, onPick, label, searchLabel, size }: {
-  items: PickerItem[];
-  selected: readonly string[];
-  onPick: (id: string) => void;
-  label: string;
-  searchLabel: string;
-  size: 'large' | 'small';
-}) {
-  const [query, setQuery] = useState('');
-  const [all, setAll] = useState(false);
-  const [limit] = useState(visiblePortraits);
-  const needle = query.trim().toLocaleLowerCase('ru');
-  const matches = needle ? items.filter(item => item.card.name.toLocaleLowerCase('ru').includes(needle)) : items;
-  const shown = needle || all ? matches : matches.slice(0, limit);
-  return (
-    <div className={`assemble-picker assemble-picker--${size}`}>
-      {items.length > SEARCH_FROM && (
-        <label className="assemble-search">
-          <span className="assemble-sr">{searchLabel}</span>
-          <input type="search" value={query} placeholder={searchLabel} autoComplete="off" enterKeyHint="search"
-            onChange={event => setQuery(event.target.value)} />
-        </label>
-      )}
-      {shown.length > 0
-        ? (
-          <ul className="assemble-picker__list" aria-label={label}>
-            {shown.map(item => (
-              <li key={item.id}>
-                <button type="button" aria-pressed={selected.includes(item.id)} onClick={() => onPick(item.id)}>
-                  <Portrait card={item.card} />
-                  <span className="assemble-picker__name">{item.card.name}</span>
-                  <span className="assemble-picker__note">{item.note}</span>
-                </button>
-              </li>
-            ))}
-          </ul>
-        )
-        : <p className="assemble-note">По запросу «{query.trim()}» никого не нашли.</p>}
-      {!needle && matches.length > limit && (
-        <button type="button" className="card-choices__more" aria-expanded={all} onClick={() => setAll(value => !value)}>
-          {all ? 'Свернуть' : `Показать всех · ${matches.length}`}
-        </button>
-      )}
-    </div>
-  );
-}
-
-/** One build: the plate of the card text, the base's half in ink and the donor's half in gold. */
-function BuildRow({ variant, base, format, best, bestThin }: {
-  key?: string;
-  variant: AssembleVariant;
-  base: AssembleBase;
-  format: CardAssembleData['format'];
-  best?: boolean;
-  bestThin?: boolean;
-}) {
-  const { donor, option } = variant;
-  const pick = option.pickRate === null ? 0 : Math.max(0, Math.min(100, option.pickRate));
-  const tone = option.lowSample ? 'neutral' : assembleWinrateTone(option.winRate, base);
-  const text = option.text;
-  const donorHalf = option.half;
-  return (
-    <li className={`assemble-row${best ? ' is-best' : ''}${option.lowSample ? ' is-thin' : ''}`}>
-      {best && <span className="assemble-row__best">{bestThin ? 'Лучший из того, что есть' : 'Лучший выбор'}</span>}
-      <a className="assemble-row__portrait" href={cardHref(format, donor.card.cardId)} tabIndex={-1} aria-hidden="true">
-        <Portrait card={donor.card} />
-      </a>
-      <div className="assemble-row__body">
-        <div className="assemble-row__head">
-          <a className="assemble-row__name" href={cardHref(format, donor.card.cardId)}>{donor.card.name}</a>
-          <span className="assemble-row__half">{donorHalf === 'effect' ? 'берём эффект' : 'берём условие'}</span>
-          {option.undervalued && <span className="card-choices__badge" title="Винрейт выше среднего по сборкам, а берут реже большинства">Недооценённый выбор</span>}
-          {option.lowSample && <span className="card-choices__thin">Мало данных</span>}
-        </div>
-        {text
-          ? (
-            <p className="assemble-text">
-              <span className={donorHalf === 'trigger' ? 'is-donor' : 'is-base'}>
-                <span className="assemble-sr">{donorHalf === 'trigger' ? `От донора «${donor.card.name}»: ` : `От базы «${base.card.name}»: `}</span>
-                {text.trigger}
-              </span>
-              <span className="assemble-seam" aria-hidden="true" />
-              <span className={donorHalf === 'effect' ? 'is-donor' : 'is-base'}>
-                <span className="assemble-sr">{donorHalf === 'effect' ? `От донора «${donor.card.name}»: ` : `От базы «${base.card.name}»: `}</span>
-                {text.effect}
-              </span>
-            </p>
-          )
-          : <p className="assemble-text is-missing">Текст этой сборки ещё не собран.</p>}
-      </div>
-      <dl className="assemble-row__metrics">
-        <div className="assemble-metric">
-          <dt>Берут</dt>
-          <dd>{formatChoicePercent(option.pickRate)}</dd>
-          <span className="card-choices__bar" aria-hidden="true"><span style={{ width: `${pick}%` }} /></span>
-        </div>
-        <div className="assemble-metric">
-          <dt>Винрейт</dt>
-          <dd className={`is-${tone}`}>{formatChoicePercent(option.winRate)}</dd>
-        </div>
-      </dl>
-    </li>
-  );
-}
-
-function BuildsSkeleton() {
-  return (
-    <LoadingSurface quiet label="Загружаем сборки" layout="grid" className="assemble-loading" blocksClassName="assemble-loading__rows">
-      {Array.from({ length: 4 }, (_, index) => <LoadingBlock key={index} className="assemble-loading__row" />)}
-    </LoadingSurface>
-  );
-}
-
-function Legend() {
-  return (
-    <p className="assemble-legend">
-      <span className="is-base">Половина базы</span>
-      <span className="assemble-seam" aria-hidden="true" />
-      <span className="is-donor">Половина донора</span>
-    </p>
-  );
-}
-
-function BaseSummary({ base, format }: { base: AssembleBase; format: CardAssembleData['format'] }) {
-  return (
-    <div className="assemble-base" data-base={base.card.cardId}>
-      <Portrait card={base.card} className="assemble-portrait--big" />
-      <div>
-        <p className="assemble-base__label">Основа сборки</p>
-        <a className="assemble-base__name" href={cardHref(format, base.card.cardId)}>{base.card.name}</a>
-      </div>
-      <dl className="assemble-base__facts">
-        <div><dt>Выпадает</dt><dd>{formatChoicePercent(base.offerRate)}</dd></div>
-        <div>
-          <dt>Винрейт</dt>
-          <dd className={`is-${base.lowSample ? 'neutral' : assembleWinrateTone(base.winRate, base)}`}>{formatChoicePercent(base.winRate)}</dd>
-        </div>
-        <div><dt>Доноров</dt><dd>{base.donorsTotal}</dd></div>
-      </dl>
-    </div>
-  );
-}
-
-function OfferedPanel({ base, format }: { base: AssembleBase; format: CardAssembleData['format'] }) {
-  const donors = useMemo(() => assembleRankableDonors(base), [base]);
-  const [chosen, setChosen] = useState<string[]>([]);
-  // The picker folds away once two donors are chosen, so the four builds sit right under the slots.
-  const [editing, setEditing] = useState(false);
-  const byId = (id: string | undefined) => donors.find(donor => donor.card.cardId === id) ?? null;
-  const pick = (id: string) => {
-    const next = chosen.includes(id) ? chosen.filter(item => item !== id) : chosen.length < 2 ? [...chosen, id] : [chosen[0] as string, id];
-    setChosen(next);
-    setEditing(false);
-  };
-  const showPicker = chosen.length < 2 || editing;
-  const result = chosen.length === 2 ? bestOfOffered(base, chosen[0] as string, chosen[1] as string) : null;
-  const ordered = result
-    ? [result.best, ...result.variants.filter(variant => variant !== result.best)
-      .sort((a, b) => (b.option.winRate ?? -1) - (a.option.winRate ?? -1))]
-    : [];
-  const items = donors.map(donor => ({ id: donor.card.cardId, card: donor.card, note: donor.offerRate === null ? '' : `выпадает ${formatChoicePercent(donor.offerRate)}` }));
-  return (
-    <div className="assemble-offer">
-      <p className="assemble-offer__hint">Игра предложила двух существ? Отметьте их ниже: покажем четыре сборки и лучшую из них.</p>
-      <div className="assemble-slots" aria-live="polite">
-        {[0, 1].map(index => {
-          const donor: AssembleDonor | null = byId(chosen[index]);
-          return donor
-            ? (
-              <button key={index} type="button" className="assemble-slot is-filled" aria-label={`Убрать «${donor.card.name}»`} onClick={() => pick(donor.card.cardId)}>
-                <Portrait card={donor.card} />
-                <span className="assemble-slot__name">{donor.card.name}</span>
-              </button>
-            )
-            : (
-              <span key={index} className="assemble-slot">
-                <span className="assemble-slot__empty">{index + 1}</span>
-                <span className="assemble-slot__name">{index === 0 ? 'Первое существо' : 'Второе существо'}</span>
-              </span>
-            );
-        })}
-      </div>
-      {chosen.length === 2 && !editing && (
-        <button type="button" className="assemble-edit" onClick={() => setEditing(true)}>Изменить выбор</button>
-      )}
-      {showPicker && (donors.length > 0
-        ? <PortraitPicker items={items} selected={chosen} onPick={pick} label="Существа, которых могла предложить игра" searchLabel="Найти существо" size="small" />
-        : <p className="assemble-note">По этой базе пока нет данных HSReplay о сборках.</p>)}
-      {chosen.length === 2 && !editing && (result
-        ? (
-          <>
-            <ol className="assemble-rows" aria-label="Четыре сборки из двух предложенных существ">
-              {ordered.map(variant => (
-                <BuildRow key={`${variant.donor.card.cardId}:${variant.option.half}`} variant={variant} base={base} format={format}
-                  best={variant === result.best} bestThin={result.lowSample} />
-              ))}
-            </ol>
-            {result.lowSample && <p className="assemble-note">У всех четырёх сборок мало партий — лучший выбор ненадёжен.</p>}
-          </>
-        )
-        : <p className="assemble-note">Для этих двух существ нет данных о винрейте.</p>)}
-    </div>
-  );
-}
 
 /**
  * «Сборка» (Assemble) on the page of each of the 13 cards with the keyword: which base
