@@ -62,7 +62,7 @@ export function FunDeckRowCard({ deck, fresh = false, tourAnchor = false, eager 
         <CopyDeckButton deck={deck} className="fun-deck-rowcard__copy" />
       </header>
       <div className="fun-deck-rowcard__deck" data-tour-id={tourAnchor ? 'fun-decks-deck-list' : undefined}>
-        {data ? (
+        {data?.cards.length ? (
           <>
             <ul className="fun-deck-rowcard__cards" role="list" aria-label={`Состав колоды ${deck.title}`}>
               {entries.map(entry => (
@@ -75,7 +75,7 @@ export function FunDeckRowCard({ deck, fresh = false, tourAnchor = false, eager 
             </ul>
             <ManaCurve entries={entries} />
           </>
-        ) : <DeckLoadState error={error} reload={reload} layout="rows" />}
+        ) : <DeckLoadState error={error} reload={reload} layout="rows" empty={Boolean(data)} />}
       </div>
     </article>
   );

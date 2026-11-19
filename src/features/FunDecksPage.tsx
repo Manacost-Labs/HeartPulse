@@ -297,8 +297,15 @@ export default function FunDecksPage({
         onReset={reset}
       />
 
+      {!error && (loading || settling || visibleDecks.length) ? (
+        <div className="fun-decks-layout-bar">
+          <p>{loading || settling ? '\u00a0' : `${filteredDecks.length} ${decksWord(filteredDecks.length)}`}</p>
+          <FunDeckLayoutSwitch layout={layout} onChange={setLayout} />
+        </div>
+      ) : null}
+
       {loading || settling ? (
-        <FunDecksSkeleton />
+        <FunDecksSkeleton layout={layout} />
       ) : error ? (
         <section className="fun-decks-page__state fun-decks-page__state--error" role="alert">
           <TriangleAlert aria-hidden="true" />
@@ -311,10 +318,6 @@ export default function FunDecksPage({
         </section>
       ) : visibleDecks.length ? (
         <>
-          <div className="fun-decks-layout-bar">
-            <p>{filteredDecks.length} {decksWord(filteredDecks.length)}</p>
-            <FunDeckLayoutSwitch layout={layout} onChange={setLayout} />
-          </div>
           <section className={`${deckView.className} data-surface${arrivesLater ? ' data-arrive' : ''}`} aria-label="Подборка фан-колод"
             aria-busy={hasFullAccess && !complete}>
             {visibleDecks.map((deck, index) => (

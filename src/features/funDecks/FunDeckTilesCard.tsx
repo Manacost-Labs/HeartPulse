@@ -55,11 +55,11 @@ export function FunDeckTilesCard({ deck, fresh = false, tourAnchor = false, eage
       </dl>
       <WhyTags deck={deck} pinnedTags={pinnedTags} className="fun-deck-tiles__why" />
       <div className="fun-deck-tiles__deck" data-tour-id={tourAnchor ? 'fun-decks-deck-list' : undefined}>
-        {data ? (
+        {data?.cards.length ? (
           <ul className="fun-deck-tiles__list" role="list" aria-label={`Состав колоды ${deck.title}`}>
             {entries.map(entry => <TileEntry key={entry.card.dbfId} entry={entry} eager={eager} />)}
           </ul>
-        ) : <DeckLoadState error={error} reload={reload} layout="tiles" />}
+        ) : <DeckLoadState error={error} reload={reload} layout="tiles" empty={Boolean(data)} />}
       </div>
       <footer className="fun-deck-tiles__foot">
         <CopyDeckButton deck={deck} className="fun-deck-tiles__copy" />

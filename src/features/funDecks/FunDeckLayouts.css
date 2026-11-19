@@ -40,7 +40,7 @@
   background: var(--fun-parchment-light);
   font: 750 0.8125rem/1 var(--font-body, Inter, sans-serif);
   cursor: pointer;
-  transition: background-color var(--motion-fast, 0.15s) var(--motion-ease, ease), color var(--motion-fast, 0.15s) var(--motion-ease, ease);
+  transition: background-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
 }
 
 .fun-decks-layout button + button { margin-left: -1px; }
@@ -131,7 +131,7 @@
   border-radius: 3px;
   color: #fff;
   background: #a3262f;
-  font-size: 0.6rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -149,7 +149,7 @@
 
 .fun-deck-tiles__stats dt {
   color: #bfa47a;
-  font-size: 0.6rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
 }
@@ -186,7 +186,7 @@
   border-radius: 3px;
   color: #ffe7b8;
   background: #3a2618;
-  font-size: 0.65rem;
+  font-size: 0.6875rem;
   line-height: 1.3;
 }
 
@@ -209,7 +209,7 @@
   background: #1c130c;
   line-height: 0;
   text-decoration: none;
-  transition: filter var(--motion-fast, 0.15s) var(--motion-ease, ease), box-shadow var(--motion-fast, 0.15s) var(--motion-ease, ease);
+  transition: filter var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease);
 }
 
 .fun-deck-tile img {
@@ -284,7 +284,7 @@ a.fun-deck-tile:focus-visible { outline: 2px solid #f1c66d; outline-offset: -2px
   padding: 2px 4px 1px;
   overflow: hidden;
   color: #c9a86c;
-  font-size: 0.625rem;
+  font-size: 0.6875rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -396,7 +396,7 @@ a.fun-deck-tile:focus-visible { outline: 2px solid #f1c66d; outline-offset: -2px
   border-radius: 3px;
   color: #4a3424;
   background: rgba(255, 246, 220, 0.55);
-  font-size: 0.65rem;
+  font-size: 0.6875rem;
   font-weight: 700;
 }
 
@@ -408,7 +408,7 @@ a.fun-deck-tile:focus-visible { outline: 2px solid #f1c66d; outline-offset: -2px
 
 .fun-deck-rowcard__stats div { padding: 0 8px; text-align: center; }
 .fun-deck-rowcard__stats div + div { border-left: 1px solid rgba(95, 55, 29, 0.25); }
-.fun-deck-rowcard__stats dt { color: var(--fun-muted); font-size: 0.65rem; }
+.fun-deck-rowcard__stats dt { color: var(--fun-muted); font-size: 0.6875rem; }
 
 .fun-deck-rowcard__stats dd {
   margin: 2px 0 0;
@@ -471,7 +471,7 @@ a.fun-deck-tile:focus-visible { outline: 2px solid #f1c66d; outline-offset: -2px
   height: 42px;
   border-radius: 50%;
   text-decoration: none;
-  transition: transform var(--motion-fast, 0.15s) var(--motion-ease, ease);
+  transition: transform var(--motion-fast) var(--motion-ease);
 }
 
 .fun-deck-portrait.is-small { width: 32px; height: 32px; }
@@ -517,7 +517,7 @@ a.fun-deck-portrait:focus-visible { outline: 2px solid var(--fun-red); outline-o
   color: #fff0c8;
   background: var(--fun-red);
   box-shadow: 0 0 0 1.5px #e9c77f;
-  font: 800 0.625rem/1 var(--font-body, Inter, sans-serif);
+  font: 800 0.6875rem/1 var(--font-body, Inter, sans-serif);
 }
 
 .fun-deck-portrait__badge.is-star {
@@ -533,14 +533,14 @@ a.fun-deck-portrait:focus-visible { outline: 2px solid var(--fun-red); outline-o
   flex: none;
   align-items: flex-end;
   gap: 3px;
-  height: 44px;
+  height: 48px;
   padding-left: 12px;
   border-left: 1px solid rgba(95, 55, 29, 0.25);
 }
 
 .fun-deck-curve__bar {
   display: flex;
-  width: 10px;
+  width: 13px;
   height: 100%;
   flex-direction: column;
   align-items: center;
@@ -550,16 +550,16 @@ a.fun-deck-portrait:focus-visible { outline: 2px solid var(--fun-red); outline-o
 .fun-deck-curve__bar i {
   display: block;
   width: 100%;
-  max-height: calc(100% - 12px);
+  max-height: calc(100% - 13px);
   border-radius: 2px 2px 0 0;
   background: linear-gradient(#c1352f, var(--fun-red));
 }
 
 .fun-deck-curve__bar small {
-  height: 12px;
+  height: 13px;
   color: var(--fun-muted);
-  font-size: 0.53rem;
-  line-height: 12px;
+  font-size: 0.6875rem;
+  line-height: 13px;
 }
 
 /* ---------- Load states ---------- */
@@ -590,6 +590,31 @@ a.fun-deck-portrait:focus-visible { outline: 2px solid var(--fun-red); outline-o
 .fun-deck-layout-state--tiles .fun-deck-layout-state__block { height: 34px; border-radius: 3px; }
 .fun-deck-layout-state--rows .fun-deck-layout-state__block { height: 42px; border-radius: 21px; }
 
+/* A list keeps one height while it loads and when it fails, and the page skeleton reserves the same. */
+.fun-deck-layout-state--tiles { box-sizing: border-box; min-height: 150px; align-content: center; color: #ebcda0; font-size: 0.75rem; }
+
+.fun-deck-layout-state--rows {
+  display: flex;
+  flex: 1;
+  box-sizing: border-box;
+  min-height: 48px;
+  align-items: center;
+  padding: 0;
+  text-align: left;
+}
+
+.fun-decks-layout-bar p { min-height: 1.25em; }
+.fun-deck-tiles--loading,
+.fun-deck-rowcard--loading { pointer-events: none; }
+.fun-deck-tiles--loading .fun-deck-tiles__head { min-height: 79px; }
+.fun-deck-tiles--loading .fun-deck-tiles__head > div { display: grid; gap: 6px; }
+.fun-deck-tiles--loading .fun-deck-tiles__head .loading-block { height: 13px; }
+.fun-deck-tiles--loading .fun-deck-tiles__head .fun-deck-skeleton-icon { width: 34px; height: 34px; flex: none; border-radius: 50%; }
+.fun-deck-tiles-skeleton-stats { height: 48.2px; margin: 0; border-radius: 0; }
+.fun-deck-tiles-skeleton-why { height: 28.5px; margin: 0; border-radius: 0; }
+.fun-deck-tiles-skeleton-copy { height: 44px; }
+.fun-deck-rows-skeleton-top { height: 78px; margin: 0; border-radius: 0; }
+
 @media (max-width: 1100px) {
   .fun-deck-rowcard__top { grid-template-columns: minmax(0, 1fr) auto; }
   .fun-deck-rowcard__stats { grid-column: 1 / -1; grid-row: 2; }
@@ -602,7 +627,12 @@ a.fun-deck-portrait:focus-visible { outline: 2px solid var(--fun-red); outline-o
   .fun-deck-rowcard__stats div { padding: 0 4px; }
   .fun-deck-curve { display: none; }
   .fun-decks-layout { width: 100%; }
-  .fun-decks-layout button { flex: 1; justify-content: center; padding: 0 0.5rem; }
+  .fun-decks-layout > span { display: none; }
+  .fun-decks-layout button { flex: 1 1 0; min-width: 0; justify-content: center; gap: 0.3rem; padding: 0 0.4rem; }
+}
+
+@media (max-width: 380px) {
+  .fun-decks-layout button svg { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -610,3 +640,7 @@ a.fun-deck-portrait:focus-visible { outline: 2px solid var(--fun-red); outline-o
   .fun-deck-portrait { transition: none; }
   a.fun-deck-portrait:hover { transform: none; }
 }
+
+/* The loaded selection may add «Показать ещё» below the decks: while it loads,
+   the skeleton keeps the footer below the screen so nothing visible moves. */
+.loading-surface__blocks:is(.fun-decks-tiles-grid, .fun-decks-rows) { min-height: 100vh; }

@@ -81,6 +81,9 @@ try {
   }
   await page.screenshot({ path: `${screenshotPrefix}-meta-mobile.png`, fullPage: true });
 
+  // These checks cover the «Картинки» view: the Deckview picture card with its list.
+  // The default tile and row views are covered by tests/fun-deck-layouts-browser.test.mjs.
+  await page.evaluateOnNewDocument(() => window.localStorage.setItem('hp:fun-decks:layout', 'images'));
   await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
   await go('page=fun-decks');
   await page.waitForSelector('.arena-inline-paywall--meta');

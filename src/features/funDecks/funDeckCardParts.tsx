@@ -68,10 +68,15 @@ export function CopyDeckButton({ deck, className }: { deck: FunDeckRow; classNam
   );
 }
 
-export function DeckLoadState({ error, reload, layout }: { error: string; reload: () => void; layout: 'tiles' | 'rows' }) {
+export function DeckLoadState({ error, reload, layout, empty = false }: {
+  error: string; reload: () => void; layout: 'tiles' | 'rows'; empty?: boolean;
+}) {
+  if (empty) {
+    return <div className={`fun-deck-layout-state fun-deck-layout-state--${layout}`}><span>Состав этой колоды пока недоступен.</span></div>;
+  }
   if (error) {
     return (
-      <div className="fun-deck-layout-state" role="alert">
+      <div className={`fun-deck-layout-state fun-deck-layout-state--${layout}`} role="alert">
         <TriangleAlert aria-hidden="true" />
         <strong>Состав не загрузился</strong>
         <button type="button" onClick={reload}>
@@ -84,7 +89,7 @@ export function DeckLoadState({ error, reload, layout }: { error: string; reload
   return (
     <LoadingSurface label="Загружаем состав колоды" quiet layout="rows"
       className={`fun-deck-layout-state fun-deck-layout-state--${layout}`} blocksClassName="fun-deck-layout-state__blocks">
-      {Array.from({ length: layout === 'tiles' ? 12 : 1 }, (_, index) => <LoadingBlock key={index} className="fun-deck-layout-state__block" />)}
+      {Array.from({ length: layout === 'tiles' ? 3 : 1 }, (_, index) => <LoadingBlock key={index} className="fun-deck-layout-state__block" />)}
     </LoadingSurface>
   );
 }
