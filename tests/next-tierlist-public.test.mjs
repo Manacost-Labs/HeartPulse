@@ -21,6 +21,10 @@ import { buildFixtureCards, buildTierlistFixture, closedValues, guestPercent, CL
 
 const CARDS = buildFixtureCards();
 const CLOSED = closedValues();
+// A paid value leaks only as a whole token: short tier labels such as `Z3` also occur inside chunk hashes and ids.
+const escapeRegExp = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const CLOSED_TOKENS = CLOSED.map(value => [value, new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRegExp(value)}(?![\\p{L}\\p{N}_])`, 'u')]);
+const closedIn = text => CLOSED_TOKENS.filter(([value, token]) => text.includes(value) && token.test(text)).map(([value]) => value);
 const CLASSES = [...CLASS_IDS, 'any'];
 const BROWSER_UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
 const ROBOT_UA = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)';
@@ -116,7 +120,7 @@ test('the guest HTML of /tierlist/ carries the whole open pool and nothing paid'
     const jsonLd = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(match => match[1]);
     assert.ok(payload.length > 0 && jsonLd.length > 0, 'both are present, so the checks below are not vacuous');
     for (const [name, text] of [['HTML', html], ['RSC payload', payload], ['JSON-LD', jsonLd.join('\n')]]) {
-      assert.deepEqual(CLOSED.filter(value => text.includes(value)), [], `${name} has no paid value`);
+      assert.deepEqual(closedIn(text), [], `${name} has no paid value`);
       assert.deepEqual(PAID_KEYS.filter(key => text.includes(key)), [], `${name} has no paid key`);
     }
     const graph = JSON.parse(jsonLd.find(text => text.includes('Dataset')))['@graph'];
