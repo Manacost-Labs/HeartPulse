@@ -323,7 +323,8 @@
   align-items: end;
 }
 
-.standard-meta__select select {
+.standard-meta__select select,
+.standard-meta__locked-value {
   width: 100%;
   min-height: 48px;
   padding: 0 2.25rem 0 0.75rem;
@@ -338,7 +339,8 @@
   cursor: pointer;
 }
 
-.standard-meta__select select:focus-visible {
+.standard-meta__select select:focus-visible,
+.standard-meta__locked-filter:focus-visible .standard-meta__locked-value {
   outline: 3px solid rgba(74, 47, 102, 0.22);
   border-color: var(--meta-purple);
 }
@@ -948,7 +950,7 @@
   .standard-meta__segmented small { font-size: 0.6875rem; }
   .standard-meta__search { grid-column: auto; }
   .standard-meta__secondary-filters { grid-template-columns: 1fr; gap: 0.55rem; }
-  .standard-meta__select select { min-height: 44px; font-size: 16px; }
+  .standard-meta__select select, .standard-meta__locked-value { min-height: 44px; font-size: 16px; }
   .standard-meta__search input { font-size: 16px; }
   .standard-meta__rank-groups { display: none; }
   .standard-meta__rank-select {
@@ -1123,42 +1125,7 @@
 }
 
 /* A guest's paid filters: the open slice's value behind a lock; a press shows the subscription offer. */
-.standard-meta__locked-filter {
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
-  padding: 0;
-  border: 0;
-  background: none;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-
-.standard-meta__locked-value {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  min-height: 48px;
-  padding: 0 0.75rem;
-  border: 1px solid rgba(92, 54, 24, 0.28);
-  color: #3a281c;
-  font-size: 0.78rem;
-  font-weight: 800;
-  background: rgba(255, 249, 230, 0.66);
-}
-
-.standard-meta__locked-filter:focus-visible .standard-meta__locked-value {
-  outline: 3px solid rgba(74, 47, 102, 0.22);
-  border-color: var(--meta-purple);
-}
-
-.standard-meta__locked-note {
-  grid-column: 1 / -1;
-  margin: 0;
-  color: #3a281c;
-  font-size: 0.82rem;
-  font-weight: 700;
-}
-
+.standard-meta__locked-filter { display: grid; gap: 0.35rem; padding: 0; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+.standard-meta__locked-value { display: flex; align-items: center; gap: 0.4rem; }
+.standard-meta__locked-note { grid-column: 1 / -1; margin: 0; color: #3a281c; font-size: 0.82rem; font-weight: 700; }
 .standard-meta__paid-value { display: inline-flex; align-items: center; opacity: 0.55; }
