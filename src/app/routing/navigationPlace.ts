@@ -6,6 +6,7 @@
  * of its own (patch notes) keeps the one the reader chose last. The menu and the head script
  * of `shell/navigationPreference.ts` follow this table.
  */
+import { readPageFormat } from '../../shared/navigation/pageFormat';
 import { WILD_NAVIGATION_ITEMS, type NavigationModeId } from './navigationData';
 import { TABS, modeOfTab, tabFromPath, type TabId } from './navigationRoutes';
 
@@ -25,11 +26,6 @@ const WILD_OF: ReadonlyMap<string, WildItemId> = new Map(WILD_NAVIGATION_ITEMS.m
 const FORMAT_BOUND_TABS: ReadonlySet<string> = new Set(WILD_NAVIGATION_ITEMS.filter(item => !('shared' in item)).map(item => item.twin));
 const WILD_SEGMENT = /^\/standard\/(?:cards|archetypes|meta)\/wild(?:\/|$)/;
 
-/** Query of an address: `?format=wild` and nothing else is the Wild format. */
-export function isWildSearch(search: string): boolean {
-  return new URLSearchParams(search).get('format') === 'wild';
-}
-
 /**
  * `search` is the query of the address, or null while it is not known (the server and the
  * hydration render know the path only); `remembered` is the mode the reader chose last, or
@@ -41,7 +37,7 @@ export function navigationPlace(path: string, search: string | null, remembered:
   const mode = modeOfTab(tab);
   if (mode !== 'standard') return { mode, item: tab };
   if (FORMAT_BOUND_TABS.has(tab)) {
-    const wild = WILD_SEGMENT.test(clean) || (search !== null && isWildSearch(search));
+    const wild = WILD_SEGMENT.test(clean) || (search !== null && readPageFormat(search) === 'wild');
     if (wild) return { mode: 'wild', item: WILD_OF.get(tab) ?? tab };
     // A path alone does not rule out `?format=wild`.
     return { mode: search === null ? null : 'standard', item: tab };

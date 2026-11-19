@@ -13,6 +13,7 @@ import {
   Trash2,
   Undo2,
 } from 'lucide-react';
+import { readPageFormat, setPageFormat } from '../shared/navigation/pageFormat';
 import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
 import { publicResourceImageUrl, publicResourceUrl } from '../publicResourceUrl';
 import DeckManaCurve from './DeckManaCurve';
@@ -255,7 +256,11 @@ export default function DeckBuilder({ isAdmin, authChecking = false }: DeckBuild
       : readDeckBuilderDraft(window.localStorage)
   ));
   const [heroClass, setHeroClass] = useState<HeroClass | null>(initialDraft?.heroClass ?? null);
-  const [format, setFormat] = useState<DeckFormat>(initialDraft?.format ?? 'standard');
+  // A restored draft and a deck code (applied below) name their own format; otherwise the address's `?format=wild` starts the builder.
+  const [format, setFormat] = useState<DeckFormat>(() => initialDraft?.format
+    ?? (typeof window === 'undefined' ? 'standard' : readPageFormat(window.location.search)));
+  // The address always shows the builder's format, so the menu's mode is its mode.
+  useEffect(() => { setPageFormat(format, 'replace'); }, [format]);
   const [entries, setEntries] = useState<DeckEntry[]>(initialDraft?.entries ?? []);
   const [sideboards, setSideboards] = useState<DeckListSideboard[]>(initialDraft?.sideboards ?? []);
   const [archetype, setArchetype] = useState<ArchetypeInfo | null>(null);
