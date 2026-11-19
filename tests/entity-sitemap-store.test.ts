@@ -121,6 +121,30 @@ try {
   rmSync(directory, { recursive: true, force: true });
 }
 
+// The minion segment is filtered by the indexing rule: a list that shrinks to 1072 of 1302 is a change of the data, published;
+// the minimum of 500 stays the guard. Other segments keep the 90% collapse guard.
+{
+  const dir = mkdtempSync(join(tmpdir(), 'minion-sitemap-shrink-'));
+  try {
+    const entries = (count: number) => Array.from({ length: count }, (_value, index) => ({
+      key: String(100000 + index), location: `https://hearthpulse.net/library/minions/m-${100000 + index}/`, semanticHash: 'b'.repeat(64),
+    }));
+    const options = { directory: dir, canonicalOrigin: 'https://hearthpulse.net', now: () => Date.UTC(2026, 10, 20), minimumEntryCount: 500 };
+    const minions = new SemanticSitemapStore({ ...options, filename: 'minions.json', segment: 'battleground-minions' });
+    minions.publish(entries(1302));
+    assert.equal(minions.publish(entries(1072)).entryCount, 1072, 'a filtered list may shrink');
+    assert.throws(() => minions.publish(entries(499)), /minimum|below|small/i, 'below the minimum is still rejected');
+    const cardEntries = (count: number) => Array.from({ length: count }, (_value, index) => ({
+      key: `CARD_${index}`, location: `https://hearthpulse.net/standard/cards/standard/CARD_${index}/`, semanticHash: 'c'.repeat(64),
+    }));
+    const cards = new SemanticSitemapStore({ ...options, filename: 'cards.json', segment: 'standard-cards' });
+    cards.publish(cardEntries(1302));
+    assert.throws(() => cards.publish(cardEntries(1072)), /collapse/i, 'other segments keep the collapse guard');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+
 console.log('entity sitemap semantic LKG store contracts passed');
 
 const heroDirectory = mkdtempSync(join(tmpdir(), 'arena-hero-sitemap-store-'));
