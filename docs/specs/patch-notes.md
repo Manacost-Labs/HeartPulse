@@ -201,8 +201,9 @@ The server component reads both routes through a cache in the Next process
 path is served at once and refreshed in the background once it is five
 minutes old, so a slow Express no longer ships the page without the patch
 (the regional edge keeps an anonymous document for a minute, bots included).
-Only a path the process has never read waits, within the shared 600 ms
-first-paint budget; its read goes on for up to ten seconds and fills the
+Only a path the process has never read waits: the proxy for up to two
+seconds (and answers 503 without the patch), the page within the shared
+600 ms first-paint budget; its read goes on for up to ten seconds and fills the
 cache for the next request, and a part that missed the budget is loaded by
 the browser. Failed, `404` and malformed answers are not kept; at most 48
 paths are, the least recently served dropped first. After a deploy

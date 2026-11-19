@@ -14,7 +14,8 @@ import { fetchPublicExpress } from './lib/expressApi';
 import { cachedCatalog } from './lib/defaultCatalogStore';
 import { rememberCardProjection, lastGoodCardProjection, forgetCardProjection } from './lib/cardLastGood';
 import { CATALOG_READ_DEADLINE_MS } from './lib/publicCatalogCache';
-import { isPublicHomeDocument, PUBLIC_DOCUMENT_RESPONSE_HEADERS } from './documentCaching.mjs';
+import { probePublicData } from './lib/publicDataProbe';
+import { isPublicHomeDocument, PUBLIC_DOCUMENT_CACHE_CONTROL, PUBLIC_DOCUMENT_RESPONSE_HEADERS } from './documentCaching.mjs';
 
 type BattlegroundDetailProbe =
   | { type: 'hero'; dbfId: string; apiPath: string }
@@ -232,11 +233,20 @@ export async function proxy(request: NextRequest) {
     if (nicknameRedirect) return nicknameRedirect;
     const cosmeticsUnavailable = await checkCosmeticsDetail(request.nextUrl.pathname, headers, request.method);
     if (cosmeticsUnavailable) return cosmeticsUnavailable;
+    // A data page is served only with its data (fresh or the last good copy). Without any, the document
+    // would be the page without its data, and the regional edge keeps a 200 for everybody: it is a 503 instead.
+    // A probe that itself fails is a bug, not an outage: the page is served as before.
+    const data = scriptFetch || request.nextUrl.searchParams.has('login') ? 'none'
+      : await probePublicData(request.nextUrl.pathname, request.nextUrl.searchParams).catch(() => 'none' as const);
+    if (data === 'unavailable') return unavailableResponse('60', request.method, true);
     // The other public families get this header from `next.config.mjs`.
     if (isPublicHomeDocument(request.nextUrl.pathname, request.nextUrl.searchParams)) {
-      return NextResponse.next({ request: { headers }, headers: PUBLIC_DOCUMENT_RESPONSE_HEADERS });
+      // Without its feeds the home page is still worth showing, but not worth keeping for everybody.
+      return NextResponse.next({ request: { headers }, headers: data === 'partial'
+        ? { 'Cache-Control': PUBLIC_DOCUMENT_CACHE_CONTROL } : PUBLIC_DOCUMENT_RESPONSE_HEADERS });
     }
   }
   return NextResponse.next({ request: { headers } });
 }
-export const config = { matcher: ['/', '/standard/cards/:path*', '/heroes/:path*', '/library/:path*', '/cosmetics/:path*', '/u/:path*'] };
+export const config = { matcher: ['/', '/standard/cards/:path*', '/heroes/:path*', '/library/:path*', '/cosmetics/:path*', '/u/:path*',
+  '/leaderboards/:path*', '/streamers/:path*', '/standard/patches/:path*', '/standard/archetypes/:path*', '/standard/fun-decks/:path*'] };

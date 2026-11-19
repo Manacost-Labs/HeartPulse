@@ -44,9 +44,10 @@ is a separate administrator workspace and retains its permission gate.
 | `lib/ogImage.tsx`, `app/og/…/route.tsx` | Link-preview PNGs (`next/og`, the OTF of `HSDisplay`, card art from `/api/card-image/`), cached in the process; [spec](../../docs/specs/embeds-and-oembed.md) |
 | `lib/embedDocument.ts`, `lib/embedBodies.ts`, `app/embed/…/route.ts` | Embeds for other sites' iframes and their oEmbed: hand-written HTML outside the layout, `frame-ancestors *`, no site scripts |
 | `app/download/page.tsx`, `ui/MadeWithHearthpulse.tsx` | The app's download landing and the «Сделано в Hearthpulse» band of shared pages |
-| `lib/publicFirstPaintRead.ts` | `readFirstPaintJson()`: a server read that only improves the first paint; `null` after 600 ms or on any failure, so the page falls back to its browser request |
+| `lib/publicFirstPaintRead.ts` | `readFirstPaintJson()`: a server read that only improves the first paint; `null` after 600 ms or on any failure, so the page falls back to its browser request (the ISR teasers use it; the data pages use `firstPaintStore.ts`) |
+| `lib/firstPaintStore.ts`, `lib/publicDataProbe.ts` | Last good anonymous Express answers of the data pages (home, leaderboards, cosmetics, streamers, patch notes, archetypes, fun decks) and the probe in `proxy.ts` that decides between the page and a 503; [spec](../../docs/specs/public-document-caching.md#data-pages-and-the-last-good-copy) |
 | `lib/runtimeClientConfig.ts` | Root-managed runtime switches (card-image CDN) for server rendering and the inline document config |
-| `proxy.ts` | Request proxy for card, hero, library and cosmetics detail probes, and the home page's `Cache-Control` |
+| `proxy.ts` | Request proxy for card, hero, library and cosmetics detail probes, the data pages' 503 when they have no data, and the home page's `Cache-Control` |
 | `documentCaching.mjs` | Which public documents send `private, no-cache` instead of `no-store` and the edge-cache marker (`next.config.mjs` `headers()`) |
 <!-- markdownlint-enable MD013 -->
 
@@ -98,10 +99,13 @@ is a separate administrator workspace and retains its permission gate.
   contract](../../docs/specs/public-card-catalog-response-cache.md).
 - Server components fetch only anonymous public projections through
   `fetchPublicExpress()`. A read that only puts data into the first paint
-  (the meta and fun-deck guest previews, the archetype catalog teaser, the
-  first cosmetics page) goes through `readFirstPaintJson()`: it never holds
-  the document longer than 600 ms and never fails it, and the page then loads
-  the same data in the browser. Seed the client state with exactly the
+  (the meta teaser) goes through `readFirstPaintJson()`: it never holds
+  the document longer than its budget and never fails it, and the page then
+  loads the same data in the browser. The data pages (home, leaderboards,
+  cosmetics lists, streamers, patch notes, the archetype catalog, fun decks)
+  read through `lib/firstPaintStore.ts`: a read that misses the 600 ms budget
+  is answered from the last good copy, and `proxy.ts` answers 503 when a
+  page has no data at all. Seed the client state with exactly the
   request the page would make, so it does not fetch it again.
   Viewer-specific or paid data is requested in the
   browser from `/api/` via hooks and `usePublicAccess()`; it must never appear
