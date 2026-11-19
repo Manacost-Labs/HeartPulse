@@ -60,6 +60,8 @@ function rememberCheck(path: string, check: PublicPayloadCheck) {
 export const publicCheckCount = () => checks().size;
 
 async function readText(path: string, signal: AbortSignal): Promise<string> {
+  // Taken before the request goes out: the check belongs to this read, whatever the table does while it is on the wire.
+  const check = checks().get(path);
   const response = await fetchPublicExpress(path, signal);
   // A refused or unknown request is the page's own state, not an outage; 408 and 429 are the source's trouble.
   if (response.status >= 400 && response.status < 500 && response.status !== 408 && response.status !== 429) {
@@ -73,7 +75,7 @@ async function readText(path: string, signal: AbortSignal): Promise<string> {
   const text = await response.text();
   const value: unknown = JSON.parse(text);
   // A 200 that is not the page's contract must not replace the last good copy: it is a failed read.
-  if (checks().get(path)?.(value) === false) throw new CatalogUnavailableError();
+  if (check?.(value) === false) throw new CatalogUnavailableError();
   return text;
 }
 
