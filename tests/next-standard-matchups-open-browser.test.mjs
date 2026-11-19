@@ -96,6 +96,16 @@ test('a guest and a subscriber on /standard/matchups/ in a real browser', { time
     assert.deepEqual(errors, []);
     await guest.close();
 
+    // The menu's «Вольный» opens ?format=wild: the browser reads the address and shows Wild, not Standard.
+    const viaMenu = await browser.newPage();
+    await viaMenu.setViewport(DESKTOP);
+    await viaMenu.goto(`${stack.origin}/standard/matchups/?format=wild`, { waitUntil: 'networkidle0' });
+    await viaMenu.waitForFunction(() => document.querySelector('.standard-matchups-open__line')?.textContent.includes('Вольный'), { timeout: 15000 });
+    assert.equal(await viaMenu.$eval('.standard-matchups__segmented button[aria-pressed="true"]', node => node.textContent), 'Вольный');
+    assert.equal(stack.publicReads.at(-1), '/api/standard/matchups/public?format=wild');
+    assert.ok(!(await viaMenu.evaluate(() => document.querySelector('.standard-matchups-open__line')?.textContent ?? '')).includes('Стандарт'));
+    await viaMenu.close();
+
     // Wild is slow and then fails: the Standard numbers must not stay on the screen under the chosen Wild.
     stack.wildDown = true;
     const slow = await browser.newPage();

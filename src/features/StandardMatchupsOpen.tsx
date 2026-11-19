@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle, Lock } from 'lucide-react';
 import '../route-parchment.css';
 import './StandardMatchupsOpen.css';
+import { setPageFormat, usePageFormat } from '../shared/navigation/pageFormat';
 import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
 import {
   loadPublicStandardMatchups, type PublicStandardMatchups, type PublicStandardMatchupsPair, type StandardMatchupsFormat,
@@ -34,7 +35,9 @@ export function StandardMatchupsOpen({ initial, paywall }: {
   initial: PublicStandardMatchups | null;
   paywall: PaywallAccessState;
 }) {
-  const [format, setFormat] = useState<StandardMatchupsFormat>(initial?.format ?? 'standard');
+  // The format is the address's (`?format=wild`, the menu's «Вольный» opens it): Standard until the browser has read it,
+  // so the server's HTML and the first render agree.
+  const format: StandardMatchupsFormat = usePageFormat() ?? 'standard';
   const [data, setData] = useState<PublicStandardMatchups | null>(initial);
   const [status, setStatus] = useState<'idle' | 'loading' | 'failed'>('idle');
   const [attempt, setAttempt] = useState(0);
@@ -82,7 +85,7 @@ export function StandardMatchupsOpen({ initial, paywall }: {
           <div className="standard-matchups__rank-switcher standard-matchups__segmented">
             {FORMATS.map(([value, name]) => (
               <button key={value} type="button" aria-pressed={format === value} aria-label={`Показать матчапы: ${name}`}
-                onClick={() => setFormat(value)}>{name}</button>
+                onClick={() => setPageFormat(value)}>{name}</button>
             ))}
           </div>
         </fieldset>
