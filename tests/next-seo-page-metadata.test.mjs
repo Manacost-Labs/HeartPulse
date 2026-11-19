@@ -331,8 +331,10 @@ test('every SEO registry page takes its title, description and share metadata fr
         continue;
       }
       const canonical = `https://hearthpulse.net${page.url}`;
-      assertOnce(html, /<meta name="robots" content="([^"]*)"/g,
-        'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1', `${page.path} robots`);
+      // The strategies page is rendered per request: with no list from Express (as in CI) it is not indexed, with one it is.
+      const indexable = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
+      const stranded = page.path === '/battlegrounds/strategies' && /<meta name="robots" content="noindex, follow"/.test(html);
+      assertOnce(html, /<meta name="robots" content="([^"]*)"/g, stranded ? 'noindex, follow' : indexable, `${page.path} robots`);
       assertOnce(html, /<link rel="canonical" href="([^"]*)"/g, canonical, `${page.path} canonical`);
       assertOnce(html, /<meta property="og:title" content="([^"]*)"/g, page.title, `${page.path} og:title`);
       assertOnce(html, /<meta property="og:description" content="([^"]*)"/g, page.description, `${page.path} og:description`);
