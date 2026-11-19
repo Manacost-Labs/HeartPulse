@@ -6,7 +6,7 @@ import {
   createPatchArchetypeRecorder, moscowDay, patchDay, previousDay, type PatchArchetypeCatalog, type PatchArchetypeSnapshotStorage,
 } from './archetypeSnapshots.js';
 import { cleanArticleText, parsePatchArticle, type PatchCardResolver } from './parser.js';
-import { createCardVersions, type PatchWindow } from './cardVersions.js';
+import { createPatchCardVersions } from './cardVersions.js';
 import { createBattlegroundNameResolver, type BattlegroundCatalogCard } from './battlegroundCatalog.js';
 
 type Row = Record<string, unknown>;
@@ -30,18 +30,12 @@ export type PatchNotesServiceDependencies = {
   loadArchetypeCatalog?: (format: PatchNotesFormat) => Promise<PatchArchetypeCatalog>;
   /** Daily and pinned archetype snapshots; without them no patch lists archetypes. */
   archetypeSnapshots?: PatchArchetypeSnapshotStorage;
-  /** Card history of the data API (`/card-history/…`) for before/after pictures; without a base URL no entry has a pair. */
+  /** Card history of the data API for before/after pictures (without it no entry has a pair); read with `fetchCardHistory`. */
   cardHistoryBaseUrl?: string;
-  /** Reads one card-history URL; defaults to `fetchJson`. Give it a short timeout. */
   fetchCardHistory?: (url: string) => Promise<unknown>;
   ttlMs: number;
   now?: () => number;
 };
-
-/** How long a request waits for the pictures of a patch whose history has not been read yet. */
-const CARD_HISTORY_WAIT_MS = 4_000;
-/** The newest patches get their pictures read as soon as the archive is, so the first visitor rarely waits. */
-const WARM_PATCHES = 2;
 
 export type PatchNotesSnapshot = {
   patches: PatchNotesDetail[];
@@ -209,18 +203,8 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
     return buildPatchMetaIndex(store.pinned(version));
   };
 
-  const cardVersions = dependencies.cardHistoryBaseUrl
-    ? createCardVersions({ fetchJson: dependencies.fetchCardHistory ?? dependencies.fetchJson, baseUrl: dependencies.cardHistoryBaseUrl, now })
-    : null;
-  /** The window of a patch: from its release to the release of the next patch of the archive. */
-  const windowOf = (patches: PatchNotesDetail[], patch: PatchNotesDetail): PatchWindow | null => {
-    const from = Date.parse(patch.publishedAt ?? '');
-    if (!Number.isFinite(from)) return null;
-    const newer = patches[patches.indexOf(patch) - 1]?.publishedAt;
-    const until = Date.parse(newer ?? '');
-    return { from, until: Number.isFinite(until) ? until : null };
-  };
-
+  const history = { fetchJson: dependencies.fetchCardHistory ?? dependencies.fetchJson, baseUrl: dependencies.cardHistoryBaseUrl ?? '', now };
+  const cardVersions = dependencies.cardHistoryBaseUrl ? createPatchCardVersions(history) : null;
   const refresh = async () => {
     const [payload, cards, battlegrounds, standard] = await Promise.all([
       dependencies.fetchJson(dependencies.patchesUrl),
@@ -238,12 +222,7 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
     snapshot = { value, expiresAt: now() + dependencies.ttlMs };
     // Started only now: read alongside the archive it still slowed the first answer down.
     loadArtwork();
-    if (cardVersions) {
-      for (const patch of value.patches.filter(item => item.changeCount > 0).slice(0, WARM_PATCHES)) {
-        const window = windowOf(value.patches, patch);
-        if (window) cardVersions.warm(patch, window);
-      }
-    }
+    cardVersions?.warm(value.patches);
     return value;
   };
   const start = () => {
@@ -255,17 +234,9 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
   };
 
   return {
-    /**
-     * Adds the before/after pictures of the card history to patches of a snapshot. Waits a few seconds
-     * for a patch not read yet, and never fails: a card without a pair keeps `null`.
-     */
+    /** Adds before/after pictures of the card history; waits a few seconds for an unread patch, never fails. */
     async withCardVersions(snapshot: PatchNotesSnapshot, patches: PatchNotesDetail[]): Promise<PatchNotesDetail[]> {
-      const versions = cardVersions;
-      if (!versions) return patches;
-      return Promise.all(patches.map(patch => {
-        const window = windowOf(snapshot.patches, patch);
-        return window ? versions.attach(patch, window, CARD_HISTORY_WAIT_MS).catch(() => patch) : patch;
-      }));
+      return cardVersions ? cardVersions.attach(snapshot.patches, patches) : patches;
     },
     async load(): Promise<PatchNotesSnapshot> {
       if (snapshot && snapshot.expiresAt > now()) return snapshot.value;

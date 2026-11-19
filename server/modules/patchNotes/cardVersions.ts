@@ -148,3 +148,36 @@ export function createCardVersions({ fetchJson, baseUrl, now = Date.now }: CardV
     },
   };
 }
+
+/** How long a request waits for the pictures of a patch whose history has not been read yet. */
+const WAIT_MS = 4_000;
+/** The newest patches get their pictures read as soon as the archive is, so the first visitor rarely waits. */
+const WARM_PATCHES = 2;
+
+/** The window of a patch: from its release to the release of the next newer patch of the archive. */
+function windowOf(patches: PatchNotesDetail[], patch: PatchNotesDetail): PatchWindow | null {
+  const from = Date.parse(patch.publishedAt ?? '');
+  if (!Number.isFinite(from)) return null;
+  const until = Date.parse(patches[patches.indexOf(patch) - 1]?.publishedAt ?? '');
+  return { from, until: Number.isFinite(until) ? until : null };
+}
+
+/** Card versions for the patches of an archive (newest first): warmed at refresh, attached per answer. */
+export function createPatchCardVersions(dependencies: CardVersionsDependencies) {
+  const versions = createCardVersions(dependencies);
+  return {
+    warm(patches: PatchNotesDetail[]): void {
+      for (const patch of patches.filter(item => item.changeCount > 0).slice(0, WARM_PATCHES)) {
+        const window = windowOf(patches, patch);
+        if (window) versions.warm(patch, window);
+      }
+    },
+    /** Never rejects: a patch whose history cannot be read keeps its `null` pairs. */
+    attach(archive: PatchNotesDetail[], patches: PatchNotesDetail[]): Promise<PatchNotesDetail[]> {
+      return Promise.all(patches.map(patch => {
+        const window = windowOf(archive, patch);
+        return window ? versions.attach(patch, window, WAIT_MS).catch(() => patch) : patch;
+      }));
+    },
+  };
+}
