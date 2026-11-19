@@ -605,8 +605,9 @@ The owner found the accordion menu small, shaky and dull. Groups are gone.
 5. Art. `src/app/shell/menuArt.json` lists the painted icons (`<id>`, `mode-<mode>`)
    and banners; the search palette shows the same icons for pages.
 6. Motion: only transform and opacity, the site's tokens; hover lifts the icon
-   to 1.08 and shifts the label 2 px, a banner rises 4 px and its art grows to 1.05, banners
-   enter one after another; reduced motion removes the movement.
+   to 1.08 and shifts the label 2 px, a banner rises 4 px and its art grows
+   to 1.05, banners enter one after another; reduced motion removes the
+   movement.
 
 Verification: `tests/public-navigation-shell.test.tsx`, `tests/routes.test.ts`,
 `tests/next-menu-overflow-browser.test.mjs`, the drawer, transitions, Back/Forward
