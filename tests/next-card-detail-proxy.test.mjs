@@ -289,7 +289,10 @@ test('the outage page menu and footer list the same links as the site shell', as
   try {
     next = await startNextServer({ legacyOrigin: api.origin });
     const outage = (await timed(`${next.origin}/standard/cards/`)).html;
-    const site = (await timed(`${next.origin}/faq/`)).html;
+    const siteShell = (await timed(`${next.origin}/faq/`)).html;
+    // The site's mode switch (four banner links to the main page of each mode) is not a menu item: its pages are
+    // listed as items too, so the comparison reads the items only.
+    const site = siteShell.replace(/<div class="hp-mode-panel"[\s\S]*?<\/div><\/details>/g, '</details>');
     const siteMenu = landmark(site, 'nav', 'Разделы сайта').links;
     const outageMenu = landmark(outage, 'nav', 'Основная навигация').links;
     assert.ok(siteMenu.length >= 20, `the site shell lists its menu (${siteMenu.length} links)`);
