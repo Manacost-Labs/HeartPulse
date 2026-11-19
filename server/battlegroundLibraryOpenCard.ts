@@ -59,20 +59,24 @@ export function libraryCardIndexingFacts(
 
 /**
  * The open layer of a card for the card route: its base statistics (a rejection is a 503, never a page without the
- * figures it counts as facts) and related cards. Related cards come from the catalog the router already holds: a card
- * page never waits for (or starts) the bulk read of every pool, which is what the single-card identity exists to
- * avoid; a cold start warms the catalog behind the answer.
+ * figures it counts as facts) and related cards, from the catalog of the kind: held, or awaited for at most
+ * `relatedWaitMs` (1.5 s) on a cold start.
  */
 export function createLibraryOpenLayerLoader(options: {
   stats: LibraryStatsStore;
+  relatedWaitMs?: number;
   catalog: { peek: (kind: 'minion' | 'spell') => PublicBattlegroundLibraryCard[] | undefined;
     load: (kind: 'minion' | 'spell') => Promise<PublicBattlegroundLibraryCard[]> };
 }) {
   return async (card: PublicBattlegroundLibraryCard, archive: boolean) => {
     const slice = card.kind === 'minion' && card.inPool && !archive ? (await options.stats.get()).slice : null;
     const figures = slice?.byDbf.get(card.dbfId);
-    const held = options.catalog.peek(card.kind);
-    if (!held) void options.catalog.load(card.kind).catch(() => undefined);
+    // A cold catalog is awaited briefly, so the first visitor after a deploy gets related cards too; past the deadline
+    // the answer goes without them (the read goes on and warms the catalog for the next one).
+    const held = options.catalog.peek(card.kind) ?? await Promise.race([
+      options.catalog.load(card.kind).catch(() => undefined),
+      new Promise<undefined>(resolve => { setTimeout(resolve, options.relatedWaitMs ?? 1_500, undefined).unref(); }),
+    ]);
     return {
       stats: slice && figures ? { ...figures, updatedAt: slice.updatedAt } : null,
       related: held ? relatedLibraryCards(card, held, archive ? '/library/archive' : '/library') : [],

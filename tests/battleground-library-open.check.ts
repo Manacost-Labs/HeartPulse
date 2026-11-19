@@ -132,6 +132,19 @@ try {
   const warm = cardBody;
   assert.deepEqual(warm.related.map((card: { dbfId: number }) => card.dbfId), [1004, 1002], 'same tribe, nearest tier first; the murloc and the archive are not related');
   assert.deepEqual(Object.keys(warm.related[0]).sort(), ['dbfId', 'name', 'path', 'tavernTier', 'tribe']);
+  // A cold catalog with a working single-card identity read: the first answer still carries the related cards.
+  {
+    const identityFetch: typeof fetch = async (input, init) => {
+      const url = new URL(String(input));
+      const m = url.pathname.match(/\/cards\/by-dbf\/(\d+)$/);
+      if (m) return new Response(JSON.stringify(catalogs['minion:1'].find(raw => (raw as { dbf: number }).dbf === Number(m[1]))));
+      return fetchImpl(input, init);
+    };
+    const coldApp = express();
+    coldApp.use(createBattlegroundLibrarySeoRouter({ fetchImpl: identityFetch, now: () => clock, auxiliaryCatalogBaseUrl: 'https://api.example.test/api/v1' }));
+    const first = await (await fetch(`${await listen(coldApp)}/api/bg/library/public/minion/1001`)).json();
+    assert.deepEqual(first.related.map((card: { dbfId: number }) => card.dbfId), [1004, 1002], 'the first visitor gets related cards');
+  }
   state.statsDown = true; clock += 10 * 60_000;
   const outage = await fetch(`${cardOrigin}/api/bg/library/public/minion/1001`);
   assert.equal(outage.status, 200, 'the held statistics keep serving after a source failure');

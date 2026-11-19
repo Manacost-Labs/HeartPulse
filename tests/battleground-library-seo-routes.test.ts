@@ -453,8 +453,8 @@ try {
     assertNoPrivateData(await result.text(), 'single-card projection', path.startsWith('/api/'));
   }
   assert.equal(singleReads, 1, 'public and legacy detail share the validated identity snapshot');
-  // The bulk read (it never answers here) is started behind the answer to warm the related cards, never awaited by it.
-  assert.ok(bulkReads <= 2, 'at most the warm-up pair of reads, and the answers above did not wait for them');
+  // The bulk read never answers here: the related cards are awaited only up to a deadline, then the card goes without them.
+  assert.ok(bulkReads <= 2, 'at most the pair of reads for the related cards');
 } finally { await identityApp.close(); }
 
 console.log('battleground library SEO route tests passed');
