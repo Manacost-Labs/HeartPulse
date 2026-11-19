@@ -93,8 +93,14 @@ test('the guest HTML of /standard/matchups/ carries the open matrix and no paid 
     assert.deepEqual([...new Set(state.reads.map(read => read.cookie))], [''], 'cookies are never forwarded');
 
     // A browser, Googlebot and YandexBot get the same document (one at a time, after the copy is warm).
-    await guestHtml(next.origin, { 'User-Agent': BROWSER_UA });
-    const browser = await guestHtml(next.origin, { 'User-Agent': BROWSER_UA });
+    // Compare only after two identical copies in a row: right after a regeneration the head can still differ.
+    let browser = await guestHtml(next.origin, { 'User-Agent': BROWSER_UA });
+    for (let attempt = 0; attempt < 10; attempt += 1) {
+      const again = await guestHtml(next.origin, { 'User-Agent': BROWSER_UA });
+      if (again === browser) break;
+      browser = again;
+      await delay(300);
+    }
     assert.equal(await guestHtml(next.origin, { 'User-Agent': GOOGLEBOT_UA }), browser, 'Googlebot gets the guest HTML');
     assert.equal(await guestHtml(next.origin, { 'User-Agent': YANDEXBOT_UA }), browser, 'YandexBot gets the guest HTML');
 
@@ -107,6 +113,19 @@ test('the guest HTML of /standard/matchups/ carries the open matrix and no paid 
       await delay(300);
     }
     assert.ok(state.reads.filter(read => read.path.includes('/public')).length > reads.length, 'the regeneration really tried the origin');
+
+    // The deploy's warm-up while the source is down: the route does not mark the page stale, so a guest and Googlebot keep the
+    // good matrix and nobody gets a 500 (a stale mark would make the next request render without data and fail).
+    const revalidated = await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' });
+    assert.equal(revalidated.status, 200);
+    const answer = await revalidated.json();
+    assert.ok(!answer.revalidated.includes('/standard/matchups'), 'the page whose source is down is not revalidated');
+    assert.deepEqual(answer.skipped.find(item => item.path === '/standard/matchups'), { path: '/standard/matchups', reason: 'source-unavailable' });
+    for (const headers of [{ 'User-Agent': BROWSER_UA }, { 'User-Agent': GOOGLEBOT_UA }]) {
+      const response = await fetch(`${next.origin}/standard/matchups/`, { headers });
+      assert.equal(response.status, 200, 'no 500 after the revalidation call while Express is down');
+      assert.ok(hasMatrix(await response.text()), 'the earlier matrix stays');
+    }
   } finally {
     await next.close();
     legacyServer.closeAllConnections();

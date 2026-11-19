@@ -61,6 +61,9 @@ function startLegacy(state) {
   app.get('/api/standard/matchups/public', (request, response) => (state.down
     ? response.status(503).set('Retry-After', '60').json({ error: 'no snapshot' })
     : response.json(matchupsOpenAnswer({ noise: true, format: request.query.format === 'wild' ? 'wild' : 'standard' }))));
+  // The sources the revalidate route probes before it marks the other pages stale: they answer while `state.down` is false.
+  app.get(['/api/articles', '/api/winrates/public-teaser', '/api/standard-meta/public'], (_request, response) => (state.down
+    ? response.status(503).json({ error: 'no snapshot' }) : response.json([{ id: 'probe' }])));
   const heroes = createBattlegroundHeroRankingRouter({
     loadCatalog: async mode => {
       if (state.down) throw new Error('service down');
@@ -236,7 +239,10 @@ test('the post-deploy warm-up revalidates again until /tierlist/ carries its sli
     const { code, output } = await stand.warm({ WARM_TOTAL_MS: '30000' });
     assert.equal(code, 0, output);
     assert.ok(stand.revalidations.length >= 2, `a page left without data is revalidated again: ${output}`);
-    assert.deepEqual([...stand.revalidations[0]].sort(), ['/articles', '/classes', '/heroes', '/legendaries', '/standard/matchups', '/standard/meta', '/tierlist'],
+    // The first call finds every source down: nothing is marked stale. Once Express is back, the route regenerates exactly the
+    // pages that render data (the literal list is the contract between DATA_PAGES and the route).
+    assert.deepEqual(stand.revalidations[0], [], 'a page whose source is down is not marked stale');
+    assert.deepEqual([...stand.revalidations.at(-1)].sort(), ['/articles', '/classes', '/heroes', '/legendaries', '/standard/matchups', '/standard/meta', '/tierlist'],
       'the real route regenerates exactly the pages that render data');
     assert.match(output, /\[warm\] \/tierlist\/: with data/, output);
     // What a visitor gets right after the warm-up, with no clock shifted and no second request needed.
