@@ -400,6 +400,27 @@ the queries the site wants to answer.
   of the tier list and the 150 words over the 404 frame;
   `tests/seo-structured-data.test.ts` for the copy parser and the dataset.
 
+## Порог индексации (E21 S5)
+
+Одно правило на сайте: страница либо `index` + в карте сайта + canonical на
+себя, либо `noindex` + вне карты. Порог записан в одном модуле,
+`shared/seoIndexThreshold.ts`; meta robots страницы и проекция карты сайта
+импортируют его предикаты, второй копии условия нет.
+
+- Содержание: не меньше `INDEX_MIN_OWN_WORDS` (150) собственных слов или
+  `INDEX_MIN_OWN_FACTS` (10) собственных фактов, без меню и футера
+  (`meetsContentThreshold`).
+- Выборка по шаблону: `INDEX_MIN_SAMPLE_GAMES`. Для архетипов это существующая
+  `INDEXABLE_ARCHETYPE_MIN_GAMES` (1000), модуль её реэкспортирует;
+  `meetsSampleThreshold` сравнивает игры с минимумом шаблона.
+- Видимость: `indexThresholdNotice({ games, minGames })` возвращает строку
+  «Мало данных: N игр из нужных M, страница не индексируется до набора
+  выборки» либо `null`. Её печатает строка свежести данных страницы.
+- Контракт-тест `tests/route-inventory.test.ts`: у каждого маршрута инвентаря
+  `index` равносильно `sitemap`; у `index` canonical на себя и статус 200; ни один
+  сегмент карты не содержит шаблон с `noindex`; архетип ниже порога
+  не попадает в сегмент архетипов (проекция отклоняет его).
+
 ## Documentation impact
 
 - This specification records the new sitemap segment and page-quality contract.
