@@ -1,21 +1,17 @@
-import artManifest from './menuArtManifest.json';
-import type { MenuIcon } from './menuIcons';
+import type { ReactNode } from 'react';
+import menuArt from './menuArt.json';
 
-/** The icon art of an item is 40 px on screen, drawn at 80 px for dense displays. */
+/** Menu art is drawn at 96 px for dense displays and shown at 40 px. */
 export const NAV_ICON_SIZE = 40;
-const ICON_ART = new Set<string>(artManifest.icons);
-const BANNER_ART = new Set<string>(artManifest.banners);
+export const MODE_EMBLEM_SIZE = 48;
 
-/** Painted art of an item when its file is in the manifest, otherwise the line icon at the same size. */
-export function NavigationIcon({ id, Icon }: { id: string; Icon: MenuIcon }) {
-  if (ICON_ART.has(id)) {
-    return <img className="hp-nav-art" src={`/menu/icons/${id}.webp`} width={NAV_ICON_SIZE} height={NAV_ICON_SIZE}
-      loading="lazy" decoding="async" alt="" />;
-  }
-  return <Icon size={NAV_ICON_SIZE} strokeWidth={1.3} />;
+const ICONS: Readonly<Record<string, string>> = menuArt.icons;
+const BANNERS: Readonly<Record<string, string>> = menuArt.banners;
+
+/** The painted icon of a menu item or `mode-<id>` emblem; nothing for an id without art (tests/routes.test.ts keeps every menu item covered). */
+export function NavigationIcon({ id, size = NAV_ICON_SIZE, fallback = null }: { id: string; size?: number; fallback?: ReactNode }) {
+  const src = ICONS[id];
+  return src ? <img className="hp-nav-art" src={src} width={size} height={size} loading="lazy" decoding="async" alt="" /> : fallback;
 }
 
-/** The banner file of a mode, or null while only the gradient fallback exists. */
-export function modeBannerSrc(mode: string): string | null {
-  return BANNER_ART.has(mode) ? `/menu/banners/${mode}.webp` : null;
-}
+export const modeBannerSrc = (mode: string): string | undefined => BANNERS[mode];

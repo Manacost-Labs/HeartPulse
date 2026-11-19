@@ -122,7 +122,7 @@
   min-height: 52px;
   padding: 6px 12px 6px 10px;
   border-radius: 12px;
-  color: #f8e3b8;
+  color: #fbefd5;
   font-family: var(--font-body);
   font-size: 17px;
   font-weight: 600;
@@ -178,23 +178,9 @@
   width: 40px;
   height: 40px;
   place-items: center;
-  color: #e8c068;
-  transition: transform var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease);
+  transition: transform var(--motion-fast) var(--motion-ease), filter var(--motion-fast) var(--motion-ease);
 }
 
-/* A soft golden glow behind the icon, shown on hover and for the current page. */
-.hp-nav-icon::before {
-  content: '';
-  position: absolute;
-  inset: -6px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 207, 99, 0.36), transparent 68%);
-  opacity: 0;
-  transition: opacity var(--motion-base) var(--motion-ease);
-  pointer-events: none;
-}
-
-.hp-nav-icon svg,
 .hp-nav-art {
   position: relative;
   display: block;
@@ -212,10 +198,9 @@
 }
 
 @media (hover: hover) {
-  .hp-nav-link:hover { color: #fff7df; }
+  .hp-nav-link:hover { color: #fffaf0; }
   .hp-nav-link:hover::before { opacity: 1; }
-  .hp-nav-link:hover .hp-nav-icon { color: #ffd877; transform: scale(1.08); }
-  .hp-nav-link:hover .hp-nav-icon::before { opacity: 1; }
+  .hp-nav-link:hover .hp-nav-icon { transform: scale(1.08); filter: brightness(1.12); }
   .hp-nav-link:hover .hp-nav-label { transform: translateX(2px); }
 }
 
@@ -228,7 +213,7 @@
 .hp-nav-link:active,
 .hp-nav-link[data-nav-pressed] { transform: scale(0.98); }
 
-.hp-nav-link:is([aria-current='page'], [data-nav-pressed]) { color: #fff7df; }
+.hp-nav-link:is([aria-current='page'], [data-nav-pressed]) { color: #fffaf0; }
 
 .hp-nav-link:is([aria-current='page'], [data-nav-pressed])::before { opacity: 1; }
 
@@ -237,17 +222,15 @@
   transform: none;
 }
 
-.hp-nav-link:is([aria-current='page'], [data-nav-pressed]) .hp-nav-icon { color: #ffd877; }
-.hp-nav-link:is([aria-current='page'], [data-nav-pressed]) .hp-nav-icon::before { opacity: 1; }
+.hp-nav-link:is([aria-current='page'], [data-nav-pressed]) .hp-nav-icon { filter: brightness(1.1); }
 
-.hp-nav:has([data-nav-pressed]) .hp-nav-link[aria-current='page']:not([data-nav-pressed]) { color: #f8e3b8; }
+.hp-nav:has([data-nav-pressed]) .hp-nav-link[aria-current='page']:not([data-nav-pressed]) { color: #fbefd5; }
 .hp-nav:has([data-nav-pressed]) .hp-nav-link[aria-current='page']:not([data-nav-pressed])::before { opacity: 0; }
 .hp-nav:has([data-nav-pressed]) .hp-nav-link[aria-current='page']:not([data-nav-pressed])::after {
   opacity: 0;
   transform: scaleY(0.3);
 }
-.hp-nav:has([data-nav-pressed]) .hp-nav-link[aria-current='page']:not([data-nav-pressed]) .hp-nav-icon { color: #e8c068; }
-.hp-nav:has([data-nav-pressed]) .hp-nav-link[aria-current='page']:not([data-nav-pressed]) .hp-nav-icon::before { opacity: 0; }
+.hp-nav:has([data-nav-pressed]) .hp-nav-link[aria-current='page']:not([data-nav-pressed]) .hp-nav-icon { filter: none; }
 
 /* ─── The mode switch ──────────────────────────────────────────────────── */
 
@@ -286,15 +269,14 @@
 
 .hp-mode-emblem {
   display: grid;
-  flex: 0 0 44px;
-  width: 44px;
-  height: 44px;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
   place-items: center;
-  color: #ffd877;
-  filter: drop-shadow(0 2px 3px rgba(30, 3, 5, 0.5));
+  transition: transform var(--motion-fast) var(--motion-ease);
 }
 
-.hp-mode-emblem svg { display: block; }
+.hp-mode-emblem img { display: block; width: 100%; height: 100%; }
 
 .hp-mode-copy {
   display: grid;
@@ -315,7 +297,7 @@
 
 .hp-mode-name {
   overflow-wrap: anywhere;
-  color: #fff7df;
+  color: #fffaf0;
   font-family: var(--font-body);
   font-size: 20px;
   font-weight: 700;
@@ -338,6 +320,7 @@
     background-color: rgba(76, 8, 13, 0.6);
   }
 
+  .hp-mode-button:hover .hp-mode-emblem { transform: scale(1.06); }
   .hp-mode-button:hover .hp-mode-chevron { transform: translateY(2px); }
   .hp-mode[open] > .hp-mode-button:hover .hp-mode-chevron { transform: rotate(180deg) translateY(2px); }
 }
@@ -427,27 +410,8 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center 20%;
 }
-
-/* Until the painted banner exists: a gradient of the mode's colour with a large coat of arms. */
-.hp-mode-art-fallback {
-  display: grid;
-  width: 100%;
-  height: 100%;
-  place-items: start center;
-  padding-top: 26px;
-  color: rgba(255, 228, 160, 0.92);
-  background:
-    radial-gradient(circle at 50% 28%, rgba(255, 214, 120, 0.34), transparent 62%),
-    linear-gradient(160deg, var(--hp-mode-a, #7a1d12), var(--hp-mode-b, #3a0709));
-}
-
-.hp-mode-art-fallback svg { filter: drop-shadow(0 6px 10px rgba(10, 1, 2, 0.55)); }
-
-.hp-mode-card[data-mode='standard'] { --hp-mode-a: #8a5a14; --hp-mode-b: #3b1405; }
-.hp-mode-card[data-mode='arena'] { --hp-mode-a: #8e1b1b; --hp-mode-b: #34070a; }
-.hp-mode-card[data-mode='battlegrounds'] { --hp-mode-a: #1f6a62; --hp-mode-b: #0b2a2e; }
-.hp-mode-card[data-mode='community'] { --hp-mode-a: #5d3a8f; --hp-mode-b: #1f1038; }
 
 .hp-mode-badge {
   position: absolute;
@@ -774,7 +738,6 @@
   .hp-mode[data-variant='mobile'] .hp-mode-card-text { padding: 0 11px 11px; }
   .hp-mode[data-variant='mobile'] .hp-mode-card-text strong { font-size: 17px; }
   .hp-mode[data-variant='mobile'] .hp-mode-card-text span { font-size: 12.5px; }
-  .hp-mode[data-variant='mobile'] .hp-mode-art-fallback svg { width: 76px; height: 76px; }
   .hp-mode[data-variant='mobile'] .hp-mode-panel { animation: none; }
 }
 

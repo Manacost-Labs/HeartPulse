@@ -3,18 +3,13 @@ import { ChevronDown } from 'lucide-react';
 import { canonicalPagePath } from '../routing/canonicalPagePath';
 import { NAVIGATION_MODES, type NavigationModeId } from '../routing/navigationData';
 import type { TABS, TabId } from '../routing/navigationRoutes';
-import { ArenaEmblem, BattlegroundsEmblem, CommunityEmblem, StandardEmblem, type MenuIcon } from './menuIcons';
-import { NavigationIcon, modeBannerSrc } from './NavigationIcon';
+import { MODE_EMBLEM_SIZE, NavigationIcon, modeBannerSrc } from './NavigationIcon';
 import { isPlainNavigationClick } from '../routing/isPlainNavigationClick';
 
 export type NavigationRoute = (typeof TABS)[number];
 export type NavigationGroup = NavigationModeId;
 export { NAV_ICON_SIZE } from './NavigationIcon';
 
-/** One coat of arms per mode, drawn in the icons' own style. */
-export const MODE_EMBLEMS: Record<NavigationModeId, MenuIcon> = {
-  standard: StandardEmblem, arena: ArenaEmblem, battlegrounds: BattlegroundsEmblem, community: CommunityEmblem,
-};
 /** A short honest marker next to a menu item, e.g. «Новый» for a patch published since the last visit. */
 export type NavigationBadges = Partial<Record<TabId, { label: string; title: string }>>;
 
@@ -46,7 +41,7 @@ export function NavigationRouteLinks({ routes, activeTab, variant, context, badg
         data-variant={variant}
         className="hp-nav-link"
       >
-        <span className="hp-nav-icon" aria-hidden="true"><NavigationIcon id={tab.id} Icon={tab.icon} /></span>
+        <span className="hp-nav-icon" aria-hidden="true"><NavigationIcon id={tab.id} /></span>
         <span className="hp-nav-label">{tab.label}</span>
         {badge && <span className="arena-nav-badge" title={badge.title}>{badge.label}</span>}
       </a>
@@ -84,10 +79,9 @@ export function NavigationModePicker({ variant, mode, onNavigate }: {
     <details className="hp-mode" data-variant={variant}>
       <summary className="hp-mode-button" data-nav-tip="Режим: выбрать формат">
         {NAVIGATION_MODES.map(item => {
-          const Emblem = MODE_EMBLEMS[item.id];
           return (
             <span key={item.id} className="hp-mode-face" data-for={item.id}>
-              <span className="hp-mode-emblem" aria-hidden="true"><Emblem size={44} strokeWidth={1.3} /></span>
+              <span className="hp-mode-emblem" aria-hidden="true"><NavigationIcon id={`mode-${item.id}`} size={MODE_EMBLEM_SIZE} /></span>
               <span className="hp-mode-copy">
                 <span className="hp-mode-kicker">Режим</span>
                 <span className="hp-mode-name">{item.label}</span>
@@ -99,7 +93,6 @@ export function NavigationModePicker({ variant, mode, onNavigate }: {
       </summary>
       <div className="hp-mode-panel" role="group" aria-label="Режимы сайта">
         {NAVIGATION_MODES.map((item, index) => {
-          const Emblem = MODE_EMBLEMS[item.id];
           const banner = modeBannerSrc(item.id);
           return (
             <a
@@ -117,9 +110,7 @@ export function NavigationModePicker({ variant, mode, onNavigate }: {
               }}
             >
               <span className="hp-mode-art" aria-hidden="true">
-                {banner
-                  ? <img src={banner} width={400} height={560} loading="lazy" decoding="async" alt="" />
-                  : <span className="hp-mode-art-fallback"><Emblem size={96} strokeWidth={1} /></span>}
+                {banner && <img src={banner} width={440} height={616} loading="lazy" decoding="async" alt="" />}
               </span>
               <span className="hp-mode-badge" data-for={item.id}>Текущий</span>
               <span className="hp-mode-card-text">

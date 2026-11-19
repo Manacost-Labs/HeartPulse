@@ -1,10 +1,9 @@
 import { BookOpen, ChevronRight, Clock3, Compass, Library, ListTree, LoaderCircle, LockKeyhole } from 'lucide-react';
 import type { MouseEvent } from 'react';
 import { isPlainNavigationClick } from '../../app/routing/isPlainNavigationClick';
-import { NAVIGATION_ROUTES } from '../../app/routing/navigationDefinitions';
+import { NavigationIcon } from '../../app/shell/NavigationIcon';
 import type { PaletteEntry, PaletteGroup } from './searchPaletteModel';
 
-const PAGE_ICONS = new Map(NAVIGATION_ROUTES.map(route => [`page:${route.id}`, route.icon]));
 const GROUP_ICONS = { recent: Clock3, pages: Compass, archetypes: ListTree, cards: Library, articles: BookOpen } as const;
 
 export type PaletteLocks = {
@@ -30,8 +29,10 @@ function Thumb({ entry }: { entry: PaletteEntry }) {
       <img src={`/class_icon/ui/${entry.classKey}-64.webp`} alt="" loading="lazy" />
     </span>;
   }
-  const Icon = PAGE_ICONS.get(entry.id) ?? Compass;
-  return <span className="global-search-result__thumb is-page"><Icon size={17} strokeWidth={1.8} aria-hidden="true" /></span>;
+  // A page shows the painted icon of its menu item; a help or legal page has none and shows the compass.
+  return <span className="global-search-result__thumb is-page">
+    <NavigationIcon id={entry.id.replace(/^page:/, '')} size={28} fallback={<Compass size={17} strokeWidth={1.8} aria-hidden="true" />} />
+  </span>;
 }
 
 /**
