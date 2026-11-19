@@ -92,7 +92,7 @@ Gold is not a general panel fill. Use it for small accents, asset-native details
 
 | Token | Value | Usage |
 |---|---|---|
-| `--font-display` / `--font-hs` | `HSDisplay`, fallback serif | brand, headings, menu links and tier labels |
+| `--font-display` / `--font-hs` | `HSDisplay`, fallback serif | brand logo, headings and tier labels; never menu text (the menu is Inter) |
 | `--font-body` | `Inter`, sans-serif | descriptions, filters, tables and metadata |
 
 - Display type is expressive; body copy stays plain and compact.
@@ -121,7 +121,7 @@ The app has two navigation contexts that share historical class names:
 
 Never add an unscoped duplicate `.arena-mobile-*` rule. The App drawer must remain `position: fixed`; an inline dropdown may use `position: absolute` only inside a positioned parent.
 
-The public menu is organised by what the reader plays or does, not by tool type. Search is the header field (`/` or Ctrl+K). Then **Главная**, and four collapsible groups: **Стандарт и Вольный** (Мета, Матчапы, Архетипы, Фан-колоды, VS Gold, Карты, Конструктор колод, Патчноуты), **Арена**, **Поля сражений** (the strategy and tier-list builders are ordinary items) and **Сообщество** (Подборка, Таблицы лидеров, Стримеры, Конкурсы, Галерея, Косметика, Архив гайдов). The administrator panel sits alone at the bottom and only for administrators. A group title is a button (`aria-expanded`, `aria-controls`) with the group's small coat of arms, never a coin or a plate. The group of the current page is open on arrival (Standard on Home); a group the reader opened stays open while they move around. Closed groups keep their links in the server HTML. The compact rail shows every item and turns group titles into hairlines.
+The public menu is organised by what the reader plays or does, not by tool type. Search is the header field (`/` or Ctrl+K). The sidebar always shows one flat list: **Главная**, the **mode switch**, then every item of the current mode. There are four modes: **Стандарт** (Мета, Матчапы, Архетипы, Фан-колоды, VS Gold, Карты, Конструктор колод, Патчноуты), **Арена**, **Поля сражений** (the strategy and tier-list builders are ordinary items) and **Сообщество** (Подборка, Таблицы лидеров, Стримеры, Конкурсы, Галерея, Косметика, Архив гайдов). The administrator panel sits alone at the bottom of the list and only for administrators. The mode switch is a 72 px button (eyebrow «Режим», mode emblem, mode name, chevron) built on a native `<details>`, so it opens without JavaScript. It opens a panel of four banner cards (painted art, dark gradient, name, one line of description, a gold «Текущий» badge on the current mode): beside the sidebar over the page, 4 in a row from 1360 px and 2×2 below, and inside the drawer as a 2×2 grid. Each banner is a plain link to the mode's main page (Стандарт `/standard/meta/`, Арена `/classes/`, Поля сражений `/heroes/`, Сообщество `/articles/`). Escape, a press elsewhere, focus leaving or choosing a banner closes it. The lists of all four modes are in the server HTML of every page and CSS shows one: the page's own mode, else the last chosen one (`localStorage` `hp:nav:mode`, written to `<html data-nav-mode>` by the head script before first paint), else Standard. The compact rail shows the current mode's icons only; its mode button is the mode emblem and opens the same panel. The menu never scrolls horizontally (`tests/next-menu-overflow-browser.test.mjs`).
 
 ### Page Width
 
@@ -185,7 +185,7 @@ and provides a selector and a popularity filter to reduce crowded clusters.
 ## Navigation
 
 - Desktop rail uses red texture, a compact HearthPulse fire-mark, quiet gold duotone icons and expressive cream text.
-- Menu icons are the site's own SVG set (`src/app/shell/menuIcons.tsx`): a 24 px grid, a gold outline and a translucent `currentColor` fill, one icon per item (no repeats, checked in `tests/routes.test.ts`), always 22 px with `strokeWidth` 1.7, with no plate, border or background. Group titles are small uppercase Inter labels after the group's coat of arms in the same style. The active item sits on an embossed plaque (gold hairline, lit top edge, dark lower lip).
+- Menu art is painted, not drawn in the browser: a 96 px WebP icon per item and per mode emblem (`public/menu/icons/<id>.webp`, `mode-<mode>.webp`), shown at 40 px (the emblem at 48 px) as an `<img>` with explicit width and height, `loading="lazy"`, `decoding="async"` and an empty `alt`; the files are listed in `src/app/shell/menuArt.json` and `tests/routes.test.ts` rejects an item without a file. The icons already carry their own cast shadow and glow, so nothing is drawn around them: no plate, border or filter except the hover `scale(1.08)` with `brightness(1.12)`. Origin: the silhouettes are Material Symbols (Apache-2.0), the cast-gold-in-stone material is rendered by the team script `tools/menu-icons/render_icons.py`; the four banners (`public/menu/banners/<mode>.webp`, 440×616) are crops of `public/archetype-art/classes`. Menu text is Inter 600 at 17 px (mode names 20 px / 700), cream `#fbefd5`, so the icon stays the accent; rows are at least 52 px (56 px in the drawer) with a 4 px gap. The current item sits on an embossed plaque (gold hairline, lit top edge, dark lower lip) with a gold bar on the left.
 - Active link uses a darker red field plus a gold left rule; it must stay readable without glow.
 - Profile badge stays in the Hearthstone deck frame.
 - Mobile uses the same red material, a compact brand and a burger/X button with `aria-expanded`.
@@ -458,6 +458,7 @@ Rules:
 
 ## Changelog
 
+- **2026-11-19** — Menu v3 (E22 C, #458): groups gave way to one flat list of the current mode and a mode switch that opens a panel of four banner cards; painted 40 px icons and mode emblems replaced the SVG set; menu text moved from HSDisplay to Inter 600 at 17 px.
 - **2026-11-18** — Menu cleanup (E22): groups by game mode (Стандарт и Вольный, Арена, Поля сражений, Сообщество) instead of «Конструкторы» and «Разное», the deck builder moved to Standard, builders of Battlegrounds became plain items, every item got its own icon from the site's duotone SVG set of one size and stroke, groups got coats of arms, icon plates and gold coin emblems removed, the active item sits on an embossed plaque, administrator panel moved to the bottom, `Ctrl K` hint in the header search.
 - **2026-11-18** — Clean UI (E22 A, #450): the Arena text under the tier list, classes and legendaries pages became one collapsed «О странице» block; the slogan lines under H1 and explanatory paragraphs were removed from the main public pages; the rule above.
 - **2026-10-29** — Added the plain server-rendered methodology text under the Arena tier list, classes and legendaries pages (`SeoPageIntro`).
