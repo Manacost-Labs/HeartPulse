@@ -32,6 +32,8 @@ export type TierlistRouterDependencies = {
 type PublicTierlistCacheEntry = { body: PublicTierlist; etag: string; expiresAt: number };
 const PUBLIC_CACHE_MS = 300_000;
 const PUBLIC_CACHE_HEADER = 'public, max-age=300, stale-while-revalidate=600';
+// A stale or last-known-good answer must not outlive the outage in shared caches.
+const PUBLIC_DEGRADED_CACHE_HEADER = 'public, max-age=60, stale-while-revalidate=60';
 const record = (value: unknown): Record<string, unknown> => value && typeof value === 'object' ? value as Record<string, unknown> : {};
 
 type ResolvedTierlist = { presented: unknown; etag: string; cacheControl: string; cacheSource: string };
@@ -116,7 +118,8 @@ export function createTierlistRouter(dependencies: TierlistRouterDependencies): 
     const timestamp = now();
     const cached = publicCache.get(sourceId);
     const send = (entry: { body: PublicTierlist; etag: string }, origin: string) =>
-      sendDatasetJsonCached(request, response, entry.body, entry.etag, PUBLIC_CACHE_HEADER, origin);
+      sendDatasetJsonCached(request, response, entry.body, entry.etag,
+        entry.body.warning ? PUBLIC_DEGRADED_CACHE_HEADER : PUBLIC_CACHE_HEADER, origin);
     if (cached && cached.expiresAt > timestamp) return send(cached, 'memory');
 
     const resolved = await resolveTierlist(sourceId, false);

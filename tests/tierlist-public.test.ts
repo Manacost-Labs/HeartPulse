@@ -188,6 +188,7 @@ test('when the source fails: the cached projection (stale), then the last known 
     assert.equal(lkg.headers.get('x-data-cache'), 'fallback');
     const lkgText = await lkg.text();
     assert.equal(JSON.parse(lkgText).warning, 'fallback');
+    assert.equal(lkg.headers.get('cache-control'), 'public, max-age=60, stale-while-revalidate=60', 'a degraded copy is not held for the full TTL');
     assert.deepEqual(leaks(lkgText), []);
 
     const noFallback = await fetch(`${harness.origin}/tierlist/public?source=firestone`);
@@ -202,6 +203,7 @@ test('when the source fails: the cached projection (stale), then the last known 
     harness.state.fallback = false;
     const stale = await fetch(`${harness.origin}/tierlist/public?source=firestone`);
     assert.equal(stale.status, 200, 'the last projection still answers while the origin is down');
+    assert.equal(stale.headers.get('cache-control'), 'public, max-age=60, stale-while-revalidate=60', 'a stale copy is not held for the full TTL');
     assert.equal((await stale.json()).warning, 'stale');
   } finally {
     harness.server.close();
