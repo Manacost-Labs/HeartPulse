@@ -406,7 +406,9 @@ test('the builds pages show the open list without a placeholder and keep it unti
           answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
         return void upstream.end();
       }
-      if (subscriber && request.url.startsWith('/api/bg/tier-lists')) return json({ list: 'strategies', count: 0, tiers: { S: [], A: [], B: [], C: [], D: [] } });
+      // The paid view's real request: the list it asked for, with one entry (an empty answer would keep the open list).
+      if (subscriber && request.url.startsWith('/api/bg/tier-lists')) return json({ list: new URL(request.url, 'http://x').searchParams.get('list'), count: 1,
+        tiers: { S: [{ key: 'fx', title: 'Фикстура', name: 'Фикстура', tier: 'S', dbfId: 1 }], A: [], B: [], C: [], D: [] } });
       if (request.url.startsWith('/api/')) return void response.writeHead(401, { 'Content-Type': 'application/json' }).end('{"error":"guest"}');
       const upstream = http.request(new URL(next.origin), { method: request.method, path: request.url, headers: request.headers },
         answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
@@ -453,8 +455,10 @@ test('the builds pages show the open list without a placeholder and keep it unti
             assert.equal(await page.$('.arena-paywall-pending'), null, 'no placeholder while the paid view loads');
             assert.ok(held > 0, 'the chunk of the paid view was held back (the scenario is real)');
             await page.waitForSelector('.arena-paid-view', { timeout: 15_000 });
+            // The paid view is mounted hidden; it replaces the list once the data it asked for has come back.
+            if (path.includes('tier-list')) await page.waitForFunction(() => !document.querySelector('.bg-builds-public article'), { timeout: 10_000 });
             assert.equal(await articles(), 0, 'the list is replaced, not doubled');
-            assert.equal(await page.$$eval('h1', nodes => nodes.length), 1, `${path}: a subscriber sees exactly one H1`);
+            assert.equal(await page.$$eval('h1', nodes => nodes.filter(node => node.getClientRects().length > 0).length), 1, `${path}: a subscriber sees exactly one H1`);
           } else {
             await page.waitForSelector('.bg-builds-locks button', { timeout: 10_000 });
           }

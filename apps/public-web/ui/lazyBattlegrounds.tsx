@@ -47,8 +47,8 @@ export function BattlegroundHeroesRoute(props: ComponentProps<BattlegroundsModul
   return render(useLoadedModule(battlegrounds)?.BattlegroundHeroesRoute, props);
 }
 
-export function BattlegroundTierList() {
-  return render(useLoadedModule(battlegrounds)?.BattlegroundTierList, {});
+export function BattlegroundTierList(props: ComponentProps<BattlegroundsModule['BattlegroundTierList']>) {
+  return render(useLoadedModule(battlegrounds)?.BattlegroundTierList, props);
 }
 
 export function BattlegroundTierBuilderEmbed() {
