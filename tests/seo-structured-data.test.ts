@@ -385,7 +385,7 @@ test('no graph carries a window, a made-up property, a placeholder, a hard-coded
 test('the contents lists of the tier lists are gone, and no description counts the classes', async () => {
   const types = async (path: string) => (await seoStructuredDataGraph(path))!['@graph'].map(node => node['@type']);
   assert.deepEqual(await types('/tierlist/'), ['Organization', 'BreadcrumbList', 'Dataset']);
-  assert.deepEqual(await types('/legendaries/'), ['Organization', 'BreadcrumbList']);
+  assert.deepEqual(await types('/legendaries/'), ['Organization', 'BreadcrumbList', 'Dataset']);
   assert.deepEqual(await types('/battlegrounds/tier-list/'), ['Organization', 'BreadcrumbList', 'CollectionPage']);
   const classes = byType((await seoStructuredDataGraph('/classes/'))!['@graph'], 'Dataset')!;
   assert.equal(classes.description, 'Процент побед (винрейт) классов в режиме Арена Hearthstone по данным HSReplay и Firestone. '
@@ -434,6 +434,7 @@ test('a closed Arena dataset says it is for subscribers and names only what the 
   for (const [path, sources, phrases] of [
     ['/classes', ['HSReplay', 'Firestone'], ['винрейт', 'обновляются автоматически', 'по подписке']],
     ['/tierlist', ['HSReplay', 'HearthArena', 'Firestone'], ['от S до F', 'обновляются автоматически', 'по подписке']],
+    ['/legendaries', ['HSReplay', 'Firestone'], ['винрейт', 'обновляются автоматически', 'по подписке']],
   ] as const) {
     const dataset = byType((await seoStructuredDataGraph(path))!['@graph'], 'Dataset')!;
     assert.equal(dataset.isAccessibleForFree, false, `${path} is not free`);

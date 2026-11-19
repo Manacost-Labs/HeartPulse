@@ -33,6 +33,7 @@ import LoginCard, { type SignInFor } from './LoginCard';
 import { LoginCardSkeleton } from './LoginCardSkeleton';
 import { isRealAuthEmail } from '../model/accountDashboard';
 import { continueToCoverAfterLogin, coverSsoReturnTo } from '../../coverAdminSso/public';
+import { pageReturnTo } from '../model/loginReturn';
 import { parseSocialLoginProviders } from '../model/socialLoginProviders';
 const SocialLoginLinks = React.lazy(() => import('./SocialLoginLinks'));
 
@@ -71,6 +72,13 @@ declare global {
 const LEGACY_AUTH_TOKEN_KEY = 'hs_arena_auth_token';
 const AUTH_EMAIL_KEY = 'hs_arena_auth_email';
 const COOKIE_SESSION_MARKER = 'hs_arena_auth_cookie_hint';
+
+/** After an interactive sign-in: the Cover hand-off, else the page that sent the visitor here (`?returnTo=`). */
+function continueAfterLogin(): void {
+  continueToCoverAfterLogin();
+  const page = pageReturnTo(window.location.search);
+  if (page) window.location.assign(page);
+}
 
 function authUrlWithReturnTo(rawUrl: string, returnTo: string): string {
   try {
@@ -303,7 +311,7 @@ export function LoginPanel({
         applyAuthenticatedUser(result.user);
         setPassword('');
         setMsg(null);
-        continueToCoverAfterLogin();
+        continueAfterLogin();
         return;
       }
       setAuthStep('code');
@@ -384,7 +392,7 @@ export function LoginPanel({
       markAuthSessionHint();
       applyAuthenticatedUser(user);
       setCode('');
-      continueToCoverAfterLogin();
+      continueAfterLogin();
     } catch (err) {
       setMsg({ type: 'err', text: err.message });
     } finally {
@@ -479,8 +487,14 @@ export function LoginPanel({
     setMsg(null);
   };
 
-  const telegramLoginUrl = authUrlWithReturnTo(telegramMode === 'legacy-widget' ? telegramCallbackUrl : telegramAuthUrl, coverSsoReturnTo() || '/?login&telegram=ok');
+  const telegramLoginUrl = authUrlWithReturnTo(telegramMode === 'legacy-widget' ? telegramCallbackUrl : telegramAuthUrl, coverSsoReturnTo() || (typeof window === 'undefined' ? '' : pageReturnTo(window.location.search)) || '/?login&telegram=ok');
   const patreonLinkUrl = authUrlWithReturnTo('/api/auth/patreon/start', '/?login&patreon=linked');
+  // Google, Discord, Yandex ID and Patreon sign-in bring the visitor back to the page that sent them
+  // here as well; the server checks the address again (safeAuthReturnTo) before it redirects.
+  const pageReturn = typeof window === 'undefined' ? '' : pageReturnTo(window.location.search);
+  const socialSignInProviders = pageReturn
+    ? parseSocialLoginProviders(socialLoginProviders).map(item => ({ ...item, authUrl: authUrlWithReturnTo(item.authUrl, pageReturn) }))
+    : socialLoginProviders;
 
   // While the session is checked or the card's lazy stylesheet loads, the
   // card's fitted skeleton holds its place (its own eager stylesheet).
@@ -587,7 +601,7 @@ export function LoginPanel({
           <React.Suspense fallback={null}>
             <SocialLoginLinks
               disabled={loading}
-              providers={socialLoginProviders}
+              providers={socialSignInProviders}
               telegramAuthUrl={telegramEnabled && telegramMode !== 'legacy-widget' ? telegramLoginUrl || '/api/auth/telegram/start' : ''}
               withDivider={!(telegramEnabled && telegramMode === 'legacy-widget' && telegramBotUsername)}
             />

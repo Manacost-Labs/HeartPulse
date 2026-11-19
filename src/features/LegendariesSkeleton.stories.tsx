@@ -54,15 +54,15 @@ export const Loading: Story = {
 export const Empty: Story = {
   args: { data: empty },
   play: async ({ canvas }) => {
-    await expect(canvas.getByText('Легендарных групп пока нет')).toBeVisible();
+    await expect(canvas.getByText('Данные временно недоступны')).toBeVisible();
     await expect(canvas.queryByText(/npm run|scrape/)).not.toBeInTheDocument();
   },
 };
 export const Error: Story = {
   args: { data: empty, error: true },
   play: async ({ canvas, args }) => {
-    await expect(canvas.getByRole('alert')).toHaveTextContent('Не удалось загрузить легендарные группы');
-    await expect(canvas.queryByText('Легендарных групп пока нет')).not.toBeInTheDocument();
+    await expect(canvas.getByRole('alert')).toHaveTextContent('Данные временно недоступны');
+    await expect(canvas.queryByText('Групп по этому запросу нет')).not.toBeInTheDocument();
     await expect(canvas.queryByText(/scraper/)).not.toBeInTheDocument();
     await userEvent.click(canvas.getByRole('button', { name: 'Повторить' }));
     await expect(args.onRetry).toHaveBeenCalledOnce();

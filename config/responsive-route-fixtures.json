@@ -153,8 +153,8 @@
       "routeId": "legendaries",
       "path": "/legendaries",
       "access": "anonymous",
-      "state": "paywall",
-      "ready": { "selector": ".arena-paywall" },
+      "state": "content",
+      "ready": { "selector": ".legendary-group-card" },
       "capture": { "mode": "viewport", "anchor": "top" },
       "checks": ["overflow", "runtime-errors", "axe", "targets"],
       "representative": false

@@ -37,3 +37,9 @@
 }
 .legendary-skeleton-metric-label { inline-size: 70%; block-size: 8px; }
 .legendary-skeleton-metric-value { inline-size: 45%; block-size: 12px; }
+
+/* The last two cells are the paid ones (LegendaryPaidStat): their value row is as tall as the lock button. */
+.legendary-skeleton-metric--paid { grid-template-rows: calc(11px * 1.25) 2.75rem; }
+
+/* The sample line under the win rate badge (11px text). */
+.legendary-skeleton-sample { inline-size: 6rem; block-size: calc(11px * 1.25); }

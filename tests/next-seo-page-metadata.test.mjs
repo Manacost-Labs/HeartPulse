@@ -1010,7 +1010,7 @@ const ARENA_PAGES = [
   { path: '/classes/', title: `Винрейт классов Арены Hearthstone, ${YEAR} | HearthPulse`,
     question: 'Какой класс выбрать на Арене Hearthstone (хс)?', sources: ['HSReplay', 'Firestone'], dataset: true },
   { path: '/legendaries/', title: `Легендарки Арены Hearthstone, ${YEAR} | HearthPulse`,
-    question: 'Какую легендарку выбрать на Арене Hearthstone (хс)?', sources: ['HSReplay', 'Firestone'], dataset: false },
+    question: 'Какую легендарку выбрать на Арене Hearthstone (хс)?', sources: ['HSReplay', 'Firestone'], dataset: true },
 ];
 
 describe('a closed Arena page explains itself in the HTML: questions, sources, update schedule and no statistics', { timeout: 180_000 }, () => {

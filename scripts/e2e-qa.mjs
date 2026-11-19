@@ -712,7 +712,11 @@ function assertLayout(path, layout) {
     failures.push(`${path}: banner decoration is not contained (${layout.bannerOverflow})`);
   }
   if (layout.bannerHeight) {
-    const expectedHeight = path.split(' ')[0].replace(/\/$/, '') === '/faq' ? (layout.mobile ? 180 : 210) : (layout.mobile ? 360 : 320);
+    const routePath = path.split(' ')[0].replace(/\/$/, '');
+    // /legendaries keeps a short banner on a phone (min-height 96px in LegendariesOpenLayer.css, ~98px with
+    // its title) so the name, composition and winrate of the first group fit a 390×844 first screen.
+    const expectedHeight = routePath === '/faq' ? (layout.mobile ? 180 : 210)
+      : routePath === '/legendaries' && layout.mobile ? 98 : (layout.mobile ? 360 : 320);
     if (Math.abs(layout.bannerHeight - expectedHeight) > 1) {
       failures.push(`${path}: shared banner height changed (${layout.bannerHeight}px; expected ${expectedHeight}px)`);
     }

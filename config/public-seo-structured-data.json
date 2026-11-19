@@ -985,6 +985,53 @@
             "item": "https://hearthpulse.net/legendaries/"
           }
         ]
+      },
+      {
+        "@type": "Dataset",
+        "@id": "https://hearthpulse.net/legendaries/#dataset",
+        "name": "Легендарные группы Арены Hearthstone",
+        "description": "Группы легендарных карт Арены Hearthstone, из которых игроку предлагают выбор, по данным HSReplay и Firestone. Частота предложения и оценка ArenaSmith доступны по подписке; на открытой странице — состав групп, класс, винрейт, частота выбора, размер выборки, дата обновления и источник.",
+        "url": "https://hearthpulse.net/legendaries/",
+        "isAccessibleForFree": false,
+        "hasPart": {
+          "@type": "WebPageElement",
+          "isAccessibleForFree": false,
+          "cssSelector": ".paywalled-legendaries"
+        },
+        "isBasedOn": [
+          {
+            "@type": "Dataset",
+            "name": "HSReplay: Arena",
+            "url": "https://hsreplay.net/arena/"
+          },
+          {
+            "@type": "Dataset",
+            "name": "Firestone",
+            "url": "https://www.firestoneapp.com/"
+          }
+        ],
+        "variableMeasured": [
+          {
+            "@type": "PropertyValue",
+            "name": "Винрейт группы",
+            "unitText": "%"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Частота выбора группы",
+            "unitText": "%"
+          }
+        ],
+        "keywords": [
+          "Hearthstone",
+          "Арена",
+          "легендарки",
+          "винрейт"
+        ],
+        "about": {
+          "@type": "VideoGame",
+          "name": "Hearthstone"
+        }
       }
     ],
     "/gallery": [

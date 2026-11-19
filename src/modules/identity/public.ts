@@ -25,3 +25,4 @@ export const loadLoginPanel = () => import('./ui/LoginPanel')
 
 /** Keeps the public player card out of every bundle but the profile page's. */
 export const loadPublicProfileCard = () => import('./ui/PublicProfileCard');
+export { loginUrlReturningTo, pageReturnTo } from './model/loginReturn';

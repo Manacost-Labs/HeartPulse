@@ -11,7 +11,8 @@ test('Next Arena pages show the shared subscription paywall to guests', async ()
   try {
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
-    for (const path of ['/classes/', '/tierlist/', '/legendaries/']) {
+    // /legendaries/ is not here: its groups are open, see next-legendaries-open-layer-browser.test.mjs.
+    for (const path of ['/classes/', '/tierlist/']) {
       const page = await browser.newPage();
       await page.goto(`${runtime.origin}${path}`, { waitUntil: 'networkidle2' });
       await page.waitForSelector('.arena-paywall .arena-paywall__dialog', { timeout: 15000 })
@@ -45,7 +46,7 @@ test('Next Arena pages swap a guest to the paywall without a layout shift', asyn
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
     for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true }]) {
-      for (const path of ['/classes/', '/tierlist/', '/legendaries/']) {
+      for (const path of ['/classes/', '/tierlist/']) {
         const page = await browser.newPage();
         await page.setViewport(viewport);
         await page.evaluateOnNewDocument(() => {
