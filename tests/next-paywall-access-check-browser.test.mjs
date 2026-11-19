@@ -6,7 +6,9 @@ import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import express from 'express';
+import { createBattlegroundLibrarySeoRouter } from '../server/battlegroundLibrarySeoRoutes.ts';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
+import { fetchImpl as libraryFixtureFetch } from './helpers/battlegroundLibraryOpenFixture.ts';
 
 // The open projection `GET /api/bg/heroes/public` as Express answers it (six ranked heroes), served as it is.
 const openRanking = mode => ({
@@ -89,7 +91,7 @@ test('gated pages keep the gate height while the access check runs', async () =>
       headless: true, args: ['--no-sandbox'] });
     const viewports = [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true, hasTouch: true }];
     for (const viewport of viewports) {
-      for (const path of ['/library/', '/guides-archive/',
+      for (const path of ['/guides-archive/',
         '/standard/matchups/', '/standard/vicious-gold/']) {
         const page = await browser.newPage();
         await page.setViewport(viewport);
@@ -357,6 +359,100 @@ test('/heroes/<id>/ shows the open statistics without a placeholder and keeps th
         const total = shifts.reduce((sum, shift) => sum + shift.value, 0);
         assert.ok(total < 0.01, `${subscriber ? 'subscriber' : 'guest'} at ${viewport.width}px shifted by ${total.toFixed(3)}: ${JSON.stringify(shifts)}`);
         await page.close();
+      }
+    }
+    await closeLocal(front);
+  } finally {
+    if (browser) await browser.close();
+    if (gateway) await closeLocal(gateway.server);
+    if (next) await next.close();
+    legacyServer.closeAllConnections();
+    await new Promise(done => legacyServer.close(done));
+  }
+});
+
+// The library has an open layer too (`/library/minions/` the list): nobody waits
+// behind a placeholder or a gate; a confirmed subscriber keeps the open layer on screen until the paid view's chunk has
+// loaded (here it arrives late), and the view then replaces it in one render, without a layout shift.
+test('the library keeps its open layer until the paid view has loaded, without a layout shift', async () => {
+  const legacy = express();
+  legacy.use(createBattlegroundLibrarySeoRouter({ fetchImpl: libraryFixtureFetch, auxiliaryCatalogBaseUrl: 'https://api.example.test/api/v1', onError: () => undefined }));
+  legacy.use((_request, response) => response.status(401).end());
+  const legacyServer = legacy.listen(0, '127.0.0.1');
+  let next; let gateway; let browser;
+  try {
+    await new Promise(done => legacyServer.once('listening', done));
+    next = await startNextServer({ legacyOrigin: `http://127.0.0.1:${legacyServer.address().port}`,
+      env: { NODE_OPTIONS: `--require=${resolve('tests/helpers/shiftableClock.cjs')}` } });
+    gateway = await startGateway(next.origin);
+    gateway.server.removeAllListeners('request');
+    const front = http.createServer((request, response) => {
+      const subscriber = /(?:^|;\s*)pending_reader=1/.test(request.headers.cookie ?? '');
+      const json = payload => response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(payload));
+      if (request.url === '/api/auth/me') return void setTimeout(() => json({ user: subscriber ? SUBSCRIBER : null }), SESSION_DELAY_MS);
+      if (subscriber && request.url === '/api/subscription/status') return json(SUBSCRIBED);
+      if (subscriber && request.url.startsWith('/api/bg/library/') && !request.url.startsWith('/api/bg/library/public/')) return json({ data: [], meta: {} });
+      if (request.url.startsWith('/api/bg/library/public/')) {
+        const upstream = http.request({ host: '127.0.0.1', port: legacyServer.address().port, path: request.url },
+          answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
+        return void upstream.end();
+      }
+      if (request.url.startsWith('/api/')) return void response.writeHead(401, { 'Content-Type': 'application/json' }).end('{"error":"guest"}');
+      const upstream = http.request(new URL(next.origin), { method: request.method, path: request.url, headers: request.headers },
+        answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
+      return void request.pipe(upstream);
+    });
+    const frontOrigin = await listenLocal(front);
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+      headless: true, args: ['--no-sandbox'] });
+    const pages = [
+      ['/library/minions/', '.bg-library-public tbody tr', 4, '.bg-library-locks button'],
+    ];
+    for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true, hasTouch: true }]) {
+      for (const [path, openSelector, openCount, lockSelector] of pages) {
+        for (const subscriber of [false, true]) {
+          const page = await browser.newPage();
+          await page.setViewport(viewport);
+          if (subscriber) await page.setCookie({ name: 'pending_reader', value: '1', url: frontOrigin });
+          await page.evaluateOnNewDocument(() => {
+            window.__layoutShifts = [];
+            new PerformanceObserver(list => {
+              for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.__layoutShifts.push(entry.value);
+            }).observe({ type: 'layout-shift', buffered: true });
+          });
+          // The paid view's chunk arrives late: the script that holds the library view (found by a string only it has) waits.
+          let held = 0;
+          await page.setRequestInterception(true);
+          page.on('request', request => {
+            if (!subscriber || request.resourceType() !== 'script') return void request.continue().catch(() => {});
+            void fetch(request.url()).then(async answer => {
+              const body = await answer.text();
+              if (body.includes('Удаленные квесты из прошлых пулов Полей сражений')) { held += 1; await delay(4000); }
+              await request.respond({ status: 200, contentType: 'application/javascript', body });
+            }).catch(() => request.continue().catch(() => {}));
+          });
+          await page.goto(`${frontOrigin}${path}`, { waitUntil: 'domcontentloaded' });
+          const count = () => page.evaluate(selector => document.querySelectorAll(selector).length, openSelector);
+          assert.equal(await count(), openCount, `${path}: the open layer is in the first paint`);
+          assert.equal(await page.$('.arena-paywall-pending'), null, 'no placeholder while access is checked');
+          assert.equal(await page.$('.arena-paywall'), null, 'no gate for a visitor of an open page');
+          if (subscriber) {
+            await page.waitForFunction(() => performance.getEntriesByType('resource').some(entry => entry.name.endsWith('/api/subscription/status')), { timeout: 10_000 });
+            await delay(1200);
+            // Access is confirmed, the chunk is still on its way: the open layer has not been replaced by a placeholder.
+            assert.equal(await count(), openCount, `${path}: the open layer stays until the paid view has loaded`);
+            assert.equal(await page.$('.arena-paywall-pending'), null, 'no placeholder while the paid view loads');
+            assert.ok(held > 0, 'the chunk of the paid view was held back (the scenario is real)');
+            await page.waitForSelector('.arena-paid-view', { timeout: 15_000 });
+            assert.equal(await count(), 0, 'the open layer is replaced, not doubled');
+          } else {
+            await page.waitForSelector(lockSelector, { timeout: 10_000 });
+          }
+          await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+          const total = (await page.evaluate(() => window.__layoutShifts)).reduce((sum, value) => sum + value, 0);
+          assert.ok(total < 0.01, `${path} ${subscriber ? 'subscriber' : 'guest'} at ${viewport.width}px shifted by ${total.toFixed(3)}`);
+          await page.close();
+        }
       }
     }
     await closeLocal(front);

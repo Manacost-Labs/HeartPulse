@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import express from 'express';
 import { createBattlegroundLibrarySeoRouter } from '../server/battlegroundLibrarySeoRoutes.js';
+import './battleground-library-open.check';
 
 const INDEX_ROBOTS = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
 const privateSentinels = [

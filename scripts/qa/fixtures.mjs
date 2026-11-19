@@ -385,6 +385,16 @@ export const fixtures = {
       },
     },
   },
+  // The open listings the Next pages of the library read (the card below is one of them).
+  '/api/bg/library/public/listing': { kinds: [{ kind: 'minions', total: 1 }] },
+  '/api/bg/library/public/listing/minions': {
+    kind: 'minions', total: 1, slice: { mmr: 'TOP_50_PERCENT', source: 'HSReplay', updatedAt: '2026-11-19T02:45:13.000Z' },
+    items: [{
+      dbfId: 9101, name: 'Контрольное существо', typeName: 'Существо', path: '/library/minions/контрольное-существо-9101/',
+      tavernTier: 3, group: 'Зверь', attack: 4, health: 5,
+      stats: { avgPlacementWith: 3.9, popularity: 7.5, gamesWith: 900 },
+    }],
+  },
   '/api/bg/library/public/minion/9101': {
     card: {
       dbfId: 9101, kind: 'minion', typeName: 'Существо', nameRu: 'Контрольное существо', nameEn: 'QA Minion',

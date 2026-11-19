@@ -7,34 +7,14 @@ import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js'
 import { canonicalBattlegroundCardSlug, createBattlegroundLibraryCatalogCache, createBattlegroundLibraryIdentityReader, createBattlegroundLibraryAuxiliaryPublicRouter,
   createBattlegroundLibraryPublicRouter, readBattlegroundLibraryIdentity, withBattlegroundLibraryDeadline as withDeadline } from './modules/battlegroundLibrary/public.js';
 import { renderTextPlurals } from '../shared/hearthstoneCardText.js';
+import { createBattlegroundLibraryListingRouter } from './battlegroundLibraryListing.js';
+import { createLibraryStatsStore } from './battlegroundLibraryOpenStats.js';
 export { canonicalBattlegroundCardSlug } from './modules/battlegroundLibrary/public.js';
 
-type JsonRecord = Record<string, unknown>;
-export type BattlegroundLibraryKind = 'minion' | 'spell';
+import type { BattlegroundLibraryKind, PublicBattlegroundLibraryCard } from './battlegroundLibraryCardTypes.js';
 
-export type PublicBattlegroundLibraryCard = {
-  dbfId: number;
-  kind: BattlegroundLibraryKind;
-  typeName: string;
-  nameRu: string;
-  nameEn: string | null;
-  textRu: string | null;
-  textEn: string | null;
-  tavernTier: number | null;
-  tribe: string | null;
-  attack: number | null;
-  health: number | null;
-  mechanics: string[];
-  images: {
-    card: string | null;
-    golden: string | null;
-    art: string | null;
-    framed: string | null;
-    crop: string | null;
-  };
-  artist: string | null;
-  inPool: boolean;
-};
+type JsonRecord = Record<string, unknown>;
+export type { BattlegroundLibraryKind, PublicBattlegroundLibraryCard } from './battlegroundLibraryCardTypes.js';
 
 export type BattlegroundLibrarySeoRouterDependencies = {
   fetchImpl?: typeof fetch;
@@ -531,10 +511,16 @@ export function createBattlegroundLibrarySeoRouter(
     });
   }
 
+  const statsStore = createLibraryStatsStore({ fetchImpl, now, timeoutMs: catalogTimeoutMs, onError: dependencies.onError });
+  const auxiliaryBaseUrl = dependencies.auxiliaryCatalogBaseUrl ?? 'https://api.kolodahearthstone.com/api/v1';
+  router.use(createBattlegroundLibraryListingRouter({
+    loadBaseCards: kind => catalogCache.load(kind), stats: statsStore, fetchImpl, now,
+    apiBaseUrl: auxiliaryBaseUrl, onError: dependencies.onError, retryAfterSeconds,
+  }));
   router.use(createBattlegroundLibraryPublicRouter({ loadCatalog, retryAfterSeconds, onError: dependencies.onError }));
   router.use(createBattlegroundLibraryAuxiliaryPublicRouter({
     fetchImpl, retryAfterSeconds, onError: dependencies.onError, cardText: renderTextPlurals,
-    apiBaseUrl: dependencies.auxiliaryCatalogBaseUrl ?? 'https://api.kolodahearthstone.com/api/v1',
+    apiBaseUrl: auxiliaryBaseUrl,
     publicImageUrl: value => sameOriginPublicResourceUrl(value, origin) ?? shareImageUrl('battlegrounds', origin),
   }));
   const handlerFor = (kind: BattlegroundLibraryKind): RequestHandler => async (request, response) => {
