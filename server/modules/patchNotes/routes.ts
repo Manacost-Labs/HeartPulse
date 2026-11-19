@@ -6,10 +6,13 @@ export type PatchNotesRouterDependencies = {
   load: () => Promise<PatchNotesSnapshot>;
   /** Adds before/after card pictures; without it entries keep the `null` pair of the snapshot. */
   withCardVersions?: (snapshot: PatchNotesSnapshot, patches: PatchNotesDetail[]) => Promise<PatchNotesDetail[]>;
+  /** True while the pictures or cards of an answer are still being read; the answer is then cached only briefly. */
+  incomplete?: () => boolean;
   onError?: (error: unknown) => void;
 };
 
 const PUBLIC_CACHE = 'public, max-age=600, stale-while-revalidate=1800';
+const INCOMPLETE_CACHE = 'public, max-age=10';
 /** How many of the newest patches with card changes `/patch-notes/recent` serves. */
 const RECENT_PATCHES = 2;
 
@@ -53,8 +56,9 @@ export function createPatchNotesRouter(dependencies: PatchNotesRouterDependencie
     const snapshot = await read(response);
     if (!snapshot) return;
     const patches = snapshot.patches.filter(patch => patch.changeCount > 0).slice(0, RECENT_PATCHES);
-    response.set('Cache-Control', PUBLIC_CACHE);
-    response.json({ patches: await withPictures(snapshot, patches), updatedAt: snapshot.updatedAt });
+    const withCards = await withPictures(snapshot, patches);
+    response.set('Cache-Control', dependencies.incomplete?.() ? INCOMPLETE_CACHE : PUBLIC_CACHE);
+    response.json({ patches: withCards, updatedAt: snapshot.updatedAt });
   });
 
   router.get('/patch-notes/:version', async (request, response) => {
@@ -72,8 +76,9 @@ export function createPatchNotesRouter(dependencies: PatchNotesRouterDependencie
       response.set('Cache-Control', 'public, max-age=300');
       return response.status(404).json({ error: 'Патч не найден' });
     }
-    response.set('Cache-Control', PUBLIC_CACHE);
-    return response.json((await withPictures(snapshot, [patch]))[0]);
+    const [withCards] = await withPictures(snapshot, [patch]);
+    response.set('Cache-Control', dependencies.incomplete?.() ? INCOMPLETE_CACHE : PUBLIC_CACHE);
+    return response.json(withCards);
   });
 
   return router;

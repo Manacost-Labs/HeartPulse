@@ -803,3 +803,23 @@ test('the page is the two newest patches: each card before → after, no search,
     assert.ok(!html.includes(gone), `${gone} is gone from the page`);
   }
 });
+
+test('an answer built while the catalog is still being read is cached only briefly', async () => {
+  const patch = { version: '37.0.2', build: '37.0.2.1', title: 'Патч', publishedAt: '2026-11-03T15:55:00+00:00', sourceUrl: null, officialUrl: null,
+    changeCount: 1, summary: null, entries: [], missingBefore: 0, pictureSections: [], generalChanges: [], meta: null };
+  let incomplete = true;
+  const app = express().use('/api', createPatchNotesRouter({
+    load: async () => ({ patches: [patch], updatedAt: 'x' }), incomplete: () => incomplete,
+  }));
+  const server = app.listen(0);
+  try {
+    const { port } = server.address() as { port: number };
+    const cache = async (path: string) => (await fetch(`http://127.0.0.1:${port}${path}`)).headers.get('cache-control');
+    assert.equal(await cache('/api/patch-notes/recent'), 'public, max-age=10');
+    assert.equal(await cache('/api/patch-notes/37.0.2'), 'public, max-age=10');
+    incomplete = false;
+    assert.match(await cache('/api/patch-notes/recent') ?? '', /max-age=600/);
+  } finally {
+    server.close();
+  }
+});

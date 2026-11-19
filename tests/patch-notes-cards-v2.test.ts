@@ -8,6 +8,7 @@ import { pickVersionPair } from '../server/modules/patchNotes/cardVersions.js';
 import { cardFacts, diffFacts, reconcileChanges } from '../server/modules/patchNotes/versionChanges.js';
 import { battlegroundNamed, collectibleNamed, createMentionFinder, sameWordStem, withMentions } from '../server/modules/patchNotes/generalMentions.js';
 import { parsePatchArticle } from '../server/modules/patchNotes/parser.js';
+import { createPatchNotesService } from '../server/modules/patchNotes/service.js';
 import type { BattlegroundCatalogCard } from '../server/modules/patchNotes/battlegroundCatalog.js';
 import type { PatchNotesDetail, PatchNotesEntry } from '../server/modules/patchNotes/contract.js';
 
@@ -171,4 +172,31 @@ test('collectible names keep the original print, and the marks reach the mode\'s
   const [result] = withMentions([patch], { battlegrounds: createMentionFinder(battlegroundNamed(battlegrounds)), collectible: createMentionFinder(named) });
   assert.equal(result.generalChanges[0].marks?.[0]?.cardId, 'BG28_707');
   assert.equal(result.generalChanges[1].marks, undefined, 'Constructed lines look in the collectible dictionary, which has no such card');
+});
+
+test('a slow catalog never holds an answer back: it goes out within the bound, the reads go on, the next answer has the cards', async () => {
+  const asked: string[] = [];
+  const service = createPatchNotesService({
+    fetchJson: async () => ({ patches: [] }), patchesUrl: 'x', ttlMs: 1000, loadCardNames: async () => ({}),
+    cardHistoryBaseUrl: `${ORIGIN}/api/v1`,
+    fetchCardHistory: async url => {
+      asked.push(url);
+      if (!url.includes('/card-catalog?')) throw Object.assign(new Error('not found'), { status: 404 });
+      await new Promise(resolve => setTimeout(resolve, 2_600));
+      return { data: catalogRows };
+    },
+  });
+  const patch = detail([entry('Гнев К’Туна — Способность К’Туна', { id: 'a' })]);
+  const snapshot = { patches: [patch], updatedAt: '2026-11-19T00:00:00.000Z' };
+  const started = Date.now();
+  const [first] = await service.withCardVersions(snapshot, [patch]);
+  const took = Date.now() - started;
+  assert.ok(took < 2_500, `the answer waited ${took} ms, longer than the bound`);
+  assert.equal(first.entries[0].cardId, null, 'without the catalog\'s answer the entry keeps its article name');
+  assert.equal(service.incomplete(), true, 'an answer built before the reads finished is marked incomplete');
+  await new Promise(resolve => setTimeout(resolve, 900));
+  assert.equal(service.incomplete(), false);
+  const [second] = await service.withCardVersions(snapshot, [patch]);
+  assert.equal(second.entries[0].cardId, 'BE_013t1');
+  assert.equal(asked.filter(url => url.includes('/card-catalog?')).length, 1, 'the background read was joined, not repeated');
 });

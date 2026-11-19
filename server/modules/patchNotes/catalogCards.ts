@@ -82,6 +82,18 @@ export function createCatalogCards({ fetchJson, baseUrl, now = Date.now }: Catal
   const fresh = (base: string) => (known.get(nameKey(base))?.until ?? 0) > now();
 
   return {
+    /** True while a catalog read is still running: an answer built now may lack cards a later one has. */
+    pending: () => reading.size > 0,
+    /**
+     * The patches with the cards known within `waitMs`; the reads go on in the background, and the next call
+     * (which joins them rather than repeating them) finds the rest. Never rejects.
+     */
+    async fillWithin(patches: PatchNotesDetail[], waitMs: number): Promise<PatchNotesDetail[]> {
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      await Promise.race([this.load(patches), new Promise(done => { timer = setTimeout(done, waitMs); })]);
+      clearTimeout(timer);
+      return this.fill(patches);
+    },
     /** Reads the catalog for every card of the patches that still has no card; never rejects. */
     async load(patches: PatchNotesDetail[]): Promise<void> {
       const names = new Map<string, boolean>();

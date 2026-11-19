@@ -47,6 +47,9 @@ export type PatchNotesSnapshot = {
   updatedAt: string;
 };
 
+/** How long an answer waits for catalog names (cards outside the dictionary) before it goes out without them. */
+const CATALOG_WAIT_MS = 2_000;
+
 const text = (value: unknown) => {
   const result = String(value ?? '').trim();
   return result || null;
@@ -221,9 +224,11 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
     /** Adds before/after pictures of the card history; waits a few seconds for an unread patch, never fails. */
     async withCardVersions(snapshot: PatchNotesSnapshot, patches: PatchNotesDetail[]): Promise<PatchNotesDetail[]> {
       if (!cardVersions) return patches;
-      await catalogCards?.load(patches);
-      return cardVersions.attach(snapshot.patches, catalogCards ? catalogCards.fill(patches) : patches);
+      const filled = catalogCards ? await catalogCards.fillWithin(patches, CATALOG_WAIT_MS) : patches;
+      return cardVersions.attach(snapshot.patches, filled);
     },
+    /** True while an answer may still lack cards the catalog is yet to name; such an answer is cached only briefly. */
+    incomplete: () => catalogCards?.pending() ?? false,
     async load(): Promise<PatchNotesSnapshot> {
       if (snapshot && snapshot.expiresAt > now()) return snapshot.value;
       if (snapshot) {
