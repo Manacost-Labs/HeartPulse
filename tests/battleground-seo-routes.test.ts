@@ -96,6 +96,14 @@ const frontendAssets = [
   '<link rel="stylesheet" crossorigin href="/assets/index-safe.css">',
 ].join('\n');
 
+// What the Battlegrounds service answers for the open base-range ranking (`mmr=TOP_50_PERCENT`): the hero is rated and
+// carries open figures only, so the statistics block of the public projection has something to project.
+const rankingCatalog = (hero: unknown) => ({
+  ok: true, fetched_at: '2026-07-21T16:02:52.020Z',
+  view: { heroes: [{ ...(hero as object), tier: 'S', avg_placement: '3.80', pick_rate: '12.5%', best_composition: undefined,
+    placement_distribution: undefined, statsAccess: undefined, hero_power: undefined }] },
+});
+
 type FetchCall = { url: string; init?: RequestInit };
 const calls: FetchCall[] = [];
 const app = express();
@@ -104,7 +112,9 @@ app.use(createBattlegroundHeroSeoRouter({
     calls.push({ url: String(url), init });
     const payload = String(url).includes('api.kolodahearthstone.com')
       ? duoLibraryHero
-      : (String(url).includes('mode=duos') ? duoCatalog : catalog);
+      : String(url).includes('mmr=TOP_50_PERCENT')
+        ? rankingCatalog(catalog.view.heroes[0])
+        : (String(url).includes('mode=duos') ? duoCatalog : catalog);
     return new Response(JSON.stringify(payload), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
