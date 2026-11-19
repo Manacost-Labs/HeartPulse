@@ -89,6 +89,24 @@ test('the Wild banner, the format buttons and Back keep the menu and the page in
     await page.click('.arena-sidebar .hp-nav-list[data-for="wild"] a[href="/standard/patches/"]');
     await page.waitForFunction(() => location.pathname === '/standard/patches/');
     assert.deepEqual((await readMenu(page)).lists.concat((await readMenu(page)).current), ['wild', 'Патчноуты'], 'patch notes after Wild stay in Wild');
+
+    // The deck builder's own format select is the same state: a switch adds a history entry, Back returns the format and the mode.
+    const builderFormat = () => page.evaluate(() => [...document.querySelectorAll('#main-content .hp-builder-context select')].find(select => select.querySelector('option[value="wild"]'))?.value);
+    await page.click('.arena-sidebar .hp-nav-list[data-for="wild"] a[href="/standard/deck-builder/?format=wild"]');
+    await page.waitForFunction(() => location.pathname === '/standard/deck-builder/' && location.search === '?format=wild');
+    await page.waitForFunction(() => [...document.querySelectorAll('#main-content .hp-builder-context select')].some(select => select.value === 'wild'));
+    assert.deepEqual((await readMenu(page)).lists.concat((await readMenu(page)).current), ['wild', 'Конструктор колод']);
+    await page.evaluate(() => { window.__builder = true; });
+    const formatSelect = await page.evaluateHandle(() => [...document.querySelectorAll('#main-content .hp-builder-context select')].find(select => select.querySelector('option[value="wild"]')));
+    await formatSelect.select('standard');
+    await page.waitForFunction(() => location.search === '');
+    assert.equal(await builderFormat(), 'standard');
+    assert.deepEqual((await readMenu(page)).lists.concat((await readMenu(page)).current), ['standard', 'Конструктор колод'], 'the menu follows the builder to Standard');
+    await page.goBack();
+    await page.waitForFunction(() => location.pathname === '/standard/deck-builder/' && location.search === '?format=wild');
+    await page.waitForFunction(() => [...document.querySelectorAll('#main-content .hp-builder-context select')].some(select => select.value === 'wild'));
+    assert.deepEqual((await readMenu(page)).lists.concat((await readMenu(page)).current), ['wild', 'Конструктор колод'], 'Back returns the builder and the menu to Wild');
+    assert.equal(await page.evaluate(() => window.__builder), true, 'Back stayed on the builder without a reload');
     assert.deepEqual(errors, []);
     await page.close();
 

@@ -42,18 +42,24 @@ export function usePageFormat(): PageFormat | null {
 /**
  * Keeps a format that the page holds in its own state and the address's `?format=wild` equal.
  * The address leads when it changed (a menu item, Back) and `canFollow` says the page may
- * switch; otherwise the page leads and rewrites the address. Until the browser has read the
- * address (hydration) nothing happens, so the first render still matches the server's HTML.
+ * switch; otherwise the page leads and rewrites the address. A format the reader switched on
+ * the page adds a history entry, so Back returns the previous format and the menu's mode; a
+ * page that only refuses the address's format (a deck in progress) rewrites it in place. Until
+ * the browser has read the address (hydration) nothing happens, so the first render still
+ * matches the server's HTML.
  */
 export function useFormatAddress(format: PageFormat, canFollow: boolean, follow: (format: PageFormat) => void): void {
   const address = usePageFormat();
   const seen = useRef<PageFormat | null>(null);
+  const held = useRef<PageFormat | null>(null);
   useEffect(() => {
     if (address === null) return;
-    const changed = seen.current !== address;
+    const addressChanged = seen.current !== address;
+    const pageSwitched = held.current !== null && held.current !== format;
     seen.current = address;
+    held.current = format;
     if (address === format) return;
-    if (changed && canFollow) follow(address);
-    else setPageFormat(format, 'replace');
+    if (addressChanged && canFollow) follow(address);
+    else setPageFormat(format, pageSwitched ? 'push' : 'replace');
   }, [address, format, canFollow, follow]);
 }
