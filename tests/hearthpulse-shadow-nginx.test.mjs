@@ -340,8 +340,8 @@ async function verifyEdgeDocumentCache() {
   if (!binary) return;
   // Written out here, not taken from the application: the pages that render Express data and the
   // prerendered pages that do not.
-  const DATA_URLS = ['/tierlist/', '/classes/', '/standard/meta/', '/articles/'];
-  const ISR_WITHOUT_DATA = ['/heroes/', '/legendaries/', '/guides-archive/', '/standard/matchups/', '/standard/vicious-gold/', '/battlegrounds/tier-list/'];
+  const DATA_URLS = ['/tierlist/', '/classes/', '/standard/meta/', '/articles/', '/legendaries/', '/heroes/'];
+  const ISR_WITHOUT_DATA = ['/guides-archive/', '/standard/matchups/', '/standard/vicious-gold/', '/battlegrounds/tier-list/'];
   const VARY = 'rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept-Encoding';
   const hits = new Map();
   // What the origin answers for a path from now on: `gone` (404), `unmarked` or `failing` (502).
@@ -475,7 +475,7 @@ ${serverHeaders}
 
     const isr = await get('/heroes/');
     assert.equal((await get('/heroes/')).body, isr.body, 'an ISR page is stored as well');
-    // Pages that render Express data: the build copy of the four prerendered ones is empty
+    // Pages that render Express data: the build copy of the six prerendered ones is empty
     // until the post-deploy warm-up, so every one keeps a minute, not five. A guest's copy is
     // shared; a visitor with a cookie or a credential never reads or fills it.
     for (const path of DATA_URLS) {

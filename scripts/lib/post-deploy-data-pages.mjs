@@ -4,7 +4,7 @@
  * block, which does not depend on how much data there is (a word count does).
  * The copy without the data is what the build makes without Express, or what
  * a first-paint read that missed its 600 ms budget ships. `copyWords` and
- * `dataWords` are only what a stand measured on 2026-11-16 (the copy against
+ * `dataWords` are only what a stand measured on 2026-11-16 (2026-11-19 for /legendaries/ and /heroes/; the copy against
  * the page with live data) and show the size of the difference.
  * The warm-up after a deploy (`scripts/warm-prerendered-pages.mjs`) waits for
  * the marker, and a production monitor can use the same table.
@@ -21,6 +21,8 @@ export const DATA_PAGES = [
   { path: '/articles/', isr: true, marker: 'article-card-modern', copyWords: 144, dataWords: 895 },
   { path: '/tierlist/', isr: true, marker: 'tierlist-public-pool', copyWords: 557, dataWords: 831 },
   { path: '/classes/', isr: true, marker: 'classes-public-teaser', copyWords: 469, dataWords: 554 },
+  { path: '/legendaries/', isr: true, marker: 'legendary-group-card', copyWords: 346, dataWords: 4931 },
+  { path: '/heroes/', isr: true, marker: 'bg-heroes-public__hero', copyWords: 172, dataWords: 2250 },
   { path: '/leaderboards/', marker: 'leaderboards-table__rank', copyWords: 197, dataWords: 811 },
   { path: '/cosmetics/', marker: 'cosmetics-hero-card', copyWords: 192, dataWords: 314 },
   { path: '/cosmetics/heroes/', marker: 'cosmetics-hero-card', copyWords: 193, dataWords: 315 },

@@ -9,6 +9,7 @@ import test from 'node:test';
 import express from 'express';
 import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
+import { DATA_PAGES, hasMarker } from '../scripts/lib/post-deploy-data-pages.mjs';
 import { createTierlistRouter } from '../server/tierlistRoutes.ts';
 import { buildFixtureCards, buildTierlistFixture, closedValues, guestPercent, CLASS_IDS, PAID_KEYS } from './helpers/tierlistPublicFixture.ts';
 
@@ -209,7 +210,7 @@ test('the post-deploy warm-up revalidates again until /tierlist/ carries its sli
     const { code, output } = await stand.warm({ WARM_TOTAL_MS: '30000' });
     assert.equal(code, 0, output);
     assert.ok(stand.revalidations.length >= 2, `a page left without data is revalidated again: ${output}`);
-    assert.deepEqual([...stand.revalidations[0]].sort(), ['/articles', '/classes', '/standard/meta', '/tierlist'],
+    assert.deepEqual([...stand.revalidations[0]].sort(), ['/articles', '/classes', '/heroes', '/legendaries', '/standard/meta', '/tierlist'],
       'the real route regenerates exactly the pages that render data');
     assert.match(output, /\[warm\] \/tierlist\/: with data/, output);
     // What a visitor gets right after the warm-up, with no clock shifted and no second request needed.
@@ -316,4 +317,25 @@ test('/tierlist/ in a browser: the whole pool without JS, the class filter with 
     legacyServer.closeAllConnections();
     await new Promise(done => legacyServer.close(done));
   }
+});
+
+// The two lists of prerendered data pages (the warm-up table and the revalidate route) must name the same pages,
+// and the markers of the open ISR pages must tell the HTML with data from the copy without it.
+test('the revalidate route lists exactly the ISR pages of the warm-up table', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile('apps/public-web/app/health/next/revalidate/route.ts', 'utf8');
+  const listed = [...source.match(/DATA_PAGES = \[([^\]]*)\]/)[1].matchAll(/'([^']+)'/g)].map(match => match[1]);
+  const table = DATA_PAGES.filter(page => page.isr).map(page => page.path.replace(/\/$/, ''));
+  assert.deepEqual([...listed].sort(), [...table].sort());
+  assert.ok(table.includes('/legendaries') && table.includes('/heroes'));
+});
+
+test('the markers of /legendaries/ and /heroes/ are in the HTML with data and not in the copy without it', () => {
+  const marker = path => DATA_PAGES.find(page => page.path === path).marker;
+  const legendaries = marker('/legendaries/');
+  assert.equal(hasMarker('<div class="legendary-group-card" data-rank="1">', legendaries), true);
+  assert.equal(hasMarker('<div class="legendary-groups-empty"><p>Данные временно недоступны</p></div><div class="seo-page-intro">', legendaries), false);
+  const heroes = marker('/heroes/');
+  assert.equal(hasMarker('<a class="bg-heroes-public__hero" href="/heroes/1/">', heroes), true);
+  assert.equal(hasMarker('<p class="bg-heroes-public" role="status">Рейтинг героев временно недоступен.</p>', heroes), false);
 });
