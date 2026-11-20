@@ -18,9 +18,9 @@ export const generateMetadata = seoStaticPageMetadata('/tierlist', 'HearthPulse 
 
 export default async function Page() {
   const pool = await loadPublicTierlist();
-  // Regenerating at runtime without data throws: Next does not publish the result and keeps the earlier copy
-  // (also after a restart, when it is the copy on disk). Only the build, which has no Express, prints the stub;
-  // the warm-up after a deploy replaces it (#631, as /legendaries/ and /standard/matchups/).
+  // Regenerating at runtime without data throws: Next does not publish the result and keeps the earlier copy.
+  // Only the build, which has no Express, prints the stub; regenerated copies live in memory (`isrFlushToDisk:
+  // false`), so after a deploy or restart the warm-up replaces it (#631, as /legendaries/ and /standard/matchups/).
   if (!pool && process.env.NEXT_PHASE !== 'phase-production-build') {
     throw new Error('Open Arena tier list unavailable: the earlier copy stays');
   }
