@@ -144,3 +144,39 @@ deadline, and with the long window guests saw «Показывается пос�
 Every missed deadline writes one `[deadline] <name> did not finish within N ms`
 line naming the load (`constructed-cards:catalog:standard`, `…:patches`,
 `…:decks`, `entity-sitemap:standard-cards`, and so on).
+
+### Public card after a restart
+
+Incident 2026-11-20 (#630): after every restart of `hs-arena` the source
+catalog load missed its 15 s deadline, and
+`GET /api/public/constructed-cards/:format/:cardId` waited the full 2 s
+response deadline before it fell back to the stored catalog. Next stops
+waiting after the same 2 s (`CATALOG_READ_DEADLINE_MS`), and its own last good
+copy is lost on restart, so card pages answered 503 for minutes.
+
+The public card read now looks at catalog identity already in memory or in
+the stored catalog first (`peekPublicCards`, no source read). A unique,
+indexable card found there is answered at once (marked stale when it comes
+from the stored copy) while the shared load refreshes in the background.
+Absence is still decided by the shared load: a missing card waits up to 2 s
+for a fresh catalog (a real 404) and otherwise gets 503 with
+`Retry-After: 30`, never a 404 from a stored copy.
+
+The stored catalog is tens of megabytes (Wild: 6 500 cards, 33 MB per file)
+and is read synchronously. `readUsable` re-normalizes, hashes and compares
+both copies and repairs them: 2.5–3 s for Wild, longer than a page waits.
+The serving path therefore uses `readServingCopy`: one copy (the recovery
+copy if the primary is unreadable), shape, count and age checks only, about
+0.2 s for Wild. Both copies were fully validated when they were written
+atomically; verification and repair stay with `readUsable`, used by a failed
+source load when no copy is held and by catalog health (`inspect`).
+
+The serving copy is read at most once per format and invalidation generation
+every 30 s, not once per waiting request, and a failed source load reuses the
+copy already held instead of reading the file again. Parsed, it holds about
+90 MB of heap for Wild and 20 MB for Standard, so it is released after those
+30 s or as soon as a load puts a catalog for the format in memory.
+Measured on the server with a production-sized test catalog: the first Wild
+card after a restart answers in 0.23–0.25 s (3.7–4.4 s before).
+Check: `tests/constructed-card-deadline-cases.ts` (restart with a stored
+catalog while the source hangs or fails).
