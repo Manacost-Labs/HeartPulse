@@ -8,8 +8,13 @@ import { fetchPublicExpress } from './expressApi';
  * card page is 3.5 s), and Express finishes and caches an abandoned read for the next visit anyway.
  */
 const DETAIL_READ_DEADLINE_MS = 800;
-/** A record heavier than this (hundreds of generated cards) is not worth its weight in every HTML response. */
+/** The weight a detail may add to the HTML; a heavier one is cut down (see `trimmed`), and dropped only if still heavier. */
 const MAX_DETAIL_LENGTH = 192 * 1024;
+/** How many decks, generated or related cards, pictures and sounds a cut-down detail keeps: more than a page first shows. */
+const TRIMMED_LIST_LENGTH = 12;
+/** The wiki keys the card page reads; the rest of the wiki record never reaches the HTML. */
+const WIKI_KEYS = ['patch_changes', 'wiki_mechanics', 'wiki_tags', 'wiki_mechanics_localized', 'wiki_tags_localized',
+  'gallery', 'sounds', 'external_links', 'generated_card_pools', 'animated', 'related_cards'] as const;
 
 type RecordValue = Record<string, unknown>;
 const record = (value: unknown): RecordValue => value && typeof value === 'object' && !Array.isArray(value) ? value as RecordValue : {};
@@ -29,15 +34,17 @@ function deck(value: unknown): PublicCardDeckSeed[] {
 
 /**
  * The open detail of the anonymous card API on top of the seed. Null when the
- * answer is not this card, claims statistics access, or is too heavy: the page
- * then keeps the seed. The seed's own facts stay, so the title and the
+ * answer is not this card or claims statistics access, or is too heavy even cut
+ * down: the page then keeps the seed. The seed's own facts stay, so the title and the
  * description computed from it do not change.
  */
 export function publicCardDetailSeed(seed: PublicCardSeed, payload: unknown): PublicCardDetailSeed | null {
   const data = record(payload); const card = record(data.card);
   if (card.card_id !== seed.card_id || data.statsAccess !== false) return null;
   const wikiPage = record(card.wiki_page);
+  const wiki = record(card.wiki);
   const translations = textRecord(data.mechanicTranslations);
+  const related = Array.isArray(card.related_cards_localized) ? card.related_cards_localized : [];
   const detail: PublicCardDetailSeed = {
     ...seed,
     formats: (Array.isArray(card.formats) ? card.formats : []).flatMap(value => {
@@ -48,14 +55,47 @@ export function publicCardDetailSeed(seed: PublicCardSeed, payload: unknown): Pu
     referenced_tags: texts(card.referenced_tags),
     minion_type: text(card.minion_type),
     spell_school: text(card.spell_school),
-    wiki: record(card.wiki),
+    // The wiki related cards are a fallback the page reads only without the localized ones.
+    wiki: Object.fromEntries(WIKI_KEYS.filter(key => key in wiki && !(key === 'related_cards' && related.length)).map(key => [key, wiki[key]])),
     wiki_page: text(wikiPage.url) ? { title: text(wikiPage.title), url: text(wikiPage.url) } : null,
-    related_cards_localized: Array.isArray(card.related_cards_localized) ? card.related_cards_localized : [],
+    related_cards_localized: related,
     decks: (Array.isArray(card.decks) ? card.decks : []).flatMap(deck),
     mechanicTranslations: translations,
     mechanicOverrides: data.mechanicOverrides === undefined ? translations : textRecord(data.mechanicOverrides),
   };
-  return JSON.stringify(detail).length <= MAX_DETAIL_LENGTH ? detail : null;
+  if (JSON.stringify(detail).length <= MAX_DETAIL_LENGTH) return detail;
+  const cut = trimmed(detail);
+  return JSON.stringify(cut).length <= MAX_DETAIL_LENGTH ? cut : null;
+}
+
+/** The first entries of a list; anything else (sounds grouped by kind) stays as it is. */
+const head = (value: unknown): unknown => Array.isArray(value) ? value.slice(0, TRIMMED_LIST_LENGTH) : value;
+
+/**
+ * A popular card can bring hundreds of decks or generated cards (ETC_080: 404 decks; SCH_351: 400 KB of pools).
+ * The cut keeps what the page states about the card itself (mechanics, patch history, links) whole and the first
+ * entries of every long list; the browser loads the full record after the page as before.
+ */
+function trimmed(detail: PublicCardDetailSeed): PublicCardDetailSeed {
+  const { wiki } = detail;
+  return {
+    ...detail,
+    decks: detail.decks.slice(0, TRIMMED_LIST_LENGTH),
+    related_cards_localized: detail.related_cards_localized.slice(0, TRIMMED_LIST_LENGTH).map(group => {
+      const value = record(group);
+      return { ...value, cards: head(value.cards) };
+    }),
+    wiki: {
+      ...wiki,
+      ...('gallery' in wiki ? { gallery: head(wiki.gallery) } : {}),
+      ...('sounds' in wiki ? { sounds: head(wiki.sounds) } : {}),
+      ...('related_cards' in wiki ? { related_cards: head(wiki.related_cards) } : {}),
+      ...('generated_card_pools' in wiki ? { generated_card_pools: (Array.isArray(wiki.generated_card_pools) ? wiki.generated_card_pools.slice(0, TRIMMED_LIST_LENGTH) : []).map(pool => {
+        const value = record(pool);
+        return { ...value, cards: head(value.cards) };
+      }) } : {}),
+    },
+  };
 }
 
 /**

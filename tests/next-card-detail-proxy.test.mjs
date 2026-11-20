@@ -92,6 +92,52 @@ test('a card page shows its open detail without script, and nothing paid', async
   }
 });
 
+// A popular card: hundreds of decks and a big generated pool, far over what one page should carry.
+const heavyDetail = { ...guestDetail, card: {
+  ...guestDetail.card,
+  decks: Array.from({ length: 400 }, (_, index) => ({ id: `deck-${index}`, title: 'Zoo', archetype: 'Zoo Warlock',
+    archetypeLabel: 'Проверочный Зоолок', className: 'Warlock', deckCode: `AAECAQc${'A'.repeat(300)}`, winrate: 71.7171, score: 'QA_PRIVATE_SCORE' })),
+  wiki: { ...guestDetail.card.wiki, generated_card_pools: [{ title: 'Пул', cards: Array.from({ length: 600 }, (_, index) => ({
+    card_id: `POOL_${index}`, name: { ru: `Карта пула ${index}` }, text: { ru: 'Наносит 1 ед. урона. '.repeat(10) } })) }] },
+} };
+
+test('a popular card keeps its history and first decks within the HTML budget', async () => {
+  const api = await startCardApi({ detail: heavyDetail });
+  let next;
+  try {
+    next = await startNextServer({ legacyOrigin: api.origin });
+    const response = await fetch(`${next.origin}/standard/cards/standard/CARD_QA_1/`);
+    assert.equal(response.status, 200, next.output());
+    const html = await response.text();
+    const text = visibleText(html);
+    for (const shown of ['Похищение жизни', 'Стоимость: 3 → 4', 'Проверочный Зоолок']) {
+      assert.ok(text.includes(shown), `the server HTML shows «${shown}»`);
+    }
+    assert.match(text, /Колоды с этой картой ·\s+12\b/, 'the first twelve decks of 400');
+    assert.ok(html.length < 350_000, `the page weighs ${html.length} characters`);
+    for (const paid of ['71.7171', 'QA_PRIVATE_SCORE']) assert.ok(!html.includes(paid), `no ${paid}`);
+  } finally {
+    if (next) await next.close();
+    await closeLocal(api.server);
+  }
+});
+
+test('an answer that claims statistics access is not used: the page is the seed', async () => {
+  const api = await startCardApi({ detail: { ...guestDetail, statsAccess: true } });
+  let next;
+  try {
+    next = await startNextServer({ legacyOrigin: api.origin });
+    const response = await fetch(`${next.origin}/standard/cards/standard/CARD_QA_1/`);
+    assert.equal(response.status, 200, next.output());
+    const html = await response.text();
+    assert.ok(visibleText(html).includes('Механики не указаны'), 'the seed, without the detail');
+    for (const paid of ['71.7171', '59.5959', 'QA_PRIVATE_SCORE', 'Проверочный Зоолок']) assert.ok(!html.includes(paid), `no ${paid}`);
+  } finally {
+    if (next) await next.close();
+    await closeLocal(api.server);
+  }
+});
+
 test('a card page without its open detail is still the card, from the seed', async () => {
   const api = await startCardApi();
   let next;
