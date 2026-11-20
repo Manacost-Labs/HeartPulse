@@ -154,9 +154,9 @@ Indexing: both routes are `noindex-follow` and out of the sitemap in
 adds the sitemap segment in its own change. A report sets `canonical` to
 itself; the archive has none while it is noindex. Both build their title and
 description themselves rather than from `config/public-seo-pages.json`: a
-registry page must answer 200 without data, and an empty archive is a 404. Once a report is
-indexable, a patch younger than 72 hours at the snapshot still keeps it
-`noindex, follow` (early data), and its JSON-LD (`WebPage`, `BreadcrumbList`,
+registry page must answer 200 without data, and an empty archive is a 404.
+Once a report is indexable, a patch younger than 72 hours at the snapshot
+still keeps it `noindex, follow` (early data), and its JSON-LD (`WebPage`, `BreadcrumbList`,
 `Dataset` with `temporalCoverage` = the report date and `dateModified` = the
 time of the snapshot) appears; while noindex the page has no JSON-LD. The
 archive gets a `CollectionPage` with an `ItemList` of the reports.
