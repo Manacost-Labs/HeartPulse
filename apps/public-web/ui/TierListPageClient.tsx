@@ -66,7 +66,9 @@ export function TierListPageClient({ pool }: { pool: CompactTierlist | null }) {
         subscriptionLoading={pending} onRefreshSubscription={access.refresh}
         accessGranted={allowed} openLayer={openLayer} serverRendered
         dataLine={openLayer && pool ? <DataLine updatedAt={pool.updatedAt} games={pool.sampleGamesAtLeast} />
-          : tierlist.source === 'hsreplay' && data.updatedAt ? <DataLine updatedAt={data.updatedAt} games={null} /> : undefined} />
+          // With an open snapshot the line stays when the protected data arrives (no shift); without one the page starts
+          // from the skeleton, which has no line, so the protected view shows none either (skeleton-route-geometry).
+          : pool && tierlist.source === 'hsreplay' && data.updatedAt ? <DataLine updatedAt={data.updatedAt} games={null} /> : undefined} />
     </div>
   </PublicPageShell>;
 }
