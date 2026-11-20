@@ -90,9 +90,31 @@ test('the Assemble tool page draws the chosen card on the server, takes the choi
       assert.deepEqual(state.h1, ['Сборка']);
       assert.equal(state.overflow, false, `no horizontal overflow at ${width}px`);
       assert.deepEqual(state.violations, [], `axe at ${width}px`);
+      if (width < 600) continue;
       const tile = await page.$eval('.assemble-card', node => { const box = node.getBoundingClientRect(); return [box.width, box.height]; });
       assert.ok(tile[0] >= 120 && tile[1] >= 120, `the tiles are big enough to tap at ${width}px: ${tile}`);
     }
+
+    // A phone folds the choice behind one line: the tool starts on the first screens, all 13 links stay in the markup.
+    await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+    await page.goto(`${pilot.origin}/standard/assemble/?card=BE_004`, { waitUntil: 'networkidle2' });
+    assert.equal(await page.$$eval('a.assemble-card', cards => cards.length), 3, 'the links stay in the markup');
+    assert.equal(await page.$eval('.assemble-cards', node => getComputedStyle(node).display), 'none', 'the grid is folded on a phone');
+    assert.match(await page.$eval('.assemble-current', node => node.textContent), /Радж\s*Паладин\s*Пул 13 существ/);
+    assert.ok(await page.$eval('.assemble-tool .assemble', node => node.getBoundingClientRect().top) < 1266, 'the tool starts within the first two screens');
+    assert.ok(await page.$eval('.arena-skip-link', node => node.getBoundingClientRect().bottom) <= 0, 'the skip link is out of sight without focus');
+    await page.click('.assemble-current__change');
+    const phoneTile = await page.$eval('.assemble-card', node => { const box = node.getBoundingClientRect(); return [box.width, box.height]; });
+    assert.ok(phoneTile[0] >= 100 && phoneTile[1] >= 90, `a tile is a finger target: ${phoneTile}`);
+    assert.equal(await page.$eval('.assemble-cards', node => getComputedStyle(node).display), 'grid');
+    assert.equal(await page.$eval('.assemble-cards', node => getComputedStyle(node).gridTemplateColumns.split(' ').length), 3, 'three columns on a phone');
+    await page.click('a.assemble-card[data-card="BE_044"]');
+    await page.waitForFunction(() => location.search === '?card=BE_044' && document.querySelector('[data-card-assemble] h2')?.textContent === 'РЕ-3-ВЕР');
+    assert.equal(await page.$eval('.assemble-cards', node => getComputedStyle(node).display), 'none', 'the grid folds after the choice');
+    await page.setJavaScriptEnabled(false);
+    await page.goto(`${pilot.origin}/standard/assemble/?card=BE_004`, { waitUntil: 'load' });
+    assert.equal(await page.$eval('.assemble-cards', node => getComputedStyle(node).display), 'grid', 'without scripting the grid is open');
+    await page.setJavaScriptEnabled(true);
 
     // A tile is a soft navigation: the address changes, the page does not reload, Back returns to the first card.
     await page.setViewport({ width: 1440, height: 900 });

@@ -44,13 +44,37 @@
 .assemble-tool[aria-busy='true'] .assemble { opacity: 0.5; }
 .assemble-tool__empty { margin: 0; padding: 1rem; border: 1px dashed #b78a51; }
 
+/* The one-line summary of the chosen card is a phone thing. */
+.assemble-current { display: none; }
+
 @media (max-width: 640px) {
-  .assemble-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
-  .assemble-card { min-height: 11.5rem; padding: 0.85rem 0.45rem 0.75rem; }
-  .assemble-card__name { font-size: 1rem; }
+  .assemble-tool__title, .assemble-cards--loading { display: none; }
+  .assemble-current { display: flex; gap: 0.7rem; align-items: center; padding: 0.55rem 0.7rem 0.55rem 0.55rem; border: 1px solid #c79a3e; border-radius: 6px; background: linear-gradient(180deg, rgba(255, 246, 214, 0.98), rgba(246, 218, 140, 0.62)); box-shadow: inset 0 0 0 2px rgba(255, 252, 236, 0.5); }
+  .assemble-current .assemble-card__art { flex: 0 0 auto; width: 56px; height: 56px; margin: 0; border-color: #efc96f; }
+  .assemble-current__text { display: grid; min-width: 0; flex: 1 1 auto; gap: 0.1rem; font-size: 0.8125rem; color: #735e49; line-height: 1.3; }
+  .assemble-current__text b { color: #30251c; font-size: 1.05rem; font-weight: 900; overflow-wrap: anywhere; }
+  .assemble-current__change { flex: 0 0 auto; min-height: 44px; padding: 0 0.8rem; border: 1px solid #7e3327; color: #fff0c5; background: #8d171d; font: inherit; font-size: 0.875rem; font-weight: 800; cursor: pointer; }
+  .assemble-current__change:active { transform: scale(0.97); }
+  .assemble-current__change:focus-visible { outline: 3px solid #7b151b; outline-offset: 2px; }
+  /* Folded: the links stay in the markup, only the paint is hidden. */
+  .assemble-picker-block[data-open='false'] .assemble-cards { display: none; }
+  .assemble-picker-block[data-open='true'] .assemble-cards { margin-top: 0.6rem; }
+  .assemble-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.4rem; }
+  .assemble-card { min-height: 0; padding: 0.6rem 0.25rem 0.5rem; gap: 0.15rem; }
+  .assemble-card__art { width: 64px; height: 64px; border-width: 2px; margin-bottom: 0.15rem; }
+  .assemble-card__mana { top: -5px; left: -5px; width: 24px; height: 24px; font-size: 0.8125rem; }
+  .assemble-card__name { font-size: 0.8125rem; }
+  .assemble-card__class { font-size: 0.6875rem; }
+  .assemble-card__meta { display: none; }
   .assemble-tool .assemble { padding: 0.8rem 0.7rem; }
   .assemble-tool__formats { width: 100%; }
   .assemble-tool__formats a { flex: 1 1 50%; justify-content: center; }
+}
+
+/* Without scripting the fold cannot open: the grid is always shown. */
+@media (scripting: none) and (max-width: 640px) {
+  .assemble-picker-block[data-open='false'] .assemble-cards { display: grid; }
+  .assemble-current { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {

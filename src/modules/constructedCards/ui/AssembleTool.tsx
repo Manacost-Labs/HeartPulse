@@ -48,6 +48,11 @@ export function AssembleTool({ format, requestedCard, initialList, initialCard, 
   const choose = (href: string) => {
     setPending(assembleCardIdFromSearch(new URL(href, 'https://hearthpulse.net').searchParams.get('card')));
     onNavigate(href);
+    // On a phone the folded choice leaves the tool right below: bring it to the top.
+    if (window.matchMedia('(max-width: 640px)').matches) {
+      const motion = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+      requestAnimationFrame(() => document.querySelector('.assemble-tool .assemble')?.scrollIntoView({ block: 'start', behavior: motion }));
+    }
   };
   const seed = initialCard && resolved && initialCard.cardId === resolved.card.cardId && initialCard.format === format ? initialCard : null;
 
