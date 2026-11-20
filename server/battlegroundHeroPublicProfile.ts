@@ -125,7 +125,10 @@ export function createHeroProfileLoader(options: {
       if (!response.ok) throw new Error(`Battleground hero library HTTP ${response.status}`);
       const payload: unknown = await response.json();
       if (!Array.isArray(record(payload).data)) throw new Error('Battleground hero library answered without data');
-      const profile = projectBattlegroundHeroProfile(payload, dbfId, options.imageUrl);
+      // The library names some pictures by a path of its own (`/uploads/golden/…`): resolved against the library.
+      const libraryOrigin = new URL(options.libraryUrl(dbfId)).origin;
+      const profile = projectBattlegroundHeroProfile(payload, dbfId, value => options.imageUrl(
+        typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') ? `${libraryOrigin}${value}` : value));
       if (!profile) throw new Error(`Battleground hero library has no hero ${dbfId}`);
       keep(dbfId, { readAt: now(), profile });
       return profile;

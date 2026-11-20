@@ -198,3 +198,12 @@ test('a refresh keeps its starting profile when the hero is dropped meanwhile; a
     assert.equal((await load(59807))?.artist, 'Alex Horley', 'and the hero is not left in flight');
   }
 });
+
+test('a picture the library names by its own path is resolved against the library', async () => {
+  const load = createHeroProfileLoader({
+    libraryUrl: dbfId => `https://img.example/api/v1/heroes?dbf=${dbfId}`, imageUrl,
+    fetchImpl: async () => new Response(JSON.stringify({ data: [{ ...row,
+      buddy: { card: { ...row.buddy.card, image_gold: '/uploads/golden/buddy.png' } } }] }), { status: 200 }),
+  });
+  assert.equal((await load(59807))?.buddy?.imageGold, 'https://hearthpulse.net/api/public-resource/uploads/golden/buddy.png');
+});
