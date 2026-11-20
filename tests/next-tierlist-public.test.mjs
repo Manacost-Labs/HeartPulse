@@ -358,7 +358,7 @@ test('/tierlist/ in a browser: cards without JS, the subscriber view with locks 
       await page.waitForSelector('.card-modal-stats .tierlist-paid-lock');
       await page.click('.card-modal-stats button.tierlist-paid-lock');
       await page.waitForFunction(() => !document.querySelector('.card-modal-lightbox'));
-      await page.waitForSelector('.tierlist-offer .arena-inline-paywall');
+      await page.waitForSelector('[data-testid="arena-paid-offer"]');
       assert.equal(await cards(), Math.min(48, CARDS.length), 'the list stays while the offer is open');
       assert.deepEqual(errors, [], `${viewport.width}px: no page errors`);
     await page.close();
