@@ -1,0 +1,20 @@
+/* A phone's first screen belongs to the cards: a short banner, as on the legendaries page, for a guest and a subscriber alike. */
+@media (max-width: 639px) {
+  .arena-tierlist-page {
+    --site-page-hero-mobile-min-height: 96px;
+    --site-page-hero-mobile-title-size: 1.375rem;
+  }
+  .arena-tierlist-page > .section-banner-modern p { display: none; }
+}
+
+.tierlist-data-line {
+  margin: -0.25rem 0 1rem;
+  color: #6b5a44;
+  font-size: 0.875rem;
+}
+
+/* The open data's line names the sample, the protected answer's does not: on a phone both keep two lines, so the
+   switch to the protected data does not move the cards. */
+@media (max-width: 639px) {
+  .tierlist-data-line { min-height: 2.6em; line-height: 1.3; }
+}
