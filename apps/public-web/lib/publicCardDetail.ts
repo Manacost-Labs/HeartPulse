@@ -14,7 +14,9 @@ const MAX_DETAIL_LENGTH = 192 * 1024;
 const TRIMMED_LIST_LENGTH = 12;
 /** The wiki keys the card page reads; the rest of the wiki record never reaches the HTML. */
 const WIKI_KEYS = ['patch_changes', 'wiki_mechanics', 'wiki_tags', 'wiki_mechanics_localized', 'wiki_tags_localized',
-  'gallery', 'sounds', 'external_links', 'generated_card_pools', 'animated', 'related_cards'] as const;
+  'gallery', 'sounds', 'external_links', 'generated_card_pools', 'animated', 'related_cards',
+  // The variant tabs of the picture (constructedCardMedia.ts): without them the tabs appear only after the load and the page jumps.
+  'golden_cards', 'signature_cards', 'diamond_cards'] as const;
 
 type RecordValue = Record<string, unknown>;
 const record = (value: unknown): RecordValue => value && typeof value === 'object' && !Array.isArray(value) ? value as RecordValue : {};
@@ -45,8 +47,16 @@ export function publicCardDetailSeed(seed: PublicCardSeed, payload: unknown): Pu
   const wiki = record(card.wiki);
   const translations = textRecord(data.mechanicTranslations);
   const related = Array.isArray(card.related_cards_localized) ? card.related_cards_localized : [];
+  const images = record(card.images);
+  const animated = textRecord(images.animated);
   const detail: PublicCardDetailSeed = {
     ...seed,
+    // The picture variants of the full record; the seed keeps its own main picture.
+    images: {
+      ...seed.images,
+      ...Object.fromEntries((['golden', 'signature', 'diamond', 'crop'] as const).flatMap(key => text(images[key]) ? [[key, String(images[key])]] : [])),
+      ...(Object.keys(animated).length ? { animated } : {}),
+    },
     formats: (Array.isArray(card.formats) ? card.formats : []).flatMap(value => {
       const format = record(value); const slug = text(format.slug);
       return slug ? [{ slug, ...(text(format.name_ru) ? { name_ru: String(format.name_ru) } : {}), ...(text(format.name_en) ? { name_en: String(format.name_en) } : {}) }] : [];

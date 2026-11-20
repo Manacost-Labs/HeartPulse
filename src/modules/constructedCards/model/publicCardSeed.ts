@@ -37,7 +37,10 @@ export type PublicCardDeckSeed = {
  * anyway (mechanics, patch history, related cards, decks), so the server HTML
  * shows what a reader sees after the page loads. Statistics stay absent.
  */
-export type PublicCardDetailSeed = PublicCardSeed & {
+export type PublicCardDetailSeed = Omit<PublicCardSeed, 'images'> & {
+  images: PublicCardSeed['images'] & {
+    golden?: string; signature?: string; diamond?: string; animated?: Record<string, string>;
+  };
   formats: Array<{ slug: string; name_ru?: string; name_en?: string }>;
   mechanics: string[];
   referenced_tags: string[];

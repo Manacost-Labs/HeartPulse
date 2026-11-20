@@ -65,7 +65,8 @@ const guestDetail = {
   card: {
     card_id: 'CARD_QA_1', formats: [{ slug: 'standard', name_ru: 'Стандартный' }], mechanics: ['LIFESTEAL'],
     stats: { keepPercentage: 71.7171, openingHandWinrate: 59.5959 },
-    wiki: { patch_changes: [{ entries: [{ date: '2026-11-03', patch: 'Patch 37.0.2.256589', items: ['Now costs 4 (Up from 3).'] }] }] },
+    wiki: { patch_changes: [{ entries: [{ date: '2026-11-03', patch: 'Patch 37.0.2.256589', items: ['Now costs 4 (Up from 3).'] }] }],
+      golden_cards: [{ label: 'Золотая карта', file_url: 'https://hearthpulse.net/api/public-resource/wiki/images/CARD_QA_1_golden.png' }] },
     related_cards_localized: [{ heading: { ru: 'Награды за задание' }, cards: [{ card_id: 'CARD_QA_1t', name: { ru: 'Проверочный жетон' }, text: { ru: 'Провокация.' } }] }],
     decks: [{ id: 'deck-1', title: 'Zoo', archetype: 'Zoo Warlock', archetypeLabel: 'Проверочный Зоолок', className: 'Warlock',
       deckCode: 'AAECAQcAAA==', winrate: 71.7171, score: 'QA_PRIVATE_SCORE' }],
@@ -81,7 +82,7 @@ test('a card page shows its open detail without script, and nothing paid', async
     assert.equal(response.status, 200, next.output());
     const html = await response.text();
     const text = visibleText(html);
-    for (const shown of ['Похищение жизни', 'Стоимость: 3 → 4', 'Проверочный жетон', 'Проверочный Зоолок']) {
+    for (const shown of ['Похищение жизни', 'Стоимость: 3 → 4', 'Проверочный жетон', 'Проверочный Зоолок', 'Золотая']) {
       assert.ok(text.includes(shown), `the server HTML shows «${shown}»`);
     }
     assert.ok(!text.includes('История изменений не найдена') && !text.includes('Механики не указаны'), 'no false «nothing» where there is data');

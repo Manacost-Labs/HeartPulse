@@ -48,7 +48,9 @@ their translations, minion type, spell school, the wiki record (patch history,
 related cards, generated pools, gallery, sounds, links), localized related
 cards and the decks with the card. A deck keeps only its identity, archetype,
 class and deck code (deck codes are open since 2026-11-18); winrate and score
-are null. Only the wiki keys the page reads pass. The answer is dropped when
+are null. Only the wiki keys the page reads pass (with the picture variants:
+`golden_cards`, `signature_cards`, `diamond_cards`, plus the variant images of
+the record), so the variant tabs are in the HTML and the page does not jump. The answer is dropped when
 it is another card or does not say `statsAccess: false`. A detail over 192 KB
 (a popular card: hundreds of decks or generated cards) keeps its mechanics and
 history whole and the first 12 entries of every long list; it is dropped only
