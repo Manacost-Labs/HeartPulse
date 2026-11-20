@@ -175,7 +175,9 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
       await page.click('.arena-tier-classes button[aria-label="Маг"]');
       assert.match(await page.evaluate(() => location.search), /class=mage/);
       await page.click('.source-toggle-button[data-locked="true"]');
-      await page.waitForSelector('.tierlist-offer .arena-inline-paywall');
+      await page.waitForSelector('[data-testid="arena-paid-offer"]');
+      const login = await page.$eval('[data-testid="arena-paid-offer"] a[href^="/?login"]', link => link.getAttribute('href'));
+      assert.equal(new URLSearchParams(login.split('?')[1]).get('returnTo'), '/tierlist/?class=mage', 'sign-in returns to the class');
       assert.deepEqual(errors, []);
       await page.close();
 
@@ -250,25 +252,24 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
     }
     stack.protectedFail = null;
 
-    // No snapshot: the page is still a 200, and a guest gets the full view's subscription gate, as before.
-    stack.openDown = true;
-    for (let attempt = 0; ; attempt += 1) {
-      process.kill(next.pid, 'SIGUSR2');
-      if (!(await (await fetch(`${next.origin}/tierlist/`)).text()).includes('hs-tier-card')) break;
-      assert.ok(attempt < 39, 'the server HTML kept the list without a snapshot');
-      await delay(250);
-    }
     // A subscriber who signed in with a class in the address gets that class once the protected data is in.
     const signedIn = await open(browser, stack.origin, '/tierlist/?class=mage', { session: 'reader', wait: '.arena-tier-classes' });
     await signedIn.page.waitForFunction(() => document.querySelector('.arena-tier-classes button[aria-pressed="true"]')?.getAttribute('aria-label') === 'Маг',
       { timeout: 15000 });
     assert.deepEqual(signedIn.errors, []);
     await signedIn.page.close();
-    const { page: bare2, errors: bareErrors } = await open(browser, stack.origin, '/tierlist/', { wait: '.arena-paywall .arena-paywall__dialog' });
-    assert.equal(await bare2.$('.hs-tier-card'), null, 'no cards without a snapshot');
-    assert.ok(await shift(bare2) < 0.02, `the gate shifted the page by ${await shift(bare2)}`);
-    assert.deepEqual(bareErrors, []);
-    await bare2.close();
+
+    // The open source goes down at runtime: a regeneration without data throws, so the last good page stays (#631)
+    // and a guest never gets the copy without cards (that copy is only the build's, which the deploy warm-up replaces).
+    stack.openDown = true;
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      process.kill(next.pid, 'SIGUSR2');
+      for (const path of ['/tierlist/', '/classes/']) {
+        const html = await (await fetch(`${next.origin}${path}`)).text();
+        assert.ok(html.includes(path === '/tierlist/' ? 'hs-tier-card' : 'arena-class-meter-label'), `${path}: the last good copy stays`);
+      }
+      await delay(250);
+    }
   } finally {
     if (browser) await browser.close();
     await next.close();

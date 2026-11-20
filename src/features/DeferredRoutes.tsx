@@ -1360,7 +1360,9 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
     if (serverRendered) {
       const params = new URLSearchParams(window.location.search);
       if (id === ALL_CARDS_ID) params.delete('class'); else params.set('class', id);
-      window.history.replaceState(window.history.state, '', `${window.location.pathname}${params.size ? `?${params}` : ''}${window.location.hash}`);
+      // `params.size` is missing before Safari 17: the string decides whether there is a query.
+      const query = params.toString();
+      window.history.replaceState(window.history.state, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
     }
     setSearchQuery('');
     setSelectedRarity('all');

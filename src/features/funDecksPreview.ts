@@ -38,7 +38,7 @@ export type FunDeckRow = {
     imageUrl: string;
     previewImageUrl: string;
   };
-  /** The main-deck list decoded from `deckCode` by the API, as the server HTML prints it. Absent when the catalog could not name every card. */
+  /** The main-deck list decoded from `deckCode` by the API, as the server HTML prints it. Absent when the code does not decode or no card catalog has answered; a card nobody names stays in it with `name: null`. */
   cards?: FunDeckOpenCard[];
 };
 

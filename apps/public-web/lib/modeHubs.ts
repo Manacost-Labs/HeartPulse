@@ -95,7 +95,7 @@ export const MODE_HUBS: Readonly<Record<ModeHubId, ModeHub>> = {
     nowTitle: 'Сейчас в Вольном формате',
     links: [
       { href: '/standard/meta/', title: 'Мета', text: 'Тир-лист колод, формат «Вольный» в переключателе.' },
-      { href: '/standard/archetypes/', title: 'Архетипы', text: 'Винрейт и доля игр архетипов, формат «Вольный» в переключателе.' },
+      { href: '/standard/archetypes/wild/', title: 'Архетипы', text: 'Винрейт и доля игр архетипов Вольного формата.' },
       { href: '/standard/matchups/', title: 'Матчапы', text: 'Шансы архетипов друг против друга, формат «Вольный» в переключателе.' },
       { href: '/standard/fun-decks/', title: 'Фан-колоды', text: 'Необычные колоды Стандарта и Вольного формата.' },
       { href: '/standard/cards/wild/', title: 'Карты Вольного формата', text: 'Библиотека всех карт, разрешённых в Вольном.' },

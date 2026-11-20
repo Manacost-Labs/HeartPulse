@@ -138,8 +138,8 @@ const ENTITY_SITEMAP_SEGMENTS = [
     identityFromPath: pathname => pathname.split('/').filter(Boolean).at(-1),
     identityFragment: null,
   },
-  // Standard archetypes that pass the indexing rule (`isIndexableArchetype`, about
-  // 70 of 200 today; the floor equals the server's `SITEMAP_ARCHETYPES_MIN`). A
+  // Standard and Wild (#637) archetypes that pass the indexing rule (`isIndexableArchetype`,
+  // about 78 + 48 today; the floor equals the server's `SITEMAP_ARCHETYPES_MIN`). A
   // page is Next.js-rendered, its JSON-LD is the ItemPage/Dataset graph of the
   // page itself (no entity identifier), and the list moves with the period, so
   // five URLs are sampled.
@@ -148,7 +148,7 @@ const ENTITY_SITEMAP_SEGMENTS = [
     path: '/sitemaps/archetypes.xml',
     label: 'archetype sitemap',
     minimumUrls: 30,
-    pathPattern: /^\/standard\/archetypes\/standard\/[a-z0-9-]{1,90}\/$/,
+    pathPattern: /^\/standard\/archetypes\/(?:standard|wild)\/[a-z0-9-]{1,90}\/$/,
     identityFromPath: pathname => pathname.split('/').filter(Boolean).at(-1),
     identityFragment: null,
     pageJsonLd: true,

@@ -135,7 +135,9 @@ function moderatePublicPayload(payload: PublicFunDecksPayload, dependencies: Pub
     return;
   }
   if (!records.length) return;
-  payload.decks = applyFunDeckModeration(payload.decks, records);
+  // A pinned deck outside the dataset comes from its admin snapshot, which still has the internal source id.
+  payload.decks = applyFunDeckModeration(payload.decks, records)
+    .map(({ candidateSourceId: _internal, ...deck }) => deck as FunDeckRow);
   payload.stats = countByFormat(payload.decks);
 }
 

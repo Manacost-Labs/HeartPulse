@@ -177,12 +177,19 @@ test('the guest HTML of /tierlist/ is the subscriber view on the open pool and c
     assert.equal(await guestHtml(next.origin, { 'User-Agent': ROBOT_UA }), await guestHtml(next.origin, { 'User-Agent': BROWSER_UA }),
       'the HTML does not depend on the user agent');
 
-    // No data: a 200 page, with its text and markup but without the slice.
+    // No data at runtime (Express restarted without a copy, the source down): a failed regeneration keeps the last
+    // good page — for a guest and for a robot — and never publishes the copy without cards (#631).
     state.down = true;
     state.generation = 1;
-    const empty = await regenerated(page => !hasSlice(page), 'cards disappear without data');
-    assert.doesNotMatch(empty, /aria-label="Открыть карту /, 'no cards without data');
-    assert.doesNotMatch(empty, /О странице/, 'no explanation block is printed');
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      process.kill(next.pid, 'SIGUSR2');
+      for (const headers of [{ 'User-Agent': BROWSER_UA }, { 'User-Agent': ROBOT_UA }]) {
+        const kept = await guestHtml(next.origin, headers);
+        assert.ok(hasSlice(kept), 'the last good tier list stays while the source is down');
+        assert.doesNotMatch(kept, /О странице/, 'no explanation block is printed');
+      }
+      await delay(300);
+    }
   } finally {
     await next.close();
     legacyServer.closeAllConnections();
@@ -351,7 +358,7 @@ test('/tierlist/ in a browser: cards without JS, the subscriber view with locks 
       await page.waitForSelector('.card-modal-stats .tierlist-paid-lock');
       await page.click('.card-modal-stats button.tierlist-paid-lock');
       await page.waitForFunction(() => !document.querySelector('.card-modal-lightbox'));
-      await page.waitForSelector('.tierlist-offer .arena-inline-paywall');
+      await page.waitForSelector('[data-testid="arena-paid-offer"]');
       assert.equal(await cards(), Math.min(48, CARDS.length), 'the list stays while the offer is open');
       assert.deepEqual(errors, [], `${viewport.width}px: no page errors`);
     await page.close();

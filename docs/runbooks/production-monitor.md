@@ -146,7 +146,7 @@ A failure-to-recovery drill (`STAB-405`) on production is still to be done.
 The monitor checks production liveness, readiness, required dataset freshness,
 critical public HTML routes, `robots.txt`, the exact sitemap index, static and
 all entity sitemap contracts (Standard, Wild-only, Battlegrounds minions,
-spells and heroes, cosmetics, guides archive and the Standard archetypes),
+spells and heroes, cosmetics, guides archive and the Standard and Wild archetypes),
 deterministic first/middle/last SSR samples for every entity type (five spread
 samples for archetypes, whose JSON-LD must describe the page's own URL),
 canonical redirects, JSON-LD identity, public-payload privacy, and

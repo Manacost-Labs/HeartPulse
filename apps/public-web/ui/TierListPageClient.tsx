@@ -2,7 +2,7 @@
 
 import './TierListPage.css';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { TierList } from '@/src/features/DeferredRoutes';
 import { useArenaCompanionIds, useArenaTierList,
@@ -12,6 +12,16 @@ import { seoDataDate } from '@/apps/public-web/lib/seoDataDate';
 import { TIERLIST_CLASS_PAGES_LIVE, tierlistClassPath } from '@/apps/public-web/lib/tierlistClassPages';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { navigate, navigateTab } from './navigation';
+import { PaidOfferProvider, usePaidOffer } from './PaidOffer';
+
+const OFFER_TEXT = 'Оценка ArenaSmith, винрейт при взятии и розыгрыше, фильтры по мане и редкости и другие источники '
+  + 'открываются по подписке: Boosty уровня «Любитель Арены» и выше или VIP Telegram-канал. '
+  + 'Тир, винрейт и частота выбора каждой карты остаются бесплатными.';
+
+/** Hands the page's offer opener to a view that takes it as a callback (`undefined` outside the provider). */
+function WithPaidOffer({ render }: { render: (openOffer: (() => void) | undefined) => ReactNode }) {
+  return <>{render(usePaidOffer() ?? undefined)}</>;
+}
 
 const EMPTY_DATA: TierlistData = {
   sections: [], cards: {}, updatedAt: null, source: 'hsreplay',
@@ -57,21 +67,26 @@ export function TierListPageClient({ pool, classId }: { pool: CompactTierlist | 
   const classLinks = TIERLIST_CLASS_PAGES_LIVE || classId !== undefined;
   return <PublicPageShell activeTab="tierlist" pathname={classId ? tierlistClassPath(classId) : '/tierlist/'} parchmentPreload="tablet-up" access={access}
     navigate={navigate} updatedAtLabel={updatedAtLabel}>
-    {/* The full view (protected data, or the gate without a snapshot) is the closed part the JSON-LD names. The same
+    {/* The locks open the site's subscription offer (`ArenaPaidOffer`; sign-in returns to this address and class).
+        The full view (protected data, or the gate without a snapshot) is the closed part the JSON-LD names; the same
         element in both states, so the view is not remounted (class and filters stay) when the protected data arrives. */}
-    <div className={openLayer ? undefined : 'paywalled-tierlist'} style={{ display: 'contents' }}>
-      <TierList data={data} loading={openLayer ? false : tierlist.loading || pending}
-        error={openLayer ? false : tierlist.error} companionIds={companionIds}
-        tierlistSource={openLayer ? 'hsreplay' : tierlist.source} onTierlistSourceChange={tierlist.changeSource}
-        switchingTierlistSource={!openLayer && tierlist.switching} onNavigate={navigateTab}
-        authUser={access.user} subscriptionStatus={access.subscription}
-        subscriptionLoading={pending} onRefreshSubscription={access.refresh}
-        accessGranted={allowed} openLayer={openLayer} serverRendered
-        initialClassId={classId} fullClassId={classId} classHref={classLinks ? tierlistClassPath : undefined}
-        dataLine={openLayer && pool ? <DataLine updatedAt={pool.updatedAt} games={pool.sampleGamesAtLeast} />
-          // With an open snapshot the line stays when the protected data arrives (no shift); without one the page starts
-          // from the skeleton, which has no line, so the protected view shows none either (skeleton-route-geometry).
-          : pool && tierlist.source === 'hsreplay' && data.updatedAt ? <DataLine updatedAt={data.updatedAt} games={null} /> : undefined} />
-    </div>
+    <PaidOfferProvider title="Остальные показатели карт — по подписке" text={OFFER_TEXT}>
+      <WithPaidOffer render={openOffer => (
+        <div className={openLayer ? undefined : 'paywalled-tierlist'} style={{ display: 'contents' }}>
+          <TierList data={data} loading={openLayer ? false : tierlist.loading || pending}
+            error={openLayer ? false : tierlist.error} companionIds={companionIds}
+            tierlistSource={openLayer ? 'hsreplay' : tierlist.source} onTierlistSourceChange={tierlist.changeSource}
+            switchingTierlistSource={!openLayer && tierlist.switching} onNavigate={navigateTab}
+            authUser={access.user} subscriptionStatus={access.subscription}
+            subscriptionLoading={pending} onRefreshSubscription={access.refresh}
+            accessGranted={allowed} openLayer={openLayer} serverRendered onPaidOffer={openOffer}
+            initialClassId={classId} fullClassId={classId} classHref={classLinks ? tierlistClassPath : undefined}
+            dataLine={openLayer && pool ? <DataLine updatedAt={pool.updatedAt} games={pool.sampleGamesAtLeast} />
+              // With an open snapshot the line stays when the protected data arrives (no shift); without one the page starts
+              // from the skeleton, which has no line, so the protected view shows none either (skeleton-route-geometry).
+              : pool && tierlist.source === 'hsreplay' && data.updatedAt ? <DataLine updatedAt={data.updatedAt} games={null} /> : undefined} />
+        </div>
+      )} />
+    </PaidOfferProvider>
   </PublicPageShell>;
 }
