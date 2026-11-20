@@ -14,14 +14,16 @@
   white-space: nowrap;
 }
 button.paid-lock {
-  min-height: 28px;
+  min-height: 24px;
+  margin-block: -2px; /* the 24px target overflows a 20px row instead of growing it */
   cursor: pointer;
   background: rgba(255, 244, 217, 0.7);
 }
+button.paid-lock.paid-lock--card { min-height: 28px; margin-block: 0; }
 button.paid-lock:hover { border-color: #7e4b20; color: #5a3000; }
 button.paid-lock:focus-visible { outline: 2px solid #6d1117; outline-offset: 2px; }
 /* A card shows the figure under its caption: the lock keeps the card's rhythm. */
-.paid-lock--card { min-height: 28px; font-size: 0.78rem; }
+.paid-lock--card { min-height: 28px; margin-block: 0; font-size: 0.78rem; }
 
 .paid-filter-lock {
   position: relative;
