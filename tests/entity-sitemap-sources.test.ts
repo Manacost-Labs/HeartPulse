@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fc from 'fast-check';
 import { isIndexableArchetype } from '../shared/constructedArchetypeIndexing.js';
 import { assertProperty } from './helpers/propertyRuns.js';
+import { projectConstructedArchetypeSitemapCatalog } from '../server/entitySitemapProjections.js';
 import {
   createEntitySitemapLoaders,
   createEntitySitemapRuntimeOptions,
@@ -167,6 +168,8 @@ for (const broken of [[{ ...archetypeCatalog, format: 'wild' }], [{ ...archetype
   assert.throws(() => selectIndexableArchetypeRows(broken as any), /invalid/i,
     'a catalog of another format or without rows fails closed');
 }
+assert.throws(() => selectIndexableArchetypeRows([archetypeCatalog], 'wild'), /invalid/i,
+  'a Standard window where Wild was asked for fails closed');
 assert.deepEqual(selectIndexableArchetypeRows([{ ...archetypeCatalog, items: [] }]), []);
 
 // The page reads a slug from the first window that lists it (patch, then Bans), so a slug is judged there only.
@@ -178,19 +181,55 @@ assert.deepEqual(windowed.map((row: any) => row.item.slug), ['patch-only', 'bans
   'a slug the patch window lists thin is not rescued by the Bans window');
 assert.deepEqual(windowed.map(row => row.period), ['patch_37.0.2', 'black_empire_ban']);
 
+// Wild (#637): the Wild windows are read too and judged by the Wild threshold (5000 games); the Standard rows do not change.
+const wildArchetypeCatalog = {
+  format: 'wild',
+  period: 'black_empire_ban',
+  updatedAt: '2026-10-28T09:00:00+00:00',
+  items: [
+    archetype('big-priest', { format: 'wild', games: 20_000 }),
+    archetype('thin-rogue', { format: 'wild', games: 4_999 }),
+    archetype('strong-paladin', { format: 'wild', games: 5_000 }),
+    archetype('standard-stray', { format: 'standard', games: 20_000 }),
+    archetype('big-priest', { format: 'wild', games: 90_000 }),
+  ],
+};
 const archetypeRequests: string[] = [];
 const archetypeOptions = createEntitySitemapRuntimeOptions(async () => ({ cards: [] }), {
   SITEMAP_ARCHETYPES_MIN: '12',
 }, undefined, {
   loadCatalogs: async format => {
     archetypeRequests.push(format);
-    return [archetypeCatalog];
+    return [format === 'wild' ? wildArchetypeCatalog : archetypeCatalog];
   },
 });
-assert.equal(archetypeOptions.minimumArchetypeCount, 12);
-assert.deepEqual((await archetypeOptions.loadArchetypes()).map((row: any) => row.item.slug),
-  ['strong-paladin', 'border-mage', 'strong-first']);
-assert.deepEqual(archetypeRequests, ['standard'], 'only the Standard catalog is read, Wild never');
+assert.equal(archetypeOptions.minimumArchetypeCount, 12, 'one floor for the whole segment');
+const archetypeRows = await archetypeOptions.loadArchetypes();
+assert.deepEqual(archetypeRows.map((row: any) => [row.item.format, row.item.slug, row.item.games, row.updatedAt]), [
+  ['standard', 'strong-paladin', 5_000, archetypeCatalog.updatedAt],
+  ['standard', 'border-mage', 1_000, archetypeCatalog.updatedAt],
+  ['standard', 'strong-first', 5_000, archetypeCatalog.updatedAt],
+  ['wild', 'big-priest', 20_000, wildArchetypeCatalog.updatedAt],
+  ['wild', 'strong-paladin', 5_000, wildArchetypeCatalog.updatedAt],
+], 'Standard as before, then the strong Wild rows: under 5000 games, a stray Standard row and a shadowed duplicate stay out');
+assert.deepEqual(archetypeRequests.sort(), ['standard', 'wild'], 'both formats are read once');
+assert.deepEqual(projectConstructedArchetypeSitemapCatalog(archetypeRows, 'https://hearthpulse.net').map(entry => entry.location), [
+  'https://hearthpulse.net/standard/archetypes/standard/border-mage/',
+  'https://hearthpulse.net/standard/archetypes/standard/strong-first/',
+  'https://hearthpulse.net/standard/archetypes/standard/strong-paladin/',
+  'https://hearthpulse.net/standard/archetypes/wild/big-priest/',
+  'https://hearthpulse.net/standard/archetypes/wild/strong-paladin/',
+], 'one slug in both formats is two pages');
+await assert.rejects(
+  () => createEntitySitemapRuntimeOptions(async () => ({ cards: [] }), {}, undefined, {
+    loadCatalogs: async format => {
+      if (format === 'wild') throw new Error('wild catalog down');
+      return [archetypeCatalog];
+    },
+  }).loadArchetypes(),
+  /wild catalog down/,
+  'an unreadable Wild catalog fails the refresh too: the last good segment keeps its Wild pages',
+);
 for (const value of [undefined, 'many', '0', '50001']) {
   assert.equal(
     createEntitySitemapRuntimeOptions(async () => ({ cards: [] }), { SITEMAP_ARCHETYPES_MIN: value }, undefined, {
