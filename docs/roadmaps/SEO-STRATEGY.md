@@ -151,11 +151,11 @@
 | Листинг | `ItemList` | Реальные позиции и количество текущего публичного списка |
 | Статья | `Article`/`NewsArticle`, `Person`, `Organization` | Только для локального полного материала; автор, редактор, `datePublished`, `dateModified` |
 | Профиль автора | `ProfilePage` + `Person` | Биография, компетенции, список материалов и внешние подтверждённые профили |
-| Карта Hearthstone | `CreativeWork` или `Thing` | `name`, `alternateName`, `identifier`, `image`, `isPartOf`, `additionalProperty` |
+| Карта Hearthstone | `CreativeWork` или `Thing` | `name`, `alternateName`, `identifier`, `image`, `isPartOf`, `keywords` |
 | Навигация | `BreadcrumbList` | Тот же путь, что видит пользователь |
 | Закрытый материал | `WebPage`/`Article` + `isAccessibleForFree: false` + `hasPart` | CSS selector указывает на фактически размеченную закрытую часть; данные не раскрываются |
 
-У schema.org нет подходящего поддерживаемого типа `Card` для Hearthstone. Не использовать выдуманный `@type: Card` и не применять `Product`, если карта не продаётся. Игровые характеристики описывать через `PropertyValue` в `additionalProperty`.
+У schema.org нет подходящего поддерживаемого типа `Card` для Hearthstone. Не использовать выдуманный `@type: Card` и не применять `Product`, если карта не продаётся. Игровые характеристики не описывать через `additionalProperty`: в словаре schema.org оно определено для товаров и мест, не для `CreativeWork`, и валидатор его отмечает. Тип, редкость и набор — в `keywords`, стоимость и класс — в `description`.
 
 FAQ-разметка остаётся семантической, но план не обещает FAQ rich results: Google ограничивает их в основном известными сайтами здравоохранения и государственных организаций.
 

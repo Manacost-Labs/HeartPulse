@@ -1,4 +1,4 @@
-import { fitMetaDescription, META_TITLE_MAX } from './metaText.js';
+import { fitMetaDescription, META_DESCRIPTION_MAX, META_TITLE_MAX } from './metaText.js';
 
 /**
  * Titles and descriptions of the detail pages (a card, a cosmetic item, a
@@ -26,32 +26,107 @@ export type ConstructedCardFormat = 'standard' | 'wild';
 const FORMAT_FULL: Record<ConstructedCardFormat, string> = { standard: 'Стандарт', wild: 'Вольный формат' };
 const FORMAT_SHORT: Record<ConstructedCardFormat, string> = { standard: 'Стандарт', wild: 'Вольный' };
 
-/** «Огненный шар — карта Hearthstone (Стандарт, CORE_CS2_029) | HearthPulse», shortened to fit. */
-export function constructedCardTitle(card: { name: string; id: string; format: ConstructedCardFormat }): string {
+/**
+ * The open facts of a constructed card that its title and description name.
+ * Every field may be missing: a card without its set falls back to the ID.
+ */
+export type ConstructedCardFacts = {
+  name: string;
+  id: string;
+  format: ConstructedCardFormat;
+  rulesText?: string | null;
+  /** The Russian name of the set, «Власть Темной империи». */
+  set?: string | null;
+  /** The Hearthstone class code, `PALADIN`; `NEUTRAL` for a neutral card. */
+  classCode?: string | null;
+  /** The Russian card type, «Существо». */
+  type?: string | null;
+  /** The Russian rarity, «Легендарная» (agrees with «карта»). */
+  rarity?: string | null;
+  mana?: number | null;
+  attack?: number | null;
+  health?: number | null;
+  durability?: number | null;
+};
+
+const CLASS_GENITIVE: Record<string, string> = {
+  DEATHKNIGHT: 'рыцаря смерти', DEMONHUNTER: 'охотника на демонов', DRUID: 'друида', HUNTER: 'охотника',
+  MAGE: 'мага', PALADIN: 'паладина', PRIEST: 'жреца', ROGUE: 'разбойника', SHAMAN: 'шамана',
+  WARLOCK: 'чернокнижника', WARRIOR: 'воина',
+};
+
+// The source text has stray spaces before punctuation («Похищение жизни .»); the browser's plain text drops them.
+const clean = (value: string | null | undefined): string => String(value ?? '').replace(/\s+/g, ' ').replace(/ ([.,!?:;…])/g, '$1').trim();
+const lowerFirst = (value: string): string => value ? `${value[0].toLocaleLowerCase('ru-RU')}${value.slice(1)}` : value;
+
+/**
+ * «Радж — карта Hearthstone (Власть Темной империи) | HearthPulse», shortened to fit.
+ * A name repeats across reprints, but not together with its set inside one format
+ * (checked over the whole catalog 2026-11-20), so the set replaces the ID; the
+ * Wild page of a card says «Вольный», so it never repeats the Standard title.
+ * A card without a set keeps the ID.
+ */
+export function constructedCardTitle(card: ConstructedCardFacts): string {
   const { name, id, format } = card;
-  const full = FORMAT_FULL[format];
+  const set = clean(card.set);
+  if (!set) {
+    const full = FORMAT_FULL[format];
+    return fitTitleLadder([
+      `${name} — карта Hearthstone (${full}, ${id})${BRAND}`,
+      `${name} — карта Hearthstone (${full}, ${id})`,
+      `${name} — карта (${full}, ${id})`,
+      `${name} (${full}, ${id})`,
+      `${name} (${FORMAT_SHORT[format]}, ${id})`,
+    ]);
+  }
+  const scope = format === 'wild' ? `Вольный, ${set}` : set;
   return fitTitleLadder([
-    `${name} — карта Hearthstone (${full}, ${id})${BRAND}`,
-    `${name} — карта Hearthstone (${full}, ${id})`,
-    `${name} — карта (${full}, ${id})`,
-    `${name} (${full}, ${id})`,
-    `${name} (${FORMAT_SHORT[format]}, ${id})`,
+    `${name} — карта Hearthstone (${scope})${BRAND}`,
+    `${name} — карта Hearthstone (${scope})`,
+    `${name} — карта (${scope})`,
+    `${name} (${scope})`,
   ]);
 }
 
+function manaWord(mana: number): string {
+  return mana % 10 === 1 && mana % 100 !== 11 ? 'ману' : 'маны';
+}
+
+/** «карта паладина: существо 4/4 за 5 маны, легендарная, набор «Власть Темной империи»», or null without facts. */
+function constructedCardFactPhrase(card: ConstructedCardFacts): string | null {
+  const type = lowerFirst(clean(card.type));
+  const set = clean(card.set);
+  if (!type && !set) return null;
+  const code = clean(card.classCode).toUpperCase();
+  const owner = code === 'NEUTRAL' ? 'нейтральная карта' : CLASS_GENITIVE[code] ? `карта ${CLASS_GENITIVE[code]}` : 'карта';
+  const body = card.attack != null && card.health != null ? `${card.attack}/${card.health}`
+    : card.attack != null && card.durability != null ? `${card.attack}/${card.durability}` : '';
+  const cost = card.mana != null ? `за ${card.mana} ${manaWord(card.mana)}` : '';
+  const what = [type, body, cost].filter(Boolean).join(' ');
+  const rest = [lowerFirst(clean(card.rarity)), set ? `набор «${set}»` : ''].filter(Boolean).join(', ');
+  return `${owner}${what ? `: ${what}` : ''}${rest ? `, ${rest}` : ''}`;
+}
+
 /**
- * The format and the ID come right after the name, so a long rules text cut at the end
- * never makes two descriptions the same: not the Standard and the Wild one of a card,
- * not the reprints that share a name and a text.
+ * «Радж — карта паладина: существо 4/4 за 5 маны, легендарная, набор «…». <rules>».
+ * The facts lead, so a long rules text cut at the end keeps them; the Wild page
+ * names its format right after the card. Without facts the old ID formula stays.
  */
-export function constructedCardDescription(card: {
-  name: string; id: string; format: ConstructedCardFormat; rulesText?: string | null;
-}): string {
-  const lead = `${card.name} (${FORMAT_FULL[card.format]}, ${card.id})`;
-  const rules = String(card.rulesText ?? '').replace(/\s+/g, ' ').trim();
-  return fitMetaDescription(rules
-    ? `${lead}: ${rules}${/[.!?…]$/.test(rules) ? '' : '.'} Статистика и колоды с картой на HearthPulse.`
-    : `${lead} — карта Hearthstone: характеристики, статистика и колоды с картой на HearthPulse.`);
+export function constructedCardDescription(card: ConstructedCardFacts): string {
+  const rules = clean(card.rulesText);
+  const rulesSentence = rules ? `${rules}${/[.!?…]$/.test(rules) ? '' : '.'}` : '';
+  const facts = constructedCardFactPhrase(card);
+  if (!facts) {
+    const lead = `${card.name} (${FORMAT_FULL[card.format]}, ${card.id})`;
+    return fitMetaDescription(rulesSentence
+      ? `${lead}: ${rulesSentence} Статистика и колоды с картой на HearthPulse.`
+      : `${lead} — карта Hearthstone: характеристики, статистика и колоды с картой на HearthPulse.`);
+  }
+  const lead = `${card.name}${card.format === 'wild' ? ' (Вольный формат)' : ''} — ${facts}.`;
+  const tail = 'История изменений и колоды с картой.';
+  // A long rules text is cut, never dropped: it is what a reader searches by.
+  const variants = [`${lead} ${rulesSentence} ${tail}`, `${lead} ${rulesSentence}`].map(clean);
+  return variants.find(text => text.length <= META_DESCRIPTION_MAX) ?? fitMetaDescription(variants[1]);
 }
 
 export type CosmeticTitleKind = 'heroes' | 'coins' | 'pets';

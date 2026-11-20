@@ -178,7 +178,12 @@ const crumbs = breadcrumb => breadcrumb.itemListElement.map(({ '@type': type, po
 test('a card page describes the card, its site and its path in one JSON-LD graph', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   try {
-    for (const [format, formatName, crumbName] of [['standard', 'Стандарт', 'Стандарт'], ['wild', 'Вольный формат', 'Вольный']]) {
+    for (const [format, formatName, crumbName, title, description] of [
+      ['standard', 'Стандарт', 'Стандарт', 'Публичная карта 2 — карта Hearthstone (Основной набор)',
+        'Публичная карта 2 — карта мага: существо 2/3 за 2 маны, обычная, набор «Основной набор». Боевой клич: возьмите карту. История изменений и колоды с картой.'],
+      ['wild', 'Вольный формат', 'Вольный', 'Публичная карта 2 — карта (Вольный, Основной набор)',
+        'Публичная карта 2 (Вольный формат) — карта мага: существо 2/3 за 2 маны, обычная, набор «Основной набор». Боевой клич: возьмите карту.'],
+    ]) {
       const path = `/standard/cards/${format}/CARD_QA_0002/`;
       const canonical = `https://hearthpulse.net${path}`;
       const response = await fetch(`${runtime.nextOrigin}${path}`);
@@ -191,8 +196,7 @@ test('a card page describes the card, its site and its path in one JSON-LD graph
       assert.deepEqual(page, {
         '@type': 'WebPage', '@id': `${canonical}#webpage`, url: canonical,
         // The title is the first variant of the ladder up to 60 characters (shared/entityPageTitles.ts).
-        name: `Публичная карта 2 — карта (${formatName}, CARD_QA_0002)`,
-        description: `Публичная карта 2 (${formatName}, CARD_QA_0002): Боевой клич: возьмите карту. Статистика и колоды с картой на HearthPulse.`,
+        name: title, description,
         inLanguage: 'ru',
         isPartOf: { '@type': 'WebSite', '@id': 'https://hearthpulse.net/#website', name: 'HearthPulse', url: 'https://hearthpulse.net/' },
         primaryImageOfPage: { '@type': 'ImageObject', contentUrl: 'https://hearthpulse.net/arena-logo-icon.webp' },
@@ -203,22 +207,14 @@ test('a card page describes the card, its site and its path in one JSON-LD graph
         '@type': 'CreativeWork', '@id': `${canonical}#card`, url: canonical,
         name: 'Публичная карта 2', alternateName: 'Public Card 2', identifier: 'CARD_QA_0002',
         image: 'https://hearthpulse.net/arena-logo-icon.webp',
-        description: `Публичная карта 2 (${formatName}, CARD_QA_0002): Боевой клич: возьмите карту. Статистика и колоды с картой на HearthPulse.`,
+        description,
         inLanguage: 'ru', isPartOf: { '@type': 'VideoGame', name: 'Hearthstone' },
-        additionalProperty: [
-          { '@type': 'PropertyValue', name: 'Формат', value: formatName },
-          { '@type': 'PropertyValue', name: 'Мана', value: 2 },
-          { '@type': 'PropertyValue', name: 'Тип', value: 'Существо' },
-          { '@type': 'PropertyValue', name: 'Редкость', value: 'Обычная' },
-          { '@type': 'PropertyValue', name: 'Дополнение', value: 'Основной набор' },
-          { '@type': 'PropertyValue', name: 'Атака', value: 2 },
-          { '@type': 'PropertyValue', name: 'Здоровье', value: 3 },
-        ],
+        keywords: `Hearthstone, ${formatName}, Существо, Обычная, Основной набор`,
       }, `${format} CreativeWork`);
       assert.equal(breadcrumb['@id'], `${canonical}#breadcrumb`);
       const listing = `https://hearthpulse.net/standard/cards/${format}/`;
       assert.deepEqual(crumbs(breadcrumb), [
-        { type: 'ListItem', position: 1, name: 'Карты', item: listing },
+        { type: 'ListItem', position: 1, name: 'Карты', item: 'https://hearthpulse.net/standard/cards/' },
         { type: 'ListItem', position: 2, name: crumbName, item: listing },
         { type: 'ListItem', position: 3, name: 'Публичная карта 2', item: canonical },
       ], `${format} breadcrumbs`);
@@ -230,8 +226,8 @@ test('a card page describes the card, its site and its path in one JSON-LD graph
         .filter(([, tag,, text]) => !(tag === 'span' && text === '/'))
         .map(([, tag, attributes, text]) => ({ name: decoded(text), href: tag === 'a' ? attributes.match(/href="([^"]*)"/)[1] : null }));
       assert.deepEqual(crumbs(breadcrumb).map(crumb => crumb.name), shown.map(crumb => crumb.name), `${format} names`);
-      assert.ok(shown[0].href, `${format} the first visible step links to the listing`);
-      assert.equal(crumbs(breadcrumb)[0].item, new URL(shown[0].href, 'https://hearthpulse.net').href, `${format} link`);
+      assert.deepEqual(shown.map(crumb => crumb.href && new URL(crumb.href, 'https://hearthpulse.net').href),
+        [...crumbs(breadcrumb).slice(0, 2).map(crumb => crumb.item), null], `${format} each step but the card links where its JSON-LD points`);
     }
   } finally {
     await runtime.close();

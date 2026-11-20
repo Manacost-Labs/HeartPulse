@@ -27,12 +27,21 @@ async function resolveCard() {
   return { card, format: typedFormat, pathname, canonical: `${ORIGIN}${pathname}/` };
 }
 
+/** The open facts the title and the description name; the same call as Express and the browser make. */
+function cardFacts(card: PublicCardSeed, format: CardFormat) {
+  return {
+    name: card.name.ru, id: card.card_id, format, rulesText: card.text.ru, set: card.card_set, classCode: card.class,
+    type: card.card_type.name_ru, rarity: card.rarity, mana: card.mana_cost, attack: card.attack, health: card.health,
+    durability: card.durability,
+  };
+}
+
 function cardTitle(card: PublicCardSeed, format: CardFormat): string {
-  return constructedCardTitle({ name: card.name.ru, id: card.card_id, format });
+  return constructedCardTitle(cardFacts(card, format));
 }
 
 function cardDescription(card: PublicCardSeed, format: CardFormat): string {
-  return constructedCardDescription({ name: card.name.ru, id: card.card_id, format, rulesText: card.text.ru });
+  return constructedCardDescription(cardFacts(card, format));
 }
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -43,20 +52,15 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: { title, description, url: canonical, images: card.images.card ? [card.images.card] : [] } };
 }
 
-/** The card facts that reach the anonymous page; the class is not among them, the seed carries only its code. */
-function cardProperties(card: PublicCardSeed, format: CardFormat) {
-  const facts: Array<[string, string | number | null]> = [
-    ['Формат', FORMAT_NAMES[format]],
-    ['Мана', card.mana_cost],
-    ['Тип', card.card_type.name_ru],
-    ['Редкость', card.rarity],
-    ['Дополнение', card.card_set],
-    ['Атака', card.attack],
-    ['Здоровье', card.health],
-    ['Прочность', card.durability],
-    ['Броня', card.armor],
+/**
+ * The card facts as `keywords`: schema.org defines `additionalProperty` for
+ * products and places, not for a `CreativeWork`, so validators flag it there.
+ */
+function cardKeywords(card: PublicCardSeed, format: CardFormat): string {
+  const facts = [
+    'Hearthstone', FORMAT_NAMES[format], card.card_type.name_ru, card.rarity, card.card_set,
   ];
-  return facts.flatMap(([name, value]) => value === null ? [] : [{ '@type': 'PropertyValue', name, value }]);
+  return facts.filter((fact): fact is string => Boolean(fact)).join(', ');
 }
 
 export default async function CardPage(props: Props) {
@@ -79,11 +83,11 @@ export default async function CardPage(props: Props) {
       ...(image ? { image } : {}),
       description, inLanguage: 'ru',
       isPartOf: { '@type': 'VideoGame', name: 'Hearthstone' },
-      additionalProperty: cardProperties(card, format),
+      keywords: cardKeywords(card, format),
     },
-    // The words and the link of the breadcrumb the page itself shows (`StandardCardDetail`); the format step has no link there.
+    // The words and the links of the breadcrumb the page itself shows (`StandardCardDetail`).
     breadcrumbs: [
-      { name: 'Карты', item: `${ORIGIN}/standard/cards/${format}/` },
+      { name: 'Карты', item: `${ORIGIN}/standard/cards/` },
       { name: format === 'standard' ? 'Стандарт' : 'Вольный', item: `${ORIGIN}/standard/cards/${format}/` },
       { name: card.name.ru, item: canonical },
     ],
