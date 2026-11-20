@@ -23,10 +23,12 @@ const EMPTY_DATA: TierlistData = {
  * once it has arrived (until then the open data stays). Without a snapshot the page falls back to the full
  * view and its subscription gate.
  */
-/** The data line of the open snapshot, dated with `<time>` in Moscow time (the same text on the server and in the browser). */
-function DataLine({ pool }: { pool: CompactTierlist }) {
-  const date = seoDataDate(pool.updatedAt, Date.now());
-  const games = pool.sampleGamesAtLeast;
+/**
+ * The date, sample and source of the shown data, dated with `<time>` in Moscow time (the same text on the server
+ * and in the browser). The protected answer has its own date and no rounded sample, so it is shown without one.
+ */
+function DataLine({ updatedAt, games }: { updatedAt: string | null; games: number | null }) {
+  const date = seoDataDate(updatedAt, Date.now());
   return <p className="tierlist-data-line">
     {date ? <>Данные на <time dateTime={date.iso}>{`${date.date}, ${date.time} МСК`}</time></> : 'Дата обновления неизвестна'}
     {`${games ? ` · по данным более ${games.toLocaleString('ru-RU')} игр` : ''} · источник HSReplay`}
@@ -53,13 +55,18 @@ export function TierListPageClient({ pool }: { pool: CompactTierlist | null }) {
 
   return <PublicPageShell activeTab="tierlist" pathname="/tierlist/" parchmentPreload="tablet-up" access={access}
     navigate={navigate} updatedAtLabel={updatedAtLabel}>
-    <TierList data={data} loading={openLayer ? false : tierlist.loading || pending}
-      error={openLayer ? false : tierlist.error} companionIds={companionIds}
-      tierlistSource={openLayer ? 'hsreplay' : tierlist.source} onTierlistSourceChange={tierlist.changeSource}
-      switchingTierlistSource={!openLayer && tierlist.switching} onNavigate={navigateTab}
-      authUser={access.user} subscriptionStatus={access.subscription}
-      subscriptionLoading={pending} onRefreshSubscription={access.refresh}
-      accessGranted={allowed} openLayer={openLayer} serverRendered
-      dataLine={pool && (openLayer || tierlist.source === 'hsreplay') ? <DataLine pool={pool} /> : undefined} />
+    {/* The full view (protected data, or the gate without a snapshot) is the closed part the JSON-LD names. The same
+        element in both states, so the view is not remounted (class and filters stay) when the protected data arrives. */}
+    <div className={openLayer ? undefined : 'paywalled-tierlist'} style={{ display: 'contents' }}>
+      <TierList data={data} loading={openLayer ? false : tierlist.loading || pending}
+        error={openLayer ? false : tierlist.error} companionIds={companionIds}
+        tierlistSource={openLayer ? 'hsreplay' : tierlist.source} onTierlistSourceChange={tierlist.changeSource}
+        switchingTierlistSource={!openLayer && tierlist.switching} onNavigate={navigateTab}
+        authUser={access.user} subscriptionStatus={access.subscription}
+        subscriptionLoading={pending} onRefreshSubscription={access.refresh}
+        accessGranted={allowed} openLayer={openLayer} serverRendered
+        dataLine={openLayer && pool ? <DataLine updatedAt={pool.updatedAt} games={pool.sampleGamesAtLeast} />
+          : tierlist.source === 'hsreplay' && data.updatedAt ? <DataLine updatedAt={data.updatedAt} games={null} /> : undefined} />
+    </div>
   </PublicPageShell>;
 }

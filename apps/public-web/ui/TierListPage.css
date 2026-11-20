@@ -12,3 +12,9 @@
   color: #6b5a44;
   font-size: 0.875rem;
 }
+
+/* The open data's line names the sample, the protected answer's does not: on a phone both keep two lines, so the
+   switch to the protected data does not move the cards. */
+@media (max-width: 639px) {
+  .tierlist-data-line { min-height: 2.6em; line-height: 1.3; }
+}

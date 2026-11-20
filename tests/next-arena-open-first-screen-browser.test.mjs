@@ -205,7 +205,11 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
       await delay(300);
       assert.equal(await page.$('.arena-paywall'), null, 'no gate while the access is checked');
       assert.ok(await page.$('.tierlist-card-grid .hs-tier-card'), 'the open data is on the page while the protected data loads');
-      await page.waitForFunction(() => !document.querySelector('.paywalled-tierlist'), { timeout: 15000 });
+      // Details opened on the open data close when the protected data replaces it (no stale figures, no hidden paid ones).
+      await page.click('.tierlist-card-grid .hs-tier-card');
+      await page.waitForSelector('.card-modal-lightbox');
+      await page.waitForFunction(() => !document.querySelector('[data-locked], .arena-tier-select--locked'), { timeout: 15000 });
+      await page.waitForFunction(() => !document.querySelector('.card-modal-lightbox'), { timeout: 5000 });
       assert.equal(await page.$('.arena-paywall'), null);
       assert.equal(await page.$eval('.arena-tier-classes button[aria-pressed="true"]', button => button.getAttribute('aria-label')), 'Маг',
         'the class stays when the protected data arrives');
@@ -249,6 +253,12 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
       assert.ok(attempt < 39, 'the server HTML kept the list without a snapshot');
       await delay(250);
     }
+    // A subscriber who signed in with a class in the address gets that class once the protected data is in.
+    const signedIn = await open(browser, stack.origin, '/tierlist/?class=mage', { session: 'reader', wait: '.arena-tier-classes' });
+    await signedIn.page.waitForFunction(() => document.querySelector('.arena-tier-classes button[aria-pressed="true"]')?.getAttribute('aria-label') === 'Маг',
+      { timeout: 15000 });
+    assert.deepEqual(signedIn.errors, []);
+    await signedIn.page.close();
     const { page: bare2, errors: bareErrors } = await open(browser, stack.origin, '/tierlist/', { wait: '.arena-paywall .arena-paywall__dialog' });
     assert.equal(await bare2.$('.hs-tier-card'), null, 'no cards without a snapshot');
     assert.ok(await shift(bare2) < 0.02, `the gate shifted the page by ${await shift(bare2)}`);

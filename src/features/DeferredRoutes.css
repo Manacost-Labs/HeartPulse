@@ -313,6 +313,11 @@
     background: rgba(255, 244, 217, 0.7);
   }
 
+  /* A locked source keeps the size of an open one: its lock takes no room, so the switch to the protected data
+     does not move the page. */
+  .source-toggle-button[data-locked='true'] { position: relative; }
+  .source-toggle-button[data-locked='true'] > svg { position: absolute; top: 3px; right: 3px; }
+
   button.tierlist-paid-lock:hover {
     border-color: #7e4b20;
     color: #5a3000;

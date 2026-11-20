@@ -479,9 +479,7 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
                   <dt className="text-[11px] font-bold uppercase leading-tight text-[#d9c08a]">{row.label}</dt>
                   {onLocked && PAID_CARD_METRICS.has(row.key)
                     ? <dd className="text-right"><LockedMetric onLocked={onLocked} label={row.label} /></dd>
-                    : <dd className={`text-right text-sm font-black leading-none ${row.raw === null ? 'text-[#fff3cf]' : metricTone(row.raw, row.type)}`}>
-                      {row.value}
-                    </dd>}
+                    : <dd className={`text-right text-sm font-black leading-none ${row.raw === null ? 'text-[#fff3cf]' : metricTone(row.raw, row.type)}`}>{row.value}</dd>}
                 </div>
               ))}
             </dl>
@@ -1220,9 +1218,7 @@ function HSReplayCardsTable({ tiers, onCardOpen, previewSuppressed = false }: {
                 const tone = col.key === 'arenaScore' ? metricTone(raw, 'score') : metricTone(raw, 'pct');
                 return (
                   <td key={col.key} className={`px-2 py-1 text-right font-bold ${tone}`}>
-                    {onLocked && PAID_CARD_METRICS.has(col.key)
-                      ? <LockedMetric onLocked={onLocked} label={col.label} />
-                      : tableMetricValue(card, col.key)}
+                    {onLocked && PAID_CARD_METRICS.has(col.key) ? <LockedMetric onLocked={onLocked} label={col.label} /> : tableMetricValue(card, col.key)}
                   </td>
                 );
               })}
@@ -1292,12 +1288,21 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
   const sections = data.sections;
   const cards    = data.cards;
 
-  // The class a visitor chose before signing in comes back in the address (`?class=mage`); a server-rendered list reads it after hydration.
+  // The class a visitor chose before signing in comes back in the address (`?class=mage`); a server-rendered list
+  // reads it after hydration and applies it once the data has that class (the protected data may come later),
+  // unless the visitor has chosen a class meanwhile.
+  const addressClass = useRef<string | null | undefined>(undefined);
   useEffect(() => {
     if (!serverRendered) return;
-    const id = new URLSearchParams(window.location.search).get('class');
-    if (id && sections.some(section => section.id === id)) setActiveClassId(id);
-  }, [serverRendered]);
+    if (addressClass.current === undefined) addressClass.current = new URLSearchParams(window.location.search).get('class');
+    const id = addressClass.current;
+    if (id && sections.some(section => section.id === id)) {
+      addressClass.current = null;
+      setActiveClassId(id);
+    }
+  }, [serverRendered, sections]);
+  // The details of a card opened on the open data would keep its figures (and miss the paid ones) after the switch.
+  useEffect(() => setModalCard(null), [openLayer]);
 
   // Virtual "all cards" section — best tier per unique cardId across all sections
   const allCardsSection = useMemo<ClassSection>(() => {
@@ -1343,6 +1348,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
 
   // When class changes, reset filters
   const handleClassChange = (id: string) => {
+    addressClass.current = null;
     setActiveClassId(id);
     // The chosen class stays in the address (`?class=mage`): an offer's sign-in returns to it.
     if (serverRendered) {
