@@ -66,10 +66,11 @@ function openBuildsSource(compositions: PublicBattlegroundBuilds | null): Battle
  * `/battlegrounds/tier-list/`, in the server HTML: the subscriber's tier list on the open builds, with the closed
  * lists (minions, spells, trinkets) locked in place. Without the open builds the same view says they are unavailable.
  */
-export function BattlegroundTierListOpenView({ compositions, paywall }: {
+export function BattlegroundTierListOpenView({ compositions, paywall, offerFromAddress }: {
   compositions: PublicBattlegroundBuilds | null;
   paywall: PaywallAccessState;
+  offerFromAddress: boolean;
 }) {
   const source = useMemo(() => openBuildsSource(compositions), [compositions]);
-  return <BattlegroundTierList source={source} paywall={paywall} serverRendered />;
+  return <BattlegroundTierList source={source} paywall={paywall} serverRendered offerFromAddress={offerFromAddress} />;
 }

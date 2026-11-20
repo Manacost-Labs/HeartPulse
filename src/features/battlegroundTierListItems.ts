@@ -111,7 +111,7 @@ export const bgTierInitialVisible = (list: BattlegroundTierListKey, tier: string
  */
 export const bgBuildAnchor = (item: { key?: unknown }): string | undefined =>
   typeof item?.key === 'string' && item.key
-    ? `build-${item.key.replace(/[^A-Za-z0-9_.-]/gu, char => `~${char.codePointAt(0)!.toString(16)}~`)}`
+    ? `build-${item.key.replace(/[^A-Za-z0-9_.-]/gu, char => `~${(char.codePointAt(0) ?? 0).toString(16)}~`)}`
     : undefined;
 
 export function bgNormalizeDeepLinkValue(value: unknown): string {

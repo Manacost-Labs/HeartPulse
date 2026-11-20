@@ -27,7 +27,8 @@ export function BattlegroundTierListLightbox({ items, index, onIndex, trinkets }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [item, index, items.length, onIndex]);
-  if (!item) return null;
+  // Opened only by a press, never in the server render; the guard keeps the portal target a browser-only read.
+  if (!item || typeof document === 'undefined') return null;
   const onClose = () => onIndex(-1);
   return createPortal(
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="bg-lightbox-title">

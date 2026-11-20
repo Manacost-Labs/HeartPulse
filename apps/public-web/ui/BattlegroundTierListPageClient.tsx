@@ -18,7 +18,7 @@ const pathname = '/battlegrounds/tier-list/';
 export function BattlegroundTierListPageClient({ compositions }: { compositions: PublicBattlegroundBuilds | null }) {
   const access = usePublicAccess();
   usePaidViewPrefetch(loadBattlegrounds);
-  const { allowed } = paidAccess(access, 'battlegrounds');
+  const { allowed, pending } = paidAccess(access, 'battlegrounds');
   // The open view stays (with its height) until the paid view is loaded and can replace it in one render.
   const paidViewReady = useBattlegroundsModuleLoaded(allowed);
   // The paid view is mounted (hidden) as soon as it may load, and tells when the list it really asked for came
@@ -33,7 +33,8 @@ export function BattlegroundTierListPageClient({ compositions }: { compositions:
         : null}
       {allowed && paidViewReady && dataReady
         ? null
-        : <BattlegroundTierListOpenView compositions={compositions}
+        // A subscriber still being checked never sees the offer a closed list in the address asks for.
+        : <BattlegroundTierListOpenView compositions={compositions} offerFromAddress={!allowed && !pending}
           paywall={{ authUser: access.user, subscriptionStatus: access.subscription,
             subscriptionLoading: access.checking, onRefreshSubscription: access.refresh }} />}
     </section>

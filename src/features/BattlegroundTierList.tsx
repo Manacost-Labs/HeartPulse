@@ -86,9 +86,12 @@ function TierSection({ tier, items, list, limit, onMore, highlight, onOpen, trin
  * subscription offer. `serverRendered`: the view is part of the server HTML, so the first render ignores the
  * address and applies it after hydration. `onDataReady` tells a host that keeps an open list in front of this
  * view that the list this view really asked for came back ok and not empty; it is never called otherwise.
+ * `offerFromAddress`: a closed list asked for in the address opens the offer, only once the page has confirmed
+ * there is no access (a subscriber still being checked never sees it).
  */
-export function BattlegroundTierList({ source = liveBattlegroundTierListSource, onDataReady, paywall, serverRendered = false }: {
+export function BattlegroundTierList({ source = liveBattlegroundTierListSource, onDataReady, paywall, serverRendered = false, offerFromAddress = false }: {
   source?: BattlegroundTierListSource; onDataReady?: () => void; paywall?: PaywallAccessState; serverRendered?: boolean;
+  offerFromAddress?: boolean;
 } = {}) {
   const locked = Boolean(paywall);
   const [state, setState] = useState<BattlegroundTierListUrlState>(
@@ -96,6 +99,8 @@ export function BattlegroundTierList({ source = liveBattlegroundTierListSource, 
   const patch = useCallback((next: Partial<BattlegroundTierListUrlState>) => setState(current => ({ ...current, ...next })), []);
   const activeList = locked && LOCKED_LISTS.includes(state.list) ? OPEN_TIER_LIST : state.list;
   const [offer, setOffer] = useState(false);
+  const [addressAsksLocked, setAddressAsksLocked] = useState(false);
+  useEffect(() => { if (addressAsksLocked && offerFromAddress) setOffer(true); }, [addressAsksLocked, offerFromAddress]);
   const [attempt, setAttempt] = useState(0);
   const [lightbox, setLightbox] = useState<{ items: BattlegroundLightboxItem[]; index: number }>({ items: [], index: -1 });
   const [minionRace, setMinionRace] = useState('ALL');
@@ -106,7 +111,7 @@ export function BattlegroundTierList({ source = liveBattlegroundTierListSource, 
     const syncFromUrl = () => {
       const next = bgTierListUrlState(window.location.search, locked);
       setState(next);
-      if (locked && LOCKED_LISTS.includes(next.list)) setOffer(true);
+      setAddressAsksLocked(locked && LOCKED_LISTS.includes(next.list));
     };
     if (serverRendered) syncFromUrl();
     window.addEventListener('popstate', syncFromUrl);

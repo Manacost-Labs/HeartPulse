@@ -415,6 +415,7 @@ test('the library keeps its open layer until the paid view has loaded, without a
           const page = await browser.newPage();
           await page.setViewport(viewport);
           if (subscriber) await page.setCookie({ name: 'pending_reader', value: '1', url: frontOrigin });
+          else await page.deleteCookie({ name: 'pending_reader', url: frontOrigin });
           await page.evaluateOnNewDocument(() => {
             window.__layoutShifts = [];
             new PerformanceObserver(list => {
@@ -520,6 +521,7 @@ test('the builds pages show the open list without a placeholder and keep it unti
           const page = await browser.newPage();
           await page.setViewport(viewport);
           if (subscriber) await page.setCookie({ name: 'pending_reader', value: '1', url: frontOrigin });
+          else await page.deleteCookie({ name: 'pending_reader', url: frontOrigin });
           await page.evaluateOnNewDocument(() => {
             window.__layoutShifts = [];
             new PerformanceObserver(list => {
@@ -568,6 +570,30 @@ test('the builds pages show the open list without a placeholder and keep it unti
           await page.close();
         }
       }
+    }
+    // A closed list in the address (`?list=spells`): a guest gets the offer once there is no access; a subscriber
+    // still being checked never sees it, the list stays in the address for the paid view.
+    for (const subscriber of [false, true]) {
+      const page = await browser.newPage();
+      // The browser keeps the cookies of the pages above: a guest must not carry the subscriber's.
+      if (subscriber) await page.setCookie({ name: 'pending_reader', value: '1', url: frontOrigin });
+      else await page.deleteCookie({ name: 'pending_reader', url: frontOrigin });
+      const offers = [];
+      await page.exposeFunction('__offerSeen', () => offers.push(Date.now()));
+      await page.evaluateOnNewDocument(() => {
+        new MutationObserver(() => { if (document.querySelector('.arena-inline-paywall')) window.__offerSeen?.(); })
+          .observe(document, { childList: true, subtree: true });
+      });
+      await page.goto(`${frontOrigin}/battlegrounds/tier-list/?list=spells`, { waitUntil: 'domcontentloaded' });
+      if (subscriber) {
+        await page.waitForSelector('.arena-paid-view', { timeout: 15_000 });
+        await delay(500);
+        assert.deepEqual(offers, [], 'a subscriber never sees the offer of a closed list in the address');
+        assert.match(await page.evaluate(() => location.search), /list=spells/);
+      } else {
+        await page.waitForSelector('.arena-inline-paywall', { timeout: 10_000 });
+      }
+      await page.close();
     }
   } finally {
     if (browser) await browser.close();
