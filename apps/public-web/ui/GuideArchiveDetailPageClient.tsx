@@ -31,7 +31,7 @@ export function GuideArchiveDetailPageClient({ pathname, teaser, toc, excerpt, h
   </div> : null;
   return <PublicPageShell activeTab="guides-archive" pathname={pathname}
     access={access} navigate={navigate} wide>
-    <PaidOfferProvider title="Полный гайд — по подписке" text={OFFER_TEXT}>
+    <PaidOfferProvider title="Полный гайд — по подписке" text={OFFER_TEXT} entitlement="guidesArchive">
       <GuidesArchive currentPath={pathname} navigatePath={navigate} hasAccess={allowed}
         detailSeed={teaser} detailSlots={{ toc, excerpt, lock }} />
     </PaidOfferProvider>

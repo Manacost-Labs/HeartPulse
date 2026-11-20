@@ -216,7 +216,8 @@ async function withStack(state, run) {
     const json = (status, body) => response.writeHead(status, { 'Content-Type': 'application/json' }).end(JSON.stringify(body));
     state.calls.push(url.pathname + url.search);
     if (url.pathname === '/api/auth/me') return json(200, { user: subscriber ? reader : null });
-    if (url.pathname === '/api/subscription/status') return subscriber ? json(200, subscription) : json(401, { error: 'guest' });
+    if (url.pathname === '/api/subscription/refresh' && request.method === 'POST') return json(200, state.subscription ?? subscription);
+    if (url.pathname === '/api/subscription/status') return subscriber ? json(200, state.subscription ?? subscription) : json(401, { error: 'guest' });
     if (isMenuBackgroundRead(url.pathname)) return json(200, MENU_PATCH_ARCHIVE);
     if (url.pathname === '/api/guides-archive/public/list') {
       (state.listReads ??= []).push(request.headers['x-hearthpulse-prerender'] ?? '');
@@ -230,7 +231,7 @@ async function withStack(state, run) {
       return json(200, { ...teaser, slug, contentHtml: 'PRIVATE_CONTENT' });
     }
     if (url.pathname.startsWith('/api/guides-archive/')) {
-      if (!subscriber) return json(401, { error: 'guest' });
+      if (!subscriber || state.denyFull) return json(401, { error: 'guest' });
       return state.fullDown ? json(503, { error: 'down' }) : setTimeout(() => json(200, { ...teaser, id: 1, menuCode: 'arena', kindSlug: 'guides', oldUrl: null,
         keywords: null, replyCount: 0, fallbackText: '', sourceUrl: null,
         contentHtml: `${teaser.excerptHtml}<h2 id="guide-heading-2">Платный раздел</h2><p>${FULL_TEXT}</p>` }), 300);
@@ -393,5 +394,26 @@ test('the deploy warm-up replaces the skeletons of /guides-archive/ with 18 card
     // The source goes down again: the regeneration throws and the cards stay.
     state.listDown = true;
     for (let attempt = 0; attempt < 4; attempt++) { shiftClock(); assert.equal(count(await html(), 'guide-archive-card-meta'), 18); await delay(250); }
+  });
+});
+
+test('a reader with the archive entitlement but not the arena one: refreshing the access closes the offer and opens the full text', async () => {
+  const none = { hasAccess: false, entitlements: {}, source: 'none', checkedAt: null, stale: false, message: '', boosty: {}, patreon: {}, telegram: {} };
+  const state = { calls: [], teaserReads: {}, teaserDown: () => false, fullDown: false, subscription: none, denyFull: true };
+  await withStack(state, async ({ origin, browser }) => {
+    const { page, errors, context } = await openPage(browser, origin, '/guides-archive/arena-100-percent/', { subscriber: true });
+    await page.waitForSelector('button.guide-archive-lock', { timeout: 20_000 });
+    await page.evaluate(() => document.querySelector('button.guide-archive-lock').click());
+    await page.waitForSelector('[data-testid="arena-paid-offer"]', { timeout: 15_000 });
+    // The reader pays for the archive only (no arena entitlement) and presses «Проверить доступ».
+    state.subscription = { ...none, hasAccess: true, entitlements: { guidesArchive: true, arena: false }, source: 'boosty' };
+    state.denyFull = false;
+    await page.evaluate(() => [...document.querySelectorAll('[data-testid="arena-paid-offer"] button')]
+      .find(node => node.textContent.trim() === 'Проверить доступ').click());
+    await page.waitForFunction(text => document.body.innerText.includes(text), { timeout: 20_000 }, FULL_TEXT);
+    assert.equal(await page.$('[data-testid="arena-paid-offer"]'), null, 'the offer is closed once the archive is open to the reader');
+    assert.equal(await page.$('button.guide-archive-lock'), null);
+    assert.deepEqual(errors, []);
+    await context.close();
   });
 });
