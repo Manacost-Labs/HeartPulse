@@ -168,6 +168,9 @@ http {
       ['/standard/archetypes/wild/zoolock/', '/standard/archetypes/wild/zoolock/'],
       // The Wild list (#543) gains its slash at the edge as well.
       ['/standard/archetypes/wild', '/standard/archetypes/wild/'],
+      // The deck hub and its class pages (#309).
+      ['/standard/decks', '/standard/decks/'],
+      ['/standard/decks/paladin', '/standard/decks/paladin/'],
       // Not a valid archetype address: keeps its shape, as every unknown path does.
       ['/standard/meta/arena/zoolock', '/standard/meta/arena/zoolock'],
       ['/standard/meta/standard/Zoolock', '/standard/meta/standard/Zoolock'],

@@ -5,6 +5,7 @@ import { isStreamerPage, isStreamersPage } from '@/src/modules/streamers/public'
 import { normalizePatchVersion } from '@/src/modules/patchNotes/public';
 import { cosmeticsListing } from '@/src/modules/cosmetics/public';
 import { readInitialCatalogFilters } from '@/src/features/constructedArchetypeCatalogUrl';
+import { deckClass } from './classDecks';
 import { COLD_READ_WAIT_MS, readPublicJson, type PublicPayloadCheck } from './firstPaintStore';
 import { isPublicDataMissing } from './publicCatalogCache';
 import { patchNotesReader } from './patchNotesStore';
@@ -71,6 +72,11 @@ export async function probePublicData(pathname: string, searchParams: URLSearchP
     // The Wild catalog's own page (#543) needs Wild's catalog whatever its query says.
     const format = path === '/standard/archetypes/wild' ? 'wild' : readInitialCatalogFilters(search, []).format;
     return probeReads([archetypeTeaserPath(format, null), archetypeTeaserCheck(format)]);
+  }
+  // The deck hub and class pages (#309) list the Standard catalog; an unknown class is the page's own 404.
+  const decks = path.match(/^\/standard\/decks(?:\/([^/]+))?$/u);
+  if (decks) {
+    return decks[1] && !deckClass(decks[1]) ? 'none' : probeReads([archetypeTeaserPath('standard', null), archetypeTeaserCheck('standard')]);
   }
   if (path === '/standard/patches') {
     const version = normalizePatchVersion(searchParams.get('version') ?? undefined) || null;

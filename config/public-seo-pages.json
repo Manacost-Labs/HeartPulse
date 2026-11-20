@@ -92,6 +92,14 @@
       "dataDescription": "Вольный формат Хартстоуна (хс){asOf}: {archetypes} — винрейт, популярность и число игр каждого архетипа. Данные HSGuru.",
       "sitemap": true
     },
+    "/standard/decks": {
+      "policyRouteId": "standard-decks-hub",
+      "title": "Лучшие колоды Hearthstone (хс), {year} | HearthPulse",
+      "description": "Лучшие колоды Хартстоуна (хс) в Стандарте {year}: лучший архетип каждого из 11 классов — винрейт, игры и код колоды. Данные HSGuru.",
+      "dataTitle": "Лучшие колоды Hearthstone (хс), {month}[ | HearthPulse]",
+      "dataDescription": "Лучшие колоды Хартстоуна (хс) в Стандарте{asOf}: лучший архетип каждого из 11 классов — винрейт, игры и код колоды. Данные HSGuru.",
+      "sitemap": false
+    },
     "/standard/vicious-gold": {
       "policyRouteId": "standard-vicious-gold",
       "navigationRouteId": "standard-vicious-gold",
