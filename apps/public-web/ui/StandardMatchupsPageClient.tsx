@@ -49,7 +49,7 @@ export function StandardMatchupsPageClient({ initial }: { initial: PublicStandar
         slice: matchups.slice, changeSlice: matchups.changeSlice,
         data: paidData, loading: matchups.loading, error: matchups.error,
         retry: matchups.retry }} />
-      : <StandardMatchupsOpen initial={initial} paywall={{ authUser: access.user, subscriptionStatus: access.subscription,
+      : <StandardMatchupsOpen initial={initial} accessConfirmed={allowed} paywall={{ authUser: access.user, subscriptionStatus: access.subscription,
         subscriptionLoading: access.checking, onRefreshSubscription: access.refresh }} />}
   </PublicPageShell>;
 }

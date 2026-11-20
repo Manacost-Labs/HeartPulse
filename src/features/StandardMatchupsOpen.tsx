@@ -18,16 +18,23 @@ function moscowDate(iso: string | null): string | null {
 
 const FORMATS: ReadonlyArray<readonly [StandardMatchupsFormat, string]> = [['standard', 'Стандарт'], ['wild', 'Вольный']];
 
+const FILTER_NAMES = ['Ранг', 'Период', 'Порог игр', 'История матчапов'];
+
 /**
  * The open general slice of the matchup matrix (all ranks, the source's default period): the
  * guest's page and the robot's, server-rendered from the same projection. The paid filters and
  * the history of a pair sit behind a lock; the subscriber's matrix replaces this view only once
  * it is ready (StandardMatchupsPageClient).
  */
-export function StandardMatchupsOpen({ initial, paywall }: {
+export function StandardMatchupsOpen({ initial, paywall, accessConfirmed = false }: {
   initial: PublicStandardMatchups | null;
   paywall: PaywallAccessState;
+  /** The reader's access to the paid view is confirmed (a subscriber, an administrator) and its data is on the way. */
+  accessConfirmed?: boolean;
 }) {
+  // Nobody who has access, or whose access is still being checked, is shown a lock or an offer: the locks are for
+  // a guest and a reader without a subscription. The server prints the guest's locks.
+  const unlocking = accessConfirmed || (paywall.authUser != null && paywall.subscriptionLoading);
   // The format is the address's (`?format=wild`, the menu's «Вольный» opens it): Standard until the browser has read it,
   // so the server's HTML and the first render agree.
   const format: StandardMatchupsFormat = usePageFormat() ?? 'standard';
@@ -83,9 +90,12 @@ export function StandardMatchupsOpen({ initial, paywall }: {
           </div>
         </fieldset>
         <div className="standard-matchups__control-cluster paywalled-standard-matchups">
-          <span className="standard-matchups__control-label">В подписке</span>
-          <div className="standard-matchups-open__locks">
-            {['Ранг', 'Период', 'Порог игр', 'История матчапов'].map(name => (
+          <span className="standard-matchups__control-label">{unlocking ? 'Фильтры' : 'В подписке'}</span>
+          <div className="standard-matchups-open__locks" aria-busy={unlocking || undefined}>
+            {unlocking ? <span className="sr-only" role="status">Загружаем фильтры</span> : null}
+            {FILTER_NAMES.map(name => unlocking ? (
+              <span key={name} className="standard-matchups-open__pending" data-pending-filter="">{name}</span>
+            ) : (
               <button key={name} type="button" data-locked-filter="" aria-expanded={offer}
                 onClick={() => setOffer(true)}><Lock size={12} aria-hidden="true" />{name}</button>
             ))}
@@ -93,7 +103,7 @@ export function StandardMatchupsOpen({ initial, paywall }: {
         </div>
       </div>
 
-      {offer ? (
+      {offer && !unlocking ? (
         <div id="standard-matchups-paywall">
           <PaywallGate active presentation="inline" variant="standard" headingLevel="h2"
             title="Ранги, периоды и история матчапов — в подписке"

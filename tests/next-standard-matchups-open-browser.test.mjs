@@ -198,7 +198,7 @@ test('a guest and a subscriber on /standard/matchups/ in a real browser', { time
 
     // A subscriber: the open view stays until the matrix is ready, then the matrix replaces it without shifting.
     const reader = await browser.newPage();
-    await reader.setViewport(DESKTOP);
+    await reader.setViewport(process.env.MATCHUPS_PHONE_READER ? PHONE : DESKTOP);
     await reader.evaluateOnNewDocument(() => {
       window.__shifts = [];
       new PerformanceObserver(list => { for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.__shifts.push(entry.value); })
@@ -208,6 +208,13 @@ test('a guest and a subscriber on /standard/matchups/ in a real browser', { time
     await reader.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'load' });
     await reader.waitForSelector('.standard-matchups-open__matrix');
     assert.equal(await reader.$('.standard-matchups__ledger'), null, 'the paid view is not up before its data');
+    // While the paid answer is slow the subscriber is not offered a subscription: no lock, no offer behind a click.
+    await reader.waitForSelector('[data-pending-filter]');
+    assert.equal(await reader.$$eval('[data-pending-filter]', nodes => nodes.length), 4, 'the filters are loading, not locked');
+    assert.equal(await reader.$('[data-locked-filter]'), null, 'a subscriber sees no lock');
+    await reader.$eval('[data-pending-filter]', node => node.click());
+    assert.equal(await reader.$('#standard-matchups-paywall, .arena-paywall'), null, 'a click offers nothing');
+    if (process.env.MATCHUPS_SHOTS) await reader.screenshot({ path: `${process.env.MATCHUPS_SHOTS}/sub-loading-${reader.viewport().width}.png` });
     await reader.waitForSelector('.standard-matchups__ledger', { timeout: 20000 });
     assert.equal(await reader.$('.standard-matchups-open__matrix'), null, 'the open view is gone once the matrix is up');
     assert.equal(await reader.$('.standard-matchups [data-skeleton], .standard-matchups .matchups-skeleton'), null, 'no skeleton between the two');

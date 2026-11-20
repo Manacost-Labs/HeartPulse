@@ -7,6 +7,10 @@
   border: 1px solid rgba(92, 54, 24, 0.28); background: rgba(255, 249, 230, 0.66); color: #3a281c;
   font: inherit; font-size: 0.78rem; font-weight: 800; cursor: pointer;
 }
+.standard-matchups-open__pending {
+  display: inline-flex; align-items: center; min-height: 32px; padding: 0 0.7rem 0 calc(0.7rem + 12px + 0.35rem); border: 1px dashed rgba(92, 54, 24, 0.26);
+  background: rgba(255, 249, 230, 0.4); color: rgba(58, 40, 28, 0.5); font-size: 0.78rem; font-weight: 800;
+}
 .standard-matchups-open__locks button:focus-visible { outline: 3px solid rgba(74, 47, 102, 0.3); }
 .standard-matchups-open__empty { padding: 3rem 0; text-align: center; color: #7a5a35; min-height: 30rem; }
 /* A phone's first screen belongs to the matrix: a short banner, as on the classes page. */
