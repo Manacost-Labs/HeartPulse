@@ -9,7 +9,14 @@ import test from 'node:test';
 // and the interactions design.md protects ("Motion And Protected Interactions").
 // Vendored kits under src/vendor stay byte-identical to their source; their
 // consumers map the kit's own tempo variables onto the motion tokens.
-const PROTECTED_FILES = new Set(['src/features/Battlegrounds.css', 'src/features/Battlegrounds.tsx']);
+// The hero detail view, gallery and lightbox were moved out of Battlegrounds.tsx unchanged (#651) and keep its exemption.
+const PROTECTED_FILES = new Set([
+  'src/features/Battlegrounds.css',
+  'src/features/Battlegrounds.tsx',
+  'src/features/BattlegroundHeroDetailGallery.tsx',
+  'src/features/BattlegroundHeroDetailLightbox.tsx',
+  'src/features/BattlegroundHeroDetailView.tsx',
+]);
 const PROTECTED_SELECTORS = ['.card-modal-shell', '.hs-tier-card-inner', '.card-modal-lightbox'];
 const MOTION_PROPERTY = /^(transition|animation)(-(duration|delay|timing-function))?$/;
 // A zero time is a switch (`visibility 0s`), not a tempo.
