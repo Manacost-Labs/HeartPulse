@@ -84,6 +84,9 @@ app.use('/api', createPublicResourceRouter({
       Object.defineProperty(response, 'url', { value: 'https://evil.example/stolen.png' });
       return response;
     }
+    if (pathname.endsWith('/missing.jpg')) {
+      return new Response('<html>Not Found</html>', { status: 404, headers: { 'content-type': 'text/html' } });
+    }
     if (pathname.endsWith('/too-large.png')) {
       return new Response(new Uint8Array([9]), {
         status: 200,
@@ -215,6 +218,16 @@ try {
   const rejectedLargeResource = await fetch(`${baseUrl}/db/uploads/too-large.png`);
   assert.equal(rejectedLargeResource.status, 502);
 
+  // A picture the source does not have is a 404 the edge and the browser may
+  // keep for an hour, so fallback chains move on at once instead of asking the
+  // source again for every visitor (it was an uncached 502).
+  for (const path of ['/db/uploads/art/missing.jpg', '/db/uploads/art/missing.jpg?width=96']) {
+    const missing = await fetch(`${baseUrl}${path}`);
+    assert.equal(missing.status, 404, path);
+    assert.equal(missing.headers.get('cache-control'), 'public, max-age=3600', path);
+    assert.deepEqual(await missing.json(), { error: 'Ресурс не найден' }, path);
+  }
+
   const wikiRedirect = await fetch(`${baseUrl}/wiki/wiki/Special:Redirect/file/Pet_EndScreen.png`);
   assert.equal(wikiRedirect.status, 206);
   assert.deepEqual(upstreamCalls.slice(-2).map(call => call.url), [
@@ -222,7 +235,7 @@ try {
     'https://hearthstone.wiki.gg/images/Pet_EndScreen.png?rev=1',
   ]);
 
-  assert.equal(upstreamCalls.length, 12, 'rejected source and path must not reach the network');
+  assert.equal(upstreamCalls.length, 14, 'rejected source and path must not reach the network');
 } finally {
   await Promise.all([
     new Promise<void>((resolve, reject) => server.close(error => error ? reject(error) : resolve())),

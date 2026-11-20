@@ -158,7 +158,20 @@ warms what pages load:
 - article covers, banners, hero skins and catalog card URLs found on the pages
   of `/sitemaps/static.xml`;
 - proxied full art and battleground images from release bundles and server
-  data.
+  data, including data API pictures on `api.kolodahearthstone.com` (and the
+  retired `db.kolodahs.ru` of old records) as `/api/public-resource/db/uploads/…`.
+
+A bare `/uploads/…` path in page data belongs to the data API, not to the site:
+the site serves only `/uploads/admin/`, so only that prefix is warmed as a
+same-origin path. A picture the source does not have answers `404` with
+`Cache-Control: public, max-age=3600`, which the edge honours over its 200-only
+`proxy_cache_valid`, so a dead fallback candidate costs one source request per
+edge an hour instead of one per visitor.
+
+The warm script is installed by hand: after a change, install it from the merge
+commit (`sudo install -m 0755 deploy/warm-arena-public-resources.sh
+/usr/local/sbin/warm-arena-public-resources`); the timers pick it up on the next
+run.
 
 `/api/public-resource/` and `/api/article-cover` share the visitor
 public-media rate limit, so they run at concurrency 4 with a 0.45 s pause.

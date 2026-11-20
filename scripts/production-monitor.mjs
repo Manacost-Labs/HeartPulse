@@ -30,6 +30,19 @@ const MAX_ENTITY_HTML_BYTES = 2 * 1024 * 1024;
 const MAX_HEALTH_JSON_BYTES = 256 * 1024;
 const MAX_CONSTRUCTED_JSON_BYTES = 4 * 1024 * 1024;
 const MAX_EMPTY_RESPONSE_BYTES = 64 * 1024;
+const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
+/**
+ * Pictures of stable cards through each delivery path a page uses: the card
+ * image route (edge-local), the HearthstoneJSON proxy and the data API proxy
+ * with a resize. A card the source lacks must stay a 404: a 5xx there made
+ * every fallback chain on the site wait for the source again (#574).
+ */
+const IMAGE_SAMPLES = [
+  { label: 'card image', path: '/api/card-image/CS2_029/full.webp', type: /^image\/webp/i },
+  { label: 'HearthstoneJSON proxy', path: '/api/public-resource/hsjson/v1/render/latest/ruRU/256x/CS2_029.png', type: /^image\/png/i },
+  { label: 'data API proxy', path: '/api/public-resource/db/uploads/art/BG28_300.jpg?width=96', type: /^image\//i },
+];
+const ABSENT_IMAGE_PATH = '/api/public-resource/hsjson/v1/render/latest/ruRU/256x/MANACOST_MONITOR_ABSENT_CARD.png';
 const DEFAULT_MONITOR_DEADLINE_MS = 4 * 60 * 1000;
 // Slow answers are a warning; only the request timeout (10 s) is an error.
 const DEFAULT_PAGE_WARN_MS = 1_000;
@@ -129,7 +142,8 @@ function abortMessage(reason, fallback) {
   return reason instanceof Error && reason.message ? reason.message : fallback;
 }
 
-async function readBoundedText(response, maximumBytes, label, signal) {
+/** The body as text, or with `binary` only its byte count (a picture is not UTF-8). */
+async function readBoundedText(response, maximumBytes, label, signal, binary = false) {
   const declaredLength = Number(response.headers.get('content-length'));
   ensure(!Number.isFinite(declaredLength) || declaredLength <= maximumBytes,
     `${label} exceeds the ${maximumBytes}-byte monitor limit`);
@@ -154,8 +168,9 @@ async function readBoundedText(response, maximumBytes, label, signal) {
         await reader.cancel();
         throw new Error(`${label} exceeds the ${maximumBytes}-byte monitor limit`);
       }
-      body += decoder.decode(value, { stream: true });
+      if (!binary) body += decoder.decode(value, { stream: true });
     }
+    if (binary) return total;
     body += decoder.decode();
     return body;
   } finally {
@@ -172,6 +187,7 @@ async function fetchBoundedText(
   label,
   parentSignal,
   redirect = 'manual',
+  binary = false,
 ) {
   const controller = new AbortController();
   let response;
@@ -199,7 +215,7 @@ async function fetchBoundedText(
       signal: controller.signal,
       headers: { 'User-Agent': 'hs-arena-external-monitor/1.1 (+https://hearthpulse.net; read-only GET)' },
     });
-    const body = await readBoundedText(response, maximumBytes, label, controller.signal);
+    const body = await readBoundedText(response, maximumBytes, label, controller.signal, binary);
     return { response, body };
   })();
 
@@ -981,6 +997,26 @@ async function checkConstructedCards(baseUrl, fetchImpl, timeoutMs, signal) {
   return checks;
 }
 
+async function checkImageDelivery(baseUrl, fetchImpl, timeoutMs, signal) {
+  const checks = [];
+  for (const sample of IMAGE_SAMPLES) {
+    const label = `image ${sample.label}`;
+    const startedAt = Date.now();
+    const { response, body: bytes } = await fetchBoundedText(new URL(sample.path, baseUrl), fetchImpl, timeoutMs,
+      MAX_IMAGE_BYTES, label, signal, 'manual', true);
+    ensure(response.status === 200, `${label}: HTTP ${response.status}`);
+    ensure(sample.type.test(response.headers.get('content-type') || ''), `${label}: response is not the expected image`);
+    ensure(bytes > 0, `${label}: empty image`);
+    checks.push({ label, attempts: 1, status: 200, durationMs: Date.now() - startedAt });
+  }
+  const startedAt = Date.now();
+  const { response } = await fetchBoundedText(new URL(ABSENT_IMAGE_PATH, baseUrl), fetchImpl, timeoutMs,
+    MAX_EMPTY_RESPONSE_BYTES, 'image missing', signal);
+  ensure(response.status === 404, `image missing: HTTP ${response.status}`);
+  checks.push({ label: 'image missing', attempts: 1, status: 404, durationMs: Date.now() - startedAt });
+  return checks;
+}
+
 function assertIndexablePage(response, body) {
   ensure(response.status === 200, `HTTP ${response.status}`);
   ensure((response.headers.get('content-type') || '').includes('text/html'), 'response is not HTML');
@@ -1221,6 +1257,16 @@ export async function runProductionMonitor(options = {}) {
         status: 200,
         durationMs: 0,
         nested: await checkConstructedCards(baseUrl, fetchImpl, timeoutMs, signal),
+      }),
+    },
+    {
+      label: 'image delivery',
+      profiles: ['full', 'release'],
+      nested: true,
+      operation: async () => ({
+        status: 200,
+        durationMs: 0,
+        nested: await checkImageDelivery(baseUrl, fetchImpl, timeoutMs, signal),
       }),
     },
     ...routes.map(route => ({

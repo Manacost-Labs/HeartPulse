@@ -3,6 +3,7 @@ import {
   chmodSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -118,6 +119,57 @@ try {
     env: { ...process.env, ARENA_CARD_IMAGE_SYNC_CONFIG: config, ARENA_CARD_IMAGE_RELEASE_ROOT: release },
   });
   assert.equal(empty.status, 2, 'an empty topology must fail instead of reporting success');
+
+  // The warm list: data API pictures on the current origin go through the
+  // resource proxy, and a bare `/uploads/…` path from page data is not
+  // requested from the site, which only serves its own `/uploads/admin/`.
+  const warmBin = join(fixture, 'warm-bin');
+  const serverData = join(fixture, 'server-data');
+  const warmRelease = join(fixture, 'warm-release');
+  mkdirSync(warmBin, { recursive: true });
+  mkdirSync(serverData, { recursive: true });
+  for (const folder of ['ad', 'archetype-art', 'auth-icons', 'bg-legacy', 'class_icon', 'constructed-filter-icons',
+    'generated', 'main_assets', 'site-icons', 'source-logos', 'wallpaper']) {
+    mkdirSync(join(warmRelease, 'dist', folder), { recursive: true });
+  }
+  writeFileSync(join(serverData, 'cards.json'), JSON.stringify({
+    current: 'https://api.kolodahearthstone.com/uploads/constructed-related/CORE_EX1_284.png',
+    retired: 'https://db.kolodahs.ru/uploads/cards/BG28_300.png',
+  }));
+  writeFileSync(join(warmBin, 'curl'), `#!/usr/bin/env bash
+url="\${@: -1}"
+case "$url" in
+  */favicon.ico) printf 200 ;;
+  */sitemaps/static.xml) printf '<urlset><url><loc>https://hearthpulse.net/standard/cards/</loc></url></urlset>' ;;
+  */standard/cards/) printf '%s' '<img src="/uploads/card-history-media/abc.png"><img src="/uploads/admin/cover.webp"><img src="/api/public-resource/db/uploads/art/BG28_300.jpg?width=96">' ;;
+esac
+`);
+  chmodSync(join(warmBin, 'curl'), 0o755);
+  const warmState = join(fixture, 'warm-state');
+  const dryRun = spawnSync('bash', [warmScript, '57.129.183.118'], {
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      PATH: `${warmBin}:${process.env.PATH}`,
+      ARENA_WARM_DRY_RUN: '1',
+      ARENA_WARM_RELEASE_ROOT: warmRelease,
+      ARENA_WARM_SERVER_DATA: serverData,
+      ARENA_WARM_STATE_ROOT: warmState,
+      ARENA_WARM_QUARANTINE_FILE: join(fixture, 'absent.env'),
+    },
+  });
+  assert.equal(dryRun.status, 0, dryRun.stderr + dryRun.stdout);
+  const [run] = readdirSync(join(warmState, 'eu-london/runs'));
+  const listed = ['fast.txt', 'media.txt']
+    .flatMap(file => readFileSync(join(warmState, 'eu-london/runs', run, file), 'utf8').trim().split('\n'))
+    .map(line => line.replace('\t', ''))
+    .sort();
+  assert.deepEqual(listed, [
+    'hearthpulse.net/api/public-resource/db/uploads/art/BG28_300.jpg?width=96',
+    'hearthpulse.net/api/public-resource/db/uploads/cards/BG28_300.png',
+    'hearthpulse.net/api/public-resource/db/uploads/constructed-related/CORE_EX1_284.png',
+    'hearthpulse.net/uploads/admin/cover.webp',
+  ]);
 } finally {
   rmSync(fixture, { recursive: true, force: true });
 }
