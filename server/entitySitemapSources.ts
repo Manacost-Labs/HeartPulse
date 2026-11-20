@@ -1,4 +1,5 @@
 import { projectPublicBattlegroundLibraryCard, type BattlegroundLibraryKind } from './battlegroundLibrarySeoRoutes.js';
+import { createSitemapIndexNowHook } from './indexNow.js';
 import { isIndexableBattlegroundLibraryCard } from '../shared/battlegroundLibraryIndexing.js';
 import { libraryCardIndexingFacts } from './battlegroundLibraryOpenCard.js';
 import { createLibraryStatsStore } from './battlegroundLibraryOpenStats.js';
@@ -237,5 +238,7 @@ export function createEntitySitemapRuntimeOptions(
     minimumWildCardCount: minimumFromEnvironment(environment.SITEMAP_WILD_MIN_CARDS, 500),
     minimumBattlegroundMinionCount: minimumFromEnvironment(environment.SITEMAP_BG_MIN_MINIONS, 500),
     minimumBattlegroundHeroCount: minimumFromEnvironment(environment.SITEMAP_BG_MIN_HEROES, 80),
+    // IndexNow announces each rebuilt segment's changed addresses; production only (server/indexNow.ts).
+    onSegmentPublished: createSitemapIndexNowHook(environment.NODE_ENV),
   };
 }

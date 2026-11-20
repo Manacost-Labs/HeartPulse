@@ -105,6 +105,19 @@
 }
 .arena-tier-select select[data-selected='true'] { border-color: #7e4b20; background: #eed39c; box-shadow: inset 0 0 0 1px #7e4b20; }
 .arena-tier-select option { color: #3d291d; background: #fff4d9; }
+.arena-tier-select--locked {
+  height: 44px;
+  box-sizing: border-box;
+  padding: 0 36px 0 44px;
+  border: 1px dashed #ae8853;
+  border-radius: 6px;
+  color: #6b4c2a;
+  background: #fff4d9;
+  font-size: 14px;
+  cursor: pointer;
+}
+.arena-tier-select--locked b { font-weight: 400; white-space: nowrap; }
+.arena-tier-select--locked > svg { color: #8b5a1b; }
 .arena-tier-reset { min-height: 44px; padding: 0 12px; color: #6d1117; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .arena-tier-view { display: flex; height: 44px; box-sizing: border-box; padding: 0; border: 1px solid #ae8853; border-radius: 6px; }
 .arena-tier-view button { width: 44px; height: 42px; }
@@ -145,6 +158,7 @@
   .arena-tier-filters { width: 100%; }
   .arena-tier-select { flex: 1 1 160px; min-width: 0; }
   .arena-tier-select select { width: 100%; }
+  .arena-tier-select--locked { width: 100%; justify-content: flex-start; }
   .arena-tier-selection h2 { font-size: 20px; }
 }
 

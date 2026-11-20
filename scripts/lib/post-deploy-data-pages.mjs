@@ -21,12 +21,12 @@ export const DATA_PAGES = [
   { path: '/standard/meta/', isr: true, marker: 'standard-meta__results', copyWords: 213, dataWords: 345 },
   { path: '/standard/meta/wild/', isr: true, marker: 'standard-meta__results', copyWords: 213, dataWords: 345 }, // words: the Standard page's, not a stand measurement
   { path: '/articles/', isr: true, marker: 'article-card-modern', copyWords: 144, dataWords: 895 },
-  { path: '/tierlist/', isr: true, marker: 'tierlist-public-pool', copyWords: 557, dataWords: 831 },
+  { path: '/tierlist/', isr: true, marker: 'hs-tier-card', copyWords: 557, dataWords: 831 },
   { path: '/classes/', isr: true, marker: 'classes-public-teaser', copyWords: 469, dataWords: 554 },
   { path: '/legendaries/', isr: true, marker: 'legendary-group-card', copyWords: 346, dataWords: 4931 },
   { path: '/heroes/', isr: true, marker: 'bg-heroes-public__hero', copyWords: 172, dataWords: 2250 },
   { path: '/standard/matchups/', isr: true, marker: 'standard-matchups-open__matrix', copyWords: 120, dataWords: 1500 }, // words: an estimate, not a stand measurement
-  { path: '/battlegrounds/tier-list/', isr: true, marker: 'bg-builds-public__builder', copyWords: 95, dataWords: 1500 },
+  { path: '/battlegrounds/tier-list/', isr: true, marker: 'bg-tierlist-strategy__cards', copyWords: 95, dataWords: 1500 },
   { path: '/library/', isr: true, marker: 'bg-library-public__size', copyWords: 0, dataWords: 0 },
   { path: '/library/minions/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
   { path: '/library/spells/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
@@ -51,6 +51,9 @@ export const DATA_PAGES = [
   { path: '/standard/patches/', marker: 'hp-release__title', copyWords: 132, dataWords: 4102 },
   { path: '/standard/archetypes/', marker: 'archetype-row__rank', copyWords: 186, dataWords: 3603 },
   { path: '/standard/fun-decks/', marker: 'fun-deck-card__why', copyWords: 279, dataWords: 410 },
+  // The tool page reads two Express answers in a 600 ms budget; `assemble-title` («Что выпало?») is only in the HTML that got both. Words: not measured.
+  { path: '/standard/assemble/', marker: 'assemble-title', copyWords: 0, dataWords: 0 },
+  { path: '/standard/assemble/?format=wild', marker: 'assemble-title', copyWords: 0, dataWords: 0 },
   { path: '/', marker: 'home-orbit-class__copy', copyWords: 363, dataWords: 433 },
 ];
 

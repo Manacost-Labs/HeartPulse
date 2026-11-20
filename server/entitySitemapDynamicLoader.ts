@@ -32,6 +32,11 @@ type Options<Document> = {
   responseDeadlineMs?: number;
   loadDeadlineMs?: number;
   onError?: (error: unknown) => void;
+  /**
+   * Called after a rebuild from the source changed the published segment
+   * (not for a stale source or a fallback). `previous` is null on a first build.
+   */
+  onPublished?: (previous: SemanticSitemapDocument | null, next: SemanticSitemapDocument) => void;
   toDocument: (state: SemanticSitemapDocument, source: Source, expiresAt: number) => Document & { expiresAt: number };
 };
 
@@ -76,9 +81,17 @@ export function createDynamicDocumentLoader<Document>(options: Options<Document>
     if (inflight) return inflight;
     const job = (async () => {
       try {
-        cache = options.toDocument(store.publish(
-          definition.project(await withDeadline(definition.load(), loadMs, operation), origin),
-        ), 'catalog', now() + cacheTtlMs);
+        const rows = await withDeadline(definition.load(), loadMs, operation);
+        const previous = options.onPublished ? store.readLastKnownGood() : null;
+        const published = store.publish(definition.project(rows, origin));
+        cache = options.toDocument(published, 'catalog', now() + cacheTtlMs);
+        if (options.onPublished && previous?.contentHash !== published.contentHash) {
+          try {
+            options.onPublished(previous, published);
+          } catch {
+            // An announcement must never alter the public contract.
+          }
+        }
         return cache;
       } catch (error) {
         try {

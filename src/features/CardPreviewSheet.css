@@ -114,6 +114,15 @@
   filter: drop-shadow(0 0.9rem 0.8rem rgb(13 3 5 / 58%));
 }
 
+/* Until the picture arrives the image box keeps the card's shape and pulses,
+   so a slow picture never leaves an empty dark frame. */
+.card-preview-sheet__media[aria-busy="true"] img {
+  aspect-ratio: 404 / 558;
+  border-radius: 1rem;
+  background: linear-gradient(160deg, #d9bd86, #c9a66a);
+  animation: loading-pulse var(--motion-loop) var(--motion-ease) infinite alternate;
+}
+
 .card-preview-sheet__media figcaption {
   max-width: 22rem;
   margin: auto;
@@ -159,4 +168,6 @@
     scroll-behavior: auto;
     transition: none;
   }
+
+  .card-preview-sheet__media[aria-busy="true"] img { animation: none; }
 }

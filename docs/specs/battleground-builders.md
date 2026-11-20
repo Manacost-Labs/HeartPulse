@@ -141,7 +141,10 @@ by name (an allowlist):
   gives neither today);
 - minions: `coreCards` (up to 6) and `additionalCards` (up to 8, the example
   board) with `dbfId`, `cardId`, `name` (Russian), `image` (same-origin
-  public-resource path);
+  public-resource path), `frame` (the framed render, same origin) and `text`
+  (the card's own text, plain): public facts of the card that the tier list's
+  strategy card and its lightbox show (fields added for the guest tier list,
+  additive);
 - `updatedAt` (`fetchedAt`), `source`, `list`.
 
 Closed and never copied: sample sizes (`games`), `firstPlace`, the placement
@@ -160,28 +163,49 @@ The Next pages read the list anonymously
 list of the process and re-parsing field by field in
 `publicBattlegroundBuildsData.ts`). The tier list is prerendered (ISR five
 minutes); the strategies page stays rendered per request, because its robots
-policy depends on the query. Both render `BattlegroundBuildsPublicList`:
-tiers S to D, each build with its title, facts (archetype, difficulty, average
-place, popularity), conditions, key minions, the rest of the example board and
-a link to `/battlegrounds/tier-builder/`. A guest, a robot and a signed-in
-visitor without a subscription get the same HTML; a subscriber keeps the list
-on screen until the paid chunk has loaded and the paid view replaces it in one
-render. A failed read never turns into an empty page: the page uses the last
-good list of the process, and with none the tier list's regeneration throws,
-so Next keeps the copy it has (the strategies page, which has no copy to keep,
-says the builds are temporarily unavailable).
+policy depends on the query. The strategies page renders
+`BattlegroundBuildsPublicList`: tiers S to D, each build with its title, facts
+(archetype, difficulty, average place, popularity), conditions, key minions,
+the rest of the example board and a link to `/battlegrounds/tier-builder/`.
+
+The tier list renders the subscriber's tier list itself
+(`src/features/BattlegroundTierList.tsx`, moved out of the monolith) on the
+open builds, through `apps/public-web/ui/BattlegroundTierListOpenView.tsx`: a
+tier-list source whose `peek` answers the HSReplay compositions in the server
+render, and whose Firestone slice is read from the open `list=strategies`
+projection when the viewer picks that source. The view starts on «Стратегии»
+with HSReplay (the subscriber's view starts on «Существа»); the tabs
+«Существа», «Заклинания» and «Аксессуары» stay in place with a lock
+(`.paywalled-builds`) that opens the inline subscription offer, and their
+protected lists are never requested. Each tier shows its first page (6
+strategies, the rest with «Показать ещё»), except tier S, which is printed
+whole: its builds lead the page and the description names them. The server
+render ignores the address and applies it after hydration; the toolbar's time
+is written in Moscow time («МСК»), so server and browser print the same text.
+
+A guest, a robot and a signed-in visitor without a subscription get the same
+HTML; a subscriber keeps the open view on screen until the paid chunk has loaded
+and the paid view replaces it in one render. A failed read never turns into an
+empty page: the page uses the last good list of the process, and with none the
+tier list's regeneration throws, so Next keeps the copy it has (the strategies
+page, which has no copy to keep, says the builds are temporarily unavailable;
+the tier list's build copy shows its toolbar and that notice).
 Only the build, which has no Express, renders without the list.
 
-JSON-LD: `ItemList` of the printed builds (anchors `#build-<key>`) and a
+JSON-LD: `ItemList` of the printed builds (anchors `#build-<key>`; on the
+tier list `printedOpenBuilds`, the builds its server HTML holds) and a
 `Dataset` with `isAccessibleForFree: false` and `hasPart` pointing at
-`.paywalled-builds`, the closed part under the list. The strategies page is a
-`CollectionPage` for that reason (it names the printed list). Production
-observer entries `battlegrounds-tier-list-open-builds` and
-`battlegrounds-strategies-open-builds` check `.bg-builds-public article`.
+`.paywalled-builds`, the closed part (the strategies page's note under the
+list, the tier list's locked tabs). The strategies page is a `CollectionPage`
+for that reason (it names the printed list). Production observer entries
+`battlegrounds-tier-list-open-builds` (`.bg-tierlist-strategy`) and
+`battlegrounds-strategies-open-builds` (`.bg-builds-public article`) check the
+open builds.
 
 Warm-up and edge rules for both pages are handled by the final E21 slice
 (#476): the page paths are `/battlegrounds/tier-list` and
-`/battlegrounds/strategies`, the data marker is `.bg-builds-public article`.
+`/battlegrounds/strategies`; the tier list's warm-up marker is
+`bg-tierlist-strategy__cards`.
 
 ## Boundaries
 

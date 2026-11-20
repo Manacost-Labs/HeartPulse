@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createServer, request as httpRequest } from 'node:http';
 import { existsSync } from 'node:fs';
-import { DATA_PAGES } from '../scripts/lib/post-deploy-data-pages.mjs';
+import { DATA_PAGES, hasMarker } from '../scripts/lib/post-deploy-data-pages.mjs';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
@@ -20,11 +20,12 @@ import { openAnswer as matchupsOpenAnswer } from './helpers/standardMatchupsOpen
 import { buildFixtureCards, buildTierlistFixture, closedValues, guestPercent, CLASS_IDS, PAID_KEYS } from './helpers/tierlistPublicFixture.ts';
 
 // The built /tierlist/ page against an Express that serves the real open
-// projection: a guest and a robot get the same HTML with the whole card pool
-// by class (tier, winrate to 0,1, pick rate), the date and the source, and no
-// paid value (mulligan winrate, ArenaSmith rank, exact games, unrounded winrate)
-// is in the HTML, the RSC payload (`self.__next_f`) or the JSON-LD. Without
-// data the page is still a 200.
+// projection: a guest and a robot get the same HTML, the subscriber's view on
+// the open pool (class filter, tiers, the first page of cards, locked sources
+// and filters), the open figures of the whole pool (tier, winrate to 0,1, pick
+// rate) in the page data, and no paid value (mulligan winrate, ArenaSmith rank,
+// exact games, unrounded winrate) in the HTML, the RSC payload
+// (`self.__next_f`) or the JSON-LD. Without data the page is still a 200.
 
 const CARDS = buildFixtureCards();
 const CLOSED = closedValues();
@@ -95,7 +96,7 @@ const guestHtml = async (origin, headers = {}) => {
   return response.text();
 };
 
-test('the guest HTML of /tierlist/ carries the whole open pool and nothing paid', async () => {
+test('the guest HTML of /tierlist/ is the subscriber view on the open pool and carries nothing paid', async () => {
   assert.equal(existsSync('apps/public-web/.next/BUILD_ID'), true, 'run build:next before this test');
   // The build copy of the page is made without Express: it has no slice.
   const state = { reads: [], down: true };
@@ -117,39 +118,38 @@ test('the guest HTML of /tierlist/ carries the whole open pool and nothing paid'
     }
     return assert.fail(`the page was not regenerated: ${phase}; reads ${JSON.stringify(state.reads.map(read => read.path))}; ${next.output().slice(-300)}`);
   };
-  const hasSlice = html => html.includes('class="tierlist-public-pool"');
+  const hasSlice = html => html.includes('hs-tier-card');
   try {
     const buildCopy = await guestHtml(next.origin);
-    assert.equal(hasSlice(buildCopy), false, 'the copy made without Express has no slice but is a 200 page');
-    assert.match(buildCopy, /class="paywalled-tierlist"/);
+    assert.equal(hasSlice(buildCopy), false, 'the copy made without Express has no cards but is a 200 page');
     state.down = false;
-    const html = await regenerated(hasSlice, 'slice appears');
+    const html = await regenerated(hasSlice, 'cards appear');
 
-    const start = html.indexOf('class="tierlist-public-pool"');
-    const slice = html.slice(start, html.indexOf('</table></div></section></div></section>', start) + 10);
-    assert.ok(slice.length > 1000, 'the open list is in the server HTML');
-    // The cards of a class are grouped by tier: the painted mark of the tier (`data-tier`) heads its rows.
-    const rows = [...slice.matchAll(/data-tier="([SA-FU])"[^>]*\/><\/th><\/tr><\/tbody><tbody>(.*?)<\/tbody>/g)].flatMap(group =>
-      [...group[2].matchAll(/<tr><th>Карта ([\w-]+)<td>([\d,]+)<td>([\d,]+)<td>(?=<tr>|$)/g)]
-        .map(row => [row[0], row[1], group[1], row[2], row[3]]));
-    assert.equal(rows.length, CARDS.length, 'every card of the pool: a card with a tier, winrate and pick rate per row');
-    for (const classId of CLASSES) {
-      assert.match(slice, new RegExp(`<section id="tierlist-${classId}" data-tierlist-class="${classId}"`), `a section and anchor for ${classId}`);
-      assert.match(slice, new RegExp(`<a href="#tierlist-${classId}">Класс ${classId}</a>`), `the filter links to ${classId} without a script`);
-    }
-    const first = rows.find(row => row[1] === 'death-knight-0');
-    assert.deepEqual([first[2], first[3], first[4]], ['A', '55,6', '61,2'], 'the sentinels are shown rounded to 0,1');
-    assert.equal(guestPercent(55.5555), '55,6');
-    assert.equal(rows.find(row => row[1] === 'druid-u')[2], 'U', 'a card without a tier is still listed, under the «Без тира» mark');
-    // The HTML budget is 300 KB. Every row is in the HTML and in the RSC payload and costs ~90 bytes in the two (measured on
-    // a 1100-card fixture: 214 KB in all): the page with this fixture and a pool of 1500 cards must still fit.
-    const projected = Buffer.byteLength(html) + (1500 - CARDS.length) * 100;
-    assert.ok(projected <= 300_000, `a 1500-card pool would make ${projected} bytes of HTML (${Buffer.byteLength(html)} for ${CARDS.length} cards)`);
-    assert.match(slice, /Данные на <time dateTime="2026-11-15T17:00:03\.639Z">15 ноября 2026, 20:00 МСК<\/time> · по данным более 980\s000 игр · источник HSReplay/);
-    assert.match(slice, /<col class="tierlist-public-pool__col-lock paywalled-tierlist"\/>/, 'the closed column has the class the JSON-LD names');
-    assert.match(slice, /<button type="button" class="tierlist-public-pool__lock paywalled-tierlist"/, 'the lock carries it too');
+    // The subscriber's view on the open data: «Все карты», best tier first, the first page of cards.
+    const start = html.indexOf('class="arena-tierlist-page"');
+    assert.ok(start >= 0 && html.indexOf('<h1') < html.indexOf('class="tierlist-card-grid"'), 'the cards are the page content after the H1');
+    const shown = [...html.matchAll(/aria-label="Открыть карту ([^"]+)"/g)].map(match => match[1]);
+    assert.equal(shown.length, Math.min(48, CARDS.length), 'the first page of the pool is in the server HTML');
+    assert.deepEqual(shown.filter(name => !CARDS.some(card => card.row.name === name)), [], 'only cards of the pool');
+    assert.equal(shown[0].startsWith('Карта mage-s') || shown[0] === 'Карта any-s0', true, 'tier S comes first');
+    for (const classId of CLASSES) assert.match(html, new RegExp(`aria-label="Класс ${classId}"`), `the class filter offers ${classId}`);
+    // The closed parts are in place, locked, with the class the JSON-LD names.
+    assert.equal((html.match(/data-locked="true"/g) ?? []).length, 2, 'HearthArena and Firestone are locked sources');
+    assert.equal((html.match(/arena-tier-select--locked paywalled-tierlist/g) ?? []).length, 2, 'rarity and mana are locked filters');
     assert.ok(!html.includes('arena-paywall'), 'no gate over the open list');
-    assert.ok(html.indexOf('<h1') < start, 'the list is the page content right after the H1');
+    // Every open figure of the pool travels to the browser (search, class filter, card details), rounded to 0.1.
+    const rsc = [...html.matchAll(/<script>self\.__next_f\.push\(([\s\S]*?)\)<\/script>/g)].map(match => match[1]).join('\n');
+    for (const { row } of CARDS) assert.ok(rsc.includes(String(row.name)), `${row.name} is in the page data`);
+    assert.match(rsc, /,55\.6,61\.2\]/, 'the sentinel is rounded to 0.1');
+    assert.match(html, /Данные на <time dateTime="2026-11-15T17:00:03\.639Z">15 ноября 2026, 20:00 МСК<\/time>(?:<!-- -->)? · по данным более 980\s000 игр · источник HSReplay/,
+      'the date, the sample and the source are on the page');
+    // The HTML budget is 300 KB. Every card of the pool is a compact row of the RSC payload; the rendered first page
+    // does not grow with the pool. A pool of 1500 cards must still fit (the production pool has about 1300).
+    const rows = rsc.match(/\[\\"FX_[^\]]*\]/g) ?? [];
+    assert.equal(rows.length, CARDS.length, 'one compact row per card of the pool');
+    const perCard = Math.ceil(rows.reduce((sum, row) => sum + Buffer.byteLength(row) + 1, 0) / rows.length);
+    const projected = Buffer.byteLength(html) + (1500 - CARDS.length) * perCard;
+    assert.ok(projected <= 300_000, `a 1500-card pool would make ${projected} bytes of HTML (${Buffer.byteLength(html)} for ${CARDS.length} cards)`);
 
     // Nothing closed in the HTML, in the RSC payload and in the JSON-LD: each is checked on its own.
     assert.match(html, /self\.__next_f/, 'the page carries an RSC payload');
@@ -180,9 +180,8 @@ test('the guest HTML of /tierlist/ carries the whole open pool and nothing paid'
     // No data: a 200 page, with its text and markup but without the slice.
     state.down = true;
     state.generation = 1;
-    const empty = await regenerated(page => !hasSlice(page), 'slice disappears without data');
-    assert.doesNotMatch(empty, /tierlist-public-pool/, 'no slice without data');
-    assert.match(empty, /class="paywalled-tierlist"/);
+    const empty = await regenerated(page => !hasSlice(page), 'cards disappear without data');
+    assert.doesNotMatch(empty, /aria-label="Открыть карту /, 'no cards without data');
     assert.doesNotMatch(empty, /О странице/, 'no explanation block is printed');
   } finally {
     await next.close();
@@ -246,7 +245,7 @@ test('the post-deploy warm-up revalidates again until /tierlist/ carries its sli
   const stand = await warmStand({ expressRecoversAfterFirstRevalidation: true });
   try {
     const before = await guestHtml(stand.next.origin);
-    assert.equal(before.includes('class="tierlist-public-pool"'), false, 'the build copy has no slice');
+    assert.equal(before.includes('hs-tier-card'), false, 'the build copy has no cards');
     const { code, output } = await stand.warm({ WARM_TOTAL_MS: '30000' });
     assert.equal(code, 0, output);
     assert.ok(stand.revalidations.length >= 2, `a page left without data is revalidated again: ${output}`);
@@ -261,8 +260,8 @@ test('the post-deploy warm-up revalidates again until /tierlist/ carries its sli
     assert.match(output, /\[warm\] \/tierlist\/: with data/, output);
     // What a visitor gets right after the warm-up, with no clock shifted and no second request needed.
     const after = await guestHtml(stand.next.origin);
-    assert.match(after, /class="tierlist-public-pool"/, 'the slice is in the served HTML');
-    assert.match(after, /<tr><th>Карта mage-s0<td>[\d,]+<td>[\d,]+<td>/, 'with its cards');
+    assert.match(after, /hs-tier-card/, 'the cards are in the served HTML');
+    assert.match(after, /aria-label="Открыть карту Карта mage-s0"/, 'with its cards');
     assert.match(after, /data-tier="S"/, 'under the tier marks');
   } finally {
     await stand.close();
@@ -291,10 +290,10 @@ test('the post-deploy warm-up waits for a cold Express and warns for every page 
   }
 });
 
-// The open list in a real browser: without a script every card of the pool is on the page and the class links
-// are plain anchors; with one the class filter shows a single class and the page does not shift while it
-// hydrates and while the paywall settles.
-test('/tierlist/ in a browser: the whole pool without JS, the class filter with JS, no layout shift', async () => {
+// The open view in a real browser: without a script the first page of cards is on the page; with one the
+// class filter, the card details with the open figures and the locks work like the subscriber's view, and
+// the page does not shift while it hydrates and while the paywall settles.
+test('/tierlist/ in a browser: cards without JS, the subscriber view with locks with JS, no layout shift', async () => {
   const state = { reads: [], down: false };
   const legacyServer = startLegacy(state).listen(0, '127.0.0.1');
   await once(legacyServer, 'listening');
@@ -305,7 +304,7 @@ test('/tierlist/ in a browser: the whole pool without JS, the class filter with 
   try {
     for (let attempt = 0; attempt < 40; attempt += 1) {
       process.kill(next.pid, 'SIGUSR2');
-      if ((await guestHtml(next.origin)).includes('class="tierlist-public-pool"')) break;
+      if ((await guestHtml(next.origin)).includes('hs-tier-card')) break;
       await delay(250);
     }
     front = createServer((request, response) => {
@@ -322,16 +321,9 @@ test('/tierlist/ in a browser: the whole pool without JS, the class filter with 
 
     const plain = await browser.newPage();
     await plain.setJavaScriptEnabled(false);
-    await plain.goto(`${origin}/tierlist/#tierlist-mage`, { waitUntil: 'load' });
-    await delay(300);
-    const noScript = await plain.evaluate(() => ({
-      rows: document.querySelectorAll('.tierlist-public-pool tbody:not(.tierlist-public-pool__tier) tr').length,
-      hidden: document.querySelectorAll('.tierlist-public-pool [hidden]').length,
-      mageTop: Math.round(document.getElementById('tierlist-mage').getBoundingClientRect().top),
-    }));
-    assert.equal(noScript.rows, CARDS.length, 'without JS every card of the pool is on the page');
-    assert.equal(noScript.hidden, 0, 'nothing is hidden without a script');
-    assert.ok(noScript.mageTop < 400, `the class anchor works without a script (section top ${noScript.mageTop}px)`);
+    await plain.goto(`${origin}/tierlist/`, { waitUntil: 'load' });
+    const noScript = await plain.evaluate(() => document.querySelectorAll('.tierlist-card-grid .hs-tier-card').length);
+    assert.equal(noScript, Math.min(48, CARDS.length), 'without JS the first page of cards is on the page');
     await plain.close();
 
     for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true, hasTouch: true }]) {
@@ -343,19 +335,26 @@ test('/tierlist/ in a browser: the whole pool without JS, the class filter with 
           for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.__layoutShifts.push(entry.value);
         }).observe({ type: 'layout-shift', buffered: true });
       });
+      const errors = [];
+      page.on('pageerror', error => errors.push(String(error)));
       await page.goto(`${origin}/tierlist/`, { waitUntil: 'networkidle2' });
-      const visibleSections = () => page.evaluate(() => [...document.querySelectorAll('[data-tierlist-class]')].filter(node => !node.hidden).length);
-      const visibleRows = () => page.evaluate(() => [...document.querySelectorAll('.tierlist-public-pool tbody:not(.tierlist-public-pool__tier) tr')].filter(row => !row.closest('[hidden]')).length);
-      assert.equal(await visibleSections(), CLASSES.length, `${viewport.width}px: every class is shown by default`);
-      await page.click('.tierlist-public-pool__classes a[href="#tierlist-mage"]');
-      await page.waitForFunction(() => document.querySelectorAll('[data-tierlist-class]:not([hidden])').length === 1);
-      assert.equal(await visibleRows(), CARDS.filter(card => card.classId === 'mage').length, 'the filter keeps only the chosen class');
-      await page.click('.tierlist-public-pool__classes a[href="#tierlist-pool"]');
-      await page.waitForFunction(count => document.querySelectorAll('[data-tierlist-class]:not([hidden])').length === count, {}, CLASSES.length);
-      assert.equal(await visibleRows(), CARDS.length, 'all classes are back');
+      const cards = () => page.evaluate(() => document.querySelectorAll('.tierlist-card-grid .hs-tier-card').length);
       const shift = await page.evaluate(() => window.__layoutShifts.reduce((sum, value) => sum + value, 0));
-      assert.ok(shift < 0.02, `${viewport.width}px: the page shifted by ${shift.toFixed(4)}`);
-      await page.close();
+      assert.ok(shift < 0.02, `${viewport.width}px: the page shifted by ${shift.toFixed(4)} while it hydrated`);
+      await page.click('button[aria-label="Класс mage"]');
+      await page.waitForFunction(count => document.querySelectorAll('.tierlist-card-grid .hs-tier-card').length === count, {},
+        CARDS.filter(card => card.classId === 'mage').length);
+      await page.click('button[aria-label="Все карты"]');
+      await page.waitForFunction(count => document.querySelectorAll('.tierlist-card-grid .hs-tier-card').length === count, {}, Math.min(48, CARDS.length));
+      // The card details show the open figures and the paid ones as locks; a lock opens the offer in place.
+      await page.click('.tierlist-card-grid .hs-tier-card');
+      await page.waitForSelector('.card-modal-stats .tierlist-paid-lock');
+      await page.click('.card-modal-stats button.tierlist-paid-lock');
+      await page.waitForFunction(() => !document.querySelector('.card-modal-lightbox'));
+      await page.waitForSelector('.tierlist-offer .arena-inline-paywall');
+      assert.equal(await cards(), Math.min(48, CARDS.length), 'the list stays while the offer is open');
+      assert.deepEqual(errors, [], `${viewport.width}px: no page errors`);
+    await page.close();
     }
   } finally {
     if (browser) await browser.close();
@@ -375,7 +374,7 @@ test('the post-deploy warm-up regenerates /legendaries/, /heroes/, /standard/mat
       { path: '/legendaries/', data: 'legendary-group-card', copy: 'Данные временно недоступны' },
       { path: '/heroes/', data: 'id="heroes-solo"', copy: 'Рейтинг героев временно недоступен' },
       { path: '/standard/matchups/', data: 'standard-matchups-open__matrix', copy: 'Загружаем матчапы' },
-      { path: '/battlegrounds/tier-list/', data: 'bg-builds-public__builder', copy: 'Сборки временно недоступны' },
+      { path: '/battlegrounds/tier-list/', data: 'bg-tierlist-strategy__cards', copy: 'Сборки временно недоступны' },
     ];
     for (const { path, data, copy } of pages) {
       const response = await fetch(`${stand.next.origin}${path}`);
@@ -414,4 +413,16 @@ test('DATA_PAGES marked isr are the 23 pages of the revalidate route', () => {
   assert.equal(expected.length, 23);
   assert.deepEqual(DATA_PAGES.filter(page => page.isr).map(page => page.path.replace(/\/$/, '')).sort(), [...expected].sort());
   assert.equal(DATA_PAGES.find(page => page.path === '/library/').marker, 'bg-library-public__size', 'the hub marker is not on the copy without sizes');
+});
+
+// The tool page «Сборка» reads two Express answers in its first-paint budget, so the deploy warm-up primes both formats of it
+// (dynamic pages, requested on the local Next origin) and waits for the block only the HTML with the data has.
+test('the post-deploy warm-up covers /standard/assemble/ in both formats and tells the page with the data from the one without', () => {
+  const pages = DATA_PAGES.filter(page => page.path.startsWith('/standard/assemble/'));
+  assert.deepEqual(pages.map(page => page.path), ['/standard/assemble/', '/standard/assemble/?format=wild']);
+  for (const page of pages) assert.equal(page.isr, undefined, 'dynamic: it is not part of the revalidate route');
+  const marker = pages[0].marker;
+  const picker = '<div class="assemble-tool"><h2 class="assemble-tool__title">Выберите карту</h2><div class="card-choices"></div></div>';
+  assert.equal(hasMarker(picker, marker), false, 'the picker alone is the page without the data');
+  assert.equal(hasMarker(`${picker}<h3 class="assemble-title">Что выпало?</h3>`, marker), true);
 });

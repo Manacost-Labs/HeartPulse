@@ -5,7 +5,8 @@ import './AnchoredImagePreview.css';
 
 type Props = HTMLAttributes<HTMLElement> & {
   source: string;
-  fallbackSource: string;
+  /** Tried in order after `source` fails; the last failure shows the error text. */
+  fallbackSource: string | readonly string[];
   name: string;
   accessibleName: string;
   anchorRect: DOMRect;
@@ -19,9 +20,20 @@ type Props = HTMLAttributes<HTMLElement> & {
 /** A passive hover image; callers own the trigger, navigation and touch interaction. */
 export function AnchoredImagePreview({ source: preferredSource, fallbackSource, name, accessibleName, anchorRect, previewId, bare = false, keepOnScroll = false, className = '', ...attributes }: Props) {
   const [visible, setVisible] = useState(false);
-  const [source, setSource] = useState(preferredSource);
+  const [sources] = useState(() => [...new Set([preferredSource, ...[fallbackSource].flat()].filter(Boolean))]);
+  const [sourceIndex, setSourceIndex] = useState(0);
   const [loadedSource, setLoadedSource] = useState('');
-  const [failed, setFailed] = useState(false);
+  const failed = sourceIndex >= sources.length;
+  const source = sources[Math.min(sourceIndex, sources.length - 1)] ?? '';
+
+  // The preview appears 120 ms after the pointer arrives; start the request now
+  // so a cold image has that head start and the <img> below reuses the response.
+  useEffect(() => {
+    if (!preferredSource) return;
+    const preload = new Image();
+    preload.decoding = 'async';
+    preload.src = preferredSource;
+  }, [preferredSource]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => setVisible(true), 120);
@@ -64,11 +76,9 @@ export function AnchoredImagePreview({ source: preferredSource, fallbackSource, 
           src={source}
           alt={name}
           className={loaded ? 'is-loaded' : ''}
+          decoding="async"
           onLoad={() => setLoadedSource(source)}
-          onError={() => {
-            if (source !== fallbackSource) setSource(fallbackSource);
-            else setFailed(true);
-          }}
+          onError={() => setSourceIndex(index => index + 1)}
         />}
         {!loaded && <span className="anchored-image-preview__status">
           {failed ? 'Изображение временно недоступно' : 'Загрузка изображения…'}

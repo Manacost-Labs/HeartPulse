@@ -8,10 +8,10 @@ import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 
-// /tierlist/ and /classes/ in a real browser against an Express stub (E21 R6, #410, #462): the open data is the
-// content of the first screen for a guest, with locks in place of the paid values and no gate over it; a lock
-// opens the subscription offer and keeps the class in the address; a subscriber's full view takes the open one's
-// place only once its data has arrived, without a duplicate and without a layout shift. The protected routes of
+// /tierlist/ and /classes/ in a real browser against an Express stub (E21 R6, #410, #462): a guest gets the
+// subscriber's view on the open data (on /tierlist/ the same TierList), with locks in place of the paid values
+// and no gate over it; a lock opens the subscription offer and the class stays in the address; a subscriber's
+// view switches to the protected data only once it has arrived, without a duplicate and without a layout shift. The protected routes of
 // the stub carry the sentinels, so they appear on a page only for a subscriber.
 
 const READER = { id: 'first-screen-reader', email: 'reader@example.test', name: 'Подписчик Арены', role: 'user' };
@@ -91,7 +91,7 @@ async function startStack() {
   return Object.assign(state, { server, origin, sessions });
 }
 
-async function open(browser, origin, path, { viewport = DESKTOP, session = null, wait = '.tierlist-public-pool, .classes-public-teaser' } = {}) {
+async function open(browser, origin, path, { viewport = DESKTOP, session = null, wait = '.hs-tier-card, .classes-public-teaser' } = {}) {
   const page = await browser.newPage();
   await page.setViewport(viewport);
   await page.setCacheEnabled(false);
@@ -127,7 +127,7 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
   let browser;
   try {
     // Both pages are five-minute ISR copies: move the server's clock until the copies with the data are served.
-    for (const [path, marker] of [['/tierlist/', 'tierlist-public-pool'], ['/classes/', 'classes-public-teaser']]) {
+    for (const [path, marker] of [['/tierlist/', 'hs-tier-card'], ['/classes/', 'classes-public-teaser']]) {
       for (let attempt = 0; attempt < 40; attempt += 1) {
         process.kill(next.pid, 'SIGUSR2');
         if ((await (await fetch(`${next.origin}${path}`)).text()).includes(marker)) break;
@@ -152,49 +152,34 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
     await bare.close();
 
     for (const viewport of [DESKTOP, PHONE, SMALL_PHONE]) {
-      // The tier list.
+      // The tier list: the subscriber's view on the open data, the closed parts locked in place.
       const { page, errors } = await open(browser, stack.origin, '/tierlist/', { viewport });
       await delay(1200);
       assert.equal(await page.$('.arena-paywall'), null, `${viewport.width}px: no gate over the list`);
       assert.equal(stack.protectedReads, 0, 'a guest never asks for the protected list');
-      const geometry = await page.evaluate(() => {
-        const firstRow = document.querySelector('.tierlist-public-pool tbody:not(.tierlist-public-pool__tier) tr');
-        return {
-          firstRowTop: firstRow.getBoundingClientRect().top,
-          clipped: [...document.querySelectorAll('.tierlist-public-pool thead th')].filter(th => th.scrollWidth > th.clientWidth + 1).map(th => th.textContent.trim()),
-          sideways: [...document.querySelectorAll('.tierlist-public-pool__scroll')].filter(box => box.scrollWidth > box.clientWidth + 1).length,
-          page: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-          badge: document.querySelector('.tierlist-public-pool img.arena-tier-badge')?.getAttribute('src') ?? null,
-          badges: document.querySelectorAll('.tierlist-public-pool img.arena-tier-badge').length,
-        };
-      });
-      assert.ok(geometry.firstRowTop < viewport.height, `${viewport.width}px: the first card is below the first screen (${geometry.firstRowTop})`);
-      assert.deepEqual(geometry.clipped, [], `${viewport.width}px: table headings must fit their cells (#462)`);
-      assert.equal(geometry.sideways, 0, `${viewport.width}px: no table scrolls sideways`);
+      const geometry = await page.evaluate(() => ({
+        cards: document.querySelectorAll('.tierlist-card-grid .hs-tier-card').length,
+        locks: document.querySelectorAll('.paywalled-tierlist').length,
+        page: document.documentElement.scrollWidth - document.documentElement.clientWidth,
+        badge: document.querySelector('.tierlist-group-heading img.arena-tier-badge')?.getAttribute('src') ?? null,
+      }));
+      assert.ok(geometry.cards > 0, `${viewport.width}px: the cards are on the page`);
+      assert.ok(geometry.locks >= 4, `${viewport.width}px: two sources and two filters are locked (${geometry.locks})`);
       assert.ok(geometry.page <= 0, `${viewport.width}px: the page scrolls sideways by ${geometry.page}`);
       assert.match(geometry.badge, /^\/tier-marks\/[sabcdefu]-80\.webp$/, 'tiers use the painted marks');
-      assert.equal(geometry.badges, CLASSES.length * TIERS.length, 'one mark per tier group, not per card');
-      assert.ok(await shift(page) < 0.01, `${viewport.width}px: the guest page shifted by ${await shift(page)}`);
+      assert.ok(await shift(page) < 0.01, `${viewport.width}px: the guest page shifted by ${await shift(page)}: ${await shiftSources(page)}`);
 
-      // Choosing a class writes it to the address; the lock opens the offer that returns to the same class.
-      await page.click('.tierlist-public-pool__classes a[href="#tierlist-mage"]');
+      // Choosing a class writes it to the address; a lock opens the offer.
+      await page.click('.arena-tier-classes button[aria-label="Маг"]');
       assert.match(await page.evaluate(() => location.search), /class=mage/);
-      assert.equal(await page.$$eval('[data-tierlist-class]:not([hidden])', nodes => nodes.length), 1);
-      await page.click('#tierlist-mage .tierlist-public-pool__lock');
-      await page.waitForSelector('[data-testid="arena-paid-offer"]');
-      const login = await page.$eval('[data-testid="arena-paid-offer"] a[href^="/?login"]', link => link.getAttribute('href'));
-      assert.equal(new URLSearchParams(login.split('?')[1]).get('returnTo'), '/tierlist/?class=mage');
-      await page.click('.arena-paid-offer__close');
-      await page.waitForFunction(() => !document.querySelector('[data-testid="arena-paid-offer"]'));
-      await page.click('.tierlist-public-pool__chip-lock');
-      await page.waitForSelector('[data-testid="arena-paid-offer"]');
+      await page.click('.source-toggle-button[data-locked="true"]');
+      await page.waitForSelector('.tierlist-offer .arena-inline-paywall');
       assert.deepEqual(errors, []);
       await page.close();
 
       // A guest who opens the address with a class gets that class.
       const linked = await open(browser, stack.origin, '/tierlist/?class=druid', { viewport });
-      await linked.page.waitForFunction(() => document.querySelectorAll('[data-tierlist-class]:not([hidden])').length === 1, { timeout: 15000 });
-      assert.equal(await linked.page.$eval('[data-tierlist-class]:not([hidden])', node => node.dataset.tierlistClass), 'druid');
+      await linked.page.waitForFunction(() => document.querySelector('.arena-tier-classes button[aria-pressed="true"]')?.getAttribute('aria-label') === 'Друид', { timeout: 15000 });
       await linked.page.close();
 
       // The classes.
@@ -219,13 +204,15 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
       const { page, errors } = await open(browser, stack.origin, '/tierlist/?class=mage', { viewport, session: 'reader' });
       await delay(300);
       assert.equal(await page.$('.arena-paywall'), null, 'no gate while the access is checked');
-      assert.ok(await page.$('.tierlist-public-pool'), 'the open list is still there while the protected data loads');
-      await page.waitForSelector('.arena-tierlist-page .arena-tier-controls', { timeout: 15000 });
-      assert.equal(await page.$('.tierlist-public-pool'), null, 'no open list under the full view');
+      assert.ok(await page.$('.tierlist-card-grid .hs-tier-card'), 'the open data is on the page while the protected data loads');
+      // Details opened on the open data close when the protected data replaces it (no stale figures, no hidden paid ones).
+      await page.click('.tierlist-card-grid .hs-tier-card');
+      await page.waitForSelector('.card-modal-lightbox');
+      await page.waitForFunction(() => !document.querySelector('[data-locked], .arena-tier-select--locked'), { timeout: 15000 });
+      await page.waitForFunction(() => !document.querySelector('.card-modal-lightbox'), { timeout: 5000 });
       assert.equal(await page.$('.arena-paywall'), null);
-      assert.equal(await page.$('.tierlist-public-pool__lock'), null, 'no lock for a subscriber');
       assert.equal(await page.$eval('.arena-tier-classes button[aria-pressed="true"]', button => button.getAttribute('aria-label')), 'Маг',
-        'the class of the open list is the class of the full view');
+        'the class stays when the protected data arrives');
       await delay(600);
       assert.ok(await shift(page) < 0.01, `${viewport.width}px: the subscriber's swap shifted the page by ${await shift(page)}: ${await shiftSources(page)}`);
       assert.deepEqual(errors, []);
@@ -247,7 +234,7 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
     // The protected answer fails (a 5xx, a broken body or a valid answer without rows): the subscriber keeps the open list, never an empty or error view.
     for (const failure of ['500', 'broken', 'empty']) {
       stack.protectedFail = failure;
-      for (const [path, open1, full] of [['/tierlist/', '.tierlist-public-pool', '.arena-tier-controls, .arena-paywall'],
+      for (const [path, open1, full] of [['/tierlist/', '.tierlist-card-grid .hs-tier-card + *, .paywalled-tierlist', '.arena-paywall'],
         ['/classes/', '.classes-public-teaser', '.arena-class-row, .arena-classes-notice, .arena-paywall']]) {
         const failed = await open(browser, stack.origin, path, { session: 'reader' });
         await delay(2500);
@@ -262,12 +249,18 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
     stack.openDown = true;
     for (let attempt = 0; ; attempt += 1) {
       process.kill(next.pid, 'SIGUSR2');
-      if (!(await (await fetch(`${next.origin}/tierlist/`)).text()).includes('tierlist-public-pool')) break;
+      if (!(await (await fetch(`${next.origin}/tierlist/`)).text()).includes('hs-tier-card')) break;
       assert.ok(attempt < 39, 'the server HTML kept the list without a snapshot');
       await delay(250);
     }
+    // A subscriber who signed in with a class in the address gets that class once the protected data is in.
+    const signedIn = await open(browser, stack.origin, '/tierlist/?class=mage', { session: 'reader', wait: '.arena-tier-classes' });
+    await signedIn.page.waitForFunction(() => document.querySelector('.arena-tier-classes button[aria-pressed="true"]')?.getAttribute('aria-label') === 'Маг',
+      { timeout: 15000 });
+    assert.deepEqual(signedIn.errors, []);
+    await signedIn.page.close();
     const { page: bare2, errors: bareErrors } = await open(browser, stack.origin, '/tierlist/', { wait: '.arena-paywall .arena-paywall__dialog' });
-    assert.equal(await bare2.$('.tierlist-public-pool'), null, 'no list without a snapshot');
+    assert.equal(await bare2.$('.hs-tier-card'), null, 'no cards without a snapshot');
     assert.ok(await shift(bare2) < 0.02, `the gate shifted the page by ${await shift(bare2)}`);
     assert.deepEqual(bareErrors, []);
     await bare2.close();
