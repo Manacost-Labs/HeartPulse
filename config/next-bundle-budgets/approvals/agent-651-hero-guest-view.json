@@ -1,0 +1,8 @@
+{
+  "reason": "#651: гость на /heroes/<id>/ видит вид героя подписчика на открытых данных (сервер рендерит его для гостя и робота). Новые клиентские модули вида героя добавляют записи в карту чанков webpack-рантайма, общую для всех маршрутов: /heroes/ +64 Б, /standard/matchups/ +74 Б, /standard/meta/ +139 Б JS gzip (замер против чистого main). Сама страница героя в бюджетный список не входит; аналитика подписчика (HeroOverview/Power/Tavern/Composition) осталась в платном чанке.",
+  "routes": {
+    "/heroes/": { "jsGzipBytes": 256 },
+    "/standard/matchups/": { "jsGzipBytes": 256 },
+    "/standard/meta/": { "jsGzipBytes": 256 }
+  }
+}
