@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import StandardMetaPage from '@/src/features/StandardMeta';
@@ -14,20 +14,33 @@ import { sessionTag } from './viewerHint';
 const OFFER_TITLE = 'Узкие срезы, история и тренды — в подписке';
 const OFFER_TEXT = 'Другие ранги и периоды, очерёдность хода, порог игр, ходы, длительность, скорость набора и динамика архетипов открываются подпиской.';
 
-function MetaView({ initialTeaser, format, hasFullAccess, teaserWaitsForAccess, accessPending, onAccessDenied }: {
-  initialTeaser: StandardMetaTeaserSeed | null; format: 'standard' | 'wild'; hasFullAccess: boolean; teaserWaitsForAccess: boolean; accessPending: boolean; onAccessDenied: () => void;
+function MetaView({ initialTeaser, format, hasFullAccess, teaserWaitsForAccess, accessPending, accessLost, onAccessDenied }: {
+  initialTeaser: StandardMetaTeaserSeed | null; format: 'standard' | 'wild'; hasFullAccess: boolean; teaserWaitsForAccess: boolean; accessPending: boolean; accessLost: boolean; onAccessDenied: () => Promise<unknown>;
 }) {
   // Access is raised in place (the paid slice replaces the open one), but when it is withdrawn (sign-out, an expired
   // subscription, a refused status check) the page restarts from the open slice in the same render: no frame shows
   // the paid slice, its rank, period or filters to a viewer without access.
-  // The paid route refusing the viewer (401/403) is the same withdrawal, known before the access check answers: the page
-  // drops to the open slice at once (flushed, no frame with the paid slice) and stays there until access is lost and regained.
-  const [denied, setDenied] = useState(false);
-  if (denied && !hasFullAccess) setDenied(false);
-  const granted = hasFullAccess && !denied;
+  // The paid route refusing the viewer (401/403) is a withdrawal known before the access check answers: the page drops to
+  // the open slice at once (flushed: no frame with the paid slice) while the check runs. If the check confirms access, the
+  // paid request is made once more and its answer replaces the open slice in place; a second refusal (or a check that does
+  // not confirm) keeps the guest's view until access is lost for good, so a refusing route cannot make a loop.
+  const [guard, setGuard] = useState({ denied: false, checked: false });
+  const retried = useRef(false);
+  if (accessLost && (guard.denied || guard.checked || retried.current)) {
+    retried.current = false;
+    setGuard({ denied: false, checked: false });
+  } else if (guard.denied && guard.checked && hasFullAccess) {
+    retried.current = true;
+    setGuard({ denied: false, checked: false });
+  }
+  const granted = hasFullAccess && !guard.denied;
   const [state, setState] = useState({ allowed: granted, epoch: 0 });
   if (state.allowed !== granted) setState({ allowed: granted, epoch: state.epoch + (state.allowed ? 1 : 0) });
-  const refused = () => { flushSync(() => setDenied(true)); onAccessDenied(); };
+  const refused = () => {
+    const mayRetry = !retried.current;
+    flushSync(() => setGuard({ denied: true, checked: false }));
+    if (mayRetry) void onAccessDenied().then(() => undefined, () => undefined).then(() => setGuard(current => ({ ...current, checked: true })));
+  };
   return <StandardMetaPage key={state.epoch} embedded hasFullAccess={granted} teaserWaitsForAccess={teaserWaitsForAccess} accessPending={accessPending}
     initialTeaser={initialTeaser} format={format} onAccessDenied={refused} />;
 }
@@ -48,7 +61,7 @@ export function StandardMetaPageClient({ initialTeaser, format = 'standard' }: {
     access={access} navigate={navigate} wide>
     <PaidOfferProvider entitlement="standard" title={OFFER_TITLE} text={OFFER_TEXT}>
       <MetaView initialTeaser={initialTeaser} format={format} hasFullAccess={allowed}
-        teaserWaitsForAccess={pending && sessionTag() !== null} accessPending={remembered} onAccessDenied={access.refresh} />
+        teaserWaitsForAccess={pending && sessionTag() !== null} accessPending={remembered} accessLost={!allowed && !pending} onAccessDenied={access.refresh} />
     </PaidOfferProvider>
   </PublicPageShell>;
 }

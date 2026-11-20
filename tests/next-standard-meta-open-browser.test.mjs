@@ -33,13 +33,14 @@ const slice = (format, paid) => ({
 });
 
 async function startStack() {
-  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [], protectedQueries: [], protectedDown: false, protectedDelay: PROTECTED_DELAY_MS, protectedHang: false, protectedDenied: 0, statusDelay: 0 };
+  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [], protectedQueries: [], protectedDown: false, protectedDelay: PROTECTED_DELAY_MS, protectedHang: false, protectedDenied: 0, protectedDeniedOnce: 0, statusDelay: 0 };
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://stack');
     const reader = /(?:^|;\s*)sm_session=reader/.test(request.headers.cookie ?? '');
     const json = (status, payload) => response.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store' })
       .end(JSON.stringify(payload));
     if (url.pathname === '/api/auth/me') return json(200, { user: reader ? READER : null });
+    if (url.pathname === '/api/subscription/refresh') return reader ? void setTimeout(() => json(200, SUBSCRIBED), state.statusDelay) : json(401, { error: 'guest' });
     if (url.pathname === '/api/subscription/status') return reader ? void setTimeout(() => json(200, SUBSCRIBED), state.statusDelay) : json(401, { error: 'guest' });
     if (url.pathname === '/api/standard-meta/public') {
       state.publicReads.push(`${url.pathname}${url.search}`);
@@ -53,6 +54,7 @@ async function startStack() {
       state.protectedQueries.push(Object.fromEntries(url.searchParams));
       if (state.protectedDown) return json(503, { error: 'paid source down' });
       if (state.protectedDenied) return json(state.protectedDenied, { error: 'subscription required' });
+      if (state.protectedDeniedOnce) { const code = state.protectedDeniedOnce; state.protectedDeniedOnce = 0; return json(code, { error: 'subscription required' }); }
       // Like the real route: a period or rank it does not serve is refused.
       const askedPeriod = url.searchParams.get('period');
       const askedRank = url.searchParams.get('rank');
@@ -337,7 +339,7 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
       const look = () => {
         const text = document.body.textContent;
         const pressed = document.querySelector('.standard-meta__rank-tabs button[aria-pressed="true"]')?.textContent.trim();
-        if (/77,77|66,61|7,77 ★/.test(text) || pressed === 'Легенда') window.__paidFrames += 1;
+        if (window.__revoking && (/77,77|66,61|7,77 ★/.test(text) || pressed === 'Легенда')) window.__paidFrames += 1;
       };
       window.__watch = true;
       new MutationObserver(look).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true });
@@ -348,7 +350,7 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     const paidReadsBeforeRevoke = stack.protectedReads;
     await revoked.deleteCookie({ name: 'sm_session', url: stack.origin });
     // A restored page re-checks the session: the server now answers as it does to a guest.
-    await revoked.evaluate(() => window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true })));
+    await revoked.evaluate(() => { window.__revoking = true; window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true })); });
     await revoked.waitForSelector('button[aria-label^="Ходы: по подписке"]', { timeout: 15000 });
     await new Promise(resolve => setTimeout(resolve, 500));
     assert.equal(await revoked.evaluate(() => window.__paidFrames), 0, 'no frame shows the paid slice after access is withdrawn');
@@ -359,40 +361,55 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     await revoked.close();
 
     // The paid route refuses a subscriber whose slice is loaded (401/403 on the next paid request, no pageshow): from
-    // the answer on, not one frame shows the paid slice, and the page is the guest's, with locks, until it reloads.
+    // the answer on, not one frame shows the paid slice while the access check runs. When the check confirms access the
+    // paid request is made once more: a second refusal keeps the guest's view (exactly two paid requests, no loop), an
+    // answer brings the paid data back in place.
     stack.statusDelay = 1_500; // the access check answers slowly: the page must not wait for it
-    for (const code of [401, 403]) {
-    const refused = await browser.newPage();
-    await refused.setViewport(DESKTOP);
-    await refused.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
-    await refused.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
-    await refused.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
-    await refused.evaluate(code => {
-      window.__deniedFrames = 0; window.__denied = false;
-      const nativeFetch = window.fetch.bind(window);
-      window.fetch = async (...args) => {
-        const answer = await nativeFetch(...args);
-        if (answer.status === code && String(args[0]).startsWith('/api/standard-meta?')) window.__denied = true;
-        return answer;
-      };
-      const look = () => {
-        const pressed = document.querySelector('.standard-meta__rank-tabs button[aria-pressed="true"]')?.textContent.trim();
-        if (window.__denied && (/77,77|66,61|7,77 ★/.test(document.body.textContent) || pressed === 'Топ-5000')) window.__deniedFrames += 1;
-      };
-      new MutationObserver(look).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true });
-      const loop = () => { look(); requestAnimationFrame(loop); };
-      loop();
-    }, code);
-    stack.protectedDenied = code;
-    await refused.evaluate(() => [...document.querySelectorAll('fieldset button')].find(button => button.textContent.trim() === 'Топ-5000').click());
-    await refused.waitForSelector('button[aria-label^="Ходы: по подписке"]', { timeout: 15000 });
-    await new Promise(resolve => setTimeout(resolve, 500));
-    assert.equal(await refused.evaluate(() => window.__denied), true, 'the paid route did refuse');
-    assert.equal(await refused.evaluate(() => window.__deniedFrames), 0, 'no frame shows the paid slice after the refusal');
-    assert.equal(await refused.$eval('.standard-meta__rank-tabs button[aria-pressed="true"]', node => node.textContent.trim()), 'Алмаз — Легенда');
-    assert.equal(await refused.$$eval('[data-locked-filter]', nodes => nodes.length), 3, 'the paid filters are locks');
-    stack.protectedDenied = 0;
-    await refused.close();
+    for (const { code, retryAnswers } of [{ code: 401, retryAnswers: false }, { code: 403, retryAnswers: false }, { code: 401, retryAnswers: true }]) {
+      const refused = await browser.newPage();
+      await refused.setViewport(DESKTOP);
+      await refused.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
+      await refused.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
+      await refused.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+      await refused.evaluate(code => {
+        window.__deniedFrames = 0; window.__denied = false; window.__recovered = false;
+        const nativeFetch = window.fetch.bind(window);
+        window.fetch = async (...args) => {
+          const answer = await nativeFetch(...args);
+          if (String(args[0]).startsWith('/api/standard-meta?')) {
+            if (answer.status === code) window.__denied = true;
+            else if (answer.ok && window.__denied) window.__recovered = true;
+          }
+          return answer;
+        };
+        const look = () => {
+          const pressed = document.querySelector('.standard-meta__rank-tabs button[aria-pressed="true"]')?.textContent.trim();
+          if (window.__denied && !window.__recovered && (/77,77|66,61|7,77 ★/.test(document.body.textContent) || pressed === 'Топ-5000')) window.__deniedFrames += 1;
+        };
+        new MutationObserver(look).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true });
+        const loop = () => { look(); requestAnimationFrame(loop); };
+        loop();
+      }, code);
+      const readsBefore = stack.protectedReads;
+      stack.protectedDenied = retryAnswers ? 0 : code;
+      stack.protectedDeniedOnce = retryAnswers ? code : 0;
+      await refused.evaluate(() => [...document.querySelectorAll('fieldset button')].find(button => button.textContent.trim() === 'Топ-5000').click());
+      await refused.waitForSelector('button[aria-label^="Ходы: по подписке"]', { timeout: 15000 });
+      await refused.evaluate(() => { window.__guestCard = document.querySelector('.standard-meta-card'); });
+      assert.equal(await refused.evaluate(() => window.__denied), true, 'the paid route did refuse');
+      if (retryAnswers) {
+        await refused.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+        assert.equal(await refused.evaluate(() => window.__guestCard.isConnected), true, 'the paid data replaces the open slice in place');
+        assert.equal(await refused.$('[aria-label*="по подписке"]'), null, 'no lock once the retry has answered');
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 3_500)); // the check (1.5 s), the one retry, and time for a loop to show itself
+        assert.equal(await refused.$$eval('[data-locked-filter]', nodes => nodes.length), 3, 'the paid filters are locks');
+        assert.equal(await refused.$eval('.standard-meta__rank-tabs button[aria-pressed="true"]', node => node.textContent.trim()), 'Алмаз — Легенда');
+      }
+      assert.equal(await refused.evaluate(() => window.__deniedFrames), 0, 'no frame shows the paid slice between the refusal and the retry');
+      assert.equal(stack.protectedReads - readsBefore, 2, `exactly two paid requests: the refused one and one retry (code ${code}, retry answers: ${retryAnswers})`);
+      stack.protectedDenied = 0; stack.protectedDeniedOnce = 0;
+      await refused.close();
     }
     stack.statusDelay = 0;
 
