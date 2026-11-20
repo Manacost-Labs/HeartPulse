@@ -104,9 +104,12 @@ export function createGuidesListRoute({ getDatabase, cacheHeader, logError, toIt
       logError('[guides-archive] list failed:', error instanceof Error ? error.message : error);
       if (!fullText) {
         // The open list answers from the last good copy of the same request, else asks to come back.
-        const last = lastOpenList.get(request.originalUrl) as object | undefined;
+        // A prerender read (the page's regeneration) gets no stale copy: Next would keep it for minutes, so the
+        // page keeps its earlier one instead.
+        const last = request.get('X-Hearthpulse-Prerender') ? undefined : lastOpenList.get(request.originalUrl) as object | undefined;
         if (last) return response.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=60').json({ ...last, warning: 'stale' });
         response.set('Retry-After', '60');
+        response.set('Cache-Control', 'no-store');
         return response.status(503).json({ error: 'Архив гайдов временно недоступен' });
       }
       return response.status(500).json({ error: 'Не удалось загрузить архив гайдов' });

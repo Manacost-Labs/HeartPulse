@@ -76,6 +76,12 @@ the start of its open part (the same cut the guide page shows), never by the
 start of the whole body. When the database fails, the open list answers from the
 last good copy of the same request, else `503` with `Retry-After: 60`.
 
+The list page is an ISR page listed in the deploy warm-up (`DATA_PAGES` of
+`scripts/lib/post-deploy-data-pages.mjs`, the revalidate route and
+`DATA_PAGE_PROBES`): its read is fresh-only (`X-Hearthpulse-Prerender`, no
+stale copy from Express), and a regeneration without data throws, so the
+earlier copy with the cards stays.
+
 A restart of Express (a deploy) must not turn a guide page into a 500:
 `loadPublicGuideTeaser` retries once with a short deadline, then uses the
 last good copy of that guide, else the page says «Гайд временно недоступен»

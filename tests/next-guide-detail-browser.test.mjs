@@ -202,10 +202,11 @@ const reader = { id: 'reader-1', email: 'reader@example.test', name: 'Подпи
 const subscription = { hasAccess: true, entitlements: { arena: true, guidesArchive: true }, source: 'boosty', checkedAt: null,
   stale: false, message: '', boosty: { checked: true, hasAccess: true }, patreon: {}, telegram: {} };
 const FULL_TEXT = 'PAID_FULL_TEXT_ONLY_FOR_SUBSCRIBERS';
-const listCards = [1, 2, 3].map(id => ({ id, slug: `guide-${id}`, title: `Гайд номер ${id}`, description: `Описание ${id}`, image: null,
+const cardsOf = count => Array.from({ length: count }, (_, index) => index + 1).map(id => ({ id, slug: `guide-${id}`, title: `Гайд номер ${id}`, description: `Описание ${id}`, image: null,
   publishedAt: '2026-07-10T12:00:00.000Z', menuName: 'Арена', menuCode: 'arena', kind: 'Гайды', kindSlug: 'guides', oldUrl: null }));
-const listPage = { page: 1, limit: 18, total: 3, totalPages: 1, items: listCards,
-  filters: { kinds: [{ slug: 'guides', label: 'Гайды', count: 3 }], menus: [] } };
+const listPageOf = count => ({ page: 1, limit: 18, total: count, totalPages: 1, items: cardsOf(count),
+  filters: { kinds: [{ slug: 'guides', label: 'Гайды', count }], menus: [] } });
+const listPage = listPageOf(3);
 
 /** A Next server and gateway on a fixture of Express; `state` is changed by the test while the page lives. */
 async function withStack(state, run) {
@@ -217,7 +218,10 @@ async function withStack(state, run) {
     if (url.pathname === '/api/auth/me') return json(200, { user: subscriber ? reader : null });
     if (url.pathname === '/api/subscription/status') return subscriber ? json(200, subscription) : json(401, { error: 'guest' });
     if (isMenuBackgroundRead(url.pathname)) return json(200, MENU_PATCH_ARCHIVE);
-    if (url.pathname === '/api/guides-archive/public/list') return state.listDown ? json(503, { error: 'down' }) : json(200, listPage);
+    if (url.pathname === '/api/guides-archive/public/list') {
+      (state.listReads ??= []).push(request.headers['x-hearthpulse-prerender'] ?? '');
+      return state.listDown ? json(503, { error: 'down' }) : json(200, state.cardCount ? listPageOf(state.cardCount) : listPage);
+    }
     if (url.pathname === '/api/guides-archive') return subscriber ? json(200, listPage) : json(401, { error: 'guest' });
     if (url.pathname.startsWith('/api/guides-archive/teaser/')) {
       const slug = url.pathname.split('/').pop();
@@ -360,5 +364,34 @@ test('the archive list is the same for a guest, a robot and a subscriber; Expres
     assert.equal(unseen.status, 200);
     assert.match(unseenHtml, /Гайд временно недоступен/);
     assert.match(unseenHtml, /<meta name="robots" content="noindex, nofollow"/);
+  });
+});
+
+test('the deploy warm-up replaces the skeletons of /guides-archive/ with 18 cards, and a down source keeps the earlier copy', async () => {
+  const state = { calls: [], teaserReads: {}, teaserDown: () => false, fullDown: false, listDown: true, cardCount: 18 };
+  await withStack(state, async ({ origin, nextOrigin, shiftClock }) => {
+    const html = async () => (await fetch(`${origin}/guides-archive/`, { headers: { 'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)' } })).text();
+    const count = (text, token) => text.split(token).length - 1;
+    const revalidate = async () => (await fetch(`${nextOrigin}/health/next/revalidate/`, { method: 'POST' })).json();
+    // The build copy has no Express: skeletons and no card.
+    const build = await html();
+    assert.equal(count(build, 'guide-archive-card-skeleton'), 18);
+    assert.equal(count(build, 'guide-archive-card-meta'), 0);
+    // The source is down: the page is not marked stale, and a regeneration without data does not replace the copy or fail.
+    const skipped = await revalidate();
+    assert.ok(skipped.skipped.some(entry => entry.path === '/guides-archive'), JSON.stringify(skipped));
+    assert.equal(skipped.revalidated.includes('/guides-archive'), false);
+    for (let attempt = 0; attempt < 3; attempt++) { shiftClock(); assert.equal((await fetch(`${origin}/guides-archive/`)).status, 200); await delay(200); }
+    // The source answers: the warm-up marks the page stale and the next requests print the cards.
+    state.listDown = false;
+    assert.ok((await revalidate()).revalidated.includes('/guides-archive'));
+    let after = '';
+    for (let attempt = 0; attempt < 40 && count(after, 'guide-archive-card-meta') === 0; attempt++) { shiftClock(); after = await html(); await delay(250); }
+    assert.equal(count(after, 'guide-archive-card-meta'), 18, 'the HTML after the deploy has 18 cards');
+    assert.equal(count(after, 'guide-archive-card-skeleton'), 0, 'no skeletons');
+    assert.ok(state.listReads.every(value => value === '1'), 'every read of the page and its probe asks for fresh data only');
+    // The source goes down again: the regeneration throws and the cards stay.
+    state.listDown = true;
+    for (let attempt = 0; attempt < 4; attempt++) { shiftClock(); assert.equal(count(await html(), 'guide-archive-card-meta'), 18); await delay(250); }
   });
 });

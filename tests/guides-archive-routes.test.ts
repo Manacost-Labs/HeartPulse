@@ -186,6 +186,17 @@ try {
   assert.match(describedTeaser.body.description, /^FREE_START слово/);
   assert.equal(JSON.stringify(describedTeaser.body).includes('PAID_'), false);
 
+  // No description and no body_text: the old chain fell back to body_html. A deck code is paid and never in the open part.
+  database.prepare(`INSERT INTO guides VALUES (5, 'html-only', '/guides/html-only', 500, NULL, 'Только HTML', '', '', NULL, 'Арена',
+    'arena', 'Гайды', 'guides', '', '', ?, '', 0)`).run(`<p><code>PAID_CODE_SENTINEL</code></p><p>OPEN_HTML_START ${'слово '.repeat(300)}</p>`);
+  const htmlOnly = await request('/guides-archive/public/list');
+  const htmlOnlyItem = htmlOnly.body.items.find((item: any) => item.slug === 'html-only');
+  assert.match(htmlOnlyItem.description, /^OPEN_HTML_START/, 'the description starts at the open text, not at the paid code');
+  assert.equal(JSON.stringify(htmlOnly.body).includes('PAID_'), false);
+  const htmlOnlyTeaser = await request('/guides-archive/teaser/html-only');
+  assert.match(htmlOnlyTeaser.body.description, /^OPEN_HTML_START/, 'the same description feeds meta and og');
+  assert.equal(JSON.stringify(htmlOnlyTeaser.body).includes('PAID_'), false);
+
   // Stale copy of the same request, else 503 with Retry-After; never a 500 and never an empty list.
   const flaky = async (path: string) => fetch(`${origin(flakyServer)}${path}`);
   assert.equal((await flaky('/guides-archive/public/list?page=1')).status, 200);

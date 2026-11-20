@@ -42,6 +42,8 @@ export const DATA_PAGES = [
   { path: '/arena/', isr: true, marker: 'mode-hub__now', copyWords: 0, dataWords: 0 },
   { path: '/battlegrounds/', isr: true, marker: 'mode-hub__now', copyWords: 0, dataWords: 0 },
   { path: '/wild/', isr: true, marker: 'mode-hub__now', copyWords: 0, dataWords: 0 },
+  // The guide archive: the first page of cards; the copy has skeletons, whose class lists have no `guide-archive-card-meta`.
+  { path: '/guides-archive/', isr: true, marker: 'guide-archive-card-meta', copyWords: 0, dataWords: 0 },
   { path: '/leaderboards/', marker: 'leaderboards-table__rank', copyWords: 197, dataWords: 811 },
   { path: '/cosmetics/', marker: 'cosmetics-hero-card', copyWords: 192, dataWords: 314 },
   { path: '/cosmetics/heroes/', marker: 'cosmetics-hero-card', copyWords: 193, dataWords: 315 },
