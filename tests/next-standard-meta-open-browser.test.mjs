@@ -17,6 +17,7 @@ const SUBSCRIBED = { hasAccess: true, entitlements: { arena: true, standard: tru
 const PROTECTED_DELAY_MS = 800;
 const SENTINELS = ['77.7701', '66.6066', 'SENTINEL_TREND'];
 const DESKTOP = { width: 1440, height: 900 };
+const PHONE = { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 };
 
 const rows = (format, paid) => Array.from({ length: 8 }, (_, index) => ({
   id: `${format}-${index + 1}`, slug: `${format}-arch-${index + 1}`, archetype: `Archetype ${format} ${index + 1}`,
@@ -32,7 +33,7 @@ const slice = (format, paid) => ({
 });
 
 async function startStack() {
-  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [], protectedQueries: [], protectedDown: false };
+  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [], protectedQueries: [], protectedDown: false, protectedDelay: PROTECTED_DELAY_MS, protectedHang: false };
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://stack');
     const reader = /(?:^|;\s*)sm_session=reader/.test(request.headers.cookie ?? '');
@@ -56,7 +57,8 @@ async function startStack() {
         rank: url.searchParams.get('rank') ?? 'diamond_legend', coin: url.searchParams.get('coin') ?? 'any_player',
         minGames: Number(url.searchParams.get('min_games') ?? 100), period: url.searchParams.get('period') ?? 'patch_36.6.3',
       };
-      return void setTimeout(() => json(200, { ...slice(url.searchParams.get('format') === 'wild' ? 'wild' : 'standard', true), ...asked }), PROTECTED_DELAY_MS);
+      if (state.protectedHang) return undefined; // never answers
+      return void setTimeout(() => json(200, { ...slice(url.searchParams.get('format') === 'wild' ? 'wild' : 'standard', true), ...asked }), state.protectedDelay);
     }
     if (url.pathname.startsWith('/api/')) return json(401, { error: 'guest' });
     const upstream = http.request(new URL(state.next), { method: request.method, path: request.url, headers: request.headers },
@@ -235,6 +237,62 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     assert.ok(shift < 0.01, `the subscriber page shifted by ${shift.toFixed(4)}`);
     await reader.close();
 
+    // A guest's page is as tall as a subscriber's: the locks stand in the boxes of the controls and values they replace.
+    const measure = async (viewport, role) => {
+      const context = await browser.createBrowserContext();
+      const page = await context.newPage();
+      await page.setViewport(viewport);
+      if (role === 'reader') {
+        await page.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin }, { name: 'hp_viewer', value: 'AAAAAAAAAAAAAAAAAAAAAA', url: stack.origin });
+      }
+      await page.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'networkidle0' });
+      if (role === 'reader') await page.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+      const height = selector => page.$eval(selector, node => Math.round(node.getBoundingClientRect().height * 10) / 10);
+      const heights = {
+        controls: await height('.standard-meta__controls'),
+        filter: await page.$eval('.standard-meta__secondary-filters > :first-child', node => Math.round(node.getBoundingClientRect().height * 10) / 10),
+        card: await height('.standard-meta-card'),
+      };
+      await page.click('[data-meta-view="table"]');
+      await page.waitForSelector('[data-meta-surface="table"] tbody tr');
+      heights.row = await height('[data-meta-surface="table"] tbody tr');
+      await context.close();
+      return heights;
+    };
+    for (const viewport of [DESKTOP, PHONE]) {
+      const guestHeights = await measure(viewport, 'guest');
+      const readerHeights = await measure(viewport, 'reader');
+      for (const part of Object.keys(guestHeights)) {
+        assert.ok(Math.abs(guestHeights[part] - readerHeights[part]) <= 1,
+          `${part} at ${viewport.width}px: guest ${guestHeights[part]}, subscriber ${readerHeights[part]}`);
+      }
+    }
+
+    // The paid answer is slow (11 s): no error, the paid data arrives; an answer that never comes ends after the
+    // deadline with the same message and a retry.
+    stack.protectedDelay = 11_000;
+    const slow = await browser.newPage();
+    await slow.setViewport(DESKTOP);
+    await slow.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
+    await slow.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
+    await new Promise(resolve => setTimeout(resolve, 9_000));
+    assert.ok(!(await slow.evaluate(() => document.body.textContent)).includes('Подписочные данные не загрузились'));
+    await slow.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+    await slow.close();
+    stack.protectedDelay = PROTECTED_DELAY_MS;
+    stack.protectedHang = true;
+    const hung = await browser.newPage();
+    await hung.setViewport(DESKTOP);
+    await hung.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
+    await hung.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
+    await hung.waitForFunction(() => document.body.textContent.includes('Подписочные данные не загрузились'), { timeout: 40_000 });
+    assert.match(await hung.evaluate(() => document.body.textContent), /Сервер не ответил за 25 секунд/);
+    assert.equal(await hung.$$eval('.standard-meta-card', cards => cards.length), 8, 'the open slice stays under the message');
+    stack.protectedHang = false;
+    await hung.evaluate(() => [...document.querySelectorAll('button')].find(button => button.textContent.includes('Повторить')).click());
+    await hung.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+    await hung.close();
+
     // The paid source fails: the open slice stays, a visible message offers a retry, and the retry brings the paid data.
     stack.protectedDown = true;
     const failing = await browser.newPage();
@@ -270,12 +328,14 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
       loop();
       window.__paidFrames = 0; // the page is still the subscriber's here: count only what follows
     });
+    const paidReadsBeforeRevoke = stack.protectedReads;
     await revoked.deleteCookie({ name: 'sm_session', url: stack.origin });
     // A restored page re-checks the session: the server now answers as it does to a guest.
     await revoked.evaluate(() => window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true })));
     await revoked.waitForSelector('button[aria-label^="Ходы: по подписке"]', { timeout: 15000 });
     await new Promise(resolve => setTimeout(resolve, 500));
     assert.equal(await revoked.evaluate(() => window.__paidFrames), 0, 'no frame shows the paid slice after access is withdrawn');
+    assert.equal(stack.protectedReads, paidReadsBeforeRevoke, 'no paid request is sent once access is withdrawn');
     assert.equal(await revoked.$eval('.standard-meta__rank-tabs button[aria-pressed="true"]', node => node.textContent.trim()), 'Алмаз — Легенда');
     assert.equal(await revoked.$$eval('[data-locked-filter]', nodes => nodes.length), 3, 'the paid filters are locks again');
     assert.equal(await revoked.$$eval('.standard-meta-card', cards => cards.length), 8, 'the open slice is what is left');

@@ -21,6 +21,7 @@ import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import { StandardMetaSearchIntro } from '../modules/searchLanding/public';
 import { AsyncSurfaceState, RecoverableSurfaceBoundary } from './recovery/RecoverableSurface';
 import { datasetContractErrorMessage } from '../../shared/datasetEnvelope';
+import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
 import {
   STANDARD_META_MEDIA_TYPE,
   parseStandardMetaApiResponse,
@@ -187,9 +188,12 @@ const EMPTY_DATA: MetaPayload = {
   items: [],
 };
 
+/** A slice that has not come in this long is a failure with a retry, not an open slice that waits for ever. */
+const META_DEADLINE_MS = 25_000;
+
 async function apiJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    credentials: 'same-origin',
+  const response = await fetchWithDeadline(url, {
+    deadlineMs: META_DEADLINE_MS,
     ...init,
     headers: {
       Accept: 'application/json',
@@ -427,6 +431,8 @@ type StandardMetaPageProps = {
   accessPending?: boolean;
   /** Opens the page's subscription offer; the locks of a viewer without access call it. */
   onPaidOffer?: () => void;
+  /** The paid route refused the viewer (401/403): the page asks for the access check again. */
+  onAccessDenied?: () => void;
   embedded?: boolean;
   initialTeaser?: StandardMetaTeaserSeed | null;
   /** The format of the address: `/standard/meta/` is Standard, `/standard/meta/wild/` is Wild. */
@@ -465,6 +471,7 @@ function StandardMetaContent({
   hasFullAccess,
   teaserWaitsForAccess,
   onPaidOffer,
+  onAccessDenied,
   initialTeaser,
   format,
 }: Required<Omit<StandardMetaPageProps, 'embedded' | 'accessPending'>>) {
@@ -551,6 +558,7 @@ function StandardMetaContent({
       .catch(cause => {
         if ((cause instanceof DOMException && cause.name === 'AbortError') || controller.signal.aborted) return;
         if (currentRequest === requestId.current) {
+          if (hasFullAccess && cause instanceof Error && cause.name === 'MetaAccessDenied') onAccessDenied?.();
           setRequestError({ key: requestKey, message: datasetContractErrorMessage(cause) });
         }
       })
@@ -764,6 +772,7 @@ export default function StandardMetaPage({
   teaserWaitsForAccess = false,
   accessPending = false,
   onPaidOffer,
+  onAccessDenied,
   embedded = false,
   initialTeaser = null,
   format = TEASER_SEED_FILTERS.format,
@@ -776,7 +785,7 @@ export default function StandardMetaPage({
         title="Раздел меты временно недоступен"
         message="Навигация и остальные разделы сайта продолжают работать. Попробуйте открыть мету ещё раз."
       >
-        <StandardMetaContent {...{ hasFullAccess, teaserWaitsForAccess, onPaidOffer, initialTeaser, format }} />
+        <StandardMetaContent {...{ hasFullAccess, teaserWaitsForAccess, onPaidOffer, onAccessDenied, initialTeaser, format }} />
       </RecoverableSurfaceBoundary>
     </Root>
   );

@@ -1138,10 +1138,11 @@
 }
 
 /* A guest's paid filters: the open slice's value behind a lock; a press shows the subscription offer. */
-.standard-meta__locked-filter { display: grid; gap: 0.35rem; padding: 0; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
+.standard-meta__locked-filter { display: grid; gap: 0; padding: 0; border: 0; background: none; font: inherit; text-align: left; cursor: pointer; }
 .standard-meta__locked-value { display: flex; align-items: center; gap: 0.4rem; }
 .standard-meta__paid-value { display: inline-flex; align-items: center; padding: 0; border: 0; color: inherit; background: none; opacity: 0.55; }
-button.standard-meta__paid-value { min-block-size: 24px; min-inline-size: 24px; justify-content: center; cursor: pointer; }
+/* A 24px target in the height of the line of the number it replaces (1lh), so a guest's card is as tall as a subscriber's. */
+button.standard-meta__paid-value { min-block-size: 24px; min-inline-size: 24px; margin-block: calc((1lh - 24px) / 2); justify-content: center; cursor: pointer; }
 
 /* While the viewer's access is checked (or a remembered subscriber's page is not hydrated yet) the lock marks are hidden: a subscriber does not see them flash. */
 .standard-meta[data-access-pending] .standard-meta__lock-mark,

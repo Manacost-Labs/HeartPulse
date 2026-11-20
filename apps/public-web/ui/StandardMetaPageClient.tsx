@@ -13,8 +13,8 @@ import { sessionTag } from './viewerHint';
 const OFFER_TITLE = 'Узкие срезы, история и тренды — в подписке';
 const OFFER_TEXT = 'Другие ранги и периоды, очерёдность хода, порог игр, ходы, длительность, скорость набора и динамика архетипов открываются подпиской.';
 
-function MetaView({ initialTeaser, format, hasFullAccess, teaserWaitsForAccess, accessPending }: {
-  initialTeaser: StandardMetaTeaserSeed | null; format: 'standard' | 'wild'; hasFullAccess: boolean; teaserWaitsForAccess: boolean; accessPending: boolean;
+function MetaView({ initialTeaser, format, hasFullAccess, teaserWaitsForAccess, accessPending, onAccessDenied }: {
+  initialTeaser: StandardMetaTeaserSeed | null; format: 'standard' | 'wild'; hasFullAccess: boolean; teaserWaitsForAccess: boolean; accessPending: boolean; onAccessDenied: () => void;
 }) {
   const openOffer = usePaidOffer() ?? undefined;
   // Access is raised in place (the paid slice replaces the open one), but when it is withdrawn (sign-out, an expired
@@ -23,7 +23,7 @@ function MetaView({ initialTeaser, format, hasFullAccess, teaserWaitsForAccess, 
   const [state, setState] = useState({ allowed: hasFullAccess, epoch: 0 });
   if (state.allowed !== hasFullAccess) setState({ allowed: hasFullAccess, epoch: state.epoch + (state.allowed ? 1 : 0) });
   return <StandardMetaPage key={state.epoch} embedded hasFullAccess={hasFullAccess} teaserWaitsForAccess={teaserWaitsForAccess} accessPending={accessPending}
-    initialTeaser={initialTeaser} format={format} onPaidOffer={openOffer} />;
+    initialTeaser={initialTeaser} format={format} onPaidOffer={openOffer} onAccessDenied={onAccessDenied} />;
 }
 
 /**
@@ -42,7 +42,7 @@ export function StandardMetaPageClient({ initialTeaser, format = 'standard' }: {
     access={access} navigate={navigate} wide>
     <PaidOfferProvider entitlement="standard" title={OFFER_TITLE} text={OFFER_TEXT}>
       <MetaView initialTeaser={initialTeaser} format={format} hasFullAccess={allowed}
-        teaserWaitsForAccess={pending && sessionTag() !== null} accessPending={remembered} />
+        teaserWaitsForAccess={pending && sessionTag() !== null} accessPending={remembered} onAccessDenied={access.refresh} />
     </PaidOfferProvider>
   </PublicPageShell>;
 }
