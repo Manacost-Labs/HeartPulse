@@ -55,8 +55,11 @@ test('the projection is the builds with open fields only, by tier, and skips row
     })), OPEN_BUILDS(list));
     assert.deepEqual(Object.keys(builds.builds[0]).sort(), ['additionalCards', 'archetype', 'avgPlacement', 'coreCards', 'description', 'difficulty',
       'key', 'popularity', 'tier', 'title']);
-    assert.deepEqual(Object.keys(builds.builds[0].coreCards[0]).sort(), ['cardId', 'dbfId', 'image', 'name']);
+    assert.deepEqual(Object.keys(builds.builds[0].coreCards[0]).sort(), ['cardId', 'dbfId', 'frame', 'image', 'name', 'text']);
     assert.equal(builds.builds[0].coreCards[0].image, '/api/public-resource/db/uploads/cards/BG_SENT_1.png');
+    // The tier list's strategy card shows the framed render and, enlarged, the card's text: public facts of the card.
+    assert.equal(builds.builds[0].coreCards[0].frame, '/api/public-resource/db/uploads/framed/BG_SENT_1.png');
+    assert.equal(builds.builds[0].coreCards[0].text, 'Текст существа 1');
     assert.deepEqual(leaks(JSON.stringify(builds)), [], `no closed value in the ${list} projection`);
   }
   const strategies = projectBattlegroundBuildsPublic(buildSourcePayload('firestone'), 'strategies')!;

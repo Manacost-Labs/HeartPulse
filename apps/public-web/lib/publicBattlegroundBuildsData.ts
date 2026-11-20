@@ -6,13 +6,15 @@
  * shares, other rating ranges, trinkets, fork analysis) cannot reach the HTML,
  * the RSC payload (`self.__next_f`) or the page's JSON-LD even if it arrived.
  */
+import { bgBuildAnchor, bgTierInitialVisible } from '@/src/features/battlegroundTierListItems';
+
 export const BUILDS_LISTS = ['compositions', 'strategies'] as const;
 export type BuildsList = typeof BUILDS_LISTS[number];
 export const BUILDS_LIMIT = 60;
 const TIERS = ['S', 'A', 'B', 'C', 'D'] as const;
 export type BuildTier = typeof TIERS[number];
 
-export type PublicBuildCard = { dbfId: number; name: string; image: string | null };
+export type PublicBuildCard = { dbfId: number; cardId: string; name: string; image: string | null; frame: string | null; text: string | null };
 
 export type PublicBuildRow = {
   key: string;
@@ -53,7 +55,14 @@ function cards(value: unknown, maximum: number): PublicBuildCard[] {
     if (!card || !Number.isSafeInteger(dbfId) || dbfId <= 0 || !name || seen.has(dbfId)) continue;
     seen.add(dbfId);
     const image = text(card.image, 500);
-    out.push({ dbfId, name, image: image.startsWith('/api/public-resource/') ? image : null });
+    const frame = text(card.frame, 500);
+    const cardId = text(card.cardId, 100);
+    out.push({
+      dbfId, name, cardId: /^[A-Za-z0-9_#-]+$/.test(cardId) ? cardId : '',
+      image: image.startsWith('/api/public-resource/') ? image : null,
+      frame: frame.startsWith('/api/public-resource/') ? frame : null,
+      text: text(card.text, 400) || null,
+    });
     if (out.length === maximum) break;
   }
   return out;
@@ -94,4 +103,14 @@ export function parsePublicBattlegroundBuilds(raw: unknown, list: BuildsList): P
     list, builds, source: text(data.source, 40),
     updatedAt: updatedAt && Number.isFinite(Date.parse(updatedAt)) ? updatedAt : null,
   };
+}
+
+/**
+ * The builds the tier list prints in its server HTML, in order: all of tier S and the first page of each other tier
+ * (the rest come with «Показать ещё»), each with its anchor. The page's JSON-LD list names exactly these.
+ */
+export function printedOpenBuilds(data: PublicBattlegroundBuilds): PublicBuildRow[] {
+  return TIERS.flatMap(tier => data.builds.filter(build => build.tier === tier)
+    .slice(0, bgTierInitialVisible('strategies', tier))
+    .filter(build => bgBuildAnchor(build) !== undefined));
 }
