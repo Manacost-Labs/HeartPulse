@@ -1009,7 +1009,8 @@ test('archetype pages: only a strong archetype is indexable (Wild from 5000 game
     const wildList = await page('/standard/archetypes/wild/');
     assert.equal(wildList.robots, 'noindex, follow');
     assert.equal(wildList.canonical, undefined, 'a noindex page names no canonical, least of all the Standard list');
-    assert.match(wildList.title, new RegExp(`^Архетипы Вольного Hearthstone \\(хс\\): винрейт, (${MONTH_NAMES}) \\d{4}$`));
+    assert.match(wildList.title, new RegExp(`^Архетипы Вольного формата Hearthstone: винрейт, (${MONTH_NAMES}) \\d{4}$`));
+    assert.match(wildList.html, /<meta name="description" content="Вольный формат Хартстоуна \(хс\) на [^":]*: 5 архетипов — винрейт, популярность и число игр каждого архетипа\. Данные HSGuru\."/);
     assert.deepEqual([...wildList.html.matchAll(/<h1[^>]*>([^<]*)<\/h1>/g)].map(match => match[1]), ['Архетипы Вольного формата']);
     assert.deepEqual([...wildList.html.matchAll(/<a class="archetype-row__open"[^>]*href="([^"]+)"/g)].map(match => match[1]), [
       '/standard/archetypes/wild/zoolock/', '/standard/archetypes/wild/wild-a/', '/standard/archetypes/wild/wild-b/',
