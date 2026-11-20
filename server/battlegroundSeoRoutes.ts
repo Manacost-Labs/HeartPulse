@@ -5,6 +5,7 @@ import { shareImageUrl } from '../shared/shareImages.js';
 import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js';
 import { isPositiveDbfId, registerPublicBattlegroundHeroRoute } from './battlegroundHeroPublicRoutes.js';
 import { createHeroStatsLoader } from './battlegroundHeroStatsLoader.js';
+import { createHeroProfileLoader } from './battlegroundHeroPublicProfile.js';
 import type { PublicBattlegroundHero } from './battlegroundHeroPublicTypes.js';
 import { renderTextPlurals } from '../shared/hearthstoneCardText.js';
 import { hsDataApiOrigin } from './hsDataApiOrigin.js';
@@ -412,6 +413,11 @@ export function createBattlegroundHeroSeoRouter(
   registerPublicBattlegroundHeroRoute(router, {
     loadHero,
     loadStats: createHeroStatsLoader({ fetchImpl, timeoutMs: catalogTimeoutMs, onError: dependencies.onError }),
+    loadProfile: createHeroProfileLoader({
+      libraryUrl: dbfId => `${hsDataApiOrigin()}/api/v1/heroes?dbf=${dbfId}`,
+      imageUrl: value => sameOriginPublicResourceUrl(value, origin),
+      fetchImpl, onError: dependencies.onError,
+    }),
     imageUrl: value => safeImageUrl(value, origin),
     retryAfterSeconds,
     onError: dependencies.onError,
