@@ -142,10 +142,11 @@ export const CLOSED_HTML_VALUES = [
 /**
  * The closed integers (games, rank, sample games, build coverage, a card's dbfId): seven digits that no chunk id has,
  * found anywhere in a page (a JSON number or string, escaped RSC, a cell's text), bare or with thousands separators
- * (space, no-break or narrow no-break space, comma, dot), and only as a whole value: not inside a longer word or number.
+ * (space, no-break or narrow no-break space, comma, dot), and only as a whole value: not inside a word, an identifier
+ * (`abc-7771937`) or a longer number (`1 7771937`, `1.7771937`). A comma next to it is a JSON separator (`[1,7771937]`).
  */
 export const CLOSED_INTEGERS = [9_173_317, 3_331_937, 3_332_937, 7_771_937, 6_661_937, 4_441_937, 9_999_137];
 const grouped = value => String(value).replace(/\B(?=(\d{3})+(?!\d))/g, '[\\s\\u00a0\\u202f,.]?');
-export const CLOSED_INTEGER_PATTERN = new RegExp(`(?<![\\w.,])(?:${CLOSED_INTEGERS.map(grouped).join('|')})(?![\\w]|[.,]\\d)`, 'gu');
+export const CLOSED_INTEGER_PATTERN = new RegExp(`(?<![\\p{L}\\p{N}_-])(?<!\\d[.\\s\\u00a0\\u202f])(?:${CLOSED_INTEGERS.map(grouped).join('|')})(?![\\p{L}\\p{N}_-]|\\.\\d|[\\s\\u00a0\\u202f]\\d)`, 'gu');
 /** A closed field name as a JSON key, plain or escaped inside the RSC payload's strings. */
 export const closedKeyPattern = key => new RegExp(`\\\\?"${key}\\\\?"\\s*:`);

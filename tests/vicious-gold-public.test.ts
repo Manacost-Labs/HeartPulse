@@ -121,10 +121,12 @@ test('a source without archetypes and no earlier frame answers 503, never an emp
 test('the closed-integer check finds a closed value in any form and only as a whole value', () => {
   const found = (text: string) => [...text.matchAll(CLOSED_INTEGER_PATTERN)].length > 0;
   for (const leak of ['{"value":"7771937"}', '{"rank":7771937,"x":1}', String.raw`{\"rank\":7771937}`, '>9 173 317<',
-    '>9 173 317<', '>9 173 317<', '9,173,317', '["9999137"]', '<td>3331937</td>']) {
+    '>9 173 317<', '>9 173 317<', '9,173,317', '["9999137"]', '<td>3331937</td>',
+    '[1,7771937]', '[7771937,1]']) {
     assert.ok(found(leak), `a leak is found: ${leak}`);
   }
-  for (const other of ['>7771937abc<', 'a7771937', '77719370', '7771937.5', '1.7771937', '9,173,3170']) {
+  for (const other of ['>7771937abc<', 'a7771937', '77719370', '7771937.5', '1.7771937', '9,173,3170', 'abc-7771937',
+    'я7771937', '1 7771937', '7771937 123', '7771937-ab']) {
     assert.ok(!found(other), `not a closed value: ${other}`);
   }
   assert.ok(closedKeyPattern('rank').test(String.raw`{\"rank\":1}`) && !closedKeyPattern('rank').test('{"rankBracket":1}'));

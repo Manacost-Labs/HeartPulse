@@ -105,6 +105,17 @@ async function startStack() {
 /** Records every animation frame with its time and whether it shows a paid value. */
 const recordFrames = () => {
   window.__frames = [];
+  // When the page itself gets the builds refusal (its fetch resolves), not when the network finished: a frame between
+  // the two cannot know about the refusal yet.
+  const pageFetch = window.fetch;
+  window.fetch = async (...args) => {
+    const response = await pageFetch(...args);
+    const url = String(args[0] instanceof Request ? args[0].url : args[0]);
+    if (url.endsWith('/api/vicious-syndicate-gold/builds') && (response.status === 401 || response.status === 403)) {
+      window.__buildsRefusedAt ??= performance.now();
+    }
+    return response;
+  };
   const loop = () => {
     const paid = Boolean(document.body) && /41,37|33,29|17,73|12,61|54,91|52,17|56,08|917[\s\u00a0\u202f]?331/.test(document.body.textContent);
     window.__frames.push({ at: performance.now(), paid });
@@ -277,7 +288,7 @@ test('a guest, a robot, an Arena-only viewer and a subscriber on /standard/vicio
       await delay(2_500);
       const { refusedAt, paidAfter, paidEver } = await lapsing.evaluate(() => {
         const refusal = performance.getEntriesByType('resource').find(entry => entry.name.endsWith('/api/vicious-syndicate-gold/builds'));
-        const at = refusal ? refusal.responseEnd : Infinity;
+        const at = refusal ? window.__buildsRefusedAt ?? Infinity : Infinity;
         return { refusedAt: at, paidAfter: window.__frames.filter(frame => frame.paid && frame.at > at).length,
           paidEver: window.__frames.filter(frame => frame.paid).length };
       });

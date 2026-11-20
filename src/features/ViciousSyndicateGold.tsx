@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import { parsePublicViciousGold, VICIOUS_GOLD_PUBLIC_PATH, type PublicViciousGold } from '../../shared/viciousGoldPublicContract';
 import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
@@ -92,7 +93,8 @@ export default function ViciousSyndicateGold({ open: initialOpen = null, hasFull
       if (ignore) return;
       ignore = true;
       controller.abort();
-      setData(null);
+      // Committed before the next paint: a refused viewer never gets one more frame of the paid report.
+      flushSync(() => setData(null));
       denied.current?.();
     };
     const refusing = (response: Response) => response.status === 401 || response.status === 403;
