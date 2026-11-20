@@ -15,7 +15,7 @@ function snapshot(version: string, cardId = 'CARD_1') {
     cacheSource: 'fresh' as const, dataStatus: 'fresh' as const, warning: null,
   };
 }
-function catalogHarness() {
+function catalogHarness(ttlMs = 1_000) {
   const state = { time: 0, generation: 0, reads: 0, stats: 0, history: 0 };
   const cache: CatalogPorts['cache'] = new Map(), jobs: CatalogPorts['jobs'] = new Map();
   let source: CatalogPorts['catalog'] = async () => snapshot('one');
@@ -25,7 +25,7 @@ function catalogHarness() {
     period: id => ({ id, label: id, patch: '36.6.3', timeRange: null }),
     rank: id => ({ id, label: id, rankRange: id }), record: () => { state.history++; },
     cache, jobs, generation: () => state.generation, now: () => state.time,
-    ttlMs: 1_000, origin: 'https://source.example.test',
+    ttlMs, origin: 'https://source.example.test',
   });
   return { state, cache, jobs, readers, setSource(value: CatalogPorts['catalog']) { source = value; } };
 }
@@ -35,6 +35,21 @@ function pendingCatalog() {
   const promise = new Promise<ReturnType<typeof snapshot>>((done, fail) => { resolve = done; reject = fail; });
   return { promise, resolve, reject };
 }
+
+test('a collection on the last good copy is rebuilt within 30 s; a stale but loaded catalog keeps its window (#396)', async () => {
+  const fallback = catalogHarness(300_000);
+  fallback.setSource(async () => ({ ...snapshot('lkg'), cacheSource: 'LKG', dataStatus: 'stale', fallback: true }));
+  await fallback.readers.loadCards('standard');
+  fallback.state.time = 31_000;
+  await fallback.readers.loadCards('standard');
+  assert.equal(fallback.state.stats, 2, 'the copy after a failed refresh: rebuilt after 30 s');
+  const degraded = catalogHarness(300_000);
+  degraded.setSource(async () => ({ ...snapshot('degraded'), cacheSource: 'LKG', dataStatus: 'stale' }));
+  await degraded.readers.loadCards('standard');
+  degraded.state.time = 31_000;
+  await degraded.readers.loadCards('standard');
+  assert.equal(degraded.state.stats, 1, 'a loaded catalog stored without a backup: no rebuild every 30 s');
+});
 
 test('warm public identities remain readable while one expired catalog refresh is blocked', async () => {
   const h = catalogHarness();

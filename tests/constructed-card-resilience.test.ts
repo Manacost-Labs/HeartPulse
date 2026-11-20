@@ -194,6 +194,35 @@ try {
     warning: null,
   }, 'an upstream outage must remain explicitly degraded even when the LKG was verified recently');
 
+  // #396: after a failed refresh the last good copy is kept for 30 s, not for the five-minute fresh window,
+  // so a source that recovers (a cold start after a deploy) is read again within 30 s.
+  const recoveryDirectory = mkdtempSync(join(tmpdir(), 'arena-constructed-card-recovery-'));
+  try {
+    let recoveryNow = now;
+    let sourceUp = true;
+    const recovering = serviceHarness({
+      directory: recoveryDirectory,
+      now: () => recoveryNow,
+      cacheTtlMs: 300_000,
+      catalog: () => {
+        if (!sourceUp) throw new ConstructedCardUpstreamError('catalog unavailable', 503);
+        return { data: baseCards, updated_at: '2026-07-21T07:55:00.000Z', pagination: { page: 1, total: baseCards.length, total_pages: 1 } };
+      },
+    });
+    assert.equal((await recovering.service.loadCards('standard')).cacheSource, 'fresh', 'a first copy is stored');
+    sourceUp = false;
+    recoveryNow += 300_001;
+    assert.equal((await recovering.service.loadCards('standard')).cacheSource, 'LKG', 'the refresh fails: the stored copy');
+    sourceUp = true;
+    recoveryNow += 10_000;
+    assert.equal((await recovering.service.loadCards('standard')).cacheSource, 'LKG', 'inside 30 s the copy stays');
+    recoveryNow += 21_000;
+    const recovered = await recovering.service.loadCards('standard');
+    assert.deepEqual([recovered.cacheSource, recovered.dataStatus], ['fresh', 'fresh'], 'after 31 s the recovered source is read again');
+  } finally {
+    rmSync(recoveryDirectory, { recursive: true, force: true });
+  }
+
   const lkgRouter = await startRouter(restartedOutage.service);
   try {
     const list = await fetch(`${lkgRouter.origin}?format=standard&perPage=20`);

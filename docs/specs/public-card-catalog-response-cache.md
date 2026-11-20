@@ -135,6 +135,12 @@ Each shared (deduplicated) load now has two deadlines:
   the load is dropped from deduplication, so the next request starts a fresh
   read and picks up recovered data.
 
+After a failed or late refresh the last good catalog, and every collection
+built on it (`dataStatus: stale`), is kept for 30 s instead of the five-minute
+fresh window (#396): a cold start after a deploy often misses the 15 s load
+deadline, and with the long window guests saw «Показывается последняя
+сохранённая версия библиотеки карт» for five minutes after every deploy.
+
 Every missed deadline writes one `[deadline] <name> did not finish within N ms`
 line naming the load (`constructed-cards:catalog:standard`, `…:patches`,
 `…:decks`, `entity-sitemap:standard-cards`, and so on).
