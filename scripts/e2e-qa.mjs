@@ -4225,13 +4225,15 @@ for (const path of ['/standard/meta', '/standard/vicious-gold']) {
   await mockApplicationApi(page, { authenticated: false });
   try {
     await page.goto(`${BASE}${path}`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    const paywallSelector = path === '/standard/meta' ? '.arena-inline-paywall' : '.arena-paywall';
-    await page.waitForSelector(paywallSelector, { visible: true, timeout: 20_000 });
+    // The meta page of a guest is the subscriber's page with locks in place of the paid parts (no gate block).
+    const metaGuest = path === '/standard/meta';
+    await page.waitForSelector(metaGuest ? '.standard-meta-card' : '.arena-paywall', { visible: true, timeout: 20_000 });
     const state = await page.evaluate(() => ({
-      diamond: document.querySelector('.arena-paywall, .arena-inline-paywall')?.textContent?.includes('Алмаз') || false,
+      diamond: document.querySelector('.arena-paywall, .arena-inline-paywall')?.textContent?.includes('Алмаз')
+        || document.querySelector('[aria-label*="по подписке"]') !== null,
       previewProtected: Boolean(
         document.querySelector('.arena-paywall__preview')?.hasAttribute('inert')
-        || document.querySelector('.arena-inline-paywall'),
+        || document.querySelector('[aria-label*="по подписке"]'),
       ),
       standardLinks: document.querySelectorAll('a[href^="/standard/"]').length,
       overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
