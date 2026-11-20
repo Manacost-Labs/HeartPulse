@@ -17,8 +17,9 @@ function barStyle(winrate: number) {
   return { left: `${offset >= 0 ? 50 : 50 + offset}%`, width: `${Math.abs(offset)}%` };
 }
 
-/** The Power Tier of the open frame: this many rows, each a lock with no name, whatever the report holds. */
-const LOCKED_ROWS = 8;
+/** The Power Tier of the open frame: as many rows as a vS bracket holds (16), each a lock with no name, whatever the
+ * report holds, so the paid rows replace the slots without a shift. */
+const LOCKED_ROWS = 16;
 const LOCKED_SLOTS = Array.from({ length: LOCKED_ROWS }, (_, index) => index + 1);
 
 /**

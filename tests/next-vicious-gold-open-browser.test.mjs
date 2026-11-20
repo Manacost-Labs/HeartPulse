@@ -184,7 +184,7 @@ test('a guest, a robot, an Arena-only viewer and a subscriber on /standard/vicio
     assert.ok(text.includes('href="/standard/archetypes/standard/dragon-warrior/"'), 'an archetype links to our archetype page');
     assert.ok(text.includes('>Все ранги</button>') && text.includes('>Легенда</button>'), 'the rank brackets are named');
     assert.ok(text.includes('href="https://www.vicioussyndicate.com/data-reaper-live/"'), 'the source is linked');
-    assert.equal((text.match(/aria-label="Колода Power Tier, строка \d+: по подписке/g) ?? []).length, 8, 'the Power Tier rows are locks without names');
+    assert.equal((text.match(/aria-label="Колода Power Tier, строка \d+: по подписке/g) ?? []).length, 16, 'the Power Tier rows are locks without names (a vS bracket holds 16)');
     assert.ok(text.includes('aria-label="Доля Драконий Воин: по подписке'), 'a share is a lock');
     assert.ok(text.includes('aria-label="Лидер Power Tier: по подписке'), 'the leader is a lock');
     assert.ok(text.includes('aria-label="Партий: по подписке'), 'the games are a lock');
