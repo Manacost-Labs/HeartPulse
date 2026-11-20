@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
 import { GUIDES_ARCHIVE_PAGE_SIZE } from './GuidesArchiveSkeleton';
 
@@ -22,7 +22,7 @@ export interface GuideArchiveItem {
   oldUrl: string | null;
 }
 
-interface GuidesArchiveResponse {
+export interface GuidesArchiveResponse {
   page: number;
   limit: number;
   total: number;
@@ -52,13 +52,18 @@ const PAGE_SIZE = GUIDES_ARCHIVE_PAGE_SIZE;
  * while the next one loads; only the first load has nothing to show. A stalled
  * request ends at the request deadline with a retry instead of loading forever.
  */
-export function useGuidesArchivePage(page: number, submittedQuery: string, kind: string) {
-  const [data, setData] = useState<GuidesArchiveResponse | null>(null);
-  const [pending, setPending] = useState(true);
+export function useGuidesArchivePage(page: number, submittedQuery: string, kind: string,
+  { open = false, initial = null }: { open?: boolean; initial?: GuidesArchiveResponse | null } = {}) {
+  const [data, setData] = useState<GuidesArchiveResponse | null>(initial);
+  const [pending, setPending] = useState(initial === null);
   const [error, setError] = useState('');
   const [attempt, setAttempt] = useState(0);
+  // The first page the server already rendered is not asked for again.
+  const seeded = useRef(initial !== null);
 
   useEffect(() => {
+    if (seeded.current && attempt === 0 && page === 1 && !submittedQuery.trim() && !kind) return undefined;
+    seeded.current = false;
     const controller = new AbortController();
     setPending(true);
     setError('');
@@ -68,7 +73,7 @@ export function useGuidesArchivePage(page: number, submittedQuery: string, kind:
     });
     if (submittedQuery.trim()) params.set('q', submittedQuery.trim());
     if (kind) params.set('kind', kind);
-    fetchWithDeadline(`/api/guides-archive?${params.toString()}`, { signal: controller.signal })
+    fetchWithDeadline(`/api/guides-archive${open ? '/public/list' : ''}?${params.toString()}`, { signal: controller.signal })
       .then(async response => {
         if (!response.ok) throw new Error('Не удалось загрузить архив');
         return await response.json() as GuidesArchiveResponse;
@@ -84,7 +89,7 @@ export function useGuidesArchivePage(page: number, submittedQuery: string, kind:
         setPending(false);
       });
     return () => controller.abort();
-  }, [kind, page, submittedQuery, attempt]);
+  }, [kind, open, page, submittedQuery, attempt]);
 
   const retry = useCallback(() => setAttempt(value => value + 1), []);
   return { data, pending, error, retry };
@@ -92,11 +97,13 @@ export function useGuidesArchivePage(page: number, submittedQuery: string, kind:
 
 type GuideDetailRequest = { slug: string; guide: GuideDetail | null; error: string; missing: boolean };
 
-export function useGuideDetail(slug: string) {
+/** `enabled` is false for a viewer without access: the full text is not requested at all. */
+export function useGuideDetail(slug: string, enabled = true) {
   const [request, setRequest] = useState<GuideDetailRequest>({ slug: '', guide: null, error: '', missing: false });
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    if (!enabled) return undefined;
     const controller = new AbortController();
     fetchWithDeadline(`/api/guides-archive/${encodeURIComponent(slug)}`, { signal: controller.signal })
       .then(async response => {
@@ -113,9 +120,9 @@ export function useGuideDetail(slug: string) {
         setRequest({ slug, guide: null, error, missing: false });
       });
     return () => controller.abort();
-  }, [slug, attempt]);
+  }, [slug, attempt, enabled]);
 
-  const current = request.slug === slug ? request : null;
+  const current = enabled && request.slug === slug ? request : null;
   const retry = useCallback(() => {
     setRequest({ slug: '', guide: null, error: '', missing: false });
     setAttempt(value => value + 1);

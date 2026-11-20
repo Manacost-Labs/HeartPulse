@@ -352,18 +352,18 @@ test('pages pass the access decision to their gates and reserve the gate height'
   assert.ok(/\.arena-paywall-pending,\s*\.arena-paid-view \{\s*min-height: var\(--subscription-gate-min-height\);\s*\}/.test(paywallCss),
     'the placeholder and a mounting paid view must reserve the gate height token');
   assert.match(read('../src/styles/tokens.css'), /--subscription-gate-min-height: 760px;/);
-  for (const pageClient of ['BattlegroundLibraryPageClient',
-    'BattlegroundTierBuilderPageClient', 'GuidesArchivePageClient', 'GuideArchiveDetailPageClient']) {
+  for (const pageClient of ['BattlegroundLibraryPageClient', 'BattlegroundTierBuilderPageClient']) {
     const source = read(`../apps/public-web/ui/${pageClient}.tsx`);
     // `pending` (paidAccess) covers the check and a refusal the server has not confirmed yet.
     assert.match(source, /const \{ allowed, pending \} = paidAccess\(access, '\w+'\);/, `${pageClient} must decide with paidAccess`);
     assert.match(source, /pending\s*\?\s*<PaywallPending\b/, `${pageClient} must reserve the gate while access is pending`);
     assert.ok(!/<p[^>]*aria-busy/.test(source), `${pageClient} must not render a bare pending line`);
   }
+  // The guide archive (`/guides-archive/` and a guide page) is not in the list either: its list is open and a guide shows
+  // its open text with a lock, checked in a browser by tests/next-guide-detail-browser.test.mjs.
   // /heroes/, /heroes/<id>/, /battlegrounds/tier-list/ and /battlegrounds/strategies/ are not in the list: they have open
   // data and no gate to reserve. Their behaviour (open data for a guest, no placeholder, no layout shift when a
   // subscriber's view replaces it) is checked in a browser by tests/next-paywall-access-check-browser.test.mjs and
   // tests/next-bg-hero-detail-browser.test.mjs. The same holds for a library card page
-  // (`BattlegroundLibraryDetailPageClient`, checked by the first of them); the library listings keep the gate for the
-  // archive, which has no open list.
+  // (`BattlegroundLibraryDetailPageClient`, checked by the first of them); the library listings keep the gate.
 });

@@ -111,7 +111,17 @@ test('Next guide detail renders an anonymous teaser, canonicalizes old IDs and r
       assert.deepEqual(document.tocTargets, [true, true], 'every contents link has a target on the page');
       assert.equal(document.paidBlocks, 1);
       assert.ok(document.author.includes('HearthPulse'));
+      // The continuation is a lock in place (the subscriber's page, not a banner): it opens the offer, no gate text.
+      assert.equal(document.html.includes('Полный гайд доступен подписчикам'), false, 'no full-width gate instead of the text');
     }
+    await page.setViewport({ width: 1440, height: 900 });
+    await page.goto(`${origin}/guides-archive/arena-100-percent/`, { waitUntil: 'networkidle2' });
+    const lock = await page.$('button ::-p-text(Продолжение гайда — по подписке)');
+    assert.ok(lock, 'the lock stands where the text goes on');
+    assert.equal(await page.$eval('.guide-archive-paid', node => Boolean(node.querySelector('button.guide-archive-lock'))), true);
+    await page.evaluate(() => document.querySelector('button.guide-archive-lock').click());
+    await page.waitForSelector('[data-testid="arena-paid-offer"]', { timeout: 15_000 });
+    await page.keyboard.press('Escape');
     // Robots and guests get the same document: the open part, the gate placeholder and the markup.
     for (const agent of ['Mozilla/5.0 (compatible; Googlebot/2.1)', 'Mozilla/5.0 Chrome/130']) {
       const html = await (await fetch(`${origin}/guides-archive/arena-100-percent/`, { headers: { 'user-agent': agent } })).text();
@@ -186,4 +196,169 @@ test('archive reader keeps legacy section anchors visible and readable at deskto
     await browser.close();
     await storybook.close();
   }
+});
+
+const reader = { id: 'reader-1', email: 'reader@example.test', name: 'Подписчик', role: 'user' };
+const subscription = { hasAccess: true, entitlements: { arena: true, guidesArchive: true }, source: 'boosty', checkedAt: null,
+  stale: false, message: '', boosty: { checked: true, hasAccess: true }, patreon: {}, telegram: {} };
+const FULL_TEXT = 'PAID_FULL_TEXT_ONLY_FOR_SUBSCRIBERS';
+const listCards = [1, 2, 3].map(id => ({ id, slug: `guide-${id}`, title: `Гайд номер ${id}`, description: `Описание ${id}`, image: null,
+  publishedAt: '2026-07-10T12:00:00.000Z', menuName: 'Арена', menuCode: 'arena', kind: 'Гайды', kindSlug: 'guides', oldUrl: null }));
+const listPage = { page: 1, limit: 18, total: 3, totalPages: 1, items: listCards,
+  filters: { kinds: [{ slug: 'guides', label: 'Гайды', count: 3 }], menus: [] } };
+
+/** A Next server and gateway on a fixture of Express; `state` is changed by the test while the page lives. */
+async function withStack(state, run) {
+  const legacy = http.createServer((request, response) => {
+    const url = new URL(request.url, 'http://fixture');
+    const subscriber = /(?:^|;\s*)sm_session=reader/.test(request.headers.cookie ?? '');
+    const json = (status, body) => response.writeHead(status, { 'Content-Type': 'application/json' }).end(JSON.stringify(body));
+    state.calls.push(url.pathname + url.search);
+    if (url.pathname === '/api/auth/me') return json(200, { user: subscriber ? reader : null });
+    if (url.pathname === '/api/subscription/status') return subscriber ? json(200, subscription) : json(401, { error: 'guest' });
+    if (isMenuBackgroundRead(url.pathname)) return json(200, MENU_PATCH_ARCHIVE);
+    if (url.pathname === '/api/guides-archive/public/list') return state.listDown ? json(503, { error: 'down' }) : json(200, listPage);
+    if (url.pathname === '/api/guides-archive') return subscriber ? json(200, listPage) : json(401, { error: 'guest' });
+    if (url.pathname.startsWith('/api/guides-archive/teaser/')) {
+      const slug = url.pathname.split('/').pop();
+      state.teaserReads[slug] = (state.teaserReads[slug] ?? 0) + 1;
+      if (state.teaserDown(slug, state.teaserReads[slug])) return json(503, { error: 'down' });
+      return json(200, { ...teaser, slug, contentHtml: 'PRIVATE_CONTENT' });
+    }
+    if (url.pathname.startsWith('/api/guides-archive/')) {
+      if (!subscriber) return json(401, { error: 'guest' });
+      return state.fullDown ? json(503, { error: 'down' }) : setTimeout(() => json(200, { ...teaser, id: 1, menuCode: 'arena', kindSlug: 'guides', oldUrl: null,
+        keywords: null, replyCount: 0, fallbackText: '', sourceUrl: null,
+        contentHtml: `${teaser.excerptHtml}<h2 id="guide-heading-2">Платный раздел</h2><p>${FULL_TEXT}</p>` }), 300);
+    }
+    if (/\.(?:webp|png|jpg|jpeg)$/.test(url.pathname)) { response.setHeader('Content-Type', 'image/webp'); return response.end(placeholder); }
+    response.writeHead(204).end();
+  });
+  const legacyOrigin = await listenLocal(legacy);
+  const reservation = http.createServer(); const nextOrigin = await listenLocal(reservation); await closeLocal(reservation);
+  const child = spawn(process.execPath, ['node_modules/next/dist/bin/next', 'start', 'apps/public-web',
+    '--hostname', '127.0.0.1', '--port', new URL(nextOrigin).port], {
+    env: { ...process.env, NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1', RUNTIME_CLIENT_CONFIG_FILE: '', LEGACY_WEB_ORIGIN: legacyOrigin,
+      NODE_OPTIONS: `--require=${fileURLToPath(new URL('./helpers/shiftableClock.cjs', import.meta.url))}` },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let output = ''; let gateway; let browser;
+  child.stdout.on('data', chunk => { output = (output + chunk).slice(-4000); });
+  child.stderr.on('data', chunk => { output = (output + chunk).slice(-4000); });
+  try {
+    let ready = false;
+    for (let attempt = 0; attempt < 200 && !ready; attempt++) {
+      if (child.exitCode !== null) throw new Error(`Next exited: ${output}`);
+      ready = await fetch(`${nextOrigin}/health/next/`).then(response => response.ok, () => false);
+      if (!ready) await delay(50);
+    }
+    assert.ok(ready, `Next did not start: ${output}`);
+    gateway = createPublicWebGateway({ legacyOrigin, nextOrigin, enabled: true, pagesEnabled: true });
+    const origin = await listenLocal(gateway);
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
+    await run({ origin, browser, nextOrigin, shiftClock: () => process.kill(child.pid, 'SIGUSR2') });
+  } finally {
+    if (browser) await browser.close();
+    if (gateway) await closeLocal(gateway);
+    if (child.exitCode === null) { const exited = once(child, 'exit'); child.kill('SIGTERM'); await exited; }
+    await closeLocal(legacy);
+  }
+}
+
+async function openPage(browser, origin, path, { subscriber = false, width = 1440 } = {}) {
+  const context = await browser.createBrowserContext();
+  const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('console', message => { if (message.type() === 'error' && !/status of 503/.test(message.text())) errors.push(message.text()); });
+  await page.setViewport({ width, height: 900 });
+  if (subscriber) await page.setCookie({ name: 'sm_session', value: 'reader', url: origin });
+  await page.evaluateOnNewDocument(() => {
+    window.__shifts = [];
+    new PerformanceObserver(list => { for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.__shifts.push(entry.value); })
+      .observe({ type: 'layout-shift', buffered: true });
+  });
+  const response = await page.goto(`${origin}${path}`, { waitUntil: 'networkidle2' });
+  return { page, errors, response, context };
+}
+
+test('a subscriber gets the same guide page with the full text, and a failed full text keeps the open part and a retry', async () => {
+  const state = { calls: [], teaserReads: {}, teaserDown: () => false, fullDown: false };
+  await withStack(state, async ({ origin, browser }) => {
+    for (const width of [1440, 390]) {
+      const { page, errors, context } = await openPage(browser, origin, '/guides-archive/arena-100-percent/', { subscriber: true, width });
+      // The header and the open text are the guest's own nodes: marked before the full text arrives, still the same after.
+      await page.evaluate(() => {
+        document.querySelector('.guide-archive-detail-header').dataset.mark = 'kept';
+        document.querySelector('.guide-archive-excerpt')?.setAttribute('data-mark', 'excerpt');
+      });
+      await page.waitForFunction(text => document.body.innerText.includes(text), { timeout: 20_000 }, FULL_TEXT);
+      assert.equal(await page.$eval('.guide-archive-detail-header', node => node.dataset.mark), 'kept', `${width}px: no remount`);
+      assert.equal(await page.$('button.guide-archive-lock'), null, 'the subscriber has no lock');
+      assert.equal(await page.$('[data-app-error]'), null);
+      assert.ok(await page.evaluate(() => window.__shifts.reduce((sum, value) => sum + value, 0)) < 0.01, `${width}px: CLS`);
+      assert.deepEqual(errors, []);
+      await context.close();
+    }
+    // The full request fails: the open part stays, the message has «Повторить»; after it the text comes.
+    state.fullDown = true;
+    const { page, errors, context } = await openPage(browser, origin, '/guides-archive/arena-100-percent/', { subscriber: true });
+    await page.waitForSelector('[role="alert"]', { timeout: 20_000 });
+    assert.match(await page.evaluate(() => document.body.innerText), /Открытый текст гайда\./, 'the open part stays');
+    assert.equal(await page.evaluate(text => document.body.innerText.includes(text), FULL_TEXT), false);
+    state.fullDown = false;
+    await page.evaluate(() => [...document.querySelectorAll('[role="alert"] button')].find(node => node.textContent.trim() === 'Повторить').click());
+    await page.waitForFunction(text => document.body.innerText.includes(text), { timeout: 20_000 }, FULL_TEXT);
+    assert.equal(await page.$('[role="alert"]'), null);
+    assert.deepEqual(errors, []);
+    await context.close();
+  });
+});
+
+test('the archive list is the same for a guest, a robot and a subscriber; Express hiccups never make a 500', async () => {
+  const state = { calls: [], teaserReads: {}, teaserDown: slug => slug === 'flaky' ? state.teaserReads[slug] === 1 : slug === 'gone' ? state.allDown : false,
+    fullDown: false, allDown: false };
+  await withStack(state, async ({ origin, browser, shiftClock }) => {
+    // The copy made at build time has no list (no Express then): the page is regenerated after its five minutes.
+    // Server HTML: the cards and the filter are there before any script runs.
+    let html = '';
+    for (let attempt = 0; attempt < 40 && !html.includes('Гайд номер 1'); attempt++) {
+      shiftClock();
+      html = await (await fetch(`${origin}/guides-archive/`, { headers: { 'user-agent': 'Mozilla/5.0 (compatible; Googlebot/2.1)' } })).text();
+      if (!html.includes('Гайд номер 1')) await delay(250);
+    }
+    for (const text of ['Гайд номер 1', 'Гайд номер 3', 'Описание 2', 'Гайды']) assert.ok(html.includes(text), text);
+    assert.equal(html.includes('Архив гайдов доступен подписчикам'), false, 'no gate instead of the list');
+    assert.equal(/PRIVATE_|PAID_/.test(html), false);
+    for (const subscriber of [false, true]) {
+      state.calls.length = 0;
+      const { page, errors, context } = await openPage(browser, origin, '/guides-archive/', { subscriber });
+      assert.equal(await page.$$eval('a.guide-archive-card', cards => cards.length), 3, `subscriber=${subscriber}: three cards`);
+      assert.ok(await page.evaluate(() => window.__shifts.reduce((sum, value) => sum + value, 0)) < 0.01, 'CLS');
+      assert.equal(state.calls.some(call => call.startsWith('/api/guides-archive?') || call.startsWith('/api/guides-archive/public/list')), false,
+        'the first page is not asked for again');
+      await page.type('.guide-archive-search input', 'гайд');
+      await page.click('.guide-archive-search button');
+      await page.waitForNetworkIdle({ idleTime: 300, timeout: 10_000 }).catch(() => undefined);
+      const asked = state.calls.filter(call => call.includes('q=')).join();
+      assert.match(asked, subscriber ? /\/api\/guides-archive\?/ : /\/api\/guides-archive\/public\/list\?/);
+      assert.deepEqual(errors, []);
+      await context.close();
+    }
+    // Express answers 503 once: a second try gives the page.
+    const flaky = await fetch(`${origin}/guides-archive/flaky/`);
+    assert.equal(flaky.status, 200);
+    assert.ok((await flaky.text()).includes('Открытый текст гайда.'));
+    assert.equal(state.teaserReads.flaky, 2);
+    // Express is gone: the last good copy of a guide seen before; a guide never seen says so, without a 500 and without index.
+    state.teaserDown = () => true;
+    const copy = await fetch(`${origin}/guides-archive/flaky/`);
+    assert.equal(copy.status, 200);
+    assert.ok((await copy.text()).includes('Открытый текст гайда.'), 'the last good copy');
+    const unseen = await fetch(`${origin}/guides-archive/never-seen/`);
+    const unseenHtml = await unseen.text();
+    assert.equal(unseen.status, 200);
+    assert.match(unseenHtml, /Гайд временно недоступен/);
+    assert.match(unseenHtml, /<meta name="robots" content="noindex, nofollow"/);
+  });
 });

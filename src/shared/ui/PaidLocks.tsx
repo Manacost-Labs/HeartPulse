@@ -28,7 +28,7 @@ import './PaidLocks.css';
 interface LockProps {
   /** Name of the closed figure or filter, for a screen reader: «Винрейт». */
   label: string;
-  /** The page's closed-part class its JSON-LD names (`paywalled-tierlist`, `paywalled-classes`). */
+  /** The page's closed-part class its JSON-LD names (`paywalled-tierlist`, `paywalled-classes`, `paywalled-guides`). */
   closed?: Closed;
   /** Replaces the offer of the provider (for code outside it). */
   onOpen?: () => void;
@@ -36,7 +36,7 @@ interface LockProps {
 
 const join = (...names: Array<string | undefined>) => names.filter(Boolean).join(' ');
 const DEFAULT_CLOSED = 'paywalled-tierlist';
-type Closed = 'paywalled-tierlist' | 'paywalled-classes';
+type Closed = 'paywalled-tierlist' | 'paywalled-classes' | 'paywalled-guides';
 
 /** A paid figure: «По подписке» with a lock in place of the value; `cell` for a table, `card` for a tile. */
 export function PaidMetricLock({ label, variant = 'cell', closed = DEFAULT_CLOSED, onOpen }: LockProps & { variant?: 'cell' | 'card' }) {

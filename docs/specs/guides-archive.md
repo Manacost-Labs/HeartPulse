@@ -54,8 +54,29 @@ Every visitor, robots included, gets the same server HTML: the title, date,
 the author line "Автор: HearthPulse", the contents of the whole guide and the
 first 150-200 words of the text. Everything else is paid. The access check
 never changes what the server rendered: for a guest the closed block
-(`.guide-archive-paid`) shows the paywall; a subscriber's client replaces the
-open text with the full text, so nothing is shown twice.
+(`.guide-archive-paid`) holds a lock «Продолжение гайда — по подписке»
+(`PaidLockButton`, `paywalled-guides`) that opens the subscription offer; a
+subscriber gets the same page (one component, no remount, no gate) and the
+full text replaces the open text and the lock. If the full text does not
+arrive, the open text stays with a visible message and «Повторить».
+
+## Archive list
+
+`/guides-archive/` is open to everyone and is one component: the first page
+(18 cards) is read by the server from `GET /api/guides-archive/public/list`
+(`server/guidesArchiveList.ts`; card fields only, `oldUrl` always `null`,
+covered by the scrape guard as an open `public` path) and rendered for
+robots, guests and subscribers alike; filters, search and paging load in
+the browser. A guest's search covers title, description and keywords but not
+`body_text`, so it cannot tell whether a word stands in the paid text; a
+subscriber's search (`GET /api/guides-archive`, access-guarded) keeps the
+full-text search. When the database fails, the open list answers from the
+last good copy of the same request, else `503` with `Retry-After: 60`.
+
+A restart of Express (a deploy) must not turn a guide page into a 500:
+`loadPublicGuideTeaser` retries once with a short deadline, then uses the
+last good copy of that guide, else the page says «Гайд временно недоступен»
+(`noindex, nofollow`).
 
 ### What the projection carries
 
