@@ -24,8 +24,9 @@ function useLibraryOptions(cards: LibraryCard[], meta: LibraryMeta) {
   }, [cards, meta.creature_types]);
   const mechanics = useMemo(() => {
     const seen = new Map<string, string>();
-    (meta.mechanics || []).forEach(item => seen.set(item.slug, item.name_ru));
-    cards.forEach(card => (card.mechanics || []).forEach(item => seen.set(item.slug, item.name_ru)));
+    // Keyed by name: the open cards carry names only, and a filter chosen on them must keep working on the catalog.
+    (meta.mechanics || []).forEach(item => seen.set(item.name_ru, item.name_ru));
+    cards.forEach(card => (card.mechanics || []).forEach(item => seen.set(item.name_ru, item.name_ru)));
     return sortedOptions(seen);
   }, [cards, meta.mechanics]);
   const cardGroups = useMemo(() => {
@@ -90,7 +91,7 @@ export function useBgLibraryListFilters(cards: LibraryCard[], meta: LibraryMeta,
       && (tavernSet.size === 0 || tavernSet.has(String(card.tavern_tier || '')))
       && (kind !== 'minion' || raceSet.size === 0 || raceSet.has(card.creature_type?.slug || ''))
       && (groupFilter === 'ALL' || String(card.group?.slug || card.group?.name_ru || '') === groupFilter)
-      && (mechanic === 'ALL' || (card.mechanics || []).some(item => item.slug === mechanic))).map(({ card }) => card);
+      && (mechanic === 'ALL' || (card.mechanics || []).some(item => item.name_ru === mechanic))).map(({ card }) => card);
   }, [deferredQuery, groupFilter, includeDuos, kind, mechanic, pool, raceFilters, searchIndex, tavernFilters]);
 
   const archivePageCount = Math.max(1, Math.ceil(filtered.length / ARCHIVE_PAGE_SIZE));

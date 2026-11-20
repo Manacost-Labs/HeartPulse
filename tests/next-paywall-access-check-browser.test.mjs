@@ -447,15 +447,15 @@ test('the library keeps its open layer until the paid view has loaded, without a
               for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.__layoutShifts.push(entry.value);
             }).observe({ type: 'layout-shift', buffered: true });
           });
-          // The paid view's chunk arrives late: the script that holds the library view (found by a string only it has: the
-          // class list of its card page; the listing view itself is in every visitor's page) waits.
+          // The paid part arrives late: the script that holds it (found by a string only it has: the version of the
+          // protected catalog's reads for the listing, the class list of the card page for the card) waits.
           let held = 0;
           await page.setRequestInterception(true);
           page.on('request', request => {
             if (!subscriber || request.resourceType() !== 'script') return void request.continue().catch(() => {});
             void fetch(request.url()).then(async answer => {
               const body = await answer.text();
-              if (body.includes('bg-library-detail-page space-y-6')) { held += 1; await delay(4000); }
+              if (['bg-library-20260923-pool-3661', 'bg-library-detail-page space-y-6'].some(marker => body.includes(marker))) { held += 1; await delay(4000); }
               await request.respond({ status: 200, contentType: 'application/javascript', body });
             }).catch(() => request.continue().catch(() => {}));
           });

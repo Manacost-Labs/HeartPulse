@@ -41,13 +41,13 @@ function adminShellAssets(assets) {
 
 // Guests on the Battlegrounds routes see only the gate: the paid views and
 // their stylesheet are lazy assets that load once access is confirmed.
-// The library's paid view is its card page (the class list of `DetailPage`; its skeleton has another one): the
-// listing view is shared with guests.
-const PAID_BATTLEGROUNDS_MARKERS = { js: ['bg-heroes-page', 'bg-library-detail-page space-y-6'], css: ['.bg-hero-ledger'] };
+// The library's paid parts are its card page (the class list of `DetailPage`; its skeleton has another one) and the
+// reader of the protected catalog (the version of its reads): the listing view is shared with guests.
+const PAID_BATTLEGROUNDS_MARKERS = { js: ['bg-heroes-page', 'bg-library-detail-page space-y-6', 'bg-library-20260923-pool-3661'], css: ['.bg-hero-ledger'] };
 // /heroes/ renders the subscriber's hero ranking for everyone (#575: the same view for a guest and a subscriber),
 // so its list and stylesheet belong to the page; the subscriber-only module with the live-data loaders (named by
 // its error text) and the library's card page must still load only once access is confirmed.
-const PAID_HEROES_MARKERS = { js: ['API героев временно недоступен', 'bg-library-detail-page space-y-6'], css: [] };
+const PAID_HEROES_MARKERS = { js: ['API героев временно недоступен', 'bg-library-detail-page space-y-6', 'bg-library-20260923-pool-3661'], css: [] };
 const PAID_BATTLEGROUNDS_ROUTES = ['/heroes/', '/library/', '/battlegrounds/tier-builder/',
   '/battlegrounds/strategies/', '/battlegrounds/tier-list/'];
 // The guest views of the tier list and of the library are the subscriber's views (same component, open data): they

@@ -9,50 +9,58 @@ import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { libraryKindOf, openLibraryCards, type OpenLibraryListing } from '@/apps/public-web/lib/openBattlegroundLibrary';
 import type { LibraryListingKind } from '@/apps/public-web/lib/publicBattlegroundLibraryListingData';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
-import { BgLibrary, loadBgLibrary, useBgLibraryModuleLoaded, usePaidViewPrefetch } from './lazyBattlegrounds';
+import { BgLibrary, loadBgLibrary, loadBgLibraryCatalog, useBgLibraryModuleLoaded, usePaidViewPrefetch } from './lazyBattlegrounds';
 import { BattlegroundLibraryLocks } from './BattlegroundLibraryLocks';
 import { BattlegroundLibraryOpenListing } from './BattlegroundLibraryOpenListing';
 import { navigate } from './navigation';
 
 /**
  * A listing page (`kind` and `listing`, `null` when the open listing is unavailable) renders the subscriber's listing
- * view for everyone: on the open cards, with its closed controls locked, for a viewer without access (a guest, a robot,
- * a signed-in visitor without a subscription), and on the protected catalog for a subscriber once its chunk is
- * loaded (seeded with the same open cards, so nothing jumps). `children` is the server-rendered open hub; a page with
- * neither (the archive) keeps the gate.
+ * view for everyone, one instance throughout (`BattlegroundLibraryOpenListing`): on the open cards with the archive
+ * locked for a viewer without access, on the protected catalog for a subscriber once it has arrived. `children` is the
+ * server-rendered open hub; a page with neither (the archive) keeps the gate.
  */
 export function BattlegroundLibraryPageClient({ pathname, heading, children, kind, listing }: {
   pathname: string; heading: string; description?: string; children?: ReactNode;
   kind?: LibraryListingKind; listing?: OpenLibraryListing | null;
 }) {
   const access = usePublicAccess();
-  usePaidViewPrefetch(loadBgLibrary);
+  usePaidViewPrefetch(kind === undefined ? loadBgLibrary : loadBgLibraryCatalog);
   const { allowed, pending } = paidAccess(access, 'battlegrounds');
   const cards = useMemo(() => listing ? openLibraryCards(listing) : null, [listing]);
-  const open = children !== undefined || kind !== undefined;
-  // The open view stays (with its height) until the paid view is loaded and can replace it in one render.
-  const paidViewReady = useBgLibraryModuleLoaded(allowed);
+  const open = children !== undefined;
+  // The open hub stays (with its height) until the paid view is loaded and can replace it in one render.
+  const paidViewReady = useBgLibraryModuleLoaded(allowed && kind === undefined);
   const paywall: PaywallAccessState = { authUser: access.user, subscriptionStatus: access.subscription,
     subscriptionLoading: access.checking, onRefreshSubscription: access.refresh };
+  const cacheScope = access.user ? String(access.user.id) : undefined;
   return <PublicPageShell activeTab="bg-library" pathname={pathname}
     access={access} navigate={navigate} wide>
-    {allowed && (!open || paidViewReady)
-      ? <BgLibrary key={`${pathname}:${access.user?.id}`} currentPath={pathname} navigatePath={navigate}
-        cacheScope={access.user ? String(access.user.id) : undefined} openCards={cards ?? undefined} heading={heading} />
-      : kind !== undefined
-        ? <BattlegroundLibraryOpenListing kind={libraryKindOf(kind)} heading={heading} cards={cards} paywall={paywall} />
-        : <section className="space-y-5">
-          <SectionBanner title={heading} />
-          {open ? <>
-            {children}
-            {/* The closed part, named by the page's JSON-LD (`hasPart.cssSelector`); a wrapper without a box of its own. */}
-            <div className="paywalled-library" style={{ display: 'contents' }}>
-              <BattlegroundLibraryLocks label="Фильтры, сравнение карт и статистика по ходам"
-                offer="Фильтры, сравнение карт и статистика по ходам доступны подписчикам" {...paywall} />
-            </div>
-          </> : <LibraryGate pending={pending} paywall={paywall} />}
-        </section>}
+    {kind !== undefined
+      ? <BattlegroundLibraryOpenListing kind={libraryKindOf(kind)} heading={heading} cards={cards} paywall={paywall}
+        subscriber={allowed ? { cacheScope } : null} />
+      : allowed && (!open || paidViewReady)
+        ? <BgLibrary key={`${pathname}:${access.user?.id}`} currentPath={pathname} navigatePath={navigate}
+          cacheScope={cacheScope} heading={heading} />
+        : <LibraryHubOrGate heading={heading} pending={pending} paywall={paywall}>{children}</LibraryHubOrGate>}
   </PublicPageShell>;
+}
+
+/** The open hub with its locked part (`children`), or, for a page without an open part (the archive), the gate. */
+function LibraryHubOrGate({ heading, pending, paywall, children }: {
+  heading: string; pending: boolean; paywall: PaywallAccessState; children?: ReactNode;
+}) {
+  return <section className="space-y-5">
+    <SectionBanner title={heading} />
+    {children !== undefined ? <>
+      {children}
+      {/* The closed part, named by the page's JSON-LD (`hasPart.cssSelector`); a wrapper without a box of its own. */}
+      <div className="paywalled-library" style={{ display: 'contents' }}>
+        <BattlegroundLibraryLocks label="Фильтры, сравнение карт и статистика по ходам"
+          offer="Фильтры, сравнение карт и статистика по ходам доступны подписчикам" {...paywall} />
+      </div>
+    </> : <LibraryGate pending={pending} paywall={paywall} />}
+  </section>;
 }
 
 /** A page without an open part (the archive): the gate, or its placeholder while access is checked. */

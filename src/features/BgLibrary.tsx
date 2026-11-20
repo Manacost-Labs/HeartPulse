@@ -1,7 +1,7 @@
 import '../shared/ui/analytics/Analytics.css';
 import '../modules/battlegrounds/public.css';
-import { createBattlegroundLibraryResource, fetchBattlegroundMinionStats, useBattlegroundLibraryData, type BattlegroundMinionStats, battlegroundMinionIconBySlug as RACE_ICON_BY_SLUG } from '../modules/battlegrounds/public';
-import React, { useEffect, useMemo, useState } from 'react';
+import { fetchBattlegroundMinionStats, useBattlegroundLibraryData, type BattlegroundMinionStats, battlegroundMinionIconBySlug as RACE_ICON_BY_SLUG } from '../modules/battlegrounds/public';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, ExternalLink } from 'lucide-react';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
 import { battlegroundCardTitle } from '../../shared/entityPageTitles';
@@ -12,8 +12,9 @@ import {
   findBattlegroundCardVariants,
 } from './battlegroundCardVariants';
 import { BgLibraryDetailSkeleton, type BgLibraryCardTeaser } from './BgLibrarySkeletons';
-import { BgLibraryListPage } from './BgLibraryListPage';
-import { cardLibraryKind, cardPath, cardRuName, cleanSearch, tavernIcon, type LibraryCard, type LibraryMeta } from './bgLibraryCards';
+import { BgLibraryListPage, type BgLibraryListData } from './BgLibraryListPage';
+import { bgLibraryCatalogResource, fetchAuxiliaryLibraryCards, fetchJson, fetchJsonOrNull, versionedLibraryUrl } from './bgLibraryCatalog';
+import { cardLibraryKind, cardPath, cardRuName, cleanSearch, tavernIcon, type LibraryCard } from './bgLibraryCards';
 import {
   dedupeLibraryCards, detailCardImage, fallbackBrokenHeroImage, fallbackCardImages, goldenVariantFallbackImages,
   goldenVariantImage, hearthstoneJsonBgCardUrl, hideBrokenImage, isLikelyGoldenCardId, localDbImageUrl, primaryCardImage, uniqueStrings,
@@ -31,7 +32,6 @@ import '../route-parchment.css';
 import '../battlegrounds-shell.css';
 import '../battlegrounds-parchment.css';
 
-const BG_LIBRARY_API_VERSION = 'bg-library-20260923-pool-3661';
 
 /** Minion statistics of the detail page: `missing` is a slice without games, `failed` an unavailable source. */
 type MinionStatsLoad = BattlegroundMinionStats | 'missing' | 'failed';
@@ -55,24 +55,10 @@ interface BgLibraryProps {
   navigatePath: (path: string) => void;
   /** Public identity the server page already rendered; it seeds the card page while statistics load. */
   teaser?: BgLibraryCardTeaser;
-  /** The open cards of a current listing the server page already shows; the listing keeps them until the catalog arrives. */
-  openCards?: LibraryCard[];
   /** The H1 of a listing, as the server page names it. */
   heading?: string;
 }
 
-
-const MECHANIC_LABEL_OVERRIDES: Record<string, string> = {
-  bacon_fresh_tooltip: 'В следующих обновлениях',
-  bacon_refresh_tooltip: 'В следующих обновлениях',
-  bacon_blood_gem_tooltip: 'Кровавые самоцветы',
-  immune: 'Неуязвимость',
-};
-
-const HIDDEN_MECHANIC_KEYS = new Set([
-  'bacon_pass_tooltip',
-  'secret',
-]);
 
 
 /** Version of a Battlegrounds card shown on its detail page. */
@@ -80,21 +66,6 @@ type BattlegroundCardVariant = 'normal' | 'golden';
 
 
 
-
-async function fetchJson<T>(url: string): Promise<T> {
-  const response = await fetchWithDeadline(url, { cache: 'no-store' });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload?.error || `HTTP ${response.status}`);
-  return payload as T;
-}
-
-function versionedLibraryUrl(path: string, params: Record<string, string | number | boolean | null | undefined> = {}): string {
-  const search = new URLSearchParams({ v: BG_LIBRARY_API_VERSION });
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== null && value !== undefined) search.set(key, String(value));
-  }
-  return `${path}?${search.toString()}`;
-}
 
 function formatDecimal(value: unknown, digits = 2): string {
   if (!Number.isFinite(Number(value))) return '—';
@@ -106,11 +77,6 @@ function formatCount(value: unknown): string {
   return Number(value).toLocaleString('ru-RU');
 }
 
-function mechanicKey(value: unknown): string {
-  return cleanSearch(value)
-    .replace(/[^a-zа-я0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '');
-}
 
 function dbfFromPath(path: string): number | null {
   const match = decodeURIComponent(path).match(/-(\d+)\/?$/);
@@ -150,115 +116,6 @@ function cardRulesText(card: LibraryCard): string {
     .trim();
 }
 
-
-async function fetchJsonOrNull<T>(url: string): Promise<T | null> {
-  try {
-    return await fetchJson<T>(url);
-  } catch {
-    return null;
-  }
-}
-
-function normalizeMechanic(value: any): { slug: string; name_ru: string } | null {
-  const label = typeof value === 'string'
-    ? value
-    : (value?.name_ru || value?.name_en || value?.slug || value?.name || '');
-  if (!label) return null;
-  const slug = String(typeof value === 'string' ? cleanSearch(label) : (value?.slug || cleanSearch(label)));
-  const key = mechanicKey(slug || label);
-  if (HIDDEN_MECHANIC_KEYS.has(key)) return null;
-  return { slug, name_ru: MECHANIC_LABEL_OVERRIDES[key] || String(label) };
-}
-
-function normalizeMechanics(values: unknown): Array<{ slug: string; name_ru: string }> {
-  if (!Array.isArray(values)) return [];
-  const mechanics: Array<{ slug: string; name_ru: string }> = [];
-  for (const value of values) {
-    const mechanic = normalizeMechanic(value);
-    if (mechanic) mechanics.push(mechanic);
-  }
-  return mechanics;
-}
-
-function normalizeAuxiliaryLibraryCard(item: any, kind: LibraryKind): LibraryCard {
-  const library = item?.library || item?.category || { slug: kind, name_ru: sectionFor(kind).shortTitle };
-  const group = item?.group || null;
-  const textRu = item?.text_ru || item?.text?.ru || '';
-  const minionType = item?.minion_type || item?.race || item?.creature_type?.name_ru || null;
-  const rawTavernTier = item?.tavern_tier ?? item?.tavernTier ?? null;
-  const tavernTier = rawTavernTier !== null && rawTavernTier !== undefined && rawTavernTier !== ''
-    ? Number(rawTavernTier)
-    : null;
-  return {
-    ...item,
-    id: item?.id ?? item?.dbf ?? item?.card_id,
-    dbf: Number(item?.dbf ?? item?.dbfId ?? 0),
-    library,
-    category: item?.category,
-    card_type: item?.card_type || { slug: kind, name_ru: sectionFor(kind).shortTitle },
-    name: {
-      ru: item?.name?.ru || item?.localized_name || item?.name || item?.card_id,
-      en: item?.name?.en || item?.name || item?.card_id,
-    },
-    tavern_tier: Number.isFinite(tavernTier) ? tavernTier : null,
-    tier: item?.tier ?? item?.meta_tier ?? item?.rating_tier ?? null,
-    creature_type: item?.creature_type || (minionType ? { slug: cleanSearch(String(minionType)), name_ru: String(minionType) } : null),
-    minion_type: minionType,
-    attack: item?.attack ?? null,
-    health: item?.health ?? null,
-    in_pool: Boolean(item?.in_pool ?? item?.pool_status === 'available'),
-    duos_only: Boolean(item?.duos_only),
-    mechanics: normalizeMechanics(item?.mechanics || item?.wiki?.wiki_mechanics_localized || []),
-    text: item?.text,
-    text_ru: textRu,
-    images: {
-      card: item?.images?.card || item?.image_url || item?.image || null,
-      golden: item?.images?.golden || item?.golden?.image || null,
-      art: item?.images?.art || item?.images?.crop || null,
-      crop: item?.images?.crop || null,
-      framed: item?.images?.framed || null,
-    },
-    group,
-    source: item?.source || item?.wiki?.source || null,
-    wiki_page: item?.wiki_page || item?.wiki?.page || null,
-    mana_cost: item?.mana_cost ?? item?.cost ?? null,
-    artist: item?.artist || null,
-    golden: item?.golden,
-  };
-}
-
-async function fetchAuxiliaryLibraryCards(kind: LibraryKind, pool: PoolMode, params: Record<string, string | number> = {}): Promise<LibraryCard[]> {
-  const section = sectionFor(kind);
-  if (!section.endpoint) return [];
-  const baseParams = new URLSearchParams({
-    v: BG_LIBRARY_API_VERSION,
-    per_page: '200',
-    page: '1',
-    ...Object.fromEntries(Object.entries(params).map(([key, value]) => [key, String(value)])),
-  });
-  if (section.supportsArchive) baseParams.set('in_pool', pool === 'current' ? '1' : '0');
-
-  const fetchPage = async (page: number) => {
-    const pageParams = new URLSearchParams(baseParams);
-    pageParams.set('page', String(page));
-    return fetchJson<{ data?: any[]; pagination?: { total?: number; page?: number; per_page?: number; pages?: number } }>(
-      `/api/bg/library/extra/${section.endpoint}?${pageParams.toString()}`
-    );
-  };
-
-  const first = await fetchPage(1);
-  const data = Array.isArray(first.data) ? first.data : [];
-  const total = Number(first.pagination?.total || data.length);
-  const perPage = Number(first.pagination?.per_page || data.length || 200);
-  const pages = Math.max(1, Number(first.pagination?.pages || Math.ceil(total / Math.max(1, perPage))));
-  if (pages > 1) {
-    const rest = await Promise.all(
-      Array.from({ length: pages - 1 }, (_, index) => fetchPage(index + 2).catch(() => ({ data: [] })))
-    );
-    rest.forEach(page => data.push(...(Array.isArray(page.data) ? page.data : [])));
-  }
-  return data.map(item => normalizeAuxiliaryLibraryCard(item, kind)).filter(card => card.dbf || card.card_id);
-}
 
 function setLibraryMeta(title: string, description: string, slug: string, image?: string | null): void {
   void applyDocumentPageMeta({ title, description, pathname: slug, search: '', image });
@@ -314,20 +171,6 @@ function metricTone(value: unknown): string {
   return 'text-[#a33a3a]';
 }
 
-const libraryResource = createBattlegroundLibraryResource(async (kindValue, poolValue) => {
-  const kind = kindValue as LibraryKind;
-  const pool = poolValue as PoolMode;
-  const inPool = pool === 'current' ? '1' : '0';
-  const [rawMeta, rawCards] = await Promise.all([
-    isBaseLibraryKind(kind) ? fetchJson<LibraryMeta>(versionedLibraryUrl('/api/bg/library/meta')).catch(() => ({} as LibraryMeta)) : Promise.resolve({} as LibraryMeta),
-    isBaseLibraryKind(kind)
-      ? fetchJson<{ data: LibraryCard[] }>(versionedLibraryUrl('/api/bg/library/cards', { card_type: kind, in_pool: inPool })).then(result => result.data || [])
-      : fetchAuxiliaryLibraryCards(kind, pool),
-  ]);
-  const cards = rawCards.filter(card => card?.dbf || card?.card_id)
-    .map(card => ({ ...card, mechanics: normalizeMechanics(card.mechanics) }));
-  return { meta: { ...rawMeta, mechanics: normalizeMechanics(rawMeta.mechanics) }, cards: dedupeLibraryCards(cards) };
-});
 
 function MetricCard({ label, value, caption, tone, tourId }: { label: string; value: string; caption?: string; tone?: string; tourId?: string }) {
   return (
@@ -339,14 +182,20 @@ function MetricCard({ label, value, caption, tone, tourId }: { label: string; va
   );
 }
 
-/** The subscriber's listing: the catalog of `kind` and `pool`, seeded with the open cards the page already shows. */
-function LibraryListRoute({ kind, pool, navigatePath, cacheScope, openCards, heading }: {
-  kind: LibraryKind; pool: PoolMode; navigatePath: (path: string) => void; cacheScope?: string; openCards?: LibraryCard[]; heading?: string;
-}) {
-  // A retry asks the data hook again; the search and filters stay as they were.
+/** The protected catalog of `kind` and `pool` as a listing reads it; a retry asks the data hook again. */
+function useLibraryCatalog(kind: LibraryKind, pool: PoolMode, cacheScope?: string): BgLibraryListData {
   const [attempt, setAttempt] = useState(0);
-  const { data, loading, error } = useBattlegroundLibraryData(libraryResource, kind, pool, cacheScope, attempt);
-  const seed = !data && !error && openCards?.length ? { cards: openCards, meta: {} } : null;
+  const { data, loading, error } = useBattlegroundLibraryData(bgLibraryCatalogResource, kind, pool, cacheScope, attempt);
+  const retry = useCallback(() => setAttempt(value => value + 1), []);
+  return useMemo(() => ({ data, loading, error, retry }), [data, error, loading, retry]);
+}
+
+
+/** The subscriber's listing of `kind` and `pool` (the hub and the archive), with the catalog as its cards. */
+function LibraryListRoute({ kind, pool, navigatePath, cacheScope, heading }: {
+  kind: LibraryKind; pool: PoolMode; navigatePath: (path: string) => void; cacheScope?: string; heading?: string;
+}) {
+  const library = useLibraryCatalog(kind, pool, cacheScope);
   useEffect(() => {
     const section = sectionFor(kind);
     const kindLabel = kind === 'spell' ? 'заклинаний' : 'существ';
@@ -357,8 +206,7 @@ function LibraryListRoute({ kind, pool, navigatePath, cacheScope, openCards, hea
       : `${pool === 'archive' ? 'Архив · ' : ''}${section.title} Полей сражений | HearthPulse`;
     setLibraryMeta(title, pool === 'archive' ? section.archiveDescription : section.description, sectionHref(kind, pool));
   }, [kind, pool]);
-  return <BgLibraryListPage key={`${kind}:${pool}`} kind={kind} pool={pool} navigatePath={navigatePath} heading={heading}
-    library={{ data: data ?? seed, loading: loading && !seed, error, retry: () => setAttempt(value => value + 1) }} />;
+  return <BgLibraryListPage key={`${kind}:${pool}`} kind={kind} pool={pool} navigatePath={navigatePath} heading={heading} library={library} />;
 }
 
 function DetailPage({ kind, pool, dbfId, navigatePath, teaser }: { kind: LibraryKind; pool: PoolMode; dbfId: number; navigatePath: (path: string) => void; teaser?: BgLibraryCardTeaser }) {
@@ -701,11 +549,11 @@ function DetailPage({ kind, pool, dbfId, navigatePath, teaser }: { kind: Library
   );
 }
 
-export default function BgLibrary({ currentPath, navigatePath, cacheScope, teaser, openCards, heading }: BgLibraryProps) {
+export default function BgLibrary({ currentPath, navigatePath, cacheScope, teaser, heading }: BgLibraryProps) {
   const route = libraryRoute(currentPath);
   if (route.page === 'detail' && route.dbfId) {
     return <DetailPage kind={route.kind} pool={route.pool} dbfId={route.dbfId} navigatePath={navigatePath}
       teaser={teaser?.dbfId === route.dbfId ? teaser : undefined} />;
   }
-  return <LibraryListRoute kind={route.kind} pool={route.pool} navigatePath={navigatePath} cacheScope={cacheScope} openCards={openCards} heading={heading} />;
+  return <LibraryListRoute kind={route.kind} pool={route.pool} navigatePath={navigatePath} cacheScope={cacheScope} heading={heading} />;
 }

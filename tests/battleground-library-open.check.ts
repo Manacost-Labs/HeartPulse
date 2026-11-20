@@ -64,7 +64,7 @@ try {
     dbfId: 1001, name: 'Первый зверь', typeName: 'Существо', path: `/library/minions/${slug('Первый зверь')}-1001/`, tavernTier: 2, group: 'Зверь', attack: 3, health: 4,
     stats: { avgPlacementWith: 3.9, popularity: 7.5, gamesWith: 900 },
     // The facts of the card's tile: the catalog id names its pictures; a golden picture, a rating and the Duos mark only when known.
-    cardId: 'BG_T1001', nameEn: 'Первый зверь EN',
+    cardId: 'BG_T1001', nameEn: 'Первый зверь EN', mechanics: ['Провокация'],
   });
   assert.equal(body.items.find((item: { dbfId: number }) => item.dbfId === 1004).stats, undefined, 'below the sample: no figures');
   assert.deepEqual(body.slice, { mmr: 'TOP_50_PERCENT', source: 'HSReplay', updatedAt: '2026-11-19T02:45:13.000Z' });
@@ -192,7 +192,7 @@ try {
   const parsedListing = parsePublicLibraryListing(dirtyListing, 'minions')!;
   assert.deepEqual(leaks(JSON.stringify(parsedListing)), []);
   assert.deepEqual(Object.keys(parsedListing.items.find(item => item.stats)!).sort(),
-    ['attack', 'cardId', 'dbfId', 'duosOnly', 'golden', 'group', 'health', 'name', 'nameEn', 'path', 'stats', 'tavernTier', 'tier', 'typeName']);
+    ['attack', 'cardId', 'dbfId', 'duosOnly', 'golden', 'group', 'health', 'mechanics', 'name', 'nameEn', 'path', 'stats', 'tavernTier', 'tier', 'typeName']);
   // The tile facts are checked too: an id or a picture path that could leave the catalog is dropped.
   const hostile = parsePublicLibraryListing({ ...dirtyListing, items: [{ ...dirtyListing.items[0], cardId: 'X"><script>', golden: 'golden/../../x.png',
     nameEn: 'A', tier: 'S', duosOnly: 'yes' }] }, 'minions')!;
@@ -204,13 +204,16 @@ try {
     dbfId: 500 + index, name: `Карта ${String(index).padStart(2, '0')}`, typeName: 'Существо', path: `/library/minions/karta-${500 + index}/`,
     tavernTier: 1 + (index % 3), group: 'Зверь', attack: 1, health: 1, cardId: `BG_X${index}`, ...extra(index),
   })) });
-  const fortyCards = parsePublicLibraryListing(tiles(40, index => index < 2 ? { duosOnly: true } : index === 2 ? { golden: 'golden/BG_X2-ab.png' } : {}), 'minions')!;
+  const fortyCards = parsePublicLibraryListing(tiles(40, index => index < 2 ? { duosOnly: true, mechanics: ['Провокация', 'Яд'] }
+    : index === 2 ? { golden: 'golden/BG_X2-ab.png', mechanics: ['Яд'] } : {}), 'minions')!;
   const payload = openLibraryPayload(fortyCards);
-  assert.deepEqual(Object.keys(payload.items[0]).sort(), ['cardId', 'dbfId', 'duosOnly', 'group', 'name', 'tavernTier']);
+  assert.deepEqual(Object.keys(payload.items[0]).sort(), ['cardId', 'dbfId', 'duosOnly', 'group', 'm', 'name', 'tavernTier']);
+  assert.deepEqual([payload.mechanics, payload.items[0].m, payload.items[2].m], [['Провокация', 'Яд'], [0, 1], [1]], 'each mechanic name is sent once');
   const cards = openLibraryCards(payload);
   const golden = cards.find(card => card.dbf === 502)!;
   assert.deepEqual(golden.images, { card: '/api/public-resource/db/uploads/cards/BG_X2.png', golden: '/api/public-resource/db/uploads/golden/BG_X2-ab.png' });
   assert.deepEqual(golden.creature_type, { slug: 'beast', name_ru: 'Зверь' }, 'the tribe gets the slug of its icon');
+  assert.deepEqual(golden.mechanics, [{ slug: 'Яд', name_ru: 'Яд' }], 'the mechanics come back by name, as the search and filter read them');
   const printed = printedOpenLibraryItems(fortyCards);
   assert.equal(printed.length, 36, 'the first page of the listing');
   assert.ok(printed.every(item => item.dbfId !== 500 && item.dbfId !== 501), 'Duos-only cards are hidden by default');

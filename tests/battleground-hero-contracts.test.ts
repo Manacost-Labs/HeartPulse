@@ -219,7 +219,9 @@ assertConsumerImports('../src/features/BattlegroundHeroTierList.tsx', ['Battlegr
   ['useBattlegroundHeroTierData']);
 assertConsumerImports('../src/features/battlegroundHeroListState.ts', ['BattlegroundHeroMmr', 'BattlegroundHeroMode',
   'BattlegroundHeroSortDirection', 'BattlegroundHeroSortKey', 'BattlegroundHeroTierEntry', 'createBattlegroundHeroTierResource']);
-assertConsumerImports('../src/features/BgLibrary.tsx', ['BattlegroundMinionStats'], ['battlegroundMinionIconBySlug', 'createBattlegroundLibraryResource', 'fetchBattlegroundMinionStats', 'useBattlegroundLibraryData']);
+assertConsumerImports('../src/features/BgLibrary.tsx', ['BattlegroundMinionStats'], ['battlegroundMinionIconBySlug', 'fetchBattlegroundMinionStats', 'useBattlegroundLibraryData']);
+// The reader of the protected catalog is a module of its own: a listing page loads it without the library views.
+assertConsumerImports('../src/features/bgLibraryCatalog.ts', [], ['createBattlegroundLibraryResource']);
 // The listing view (the same for a subscriber and for the open listing of a guest) owns the library controls.
 assertConsumerImports('../src/features/BgLibraryListPage.tsx', [], ['LibraryControls']);
 const ledgerSource = assertConsumerImports(
@@ -276,6 +278,7 @@ assert.deepEqual(battlegroundPublicEdges, [
     target: 'src/modules/battlegrounds/public.ts',
     kind: 'runtime',
   },
+  { source: 'src/features/bgLibraryCatalog.ts', target: 'src/modules/battlegrounds/public.ts', kind: 'runtime' },
   { source: 'src/features/BgLibraryListPage.tsx', target: 'src/modules/battlegrounds/public.ts', kind: 'runtime' },
   ...['src/features/useBattlegroundTierListData.ts', 'src/features/useBattlegroundTierListView.ts']
     .map(source => ({ source, target: 'src/modules/battlegrounds/public.ts', kind: 'type' })),

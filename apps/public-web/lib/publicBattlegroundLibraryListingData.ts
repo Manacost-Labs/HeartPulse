@@ -28,6 +28,8 @@ export type PublicLibraryListingItem = {
   golden: string | null;
   tier: string | null;
   duosOnly: boolean;
+  /** The mechanics the card page names (open facts of the card, read by the listing search and filter). */
+  mechanics: string[];
 };
 
 export type PublicLibraryListing = {
@@ -78,6 +80,7 @@ function item(value: unknown): PublicLibraryListingItem | null {
       : null,
     cardId: matching(card.cardId, CARD_ID, 60), nameEn: text(card.nameEn) || null,
     golden: matching(card.golden, UPLOAD_PATH, 200), tier: text(card.tier, 12) || null, duosOnly: card.duosOnly === true,
+    mechanics: Array.isArray(card.mechanics) ? card.mechanics.slice(0, 12).flatMap(entry => text(entry, 60) || []) : [],
   };
 }
 

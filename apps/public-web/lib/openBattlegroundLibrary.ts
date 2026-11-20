@@ -13,8 +13,10 @@ import type { LibraryListingKind, PublicLibraryListing, PublicLibraryListingItem
 export type OpenLibraryItem = {
   dbfId: number; name: string; nameEn?: string; cardId?: string; tavernTier?: number; group?: string;
   golden?: string; tier?: string; duosOnly?: true;
+  /** Indices into `OpenLibraryListing.mechanics`: a name repeated on hundreds of cards is sent once. */
+  m?: number[];
 };
-export type OpenLibraryListing = { kind: LibraryListingKind; items: OpenLibraryItem[] };
+export type OpenLibraryListing = { kind: LibraryListingKind; mechanics: string[]; items: OpenLibraryItem[] };
 
 /** The tribes of the catalog (`/api/bg/library/meta`), in its order: the slugs name the tribe icons of the filter. */
 const TRIBES: Array<[string, string]> = [
@@ -30,14 +32,17 @@ export function libraryKindOf(kind: LibraryListingKind): LibraryKind {
 }
 
 export function openLibraryPayload(listing: PublicLibraryListing): OpenLibraryListing {
+  const mechanics = [...new Set(listing.items.flatMap(item => item.mechanics))];
+  const index = new Map(mechanics.map((name, position) => [name, position]));
   return {
-    kind: listing.kind,
+    kind: listing.kind, mechanics,
     items: listing.items.map(item => ({
       dbfId: item.dbfId, name: item.name,
       ...(item.nameEn ? { nameEn: item.nameEn } : {}), ...(item.cardId ? { cardId: item.cardId } : {}),
       ...(item.tavernTier !== null ? { tavernTier: item.tavernTier } : {}), ...(item.group ? { group: item.group } : {}),
       ...(item.golden ? { golden: item.golden } : {}), ...(item.tier ? { tier: item.tier } : {}),
       ...(item.duosOnly ? { duosOnly: true as const } : {}),
+      ...(item.mechanics.length ? { m: item.mechanics.flatMap(name => index.get(name) ?? []) } : {}),
     })),
   };
 }
@@ -52,7 +57,7 @@ function images(item: OpenLibraryItem, kind: LibraryKind): LibraryCard['images']
   };
 }
 
-function card(item: OpenLibraryItem, kind: LibraryKind): LibraryCard {
+function card(item: OpenLibraryItem, kind: LibraryKind, mechanics: string[]): LibraryCard {
   const section = LIBRARY_SECTIONS.find(entry => entry.kind === kind);
   const tribe = item.group && (kind === 'minion' || kind === 'timewarped')
     ? { slug: TRIBE_SLUGS.get(item.group) ?? cleanSearch(item.group), name_ru: item.group } : null;
@@ -64,13 +69,14 @@ function card(item: OpenLibraryItem, kind: LibraryKind): LibraryCard {
     tavern_tier: item.tavernTier ?? null, tier: item.tier ?? null,
     creature_type: tribe,
     ...(kind === 'trinket' && item.group ? { group: { slug: item.group, name_ru: item.group } } : {}),
-    in_pool: true, duos_only: item.duosOnly === true, mechanics: [], images: images(item, kind),
+    in_pool: true, duos_only: item.duosOnly === true, images: images(item, kind),
+    mechanics: (item.m ?? []).flatMap(position => mechanics[position] ? [{ slug: mechanics[position], name_ru: mechanics[position] }] : []),
   };
 }
 
 export function openLibraryCards(listing: OpenLibraryListing): LibraryCard[] {
   const kind = libraryKindOf(listing.kind);
-  return dedupeLibraryCards(listing.items.map(item => card(item, kind)));
+  return dedupeLibraryCards(listing.items.map(item => card(item, kind, listing.mechanics)));
 }
 
 /** The cards the listing prints in its server HTML (its first page), for the page's JSON-LD list. */

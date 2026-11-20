@@ -30,9 +30,9 @@ const EMPTY_META: LibraryMeta = {};
 export const BG_LIBRARY_PAYWALLED_CLASS = 'paywalled-library';
 /** The offer of the listing's locks: what the subscription adds to the library (not the meta's default copy). */
 const LOCK_OFFER = {
-  title: 'Архив карт и фильтры по механикам доступны подписчикам',
-  description: 'Без подписки открыт актуальный пул. Подписка добавляет архив прошлых пулов, фильтры по механикам и статистику карт по ходам.',
-  benefits: ['Архив прошлых пулов', 'Фильтры по механикам', 'Статистика карт по ходам'],
+  title: 'Архив карт и статистика по ходам доступны подписчикам',
+  description: 'Без подписки открыт актуальный пул со всеми фильтрами. Подписка добавляет архив прошлых пулов и статистику карт по ходам, позициям и покупкам.',
+  benefits: ['Архив прошлых пулов', 'Статистика карт по ходам', 'Позиции и покупки'],
   actionLabel: 'Открыть библиотеку',
 };
 
@@ -118,8 +118,8 @@ function useLockOffer(enabled: boolean) {
 /**
  * A listing of the Battlegrounds library: search, filters by tavern tier, tribe, mechanic and group, the cards by tier
  * and «Показать ещё» (pages in the archive). `library` holds the cards: the subscriber's catalog, or the open listing.
- * With `paywall` (a viewer without access) the controls that need closed data — the archive and the mechanics — stay
- * in place with a lock whose press opens the subscription offer under the controls.
+ * With `paywall` (a viewer without access) the control that needs closed data — the pool switch, since the archive is
+ * closed — stays in place with a lock whose press opens the subscription offer under the controls.
  */
 export function BgLibraryListPage({ kind, pool, navigatePath, library, paywall, heading = 'Библиотека Полей сражений' }: {
   kind: LibraryKind; pool: PoolMode; navigatePath: (path: string) => void; library: BgLibraryListData; paywall?: PaywallAccessState;

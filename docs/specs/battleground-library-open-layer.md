@@ -43,9 +43,11 @@ answers it with `warning: "stale"` and `max-age=60`; no copy is a `503` with
 of a minion, group of a trinket), `attack`, `health`, for a minion `stats`
 (average place, popularity, sample) and the facts of the card's tile, each only
 when known: `cardId` (it names the pictures), `nameEn`, `golden` (the golden
-picture under the catalog's `/uploads/`), `tier` (a Darkmoon prize's rating) and
-`duosOnly`. No picture URL: the tile builds it from `cardId`. Staged kinds are
-read from the card service page by page (100 per page, six pages at most).
+picture under the catalog's `/uploads/`), `tier` (a Darkmoon prize's rating),
+`duosOnly` and `mechanics` (the names the card page states; the listing search
+and the mechanic filter read them). No picture URL: the tile builds it from
+`cardId`. Staged kinds are read from the card service page by page (100 per
+page, six pages at most).
 
 The Next pages (`app/library/page.tsx`, `app/library/[kind]/page.tsx`) are ISR
 (`revalidate = 300`, metadata without request data). The loader
@@ -63,12 +65,13 @@ Duo switch, the card tiles by tier (picture, golden version on hover, names,
 badges) and «Показать ещё». A subscriber gets it on the protected catalog
 (`BgLibrary`, loaded on demand), a viewer without access on the open cards in the
 server HTML (`BattlegroundLibraryOpenListing`): the page hands the client a
-compact copy (`openLibraryPayload`: the tile facts, no statistics, no paths)
-and `openLibraryCards` maps it to the catalog cards of the view. What needs closed
+compact copy (`openLibraryPayload`: the tile facts, each mechanic name once, no
+statistics, no paths) and `openLibraryCards` maps it to the catalog cards of the
+view. The mechanic filter is keyed by name on both sources. What needs closed
 data stays in place with a lock and the class `.paywalled-library`: the pool
-switch (the archive) and the mechanic filter with its quick choices; a press
-opens the subscription offer (`PaywallGate presentation="inline"`) under the
-controls and scrolls to it on every press. The listing view prints no
+switch (the archive is closed); a press opens the subscription offer
+(`PaywallGate presentation="inline"`) under the controls and scrolls to it on
+every press. The listing view prints no
 statistics, so the page has no `Dataset` and no `dateModified`. The hub prints a
 link to every listing with its size (the links stay when the sizes are
 unavailable). The archive listings have no open list and keep the gate.
@@ -77,12 +80,16 @@ The page carries every element twice (in the HTML and in the RSC payload): the
 view prints its first page (36 tiles, Duo cards hidden) and the payload holds
 one small object per card, so the minion listing stays within the 250 KB budget.
 
-The same HTML goes to every visitor and robot. A subscriber's view replaces the
-open one only after its chunk is loaded (`useBgLibraryModuleLoaded`) and starts
-from the same open cards (`openCards`) until the catalog arrives, so the swap
-adds no layout shift and no skeleton. JSON-LD: the registered `CollectionPage`
-with an `ItemList` of exactly the printed tiles (`printedOpenLibraryItems`),
-`isAccessibleForFree: false` and `hasPart.cssSelector: ".paywalled-library"`.
+The same HTML goes to every visitor and robot. The listing view is one instance
+for the whole visit: for a subscriber a chunk of its own brings the reader of
+the protected catalog (`src/features/bgLibraryCatalog.ts`), the page reads it
+with `useBattlegroundLibraryData`, and the view swaps its cards from the open
+ones to the catalog once it has arrived, keeping the search, filters,
+Duo and pages the viewer has set; its container (`.arena-paid-view` from the
+moment the chunk is there) keeps its element, so nothing remounts or moves.
+JSON-LD: the registered `CollectionPage` with an `ItemList` of exactly the
+printed tiles (`printedOpenLibraryItems`), `isAccessibleForFree: false` and
+`hasPart.cssSelector: ".paywalled-library"`.
 
 Data markers for the post-deploy warm-up (slice #476): pages
 `/library/`, `/library/minions/`, `/library/spells/`, `/library/anomalies/`,
