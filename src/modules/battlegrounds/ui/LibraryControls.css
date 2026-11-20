@@ -58,6 +58,7 @@
   .bg-library-control-row { display: block; }
   .bg-library-control-row legend { float: none; width: auto; padding: 0 0 0.375rem; }
   .bg-library-catalog-selects { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); width: 100%; }
+  .bg-library-control-pool { inline-size: auto; }
   .bg-library-control-advanced-fields { display: grid; grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) { .bg-library-controls .bg-library-choice { transition: none; } }
@@ -94,3 +95,12 @@
 }
 
 .arena-app-battlegrounds [data-library-card-tile]:focus-visible .bg-library-golden-image { opacity: 1; transform: translateX(2rem); }
+/* A control a viewer without access sees locked: it keeps the place, size and look of its select, so the swap to the
+   select when access is confirmed moves nothing. */
+.bg-library-control-pool { inline-size: 13rem; max-inline-size: 100%; }
+.bg-library-controls .bg-library-control-locked { padding: 0; border: 0; background: none; color: inherit; font: inherit; font-size: 0.875rem; text-align: left; }
+.bg-library-control-locked > b {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; min-height: 44px; padding: 0.5rem 0.75rem;
+  border: 1px solid rgba(199, 173, 134, 0.6); border-radius: 0.375rem; background: #fff; color: #3a291d; font-weight: 600;
+}
+.bg-library-control-locked > b > svg { flex-shrink: 0; color: #641722; }

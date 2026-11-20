@@ -5,7 +5,7 @@ import { expect, fn, userEvent } from 'storybook/test';
 import { INITIAL_ACCESS_STATE } from './accessState';
 import { PaidOfferProvider } from './PaidOffer';
 import { PublicAccessContext, usePublicAccessStore } from './usePublicAccess';
-import { PaidFilterLock, PaidMetricLock } from './PaidLocks';
+import { PaidFilterLock, PaidMetricLock } from '@/src/shared/ui/PaidLocks';
 
 const meta = {
   title: 'Access/PaidLocks',

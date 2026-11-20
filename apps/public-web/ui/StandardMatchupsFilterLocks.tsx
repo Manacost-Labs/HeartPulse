@@ -2,7 +2,7 @@
 
 import { standardMetaPeriodLabel } from '@/src/features/standardMetaFilterModel';
 import type { StandardMetaPeriod } from '@/shared/standardMetaContract';
-import { PaidFilterLock } from './PaidLocks';
+import { PaidFilterLock } from '@/src/shared/ui/PaidLocks';
 import './StandardMatchupsFilterLocks.css';
 
 /** The closed part the page's JSON-LD names; the shared lock's own `closed` list has no class for this page yet. */

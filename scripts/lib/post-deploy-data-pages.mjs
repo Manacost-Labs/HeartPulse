@@ -15,7 +15,7 @@
  * list exactly these). Dynamic pages have no build copy; they ship without the
  * data when their first-paint read misses its budget (a cold or busy server).
  * The library hub and listings (`/library/`, `/library/<kind>/`) carry the open list; `copyWords`/`dataWords` are 0 (not measured).
- * The hub's marker is the class of a list size (only a filled copy has one), a listing's the table wrapper (the copy has a notice).
+ * The hub's marker is the class of a list size (only a filled copy has one), a listing's a card tile (the copy has a notice).
  */
 export const DATA_PAGES = [
   { path: '/standard/meta/', isr: true, marker: 'standard-meta__results', copyWords: 213, dataWords: 345 },
@@ -27,15 +27,15 @@ export const DATA_PAGES = [
   { path: '/standard/matchups/', isr: true, marker: 'ui-matchup-matrix__grid', copyWords: 120, dataWords: 1500 }, // words: an estimate, not a stand measurement
   { path: '/battlegrounds/tier-list/', isr: true, marker: 'bg-tierlist-strategy__cards', copyWords: 95, dataWords: 1500 },
   { path: '/library/', isr: true, marker: 'bg-library-public__size', copyWords: 0, dataWords: 0 },
-  { path: '/library/minions/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
-  { path: '/library/spells/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
-  { path: '/library/anomalies/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
-  { path: '/library/dark-gifts/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
-  { path: '/library/quests/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
-  { path: '/library/rewards/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
-  { path: '/library/darkmoon-prizes/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
-  { path: '/library/trinkets/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
-  { path: '/library/timewarped/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
+  { path: '/library/minions/', isr: true, marker: 'data-library-card-tile', copyWords: 0, dataWords: 0 },
+  { path: '/library/spells/', isr: true, marker: 'data-library-card-tile', copyWords: 0, dataWords: 0 },
+  { path: '/library/anomalies/', isr: true, marker: 'data-library-card-tile', copyWords: 0, dataWords: 0 },
+  { path: '/library/dark-gifts/', isr: true, marker: 'data-library-card-tile', copyWords: 0, dataWords: 0 },
+  { path: '/library/quests/', isr: true, marker: 'data-library-card-tile', copyWords: 0, dataWords: 0 },
+  { path: '/library/rewards/', isr: true, marker: 'data-library-card-tile', copyWords: 0, dataWords: 0 },
+  { path: '/library/darkmoon-prizes/', isr: true, marker: 'data-library-card-tile', copyWords: 0, dataWords: 0 },
+  { path: '/library/trinkets/', isr: true, marker: 'data-library-card-tile', copyWords: 0, dataWords: 0 },
+  { path: '/library/timewarped/', isr: true, marker: 'data-library-card-tile', copyWords: 0, dataWords: 0 },
   // Mode hubs (#557): the block «Сейчас в …» exists only with data; words not measured.
   { path: '/standard/', isr: true, marker: 'mode-hub__now', copyWords: 0, dataWords: 0 },
   { path: '/arena/', isr: true, marker: 'mode-hub__now', copyWords: 0, dataWords: 0 },

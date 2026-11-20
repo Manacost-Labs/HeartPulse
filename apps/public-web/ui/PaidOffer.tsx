@@ -1,12 +1,13 @@
 'use client';
 
-import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { LockKeyhole } from 'lucide-react';
+import { OfferContext, usePaidOffer } from '@/src/shared/ui/paidOfferContext';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 
 const ArenaPaidOffer = lazy(() => import('./ArenaPaidOffer').then(module => ({ default: module.ArenaPaidOffer })));
 
-const OfferContext = createContext<(() => void) | null>(null);
+export { usePaidOffer };
 
 /**
  * Owns the subscription offer of a page whose open data carries locks
@@ -42,7 +43,7 @@ export function PaidLockButton({ className, label, closed, children }: {
   closed: 'paywalled-tierlist' | 'paywalled-classes';
   children?: ReactNode;
 }) {
-  const open = useContext(OfferContext);
+  const open = usePaidOffer();
   return <button type="button" className={`${className} ${closed}`} onClick={event => { event.stopPropagation(); open?.(); }}
     aria-label={`${label}: по подписке. Узнать, как открыть`}>
     <LockKeyhole size={13} aria-hidden="true" />{children}

@@ -9,6 +9,7 @@ import { useArenaCompanionIds, useArenaTierList,
   type TierlistData } from '@/src/modules/arenaTierList/public';
 import { openTierlistView, type CompactTierlist } from '@/apps/public-web/lib/openTierlistView';
 import { seoDataDate } from '@/apps/public-web/lib/seoDataDate';
+import { TIERLIST_CLASS_PAGES_LIVE, tierlistClassPath } from '@/apps/public-web/lib/tierlistClassPages';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { navigate, navigateTab } from './navigation';
 
@@ -16,13 +17,6 @@ const EMPTY_DATA: TierlistData = {
   sections: [], cards: {}, updatedAt: null, source: 'hsreplay',
 };
 
-/**
- * One view for everyone. `pool` is the open tier list the server read: a viewer without access (a guest, a
- * robot, a signed-in visitor without a subscription) gets the subscriber's view on it, rendered on the server,
- * with the closed parts locked in place. A subscriber gets the same view, which switches to the protected data
- * once it has arrived (until then the open data stays). Without a snapshot the page falls back to the full
- * view and its subscription gate.
- */
 /**
  * The date, sample and source of the shown data, dated with `<time>` in Moscow time (the same text on the server
  * and in the browser). The protected answer has its own date and no rounded sample, so it is shown without one.
@@ -35,7 +29,14 @@ function DataLine({ updatedAt, games }: { updatedAt: string | null; games: numbe
   </p>;
 }
 
-export function TierListPageClient({ pool }: { pool: CompactTierlist | null }) {
+/**
+ * One view for everyone. `pool` is the open tier list the server read: a viewer without access (a guest, a
+ * robot, a signed-in visitor without a subscription) gets the subscriber's view on it, rendered on the server,
+ * with the closed parts locked in place. A subscriber gets the same view, which switches to the protected data
+ * once it has arrived (until then the open data stays). Without a snapshot the page falls back to the full
+ * view and its subscription gate. `classId`: a class page (`/tierlist/<class>/`) shows that class whole.
+ */
+export function TierListPageClient({ pool, classId }: { pool: CompactTierlist | null; classId?: string }) {
   const access = usePublicAccess();
   const { allowed, pending } = paidAccess(access, 'arena');
   const tierlist = useArenaTierList(access.user?.id, allowed);
@@ -53,7 +54,8 @@ export function TierListPageClient({ pool }: { pool: CompactTierlist | null }) {
       : 'Нет данных');
   }, [data.updatedAt]);
 
-  return <PublicPageShell activeTab="tierlist" pathname="/tierlist/" parchmentPreload="tablet-up" access={access}
+  const classLinks = TIERLIST_CLASS_PAGES_LIVE || classId !== undefined;
+  return <PublicPageShell activeTab="tierlist" pathname={classId ? tierlistClassPath(classId) : '/tierlist/'} parchmentPreload="tablet-up" access={access}
     navigate={navigate} updatedAtLabel={updatedAtLabel}>
     {/* The full view (protected data, or the gate without a snapshot) is the closed part the JSON-LD names. The same
         element in both states, so the view is not remounted (class and filters stay) when the protected data arrives. */}
@@ -65,6 +67,7 @@ export function TierListPageClient({ pool }: { pool: CompactTierlist | null }) {
         authUser={access.user} subscriptionStatus={access.subscription}
         subscriptionLoading={pending} onRefreshSubscription={access.refresh}
         accessGranted={allowed} openLayer={openLayer} serverRendered
+        initialClassId={classId} fullClassId={classId} classHref={classLinks ? tierlistClassPath : undefined}
         dataLine={openLayer && pool ? <DataLine updatedAt={pool.updatedAt} games={pool.sampleGamesAtLeast} />
           // With an open snapshot the line stays when the protected data arrives (no shift); without one the page starts
           // from the skeleton, which has no line, so the protected view shows none either (skeleton-route-geometry).

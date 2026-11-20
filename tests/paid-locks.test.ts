@@ -4,11 +4,8 @@ import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { buttons, labelled, visibleText } from './helpers/renderedMarkup';
 
-// tsx compiles files under apps/ with the classic JSX runtime, which reads a global React.
-Object.assign(globalThis, { React });
-
 const { PaidMetricLock, PaidFilterLock } = await (await import('./helpers/renderedMarkup')).importWithoutStyles<
-  typeof import('../apps/public-web/ui/PaidLocks')>(new URL('../apps/public-web/ui/PaidLocks', import.meta.url));
+  typeof import('../src/shared/ui/PaidLocks')>(new URL('../src/shared/ui/PaidLocks', import.meta.url));
 
 const open = () => undefined;
 // Bubbling and opening the offer are checked in a browser: tests/paid-locks-browser.test.mjs.

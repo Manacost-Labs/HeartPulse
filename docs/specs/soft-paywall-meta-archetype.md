@@ -323,7 +323,8 @@ seed браузер загружает сводку даже во время п�
 
 Гость видит тот же интерфейс, что и подписчик: платная метрика или фильтр
 остаётся на своём месте замком, а не заменяется упрощённым видом. Общий
-модуль — `apps/public-web/ui/PaidLocks.tsx`:
+модуль — `src/shared/ui/PaidLocks.tsx` (доступен и `src/features`, и
+`apps/public-web`):
 
 - `PaidMetricLock` — плашка «По подписке» с иконкой замка вместо значения;
   вариант `cell` для ячейки таблицы, `card` для карточки;
@@ -332,7 +333,12 @@ seed браузер загружает сводку даже во время п�
 
 Замок доступен с клавиатуры, имя — «<метрика>: по подписке. Узнать, как открыть».
 Нажатие открывает оффер ближайшего `PaidOfferProvider`
-(`apps/public-web/ui/PaidOffer.tsx`): тот же контекст и `returnTo`, без
+(`apps/public-web/ui/PaidOffer.tsx`; контекст и хук `usePaidOffer()` лежат в
+`src/shared/ui/paidOfferContext.ts`): тот же контекст и `returnTo`, без
 инлайн-`PaywallGate`. Платного значения в серверной разметке нет, замок не
 получает его в пропах. Параметр `closed` задаёт класс закрытой части
 (`paywalled-*`), на который ссылается JSON-LD страницы.
+
+Импорт из `src/features`: `import { PaidMetricLock } from
+'../shared/ui/PaidLocks';`. Из `apps/public-web`: `import { PaidMetricLock }
+from '@/src/shared/ui/PaidLocks';`.
