@@ -617,6 +617,38 @@
       "entitlement": "arena"
     },
     {
+      "id": "tierlist-class",
+      "pattern": "/tierlist/:classSlug",
+      "kind": "listing",
+      "owner": "arena-data",
+      "indexPolicy": "noindex-follow",
+      "canonicalPolicy": "none",
+      "sitemap": false,
+      "htmlStrategy": "server-ssr",
+      "expectedStatus": 200,
+      "criticality": "P2",
+      "mobileFixture": "arena-tierlist-anonymous",
+      "entitlement": "arena",
+      "pathParameters": {
+        "classSlug": {
+          "allowedValues": [
+            "death-knight",
+            "demon-hunter",
+            "druid",
+            "hunter",
+            "mage",
+            "paladin",
+            "priest",
+            "rogue",
+            "shaman",
+            "warlock",
+            "warrior",
+            "neutral"
+          ]
+        }
+      }
+    },
+    {
       "id": "legendaries",
       "pattern": "/legendaries",
       "kind": "static",
