@@ -18,7 +18,7 @@ function runHeadScript(pathname: string, search: string, stored: string | null):
 
 const PATHS = [
   '/standard/meta/', '/standard/matchups/', '/standard/archetypes/', '/standard/fun-decks/', '/standard/cards/', '/standard/deck-builder/',
-  '/standard/cards/wild/', '/standard/archetypes/wild/quest-mage/', '/standard/meta/wild/quest-mage/', '/standard/archetypes/standard/quest-mage/',
+  '/standard/cards/wild/', '/standard/archetypes/wild/', '/standard/archetypes/wild/quest-mage/', '/standard/meta/wild/quest-mage/', '/standard/archetypes/standard/quest-mage/',
   '/standard/patches/', '/standard/patches/37-0-0/', '/standard/vicious-gold/', '/classes/', '/heroes/76521/', '/articles/', '/', '/faq/',
 ];
 const SEARCHES = ['', '?format=wild', '?rank=all&format=wild', '?format=standard', '?format=wildcat', '?code=AAEBAQ'];

@@ -158,7 +158,7 @@ const wildLists = html.split('class="hp-nav-list" data-for="wild"').slice(1).map
 assert.equal(wildLists.length, 2, 'a Wild list in the drawer and in the sidebar');
 for (const list of wildLists) {
   const hrefs = [...list.matchAll(/<a href="([^"]+)"/g)].map(match => match[1].replace(/&amp;/g, '&'));
-  assert.deepEqual(hrefs, ['/standard/meta/wild/', '/standard/matchups/?format=wild', '/standard/archetypes/?format=wild',
+  assert.deepEqual(hrefs, ['/standard/meta/wild/', '/standard/matchups/?format=wild', '/standard/archetypes/wild/',
     '/standard/fun-decks/?format=wild', '/standard/cards/wild/', '/standard/deck-builder/?format=wild', '/standard/assemble/?format=wild', '/standard/patches/']);
   assert.match(list, /src="\/menu\/icons\/standard-meta-80\.webp\?v=[0-9a-f]{10}"/, 'a Wild item shows the icon of its twin');
   assert.doesNotMatch(list, /vicious-gold|VS Gold/);

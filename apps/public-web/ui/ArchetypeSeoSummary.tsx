@@ -104,7 +104,7 @@ export function ArchetypeSeoSummary({ detail, catalog }: { detail: ArchetypeDeta
         </ul>
       </nav> : null}
       <p className="archetype-seo-summary__all">
-        <a href={item.format === 'wild' ? '/standard/archetypes/?format=wild' : '/standard/archetypes/'}>{`Все архетипы ${ofFormat}`}</a>
+        <a href={item.format === 'wild' ? '/standard/archetypes/wild/' : '/standard/archetypes/'}>{`Все архетипы ${ofFormat}`}</a>
       </p>
     </section>
   );
