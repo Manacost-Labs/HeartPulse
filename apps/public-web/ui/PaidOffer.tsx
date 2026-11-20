@@ -31,7 +31,8 @@ export function PaidOfferProvider({ title, text, children }: { title: string; te
 
 /**
  * A lock in the open data: names what is closed and opens the offer. Without
- * the provider (or a script) it does nothing, and the data stays readable.
+ * the provider (or a script) it does nothing, and the data stays readable. A press does not bubble,
+ * so the lock can sit in a clickable row.
  * `paywalled-*` is the class the page's JSON-LD names as the closed part.
  */
 export function PaidLockButton({ className, label, closed, children }: {
@@ -42,7 +43,7 @@ export function PaidLockButton({ className, label, closed, children }: {
   children?: ReactNode;
 }) {
   const open = useContext(OfferContext);
-  return <button type="button" className={`${className} ${closed}`} onClick={() => open?.()}
+  return <button type="button" className={`${className} ${closed}`} onClick={event => { event.stopPropagation(); open?.(); }}
     aria-label={`${label}: по подписке. Узнать, как открыть`}>
     <LockKeyhole size={13} aria-hidden="true" />{children}
   </button>;

@@ -11,6 +11,7 @@ const { PaidMetricLock, PaidFilterLock } = await (await import('./helpers/render
   typeof import('../apps/public-web/ui/PaidLocks')>(new URL('../apps/public-web/ui/PaidLocks', import.meta.url));
 
 const open = () => undefined;
+// Bubbling and opening the offer are checked in a browser: tests/paid-locks-browser.test.mjs.
 
 test('a metric lock is a named button with the caption and no value', () => {
   const html = renderToStaticMarkup(React.createElement('table', null, React.createElement('tbody', null,
@@ -33,20 +34,4 @@ test('a filter lock keeps the label and the default value, with an accessible na
     label: 'Мана', value: 'Любая мана', icon: '/assets/mana-64.webp', onOpen: open }));
   assert.ok(labelled(html, 'Мана (фильтр): по подписке. Узнать, как открыть'));
   assert.match(visibleText(html), /Мана.*Любая мана/);
-});
-
-test('a pressed lock opens the offer and stops the click before the clickable row around it', () => {
-  // Both locks are plain functions without hooks on the onOpen path: read the handler the button gets.
-  const locks: Array<(onOpen: () => void) => React.ReactElement> = [
-    onOpen => PaidMetricLock({ label: 'Винрейт', onOpen }) as React.ReactElement,
-    onOpen => PaidFilterLock({ label: 'Мана', value: 'Любая мана', onOpen }) as React.ReactElement,
-  ];
-  for (const make of locks) {
-    let stopped = 0;
-    let opened = 0;
-    const { onClick } = make(() => { opened++; }).props as { onClick: (event: { stopPropagation(): void }) => void };
-    onClick({ stopPropagation: () => { stopped++; } });
-    assert.equal(opened, 1);
-    assert.equal(stopped, 1);
-  }
 });
