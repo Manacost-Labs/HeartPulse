@@ -740,10 +740,10 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
     assert.ok(value.description.includes('15 сентября 2026'), value.description);
     assert.ok(value.description.split('(хс)').length <= 2, `one «(хс)» at most: ${value.description}`);
   }
-  // Five tribes in tier S (the production case of 20.11.2026): three are named, the rest counted, and it fits.
+  // Five tribes in tier S (the production case of 20.11.2026): three are named, then «и другие», and it fits.
   assert.equal(text('/battlegrounds/tier-list', battlegroundBuildsSeoValues({ ...builds([build('S', 'Нежить: x'), build('S', 'Элементали: y'),
     build('S', 'Свинобразы: z'), build('S', 'Мурлоки: w'), build('S', 'Звери: v')]), updatedAt: SEPTEMBER }, september)).description,
-    'Лучшие сборки Полей сражений Hearthstone (хс) на 15 сентября 2026: тир S — Нежить, Элементали, Свинобразы и ещё 2. Ключевые существа, данные HSReplay.');
+    'Лучшие сборки Полей сражений Hearthstone (хс) на 15 сентября 2026: тир S — Нежить, Элементали, Свинобразы и другие. Ключевые существа, данные HSReplay.');
 }
 
 // ── Standard matchups and patch notes: date, size of the matrix, version and release date (#540) ──
@@ -764,9 +764,8 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
   });
   assert.deepEqual(text('/standard/matchups', standardMatchupsSeoValues(matchups(42), NOW)), {
     title: 'Матчапы Hearthstone: винрейты колод, ноябрь 2026',
-    description: 'Матрица матчапов Стандарта Hearthstone (хс) на 20 ноября 2026: винрейт 30 популярных архетипов против каждого. Все ранги, данные HSGuru.',
+    description: 'Матрица матчапов Стандарта Hearthstone (хс) на 20 ноября 2026: винрейт популярных архетипов против каждого. Все ранги, данные HSGuru.',
   });
-  assert.ok(text('/standard/matchups', standardMatchupsSeoValues(matchups(21), NOW)).description.includes('винрейт 21 популярного архетипа против каждого'));
   assert.deepEqual(text('/standard/matchups', standardMatchupsSeoValues(matchups(0), NOW)), staticText('/standard/matchups'));
   assert.deepEqual(text('/standard/matchups', standardMatchupsSeoValues(matchups(42, null), NOW)), staticText('/standard/matchups'));
   assert.deepEqual(text('/standard/matchups', standardMatchupsSeoValues(matchups(42, undefined, 'wild'), NOW)), staticText('/standard/matchups'),
@@ -780,11 +779,11 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
   });
   assert.deepEqual(text('/standard/patches', patchNotesSeoValues([patch('37.0.2', '2026-11-03T15:55:00+00:00', 42), patch('37.0', '2026-10-12T16:55:00+00:00', 120)], NOW)), {
     title: 'Патч Hearthstone 37.0.2: изменения карт | HearthPulse',
-    description: 'Патч 37.0.2 Hearthstone (хс) вышел 3 ноября 2026: 42 изменения. Что усилили и ослабили — карты было → стало по классам, Поля сражений и архив патчей.',
+    description: 'Патч 37.0.2 Hearthstone (хс) вышел 3 ноября 2026. Что усилили и ослабили — карты было → стало по классам, Поля сражений и архив патчей.',
   });
   assert.equal(text('/standard/patches', patchNotesSeoValues([patch('36.6.3', null, 0)], NOW)).description,
     'Патч 36.6.3 Hearthstone (хс). Что усилили и ослабили — карты было → стало по классам, Поля сражений и архив патчей.',
-    'without a date or a count the description promises neither');
+    'without a date the description promises none');
   assert.deepEqual(text('/standard/patches', patchNotesSeoValues(null, NOW)), staticText('/standard/patches'));
   assert.deepEqual(text('/standard/patches', patchNotesSeoValues([], NOW)), staticText('/standard/patches'));
 }
