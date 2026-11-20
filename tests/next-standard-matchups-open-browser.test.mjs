@@ -17,6 +17,7 @@ const SUBSCRIBED = { hasAccess: true, entitlements: { arena: true, standard: tru
   stale: false, message: '', boosty: { checked: true, hasAccess: true }, patreon: {}, telegram: {} };
 const PROTECTED_DELAY_MS = 800;
 const DESKTOP = { width: 1440, height: 900 };
+const PHONE = { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 };
 
 async function startStack() {
   const state = { next: null, publicReads: [], protectedReads: 0, wildDown: false };
@@ -95,6 +96,77 @@ test('a guest and a subscriber on /standard/matchups/ in a real browser', { time
     assert.deepEqual(SENTINELS.filter(value => guestText.includes(value)), []);
     assert.deepEqual(errors, []);
     await guest.close();
+
+    // The matrix is readable and navigable: whole names in tooltips, sticky head and names, the pointer and the keys
+    // mark a cell's row and column, the order and the search work, a phone's page does not scroll sideways, nothing shifts.
+    for (const [name, viewport] of [['desktop', DESKTOP], ['phone', PHONE]]) {
+      const ui = await browser.newPage();
+      await ui.evaluateOnNewDocument(() => {
+        window.__shifts = [];
+        new PerformanceObserver(list => { for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.__shifts.push(entry.value); })
+          .observe({ type: 'layout-shift', buffered: true });
+      });
+      await ui.setViewport(viewport);
+      await ui.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'networkidle0' });
+      await ui.waitForFunction(() => document.querySelectorAll('.standard-matchups-open__row').length === 36);
+      const tableLabel = `${name}:`;
+      await delay(1000);
+      const loadShift = await ui.evaluate(() => window.__shifts.reduce((sum, value) => sum + value, 0));
+      console.log(`${name} guest CLS ${loadShift.toFixed(4)}`);
+      assert.ok(loadShift < 0.01, `${tableLabel} the page shifted by ${loadShift.toFixed(4)} while loading`);
+      assert.equal(await ui.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 0, `${tableLabel} the page does not scroll sideways`);
+      assert.equal(await ui.$eval('.standard-matchups-open__column', node => node.getAttribute('title')), 'Открытый архетип 1');
+      assert.equal(await ui.$$eval('.standard-matchups-open__column .standard-matchups-open__icon', icons => icons.length), 36);
+      const scroll = '.standard-matchups-open__scroll';
+      await ui.$eval(scroll, node => { node.scrollTop = 220; node.scrollLeft = 260; });
+      const stuck = await ui.evaluate(() => {
+        const box = document.querySelector('.standard-matchups-open__scroll').getBoundingClientRect();
+        const head = document.querySelector('.standard-matchups-open__column').getBoundingClientRect();
+        const row = document.querySelector('.standard-matchups-open__row').getBoundingClientRect();
+        return { head: Math.round(head.top - box.top), row: Math.round(row.left - box.left) };
+      });
+      assert.ok(stuck.head <= 2 && stuck.row <= 2, `${tableLabel} the head and the names column stay put: ${JSON.stringify(stuck)}`);
+      await ui.$eval(scroll, node => { node.scrollTop = 0; node.scrollLeft = 0; });
+
+      // The pointer: the row, the column and the cell are marked, the readout names the pair.
+      const cell = await ui.evaluateHandle(() => document.querySelectorAll('.standard-matchups-open__matrix tbody tr')[2].cells[4]);
+      await cell.hover();
+      const marked = await ui.evaluate(() => ({
+        rows: document.querySelectorAll('td[data-hr]').length, columns: document.querySelectorAll('td[data-hc]').length,
+        head: document.querySelectorAll('thead th[data-hc]').length, readout: document.querySelector('.standard-matchups-open__readout').textContent,
+      }));
+      assert.deepEqual([marked.rows, marked.columns, marked.head], [37, 36, 1], `${tableLabel} row, column and head are marked`);
+      assert.match(marked.readout, /Открытый архетип 3 против Открытый архетип 3.*игр/s);
+      // The keys: arrows move between cells and mark the new one.
+      await ui.evaluate(() => document.querySelectorAll('.standard-matchups-open__matrix tbody tr')[0].cells[2].focus());
+      await ui.keyboard.press('ArrowRight');
+      await ui.keyboard.press('ArrowDown');
+      assert.match(await ui.$eval('.standard-matchups-open__readout', node => node.textContent), /Открытый архетип 2 против Открытый архетип 2/);
+      await ui.keyboard.press('End');
+      assert.equal(await ui.evaluate(() => document.activeElement === document.activeElement.parentElement.lastElementChild), true);
+
+      // The order: highest winrate first, the same twice flips it; by name the reading order is that of Russian.
+      await ui.evaluate(() => [...document.querySelectorAll('.standard-matchups-open__sorts button')].find(b => b.textContent.startsWith('Винрейт')).click());
+      await ui.evaluate(() => [...document.querySelectorAll('.standard-matchups-open__sorts button')].find(b => b.textContent.startsWith('Винрейт')).click());
+      const firstRow = () => ui.$eval('.standard-matchups-open__row span', node => node.textContent);
+      assert.equal(await firstRow(), 'Открытый архетип 36', 'the lowest winrate first once flipped');
+      assert.equal(await ui.$$eval('.standard-matchups-open__column', heads => heads[0].title), 'Открытый архетип 36', 'columns follow the rows');
+      await ui.evaluate(() => [...document.querySelectorAll('.standard-matchups-open__sorts button')].find(b => b.textContent.startsWith('Название')).click());
+      assert.equal(await firstRow(), 'Открытый архетип 1');
+
+      // The search: by words, in any order; nothing found says so.
+      await ui.type('.standard-matchups-open__search input', 'архетип 17');
+      assert.deepEqual(await ui.$$eval('.standard-matchups-open__row span', nodes => nodes.map(node => node.textContent)), ['Открытый архетип 17']);
+      await ui.focus('.standard-matchups-open__search input');
+      await ui.keyboard.down('Control');
+      await ui.keyboard.press('a');
+      await ui.keyboard.up('Control');
+      await ui.keyboard.press('Backspace');
+      await ui.keyboard.type('zzzz');
+      await ui.waitForSelector('.standard-matchups-open__none');
+      assert.equal(await ui.$('.standard-matchups-open__matrix'), null);
+      await ui.close();
+    }
 
     // The menu's «Вольный» opens ?format=wild: the browser reads the address and shows Wild, not Standard.
     const viaMenu = await browser.newPage();

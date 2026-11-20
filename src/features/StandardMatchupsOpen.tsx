@@ -5,8 +5,9 @@ import './StandardMatchupsOpen.css';
 import { setPageFormat, usePageFormat } from '../shared/navigation/pageFormat';
 import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
 import {
-  loadPublicStandardMatchups, type PublicStandardMatchups, type PublicStandardMatchupsPair, type StandardMatchupsFormat,
+  loadPublicStandardMatchups, type PublicStandardMatchups, type StandardMatchupsFormat,
 } from '../modules/standardMatchups/public';
+import { OpenMatrix } from './StandardMatchupsOpenMatrix';
 
 const MOSCOW_DATE = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit',
   year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
@@ -16,14 +17,6 @@ function moscowDate(iso: string | null): string | null {
 }
 
 const FORMATS: ReadonlyArray<readonly [StandardMatchupsFormat, string]> = [['standard', 'Стандарт'], ['wild', 'Вольный']];
-/** A pair with fewer games than this is muted: its rate is a rough guess. */
-const SOLID_GAMES = 100;
-
-/** Strong, even or weak matchup: one letter, the table is printed 900 times over. */
-function band(pair: PublicStandardMatchupsPair): 's' | 'e' | 'w' | undefined {
-  if (pair.winrate === null) return undefined;
-  return pair.winrate >= 52 ? 's' : pair.winrate <= 48 ? 'w' : 'e';
-}
 
 /**
  * The open general slice of the matchup matrix (all ranks, the source's default period): the
@@ -118,49 +111,8 @@ export function StandardMatchupsOpen({ initial, paywall }: {
         </div>
       ) : null}
 
-      {shown ? <OpenMatrix data={shown} busy={status === 'loading'} />
+      {shown ? <OpenMatrix key={shown.format} data={shown} busy={status === 'loading'} />
         : status === 'failed' ? null : <div className="standard-matchups-open__empty" aria-busy="true">Загружаем матчапы…</div>}
     </section>
-  );
-}
-
-function OpenMatrix({ data, busy }: { data: PublicStandardMatchups; busy: boolean }) {
-  const { archetypes, pairs } = data;
-  return (
-    <div className="standard-matchups-open__scroll" aria-busy={busy}>
-      <table className="standard-matchups-open__matrix">
-        <caption className="sr-only">
-          Винрейт архетипа по строке против архетипа по столбцу, % побед. Показаны {archetypes.length} самых популярных архетипов.
-        </caption>
-        <thead>
-          <tr>
-            <th scope="col" className="standard-matchups-open__corner">Архетип</th>
-            <th scope="col" className="standard-matchups-open__total">Винрейт</th>
-            {archetypes.map(column => (
-              <th key={column.name} scope="col" className="standard-matchups-open__column" data-class={column.classKey ?? undefined}>
-                <span>{column.label}</span>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {archetypes.map((row, rowIndex) => (
-            <tr key={row.name}>
-              <th scope="row" className="standard-matchups-open__row" data-class={row.classKey ?? undefined}>
-                <span>{row.label}</span>
-                <small>{[row.popularity, row.games ? `${row.games.toLocaleString('ru-RU')} игр` : null].filter(Boolean).join(' · ')}</small>
-              </th>
-              <td className="standard-matchups-open__total">{row.winrate === null ? '—' : row.winrate.toFixed(1)}</td>
-              {pairs[rowIndex].map((pair, columnIndex) => (
-                <td key={archetypes[columnIndex].name} data-b={pair ? band(pair) : undefined}
-                  data-l={pair && pair.games < SOLID_GAMES ? '' : undefined}>
-                  {pair && pair.winrate !== null ? pair.winrate.toFixed(1) : '—'}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
   );
 }
