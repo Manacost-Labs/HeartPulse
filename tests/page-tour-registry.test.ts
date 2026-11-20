@@ -69,13 +69,12 @@ assert.deepEqual(
 
 const archetypeSource = [
   readFileSync(new URL('../src/features/ConstructedArchetypes.tsx', import.meta.url), 'utf8'),
-  readFileSync(new URL('../src/features/ArchetypeDetailPage.tsx', import.meta.url), 'utf8'),
-  readFileSync(new URL('../src/features/ArchetypeBuildsSection.tsx', import.meta.url), 'utf8'),
   readFileSync(new URL('../src/features/ConstructedArchetypeAnalysis.tsx', import.meta.url), 'utf8'),
   readFileSync(new URL('../src/features/ArchetypeInsightSlots.tsx', import.meta.url), 'utf8'),
   readFileSync(new URL('../src/features/HsguruArchetypeStats.tsx', import.meta.url), 'utf8'),
 ].join('\n');
-for (const tourId of ['constructed-archetypes', 'constructed-archetype-detail']) {
+// The detail page's anchors are checked in the DOM by tests/next-archetype-details-browser.test.mjs.
+for (const tourId of ['constructed-archetypes']) {
   const tour = PAGE_TOURS.find(item => item.id === tourId);
   assert.ok(tour, `${tourId}: tour must exist`);
   for (const step of tour.steps) {
