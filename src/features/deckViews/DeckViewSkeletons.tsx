@@ -3,7 +3,7 @@ import { LoadingText } from '../../shared/ui/LoadingShapes';
 import '../funDecks/FunDeckLayouts.css';
 
 /** A typical deck code's length (the loaded one is about as long), so the placeholder wraps over the same lines. */
-const CODE_SHAPE = 'A'.repeat(100);
+const CODE_SHAPE = 'A'.repeat(103);
 
 /** The deck code line of an archetype build, as a text-shaped placeholder. */
 export function DeckCodeSkeleton() {
