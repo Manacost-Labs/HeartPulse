@@ -640,24 +640,3 @@
   max-width: min(100%, 80ch);
   margin: 1rem auto 0;
 }
-
-/* The closed continuation of a guide for a viewer without the subscription: a lock where the text goes on. */
-.guide-archive-lock {
-  display: flex;
-  width: 100%;
-  min-height: 56px;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border: 1px dashed #ae8853;
-  border-radius: 20px;
-  color: #6b4c2a;
-  font-size: 1rem;
-  font-weight: 800;
-  cursor: pointer;
-  background: rgba(255, 244, 217, 0.7);
-}
-
-.guide-archive-lock:hover { border-color: #7e4b20; color: #3d2a1e; }
-.guide-archive-lock:focus-visible { outline: 2px solid #6d1117; outline-offset: 2px; }

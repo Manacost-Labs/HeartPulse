@@ -1,5 +1,6 @@
 'use client';
 
+import './GuideArchiveLock.css';
 import type { ReactNode } from 'react';
 import GuidesArchive, { type GuideDetailSeed } from '@/src/features/GuidesArchive';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
