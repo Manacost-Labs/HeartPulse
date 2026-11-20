@@ -11,12 +11,12 @@ import { ArchetypeOpenBuild } from './ArchetypeOpenBuild';
  * (`ArchetypeOpenBuild`: winrate, games, date, the card list linked to the
  * card pages of the deck's format, the deck code with its copy button) plus the
  * deck's own facts. The interactive page (filters, three layouts, deck
- * pictures) takes its place once the full answer has loaded. A deck whose card
- * list the API could not name has no entry here (it appears with the
- * interactive view).
+ * pictures) takes its place once the full answer has loaded. No deck is left
+ * out: one without a card list (a code that does not decode, no catalog yet)
+ * keeps its numbers, its code and the copy button.
  */
 export function FunDecksOpenList({ preview }: { preview: FunDecksPayload }) {
-  const decks = preview.decks.filter(deck => deck.cards?.length);
+  const { decks } = preview;
   if (!decks.length) return null;
   const now = Date.now();
   return <section className="archetype-open-builds fun-decks-open" aria-label="Подборка фан-колод">
@@ -26,7 +26,7 @@ export function FunDecksOpenList({ preview }: { preview: FunDecksPayload }) {
         return <ArchetypeOpenBuild key={`${deck.format}:${deck.deckCode}`} title={deck.title} format={funDeckFormat(deck)} now={now}
           build={{
             deckCode: deck.deckCode, games: deck.games, winrate: deck.winRate, updatedAt: deck.lastSeenAt ?? deck.firstSeenAt,
-            cards: (deck.cards ?? []).map(card => ({ id: card.id, name: card.name, cost: card.cost, count: card.count, hasPage: true })),
+            cards: deck.cards ?? null,
           }}
           facts={<div className="fun-decks-open__facts" data-tour-id={index === 0 ? 'fun-decks-card-metrics' : undefined}>
             <p>{funDeckFormatLabel(deck)} · {funDeckClassMeta(deck).label}{deck.streamer ? ` · ${deck.streamer}` : ''}</p>

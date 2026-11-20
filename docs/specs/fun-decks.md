@@ -11,20 +11,26 @@ build (`ArchetypeOpenBuild`: win rate, games, date, the card list, the deck
 code with «Скопировать код») plus the format, class, fun index, distance from
 the meta and reasons, all without scripts. Each card links to
 `/standard/cards/<format>/<id>/` of the deck's own format (Wild decks to
-`wild`). A deck whose card list the API could not name has no entry in that
-list (it appears with the interactive view). The browser then loads
+`wild`). No deck is left out of the list: one whose card list is missing keeps
+its numbers, its code and the copy button. The browser then loads
 `/api/fun-decks` and, once it holds decks, the interactive page (filters,
 three layouts, deck pictures) replaces the list in one render; if that read
 fails the page keeps the decks it has. Nothing in
 the selection is paid, so the page has no subscription offer and no lock.
 
 The public endpoint adds `cards` to every deck: the main deck decoded from
-`deckCode` against the card catalog of the deck's format
-(`server/funDeckOpenCards.ts`; one catalog read per format), each line
-`{ id, name, cost, count }` with the catalog `id` of the card page. A deck the
-catalog cannot name card by card has no `cards`; a catalog that fails leaves
-the selection itself intact. The answer carries no `candidateSourceId` (an
-internal source id no page reads; the admin answer keeps it).
+`deckCode` (`server/funDeckOpenCards.ts`), each line
+`{ id, name, cost, count, hasPage }`. The card catalog of the deck's format
+names the cards and gives `hasPage` (the card page
+`/standard/cards/<format>/<id>/` exists); a card the catalog lacks (a companion
+of a Fabled legendary) is named from the full card dictionary (`cards_ru.json`,
+then HearthstoneJSON) with `hasPage: false`, listed without a link; a card no
+dictionary knows is `id: null, name: null` and shows as «Неизвестная карта»,
+keeping its place and count. A failed catalog read serves the last good
+catalog of that format; with none, or for a code that does not decode, the
+deck has no `cards` but stays in the answer and on the page. The answer carries
+no `candidateSourceId` (an internal source id no page reads; the admin answer
+keeps it).
 
 The Next page uses the existing feature and public API. It remounts the feature
 when the account or entitlement changes so a previous account's expanded view

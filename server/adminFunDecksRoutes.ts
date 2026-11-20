@@ -2,7 +2,7 @@ import { Router, type RequestHandler, type Response } from 'express';
 import type { DatabaseSync } from 'node:sqlite';
 import { createAdminFunDeckModerationRouter, type AdminFunDeckModerationDependencies } from './adminFunDeckModerationRoutes.js';
 import { applyFunDeckModeration, listFunDeckModeration, type FunDeckModerationRecord } from './adminFunDeckModerationStore.js';
-import { funDeckOpenCards, type FunDeckCardCatalogLoader } from './funDeckOpenCards.js';
+import { createFunDeckOpenCards, type FunDeckOpenCardsDependencies } from './funDeckOpenCards.js';
 import { asRecord, normalizeFunDeckRow, numberOrNull, text, type FunDeckRow } from './funDeckRows.js';
 
 export type { FunDeckRow };
@@ -61,7 +61,8 @@ export type PublicFunDecksDependencies = {
   /** The site's Russian archetype names; a failure leaves the English ones. */
   loadArchetypeLabels?: () => Promise<(name: string) => string>;
   /** The card catalog of a format: with it every deck of the answer carries its decoded card list. */
-  loadCardCatalog?: FunDeckCardCatalogLoader;
+  loadCardCatalog?: FunDeckOpenCardsDependencies['loadCardCatalog'];
+  loadCardDictionaries?: FunDeckOpenCardsDependencies['loadCardDictionaries'];
   getPreview?: (deck: FunDeckRow) => FunDeckRow['render'] | null;
   schedulePreviews?: (decks: FunDeckRow[]) => void;
   onError?: (error: unknown) => void;
@@ -149,6 +150,8 @@ export async function loadPublishedFunDecks(
 
 export function createPublicFunDecksRouter(dependencies: PublicFunDecksDependencies): Router {
   const router = Router();
+  const withCards = dependencies.loadCardCatalog ? createFunDeckOpenCards({ loadCardCatalog: dependencies.loadCardCatalog,
+    loadCardDictionaries: dependencies.loadCardDictionaries, onError: dependencies.onError }) : null;
 
   router.get('/fun-decks', async (_request, response) => {
     try {
@@ -163,7 +166,7 @@ export function createPublicFunDecksRouter(dependencies: PublicFunDecksDependenc
           deck.nearestArchetype ? { ...deck, nearestArchetypeLabel: archetypeLabel(deck.nearestArchetype) } : deck
         ));
       }
-      if (dependencies.loadCardCatalog) payload.decks = await funDeckOpenCards(payload.decks, dependencies.loadCardCatalog);
+      if (withCards) payload.decks = await withCards(payload.decks);
       if (dependencies.getPreview) {
         payload.decks = payload.decks.map(deck => {
           const render = dependencies.getPreview?.(deck);

@@ -38,15 +38,18 @@ function count(value: unknown): number {
   return value;
 }
 
-/** The decoded card list the API sends; a list that is not whole is dropped (the deck stays, its list does not). */
+/** The decoded card list the API sends; a malformed list is dropped (the deck stays with its code, its list does not). */
 function openCards(value: unknown): FunDeckOpenCard[] | undefined {
   if (!Array.isArray(value) || !value.length || value.length > 60) return undefined;
   try {
     return value.map(raw => {
       const card = record(raw);
-      const id = text(card.id, 80);
-      if (!/^[A-Za-z0-9_]{2,80}$/.test(id)) throw new InvalidSelection();
-      return { id, name: text(card.name, 120), cost: count(card.cost), count: count(card.count) };
+      const id = optionalText(card.id, 80), name = optionalText(card.name, 120);
+      if (id !== null && !/^[A-Za-z0-9_]{2,80}$/.test(id)) throw new InvalidSelection();
+      const cost = card.cost === null || card.cost === undefined ? null : count(card.cost);
+      const copies = count(card.count);
+      if (copies < 1 || copies > 40) throw new InvalidSelection();
+      return { id, name, cost, count: copies, hasPage: card.hasPage === true && id !== null };
     });
   } catch (error) {
     if (error instanceof InvalidSelection) return undefined;

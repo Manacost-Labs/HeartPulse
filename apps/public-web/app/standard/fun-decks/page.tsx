@@ -13,6 +13,6 @@ export default async function Page() {
   const preview = await loadPublicFunDecksPreview();
   return <>
     <SeoStructuredData path="/standard/fun-decks" />
-    <FunDecksPageClient initialPreview={preview} openDecks={preview?.decks.some(deck => deck.cards?.length) ? <FunDecksOpenList preview={preview} /> : undefined} />
+    <FunDecksPageClient initialPreview={preview} openDecks={preview?.decks.length ? <FunDecksOpenList preview={preview} /> : undefined} />
   </>;
 }

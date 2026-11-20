@@ -171,11 +171,11 @@ assert.deepEqual(funPreview?.stats, { total: 5, standard: 3, wild: 2 });
 assert.equal(JSON.stringify(funPreview).includes('PRIVATE_'), false, 'a field outside the allowlist never enters the server HTML');
 {
   // The card list the API decodes reaches the page; a list that is not whole is dropped and the deck stays.
-  const cards = [{ id: 'CARD_ONE', name: 'Карта', cost: 2, count: 2 }];
-  const withCards = publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), cards: [{ ...cards[0], secret: 'PRIVATE_CARD' }] }] })?.decks[0];
+  const cards = [{ id: 'CARD_ONE', name: 'Карта', cost: 2, count: 2, hasPage: true }, { id: 'TIME_609t1', name: 'Рейнджер-капитан Алерия', cost: 3, count: 1, hasPage: false }, { id: null, name: null, cost: null, count: 1, hasPage: false }];
+  const withCards = publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), cards: cards.map(card => ({ ...card, secret: 'PRIVATE_CARD' })) }] })?.decks[0];
   assert.deepEqual(withCards?.cards, cards);
   assert.equal(JSON.stringify(withCards).includes('PRIVATE_'), false);
-  assert.equal(publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), cards: [{ id: '../x', name: 'Карта', cost: 1, count: 1 }] }] })?.decks[0].cards, undefined);
+  assert.equal(publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), cards: [{ id: '../x', name: 'Карта', cost: 1, count: 1, hasPage: true }] }] })?.decks[0].cards, undefined);
   assert.equal(publicFunDecksPreview({ ...funRaw, decks: [funDeck(2, '2026-10-02')] })?.decks[0].cards, undefined);
 }
 {

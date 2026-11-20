@@ -1,7 +1,7 @@
 import { DECK_CLASSES as FUN_DECK_CLASSES } from './deckViews/deckClass';
 
-/** One line of a deck's card list as the public API sends it; `id` is the catalog id of `/standard/cards/<format>/<id>/`. */
-export type FunDeckOpenCard = { id: string; name: string; cost: number; count: number };
+/** One line of a deck's card list as the public API sends it. `hasPage`: `/standard/cards/<format>/<id>/` exists; `name: null` is a card no dictionary knows. */
+export type FunDeckOpenCard = { id: string | null; name: string | null; cost: number | null; count: number; hasPage: boolean };
 
 export type FunDeckRow = {
   title: string;
