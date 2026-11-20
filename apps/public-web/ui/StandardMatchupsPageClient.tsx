@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import StandardMatchupsPage from '@/src/features/StandardMatchups';
 import { setPageFormat, usePageFormat } from '@/src/shared/navigation/pageFormat';
@@ -36,10 +36,10 @@ export function StandardMatchupsPageClient({ initial }: { initial: PublicStandar
   // The page is prerendered as Standard: a reader who asks for Wild (or switches to it) keeps the matrix on screen, in
   // its own format, until the other format's data is here, then it is replaced in place. No skeleton, no shift. A
   // format that could not be loaded is never covered by the other one's numbers.
-  const held = useRef<typeof target>(null);
-  if (target) held.current = target;
+  const [held, setHeld] = useState<typeof target>(null);
+  useEffect(() => { if (target) setHeld(target); }, [target]);
   const failed = allowed ? matchups.error && !paidUsable : open.failed;
-  const data = target ?? (failed ? null : held.current);
+  const data = target ?? (failed ? null : held);
   const hydrated = useSyncExternalStore(noSubscribe, () => true, () => false);
   const [updatedAtLabel, setUpdatedAtLabel] = useState('Нет данных');
   const updatedAt = data?.updatedAt;
