@@ -68,13 +68,14 @@ async function probeArchetypeDetail(format: 'standard' | 'wild', slug: string): 
     return 'none';
   }
   if (!isIndexableArchetype(detail.item) || detail.openBuilds.length > 0) return 'none';
-  // Through the page's store and key. Only a catalog surely not there (failed or refused, no copy) is a 503; one still
-  // on its way when the wait runs out is served as before.
+  // Through the page's store and key. Only a catalog surely not there (failed or a 404, no copy) is a 503; one still on
+  // its way when the wait runs out, or another refusal (400, 401: the request, not the source), is served as before.
   try {
     await readPublicJson(archetypeTeaserPath(format, archetypeCatalogPeriod(detail.patch)), true, archetypeTeaserCheck(format));
     return 'ready';
   } catch (error) {
-    return isCatalogReadLate(error) ? 'none' : 'unavailable';
+    const refused = isPublicDataMissing(error) && (error as { status?: number }).status !== 404;
+    return isCatalogReadLate(error) || refused ? 'none' : 'unavailable';
   }
 }
 

@@ -246,7 +246,8 @@ indexable.
   and the plates (150 own words or 10 own facts).
 - An indexable page with neither is not served thin (#599): when every open
   build of its first page is refused and its window's catalog surely failed
-  (an error or a refusal of the source) with no last good copy, as after a
+  (an error or a 404 of the source; another `4xx` is the request's, not an
+  outage) with no last good copy, as after a
   restart during a catalog outage, `proxy.ts` answers the document with the
   data-page 503 (`Retry-After: 60`, no `noindex` from the app; nginx's `5xx`
   header above still applies: a `5xx` is not indexed whatever it carries).
