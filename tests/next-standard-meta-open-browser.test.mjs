@@ -268,6 +268,7 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
       new MutationObserver(look).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true });
       const loop = () => { look(); if (window.__watch) requestAnimationFrame(loop); };
       loop();
+      window.__paidFrames = 0; // the page is still the subscriber's here: count only what follows
     });
     await revoked.deleteCookie({ name: 'sm_session', url: stack.origin });
     // A restored page re-checks the session: the server now answers as it does to a guest.
