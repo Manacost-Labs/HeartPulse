@@ -511,7 +511,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     document: ConstructedCardCatalogDocument;
     cacheSource: 'fresh' | 'LKG';
     dataStatus: 'fresh' | 'stale';
-    warning: string | null;
+    warning: string | null; fallback?: true; // the last good copy after a failed or late refresh (#396)
   };
   const catalogCache = new Map<ConstructedCardFormat, { value: CatalogLoad; expiresAt: number }>();
   const catalogJobs = new Map<ConstructedCardFormat, Promise<CatalogLoad>>();
@@ -683,7 +683,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
         }
         ttlMs = fallbackTtlMs;
         value = {
-          document: lastKnownGood.document, cacheSource: 'LKG', dataStatus: 'stale',
+          document: lastKnownGood.document, cacheSource: 'LKG', dataStatus: 'stale', fallback: true,
           warning: lastKnownGood.repairWarning
             ? 'Резервная копия каталога повреждена или недоступна. Показывается последняя проверенная версия.'
             : null,

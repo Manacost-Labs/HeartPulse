@@ -8,6 +8,8 @@ type Row = Record<string, unknown>;
 type Statistics = Row & { view?: { cards?: Row[]; source?: unknown } };
 type Catalog = Pick<ConstructedCardCollection, 'cacheSource' | 'dataStatus' | 'warning'> & {
   document: { cards: Row[]; datasetVersion: string; verifiedAt: string; publishedAt: string };
+  /** The last good copy after a failed or late refresh, not a stale-but-loaded catalog (#396). */
+  fallback?: true;
 };
 type Ports = {
   catalog: (format: ConstructedCardFormat) => Promise<Catalog>;
@@ -122,9 +124,10 @@ export function createConstructedCardCatalogReaders(ports: Ports) {
           catch (error) { ports.onHistoryError?.(error); }
         }
         if (ports.generation() === generation) {
-          // A collection built on a stale catalog (the last good copy after a failed refresh) is kept for at
-          // most 30 s, like that copy itself (#396), so a recovered source shows up without a five-minute wait.
-          const ttlMs = value.dataStatus === 'stale' ? Math.min(ports.ttlMs, 30_000) : ports.ttlMs;
+          // A collection built on the last good copy after a failed refresh is kept for at most 30 s, like that
+          // copy itself (#396), so a recovered source shows up without a five-minute wait. A catalog that loaded
+          // but is stale for another reason (stored without a backup) keeps the normal window: no rebuild loop.
+          const ttlMs = catalog.fallback ? Math.min(ports.ttlMs, 30_000) : ports.ttlMs;
           ports.cache.set(key, { value, expiresAt: ports.now() + ttlMs });
           publicBackoff.delete(key);
         }
