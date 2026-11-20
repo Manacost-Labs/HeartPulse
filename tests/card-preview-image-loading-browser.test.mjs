@@ -127,7 +127,21 @@ try {
     await page.close();
   }
 
-  // 4. Both pictures missing: the preview says so instead of staying empty.
+  // 4. Fun decks and the deck builder pass the data API render of the card. Its
+  //    version is the catalog sync time, so the edge copy goes cold several
+  //    times a day; the edge card picture comes first, that render stays a fallback.
+  {
+    const DATA_RENDER = '/api/public-resource/db/uploads/constructed-related/BE_790.png';
+    const { page, requests } = await openWithImages(storybook.storyUrl('features-card-preview-image--hover-with-data-render'),
+      async path => (path === DATA_RENDER ? image : missing));
+    await page.hover('#storybook-root button');
+    await page.waitForSelector('[role="tooltip"][data-preview-state="loaded"]');
+    assert.deepEqual([...new Set(requests.map(request => request.path))], [EDGE_IMAGE, DATA_RENDER],
+      'the edge card picture is asked first, the data render only after it failed');
+    await page.close();
+  }
+
+  // 5. Both pictures missing: the preview says so instead of staying empty.
   {
     const { page } = await openWithImages(storybook.storyUrl('features-card-preview-image--hover'), async () => missing);
     await page.hover('#storybook-root button');

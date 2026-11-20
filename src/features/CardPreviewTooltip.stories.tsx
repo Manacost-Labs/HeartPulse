@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import CardPreviewTooltip, { type CardPreviewTarget } from './CardPreviewTooltip';
 import CardPreviewSheet from './CardPreviewSheet';
 
-type Args = { cardId: string; name: string };
+type Args = { cardId: string; name: string; imageUrl?: string };
 
 /**
  * The full-card hover preview and its phone sheet with the real image URLs of
@@ -18,14 +18,14 @@ const meta = {
 export default meta;
 type Story = StoryObj<Args>;
 
-function HoverPreview({ cardId, name }: Args) {
+function HoverPreview({ cardId, name, imageUrl }: Args) {
   const [preview, setPreview] = useState<CardPreviewTarget | null>(null);
   return (
     <div style={{ minHeight: 640, paddingTop: 160 }}>
       <button
         type="button"
         style={{ width: 224, height: 45 }}
-        onMouseEnter={event => setPreview({ id: cardId, name, rect: event.currentTarget.getBoundingClientRect() })}
+        onMouseEnter={event => setPreview({ id: cardId, name, imageUrl, rect: event.currentTarget.getBoundingClientRect() })}
         onMouseLeave={() => setPreview(null)}
       >
         {name}
@@ -36,6 +36,12 @@ function HoverPreview({ cardId, name }: Args) {
 }
 
 export const Hover: Story = { render: args => <HoverPreview {...args} /> };
+
+/** Fun decks and the deck builder pass the data API render, versioned by its last catalog sync. */
+export const HoverWithDataRender: Story = {
+  args: { imageUrl: 'https://api.kolodahearthstone.com/uploads/constructed-related/BE_790.png?v=2026-11-20 08:55:14' },
+  render: args => <HoverPreview {...args} />,
+};
 
 function PhoneSheet({ cardId, name }: Args) {
   const [open, setOpen] = useState(false);

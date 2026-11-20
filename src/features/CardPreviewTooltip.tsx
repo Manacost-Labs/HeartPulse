@@ -33,16 +33,33 @@ export function cardPreviewImage(id: string): string {
 }
 
 /**
+ * Renders of the card's current face that the card image already shows: the
+ * HearthstoneJSON render, and the data API render, whose `?v=` is the catalog
+ * sync time, so its edge copy goes cold several times a day. A caller's other
+ * picture (a patch-notes version of the card, a cosmetic) stays first.
+ */
+function isCurrentCardRender(source: string, id: string): boolean {
+  const path = source.split('?')[0];
+  return path === fallbackCardRender(id)
+    || path === `/api/public-resource/db/uploads/constructed-related/${encodeURIComponent(id)}.png`;
+}
+
+/**
  * Picture order for one card: the caller's own picture, the card image via the
- * CDN, the same image from the site itself (the CDN is down), the render.
+ * CDN, the same image from the site itself (the CDN is down), the caller's
+ * current-face render, the HearthstoneJSON render.
  */
 export function cardPreviewSources(id: string, imageUrl?: string | null): string[] {
-  const render = fallbackCardRender(id);
   const path = cardImagePath(id);
   const own = publicResourceUrl(imageUrl);
-  // Callers that pass the default render of this very card get the light card image first.
-  const preferred = own && own !== render ? own : cardPreviewImage(id);
-  return [...new Set([preferred, cardPreviewImage(id), ...(path ? [cardImageOriginUrl(path)] : []), render])];
+  const ownFirst = own && !(path && isCurrentCardRender(own, id)) ? [own] : [];
+  return [...new Set([
+    ...ownFirst,
+    cardPreviewImage(id),
+    ...(path ? [cardImageOriginUrl(path)] : []),
+    ...(own ? [own] : []),
+    fallbackCardRender(id),
+  ])];
 }
 
 /** `bare`: the card render alone, without the plate (the fun-decks page). */
