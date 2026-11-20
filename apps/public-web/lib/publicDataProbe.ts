@@ -73,10 +73,13 @@ export async function probePublicData(pathname: string, searchParams: URLSearchP
     const format = path === '/standard/archetypes/wild' ? 'wild' : readInitialCatalogFilters(search, []).format;
     return probeReads([archetypeTeaserPath(format, null), archetypeTeaserCheck(format)]);
   }
-  // The deck hub and class pages (#309) list the Standard catalog; an unknown class is the page's own 404.
+  // The deck hub and class pages (#309) are nothing but the Standard catalog: a source that refuses it (a 404 of a
+  // rollout) is an outage for them too, not «no such page». An unknown class is the page's own 404.
   const decks = path.match(/^\/standard\/decks(?:\/([^/]+))?$/u);
   if (decks) {
-    return decks[1] && !deckClass(decks[1]) ? 'none' : probeReads([archetypeTeaserPath('standard', null), archetypeTeaserCheck('standard')]);
+    if (decks[1] && !deckClass(decks[1])) return 'none';
+    const catalog = await probeReads([archetypeTeaserPath('standard', null), archetypeTeaserCheck('standard')]);
+    return catalog === 'none' ? 'unavailable' : catalog;
   }
   if (path === '/standard/patches') {
     const version = normalizePatchVersion(searchParams.get('version') ?? undefined) || null;

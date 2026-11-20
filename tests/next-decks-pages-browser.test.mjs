@@ -44,23 +44,12 @@ const catalog = { format: 'standard', formatLabel: 'Стандарт', patch: '3
   updatedAt: '2026-07-24T12:38:57.727Z', coverage: {}, items: ROWS };
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
 
-test('deck hub and class pages: server HTML with open codes, 404 for an unknown class, 503 without the catalog', async () => {
-  let catalogUp = false;
-  const detailReads = [];
+/** Production Next behind the public gateway with a fake Express; `api(pathname, request, response)` answers `/api/` reads. */
+async function startStand(api) {
   const legacy = http.createServer((request, response) => {
     response.setHeader('Content-Type', 'application/json');
     const pathname = new URL(request.url, 'http://fixture').pathname;
-    if (pathname === '/api/constructed-archetypes/teaser') {
-      if (!catalogUp) { response.writeHead(502).end('{"error":"down"}'); return; }
-      response.end(JSON.stringify(catalog)); return;
-    }
-    const detail = pathname.match(/^\/api\/constructed-archetypes\/teaser\/standard\/([a-z-]+)$/);
-    if (detail) {
-      detailReads.push(detail[1]);
-      const item = ROWS.find(candidate => candidate.slug === detail[1]);
-      if (!item || item.slug === 'face-hunter') { response.writeHead(item ? 502 : 404).end('{"error":"detail"}'); return; }
-      response.end(JSON.stringify(detailOf(item))); return;
-    }
+    if (api(pathname, request, response)) return;
     if (pathname === '/api/auth/me') { response.end('{"user":null,"adminAllowed":false,"contestAdminAllowed":false}'); return; }
     if (isMenuBackgroundRead(pathname)) { response.end(JSON.stringify(MENU_PATCH_ARCHIVE)); return; }
     if (pathname.startsWith('/api/')) { response.writeHead(401).end('{"error":"guest"}'); return; }
@@ -73,9 +62,15 @@ test('deck hub and class pages: server HTML with open codes, 404 for an unknown 
     env: { ...process.env, NODE_ENV: 'production', NEXT_TELEMETRY_DISABLED: '1', RUNTIME_CLIENT_CONFIG_FILE: '', LEGACY_WEB_ORIGIN: legacyOrigin },
     stdio: ['ignore', 'pipe', 'pipe'],
   });
-  let output = ''; let gateway; let browser;
+  let output = ''; let gateway;
   child.stdout.on('data', chunk => { output = (output + chunk).slice(-4000); });
   child.stderr.on('data', chunk => { output = (output + chunk).slice(-4000); });
+  const close = async () => {
+    if (gateway) await closeLocal(gateway);
+    child.kill('SIGTERM');
+    legacy.closeAllConnections();
+    await closeLocal(legacy);
+  };
   try {
     let ready = false;
     for (let attempt = 0; attempt < 200 && !ready; attempt++) {
@@ -85,15 +80,46 @@ test('deck hub and class pages: server HTML with open codes, 404 for an unknown 
     }
     assert.ok(ready, `Next did not start: ${output}`);
     gateway = createPublicWebGateway({ legacyOrigin, nextOrigin, enabled: true, pagesEnabled: true });
-    const origin = await listenLocal(gateway);
+    return { origin: await listenLocal(gateway), close };
+  } catch (error) {
+    await close();
+    throw error;
+  }
+}
 
-    // Without any copy of the catalog the pages are a 503, not a page without its data.
-    for (const path of ['/standard/decks/', '/standard/decks/paladin/']) {
-      const unavailable = await fetch(`${origin}${path}`);
-      assert.equal(unavailable.status, 503, path);
-      assert.equal(unavailable.headers.get('retry-after'), '60', path);
+test('deck hub and class pages: server HTML with open codes, 404 for an unknown class, 503 without the catalog', async () => {
+  let catalogState = 'missing';
+  const detailReads = [];
+  const stand = await startStand((pathname, _request, response) => {
+    if (pathname === '/api/constructed-archetypes/teaser') {
+      if (catalogState === 'missing') response.writeHead(404).end('{"error":"no catalog"}');
+      else if (catalogState === 'down') response.writeHead(502).end('{"error":"down"}');
+      else response.end(JSON.stringify(catalog));
+      return true;
     }
-    catalogUp = true;
+    const detail = pathname.match(/^\/api\/constructed-archetypes\/teaser\/standard\/([a-z-]+)$/);
+    if (!detail) return false;
+    detailReads.push(detail[1]);
+    const item = ROWS.find(candidate => candidate.slug === detail[1]);
+    if (!item || item.slug === 'face-hunter') response.writeHead(item ? 502 : 404).end('{"error":"detail"}');
+    else response.end(JSON.stringify(detailOf(item)));
+    return true;
+  });
+  const { origin } = stand;
+  let browser;
+  try {
+    // Without any copy of the catalog the pages are a 503, not a page without its data: whether the source
+    // refuses the read (404 of a rollout) or fails it (502).
+    for (const state of ['missing', 'down']) {
+      catalogState = state;
+      await delay(1100);
+      for (const path of ['/standard/decks/', '/standard/decks/paladin/']) {
+        const unavailable = await fetch(`${origin}${path}`);
+        assert.equal(unavailable.status, 503, `${path} with the catalog ${state}`);
+        assert.equal(unavailable.headers.get('retry-after'), '60', path);
+      }
+    }
+    catalogState = 'up';
     await delay(1100);
 
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
@@ -191,8 +217,56 @@ test('deck hub and class pages: server HTML with open codes, 404 for an unknown 
     assert.equal(await page.evaluate(() => navigator.clipboard.readText()), 'AAECAZ8FAAAAaggropaladinAAA=');
   } finally {
     await browser?.close();
-    if (gateway) await closeLocal(gateway);
-    child.kill('SIGTERM');
-    await closeLocal(legacy);
+    await stand.close();
+  }
+});
+
+// Details that hang must neither hold the page nor pile up requests (GPT review of #639): one shared deadline for
+// the details of a page, one request per archetype whoever asks, at most four at once; the codes come back after.
+test('hanging archetype details: the page answers by its deadline without codes and without piling up requests', async () => {
+  const DRUIDS = Array.from({ length: 9 }, (_, index) => row(`druid-${'abcdefghi'[index]}`, `Друид ${index + 1}`, 'druid', 5000 + index, 50 + index, 2));
+  const rows = [...DRUIDS, ...ROWS];
+  let hold = true;
+  let active = 0, maxActive = 0;
+  const held = [];
+  const requested = [];
+  const stand = await startStand((pathname, request, response) => {
+    if (pathname === '/api/constructed-archetypes/teaser') { response.end(JSON.stringify({ ...catalog, items: rows })); return true; }
+    const detail = pathname.match(/^\/api\/constructed-archetypes\/teaser\/standard\/([a-z-]+)$/);
+    if (!detail) return false;
+    requested.push(detail[1]);
+    active += 1; maxActive = Math.max(maxActive, active);
+    response.on('close', () => { active -= 1; });
+    const answer = () => response.end(JSON.stringify(detailOf(rows.find(item => item.slug === detail[1]))));
+    if (hold) held.push(answer); else answer();
+    return true;
+  });
+  try {
+    const visit = async path => {
+      const started = Date.now();
+      const response = await fetch(`${stand.origin}${path}`);
+      return { path, status: response.status, ms: Date.now() - started, html: await response.text() };
+    };
+    const visits = await Promise.all(['/standard/decks/druid/', '/standard/decks/druid/', '/standard/decks/', '/standard/decks/paladin/',
+      '/standard/decks/druid/'].map(visit));
+    for (const { path, status, ms, html } of visits) {
+      assert.equal(status, 200, path);
+      assert.ok(ms < 4000, `${path} answered in ${ms} ms`);
+      assert.equal(html.includes('AAECAZ8FAAAA'), false, `${path} has no code while the details hang`);
+    }
+    assert.ok(maxActive <= 4, `at most four detail requests at once, saw ${maxActive}`);
+    assert.equal(new Set(requested).size, requested.length, `one request per archetype: ${requested.join(', ')}`);
+    // The source answers again: the codes come back.
+    hold = false;
+    for (const answer of held.splice(0)) answer();
+    let recovered = '';
+    for (let attempt = 0; attempt < 40 && !recovered.includes('AAECAZ8FAAAAdruidiAAA='); attempt++) {
+      await delay(250);
+      recovered = (await visit('/standard/decks/druid/')).html;
+    }
+    assert.ok(recovered.includes('AAECAZ8FAAAAdruidiAAA='), 'the best build is back once its detail answers');
+  } finally {
+    for (const answer of held.splice(0)) answer();
+    await stand.close();
   }
 });
