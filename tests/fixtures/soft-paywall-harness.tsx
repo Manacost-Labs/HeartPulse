@@ -276,7 +276,7 @@ export function SoftPaywallFixture() {
             {page === 'meta' ? (
               <StandardMetaPage hasFullAccess={hasFullAccess} paywall={paywall} />
             ) : page === 'fun-decks' ? (
-              <FunDecksPage hasFullAccess={hasFullAccess} paywall={paywall} />
+              <FunDecksPage />
             ) : (
               <ConstructedArchetypes
                 currentPath={path}

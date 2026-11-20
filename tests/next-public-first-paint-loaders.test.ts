@@ -165,12 +165,19 @@ const funRaw = {
     funDeck(5, '2026-08-01')],
 };
 const funPreview = publicFunDecksPreview(funRaw);
-assert.deepEqual(funPreview?.decks.map(deck => deck.deckCode), ['CODE_2', 'CODE_4', 'CODE_3'],
-  'the guest preview is the newest three, in the order the page shows');
+assert.deepEqual(funPreview?.decks.map(deck => deck.deckCode), ['CODE_2', 'CODE_4', 'CODE_3', 'CODE_1', 'CODE_5'],
+  'the selection is open: every deck, in the order the page shows (the newest first)');
 assert.deepEqual(funPreview?.stats, { total: 5, standard: 3, wild: 2 });
-assert.equal(JSON.stringify(funPreview).includes('CODE_1') || JSON.stringify(funPreview).includes('CODE_5'), false,
-  'paid decks never enter the server HTML');
-assert.equal(JSON.stringify(funPreview).includes('PRIVATE_'), false);
+assert.equal(JSON.stringify(funPreview).includes('PRIVATE_'), false, 'a field outside the allowlist never enters the server HTML');
+{
+  // The card list the API decodes reaches the page; a list that is not whole is dropped and the deck stays.
+  const cards = [{ id: 'CARD_ONE', name: 'Карта', cost: 2, count: 2 }];
+  const withCards = publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), cards: [{ ...cards[0], secret: 'PRIVATE_CARD' }] }] })?.decks[0];
+  assert.deepEqual(withCards?.cards, cards);
+  assert.equal(JSON.stringify(withCards).includes('PRIVATE_'), false);
+  assert.equal(publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), cards: [{ id: '../x', name: 'Карта', cost: 1, count: 1 }] }] })?.decks[0].cards, undefined);
+  assert.equal(publicFunDecksPreview({ ...funRaw, decks: [funDeck(2, '2026-10-02')] })?.decks[0].cards, undefined);
+}
 {
   // The interval, the source title and the Russian archetype name reach the guest's first view; a response without them gives nulls.
   const newer = publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), winRateCiLow: 41.5, winRateCiHigh: 67.2, variants: 1,

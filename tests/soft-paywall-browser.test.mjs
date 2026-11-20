@@ -86,9 +86,8 @@ try {
   await page.evaluateOnNewDocument(() => window.localStorage.setItem('hp:deck-layout', 'images'));
   await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
   await go('page=fun-decks');
-  await page.waitForSelector('.arena-inline-paywall--meta');
   await page.waitForSelector('[data-tour-id="fun-decks-deck-list"] .deck-list-view');
-  assert.equal(await page.$$eval('.fun-deck-card', cards => cards.length), 3);
+  assert.equal(await page.$$eval('.fun-deck-card', cards => cards.length), 6, 'the selection is open: a guest sees every deck');
   assert.equal(
     await page.$eval('.fun-decks-grid', grid => getComputedStyle(grid).gridTemplateColumns.split(' ').length),
     3,
@@ -101,23 +100,7 @@ try {
   assert.equal(await page.$eval('.fun-decks-tools__sort select', node => node.value), 'newest');
   assert.equal(await page.$eval('.fun-deck-card__identity span strong', node => node.textContent), 'Новая');
   assert.equal(await page.$('.fun-decks-freshness'), null);
-  assert.equal(await page.$$eval('.arena-paywall__overlay', nodes => nodes.length), 0);
-  assert.deepEqual(
-    await page.$$eval('.arena-inline-paywall__provider', nodes => nodes.map(node => ({
-      text: node.textContent?.replace(/\s+/g, ' ').trim(),
-      href: node.getAttribute('href'),
-    }))),
-    [
-      {
-        text: 'BBoostyОткрыть через Boosty',
-        href: 'https://boosty.to/kolodahearthstone',
-      },
-      {
-        text: 'TelegramОткрыть через Telegram',
-        href: 'https://web.tribute.tg/s/xz9',
-      },
-    ],
-  );
+  assert.equal(await page.$$eval('.arena-paywall__overlay, .arena-inline-paywall--meta', nodes => nodes.length), 0, 'the fun decks have no subscription offer');
   for (const anchor of [
     'fun-decks-method',
     'fun-decks-filters',
@@ -131,7 +114,7 @@ try {
     document.querySelector('.fun-deck-card__identity span')?.textContent?.startsWith('Вольный формат')
   ));
   await new Promise(resolve => setTimeout(resolve, 200));
-  assert.equal(await page.$$eval('.fun-deck-card', cards => cards.length), 3);
+  assert.equal(await page.$$eval('.fun-deck-card', cards => cards.length), 3, 'the three wild decks of the six');
   await page.select('.fun-decks-tools__sort select', 'fun');
   await page.waitForFunction(() => document.querySelector('.fun-deck-card__identity h2')?.textContent === 'Фановая колода 4');
   await page.addScriptTag({ path: axePath });
@@ -239,13 +222,11 @@ try {
   assert.deepEqual((await funCards()).map(card => card.why), [['Концепт', 'Пакет: Рено', 'Хайлендер'], ['Концепт', 'Мем']],
     'the filtered tag comes first, and the deck that showed three other reasons gives up its last');
 
-  // A guest's filters narrow the three decks the guest is shown; the second priest deck of the selection stays behind the subscription.
+  // A guest's filters narrow the whole selection, as a subscriber's do.
   await openFun('page=fun-decks&class=priest&sort=reliable');
   await waitForTitles(['Фановая колода 2', 'Фановая колода 5']);
   await openFun('page=fun-decks&class=shaman&sort=reliable');
-  await page.waitForFunction(() => document.querySelector('.fun-decks-page__state p')?.textContent === 'Среди открытых колод таких нет.');
-  assert.equal(await page.$$eval('.fun-deck-card', nodes => nodes.length), 0, 'a hidden deck is not opened by a filter');
-  assert.ok(await page.$('.arena-inline-paywall--meta'), 'the subscription offer stays under the empty result');
+  await waitForTitles(['Фановая колода 6']);
 
   // A selection as served before concept-v7: no interval on the cards, and the reliable sort falls back to the win rate.
   await openFun('page=fun-decks&access=full&dataset=legacy&sort=reliable');
@@ -366,18 +347,15 @@ try {
   for (const width of [390, 320]) {
     await page.setViewport({ width, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
     await go('page=fun-decks');
-    await page.waitForSelector('.arena-inline-paywall--meta');
     await page.waitForSelector('[data-tour-id="fun-decks-deck-list"] .deck-list-view');
     const layout = await page.evaluate(() => ({
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      providerHeights: [...document.querySelectorAll('.arena-inline-paywall__provider')]
-        .map(node => node.getBoundingClientRect().height),
+      paywalls: document.querySelectorAll('.arena-inline-paywall').length,
       cardCount: document.querySelectorAll('.fun-deck-card').length,
     }));
-    assert.ok(layout.overflow <= 1, `fun deck teaser overflowed by ${layout.overflow}px at ${width}px`);
-    assert.equal(layout.providerHeights.length, 2);
-    assert.ok(layout.providerHeights.every(height => height >= 48));
-    assert.equal(layout.cardCount, 3);
+    assert.ok(layout.overflow <= 1, `fun deck list overflowed by ${layout.overflow}px at ${width}px`);
+    assert.equal(layout.paywalls, 0, 'the open selection has no subscription offer');
+    assert.equal(layout.cardCount, 6);
   }
   await page.screenshot({ path: `${screenshotPrefix}-fun-decks-mobile.png`, fullPage: true });
 

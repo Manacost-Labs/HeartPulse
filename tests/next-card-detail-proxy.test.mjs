@@ -552,7 +552,7 @@ test('a page of the open layer is the same for a subscriber, whose answers never
   let next;
   try {
     stand.fixture.grant();
-    // A viewer's read of the fun-deck selection carries decks a guest must never see.
+    // A viewer's read of the fun-deck selection carries a deck the anonymous read does not have.
     stand.express.routes['/api/fun-decks'] = request => funDecksPayload(request.headers.cookie
       ? ['PAID_DECK_OLD', 'FREE_DECK_C', 'FREE_DECK_A', 'FREE_DECK_B', 'SUBSCRIBER_ONLY_DECK']
       : ['PAID_DECK_OLDEST', 'PAID_DECK_OLD', 'FREE_DECK_C', 'FREE_DECK_A', 'FREE_DECK_B']);
@@ -571,8 +571,9 @@ test('a page of the open layer is the same for a subscriber, whose answers never
     const guest = await timed(`${next.origin}/standard/fun-decks/`);
     const guestText = visibleText(guest.html);
     assert.equal(guest.response.status, 200);
-    for (const code of ['FREE_DECK_A', 'FREE_DECK_B', 'FREE_DECK_C']) assert.ok(guestText.includes(`Колода ${code}`), code);
-    for (const code of ['SUBSCRIBER_ONLY_DECK', 'PAID_DECK_OLD']) assert.ok(!guestText.includes(code), `${code} stays out of the guest page`);
+    // The selection is open: the guest page lists every deck of the anonymous read, and nothing of the viewer's.
+    for (const code of ['FREE_DECK_A', 'FREE_DECK_B', 'FREE_DECK_C', 'PAID_DECK_OLD', 'PAID_DECK_OLDEST']) assert.ok(guestText.includes(`Колода ${code}`), code);
+    assert.ok(!guestText.includes('SUBSCRIBER_ONLY_DECK'), 'the viewer\'s deck stays out of the guest page');
   } finally {
     await stand.close(next);
   }

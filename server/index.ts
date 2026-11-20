@@ -9502,6 +9502,7 @@ const funDeckPreviewCoordinator = createFunDeckPreviewCoordinator({
 app.use('/api', createPublicFunDecksRouter({
   loadFunDecks: loadFunDecksDataset,
   getDatabase: db,
+  loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards,
   loadArchetypeLabels: async () => {
     const { map } = await getStandardArchetypeTranslations();
     return name => archetypeLabel(name, map);
