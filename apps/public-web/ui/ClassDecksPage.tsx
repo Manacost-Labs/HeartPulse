@@ -23,14 +23,16 @@ export function ClassDecksPage({ entry, catalog, builds }: {
   const rows = classArchetypes(catalog, entry.key);
   const path = classDecksPath(entry.key);
   const now = Date.now();
+  const indexable = classDecksIndexable(rows);
   return <>
-    <DecksStructuredData path={path} name={`Колоды ${entry.genitive}`} updatedAt={catalog.updatedAt}
+    {/* A class below the content threshold is `noindex, follow` (`classDecksMetadata`) and carries no JSON-LD. */}
+    {indexable ? <DecksStructuredData path={path} name={`Колоды ${entry.genitive}`} updatedAt={catalog.updatedAt}
       crumbs={[{ name: 'Лучшие колоды', path: '/standard/decks/' }, { name: entry.name, path }]}
-      items={rows.map(row => ({ name: row.archetypeLabel, url: `https://hearthpulse.net${archetypePath(row.slug)}` }))} />
+      items={rows.map(row => ({ name: row.archetypeLabel, url: `https://hearthpulse.net${archetypePath(row.slug)}` }))} /> : null}
     <SharedPageShell pathname={path}>
       <article className="decks-page">
         <DecksBanner title={`Колоды ${entry.genitive}`} updatedAt={catalog.updatedAt} rows={rows} />
-        {classDecksIndexable(rows) ? null : <p className="decks-page__notice">
+        {indexable ? null : <p className="decks-page__notice">
           Мало данных: {rows.length} из {CLASS_DECKS_MIN_ARCHETYPES} нужных архетипов {MIN_GAMES_TEXT}, страница не индексируется.
         </p>}
         {rows.length ? <div className="decks-class__table" role="region" aria-label={`Архетипы ${entry.genitive}`} tabIndex={0}>

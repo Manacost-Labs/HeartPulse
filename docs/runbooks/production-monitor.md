@@ -146,7 +146,8 @@ A failure-to-recovery drill (`STAB-405`) on production is still to be done.
 The monitor checks production liveness, readiness, required dataset freshness,
 critical public HTML routes, `robots.txt`, the exact sitemap index, static and
 all entity sitemap contracts (Standard, Wild-only, Battlegrounds minions,
-spells and heroes, cosmetics, guides archive and the Standard and Wild archetypes),
+spells and heroes, cosmetics, guides archive, the Standard and Wild archetypes
+and the deck class pages `/standard/decks/<class>/`, at least one URL, #650),
 deterministic first/middle/last SSR samples for every entity type (five spread
 samples for archetypes, whose JSON-LD must describe the page's own URL),
 canonical redirects, JSON-LD identity, public-payload privacy, and
@@ -164,11 +165,13 @@ Public-payload privacy fails on `QA_PRIVATE`, `statsAccess`,
 `subscriptionPayload`, `privateSentinel` and `deckCode`. It covers the entity
 sitemap XML, the entity SSR samples above, the unknown-card `404` and those
 page-template samples whose path is in `OPEN_DECK_CODE_ROUTES`
-(`/standard/fun-decks/`, archetype and card detail). Other page templates are
+(`/standard/fun-decks/`, the deck hub and class pages, archetype and card
+detail). Other page templates are
 not checked for markers (card listings carry the guest flag
 `statsAccess:false`). Deck codes are open by the owner's decision of
 2026-11-18, so `deckCode` is allowed only on archetype detail
-(`/standard/archetypes/<format>/<slug>/`), `/standard/fun-decks/` and card
+(`/standard/archetypes/<format>/<slug>/`), `/standard/fun-decks/`,
+`/standard/decks/` and `/standard/decks/<class>/` (#309, #650) and card
 detail (`/standard/cards/<format>/<id>/`): the `OPEN_DECK_CODE_ROUTES` list in
 `scripts/production-monitor.mjs` (#580). A new page that opens deck codes is
 added to that list together with its owner decision; on the other checked
