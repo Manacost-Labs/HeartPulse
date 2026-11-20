@@ -28,6 +28,7 @@ import { publicArchetypeTeaser } from '../apps/public-web/lib/publicArchetypeTea
 import { archetypeCountText, archetypeSeoFacts, formatShare } from '../apps/public-web/lib/archetypeSeoSummary';
 import { INDEXABLE_ARCHETYPE_MIN_GAMES, INDEXABLE_WILD_ARCHETYPE_MIN_GAMES, isIndexableArchetype } from '../shared/constructedArchetypeIndexing';
 import { archetypeStructuredDataGraph } from '../src/seo/archetypeStructuredData';
+import { classDecksSeoText, deckClass } from '../apps/public-web/lib/classDecks';
 import { assertProperty } from './helpers/propertyRuns';
 
 const pages = publicSeoPages();
@@ -796,6 +797,37 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
     'without a date the description promises none');
   assert.deepEqual(text('/standard/patches', patchNotesSeoValues(null, NOW)), staticText('/standard/patches'));
   assert.deepEqual(text('/standard/patches', patchNotesSeoValues([], NOW)), staticText('/standard/patches'));
+}
+
+// Deck pages (#309): the hub's registry templates and the class formula in code; the month goes first when a
+// class name makes the title longer than 60 characters, and the leader when the description is too long.
+{
+  const NOW = Date.parse('2026-11-20T09:00:00Z');
+  const row = (slug: string, archetypeLabel: string, classKey: string, games: number, winrate: number) => ({ slug, archetype: slug,
+    archetypeLabel, translated: true, classKey, format: 'standard', games, winrate, popularity: 2, turns: 8, durationMinutes: 8,
+    climbingSpeed: 1, deckCount: 3, sourceUrl: '' });
+  const catalog = publicArchetypeCatalog({ format: 'standard', formatLabel: 'Стандарт', patch: '37.0.2', minimumGames: 10,
+    updatedAt: '2026-11-20T06:00:00.000Z', items: [
+      row('pure-paladin', 'Чистый Паладин', 'paladin', 52000, 55.4), row('aggro-paladin', 'Агро Паладин', 'paladin', 30000, 57.9),
+      row('weak-paladin', 'Слабый Паладин', 'paladin', 600, 70),
+      row('long-dh', 'Охотник на демонов на очень длинном архетипе', 'demonhunter', 9000, 50.5)] }, 'standard');
+  assert.deepEqual(classDecksSeoText(deckClass('paladin')!, catalog, NOW), {
+    title: 'Колоды Паладина Hearthstone (хс): топ, ноябрь 2026',
+    description: 'Колоды Паладина в Hearthstone (хс) на 20 ноября 2026: 2 архетипа, лидер — Агро Паладин, 57,9% побед. Коды колод и составы, Стандарт. Данные HSGuru.',
+  });
+  assert.deepEqual(classDecksSeoText(deckClass('demonhunter')!, catalog, NOW), {
+    title: 'Колоды Охотника на демонов Hearthstone (хс): топ',
+    description: 'Колоды Охотника на демонов в Hearthstone (хс) на 20 ноября 2026: 1 архетип. Коды колод и составы, Стандарт. Данные HSGuru.',
+  });
+  assert.deepEqual(classDecksSeoText(deckClass('paladin')!, null, NOW), {
+    title: 'Колоды Паладина Hearthstone (хс): топ',
+    description: 'Колоды Паладина в Hearthstone (хс). Коды колод и составы, Стандарт. Данные HSGuru.',
+  });
+  assert.equal(deckClass('necromancer'), null);
+  assert.deepEqual(seoPageText(seoPageForExactPath('/standard/decks')!, archetypeCatalogSeoValues(catalog, NOW)), {
+    title: 'Лучшие колоды Hearthstone (хс), ноябрь 2026 | HearthPulse',
+    description: 'Лучшие колоды Хартстоуна (хс) в Стандарте на 20 ноября 2026: лучший архетип каждого из 11 классов — винрейт, игры и код колоды. Данные HSGuru.',
+  });
 }
 
 console.log(`SEO registry assertions passed (${pages.length} pages, ${sitemapPages.length} sitemap URLs)`);
