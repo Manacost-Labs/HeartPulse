@@ -34,3 +34,19 @@ test('a filter lock keeps the label and the default value, with an accessible na
   assert.ok(labelled(html, 'Мана (фильтр): по подписке. Узнать, как открыть'));
   assert.match(visibleText(html), /Мана.*Любая мана/);
 });
+
+test('a pressed lock opens the offer and stops the click before the clickable row around it', () => {
+  // Both locks are plain functions without hooks on the onOpen path: read the handler the button gets.
+  const locks: Array<(onOpen: () => void) => React.ReactElement> = [
+    onOpen => PaidMetricLock({ label: 'Винрейт', onOpen }) as React.ReactElement,
+    onOpen => PaidFilterLock({ label: 'Мана', value: 'Любая мана', onOpen }) as React.ReactElement,
+  ];
+  for (const make of locks) {
+    let stopped = 0;
+    let opened = 0;
+    const { onClick } = make(() => { opened++; }).props as { onClick: (event: { stopPropagation(): void }) => void };
+    onClick({ stopPropagation: () => { stopped++; } });
+    assert.equal(opened, 1);
+    assert.equal(stopped, 1);
+  }
+});

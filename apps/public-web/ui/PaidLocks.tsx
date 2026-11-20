@@ -11,6 +11,9 @@ import './PaidLocks.css';
  * A lock never carries the paid value (the server markup has only the caption «По подписке»). A press
  * opens the subscription offer of the nearest `PaidOfferProvider` (same context and `returnTo`, no
  * inline `PaywallGate`); `onOpen` overrides it. Without a provider the press does nothing.
+ * A pressed lock does not bubble, so it can sit in a clickable row. The `cell` lock is 24px tall (the
+ * WCAG 2.2 minimum target) and takes no more row height than an open figure (negative block margin);
+ * a consumer with a row shorter than 20px should check it.
  * Built on `PaidLockButton`; once `usePaidOffer` is exported from `PaidOffer.tsx` (#611), the
  * `onOpen` path can pass it.
  *
@@ -61,7 +64,7 @@ export function PaidFilterLock({ label, value, icon, closed = DEFAULT_CLOSED, on
   </>;
   if (!onOpen) return <PaidLockButton className="paid-filter-lock" label={`${label} (фильтр)`} closed={closed}>{content}</PaidLockButton>;
   return <button type="button" className={join('paid-filter-lock', closed)} aria-label={`${label} (фильтр): по подписке. Узнать, как открыть`}
-    onClick={onOpen}>
+    onClick={event => { event.stopPropagation(); onOpen(); }}>
     <LockKeyhole size={13} aria-hidden="true" />{content}
   </button>;
 }

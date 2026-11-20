@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import type { ComponentProps } from 'react';
 import { expect, fn, userEvent } from 'storybook/test';
 import { PaidFilterLock, PaidMetricLock } from './PaidLocks';
 
@@ -25,11 +26,12 @@ export const Cell: Story = {
 
 export const Card: Story = { ...Cell, args: { variant: 'card', label: 'Игры' }, play: undefined };
 
-export const Filter: StoryObj<typeof PaidFilterLock> = {
-  render: args => <PaidFilterLock {...args} />,
-  args: { label: 'Мана', value: 'Любая мана', onOpen: fn() },
+export const Filter: StoryObj<ComponentProps<typeof PaidFilterLock> & { onRow: () => void }> = {
+  render: args => <div onClick={args.onRow} role="presentation"><PaidFilterLock {...args} /></div>,
+  args: { label: 'Мана', value: 'Любая мана', onOpen: fn(), onRow: fn() },
   play: async ({ canvas, args }) => {
     await userEvent.click(canvas.getByRole('button', { name: 'Мана (фильтр): по подписке. Узнать, как открыть' }));
     await expect(args.onOpen).toHaveBeenCalledTimes(1);
+    await expect(args.onRow).not.toHaveBeenCalled();
   },
 };
