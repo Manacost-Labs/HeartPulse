@@ -2024,9 +2024,9 @@
       "contracts": ["server/modules/patchNotes/contract.ts", "docs/specs/patch-notes.md"],
       "jobs": [],
       "cacheNamespaces": [],
-      "dataStores": [],
+      "dataStores": ["json:last_good_archive (DATA_DIR/patch-notes-v1/last-good.json)"],
       "externalServices": ["api.kolodahearthstone.com patch archive (/api/patches)", "api.hearthstonejson.com ruRU collectible cards", "api.kolodahearthstone.com Battlegrounds catalog (/api/v1 cards, trinkets, heroes and other lists)", "api.kolodahearthstone.com full card catalog (/api/v1/card-catalog) and card history snapshots"],
-      "tests": ["tests/patch-notes.test.ts", "tests/patch-notes-cards-v2.test.ts"],
+      "tests": ["tests/patch-notes.test.ts", "tests/patch-notes-cards-v2.test.ts", "tests/patch-notes-last-good.test.ts"],
       "allowedDependencies": ["Express at the routes boundary"],
       "forbiddenImports": ["src/**", "other server module internals"]
     },
