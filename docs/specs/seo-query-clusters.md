@@ -30,16 +30,18 @@ third-party data source.
   intent.
 - `/standard/matchups` owns the Hearthstone matchup matrix, supported by HSGuru
   statistics. It does not own the broad meta tier-list intent.
-- `/standard/decks` owns «лучшие колоды хс», «колоды хартстоун», «топ колоды
-  хс» as a ready-deck intent: the best archetype of each class with the code of
-  its best build. It differs from `/standard/meta` (a table of archetypes) and
-  links to it. `/standard/decks/<class>` owns «колоды <класса> хс» as class deck
+- `/standard/decks` owns «колоды хс», «лучшие колоды хс», «колоды
+  Хартстоуна», «колоды хартстоун», «топ колоды хс» as a ready-deck intent: the
+  best archetype of each class with the code of its best build. It differs
+  from `/standard/meta` (a table of archetypes) and links to it.
+  `/standard/decks/<class>` owns «колоды <класса> хс» as class deck
   statistics (archetypes, numbers and codes), not guides: guide texts «Топ
   колоды <класс>» stay with hs-manacost.ru. Title formulas: hub
   `Лучшие колоды Hearthstone (хс), {month} | HearthPulse`, class
   `Колоды {класса} Hearthstone (хс): топ, {month}` (the month goes first when
-  it does not fit 60 characters). Both are `noindex, follow` until SEO-A opens
-  them (#309).
+  it does not fit 60 characters). The hub is `index` and in `static.xml`; a
+  class page is `index` and in `/sitemaps/decks.xml` while it lists at least
+  four archetypes above the indexing sample, `noindex, follow` below (#650).
 
 Query spelling variants such as `тир лист`, `тирлист`, `Battlegrounds`
 and `стратеги` are natural-language variants. The site writes «Поля сражений»
@@ -80,8 +82,9 @@ pages of the registry share a title, a description or an H1
 Each game mode has one hub that owns the broad query of the mode and links
 to every indexable page of it (owner decision 2026-11-20, #557):
 
-- `/standard/` — «колоды хс», «колоды Хартстоуна», «Стандарт Hearthstone»;
-  H1 «Стандарт Hearthstone: колоды, мета и архетипы».
+- `/standard/` — «Стандарт Hearthstone»; H1 «Стандарт Hearthstone: колоды,
+  мета и архетипы». «Колоды хс» and «колоды Хартстоуна» belong to
+  `/standard/decks/` (#650), which the hub links as «Лучшие колоды».
 - `/arena/` — «арена хс», «Арена Hearthstone»; H1 «Арена Hearthstone:
   тир-лист карт и классы».
 - `/battlegrounds/` — «поля сражений хс», «Поля сражений Hearthstone»; H1

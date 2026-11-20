@@ -41,6 +41,7 @@ export const MODE_HUBS: Readonly<Record<ModeHubId, ModeHub>> = {
     nowTitle: 'Сейчас в Стандарте',
     links: [
       { href: '/standard/meta/', title: 'Мета Hearthstone', text: 'Тир-лист колод Стандарта: винрейт, популярность и число игр каждого архетипа.' },
+      { href: '/standard/decks/', title: 'Лучшие колоды', text: 'Лучший архетип каждого класса с кодом колоды.' },
       { href: '/standard/archetypes/', title: 'Архетипы', text: 'Каталог архетипов с винрейтом и долей игр; у сильных архетипов есть своя страница.' },
       { href: '/standard/matchups/', title: 'Матчапы', text: 'Таблица шансов: как архетипы Стандарта играют друг против друга.' },
       { href: '/standard/fun-decks/', title: 'Фан-колоды', text: 'Необычные колоды вне меты с составом карт и числом игр.' },

@@ -217,7 +217,7 @@ function validateDocument(
   raw: unknown,
   expectedFormat: ConstructedCardCatalogFormat,
   now: number,
-  minimumCardCount: number,
+  minimumCardCount: number, light = false, // light: a copy this store wrote after full validation, shape only
 ): ConstructedCardCatalogDocument | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const value = raw as Record<string, unknown>;
@@ -230,13 +230,13 @@ function validateDocument(
   if (Date.parse(publishedAt) > Date.parse(verifiedAt) + MAX_FUTURE_SKEW_MS) return null;
   let cards: JsonRecord[];
   try {
-    cards = normalizedCards(value.cards);
+    cards = light && Array.isArray(value.cards) ? value.cards as JsonRecord[] : normalizedCards(value.cards);
   } catch {
     return null;
   }
   if (cards.length < minimumCardCount) return null;
   if (value.count !== cards.length) return null;
-  const expectedVersion = datasetVersion(cards);
+  const expectedVersion = light ? String(value.datasetVersion) : datasetVersion(cards);
   if (value.datasetVersion !== expectedVersion) return null;
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -291,17 +291,11 @@ export class ConstructedCardCatalogStore {
       : this.minimumCardCount.wild;
   }
 
-  private filename(format: ConstructedCardCatalogFormat): string {
-    return `${format}.json`;
-  }
+  private filename(format: ConstructedCardCatalogFormat): string { return `${format}.json`; }
 
-  private recoveryFilename(format: ConstructedCardCatalogFormat): string {
-    return `${format}.lkg.json`;
-  }
+  private recoveryFilename(format: ConstructedCardCatalogFormat): string { return `${format}.lkg.json`; }
 
-  private markerFilename(format: ConstructedCardCatalogFormat): string {
-    return `${format}.degraded.json`;
-  }
+  private markerFilename(format: ConstructedCardCatalogFormat): string { return `${format}.degraded.json`; }
 
   private markerExistsOnDisk(format: ConstructedCardCatalogFormat): boolean {
     return existsSync(join(this.directory, this.markerFilename(format)));
@@ -345,7 +339,7 @@ export class ConstructedCardCatalogStore {
     }
   }
 
-  private readFile(format: ConstructedCardCatalogFormat, filename: string): ConstructedCardCatalogDocument | null {
+  private readFile(format: ConstructedCardCatalogFormat, filename: string, light = false): ConstructedCardCatalogDocument | null {
     const pathname = join(this.directory, filename);
     if (!existsSync(pathname)) return null;
     try {
@@ -353,7 +347,7 @@ export class ConstructedCardCatalogStore {
         JSON.parse(readFileSync(pathname, 'utf8')),
         format,
         this.now(),
-        this.minimumCardCount[format],
+        this.minimumCardCount[format], light,
       );
     } catch {
       return null;
@@ -371,8 +365,7 @@ export class ConstructedCardCatalogStore {
   }
 
   private readAuthoritative(format: ConstructedCardCatalogFormat): ConstructedCardCatalogDocument | null {
-    const { primary, recovery } = this.readCopies(format);
-    return primary ?? recovery;
+    const { primary, recovery } = this.readCopies(format); return primary ?? recovery;
   }
 
   private redundancyWarning(
@@ -398,6 +391,13 @@ export class ConstructedCardCatalogStore {
       ageMs,
       repairWarning,
     };
+  }
+
+  /** The newest copy, shape-checked only: no checksum, comparison or repair as in `readUsable` (~0.1 s, not ~3 s, for Wild). */
+  readServingCopy(format: ConstructedCardCatalogFormat): { document: ConstructedCardCatalogDocument; repairWarning: string | null } | null {
+    const document = this.readFile(format, this.filename(format), true) ?? this.readFile(format, this.recoveryFilename(format), true);
+    return document && this.now() - Date.parse(document.verifiedAt) <= this.maxStaleMs
+      ? { document, repairWarning: this.hasDegradedMarker(format) ? REDUNDANCY_WARNING : null } : null;
   }
 
   readUsable(format: ConstructedCardCatalogFormat): {

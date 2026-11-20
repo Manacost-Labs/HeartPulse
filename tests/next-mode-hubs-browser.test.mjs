@@ -30,7 +30,7 @@ const ROBOT_UA = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com
 const HUBS = [
   {
     path: '/standard/', heading: 'Стандарт Hearthstone: колоды, мета и архетипы',
-    links: ['/standard/meta/', '/standard/archetypes/', '/standard/matchups/', '/standard/fun-decks/', '/standard/cards/',
+    links: ['/standard/meta/', '/standard/decks/', '/standard/archetypes/', '/standard/matchups/', '/standard/fun-decks/', '/standard/cards/',
       '/standard/cards/standard/', '/standard/patches/', '/arena/', '/battlegrounds/', '/wild/'],
   },
   {

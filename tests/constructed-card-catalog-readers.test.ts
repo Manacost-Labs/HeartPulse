@@ -2,7 +2,9 @@ import express from 'express';
 import { once } from 'node:events';
 import { createConstructedCardRouter } from '../server/constructedCardRoutes.js';
 import assert from 'node:assert/strict';
-import test from 'node:test';
+import test, { mock } from 'node:test';
+import { setFlagsFromString } from 'node:v8';
+import { runInNewContext } from 'node:vm';
 import { setImmediate as flush } from 'node:timers/promises';
 import { createConstructedCardCatalogReaders, createConstructedCardReader } from '../server/modules/constructedCards/public.js';
 
@@ -190,4 +192,47 @@ test('HTTP catalog chooses public identity for guests and full statistics for en
     assert.deepEqual([publicReads, paidReads], [1, 1]);
     assert.equal(guest.headers.get('cache-control'), 'no-store');
   } finally { server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); }
+});
+
+// The stored catalog parsed from disk is ~90 MB of heap for Wild (#630 review):
+// it must not outlive a catalog in memory or 30 s without use.
+setFlagsFromString('--expose-gc');
+const collectGarbage = runInNewContext('gc') as () => void;
+async function collected(target: WeakRef<object>) {
+  await flush();
+  collectGarbage();
+  return target.deref() === undefined;
+}
+function storedCatalogReaders() {
+  const h = catalogHarness();
+  let stored: WeakRef<object> | null = null;
+  const readers = createConstructedCardCatalogReaders({
+    catalog: async () => snapshot('fresh'), patch: async () => null, statistics: async () => ({ view: { cards: [] } }),
+    period: id => ({ id, label: id, patch: null, timeRange: null }), rank: id => ({ id, label: id, rankRange: id }),
+    record: () => {}, cache: new Map(), jobs: new Map(), generation: () => 0, now: () => h.state.time,
+    ttlMs: 1_000, origin: 'https://source.example.test',
+    lastKnown: () => { const copy = snapshot('stored'); stored = new WeakRef(copy.document); return copy; },
+  });
+  return { readers, stored: () => stored! };
+}
+
+test('the stored catalog copy is released once a catalog for the format is in memory', async () => {
+  const { readers, stored } = storedCatalogReaders();
+  assert.equal(readers.peekPublicCards('standard')?.datasetVersion, 'stored');
+  assert.equal((await readers.loadPublicCards('standard')).datasetVersion, 'fresh');
+  assert.equal(await collected(stored()), true);
+});
+
+test('the stored catalog copy is released 30 s after it was read', async () => {
+  mock.timers.enable({ apis: ['setTimeout'] });
+  try {
+    const { readers, stored } = storedCatalogReaders();
+    assert.equal(readers.peekPublicCards('wild')?.datasetVersion, 'stored');
+    mock.timers.tick(29_000);
+    assert.equal(await collected(stored()), false, 'kept while it may still be reused');
+    mock.timers.tick(1_000);
+    assert.equal(await collected(stored()), true);
+  } finally {
+    mock.timers.reset();
+  }
 });

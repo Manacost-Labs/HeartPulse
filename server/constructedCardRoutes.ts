@@ -677,7 +677,8 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
         };
       } catch (error) {
         (dependencies.onCatalogError ?? logCatalogError)(format, error);
-        const lastKnownGood = catalogStore.readUsable(format);
+        // A copy the readers already hold (from `readServingCopy`) spares a ~3 s verified re-read.
+        const lastKnownGood = heldStoredCatalog(format) as ReturnType<typeof catalogStore.readServingCopy> ?? catalogStore.readUsable(format);
         if (!lastKnownGood) {
           throw new ConstructedCardCatalogUnavailableError(undefined, { cause: error });
         }
@@ -700,8 +701,8 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     return job;
   };
 
-  const { loadCards, loadPublicCards, peekCards } = createConstructedCardCatalogReaders({
-    catalog: loadCatalog, lastKnown: format => catalogStore.readUsable(format),
+  const { loadCards, loadPublicCards, peekCards, peekPublicCards, heldStoredCatalog } = createConstructedCardCatalogReaders({
+    catalog: loadCatalog, lastKnown: format => catalogStore.readServingCopy(format),
     responseDeadlineMs, loadDeadlineMs: Math.ceil(loadDeadlineMs * 1.5), onDeadline: dependencies.onDeadline,
     patch: () => loadPatches().then(result => currentConstructedPatchVersion(result.value)),
     statistics: (format, period, rank) => dependencies.fetchJson(
@@ -974,7 +975,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     decksJob = null;
   };
 
-  return { loadCards, loadPublicCards, loadCardDetail, loadCardHistory, loadCardHistoryContext, getCatalogHealth, invalidate };
+  return { loadCards, loadPublicCards, peekPublicCards, loadCardDetail, loadCardHistory, loadCardHistoryContext, getCatalogHealth, invalidate };
 }
 
 export function createConstructedCardRouter(dependencies: ConstructedCardRouterDependencies): Router {

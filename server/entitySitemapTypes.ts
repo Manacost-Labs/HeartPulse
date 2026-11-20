@@ -7,6 +7,8 @@ export type SitemapSegment =
   | 'cosmetics'
   | 'guides-archive'
   | 'archetypes'
+  /** Class pages of Standard decks (`/standard/decks/<class>/`) above the content threshold. */
+  | 'decks'
   /** Internal: dates the static pages; it has no sitemap of its own. */
   | 'static-pages';
 
