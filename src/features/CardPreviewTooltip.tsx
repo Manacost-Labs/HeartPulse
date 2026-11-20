@@ -22,27 +22,21 @@ function cardImagePath(id: string): string | null {
 }
 
 /**
- * The full card picture a hover preview starts with: the card image through
- * the card CDN host, which the edge nodes answer from their own cache (about
- * 60 KB). The HearthstoneJSON render is a ~0.5 MB PNG that every edge fetches
- * from the origin on its first request, longer than a hover lasts.
- */
-export function cardPreviewImage(id: string): string {
-  const path = cardImagePath(id);
-  return path ? cardImageDeliveryUrl(path) : fallbackCardRender(id);
-}
-
-/**
- * Picture order for one card: the caller's own picture, the card image via the
- * CDN, the same image from the site itself (the CDN is down), the render.
+ * Picture order for one card: the caller's own picture, the current
+ * HearthstoneJSON render, then the card image (via the CDN, then from the site
+ * itself). The card image is only a fallback: its cache is not refreshed after
+ * balance patches (#574: `BE_012` still shows the text before 37.0.2), and a
+ * preview must never show a card's old text.
  */
 export function cardPreviewSources(id: string, imageUrl?: string | null): string[] {
   const render = fallbackCardRender(id);
   const path = cardImagePath(id);
   const own = publicResourceUrl(imageUrl);
-  // Callers that pass the default render of this very card get the light card image first.
-  const preferred = own && own !== render ? own : cardPreviewImage(id);
-  return [...new Set([preferred, cardPreviewImage(id), ...(path ? [cardImageOriginUrl(path)] : []), render])];
+  return [...new Set([
+    own || render,
+    render,
+    ...(path ? [cardImageDeliveryUrl(path), cardImageOriginUrl(path)] : []),
+  ])];
 }
 
 /** `bare`: the card render alone, without the plate (the fun-decks page). */
