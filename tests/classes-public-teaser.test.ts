@@ -28,7 +28,7 @@ test('the sentinel list is not vacuous: it holds long winrates and breakdown val
 test('the projection is the order of the classes with winrate to 0.1, sample, date, unit and source', () => {
   const teaser = projectWinratesPublicTeaser(buildClassesFixture())!;
   assert.deepEqual(teaser.classes, OPEN_ROWS, 'best first, whatever the stored order is');
-  assert.deepEqual(Object.keys(teaser.classes[0]).sort(), ['id', 'name', 'place', 'sample', 'winrate']);
+  assert.deepEqual(Object.keys(teaser.classes[0]).sort(), ['color', 'id', 'name', 'place', 'sample', 'winrate']);
   assert.deepEqual(Object.keys(teaser).sort(), ['classes', 'sampleUnit', 'source', 'updatedAt']);
   assert.equal(teaser.sampleUnit, 'drafts', 'HSReplay counts drafts (num_drafts), not games');
   assert.equal(teaser.updatedAt, UPDATED_AT);
@@ -64,7 +64,7 @@ test('the page parser copies only the whitelisted fields, rounds again and caps 
   dirty.history = [{ date: 'sentinel-history' }];
   const parsed = parsePublicClassesTeaser(dirty) as PublicClassesTeaser;
   assert.equal(parsed.classes.length, 20, 'no more than twenty rows');
-  assert.deepEqual(Object.keys(parsed.classes[0]).sort(), ['id', 'name', 'place', 'sample', 'winrate']);
+  assert.deepEqual(Object.keys(parsed.classes[0]).sort(), ['color', 'id', 'name', 'place', 'sample', 'winrate']);
   assert.equal(parsed.classes[0].winrate, 57.3, 'a winrate with more digits is rounded again');
   assert.deepEqual(parsed.classes.slice(0, 3).map(item => item.place), [1, 2, 3], 'the place is the position, not a field of the answer');
   assert.equal(JSON.stringify(parsed).match(/wins|pickRate|byPeriod|history|sentinel|4281773|13\.37041|57\.34821/), null);

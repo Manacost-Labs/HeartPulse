@@ -1,0 +1,32 @@
+/* A phone's first screen belongs to the ranking: a short banner, as on the legendaries page, for a guest and a subscriber alike. */
+@media (max-width: 639px) {
+  .arena-classes-page {
+    --site-page-hero-mobile-min-height: 96px;
+    --site-page-hero-mobile-title-size: 1.375rem;
+  }
+  .arena-classes-page > .section-banner-modern p { display: none; }
+}
+
+.classes-data-line {
+  margin: 0 0 0.75rem;
+  color: #6b5a44;
+  font-size: 0.875rem;
+}
+
+/* The closed part under the open ranking: one lock that opens the subscription offer. */
+.classes-paid-more {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  padding: 0.4rem 0.8rem;
+  border: 1px dashed #ae8853;
+  border-radius: 0.5rem;
+  color: #6b4c2a;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: rgba(255, 244, 217, 0.7);
+}
+
+.classes-paid-more:hover { border-color: #7e4b20; color: #3d2a1e; }

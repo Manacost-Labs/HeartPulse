@@ -77,28 +77,33 @@ test('the guest HTML of /classes/ carries the open order of the classes and noth
     }
     return assert.fail(`the page was not regenerated: ${phase}; reads ${JSON.stringify(state.reads.map(read => read.path))}; ${next.output().slice(-300)}`);
   };
-  const hasSlice = html => html.includes('class="classes-public-teaser"');
+  // The open ranking is the subscriber's board: only rows with data carry a meter label (the skeleton has none).
+  const hasSlice = html => html.includes('arena-class-meter-label');
   try {
     const buildCopy = await guestHtml(next.origin);
-    assert.equal(hasSlice(buildCopy), false, 'the copy made without Express has no slice but is a 200 page');
+    assert.equal(hasSlice(buildCopy), false, 'the copy made without Express has no ranking but is a 200 page');
     assert.match(buildCopy, /class="paywalled-classes"/);
     state.down = false;
-    const html = await regenerated(hasSlice, 'slice appears');
+    const html = await regenerated(hasSlice, 'ranking appears');
 
-    const start = html.indexOf('class="classes-public-teaser"');
-    const slice = html.slice(start, html.indexOf('</section>', start));
-    assert.ok(slice.length > 100, 'the open slice is in the server HTML');
-    const rows = [...slice.matchAll(/<tr><td>(\d+)<\/td><th scope="row">([^<]+)<\/th><td>([^<]+)<\/td><td>([^<]+)<\/td><td><\/td><\/tr>/g)]
-      .map(match => ({ place: Number(match[1]), name: match[2], winrate: match[3], sample: match[4].replace(/\s/g, '') }));
+    const start = html.indexOf('<ol aria-label="Рейтинг классов"');
+    assert.ok(start > 0, 'the ranking is in the server HTML');
+    const board = html.slice(start, html.indexOf('</ol>', start));
+    const rows = board.split('<li ').slice(1).map(item => ({
+      place: Number(item.match(/data-rank="(\d+)"/)?.[1]),
+      name: item.match(/<span class="font-hs[^"]*">([^<]+)<\/span>/)?.[1],
+      winrate: item.match(/<span class="arena-class-meter-label[^"]*">([^<]+)<\/span>/)?.[1],
+      sample: item.match(/>([\d\s\u00a0]+)(?:<!-- -->)? игр<\/span>/)?.[1].replace(/[\s\u00a0]/g, ''),
+    }));
     assert.deepEqual(rows, OPEN_ROWS.map(row => ({
-      place: row.place, name: row.name, winrate: `${row.winrate.toFixed(1).replace('.', ',')}%`, sample: String(row.sample),
-    })), 'all eleven classes in order, with the winrate to one decimal and the sample');
-    assert.match(slice, /Данные на <time dateTime="2026-11-15T17:00:03\.639Z">15 ноября 2026, 20:00 МСК<\/time> · источник HSReplay<\/p>/, 'date and source, and no explanatory sentence');
-    assert.ok(html.indexOf('<h1') < start, 'the table stands right after the H1: it is the page content, not a block below it');
+      place: row.place, name: row.name, winrate: `${row.winrate.toFixed(1)}%`, sample: String(row.sample),
+    })), 'all eleven classes in order, as the subscriber board writes them');
+    assert.match(html, /Данные на <time dateTime="2026-11-15T17:00:03\.639Z">15 ноября 2026, 20:00 МСК<\/time>(?:<!-- -->)? · источник HSReplay<\/p>/, 'date and source, and no explanatory sentence');
+    assert.ok(html.indexOf('<h1') < start, 'the ranking stands right after the H1: it is the page content, not a block below it');
     assert.doesNotMatch(html, /arena-paywall/, 'no subscription gate covers the open ranking');
-    // The closed part is the last column: its column and its lock carry the class the JSON-LD names, the open values do not.
-    assert.match(slice, /<col class="paywalled-classes"\/>/, 'the closed column has the class the JSON-LD names');
-    assert.match(slice, /<button type="button" class="classes-public-teaser__lock paywalled-classes"/, 'the lock carries it too');
+    // The closed part is the lock under the ranking: it carries the class the JSON-LD names, the open rows do not.
+    assert.match(html, /<button type="button" class="classes-paid-more paywalled-classes"/, 'the lock carries the closed class');
+    assert.doesNotMatch(board, /paywalled-classes/, 'the open ranking is not marked closed');
 
     // Nothing closed in the HTML, in the RSC payload and in the JSON-LD: each is checked on its own.
     assert.match(html, /self\.__next_f/, 'the page carries an RSC payload');
@@ -137,7 +142,7 @@ test('the guest HTML of /classes/ carries the open order of the classes and noth
     state.cache.clear();
     state.down = true;
     const empty = await regenerated(page => !hasSlice(page), 'slice disappears without data');
-    assert.doesNotMatch(empty, /classes-public-teaser/, 'no slice without data');
+    assert.doesNotMatch(empty, /arena-class-meter-label/, 'no ranking without data');
     assert.match(empty, /class="paywalled-classes"/);
     assert.doesNotMatch(empty, /О странице/, 'no explanation block is printed');
   } finally {
