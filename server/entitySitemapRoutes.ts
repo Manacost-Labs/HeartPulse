@@ -74,6 +74,8 @@ export type EntitySitemapRouterDependencies = {
   loadDeadlineMs?: number;
   now?: () => number;
   onError?: (error: unknown) => void;
+  /** A segment was rebuilt from its source with a changed list (IndexNow announces the difference). */
+  onSegmentPublished?: (segment: SitemapSegment, previous: SemanticSitemapDocument | null, next: SemanticSitemapDocument) => void;
 };
 
 const ENTITY_SITEMAP_PATHS: DynamicSitemapDefinition['pathname'][] = [
@@ -231,6 +233,9 @@ export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDepen
     definition, origin, now, cacheTtlMs, stateDirectory: dependencies.stateDirectory,
     responseDeadlineMs: dependencies.responseDeadlineMs, loadDeadlineMs: dependencies.loadDeadlineMs,
     onError: dependencies.onError, toDocument: dynamicDocument,
+    onPublished: dependencies.onSegmentPublished
+      ? (previous, next) => dependencies.onSegmentPublished!(definition.segment, previous, next)
+      : undefined,
   })] as const);
   const dynamicLoaders = new Map(segmentLoaders.map(([definition, load]) => [definition.pathname, load]));
   // A segment that cannot be loaded leaves a static page on its own day.

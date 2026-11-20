@@ -95,6 +95,7 @@ import {
 import { createBattlegroundHeroSeoRouter } from './battlegroundSeoRoutes.js';
 import { createBattlegroundLibrarySeoRouter } from './battlegroundLibrarySeoRoutes.js';
 import { createEntitySitemapRouter, loadStaticSitemapArtifact } from './entitySitemapRoutes.js';
+import { changedSitemapLocations, createIndexNowNotifier, INDEXNOW_CONFIG } from './indexNow.js';
 import { createEntitySitemapRuntimeOptions } from './entitySitemapSources.js';
 import {
   createStandardMetaRouter,
@@ -7378,6 +7379,11 @@ const staticSitemapArtifact = loadStaticSitemapArtifact(staticSitemapCandidates,
   onMissing: message => console.warn(`[entity-sitemap] ${message}; development server will continue without sitemap routes`),
 });
 if (staticSitemapArtifact) {
+  // IndexNow announces changed sitemap addresses to Yandex; production only (server/indexNow.ts).
+  const announceSitemapChanges = createIndexNowNotifier({
+    config: { ...INDEXNOW_CONFIG, enabled: INDEXNOW_CONFIG.enabled && process.env.NODE_ENV === 'production' },
+    origin: 'https://hearthpulse.net',
+  });
   app.use(createEntitySitemapRouter({
     ...createEntitySitemapRuntimeOptions(constructedCardDataService.loadCards, process.env, {
       // Called per refresh, after start-up has created the service below.
@@ -7392,6 +7398,9 @@ if (staticSitemapArtifact) {
       '[entity-sitemap] catalog refresh failed:',
       error instanceof Error ? error.message : error,
     ),
+    onSegmentPublished: (_segment, previous, next) => {
+      void announceSitemapChanges(changedSitemapLocations(previous, next));
+    },
   }));
 }
 
