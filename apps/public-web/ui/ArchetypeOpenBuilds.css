@@ -46,3 +46,17 @@
 .archetype-open-builds__more p { margin: 0; color: #8d171d; font-size: 0.75rem; font-weight: 700; }
 .archetype-open-builds__more .archetype-builds__more { width: 100%; margin: 0; }
 .archetype-open-builds__empty { margin: 0; padding: 0.85rem 1rem; color: var(--archetype-muted, #735e49); font-size: 0.8rem; }
+
+/* A subscriber's gallery that failed to load: one line over the open builds, which stay (ConstructedArchetypes). */
+.archetype-open-builds__retry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  margin: 1rem 0 0;
+  color: #8d171d;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.archetype-open-builds__retry .archetype-detail-read__retry { margin: 0; }

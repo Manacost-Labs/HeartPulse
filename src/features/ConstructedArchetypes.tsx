@@ -548,8 +548,13 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
       {/* The open builds stand here until a subscriber's gallery has loaded; without them, while access is
           checked the paid sections hold their loading place. The preview and the paywall belong to a confirmed answer without access. */}
       {/* The open builds stay until a non-empty subscriber gallery replaces them: a failed or empty paid answer keeps them. */}
+      {/* A failed gallery under the open builds is one line, not a second «Сборки архетипа» section. */}
+      {openLayer && fullAccess && core.error && !core.loading ? <p role="status" className="archetype-open-builds__retry">
+        Галерея подписчика не загрузилась, ниже — открытые сборки.{' '}
+        <button type="button" className="archetype-detail-read__retry" onClick={core.retry}>Повторить загрузку</button>
+      </p> : null}
       {openLayer && !(fullAccess && !core.loading && !core.error && item.builds.length > 0) ? openBuilds : null}
-      {(!openLayer && accessPending) || (fullAccess && (core.error || (!openLayer && core.loading))) ? (
+      {(!openLayer && accessPending) || (fullAccess && !openLayer && (core.error || core.loading)) ? (
         <ArchetypeDetailSection reserveViewport={!openLayer} title="Сборки архетипа" loading={accessPending || core.loading}
           error={accessPending ? null : core.error} onRetry={core.retry} skeleton={<ArchetypeBuildsSkeleton deckCount={item.deckCount} />} />
       ) : null}

@@ -152,7 +152,7 @@ test('Next archetype details isolate access and load builds before independent o
     page.on('request', request => {
       if (/^\/api\/constructed-archetypes\/(?!teaser\/)/.test(new URL(request.url()).pathname)) protectedCalls.push(request.url());
     });
-    // The strong Standard archetype is the only one offered to search engines; every page carries the summary.
+    // The strong Standard archetype is the only one offered to search engines; every page carries the plates and the class links.
     // The old `meta` family is redirected by nginx; served without it (here) it names the archetype URL as canonical.
     const NOINDEX = 'noindex, follow';
     for (const [path, width, h1, robots, graph, canonicalPath = path] of [
@@ -187,7 +187,7 @@ test('Next archetype details isolate access and load builds before independent o
       assert.equal(document.canonical, `https://hearthpulse.net${canonicalPath}`);
       assert.equal(document.robots, robots, path);
       assert.equal(document.graphs, graph ? 1 : 0, `${path} JSON-LD`);
-      assert.match(document.summary?.heading ?? '', /^Насколько силён /, `${path} shows the summary`);
+      assert.match(document.summary?.heading ?? '', /^Среди архетипов /, `${path} shows the plates`);
       assert.ok(document.summary.inMain && document.summary.height > 150 && document.summary.right <= width, `${path} summary sits in <main> inside the viewport`);
       assert.equal(document.html.includes('PRIVATE_'), false);
       // Deck codes are open (owner decision 2026-11-18); mulligan and card statistics and history are not.
@@ -245,7 +245,8 @@ test('Next archetype details isolate access and load builds before independent o
       const text = await page.evaluate(() => document.body.textContent);
       assert.ok(!/Колоды, матчапы|коды колод|Состав и код колоды/i.test(text), `${path} sells decks as paid`);
     }
-    // Without JavaScript the strong page still reads: the question, the date, the source and the class links.
+    // Without JavaScript the strong page still reads: its plates, the date, the source and the class links; the page's own
+    // content (without the menu and the footer) stays above the indexing threshold.
     const plain = await browser.newPage();
     await plain.setJavaScriptEnabled(false);
     await plain.goto(`${origin}/standard/archetypes/standard/zoolock/`, { waitUntil: 'domcontentloaded' });
@@ -253,7 +254,10 @@ test('Next archetype details isolate access and load builds before independent o
       const summary = document.querySelector('.archetype-seo-summary');
       const heading = [...document.querySelectorAll('h2')].find(node => node.textContent === 'Сборки архетипа');
       const builds = heading?.closest('section');
+      const main = document.querySelector('main')?.cloneNode(true);
+      main?.querySelectorAll('nav:not(.archetype-seo-summary__class), footer').forEach(node => node.remove());
       return { text: (summary?.innerText ?? '').replaceAll('\u00a0', ' '), time: summary?.querySelector('time')?.getAttribute('datetime'),
+        main: main?.textContent ?? '',
         links: [...(summary?.querySelectorAll('a[href^="/standard/archetypes/standard/"]') ?? [])].length,
         // The page's headings in order: the builds come right after the archetype's name and metrics.
         headings: [...document.querySelectorAll('h1, h2')].map(node => node.textContent),
@@ -266,9 +270,15 @@ test('Next archetype details isolate access and load builds before independent o
         } };
     });
     await plain.close();
-    const bareWords = bare.text.split(/\s+/).filter(token => /[\p{L}\p{N}]/u.test(token)).length;
-    assert.ok(bareWords >= 150 && bareWords <= 250, `the summary has ${bareWords} words without JavaScript`);
-    assert.ok(bare.text.includes('HSGuru') && bare.text.includes('14 800') && bare.text.includes('от 50 игр'));
+    // shared/seoIndexThreshold.ts: at least 150 own words or at least 10 own facts (here: the numbers the page states).
+    const tokens = bare.main.split(/\s+/);
+    const ownWords = tokens.filter(token => /[\p{L}\p{N}]/u.test(token)).length;
+    const ownNumbers = tokens.filter(token => /\d/.test(token)).length;
+    assert.ok(ownWords >= 150 || ownNumbers >= 10, `${ownWords} own words, ${ownNumbers} numbers without JavaScript`);
+    for (const phrase of ['Насколько силён', 'Как читать эти цифры', 'в этом тексте их нет', 'В каталог входят']) assert.ok(!bare.text.includes(phrase), phrase);
+    for (const part of ['место по играм\n1 из 5', 'медиана класса\n53,8% +7,5 п. п.\nсреди 4 архетипов чернокнижника от 1 000 игр', 'источник: hsguru', 'другие архетипы чернокнижника']) {
+      assert.ok(bare.text.toLowerCase().includes(part), `«${part}» in ${bare.text}`);
+    }
     assert.equal(bare.time, '2026-07-24T12:38:57.727Z');
     assert.ok(bare.links >= 3 && bare.links <= 6, `${bare.links} class links`);
     // Right after the metrics, without JavaScript: the build's numbers, date, source, linked cards and code.
@@ -320,9 +330,19 @@ test('Next archetype details isolate access and load builds before independent o
     assert.equal(await page.$eval('h1', node => node.textContent), 'Воровской Жрец', 'public identity survives a core failure');
     const openHeading = () => page.$eval('#archetype-open-builds-title', node => node.textContent).catch(() => null);
     assert.equal(await openHeading(), 'Сборки архетипа', 'a failed paid answer keeps the open builds for a subscriber');
+    // One «Сборки архетипа» on the page: the failed gallery is a line with its retry, not a second section that says builds are unavailable.
+    const coreFailed = await page.evaluate(() => ({
+      headings: [...document.querySelectorAll('h2')].filter(node => node.textContent === 'Сборки архетипа').length,
+      regions: document.querySelectorAll('section[aria-label="Сборки архетипа"]').length,
+      line: document.querySelector('[role="status"]:has(button)')?.textContent,
+      text: document.querySelector('main').textContent,
+    }));
+    assert.deepEqual([coreFailed.headings, coreFailed.regions], [1, 0]);
+    assert.equal(coreFailed.line, 'Галерея подписчика не загрузилась, ниже — открытые сборки. Повторить загрузку');
+    assert.equal(coreFailed.text.includes('Сборки временно недоступны'), false);
     const optionalCalls = sectionCalls.filter(section => section !== 'core').length;
     coreFails = false;
-    await page.click('section[aria-label="Сборки архетипа"] button');
+    await page.click('[role="status"] button');
     await page.waitForSelector('.archetype-builds');
     assert.equal(sectionCalls.filter(section => section !== 'core').length, optionalCalls);
     assert.equal(await openHeading(), null, 'the subscriber gallery takes the place of the open builds');
