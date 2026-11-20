@@ -176,6 +176,8 @@ try {
   await openFun('page=fun-decks&access=full');
   await page.waitForSelector('.fun-deck-card');
   const cards = await funCards();
+  assert.equal(cards.length, 6, 'a subscriber sees the same full list as a guest');
+  assert.equal(await page.$$eval('.arena-inline-paywall, .arena-paywall__overlay', nodes => nodes.length), 0, 'and neither of them has a subscription offer');
   assert.deepEqual(cards.map(card => card.title), ['Фановая колода 6', 'Фановая колода 5', 'Фановая колода 4', 'Фановая колода 3', 'Фановая колода 2', 'Фановая колода 1']);
   assert.deepEqual(cards[4], {
     title: 'Фановая колода 2', why: ['Пакет: Рено', 'Хайлендер', 'Далеко от меты'], closest: 'Ближе всего к: Мета 2 · сходство 20%',

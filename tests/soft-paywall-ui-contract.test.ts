@@ -327,7 +327,6 @@ test('pages pass the access decision to their gates and reserve the gate height'
   assert.doesNotMatch(catalogDataSource, /hasFullAccess|subscription/, 'public summaries do not depend on entitlements');
   assert.match(archetypesSource, /surface="archetype"/);
   assert.match(archetypesSource, /featuredBuild/);
-  assert.doesNotMatch(funDecksSource, /PaywallGate|hasFullAccess/, 'the fun-deck selection is open: no gate and no access cut');
   assert.match(funDecksSource, /data-tour-id=\{tourAnchor \? 'fun-decks-deck-list'/);
 
   for (const pageClient of ['StandardMetaPageClient', 'ConstructedArchetypesPageClient']) {
