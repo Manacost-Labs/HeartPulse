@@ -39,7 +39,10 @@ async function startStack() {
     const reader = /(?:^|;\s*)sm_session=reader/.test(request.headers.cookie ?? '');
     const json = (status, payload) => response.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store' })
       .end(JSON.stringify(payload));
-    if (url.pathname === '/api/auth/me') return void setTimeout(() => json(200, { user: reader ? READER : null }), reader ? 0 : state.authDelay);
+    // The session answer names the viewer tag it read (the `hp_viewer` cookie), as the real API does: the browser then
+    // remembers the viewer under that tag, and a guest answer for a tag ends that session.
+    const tag = /(?:^|;\s*)hp_viewer=([A-Za-z0-9_-]{22})/.exec(request.headers.cookie ?? '')?.[1] ?? null;
+    if (url.pathname === '/api/auth/me') return void setTimeout(() => json(200, { user: reader ? READER : null, viewerSession: tag }), reader ? 0 : state.authDelay);
     if (url.pathname === '/api/subscription/refresh') return reader ? void setTimeout(() => json(200, SUBSCRIBED), state.statusDelay) : json(401, { error: 'guest' });
     if (url.pathname === '/api/subscription/status') return reader ? void setTimeout(() => json(200, SUBSCRIBED), state.statusDelay) : json(401, { error: 'guest' });
     if (url.pathname === '/api/standard-meta/public') {
