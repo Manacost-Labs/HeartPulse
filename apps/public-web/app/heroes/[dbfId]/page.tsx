@@ -3,10 +3,10 @@ import { notFound } from 'next/navigation';
 import '@/src/route-parchment.css';
 import '@/src/features/TraditionalModeBanner.css';
 import { buildEntityStructuredData } from '@/shared/entitySeoStructuredData';
-import { loadPublicBattlegroundHero, loadPublicBattlegroundHeroStats } from '@/apps/public-web/lib/publicBattlegroundHero';
+import { loadPublicBattlegroundHero, loadPublicBattlegroundHeroProfile, loadPublicBattlegroundHeroStats } from '@/apps/public-web/lib/publicBattlegroundHero';
+import { openHeroDetail } from '@/apps/public-web/lib/openHeroDetail';
 import { heroStatsSummary } from '@/apps/public-web/lib/publicBattlegroundHeroStats';
 import { BattlegroundHeroDetailPageClient } from '@/apps/public-web/ui/BattlegroundHeroDetailPageClient';
-import { BattlegroundHeroPublicStats } from '@/apps/public-web/ui/BattlegroundHeroPublicStats';
 import { isIndexableBattlegroundHero } from '@/shared/battlegroundHeroIndexing';
 import { INDEXABLE_ROBOTS, robotsContent } from '@/src/shared/seo/robots';
 import { fitMetaDescription } from '@/src/shared/seo/metaDescription';
@@ -81,7 +81,7 @@ export default async function Page({ params }: Props) {
       '@type': 'Dataset',
       '@id': `${canonical}#dataset`,
       name: `Статистика героя ${hero.name} в Полях сражений Hearthstone`,
-      description: `Тир, среднее место, доля топ-4 и частота выбора героя ${hero.name} в рейтинге «Топ 50%» для Соло и Дуо по данным HSReplay. Узкие рейтинговые диапазоны, распределение мест, сборки с метриками и динамика между патчами доступны по подписке.`,
+      description: `Тир, среднее место, доля топ-4 и частота выбора героя ${hero.name} в рейтинге «Топ 50%» для Соло и Дуо по данным HSReplay. Узкие рейтинговые диапазоны, распределение мест, бои и сила героя по ходам и составы с метриками доступны по подписке.`,
       url: canonical,
       inLanguage: 'ru',
       isAccessibleForFree: false,
@@ -98,8 +98,7 @@ export default async function Page({ params }: Props) {
   return <>
     {resolved.indexable ? <script type="application/ld+json" data-server-entity-jsonld data-entity-path={`/heroes/${hero.dbfId}/`}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(structured).replace(/</g, '\\u003c') }} /> : null}
-    <BattlegroundHeroDetailPageClient hero={hero}
-      summary={heroStatsSummary(hero.name, stats) ?? 'Герой режима «Поля сражений» в Hearthstone.'}
-      open={<BattlegroundHeroPublicStats stats={stats} heroPower={hero.heroPower} />} />
+    <BattlegroundHeroDetailPageClient hero={hero} openStats={stats}
+      detail={openHeroDetail(hero, stats, await loadPublicBattlegroundHeroProfile(String(hero.dbfId)))} />
   </>;
 }

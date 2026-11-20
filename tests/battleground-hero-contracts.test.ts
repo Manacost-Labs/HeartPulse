@@ -197,12 +197,14 @@ function assertConsumerImports(
 
 // The hero statistics panels own the minion type icons now; the page itself no longer reads them.
 const MINION_ICON_NAMES = ['battlegroundMinionIconByRussianName', 'battlegroundMinionIconBySlug'];
-// The hero detail view (#651) owns the analytics panels and the card image policy; the page keeps only loading and meta.
+// The hero detail view (#651) owns the card image policy; the subscriber's analytics panels are a slot the paid page
+// fills (`BattlegroundHeroDetailAnalytics`), so the open guest page does not ship them. The page keeps loading and meta.
 const HERO_DETAIL_RUNTIME_NAMES = ['battlegroundFullCardImage', 'useBattlegroundHeroTierData'];
 assertConsumerImports('../src/features/Battlegrounds.tsx', [...CONTRACT_NAMES, 'BattlegroundHeroTierData'],
   RUNTIME_CONTRACT_NAMES.filter(name => !MINION_ICON_NAMES.includes(name) && !HERO_DETAIL_RUNTIME_NAMES.includes(name)));
 const HERO_DETAIL_CONSUMERS: Array<[string, string[], string[]]> = [
-  ['BattlegroundHeroDetailView.tsx', ['HeroAnalyticsCard'], ANALYTICS_CONTRACT_NAMES],
+  ['BattlegroundHeroDetailView.tsx', ['HeroAnalyticsCard'], []],
+  ['BattlegroundHeroDetailAnalytics.tsx', [], ANALYTICS_CONTRACT_NAMES],
   ['battlegroundHeroDetailMedia.ts', [], ['battlegroundFullCardImage', 'preferredBattlegroundHeroImage']],
   ['battlegroundHeroDetailModel.ts', ['HeroAnalyticsCard'], []],
   ['BattlegroundHeroDetailReliquary.tsx', [], []],
@@ -262,9 +264,10 @@ const battlegroundPublicEdges = analyzeModuleBoundaries({ rootDir: PROJECT_ROOT 
   .map(({ source, target, kind }) => ({ source, target, kind }));
 assert.deepEqual(battlegroundPublicEdges, [
   ...([
+    ['src/features/BattlegroundHeroDetailAnalytics.tsx', 'runtime'],
     ['src/features/battlegroundHeroDetailMedia.ts', 'runtime'],
     ['src/features/battlegroundHeroDetailModel.ts', 'type'],
-    ['src/features/BattlegroundHeroDetailView.tsx', 'runtime'],
+    ['src/features/BattlegroundHeroDetailView.tsx', 'type'],
   ] as const).map(([source, kind]) => ({ source, target: 'src/modules/battlegrounds/public.ts', kind })),
   {
     source: 'src/features/BattlegroundHeroLedger.tsx',

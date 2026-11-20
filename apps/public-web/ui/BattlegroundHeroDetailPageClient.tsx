@@ -1,48 +1,46 @@
 'use client';
 
-import type { ReactNode } from 'react';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { Breadcrumbs } from '@/src/shared/ui/EditorialRouteChrome';
+import { BattlegroundHeroDetailView } from '@/src/features/BattlegroundHeroDetailView';
+import type { BattlegroundHeroDetailLibraryHero, BattlegroundHeroDetailStats } from '@/src/features/battlegroundHeroDetailTypes';
 import type { PublicBattlegroundHero } from '@/apps/public-web/lib/publicBattlegroundHeroData';
+import type { PublicBattlegroundHeroStats } from '@/apps/public-web/lib/publicBattlegroundHeroStats';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { BattlegroundHeroesRoute, loadBattlegrounds, useBattlegroundsModuleLoaded, usePaidViewPrefetch } from './lazyBattlegrounds';
-import { BattlegroundHeroPaidLocks } from './BattlegroundHeroPaidLocks';
+import { BattlegroundHeroOpenStatistics } from './BattlegroundHeroOpenStatistics';
+import { PaidOfferProvider } from './PaidOffer';
 import { navigate } from './navigation';
 
+const OFFER_TEXT = 'Распределение мест, бои, сила героя и таверна по ходам, составы с местами и винрейтом, '
+  + 'узкие рейтинги Топ 20%, 5% и 1% открываются по подписке Полей сражений. '
+  + 'Тир, среднее место, топ-4, выбор, арт, компаньоны, скины и история патчей остаются бесплатными.';
+
 /**
- * `open` is the server-rendered open statistics: everyone without access sees it (a guest, a robot, a signed-in
- * visitor without a subscription), a subscriber has the interactive view in its place. `summary` is the one line
- * under the H1, built from the same facts.
+ * One hero page for everyone. `detail` is the open data the server read (identity, profile, the base-range row) in
+ * the shapes of the subscriber's view: a viewer without access (a guest, a robot, a signed-in visitor without a
+ * subscription) gets that view, rendered on the server, with locks in place of the paid analytics. A subscriber gets
+ * the same view on the protected data once its module has loaded (the open view stays until then, with its height).
  */
-export function BattlegroundHeroDetailPageClient({ hero, summary, open }: {
-  hero: PublicBattlegroundHero; summary: string; open: ReactNode;
+export function BattlegroundHeroDetailPageClient({ hero, detail, openStats }: {
+  hero: PublicBattlegroundHero;
+  detail: { stats: BattlegroundHeroDetailStats; libraryHero: BattlegroundHeroDetailLibraryHero };
+  openStats: PublicBattlegroundHeroStats | null;
 }) {
   const pathname = `/heroes/${hero.dbfId}/`;
   const access = usePublicAccess();
   usePaidViewPrefetch(loadBattlegrounds);
   const { allowed } = paidAccess(access, 'battlegrounds');
-  // The open statistics stay (with their height) until the paid view is loaded and can replace them in one render.
   const paidViewReady = useBattlegroundsModuleLoaded(allowed);
   return <PublicPageShell activeTab="bg-heroes" pathname={pathname}
     access={access} navigate={navigate} wide>
+    {/* The trail the page's JSON-LD names (app/heroes/[dbfId]/page.tsx). */}
+    <Breadcrumbs items={[{ name: 'Главная', href: '/' }, { name: 'Герои Полей сражений', href: '/heroes/' }, { name: hero.name, href: pathname }]} />
     {allowed && paidViewReady
       ? <BattlegroundHeroesRoute key={`${hero.dbfId}:${access.user?.id}`} path={pathname} onNavigate={navigate} teaser={hero} />
-      : <article className="space-y-5">
-        {/* The trail the page's JSON-LD names (app/heroes/[dbfId]/page.tsx). */}
-        <Breadcrumbs items={[{ name: 'Главная', href: '/' }, { name: 'Герои Полей сражений', href: '/heroes/' }, { name: hero.name, href: pathname }]} />
-        <header className="grid gap-4 sm:grid-cols-[1fr_180px]">
-          <div className="space-y-3">
-            <h1 className="font-hs text-3xl sm:text-4xl">{hero.name}</h1>
-            <p>{summary}</p>
-          </div>
-          <img src={hero.image} alt={`${hero.name} — герой Полей сражений`} width="180" height="240" decoding="async" />
-        </header>
-        {open}
-        {/* The closed part, named by the page's JSON-LD (`hasPart.cssSelector`); a wrapper without a box of its own. */}
-        <div className="paywalled-hero" style={{ display: 'contents' }}>
-          <BattlegroundHeroPaidLocks authUser={access.user} subscriptionStatus={access.subscription}
-            subscriptionLoading={access.checking} onRefreshSubscription={access.refresh} />
-        </div>
-      </article>}
+      : <PaidOfferProvider title="Аналитика героя — по подписке" text={OFFER_TEXT} entitlement="battlegrounds">
+        <BattlegroundHeroDetailView dbfId={String(hero.dbfId)} stats={detail.stats} libraryHero={detail.libraryHero}
+          onNavigate={navigate} statistics={() => <BattlegroundHeroOpenStatistics stats={openStats} />} />
+      </PaidOfferProvider>}
   </PublicPageShell>;
 }

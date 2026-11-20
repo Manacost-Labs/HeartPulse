@@ -3,6 +3,7 @@ import { cache } from 'react';
 import { headers } from 'next/headers';
 import { publicBattlegroundHero } from './publicBattlegroundHeroData';
 import { publicBattlegroundHeroStatsOf, type PublicBattlegroundHeroStats } from './publicBattlegroundHeroStats';
+import { publicBattlegroundHeroProfileOf, type PublicBattlegroundHeroProfile } from './publicBattlegroundHeroProfile';
 import { decodePublicProjection, MISSING_PUBLIC_PROJECTION,
   PUBLIC_BG_PROJECTION_HEADER } from './publicProjectionHeader';
 import { fetchPublicExpress } from './expressApi';
@@ -31,6 +32,9 @@ const loadProjection = cache(async (dbfId: string) => {
   return {
     hero: publicBattlegroundHero(answer, dbfId),
     stats: carried ? publicBattlegroundHeroStatsOf(answer) : undefined,
+    // The proxy header carries the profile when it fits; otherwise the page reads it itself.
+    profile: !projection || (typeof answer === 'object' && answer !== null && 'profile' in answer)
+      ? publicBattlegroundHeroProfileOf(answer) : undefined,
   };
 });
 
@@ -42,4 +46,15 @@ export const loadPublicBattlegroundHeroStats = cache(async (dbfId: string): Prom
   if (!projection) return null;
   if (projection.stats !== undefined) return projection.stats;
   try { return publicBattlegroundHeroStatsOf(await readAnswer(dbfId)); } catch { return null; }
+});
+
+/**
+ * Open profile of the hero (game content of the hero library), `null` when the library has none.
+ * Read from Express when the proxy header could not carry it; never throws.
+ */
+export const loadPublicBattlegroundHeroProfile = cache(async (dbfId: string): Promise<PublicBattlegroundHeroProfile | null> => {
+  const projection = await loadProjection(dbfId);
+  if (!projection) return null;
+  if (projection.profile !== undefined) return projection.profile;
+  try { return publicBattlegroundHeroProfileOf(await readAnswer(dbfId)); } catch { return null; }
 });

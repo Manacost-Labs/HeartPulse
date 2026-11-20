@@ -1,20 +1,19 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, type ReactNode } from 'react';
+// The hero page's look lives with the Battlegrounds styles: the open page renders the view without the paid chunk.
+import '../modules/battlegrounds/public.css';
+import '../route-parchment.css';
+import './Battlegrounds.css';
+import '../battlegrounds-shell.css';
+import '../battlegrounds-parchment.css';
 import { ChevronLeft } from 'lucide-react';
-import {
-  HeroCompositionAnalytics,
-  HeroOverview,
-  HeroPowerAnalytics,
-  HeroTavernAnalytics,
-  type HeroAnalyticsCard,
-} from '../modules/battlegrounds/public';
-import { BattlegroundHeroStatistics } from './BattlegroundHeroStatistics';
+import type { HeroAnalyticsCard } from '../modules/battlegrounds/public';
 import { CardPatchTimeline } from './CardPatchTimeline';
 import { BattlegroundHeroGallery } from './BattlegroundHeroDetailGallery';
 import { BattlegroundHeroImage, BattlegroundHeroProfileInfo } from './BattlegroundHeroDetailIdentity';
 import { bgDetailImageSources, bgHeroSkinLargeImage } from './battlegroundHeroDetailMedia';
 import { bgHeroDetailModel } from './battlegroundHeroDetailModel';
 import { BattlegroundHeroReliquary } from './BattlegroundHeroDetailReliquary';
-import { BG_HERO_PATCH_KIND_LABELS, bgHeroStatisticsScope } from './battlegroundHeroDetailText';
+import { BG_HERO_PATCH_KIND_LABELS } from './battlegroundHeroDetailText';
 import type {
   BattlegroundHeroDetailHeroStats,
   BattlegroundHeroDetailLibraryHero,
@@ -22,6 +21,13 @@ import type {
   BattlegroundHeroMediaItem,
   BattlegroundHeroSkin,
 } from './battlegroundHeroDetailTypes';
+
+/** What the statistics block is drawn from: the payload, its hero row and the cards of its compositions. */
+export type BattlegroundHeroStatisticsInput = {
+  stats: BattlegroundHeroDetailStats;
+  hero: BattlegroundHeroDetailHeroStats;
+  analyticsCards: Record<string, HeroAnalyticsCard>;
+};
 import { BattlegroundHeroMediaLightbox } from './BattlegroundHeroDetailLightbox';
 
 
@@ -58,37 +64,18 @@ function BattlegroundHeroSkins({ skins, skinMediaItems, openMediaGallery }: {
   );
 }
 
-/** The four analytics tabs; a tab without data gets no panel. */
-function BattlegroundHeroDetailStatistics({ stats, hero, analyticsCards }: {
-  stats: BattlegroundHeroDetailStats;
-  hero: BattlegroundHeroDetailHeroStats;
-  analyticsCards: Record<string, HeroAnalyticsCard>;
-}) {
-  return (
-    <BattlegroundHeroStatistics
-      description={bgHeroStatisticsScope(stats)}
-      overview={hero.placement_distribution?.length || stats.combat_winrate?.length
-        ? <HeroOverview placement={hero.placement_distribution} combat={stats.combat_winrate} /> : null}
-      power={stats.hero_power_by_turn?.length || stats.hero_power?.length
-        ? <HeroPowerAnalytics byTurn={stats.hero_power_by_turn} byTier={stats.hero_power} /> : null}
-      tavern={stats.tavern_up_by_turn?.length || stats.tavern_up?.length
-        ? <HeroTavernAnalytics byTurn={stats.tavern_up_by_turn} distribution={stats.tavern_up} /> : null}
-      compositions={stats.compositions?.length || stats.best_composition?.lineup?.length || stats.best_composition?.final_form_minions?.length
-        ? <HeroCompositionAnalytics best={stats.best_composition} compositions={stats.compositions} cards={analyticsCards} /> : null}
-    />
-  );
-}
-
 /**
  * The hero detail page over an already loaded payload: no requests and no document meta,
- * so the same markup can be rendered from open data on the server.
+ * so the same markup can be rendered from open data on the server. `statistics` draws the statistics block
+ * (the subscriber's analytics, or the open figures with locks), so the analytics code stays out of the open page.
  */
-export function BattlegroundHeroDetailView({ dbfId, stats, libraryHero: loadedLibraryHero, cards, onNavigate }: {
+export function BattlegroundHeroDetailView({ dbfId, stats, libraryHero: loadedLibraryHero, cards, onNavigate, statistics }: {
   dbfId: string;
   stats: BattlegroundHeroDetailStats;
   libraryHero?: BattlegroundHeroDetailLibraryHero | null;
   cards?: Record<string, HeroAnalyticsCard> | null;
   onNavigate: (path: string) => void;
+  statistics: (input: BattlegroundHeroStatisticsInput) => ReactNode;
 }) {
   const [lightboxItems, setLightboxItems] = useState<BattlegroundHeroMediaItem[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(-1);
@@ -113,7 +100,7 @@ export function BattlegroundHeroDetailView({ dbfId, stats, libraryHero: loadedLi
 
       <BattlegroundHeroProfileInfo heroName={heroName} libraryHero={libraryHero} />
 
-      <BattlegroundHeroDetailStatistics stats={stats} hero={hero} analyticsCards={analyticsCards} />
+      {statistics({ stats, hero, analyticsCards })}
 
       {patchEntries.length > 0 && (
         <section id="hero-patches" className="bg-hero-ledger-panel bg-hero-section" aria-labelledby="hero-patches-title">

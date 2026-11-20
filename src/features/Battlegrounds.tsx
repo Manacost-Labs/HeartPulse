@@ -24,6 +24,7 @@ import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
 import { publicResourceUrl } from '../publicResourceUrl';
 import { preferredBattlegroundGoldenBuddyImage } from '../modules/battlegrounds/public';
 import { BattlegroundHeroDetailView } from './BattlegroundHeroDetailView';
+import { BattlegroundHeroDetailAnalytics } from './BattlegroundHeroDetailAnalytics';
 import { BG_FALLBACK_ICON, bgHeroDetailPortrait } from './battlegroundHeroDetailMedia';
 import { BattlegroundHeroDetailSkeleton, BattlegroundLoadError, type BattlegroundHeroTeaser } from './BattlegroundsSkeletons';
 import { BattlegroundTierList } from './BattlegroundTierList';
@@ -650,7 +651,8 @@ function BattlegroundHeroDetailPage({ dbfId, onNavigate, teaser }: { dbfId: stri
     );
   }
 
-  return <BattlegroundHeroDetailView dbfId={dbfId} stats={payload.stats} libraryHero={payload.libraryHero} cards={payload.cards} onNavigate={onNavigate} />;
+  return <BattlegroundHeroDetailView dbfId={dbfId} stats={payload.stats} libraryHero={payload.libraryHero} cards={payload.cards}
+    onNavigate={onNavigate} statistics={input => <BattlegroundHeroDetailAnalytics {...input} />} />;
 }
 
 /** `teaser` is the public identity the server page already rendered; it seeds the detail while statistics load. */

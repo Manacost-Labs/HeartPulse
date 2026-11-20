@@ -8,7 +8,7 @@
   line-height: 1.35;
 }
 
-.bg-hero-public h2 {
+.bg-hero-public h3 {
   margin: 0 0 0.35rem;
   color: var(--arena-red);
   font-family: var(--font-hs);
@@ -49,4 +49,9 @@
   color: inherit;
   font: inherit;
   cursor: pointer;
+}
+
+/* A paid analytics view of a guest's statistics tab: the lock stands where the view would be. */
+.bg-hero-open-lock {
+  margin: 0.75rem 0 0;
 }

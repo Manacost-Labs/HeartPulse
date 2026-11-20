@@ -31,8 +31,22 @@ stats: {
     duos: { tier: 'A', avgPlacement: 3.9, top4Rate: null, pickRate: 9.8, bestComposition: null, keyMinions: [],
       rank: 14, of: 108, compositions: [{ name: 'SENTINEL_COMPOSITION_METRICS' }], history: ['SENTINEL_PATCH_HISTORY'] },
   },
+},
+// The open profile (game content of the hero library, #651), with a closed mark in an extra field at every level.
+profile: {
+  artist: 'Художник QA', race: 'Gnome', health: 30, armor: { normal: 5, duos: 3 }, description: 'A hero of the QA fixture.',
+  fullArt: 'https://hearthpulse.net/assets/og-preview.png', privateMetric: 'SENTINEL_PROFILE_EXTRA',
+  buddy: { name: 'Компаньон QA', text: 'Провокация.', image: 'https://hearthpulse.net/assets/og-preview.png', imageGold: null,
+    winrate: 'SENTINEL_BUDDY_WINRATE',
+    golden: { name: 'Компаньон QA', text: 'Провокация, дважды.', image: 'https://hearthpulse.net/assets/og-preview.png', imageGold: null } },
+  skins: [{ cardId: 'TB_BaconShop_HERO_16_SKIN_A', title: 'Скин QA', image: 'https://hearthpulse.net/assets/og-preview.png',
+    url: 'https://hearthstone.wiki.gg/wiki/Skin_QA', popularity: 'SENTINEL_SKIN_POPULARITY' }],
+  links: [{ label: 'Hearthstone Wiki', url: 'https://hearthstone.wiki.gg/wiki/Battlegrounds/A._F._Kay' }],
+  patches: [{ heading: 'Balance changes', entries: [{ date: '2025-01-01', patch: 'Patch 31.2.0.1', patch_url: null, wiki_url: null,
+    items: ['Now has 5 armor (previously: 7).'], placement: 'SENTINEL_PATCH_PLACEMENT' }] }],
 } };
-const CLOSED_MARKS = ['PRIVATE_HERO_STATISTICS', 'SENTINEL_TOP_1_PERCENT', 'SENTINEL_PLACE', 'SENTINEL_ADJUSTED', 'SENTINEL_COMPOSITION_METRICS', 'SENTINEL_PATCH_HISTORY'];
+const CLOSED_MARKS = ['PRIVATE_HERO_STATISTICS', 'SENTINEL_TOP_1_PERCENT', 'SENTINEL_PLACE', 'SENTINEL_ADJUSTED', 'SENTINEL_COMPOSITION_METRICS',
+  'SENTINEL_PATCH_HISTORY', 'SENTINEL_PROFILE_EXTRA', 'SENTINEL_BUDDY_WINRATE', 'SENTINEL_SKIN_POPULARITY', 'SENTINEL_PATCH_PLACEMENT'];
 
 test('Next hero detail renders a safe teaser and real 404 without guest statistics requests', async () => {
   let publicCalls = 0;
@@ -97,8 +111,13 @@ test('Next hero detail renders a safe teaser and real 404 without guest statisti
         canonical: document.querySelector('link[rel=canonical]')?.href,
         h1: [...document.querySelectorAll('h1')].map(node => node.textContent?.trim()),
         main: document.querySelectorAll('main').length,
-        sections: [...document.querySelectorAll('.bg-hero-public h2')].map(node => node.textContent?.trim()),
-        lock: Boolean(document.querySelector('.paywalled-hero button')),
+        sections: [...document.querySelectorAll('.bg-hero-public h3')].map(node => node.textContent?.trim()),
+        // The subscriber's view (#651): reliquary, statistics tabs, patches, skins, gallery — on open data.
+        blocks: ['.bg-hero-reliquary', '.bg-hero-statistics [role=tablist]', '#hero-patches', '.bg-hero-skins']
+          .filter(selector => document.querySelector(selector)),
+        tabs: [...document.querySelectorAll('.bg-hero-statistics [role=tab]')].map(node => node.textContent?.trim()),
+        locks: document.querySelectorAll('button.paid-lock.paywalled-hero').length,
+        lock: Boolean(document.querySelector('button.paywalled-hero')),
         overflow: document.documentElement.scrollWidth > innerWidth,
         violations: (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } }))
           .violations.map(violation => violation.id),
@@ -110,13 +129,17 @@ test('Next hero detail renders a safe teaser and real 404 without guest statisti
       assert.equal(state.canonical, 'https://hearthpulse.net/heroes/57944/');
       for (const mark of CLOSED_MARKS) assert.equal(state.html.includes(mark), false, `${mark} reached the guest's DOM (HTML or RSC payload)`);
       // The open statistics are the page's content, there without waiting for a script, and nothing shifts.
-      assert.deepEqual(state.sections, ['Сила героя', 'Статистика героя — Соло', 'Статистика героя — Дуо']);
+      assert.deepEqual(state.sections, ['Статистика героя — Соло', 'Статистика героя — Дуо']);
+      assert.deepEqual(state.blocks, ['.bg-hero-reliquary', '.bg-hero-statistics [role=tablist]', '#hero-patches', '.bg-hero-skins']);
+      assert.deepEqual(state.tabs, ['Обзор', 'Сила героя', 'Таверна', 'Составы']);
+      assert.equal(state.locks, 4, 'one lock per paid analytics view, in its tab');
       assert.equal(state.lock, true, 'the paid part is a lock button, not data');
     }
     assert.deepEqual(errors, []); assert.deepEqual(failed, []); assert.deepEqual(protectedCalls, []);
     // The raw server HTML (what a robot reads): data, one JSON-LD with the closed part named, no closed value anywhere.
     const raw = await (await fetch(`${origin}/heroes/57944/`)).text();
-    for (const text of ['Тир', 'Среднее место', '3,57', '61,4%', 'Нежить', 'Падальщик, Скелет', '2 из 110', 'HSReplay', 'Прокрастинация']) {
+    for (const text of ['Тир', 'Среднее место', '3,57', '61,4%', 'Нежить', 'Падальщик, Скелет', '2 из 110', 'HSReplay', 'Прокрастинация',
+      'Компаньон QA', 'Скин QA', 'Художник QA', 'Изменения по патчам']) {
       assert.ok(raw.includes(text), `the server HTML has «${text}»`);
     }
     assert.match(raw, /content="index, follow/);
@@ -125,7 +148,11 @@ test('Next hero detail renders a safe teaser and real 404 without guest statisti
     const dataset = rawGraph.find(node => node['@type'] === 'Dataset');
     assert.equal(dataset.isAccessibleForFree, false);
     assert.deepEqual(dataset.hasPart, { '@type': 'WebPageElement', isAccessibleForFree: false, cssSelector: '.paywalled-hero' });
-    assert.ok(raw.includes('class="paywalled-hero"'), 'the selector names a real element');
+    assert.match(raw, /class="[^"]*\bpaywalled-hero\b/, 'the selector names a real element');
+    // A robot reads the guest's page: the same markup outside scripts.
+    const markup = html => html.replace(/<script\b[\s\S]*?<\/script>/g, '');
+    const robot = await (await fetch(`${origin}/heroes/57944/`, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' } })).text();
+    assert.equal(markup(robot), markup(raw), 'the robot gets the guest HTML');
     assert.equal(JSON.stringify(rawGraph).includes('SENTINEL'), false);
     const callsBeforeSpoof = publicCalls;
     const spoofed = await fetch(`${origin}/heroes/57944/`, { headers: {

@@ -5,12 +5,10 @@ import {
   type PublicBattlegroundHeroModeStats, type PublicBattlegroundHeroStats,
 } from '@/apps/public-web/lib/publicBattlegroundHeroStats';
 
-type HeroPower = { name: string; text: string | null };
-
 function ModeStats({ mode, stats, id }: { mode: 'solo' | 'duos'; stats: PublicBattlegroundHeroModeStats; id: string }) {
   const label = heroStatsModeLabel(mode);
   return <section id={id} aria-labelledby={`${id}-title`}>
-    <h2 id={`${id}-title`}>{`Статистика героя — ${label}`}</h2>
+    <h3 id={`${id}-title`}>{`Статистика героя — ${label}`}</h3>
     <dl className="bg-hero-public__grid">
       <div><dt>Тир</dt><dd>{stats.tier}</dd></div>
       <div><dt>Среднее место</dt><dd>{formatHeroFigure(stats.avgPlacement, 2)}</dd></div>
@@ -25,27 +23,20 @@ function ModeStats({ mode, stats, id }: { mode: 'solo' | 'duos'; stats: PublicBa
 }
 
 /**
- * What a guest and a robot get on `/heroes/<id>/` in the server HTML: tier, average place, top-4 share, pick
+ * The open figures of a hero in the «Обзор» tab of a guest's statistics block: tier, average place, top-4 share, pick
  * rate, place in the ranking, best build and key minions of the base range («Топ 50%») for solo and duos, with the
- * date and source of the data. The same markup for everyone; the closed part (other rating ranges, placement
- * distribution, builds with metrics, patch history) lives in `.paywalled-hero` (see the page's JSON-LD).
+ * date and source of the data. The same markup for a guest and a robot, rendered on the server.
  */
-export function BattlegroundHeroPublicStats({ stats, heroPower }: {
-  stats: PublicBattlegroundHeroStats | null; heroPower: HeroPower | null;
-}) {
-  const date = stats ? seoDataDate(stats.updatedAt, Date.now()) : null;
+export function BattlegroundHeroPublicStats({ stats }: { stats: PublicBattlegroundHeroStats }) {
+  const date = seoDataDate(stats.updatedAt, Date.now());
   return <div className="bg-hero-public">
-    {heroPower ? <section id="hero-power" aria-labelledby="hero-power-title">
-      <h2 id="hero-power-title">Сила героя</h2>
-      <p><strong>{heroPower.name}</strong>{heroPower.text ? `: ${heroPower.text}` : ''}</p>
-    </section> : null}
-    {stats ? HERO_STATS_MODES.map(mode => {
+    {HERO_STATS_MODES.map(mode => {
       const values = stats.modes[mode];
       return values ? <ModeStats key={mode} mode={mode} id={`hero-${mode}`} stats={values} /> : null;
-    }) : null}
-    {stats ? <p>
+    })}
+    <p>
       {date ? <>Данные на <time dateTime={date.iso}>{`${date.date}, ${date.time} МСК`}</time></> : 'Дата обновления неизвестна'}
       {`${stats.source ? ` · источник ${stats.source}` : ''} · рейтинг «Топ 50%».`}
-    </p> : null}
+    </p>
   </div>;
 }
