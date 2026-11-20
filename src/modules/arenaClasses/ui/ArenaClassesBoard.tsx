@@ -70,7 +70,7 @@ export function ArenaClassesBoard({ state, onRetry }: {
                       boxShadow: 'inset 0 3px 8px rgba(0,0,0,0.85), inset 0 -1px 2px rgba(255,255,255,0.05)',
                       border: '1.5px solid #0a0502',
                     }}>
-                    <WinrateMeterFill color={cls.color} order={index} label={`${cls.winrate.toFixed(1)}%`} scale={barPct / 100} />
+                    <WinrateMeterFill color={cls.color} order={index} label={`${cls.winrate.toFixed(1).replace('.', ',')}%`} scale={barPct / 100} />
                   </div>
 
                   {(cls.games ?? 0) > 0 && (

@@ -97,7 +97,7 @@ test('the guest HTML of /classes/ carries the open order of the classes and noth
       sample: item.match(/>([\d\s\u00a0]+)(?:<!-- -->)? (?:<!-- -->)?забегов<\/span>/)?.[1].replace(/[\s\u00a0]/g, ''),
     }));
     assert.deepEqual(rows, OPEN_ROWS.map(row => ({
-      place: row.place, name: row.name, winrate: `${row.winrate.toFixed(1)}%`, sample: String(row.sample),
+      place: row.place, name: row.name, winrate: `${row.winrate.toFixed(1).replace('.', ',')}%`, sample: String(row.sample),
     })), 'all eleven classes in order, as the subscriber board writes them');
     assert.match(html, /Данные на <time dateTime="2026-11-15T17:00:03\.639Z">15 ноября 2026, 20:00 МСК<\/time>(?:<!-- -->)? · источник HSReplay<\/p>/, 'date and source, and no explanatory sentence');
     assert.ok(html.indexOf('<h1') < start, 'the ranking stands right after the H1: it is the page content, not a block below it');

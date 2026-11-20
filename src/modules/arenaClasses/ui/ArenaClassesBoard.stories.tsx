@@ -23,7 +23,7 @@ type Story = StoryObj<typeof meta>;
 export const Ready: Story = {
   play: async ({ canvas, args }) => {
     await expect(canvas.getByRole('list', { name: 'Рейтинг классов' })).toBeVisible();
-    await expect(canvas.getByText('51.2%')).toBeVisible();
+    await expect(canvas.getByText('51,2%')).toBeVisible();
     await expect(canvas.queryByRole('button', { name: 'Повторить загрузку' })).not.toBeInTheDocument();
     await expect(args.onRetry).not.toHaveBeenCalled();
   },
@@ -66,7 +66,7 @@ export const Stale: Story = {
   args: { state: { status: 'stale', data } },
   play: async ({ canvas, args }) => {
     await expect(canvas.queryByRole('status')).not.toBeInTheDocument();
-    await expect(canvas.getByText('51.2%')).toBeVisible();
+    await expect(canvas.getByText('51,2%')).toBeVisible();
     await expect(canvas.queryByRole('button', { name: 'Повторить загрузку' })).not.toBeInTheDocument();
     await expect(args.onRetry).not.toHaveBeenCalled();
   },
@@ -75,7 +75,7 @@ export const Stale: Story = {
 export const ZeroWinrate: Story = {
   args: { state: { status: 'ready', data: { ...data, classes: [{ ...data.classes[0], winrate: 0, games: 0 }] } } },
   play: async ({ canvas, canvasElement }) => {
-    await expect(canvas.getByText('0.0%')).toBeVisible();
+    await expect(canvas.getByText('0,0%')).toBeVisible();
     await expect(canvasElement.querySelector('.arena-class-meter-fill')?.getBoundingClientRect().width).toBe(0);
   },
 };
