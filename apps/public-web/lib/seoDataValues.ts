@@ -1,5 +1,7 @@
 import type { ArchetypeCatalog, ArchetypeDetail } from '@/src/features/ConstructedArchetypes';
 import type { LegendariesData } from '@/src/modules/arenaLegendaries/public';
+import type { PatchNotesDetail } from '@/src/modules/patchNotes/public';
+import { PUBLIC_STANDARD_MATCHUPS_HTML_LIMIT, type PublicStandardMatchups } from '@/src/modules/standardMatchups/public';
 import { standardMetaPeriodLabel } from '@/src/features/standardMetaFilterModel';
 import type { StandardMetaTeaserSeed } from '@/src/features/standardMetaTeaser';
 import { renderSeoDataTemplate, type SeoDataValues } from '@/src/seo/dataTemplate';
@@ -203,4 +205,34 @@ export function battlegroundBuildsSeoValues(data: PublicBattlegroundBuilds | nul
   const tribes = [...new Set(data.builds.filter(build => build.tier === 'S')
     .map(build => build.title.split(':')[0].trim()).filter(Boolean))];
   return { ...seoDateValues(date), leader: tribes.length > 0 ? tribes.join(', ') : null };
+}
+
+// ── Standard matchups and patch notes (#540) ──
+
+/**
+ * `/standard/matchups`: the date and the number of archetypes the server HTML prints. The slice's total
+ * of games is not printed on the page, so the snippet does not carry it.
+ */
+export function standardMatchupsSeoValues(data: PublicStandardMatchups | null, now: number): SeoDataValues | null {
+  const date = data && seoDataDate(data.updatedAt, now);
+  if (!data || !date || data.format !== 'standard' || data.archetypes.length === 0) return null;
+  const shown = Math.min(data.archetypes.length, PUBLIC_STANDARD_MATCHUPS_HTML_LIMIT);
+  return {
+    ...seoDateValues(date),
+    items: `${shown} ${pluralRu(shown, 'популярного архетипа', 'популярных архетипов', 'популярных архетипов')}`,
+  };
+}
+
+/**
+ * `/standard/patches`: the version the page shows first (the newest, or the one of `?version=`), its
+ * release date and the number of changes. The date is the patch's own `publishedAt`, never the request time.
+ */
+export function patchNotesSeoValues(patches: readonly PatchNotesDetail[] | null, now: number): SeoDataValues | null {
+  const patch = patches?.[0];
+  if (!patch?.version) return null;
+  return {
+    patch: patch.version,
+    released: seoDataDate(patch.publishedAt, now)?.date ?? null,
+    items: patch.changeCount > 0 ? count(patch.changeCount, 'изменение', 'изменения', 'изменений') : null,
+  };
 }

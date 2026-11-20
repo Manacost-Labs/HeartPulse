@@ -13,8 +13,10 @@ import { assertSeoDataTemplate, renderSeoDataTemplate, type SeoDataValues } from
  * - `format`: the catalog's format in the genitive case, «Стандарта»
  * - `items`: a counted list of the page, «1 218 карт», «116 героев», «33 сборки»
  * - `games`: the sample the page prints, «более 53 000 игр»
+ * - `patch`: a game version, «37.0.2»
+ * - `released`: the release date of that version, «3 ноября 2026»
  */
-export const SEO_DATA_TOKENS = ['month', 'asOf', 'leader', 'archetypes', 'format', 'items', 'games'] as const;
+export const SEO_DATA_TOKENS = ['month', 'asOf', 'leader', 'archetypes', 'format', 'items', 'games', 'patch', 'released'] as const;
 
 export type PublicSeoPage = {
   pathname: string;

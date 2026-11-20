@@ -4,6 +4,7 @@ import { StandardMatchupsPageClient } from '@/apps/public-web/ui/StandardMatchup
 import { PageBannerPreload } from '@/apps/public-web/ui/PageBannerPreload';
 import { loadPublicStandardMatchups } from '@/apps/public-web/lib/publicStandardMatchups';
 import { seoStaticPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
+import { standardMatchupsSeoValues } from '@/apps/public-web/lib/seoDataValues';
 import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 
 // Prerendered and cheap to prefetch: the open general slice of the matrix (all ranks, the most played
@@ -11,7 +12,8 @@ import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 // The ranks, periods and history load in the browser for a subscriber only. nginx sends query robots
 // as X-Robots-Tag. Regeneration picks up runtime switches and a recovered Express.
 export const revalidate = 300;
-export const generateMetadata = seoStaticPageMetadata('/standard/matchups', 'HearthPulse — матчапы Стандарта');
+export const generateMetadata = seoStaticPageMetadata('/standard/matchups', 'HearthPulse — матчапы Стандарта',
+  async () => standardMatchupsSeoValues(await loadPublicStandardMatchups(), Date.now()));
 
 export default async function Page() {
   const initial = await loadPublicStandardMatchups();

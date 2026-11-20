@@ -47,6 +47,8 @@
       "navigationRouteId": "standard-matchups",
       "title": "Матчапы Стандарта Hearthstone {year} | HearthPulse",
       "description": "Матрица матчапов актуальной меты Стандарта Hearthstone по данным HSGuru: винрейты архетипов против друг друга для Легенды и Алмаза 4-1.",
+      "dataTitle": "Матчапы Hearthstone: винрейты колод, {month}[ | HearthPulse]",
+      "dataDescription": "Матрица матчапов Стандарта Hearthstone (хс){asOf}: винрейт {items} против каждого. Все ранги, данные HSGuru.",
       "sitemap": true
     },
     "/standard/meta": {
@@ -100,6 +102,8 @@
       "navigationRouteId": "patch-notes",
       "title": "Патчноуты Hearthstone {year}: изменения карт | HearthPulse",
       "description": "Изменения карт Hearthstone в каждом патче: было → стало, усиления и ослабления по классам, Поля сражений и архив обновлений.",
+      "dataTitle": "Патч Hearthstone {patch}: изменения карт[ | HearthPulse]",
+      "dataDescription": "Патч {patch} Hearthstone (хс)[ вышел {released}][: {items}]. Что усилили и ослабили — карты было → стало по классам, Поля сражений и архив патчей.",
       "sitemap": true
     },
     "/classes": {
