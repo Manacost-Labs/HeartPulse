@@ -22,7 +22,7 @@ const ROBOT_UA = 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com
 const PAGES = [
   { path: '/standard/meta/', marker: 'standard-meta__results', text: 'Стандартный архетип 3' },
   { path: '/standard/meta/wild/', marker: 'standard-meta__results', text: 'Вольный архетип 3' },
-  { path: '/standard/matchups/', marker: 'standard-matchups-open__matrix', text: 'Открытый архетип 1<' },
+  { path: '/standard/matchups/', marker: 'ui-matchup-matrix__grid', text: 'Открытый архетип 1<' },
 ];
 
 const metaRows = format => Array.from({ length: 8 }, (_, index) => ({
@@ -154,7 +154,7 @@ test('the deploy warm-up leaves Next itself with the data, whatever the public a
   const express = await startExpress();
   // The edge still holds the copy of the release before, with the data: a check made there proves nothing about Next.
   const edge = createServer((_request, response) => response.writeHead(200, { 'Content-Type': 'text/html' })
-    .end('<main><div class="standard-meta__results standard-matchups-open__matrix"></div></main>'));
+    .end('<main><div class="standard-meta__results ui-matchup-matrix__grid"></div></main>'));
   edge.listen(0, '127.0.0.1');
   await once(edge, 'listening');
   // Express is busy for the first seconds after the restart, as on the host: the first revalidation finds no source.
