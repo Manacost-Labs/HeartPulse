@@ -162,7 +162,7 @@ esac
   const [run] = readdirSync(join(warmState, 'eu-london/runs'));
   const listed = ['fast.txt', 'media.txt']
     .flatMap(file => readFileSync(join(warmState, 'eu-london/runs', run, file), 'utf8').trim().split('\n'))
-    .map(line => line.replace('\t', ''))
+    .map(line => line.replaceAll('\t', ''))
     .sort();
   assert.deepEqual(listed, [
     'hearthpulse.net/api/public-resource/db/uploads/art/BG28_300.jpg?width=96',
