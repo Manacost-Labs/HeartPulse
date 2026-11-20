@@ -41,6 +41,8 @@ test('paths collapse to their page template, never to raw ids', () => {
     ['/standard/cards/standard/', '/standard/cards/[format]/'],
     ['/standard/cards/standard/CARD_QA_0002/', '/standard/cards/[format]/[cardId]/'],
     ['/standard/meta/wild/odd-warrior/', '/standard/meta/[format]/[archetypeSlug]/'],
+    ['/standard/meta/wild', '/standard/meta/wild/'],
+    ['/standard/matchups/wild/', '/standard/matchups/wild/'],
     ['/heroes/57421/', '/heroes/[dbfId]/'],
     ['/archetypes/wild/', '/archetypes/wild/'],
     ['/archetypes/123/', '/archetypes/[archetypeId]/'],
