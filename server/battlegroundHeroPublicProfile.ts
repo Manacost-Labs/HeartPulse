@@ -3,7 +3,6 @@ import { DEFAULT_HS_DATA_API_ORIGIN } from './hsDataApiOrigin.js';
 
 type JsonRecord = Record<string, unknown>;
 
-/** Hosts a hero's outbound links may point to: the wiki and the card databases the library names. */
 /**
  * The hero library (`/heroes?dbf=`): the kolodahearthstone API root the subscriber's library proxy reads
  * (`KOLODAHS_API_BASE_URL`); `HS_DATA_API_BASE_URL` may be a loopback upstream without the hero library.
@@ -11,6 +10,7 @@ type JsonRecord = Record<string, unknown>;
 export const heroLibraryUrl = (dbfId: string | number) =>
   `${(process.env.KOLODAHS_API_BASE_URL || `${DEFAULT_HS_DATA_API_ORIGIN}/api/v1`).replace(/\/+$/, '')}/heroes?dbf=${dbfId}`;
 
+/** Hosts a hero's outbound links may point to: the wiki and the card databases the library names. */
 const LINK_HOSTS = new Set(['hearthstone.wiki.gg', 'hsreplay.net', 'www.hearthpwn.com', 'hearthpwn.com']);
 const PROFILE_TTL_MS = 10 * 60_000;
 const FAILURE_PAUSE_MS = 60_000;
