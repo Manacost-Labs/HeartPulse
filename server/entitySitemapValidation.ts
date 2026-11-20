@@ -14,8 +14,8 @@ const LASTMOD_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 // Editorial segments key by URL slug rather than a card ID; both stay URL-safe.
 const COSMETICS_KEY_PATTERN = /^(?:heroes|coins|pets)\/[A-Za-z0-9_-]{1,100}$/;
 const GUIDE_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._~-]{0,159}$/;
-// Archetype pages are keyed by their slug, exactly as the page route accepts it.
-const ARCHETYPE_KEY_PATTERN = /^[a-z0-9-]{1,90}$/;
+// Archetype pages are keyed by their slug, exactly as the page route accepts it; a Wild page by `wild/<slug>` (#637).
+const ARCHETYPE_KEY_PATTERN = /^(?:wild\/)?[a-z0-9-]{1,90}$/;
 // A static page is keyed by its canonical path: `/`, or segments that end in a slash.
 const STATIC_PAGE_KEY_PATTERN = /^(?:\/|(?:\/[a-z0-9_-]{1,60}){1,6}\/)$/;
 
@@ -61,7 +61,9 @@ function entryPathIsValid(pathname: string, key: string, segment: SitemapSegment
   if (segment === 'battleground-heroes') return pathname === `/heroes/${key}/`;
   if (segment === 'cosmetics') return pathname === `/cosmetics/${key}/`;
   if (segment === 'guides-archive') return pathname === `/guides-archive/${key}/`;
-  if (segment === 'archetypes') return pathname === `/standard/archetypes/standard/${key}/`;
+  if (segment === 'archetypes') {
+    return pathname === (key.startsWith('wild/') ? `/standard/archetypes/${key}/` : `/standard/archetypes/standard/${key}/`);
+  }
   if (segment === 'static-pages') return pathname === key;
   const libraryKind = segment === 'battleground-minions' ? 'minions' : 'spells';
   return pathname.startsWith(`/library/${libraryKind}/`)

@@ -217,10 +217,13 @@ indexable.
   `/standard/archetypes/wild/` and without the Standard list's JSON-LD (a
   server 301 to the new address, as `/standard/meta/?format=wild` gets in E21,
   is SEO-A's decision). nginx adds the slash with one `301` (on the old hosts too,
-  `$arena_canonical_edge_path`). Until SEO-A opens it, the list is
-  `noindex, follow`, has no canonical and no JSON-LD and stays out of the
-  sitemap (`canonicalPolicy: none`, `sitemap: false`); the archetypes segment
-  still lists Standard pages only.
+  `$arena_canonical_edge_path`). Since #637 the list is indexable
+  (`index`, `canonicalPolicy: self`, `sitemap: true`): self-canonical
+  `https://hearthpulse.net/standard/archetypes/wild/`, in `static.xml`, with
+  the JSON-LD of `config/public-seo-structured-data.json` (`BreadcrumbList`
+  «Главная › Вольный формат › Архетипы» and a `Dataset` on HSGuru with winrate,
+  popularity and games, dated by the Wild catalog), and the archetypes segment
+  lists its strong Wild pages. The hub `/wild/` links it as «Архетипы».
 - Every archetype page, indexable or not, renders the server-side block
   (`apps/public-web/ui/ArchetypeSeoSummary.tsx`, passed to
   `ArchetypeDetailPageClient` as `children`, so the client bundle only grows by
@@ -249,8 +252,8 @@ indexable.
   (`src/seo/archetypeStructuredData.ts`) through the same finishing step as the
   registry pages (`seoStructuredDataGraphOf`): `Organization` `#org`,
   `BreadcrumbList` («Архетипы» › the archetype; the format step of the visible
-  trail is left out: Standard's has no address of its own and Wild's list is
-  `noindex` until SEO-A opens it), `ItemPage` (title and
+  trail is left out: Standard's has no address of its own, and the Wild step
+  is left out the same way; #637 did not change this graph), `ItemPage` (title and
   description of the meta, `dateModified` = `updatedAt`) and `Dataset`
   (`isBasedOn` = the teaser's HSGuru `sourceUrl`; `variableMeasured` carries
   the teaser's winrate, popularity and games as they are, a metric the source
@@ -266,7 +269,27 @@ indexable.
 `https://hearthpulse.net/standard/archetypes/standard/<slug>/` of the Standard
 archetypes that pass `isIndexableArchetype` (about 77 of 240 at the
 2026-11-16 catalog: 76 of the 199 archetypes of the current patch window
-`patch_37.0.2` plus one that only the Bans window lists) and nothing else.
+`patch_37.0.2` plus one that only the Bans window lists; 78 on production on
+2026-11-20) and, since #637,
+`https://hearthpulse.net/standard/archetypes/wild/<slug>/` of the Wild
+archetypes that pass the same rule with the Wild threshold of 5000 games
+(about 48 on 2026-11-20), and nothing else.
+
+- **Two formats.** `createEntitySitemapRuntimeOptions` reads the windows of
+  both formats (`loadCatalogs('standard')` and `loadCatalogs('wild')`, both
+  `loadArchetypeCatalogWindows`), and `selectIndexableArchetypeRows(windows,
+  format)` judges each format in its own windows only: every window must be of
+  that format (otherwise the candidate is rejected), and a row of the other
+  format inside them is no page of that list and is skipped. A store entry of a
+  Standard page is keyed by its slug, exactly as before #637, so the Standard
+  part of the segment and its `lastmod` days did not change; a Wild page is
+  keyed `wild/<slug>`. One slug in both formats is therefore two pages and two
+  entries, never merged; duplicates are removed per format and slug. Either
+  format failing to load rejects the whole candidate (the last good segment,
+  with its Wild pages, stays). In `static.xml` the Standard list
+  `/standard/archetypes/` is dated by the Standard pages of the segment only,
+  the Wild list `/standard/archetypes/wild/` by the Wild ones
+  (`STATIC_PAGE_LISTINGS` in `server/entitySitemapComposite.ts`).
 
 - **Source.** The windows the archetype pages read, in the order the page
   looks a slug up (`loadArchetypeCatalogWindows` in
@@ -297,14 +320,16 @@ archetypes that pass `isIndexableArchetype` (about 77 of 240 at the
   candidate is rejected.
 - **Guard against empty and truncated candidates.** The segment has a floor,
   `SITEMAP_ARCHETYPES_MIN` (default 30, integer 1–50000). A candidate below it,
-  an empty one, a catalog that is not Standard or an unreadable one leaves the
+  an empty one, a window of another format than the one asked for, or an
+  unreadable catalog of either format leaves the
   last good segment (`X-Sitemap-Source: last-known-good`); with no good segment
   yet the answer is `503` with `Retry-After`. The relative guard that protects
   the other segments (a candidate below 90% of the last good count is
   rejected) is **off** here: the number of indexable archetypes follows the
   catalog's period and moves by far more than a tenth (77 can become 40 after
   a patch and grow back), and that is a change of the data, not a truncation.
-  The floor is the only count guard, so after a patch that leaves fewer than
+  The floor counts Standard and Wild pages together and is the only count
+  guard, so after a patch that leaves fewer than
   30 archetypes above the games threshold the segment stays on its last good
   state until enough of them cross it; lower the floor then rather than
   disabling the check.
@@ -315,8 +340,8 @@ archetypes that pass `isIndexableArchetype` (about 77 of 240 at the
   page: the sitemap document cache (10 minutes by default, 5–15) plus the
   catalog cache (5 minutes).
 - **Monitor** (`scripts/production-monitor.mjs`, `docs/runbooks/production-monitor.md`):
-  the exact index, at least 30 unique URLs of the `archetypes` pattern with no
-  query, SHA-256 `ETag`, `X-Sitemap-Source`, then five URLs spread over the
+  the exact index, at least 30 unique URLs of the `archetypes` pattern
+  (`/standard/archetypes/standard|wild/<slug>/`) with no query, SHA-256 `ETag`, `X-Sitemap-Source`, then five URLs spread over the
   list: `200`, no `noindex` in `X-Robots-Tag`, one H1, meta `index`, canonical
   equal to the `loc`, and a JSON-LD block that describes that URL.
 - nginx needs no change: `location ^~ /sitemaps/` already proxies every

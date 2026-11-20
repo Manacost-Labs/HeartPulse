@@ -264,6 +264,20 @@ assert.deepEqual(archetypes.map(entry => [entry.key, entry.location, entry.dataD
   ['pure-paladin', 'https://hearthpulse.net/standard/archetypes/standard/pure-paladin/', '2026-10-29'],
 ], 'the entry is the canonical archetypes family and carries the day of the catalog data');
 assert.ok(archetypes.every(entry => /^[a-f0-9]{64}$/.test(entry.semanticHash)));
+
+// Wild (#637): a strong Wild archetype is a Wild page; one slug in both formats is two pages with two keys.
+const wildDay = { updatedAt: '2026-10-28T09:00:00+00:00' };
+const bothFormats = projectConstructedArchetypeSitemapCatalog([
+  archetypeRow(),
+  archetypeRow({ format: 'wild', games: 5_000 }, wildDay),
+  archetypeRow({ slug: 'big-priest', archetype: 'Big Priest', archetypeLabel: 'Big-жрец', format: 'wild', games: 20_000 }, wildDay),
+], 'https://hearthpulse.net');
+assert.deepEqual(bothFormats.map(entry => [entry.key, entry.location, entry.dataDate]), [
+  ['pure-paladin', 'https://hearthpulse.net/standard/archetypes/standard/pure-paladin/', '2026-10-29'],
+  ['wild/big-priest', 'https://hearthpulse.net/standard/archetypes/wild/big-priest/', '2026-10-28'],
+  ['wild/pure-paladin', 'https://hearthpulse.net/standard/archetypes/wild/pure-paladin/', '2026-10-28'],
+], 'a Wild entry is the Wild page, dated by the Wild catalog');
+assert.deepEqual(bothFormats[0], archetypes[1], 'the Standard entry of a slug is the same whether Wild lists the slug or not');
 assert.doesNotMatch(JSON.stringify(archetypes), /QA_PRIVATE|deckCode|builds/,
   'builds and deck codes never reach the sitemap projection');
 
@@ -284,7 +298,8 @@ assert.notEqual(archetypeHash({}, { period: 'patch_37.0.1' }), baseArchetypeHash
 
 for (const [label, row] of [
   ['a weak archetype', archetypeRow({ games: 999 })],
-  ['a Wild archetype', archetypeRow({ format: 'wild' })],
+  ['a Wild archetype under its 5000 games', archetypeRow({ format: 'wild', games: 4_999 })],
+  ['an archetype of another format', archetypeRow({ format: 'classic' })],
   ['an archetype without builds', archetypeRow({ deckCount: 0 })],
   ['an archetype nobody plays', archetypeRow({ popularity: 0 })],
   ['a slug the page route rejects', archetypeRow({ slug: 'Pure Paladin' })],

@@ -187,12 +187,14 @@ function catalogDataDay(updatedAt: unknown): string {
 }
 
 /**
- * Sitemap entries of the Standard archetype pages that are indexable. The rows
- * come filtered by `isIndexableArchetype`; a row the rule keeps out is a wiring
- * mistake, and the whole candidate is rejected instead of listing a `noindex`
- * page. The semantic hash covers what the page prints of the archetype (names,
- * numbers, period), so `lastmod` moves with the catalog's data date only when
- * one of them changed. Builds, deck codes and history are not read.
+ * Sitemap entries of the Standard and Wild archetype pages that are indexable.
+ * The rows come filtered by `isIndexableArchetype`; a row the rule keeps out is
+ * a wiring mistake, and the whole candidate is rejected instead of listing a
+ * `noindex` page. A Standard page is keyed by its slug (as before #637), a Wild
+ * one by `wild/<slug>`: one slug in both formats is two pages. The semantic
+ * hash covers what the page prints of the archetype (names, numbers, period),
+ * so `lastmod` moves with the catalog's data date only when one of them
+ * changed. Builds, deck codes and history are not read.
  */
 export function projectConstructedArchetypeSitemapCatalog(
   rows: unknown[],
@@ -205,8 +207,8 @@ export function projectConstructedArchetypeSitemapCatalog(
     const item = asRecord(row.item);
     const slug = archetypePageSlug(item);
     const facts = archetypeIndexingFacts(item);
-    // Every location below is a Standard URL: a Wild row (indexable on its own page since #543) is a wiring mistake here.
-    if (!slug || facts.format !== 'standard' || !isIndexableArchetype(facts)) {
+    const format = facts.format === 'standard' || facts.format === 'wild' ? facts.format : null;
+    if (!slug || !format || !isIndexableArchetype(facts)) {
       throw new Error('Archetype sitemap catalog contains a page that is not indexable');
     }
     const publicFacts = {
@@ -225,8 +227,8 @@ export function projectConstructedArchetypeSitemapCatalog(
       period: row.period ?? null,
     };
     return {
-      key: slug,
-      location: `${origin}/standard/archetypes/standard/${slug}/`,
+      key: format === 'wild' ? `wild/${slug}` : slug,
+      location: `${origin}/standard/archetypes/${format}/${slug}/`,
       semanticHash: createHash('sha256').update(JSON.stringify(publicFacts)).digest('hex'),
       dataDate: catalogDataDay(row.updatedAt),
     };

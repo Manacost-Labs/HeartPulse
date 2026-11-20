@@ -40,8 +40,10 @@ export type ArchetypeSitemapCatalog = {
   items: unknown[];
 };
 
+type ArchetypeSitemapFormat = 'standard' | 'wild';
+
 type ArchetypeSitemapSource = {
-  loadCatalogs: (format: 'standard') => Promise<ArchetypeSitemapCatalog[]>;
+  loadCatalogs: (format: ArchetypeSitemapFormat) => Promise<ArchetypeSitemapCatalog[]>;
 };
 
 const BATTLEGROUNDS_ORIGIN = 'http://127.0.0.1:3108';
@@ -149,15 +151,19 @@ export async function loadBattlegroundHeroSitemapRows(
 }
 
 /**
- * The archetype rows of the Standard sitemap: those the page answers as
- * indexable. The page reads a slug from the first window that lists it, and the
- * first row of that slug in it, so a slug is judged there only: a later window
- * or row with the same slug never enters the list, whatever its numbers.
- * Wild is not read at all.
+ * The archetype rows of one format's catalog windows: those the page answers as
+ * indexable. The page reads a slug from the first window of its format that
+ * lists it, and the first row of that slug in it, so a slug is judged there
+ * only: a later window or row with the same slug never enters the list,
+ * whatever its numbers. Every window must be of `format`; a row of another
+ * format is not a page of this format and is skipped.
  */
-export function selectIndexableArchetypeRows(catalogs: ArchetypeSitemapCatalog[]): ArchetypeSitemapRow[] {
+export function selectIndexableArchetypeRows(
+  catalogs: ArchetypeSitemapCatalog[],
+  format: ArchetypeSitemapFormat = 'standard',
+): ArchetypeSitemapRow[] {
   if (!Array.isArray(catalogs) || catalogs.length === 0
-    || catalogs.some(catalog => catalog?.format !== 'standard' || !Array.isArray(catalog.items))) {
+    || catalogs.some(catalog => catalog?.format !== format || !Array.isArray(catalog.items))) {
     throw new Error('Entity sitemap archetype catalog is invalid');
   }
   const seen = new Set<string>();
@@ -165,12 +171,21 @@ export function selectIndexableArchetypeRows(catalogs: ArchetypeSitemapCatalog[]
     const slug = archetypePageSlug(item);
     if (slug === null || seen.has(slug)) return [];
     seen.add(slug);
-    // The segment lists Standard URLs: a row of another format never enters it, even an indexable Wild one (#543).
     const facts = archetypeIndexingFacts(item);
-    return facts.format === 'standard' && isIndexableArchetype(facts)
+    return facts.format === format && isIndexableArchetype(facts)
       ? [{ item, updatedAt: catalog.updatedAt, period: catalog.period }]
       : [];
   }));
+}
+
+/**
+ * The rows of `archetypes.xml`: Standard and Wild (#637), each judged in its own
+ * windows, so one slug in both formats is two pages. Either format failing to
+ * load rejects the whole candidate, and the last known good segment stays.
+ */
+async function loadIndexableArchetypeRows(source: ArchetypeSitemapSource): Promise<ArchetypeSitemapRow[]> {
+  const [standard, wild] = await Promise.all([source.loadCatalogs('standard'), source.loadCatalogs('wild')]);
+  return [...selectIndexableArchetypeRows(standard, 'standard'), ...selectIndexableArchetypeRows(wild, 'wild')];
 }
 
 export function excludeStandardCardsFromWildCatalog(
@@ -227,7 +242,7 @@ export function createEntitySitemapRuntimeOptions(
   return {
     ...createEntitySitemapLoaders(loadConstructedCards),
     ...(archetypes ? {
-      loadArchetypes: async () => selectIndexableArchetypeRows(await archetypes.loadCatalogs('standard')),
+      loadArchetypes: () => loadIndexableArchetypeRows(archetypes),
       minimumArchetypeCount: minimumFromEnvironment(environment.SITEMAP_ARCHETYPES_MIN, 30),
     } : {}),
     ...(editorial ? {

@@ -49,6 +49,8 @@ export const DATA_PAGES = [
   { path: '/streamers/', marker: 'streamers-toolbar', copyWords: 144, dataWords: 786 },
   { path: '/standard/patches/', marker: 'hp-release__title', copyWords: 132, dataWords: 4102 },
   { path: '/standard/archetypes/', marker: 'archetype-row__rank', copyWords: 186, dataWords: 3603 },
+  // The Wild list (#637): the same rows as the Standard list; words not measured.
+  { path: '/standard/archetypes/wild/', marker: 'archetype-row__rank', copyWords: 0, dataWords: 0 },
   { path: '/standard/fun-decks/', marker: 'fun-deck-card__why', copyWords: 279, dataWords: 410 },
   // The tool page reads two Express answers in a 600 ms budget; `assemble-title` («Что выпало?») is only in the HTML that got both. Words: not measured.
   { path: '/standard/assemble/', marker: 'assemble-title', copyWords: 0, dataWords: 0 },

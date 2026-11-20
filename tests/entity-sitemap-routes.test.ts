@@ -427,13 +427,23 @@ let archetypeCatalog: { format: string; period: string; updatedAt: string | null
     archetypeItem('buildless-druid', { deckCount: 0 }),
   ],
 };
+// Wild (#637): a strong Wild archetype with a slug Standard also has, and one under the Wild threshold of 5000 games.
+const wildDay = '2026-10-28';
+let wildArchetypeCatalog: typeof archetypeCatalog = {
+  format: 'wild',
+  period: 'black_empire_ban',
+  updatedAt: `${wildDay}T09:00:00+00:00`,
+  items: [archetypeItem('egg-priest', { format: 'wild', games: 6_000 }), archetypeItem('thin-rogue', { format: 'wild', games: 4_999 })],
+};
 let archetypeFailure: Error | null = null;
+let wildArchetypeFailure: Error | null = null;
 let archetypeReads = 0;
 const archetypeRuntime = createEntitySitemapRuntimeOptions(async () => ({ cards: [] }), { SITEMAP_ARCHETYPES_MIN: '3' }, undefined, {
-  loadCatalogs: async () => {
+  loadCatalogs: async format => {
     archetypeReads += 1;
     if (archetypeFailure) throw archetypeFailure;
-    return [archetypeCatalog];
+    if (format === 'wild' && wildArchetypeFailure) throw wildArchetypeFailure;
+    return [format === 'wild' ? wildArchetypeCatalog : archetypeCatalog];
   },
 });
 const archetypeDirectory = mkdtempSync(join(tmpdir(), 'arena-sitemap-archetypes-'));
@@ -449,6 +459,13 @@ const archetypeApp = await start({
 const archetypeUrls = (xml: string) => [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map(match => match[1]);
 const archetypeLastmods = (xml: string) => [...xml.matchAll(/<lastmod>([^<]+)<\/lastmod>/g)].map(match => match[1]);
 const archetypeLoc = (slug: string) => `https://arena.hs-manacost.ru/standard/archetypes/standard/${slug}/`;
+const wildLoc = (slug: string) => `https://arena.hs-manacost.ru/standard/archetypes/wild/${slug}/`;
+/** The `<loc>`/`<lastmod>` pairs of one format's pages, in document order. */
+const pagesOf = (xml: string, format: 'standard' | 'wild') => [...xml.matchAll(/<loc>([^<]+)<\/loc>\s*<lastmod>([^<]+)<\/lastmod>/g)]
+  .filter(match => match[1].includes(`/standard/archetypes/${format}/`)).map(match => [match[1], match[2]]);
+const standardUrls = (xml: string) => pagesOf(xml, 'standard').map(([location]) => location);
+const standardLastmods = (xml: string) => pagesOf(xml, 'standard').map(([, lastmod]) => lastmod);
+const wildPages = [[wildLoc('egg-priest'), wildDay]];
 try {
   const index = await fetch(`${archetypeApp.origin}/sitemap.xml`);
   assert.ok(archetypeUrls(await index.text()).includes('https://arena.hs-manacost.ru/sitemaps/archetypes.xml'),
@@ -462,11 +479,14 @@ try {
   assert.equal(response.headers.get('etag'), `"sha256-${createHash('sha256').update(xml).digest('hex')}"`,
     'the ETag is the SHA-256 of the document, as for every other segment');
   assert.ok(response.headers.get('last-modified'));
-  assert.deepEqual(archetypeUrls(xml), ['egg-priest', 'pure-paladin', 'quest-hunter', 'zoolock'].map(archetypeLoc),
-    'strong Standard archetypes only, in the canonical family');
-  assert.deepEqual(archetypeLastmods(xml), Array(4).fill(catalogDay),
+  assert.deepEqual(standardUrls(xml), ['egg-priest', 'pure-paladin', 'quest-hunter', 'zoolock'].map(archetypeLoc),
+    'strong Standard archetypes, in the canonical family');
+  assert.deepEqual(standardLastmods(xml), Array(4).fill(catalogDay),
     'lastmod is the day of the catalog data, not the day of the request');
-  assert.doesNotMatch(xml, /weak-priest|wild|buildless|\/standard\/meta\/|QA_PRIVATE|deckCode/);
+  assert.deepEqual(pagesOf(xml, 'wild'), wildPages,
+    'the strong Wild archetype is its Wild page, dated by the Wild catalog; the same slug in Standard is another page');
+  assert.equal(archetypeUrls(xml).length, 5, 'four Standard pages and one Wild page, nothing else');
+  assert.doesNotMatch(xml, /weak-priest|wild-zoo|thin-rogue|buildless|\/standard\/meta\/|QA_PRIVATE|deckCode/);
 
   const conditional = await fetch(`${archetypeApp.origin}/sitemaps/archetypes.xml`, {
     headers: { 'If-None-Match': response.headers.get('etag')! },
@@ -493,9 +513,10 @@ try {
     ],
   };
   const refreshed = await (await fetch(`${archetypeApp.origin}/sitemaps/archetypes.xml`)).text();
-  assert.deepEqual(archetypeUrls(refreshed), ['egg-priest', 'pure-paladin', 'quest-hunter', 'weak-priest'].map(archetypeLoc));
-  assert.deepEqual(archetypeLastmods(refreshed), [catalogDay, '2026-10-31', catalogDay, '2026-10-31'],
+  assert.deepEqual(standardUrls(refreshed), ['egg-priest', 'pure-paladin', 'quest-hunter', 'weak-priest'].map(archetypeLoc));
+  assert.deepEqual(standardLastmods(refreshed), [catalogDay, '2026-10-31', catalogDay, '2026-10-31'],
     'unchanged numbers keep their date; changed and new archetypes take the data day');
+  assert.deepEqual(pagesOf(refreshed, 'wild'), wildPages, 'a Standard refresh moves no Wild page');
 
   // The catalog identical to the last one: the document does not change at all.
   archetypeNow += 6 * 60_000;
@@ -515,25 +536,31 @@ try {
   const afterPatch = await fetch(`${archetypeApp.origin}/sitemaps/archetypes.xml`);
   assert.equal(afterPatch.headers.get('x-sitemap-source'), 'catalog', 'four archetypes down to three is not a truncation');
   const afterPatchXml = await afterPatch.text();
-  assert.deepEqual(archetypeUrls(afterPatchXml), ['egg-priest', 'pure-paladin', 'zoolock'].map(archetypeLoc));
-  assert.deepEqual(archetypeLastmods(afterPatchXml), Array(3).fill('2026-11-01'));
+  assert.deepEqual(standardUrls(afterPatchXml), ['egg-priest', 'pure-paladin', 'zoolock'].map(archetypeLoc));
+  assert.deepEqual(standardLastmods(afterPatchXml), Array(3).fill('2026-11-01'));
+  assert.deepEqual(pagesOf(afterPatchXml, 'wild'), wildPages);
 
   // Below the floor, empty, broken or unreadable: the last good segment, never an empty urlset.
   const failures: Array<[string, () => void]> = [
-    ['two strong archetypes are below the floor', () => {
-      archetypeCatalog = { ...archetypeCatalog, items: [archetypeItem('egg-priest'), archetypeItem('pure-paladin')] };
+    ['one strong Standard and one strong Wild archetype are below the floor', () => {
+      archetypeCatalog = { ...archetypeCatalog, items: [archetypeItem('egg-priest')] };
     }],
-    ['no strong archetype at all', () => { archetypeCatalog = { ...archetypeCatalog, items: [archetypeItem('weak', { games: 5 })] }; }],
+    ['no strong Standard archetype at all', () => { archetypeCatalog = { ...archetypeCatalog, items: [archetypeItem('weak', { games: 5 })] }; }],
     ['an empty catalog', () => { archetypeCatalog = { ...archetypeCatalog, items: [] }; }],
     ['a catalog without a data date', () => {
       archetypeCatalog = { ...archetypeCatalog, updatedAt: null, items: strongSlugs.map(slug => archetypeItem(slug)) };
     }],
     ['a Wild catalog', () => { archetypeCatalog = { ...archetypeCatalog, format: 'wild', updatedAt: '2026-11-01T09:00:00+00:00' }; }],
     ['an unreadable catalog', () => { archetypeFailure = new Error('catalog down QA_PRIVATE_UPSTREAM'); }],
+    ['an unreadable Wild catalog', () => { wildArchetypeFailure = new Error('wild catalog down'); }],
+    ['a Standard catalog where Wild was asked for', () => { wildArchetypeCatalog = { ...wildArchetypeCatalog, format: 'standard' }; }],
   ];
+  const wildBefore = wildArchetypeCatalog;
   for (const [label, arrange] of failures) {
     archetypeCatalog = { ...archetypeCatalog, format: 'standard', updatedAt: '2026-11-02T08:00:00+00:00' };
+    wildArchetypeCatalog = wildBefore;
     archetypeFailure = null;
+    wildArchetypeFailure = null;
     arrange();
     archetypeNow += 6 * 60_000;
     const lkg = await fetch(`${archetypeApp.origin}/sitemaps/archetypes.xml`);
@@ -542,6 +569,7 @@ try {
     assert.equal(await lkg.text(), afterPatchXml, `${label}: the last good state, byte for byte`);
   }
   archetypeFailure = null;
+  wildArchetypeFailure = null;
   assert.ok(archetypeReads > 5);
 } finally {
   await archetypeApp.close();
@@ -600,18 +628,23 @@ try {
   rmSync(withoutArchetypesDirectory, { recursive: true, force: true });
 }
 
-// Property: whatever the catalog holds, every URL of the served segment is a page the shared rule marks indexable.
+// Property: whatever the Standard and Wild catalogs hold, the served segment is exactly the pages the shared rule marks
+// indexable, each in its own format (a Wild row in the Standard catalog, or the reverse, is no page of that list).
 const archetypePropertyItem = fc.record({
   slug: fc.constantFrom('a-deck', 'b-deck', 'c-deck', 'd-deck', 'e-deck', 'f-deck'),
   format: fc.constantFrom('standard', 'wild'),
-  games: fc.integer({ min: 0, max: 3_000 }),
+  games: fc.integer({ min: 0, max: 8_000 }),
   deckCount: fc.integer({ min: 0, max: 3 }),
   popularity: fc.double({ min: 0, max: 10, noNaN: true }),
 });
-await assertAsyncProperty(fc.asyncProperty(fc.array(archetypePropertyItem, { maxLength: 24 }), async items => {
+const archetypePropertyCatalogs = fc.record({
+  standard: fc.array(archetypePropertyItem, { maxLength: 24 }),
+  wild: fc.array(archetypePropertyItem, { maxLength: 24 }),
+});
+await assertAsyncProperty(fc.asyncProperty(archetypePropertyCatalogs, async catalogs => {
   const directoryForRun = mkdtempSync(join(tmpdir(), 'arena-sitemap-archetypes-property-'));
   const runtime = createEntitySitemapRuntimeOptions(async () => ({ cards: [] }), { SITEMAP_ARCHETYPES_MIN: '1' }, undefined, {
-    loadCatalogs: async () => [{ format: 'standard', period: null, updatedAt: '2026-10-30T11:00:00+00:00', items }],
+    loadCatalogs: async format => [{ format, period: null, updatedAt: '2026-10-30T11:00:00+00:00', items: catalogs[format] }],
   });
   const app = await start({
     directory: directoryForRun, now: () => Date.parse('2026-11-01T09:00:00.000Z'), load: async () => [publicCard],
@@ -619,15 +652,18 @@ await assertAsyncProperty(fc.asyncProperty(fc.array(archetypePropertyItem, { max
   });
   try {
     const response = await fetch(`${app.origin}/sitemaps/archetypes.xml`);
-    const firstOfSlug = new Map<string, (typeof items)[number]>();
-    for (const item of items) if (!firstOfSlug.has(item.slug)) firstOfSlug.set(item.slug, item);
-    const expected = [...firstOfSlug.values()].filter(item => isIndexableArchetype(item)).map(item => item.slug).sort();
+    const expected = (['standard', 'wild'] as const).flatMap(format => {
+      const firstOfSlug = new Map<string, (typeof catalogs.standard)[number]>();
+      for (const item of catalogs[format]) if (!firstOfSlug.has(item.slug)) firstOfSlug.set(item.slug, item);
+      return [...firstOfSlug.values()].filter(item => item.format === format && isIndexableArchetype(item))
+        .map(item => `https://arena.hs-manacost.ru/standard/archetypes/${format}/${item.slug}/`);
+    });
     if (expected.length === 0) {
       assert.equal(response.status, 503, 'no indexable archetype: no sitemap, never an empty one');
       return;
     }
     assert.equal(response.status, 200);
-    assert.deepEqual(archetypeUrls(await response.text()), expected.map(archetypeLoc));
+    assert.deepEqual(archetypeUrls(await response.text()).sort(), expected.sort());
   } finally {
     await app.close();
     rmSync(directoryForRun, { recursive: true, force: true });
@@ -744,6 +780,43 @@ try {
   }
 } finally {
   rmSync(datedDirectory, { recursive: true, force: true });
+}
+
+// The two archetype lists (#637): each is dated by its own format's pages, so a Wild change moves the Wild list only.
+const listsDirectory = mkdtempSync(join(tmpdir(), 'arena-sitemap-archetype-lists-'));
+try {
+  const read = async (origin: string, path: string) => datedEntries(await (await fetch(`${origin}${path}`)).text(), 'urlset');
+  const lists = ['https://hearthpulse.net/standard/archetypes/', 'https://hearthpulse.net/standard/archetypes/wild/'];
+  const fingerprints = new Map(lists.map((url, position) => [url, String(position + 1).repeat(64)]));
+  const row = (format: string, games: number, updatedAt: string) => ({
+    item: { slug: 'pure-paladin', archetype: 'Pure Paladin', format, games, deckCount: 2, popularity: 2 }, updatedAt, period: 'black_empire',
+  });
+  const boot = (now: string, wild: ReturnType<typeof row>) => startDated({
+    directory: listsDirectory, now: () => Date.parse(now), fingerprints, staticUrls: lists,
+    loadStandardCards: async () => [publicCard],
+    loadArchetypes: async () => [row('standard', 5_000, '2026-11-08T05:00:00+00:00'), wild],
+  });
+  let app = await boot('2026-11-10T08:00:00.000Z', row('wild', 6_000, '2026-11-08T05:00:00+00:00'));
+  try {
+    assert.deepEqual(await read(app.origin, '/sitemaps/static.xml'),
+      [['/standard/archetypes/', '2026-11-10'], ['/standard/archetypes/wild/', '2026-11-10']]);
+  } finally {
+    await app.close();
+  }
+  app = await boot('2026-11-17T08:00:00.000Z', row('wild', 6_500, '2026-11-16T05:00:00+00:00'));
+  try {
+    assert.deepEqual(await read(app.origin, '/sitemaps/archetypes.xml'), [
+      ['/standard/archetypes/standard/pure-paladin/', '2026-11-08'],
+      ['/standard/archetypes/wild/pure-paladin/', '2026-11-16'],
+    ]);
+    assert.deepEqual(await read(app.origin, '/sitemaps/static.xml'),
+      [['/standard/archetypes/', '2026-11-10'], ['/standard/archetypes/wild/', '2026-11-16']],
+      'the Standard list keeps its day; the Wild list follows its changed archetype');
+  } finally {
+    await app.close();
+  }
+} finally {
+  rmSync(listsDirectory, { recursive: true, force: true });
 }
 
 // Every record of the index has a day. A segment that cannot be built is dated from the state the store saved
