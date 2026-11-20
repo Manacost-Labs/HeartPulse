@@ -209,7 +209,7 @@
       "title": "Тир-лист героев Полей сражений Hearthstone {year}",
       "description": "Тир-лист героев Полей сражений Hearthstone (хс): тир, среднее место, топ-4 и выбор в Соло и Дуо, силы героев и отдельная страница каждого героя.",
       "dataTitle": "Тир-лист героев Полей сражений Hearthstone, {month}[ | HearthPulse]",
-      "dataDescription": "Рейтинг {items} Полей сражений Hearthstone (хс){asOf}[: лучший — {leader}]. Соло и Дуо, данные HSReplay.",
+      "dataDescription": "Рейтинг {items} Полей сражений Hearthstone (хс) в Соло{asOf}[: лучший — {leader}]. Тир, топ-4 и выбор, данные HSReplay.",
       "sitemap": true
     },
     "/library": {
@@ -255,7 +255,7 @@
       "title": "Сборки Полей сражений Hearthstone: тир-лист {year}",
       "description": "Тир-лист сборок Полей сражений Hearthstone (хс): составы по тирам S–D, ключевые существа и как играть, заклинания и аксессуары актуального патча.",
       "dataTitle": "Сборки Полей сражений Hearthstone: тир-лист, {month}[ | HearthPulse]",
-      "dataDescription": "Лучшие сборки Полей сражений Hearthstone (хс){asOf}: {items}[, тир S — {leader}]. Ключевые существа и как играть, данные HSReplay.",
+      "dataDescription": "Лучшие сборки Полей сражений Hearthstone (хс){asOf}[: тир S — {leader}]. Ключевые существа и как играть, данные HSReplay.",
       "sitemap": true
     },
     "/battlegrounds/tier-builder": {

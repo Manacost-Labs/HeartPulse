@@ -669,7 +669,7 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
   });
   assert.deepEqual(text('/heroes', battlegroundHeroesSeoValues(heroes(116), NOW)), {
     title: 'Тир-лист героев Полей сражений Hearthstone, ноябрь 2026',
-    description: 'Рейтинг 116 героев Полей сражений Hearthstone (хс) на 20 ноября 2026: лучший — Лорд Джараксус, среднее место 4,04. Соло и Дуо, данные HSReplay.',
+    description: 'Рейтинг 116 героев Полей сражений Hearthstone (хс) в Соло на 20 ноября 2026: лучший — Лорд Джараксус, среднее место 4,04. Тир, топ-4 и выбор, данные HSReplay.',
   });
   assert.ok(text('/heroes', battlegroundHeroesSeoValues(heroes(121), NOW)).description.startsWith('Рейтинг 121 героя '));
   assert.deepEqual(text('/heroes', battlegroundHeroesSeoValues(heroes(0), NOW)), staticText('/heroes'));
@@ -684,10 +684,10 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
     build('A', 'Механизмы: APM-магнетизм'),
   ]), NOW)), {
     title: 'Сборки Полей сражений Hearthstone: тир-лист, ноябрь 2026',
-    description: 'Лучшие сборки Полей сражений Hearthstone (хс) на 20 ноября 2026: 4 сборки, тир S — Нежить, Элементали. Ключевые существа и как играть, данные HSReplay.',
+    description: 'Лучшие сборки Полей сражений Hearthstone (хс) на 20 ноября 2026: тир S — Нежить, Элементали. Ключевые существа и как играть, данные HSReplay.',
   });
   assert.equal(text('/battlegrounds/tier-list', battlegroundBuildsSeoValues(builds([build('A', 'Механизмы: APM-магнетизм')]), NOW)).description,
-    'Лучшие сборки Полей сражений Hearthstone (хс) на 20 ноября 2026: 1 сборка. Ключевые существа и как играть, данные HSReplay.');
+    'Лучшие сборки Полей сражений Hearthstone (хс) на 20 ноября 2026. Ключевые существа и как играть, данные HSReplay.');
 
   // Limits: the longest month and real-size lists keep every text inside the meta limits.
   const SEPTEMBER = '2026-09-15T06:00:00.000Z';

@@ -360,9 +360,10 @@ SEO cost is 250–400 words fewer on three indexed pages.
   `/tierlist` the rounded sample («более 53 000 игр»), `/classes` the first
   class of the open
   order with its winrate, `/legendaries` the number of groups and the group with
-  the best winrate, `/heroes` the number of ranked heroes and the first of the
-  solo ranking with its average place, `/battlegrounds/tier-list` the number of
-  builds and the tribes of tier S. The templates name HSReplay, so another
+  the best winrate, `/heroes` the number of heroes of the solo ranking (numbered
+  rows) and its first hero with the average place, named «в Соло»,
+  `/battlegrounds/tier-list` the tribes of tier S (no count of builds: the page
+  prints none). The templates name HSReplay, so another
   source, data older than a week (no month; «обновлено <дата>») or no data at
   all fall back as `seoPageText` does: stale data keeps the date, missing data
   gives the static text with the year. No paid figure (offer rate, ArenaSmith

@@ -180,7 +180,10 @@ export function arenaLegendariesSeoValues(data: LegendariesData | null, now: num
   };
 }
 
-/** `/heroes`: the date, the number of ranked heroes and the first of the solo ranking with its average place. */
+/**
+ * `/heroes`: the date, the number of heroes of the solo ranking (its rows are numbered on the page) and
+ * the first of it with its average place. The template says «в Соло»: the duos ranking may differ.
+ */
 export function battlegroundHeroesSeoValues(ranking: PublicBattlegroundHeroesRanking | null, now: number): SeoDataValues | null {
   const date = ranking && isHsreplay(ranking.source) && seoDataDate(ranking.updatedAt, now);
   const first = ranking?.heroes[0];
@@ -192,16 +195,12 @@ export function battlegroundHeroesSeoValues(ranking: PublicBattlegroundHeroesRan
   };
 }
 
-/** `/battlegrounds/tier-list`: the date, the number of builds and the tribes of tier S. */
+/** `/battlegrounds/tier-list`: the date and the tribes of tier S (the page does not print a count of builds). */
 export function battlegroundBuildsSeoValues(data: PublicBattlegroundBuilds | null, now: number): SeoDataValues | null {
   const date = data && isHsreplay(data.source) && seoDataDate(data.updatedAt, now);
   if (!data || !date || data.builds.length === 0) return null;
   // «Нежить: APM-нежить» → «Нежить»: the tribe before the colon, each once, in the page's order.
   const tribes = [...new Set(data.builds.filter(build => build.tier === 'S')
     .map(build => build.title.split(':')[0].trim()).filter(Boolean))];
-  return {
-    ...seoDateValues(date),
-    items: count(data.builds.length, 'сборка', 'сборки', 'сборок'),
-    leader: tribes.length > 0 ? tribes.join(', ') : null,
-  };
+  return { ...seoDateValues(date), leader: tribes.length > 0 ? tribes.join(', ') : null };
 }
