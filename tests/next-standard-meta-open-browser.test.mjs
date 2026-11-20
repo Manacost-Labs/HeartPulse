@@ -250,6 +250,36 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     assert.ok(!(await failing.evaluate(() => document.body.textContent)).includes('Подписочные данные не загрузились'), 'the message goes with the retry');
     await failing.close();
 
+    // Access is withdrawn (the session is gone): not one frame may show the paid slice or the paid rank, and the locks return.
+    const revoked = await browser.newPage();
+    await revoked.setViewport(DESKTOP);
+    await revoked.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
+    await revoked.goto(`${stack.origin}/standard/meta/?rank=legend`, { waitUntil: 'load' });
+    await revoked.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+    assert.equal(await revoked.$eval('.standard-meta__rank-tabs button[aria-pressed="true"]', node => node.textContent.trim()), 'Легенда');
+    await revoked.evaluate(() => {
+      window.__paidFrames = 0;
+      const look = () => {
+        const text = document.body.textContent;
+        const pressed = document.querySelector('.standard-meta__rank-tabs button[aria-pressed="true"]')?.textContent.trim();
+        if (/77,77|66,61|7,77 ★/.test(text) || pressed === 'Легенда') window.__paidFrames += 1;
+      };
+      window.__watch = true;
+      new MutationObserver(look).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true });
+      const loop = () => { look(); if (window.__watch) requestAnimationFrame(loop); };
+      loop();
+    });
+    await revoked.deleteCookie({ name: 'sm_session', url: stack.origin });
+    // A restored page re-checks the session: the server now answers as it does to a guest.
+    await revoked.evaluate(() => window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true })));
+    await revoked.waitForSelector('button[aria-label^="Ходы: по подписке"]', { timeout: 15000 });
+    await new Promise(resolve => setTimeout(resolve, 500));
+    assert.equal(await revoked.evaluate(() => window.__paidFrames), 0, 'no frame shows the paid slice after access is withdrawn');
+    assert.equal(await revoked.$eval('.standard-meta__rank-tabs button[aria-pressed="true"]', node => node.textContent.trim()), 'Алмаз — Легенда');
+    assert.equal(await revoked.$$eval('[data-locked-filter]', nodes => nodes.length), 3, 'the paid filters are locks again');
+    assert.equal(await revoked.$$eval('.standard-meta-card', cards => cards.length), 8, 'the open slice is what is left');
+    await revoked.close();
+
     // A subscriber's filters go with the format switch, both ways: the address of the new page carries them, the paid
     // request of the new format is sent with them and its answer is what is shown.
     const filtered = await browser.newPage();

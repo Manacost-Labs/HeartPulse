@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import StandardMetaPage from '@/src/features/StandardMeta';
 import type { StandardMetaTeaserSeed } from '@/src/features/standardMetaTeaser';
@@ -16,7 +17,12 @@ function MetaView({ initialTeaser, format, hasFullAccess, teaserWaitsForAccess, 
   initialTeaser: StandardMetaTeaserSeed | null; format: 'standard' | 'wild'; hasFullAccess: boolean; teaserWaitsForAccess: boolean; accessPending: boolean;
 }) {
   const openOffer = usePaidOffer() ?? undefined;
-  return <StandardMetaPage embedded hasFullAccess={hasFullAccess} teaserWaitsForAccess={teaserWaitsForAccess} accessPending={accessPending}
+  // Access is raised in place (the paid slice replaces the open one), but when it is withdrawn (sign-out, an expired
+  // subscription, a refused status check) the page restarts from the open slice in the same render: no frame shows
+  // the paid slice, its rank, period or filters to a viewer without access.
+  const [state, setState] = useState({ allowed: hasFullAccess, epoch: 0 });
+  if (state.allowed !== hasFullAccess) setState({ allowed: hasFullAccess, epoch: state.epoch + (state.allowed ? 1 : 0) });
+  return <StandardMetaPage key={state.epoch} embedded hasFullAccess={hasFullAccess} teaserWaitsForAccess={teaserWaitsForAccess} accessPending={accessPending}
     initialTeaser={initialTeaser} format={format} onPaidOffer={openOffer} />;
 }
 
