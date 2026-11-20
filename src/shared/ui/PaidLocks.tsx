@@ -1,7 +1,7 @@
 'use client';
 
 import { LockKeyhole } from 'lucide-react';
-import { PaidLockButton } from './PaidOffer';
+import { usePaidOffer } from './paidOfferContext';
 import './PaidLocks.css';
 
 /**
@@ -14,10 +14,10 @@ import './PaidLocks.css';
  * A pressed lock does not bubble, so it can sit in a clickable row. The `cell` lock is 24px tall (the
  * WCAG 2.2 minimum target) and takes no more row height than an open figure (negative block margin);
  * a consumer with a row shorter than 20px should check it.
- * Built on `PaidLockButton`; once `usePaidOffer` is exported from `PaidOffer.tsx` (#611), the
- * `onOpen` path can pass it.
  *
  * ```tsx
+ * // apps/public-web/ui: `import { PaidMetricLock, PaidFilterLock } from '@/src/shared/ui/PaidLocks';`
+ * // src/features: `import { PaidMetricLock } from '../shared/ui/PaidLocks';`
  * <PaidOfferProvider title="…" text="…">
  *   <td><PaidMetricLock label="Винрейт против класса" /></td>
  *   <div><PaidMetricLock variant="card" label="Игры" /></div>
@@ -40,12 +40,11 @@ type Closed = 'paywalled-tierlist' | 'paywalled-classes';
 
 /** A paid figure: «По подписке» with a lock in place of the value; `cell` for a table, `card` for a tile. */
 export function PaidMetricLock({ label, variant = 'cell', closed = DEFAULT_CLOSED, onOpen }: LockProps & { variant?: 'cell' | 'card' }) {
-  const className = join('paid-lock', variant === 'card' ? 'paid-lock--card' : undefined);
-  if (!onOpen) {
-    return <PaidLockButton className={className} label={label} closed={closed}><span>По подписке</span></PaidLockButton>;
-  }
-  return <button type="button" className={join(className, closed)} aria-label={`${label}: по подписке. Узнать, как открыть`}
-    onClick={event => { event.stopPropagation(); onOpen(); }}>
+  const fromProvider = usePaidOffer();
+  const open = onOpen ?? fromProvider;
+  return <button type="button" className={join('paid-lock', variant === 'card' ? 'paid-lock--card' : undefined, closed)}
+    aria-label={`${label}: по подписке. Узнать, как открыть`}
+    onClick={event => { event.stopPropagation(); open?.(); }}>
     <LockKeyhole size={13} aria-hidden="true" /><span>По подписке</span>
   </button>;
 }
@@ -57,14 +56,14 @@ export function PaidFilterLock({ label, value, icon, closed = DEFAULT_CLOSED, on
   /** Optional icon of the filter, decorative. */
   icon?: string;
 }) {
-  const content = <>
+  const fromProvider = usePaidOffer();
+  const open = onOpen ?? fromProvider;
+  return <button type="button" className={join('paid-filter-lock', closed)}
+    aria-label={`${label} (фильтр): по подписке. Узнать, как открыть`}
+    onClick={event => { event.stopPropagation(); open?.(); }}>
+    <LockKeyhole size={13} aria-hidden="true" />
     <span>{label}</span>
     {icon ? <img src={icon} alt="" draggable={false} /> : null}
     <b>{value}</b>
-  </>;
-  if (!onOpen) return <PaidLockButton className="paid-filter-lock" label={`${label} (фильтр)`} closed={closed}>{content}</PaidLockButton>;
-  return <button type="button" className={join('paid-filter-lock', closed)} aria-label={`${label} (фильтр): по подписке. Узнать, как открыть`}
-    onClick={event => { event.stopPropagation(); onOpen(); }}>
-    <LockKeyhole size={13} aria-hidden="true" />{content}
   </button>;
 }
