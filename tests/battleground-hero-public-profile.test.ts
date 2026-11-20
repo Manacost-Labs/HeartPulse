@@ -121,7 +121,7 @@ test('concurrent requests share one read, a malformed answer keeps the last good
     fetchImpl: url => {
       const dbfId = Number(new URL(String(url)).searchParams.get('dbf'));
       reads.push(dbfId);
-      return new Promise(resolve => pending.set(dbfId, [...(pending.get(dbfId) ?? []), resolve]));
+      return new Promise<Response>(resolve => pending.set(dbfId, [...(pending.get(dbfId) ?? []), resolve]));
     },
   });
   const tick = () => new Promise(resolve => setImmediate(resolve));
