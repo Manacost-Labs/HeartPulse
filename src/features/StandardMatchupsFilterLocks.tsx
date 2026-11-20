@@ -3,7 +3,7 @@ import type { StandardMetaPeriod } from '../../shared/standardMetaContract';
 import { PaidFilterLock } from '../shared/ui/PaidLocks';
 import './StandardMatchupsFilterLocks.css';
 
-/** The closed part the page's JSON-LD names; the shared lock's own `closed` list has no class for this page yet. */
+/** The closed part the page's JSON-LD names: on the group and on every lock. */
 const CLOSED = 'paywalled-standard-matchups';
 
 /**
@@ -28,7 +28,7 @@ export function StandardMatchupsFilterLocks({ pending, rankLabel, period, minGam
       {pending ? <span className="sr-only" role="status">Загружаем фильтры</span> : null}
       {values.map(([label, value]) => pending
         ? <span key={label} className="standard-matchups-filter-locks__pending"><span>{label}</span><b>{value}</b></span>
-        : <PaidFilterLock key={label} label={label} value={value} />)}
+        : <PaidFilterLock key={label} label={label} value={value} closed={CLOSED} />)}
     </div>
   );
 }

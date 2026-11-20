@@ -66,7 +66,9 @@ test('the guest HTML of /standard/matchups/ carries the open matrix and no paid 
     assert.ok(html.includes('Открытый архетип 1<') && html.includes('Открытый архетип 20<'));
     assert.equal(html.includes('Открытый архетип 21<'), false, 'the tail loads in the browser');
     assert.match(html, /Все ранги/, 'the slice is named');
-    assert.match(html, /18\.11\.2026 12:30 МСК/, 'date');
+    assert.match(html, /Данные на <time dateTime="2026-11-18T09:30:00\.000Z">18\.11\.2026 12:30 МСК<\/time> · выборка 120[\s\u00a0\u202f]000 игр · источник <a href="https:\/\/www\.hsguru\.com\/matchups\?format=2&amp;rank=all" rel="noopener noreferrer">HSGuru<\/a>/,
+      'the one line under the H1: freshness, sample, source');
+    assert.equal((html.match(/class="paid-filter-lock paywalled-standard-matchups"/g) ?? []).length, 3, 'the locks carry the class the JSON-LD names');
     assert.match(html, /class="[^"]*paywalled-standard-matchups/, 'the locked filters have the class the JSON-LD names');
     assert.doesNotMatch(html, /arena-paywall/, 'no gate over the page');
     assert.equal((html.match(/<h1/g) ?? []).length, 1);

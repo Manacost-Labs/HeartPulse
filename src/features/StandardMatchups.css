@@ -294,3 +294,14 @@
     padding-inline: 1rem;
   }
 }
+
+.arena-app-standard-matchups .standard-matchups__data-line {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+
+.arena-app-standard-matchups .standard-matchups__data-line a {
+  color: inherit;
+  text-decoration: underline;
+}

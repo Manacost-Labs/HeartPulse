@@ -247,6 +247,13 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
       <header className="traditional-mode-banner">
         <div className="traditional-mode-banner__copy">
           <h1>Матчапы</h1>
+          <p className="standard-matchups__data-line">
+            {data.updatedAt ? <>Данные на <time dateTime={data.updatedAt}>{formatDate(data.updatedAt)}</time></> : 'Дата обновления неизвестна'}
+            {data.totalGames ? ` · выборка ${data.totalGames.toLocaleString('ru-RU')} игр` : ''}
+            {' · источник '}
+            {data.sourceUrl && /^https:\/\/(?:www\.)?hsguru\.com\//.test(data.sourceUrl)
+              ? <a href={data.sourceUrl} rel="noopener noreferrer">HSGuru</a> : 'HSGuru'}
+          </p>
         </div>
         <dl className="traditional-mode-banner__summary" aria-label="Сводка матчапов">
           <div><dt>Архетипов</dt><dd>{rows.length || '—'}</dd></div>

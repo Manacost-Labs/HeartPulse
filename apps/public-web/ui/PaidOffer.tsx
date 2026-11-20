@@ -40,7 +40,7 @@ export function PaidLockButton({ className, label, closed, children }: {
   className: string;
   /** What the lock closes, for a screen reader: «Остальные показатели». */
   label: string;
-  closed: 'paywalled-tierlist' | 'paywalled-classes';
+  closed: 'paywalled-tierlist' | 'paywalled-classes' | 'paywalled-standard-matchups';
   children?: ReactNode;
 }) {
   const open = usePaidOffer();
