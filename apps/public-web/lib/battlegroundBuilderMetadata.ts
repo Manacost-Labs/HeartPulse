@@ -12,10 +12,11 @@ export async function battlegroundBuilderMetadata(pathname: BattlegroundBuilderP
   const seo = seoPageForExactPath(pathname);
   if (!seo) throw new Error(`Missing Battleground builder SEO contract: ${pathname}`);
   const policy = await resolvePublicUrlPolicy(pathname, searchParamsQuery(await searchParams));
-  const canonical = `https://hearthpulse.net${pathname}/`;
+  // A noindex builder (inventory `canonicalPolicy: none`, the tier builder) names no canonical and no og:url.
+  const canonical = policy.canonicalUrl ?? undefined;
   return {
     title: seo.title, description: seo.description,
-    alternates: { canonical: policy.canonicalUrl ?? canonical },
+    alternates: canonical ? { canonical } : undefined,
     robots: policy.robots,
     openGraph: {
       type: 'website', url: canonical, siteName: 'HearthPulse', locale: 'ru_RU',

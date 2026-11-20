@@ -425,6 +425,18 @@ SEO cost is 250–400 words fewer on three indexed pages.
   заклинания несёт 4–6 фактов, ни одна не набирает десять (пустой сегмент
   недопустим, загрузчик не регистрируется). Подробности:
   `docs/specs/battleground-library-open-layer.md`.
+- Статические страницы без открытого слоя (E25 #538, замер прода
+  2026-11-20): `/standard/vicious-gold/`, `/battlegrounds/tier-builder/`,
+  `/contests/`, `/library/archive/` и `/library/archive/<kind>/` отдают гостю
+  только «Проверяем доступ…» или пустой список, 0–28 собственных слов. Они —
+  `noindex, follow`, `canonicalPolicy: none`, без JSON-LD реестра, без
+  `og:url` и вне `static.xml` (#553). `/contests/` и `/standard/vicious-gold/`
+  идут через `seoRegistryMetadata`, который у страниц вне карты сайта не
+  отдаёт `og:*`/`twitter:*`, так что их превью в мессенджерах — без картинки
+  (принято: страницы не индексируются). Крошки JSON-LD деталей архива
+  по-прежнему ведут на noindex-списки архива — допустимо до решения по
+  деталям архива. Вернуть `index` можно только вместе с открытым слоем,
+  который проходит порог выше.
 
 ## Documentation impact
 
