@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AlertTriangle, Grid3X3, ListFilter, RefreshCw } from 'lucide-react';
 import '../route-parchment.css';
 import '../shared/ui/LoadingSurface.css';
@@ -22,10 +22,13 @@ type StandardMatchupsView = 'overview' | 'matrix';
 /** The order of the view buttons: Полная матрица, then Обзор архетипа. */
 const MATCHUP_VIEWS: readonly StandardMatchupsView[] = ['matrix', 'overview'];
 
+const MOSCOW_DATE = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit',
+  year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+
+/** Moscow time, as the other open pages print it: the server's HTML and the browser's say the same. */
 function formatDate(iso: string | null): string {
   if (!iso) return 'нет данных';
-  const d = new Date(iso);
-  return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return `${MOSCOW_DATE.format(new Date(iso)).replace(',', '')} МСК`;
 }
 
 function cacheGet<T>(key: string, maxAgeMs = 6 * 60 * 60 * 1000): T | null {
@@ -113,6 +116,8 @@ export type StandardMatchupsExternal = {
   loading: boolean;
   error: boolean;
   retry: () => void;
+  /** The open layer's stand-in for the HSGuru filters (locks for a guest, a loading state while access is checked). */
+  filterLocks?: ReactNode;
 };
 
 function StandardMatchupsPage({ external }: { external?: StandardMatchupsExternal }) {
@@ -294,6 +299,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
           <StandardMatchupsFilters slice={external.slice} period={data.period ?? null}
             available={data.available} onChange={external.changeSlice} />
         )}
+        {external && !(external.slice && external.changeSlice) ? external.filterLocks : null}
       </div>
 
       <div className="grid grid-cols-1 gap-5">

@@ -62,120 +62,87 @@ test('a guest and a subscriber on /standard/matchups/ in a real browser', { time
     let warm = false;
     for (let attempt = 0; attempt < 40 && !warm; attempt += 1) {
       process.kill(next.pid, 'SIGUSR2');
-      warm = (await (await fetch(`${next.origin}/standard/matchups/`)).text()).includes('standard-matchups-open__matrix');
+      warm = (await (await fetch(`${next.origin}/standard/matchups/`)).text()).includes('Открытый архетип 20');
       if (!warm) await delay(250);
     }
     assert.ok(warm, 'the page was not regenerated with the matrix');
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
+    const OFFER = 'Ранги, периоды и порог игр — в подписке';
+    const shown = (page, text) => page.waitForFunction(needle => document.body.innerText.includes(needle), { timeout: 20_000 }, text);
+    const pressedFormat = async page => {
+      for (const name of ['Стандарт', 'Вольный']) {
+        const button = await page.$(`::-p-aria([name="Показать матчапы: ${name}"][role="button"])`);
+        if (button && await button.evaluate(node => node.getAttribute('aria-pressed')) === 'true') return name;
+      }
+      return '';
+    };
+    const lockNamed = (page, label) => page.$(`::-p-aria([name="${label} (фильтр): по подписке. Узнать, как открыть"][role="button"])`);
 
-    // Without JavaScript: the most played archetypes of the general slice, no paid value.
+    // Without JavaScript: the most played archetypes of the slice, the guest's locks, no paid value, and nothing
+    // in the content a keyboard could land on and find dead.
     const bare = await browser.newPage();
     await bare.setJavaScriptEnabled(false);
     await bare.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'load' });
-    const bareHtml = await bare.content();
-    assert.equal((bareHtml.match(/class="standard-matchups-open__row"/g) ?? []).length, 30);
-    assert.deepEqual(SENTINELS.filter(value => bareHtml.includes(value)), []);
+    const bareText = await bare.evaluate(() => document.body.innerText);
+    assert.ok(bareText.includes('Открытый архетип 20') && !bareText.includes('Открытый архетип 21'), 'the printed part of the slice');
+    assert.ok(bareText.includes('Сильнейшие архетипы'), 'the leaders are printed too');
+    assert.deepEqual(SENTINELS.filter(value => bareText.includes(value)), []);
+    assert.ok(bareText.toLowerCase().includes('рейтинг') && bareText.toLowerCase().includes('все ранги'), 'the rank filter is in its place');
+    for (let press = 0; press < 40; press += 1) await bare.keyboard.press('Tab');
+    assert.equal(await bare.evaluate(() => Boolean(document.activeElement?.closest('#main-content'))), false, 'no live control in the content without a script');
     await bare.close();
 
-    // A guest with JavaScript: the tail of the slice arrives, Wild reads the same open route, the locks bring the offer.
+    // A guest with JavaScript: the tail of the slice arrives, the locks open the offer, Wild reads the same open route.
     const guest = await browser.newPage();
     await guest.setViewport(DESKTOP);
     const errors = [];
     guest.on('pageerror', error => errors.push(error.message));
     await guest.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'networkidle0' });
-    assert.equal(await guest.$$eval('.standard-matchups-open__row', rows => rows.length), 36, 'the browser completes the slice');
+    await shown(guest, 'Открытый архетип 36');
     assert.equal(stack.protectedReads, 0, 'a guest never asks the protected route');
-    assert.equal(await guest.$('.arena-paywall'), null, 'no gate until a lock is pressed');
-    await guest.click('[data-locked-filter]');
-    await guest.waitForSelector('#standard-matchups-paywall');
-    await guest.evaluate(() => [...document.querySelectorAll('.standard-matchups__segmented button')].at(1).click());
-    await guest.waitForFunction(() => document.querySelector('.standard-matchups-open__line')?.textContent.includes('Вольный'), { timeout: 15000 });
+    for (const label of ['Рейтинг', 'Период', 'Минимум игр в паре']) assert.ok(await lockNamed(guest, label), `${label} is a lock`);
+    assert.equal(await guest.evaluate(offer => document.body.innerText.includes(offer), OFFER), false, 'no offer until a lock is pressed');
+    await (await lockNamed(guest, 'Период')).click();
+    await guest.waitForSelector(`::-p-aria([role="heading"][name="${OFFER}"])`);
+    await guest.keyboard.press('Escape');
+    await (await guest.waitForSelector('::-p-aria([name="Показать матчапы: Вольный"][role="button"])')).click();
+    await shown(guest, 'Матчапы · Вольный');
     assert.equal(stack.publicReads.at(-1), '/api/standard/matchups/public?format=wild');
-    const guestText = await guest.evaluate(() => document.body.textContent);
+    assert.equal(await pressedFormat(guest), 'Вольный');
+    const guestText = await guest.evaluate(() => document.body.innerText);
     assert.deepEqual(SENTINELS.filter(value => guestText.includes(value)), []);
     assert.deepEqual(errors, []);
     await guest.close();
 
-    // The matrix is readable and navigable: whole names in tooltips, sticky head and names, the pointer and the keys
-    // mark a cell's row and column, the order and the search work, a phone's page does not scroll sideways, nothing shifts.
+    // The page of a guest does not shift while the rest of the slice arrives, on a desktop and a phone, and a phone's
+    // page does not scroll sideways.
     for (const [name, viewport] of [['desktop', DESKTOP], ['phone', PHONE]]) {
-      const ui = await browser.newPage();
-      await ui.evaluateOnNewDocument(() => {
+      const view = await browser.newPage();
+      await view.evaluateOnNewDocument(() => {
         window.__shifts = [];
         new PerformanceObserver(list => { for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.__shifts.push(entry.value); })
           .observe({ type: 'layout-shift', buffered: true });
       });
-      await ui.setViewport(viewport);
-      await ui.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'networkidle0' });
-      await ui.waitForFunction(() => document.querySelectorAll('.standard-matchups-open__row').length === 36);
-      const tableLabel = `${name}:`;
+      await view.setViewport(viewport);
+      await view.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'networkidle0' });
+      await shown(view, 'Открытый архетип 36');
       await delay(1000);
-      const loadShift = await ui.evaluate(() => window.__shifts.reduce((sum, value) => sum + value, 0));
+      const loadShift = await view.evaluate(() => window.__shifts.reduce((sum, value) => sum + value, 0));
       console.log(`${name} guest CLS ${loadShift.toFixed(4)}`);
-      assert.ok(loadShift < 0.01, `${tableLabel} the page shifted by ${loadShift.toFixed(4)} while loading`);
-      assert.equal(await ui.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 0, `${tableLabel} the page does not scroll sideways`);
-      assert.equal(await ui.$eval('.standard-matchups-open__column', node => node.getAttribute('title')), 'Открытый архетип 1');
-      assert.equal(await ui.$$eval('.standard-matchups-open__column .standard-matchups-open__icon', icons => icons.length), 36);
-      const scroll = '.standard-matchups-open__scroll';
-      await ui.$eval(scroll, node => { node.scrollTop = 220; node.scrollLeft = 260; });
-      const stuck = await ui.evaluate(() => {
-        const box = document.querySelector('.standard-matchups-open__scroll').getBoundingClientRect();
-        const head = document.querySelector('.standard-matchups-open__column').getBoundingClientRect();
-        const row = document.querySelector('.standard-matchups-open__row').getBoundingClientRect();
-        return { head: Math.round(head.top - box.top), row: Math.round(row.left - box.left) };
-      });
-      assert.ok(stuck.head <= 2 && stuck.row <= 2, `${tableLabel} the head and the names column stay put: ${JSON.stringify(stuck)}`);
-      await ui.$eval(scroll, node => { node.scrollTop = 0; node.scrollLeft = 0; });
-
-      // The pointer: the row, the column and the cell are marked, the readout names the pair.
-      const cell = await ui.evaluateHandle(() => document.querySelectorAll('.standard-matchups-open__matrix tbody tr')[2].cells[4]);
-      await cell.hover();
-      const marked = await ui.evaluate(() => ({
-        rows: document.querySelectorAll('td[data-hr]').length, columns: document.querySelectorAll('td[data-hc]').length,
-        head: document.querySelectorAll('thead th[data-hc]').length, readout: document.querySelector('.standard-matchups-open__readout').textContent,
-      }));
-      assert.deepEqual([marked.rows, marked.columns, marked.head], [37, 36, 1], `${tableLabel} row, column and head are marked`);
-      assert.match(marked.readout, /Открытый архетип 3 против Открытый архетип 3.*игр/s);
-      // The keys: arrows move between cells and mark the new one.
-      await ui.evaluate(() => document.querySelectorAll('.standard-matchups-open__matrix tbody tr')[0].cells[2].focus());
-      await ui.keyboard.press('ArrowRight');
-      await ui.keyboard.press('ArrowDown');
-      assert.match(await ui.$eval('.standard-matchups-open__readout', node => node.textContent), /Открытый архетип 2 против Открытый архетип 2/);
-      await ui.keyboard.press('End');
-      assert.equal(await ui.evaluate(() => document.activeElement === document.activeElement.parentElement.lastElementChild), true);
-
-      // The order: highest winrate first, the same twice flips it; by name the reading order is that of Russian.
-      await ui.evaluate(() => [...document.querySelectorAll('.standard-matchups-open__sorts button')].find(b => b.textContent.startsWith('Винрейт')).click());
-      await ui.evaluate(() => [...document.querySelectorAll('.standard-matchups-open__sorts button')].find(b => b.textContent.startsWith('Винрейт')).click());
-      const firstRow = () => ui.$eval('.standard-matchups-open__row span', node => node.textContent);
-      assert.equal(await firstRow(), 'Открытый архетип 36', 'the lowest winrate first once flipped');
-      assert.equal(await ui.$$eval('.standard-matchups-open__column', heads => heads[0].title), 'Открытый архетип 36', 'columns follow the rows');
-      await ui.evaluate(() => [...document.querySelectorAll('.standard-matchups-open__sorts button')].find(b => b.textContent.startsWith('Название')).click());
-      assert.equal(await firstRow(), 'Открытый архетип 1');
-
-      // The search: by words, in any order; nothing found says so.
-      await ui.type('.standard-matchups-open__search input', 'архетип 17');
-      assert.deepEqual(await ui.$$eval('.standard-matchups-open__row span', nodes => nodes.map(node => node.textContent)), ['Открытый архетип 17']);
-      await ui.focus('.standard-matchups-open__search input');
-      await ui.keyboard.down('Control');
-      await ui.keyboard.press('a');
-      await ui.keyboard.up('Control');
-      await ui.keyboard.press('Backspace');
-      await ui.keyboard.type('zzzz');
-      await ui.waitForSelector('.standard-matchups-open__none');
-      assert.equal(await ui.$('.standard-matchups-open__matrix'), null);
-      await ui.close();
+      assert.ok(loadShift < 0.01, `${name}: the page shifted by ${loadShift.toFixed(4)} while loading`);
+      assert.equal(await view.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 0, `${name}: no sideways scroll`);
+      await view.close();
     }
 
     // The menu's «Вольный» opens ?format=wild: the browser reads the address and shows Wild, not Standard.
     const viaMenu = await browser.newPage();
     await viaMenu.setViewport(DESKTOP);
     await viaMenu.goto(`${stack.origin}/standard/matchups/?format=wild`, { waitUntil: 'networkidle0' });
-    await viaMenu.waitForFunction(() => document.querySelector('.standard-matchups-open__line')?.textContent.includes('Вольный'), { timeout: 15000 });
-    assert.equal(await viaMenu.$eval('.standard-matchups__segmented button[aria-pressed="true"]', node => node.textContent), 'Вольный');
+    await shown(viaMenu, 'Матчапы · Вольный');
+    assert.equal(await pressedFormat(viaMenu), 'Вольный');
     assert.equal(stack.publicReads.at(-1), '/api/standard/matchups/public?format=wild');
-    assert.ok(!(await viaMenu.evaluate(() => document.querySelector('.standard-matchups-open__line')?.textContent ?? '')).includes('Стандарт'));
+    assert.equal(await viaMenu.evaluate(() => document.body.innerText.includes('Матчапы · Стандарт')), false);
     await viaMenu.close();
 
     // Wild is slow and then fails: the Standard numbers must not stay on the screen under the chosen Wild.
@@ -183,46 +150,40 @@ test('a guest and a subscriber on /standard/matchups/ in a real browser', { time
     const slow = await browser.newPage();
     await slow.setViewport(DESKTOP);
     await slow.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'networkidle0' });
-    assert.ok(await slow.$('.standard-matchups-open__matrix'), 'Standard is up first');
-    await slow.evaluate(() => [...document.querySelectorAll('.standard-matchups__segmented button')].at(1).click());
-    await slow.waitForFunction(() => document.querySelector('.standard-matchups__segmented button[aria-pressed="true"]')?.textContent.includes('Вольный'));
-    assert.equal(await slow.$('.standard-matchups-open__matrix'), null, 'no Standard matrix while Wild loads');
-    assert.equal(await slow.$('.standard-matchups-open__row'), null, 'no Standard row while Wild loads');
-    await slow.waitForSelector('.standard-matchups__error', { timeout: 15000 });
-    assert.equal(await slow.$('.standard-matchups-open__matrix'), null, 'no Standard matrix after Wild failed');
-    assert.equal(await slow.$('.standard-matchups-open__row'), null, 'no Standard row after Wild failed');
-    assert.ok(!(await slow.evaluate(() => document.querySelector('.standard-matchups-open__line')?.textContent ?? '')).includes('Стандарт'),
-      'the line does not describe Standard under Wild');
+    await shown(slow, 'Открытый архетип 36');
+    await (await slow.waitForSelector('::-p-aria([name="Показать матчапы: Вольный"][role="button"])')).click();
+    await shown(slow, 'Матчапы · Вольный');
+    assert.equal(await slow.evaluate(() => document.body.innerText.includes('Открытый архетип 1')), false, 'no Standard numbers while Wild loads');
+    await slow.waitForSelector('::-p-aria([role="alert"])', { timeout: 15_000 });
+    assert.equal(await slow.evaluate(() => document.body.innerText.includes('Открытый архетип 1')), false, 'no Standard numbers after Wild failed');
+    assert.equal(await slow.evaluate(() => document.body.innerText.includes('Матчапы · Стандарт')), false, 'the heading does not describe Standard under Wild');
     await slow.close();
     stack.wildDown = false;
 
-    // A subscriber: the open view stays until the matrix is ready, then the matrix replaces it without shifting.
+    // A subscriber: the same component stays while the paid answer is slow, with no lock to be offered a purchase
+    // through; the paid slice replaces the open one inside it (same grid element, no skeleton, no shift).
     const reader = await browser.newPage();
     await reader.setViewport(process.env.MATCHUPS_PHONE_READER ? PHONE : DESKTOP);
     await reader.evaluateOnNewDocument(() => {
       window.__shifts = [];
-      new PerformanceObserver(list => { for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.__shifts.push(entry.value); })
+      new PerformanceObserver(list => { for (const entry of list.getEntries()) if (!entry.hadRecentInput) { window.__shifts.push(entry.value); window.__why = (window.__why ?? []).concat((entry.sources ?? []).map(source => `${entry.value.toFixed(3)} @${Math.round(entry.startTime)} ${source.node?.className || source.node?.nodeName}`)); } })
         .observe({ type: 'layout-shift', buffered: true });
     });
     await reader.setCookie({ name: 'mx_session', value: 'reader', url: stack.origin });
     await reader.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'load' });
-    await reader.waitForSelector('.standard-matchups-open__matrix');
-    assert.equal(await reader.$('.standard-matchups__ledger'), null, 'the paid view is not up before its data');
-    // While the paid answer is slow the subscriber is not offered a subscription: no lock, no offer behind a click.
-    await reader.waitForSelector('[data-pending-filter]');
-    assert.equal(await reader.$$eval('[data-pending-filter]', nodes => nodes.length), 4, 'the filters are loading, not locked');
-    assert.equal(await reader.$('[data-locked-filter]'), null, 'a subscriber sees no lock');
-    await reader.$eval('[data-pending-filter]', node => node.click());
-    assert.equal(await reader.$('#standard-matchups-paywall, .arena-paywall'), null, 'a click offers nothing');
+    await shown(reader, 'Открытый архетип 1');
+    await shown(reader, 'Топ-1000');
+    assert.equal(await reader.evaluate(() => document.body.innerText.includes('Матчапы · Стандарт · Все ранги')), true, 'the open slice is on screen while the paid one loads');
+    for (const label of ['Рейтинг', 'Период', 'Минимум игр в паре']) assert.equal(await lockNamed(reader, label), null, `a subscriber sees no lock on «${label}»`);
+    await reader.evaluate(() => { document.querySelector('[role="grid"]').dataset.sameGrid = 'yes'; });
     if (process.env.MATCHUPS_SHOTS) await reader.screenshot({ path: `${process.env.MATCHUPS_SHOTS}/sub-loading-${reader.viewport().width}.png` });
-    await reader.waitForSelector('.standard-matchups__ledger', { timeout: 20000 });
-    assert.equal(await reader.$('.standard-matchups-open__matrix'), null, 'the open view is gone once the matrix is up');
-    assert.equal(await reader.$('.standard-matchups [data-skeleton], .standard-matchups .matchups-skeleton'), null, 'no skeleton between the two');
+    await shown(reader, 'Матчапы · Стандарт · Легенда');
+    assert.equal(await reader.evaluate(() => document.querySelector('[role="grid"]')?.dataset.sameGrid), 'yes', 'the grid was not remounted');
     assert.ok(stack.protectedReads >= 1);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    await delay(1000);
     const shift = await reader.evaluate(() => window.__shifts.reduce((sum, value) => sum + value, 0));
     console.log(`subscriber CLS ${shift.toFixed(4)}`);
-    assert.ok(shift < 0.01, `the subscriber page shifted by ${shift.toFixed(4)}`);
+    assert.ok(shift < 0.01, `the subscriber page shifted by ${shift.toFixed(4)}: ${JSON.stringify(await reader.evaluate(() => window.__why))}`);
     await reader.close();
   } finally {
     if (browser) await browser.close();

@@ -1,0 +1,14 @@
+/* The guest's stand-in for the subscriber's three filters: the same grid, the same height, a lock inside. */
+.standard-matchups-filter-locks { align-items: end; }
+/* The height of the subscriber's row (caption, gap, 40px select), so the swap does not move the page. */
+@media (min-width: 721px) { .standard-matchups-filter-locks { min-height: 60.5px; } }
+.standard-matchups-filter-locks .paid-filter-lock { height: 40px; align-self: end; }
+.standard-matchups-filter-locks .paid-filter-lock span { color: #78552f; font-size: 0.6875rem; font-weight: 900; letter-spacing: 0.09em; text-transform: uppercase; }
+.standard-matchups-filter-locks .paid-filter-lock b { font-weight: 800; font-size: 0.86rem; }
+.standard-matchups-filter-locks__pending {
+  display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border: 1px dashed rgba(92, 54, 24, 0.26);
+  border-radius: 6px; background: rgba(255, 249, 230, 0.4); color: rgba(58, 40, 28, 0.5); font-size: 0.86rem;
+}
+.standard-matchups-filter-locks__pending > span { font-size: 0.6875rem; font-weight: 900; letter-spacing: 0.09em; text-transform: uppercase; }
+.standard-matchups-filter-locks__pending > b { font-weight: 800; }
+@media (max-width: 720px) { .standard-matchups-filter-locks > :last-child { grid-column: 1 / -1; } }
