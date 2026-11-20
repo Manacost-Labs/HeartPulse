@@ -86,7 +86,10 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.ok(redirect.headers.get('location').endsWith(`${path}?period=7d&rank=diamond`));
     const api = '/api/constructed-cards/blizzard%3A12345?format=standard&period=1d&rank=legend';
     const anonymous = await (await fetch(runtime.origin + api)).json();
-    assert.equal(anonymous.statsAccess, false); assert.equal(anonymous.card.stats, null);
+    // A guest gets the open slice (#447) and nothing more: no sample size, no mulligan or draw numbers.
+    assert.equal(anonymous.statsAccess, false);
+    assert.deepEqual(anonymous.card.stats, { deckPopularity: 12.5, deckWinrate: 53, averageCopies: null });
+    assert.equal(JSON.stringify(anonymous).includes('timesPlayed'), false);
     const cookie = { Cookie: runtime.cookie };
     const identity = await (await fetch(`${runtime.origin}/api/auth/me`, { headers: cookie })).json();
     assert.equal(identity.user?.id, 'card-reader', 'session is valid before testing subscription policy');
@@ -101,7 +104,8 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.doesNotMatch(await privateCatalog.text(), /deckWinrate[^<]{0,10}:53|card-reader@example/);
     runtime.backend.database.prepare('UPDATE users SET blocked_at = ? WHERE id = ?').run(new Date().toISOString(), 'card-reader');
     const blocked = await (await fetch(runtime.origin + api, { headers: cookie })).json();
-    assert.equal(blocked.statsAccess, false); assert.equal(blocked.card.stats, null);
+    assert.equal(blocked.statsAccess, false);
+    assert.deepEqual(blocked.card.stats, { deckPopularity: 12.5, deckWinrate: 53, averageCopies: null }, 'a blocked reader is a guest again');
     const sitemap = await fetch(`${runtime.origin}/sitemaps/standard-cards.xml`);
     assert.equal(sitemap.status, 200);
     assert.match(await sitemap.text(), /standard\/cards\/standard\/blizzard%3A12345\//);
