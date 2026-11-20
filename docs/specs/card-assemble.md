@@ -69,9 +69,16 @@ card route) proxies hs-data-api `/v1/hsreplay/assemble/cards?format=` for the
 tool page `/standard/assemble/`. Answer, typed as `CardAssembleListData`:
 
 ```json
-{ "format": "standard", "checkedAt": "2026-11-19T18:18:42.596650+00:00", "stale": false,
-  "cards": [{ "card": { "cardId": "BE_044", "dbfId": 128892, "name": "РЕ-3-ВЕР", "cost": 3,
-    "cardClass": "NEUTRAL", "rarity": "COMMON" }, "state": "ok", "basesTotal": 38, "winRate": 48.59 }] }
+{
+  "format": "standard",
+  "checkedAt": "2026-11-19T18:18:42.596650+00:00",
+  "stale": false,
+  "cards": [{
+    "card": { "cardId": "BE_044", "dbfId": 128892, "name": "РЕ-3-ВЕР",
+      "cost": 3, "cardClass": "NEUTRAL", "rarity": "COMMON" },
+    "state": "ok", "basesTotal": 38, "winRate": 48.59
+  }]
+}
 ```
 
 - Same cache and errors as the card route: ten minutes in Express, a failed
