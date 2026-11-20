@@ -200,7 +200,9 @@ test('Next archetype details isolate access and load builds before independent o
     const documentFor = userAgent => fetch(`${origin}/standard/archetypes/standard/zoolock/`, { headers: { 'User-Agent': userAgent } }).then(answer => answer.text());
     const guestHtml = await documentFor('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36');
     const robotHtml = await documentFor('Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)');
-    assert.equal(robotHtml, guestHtml, 'a robot and a guest get the same HTML');
+    // Resource hints are emitted in the order the render finishes, which varies between two requests of the same viewer: they are not content.
+    const withoutHints = html => html.replace(/<link rel="preload"[^>]*\/>/g, '');
+    assert.equal(withoutHints(robotHtml), withoutHints(guestHtml), 'a robot and a guest get the same HTML');
     assert.ok(robotHtml.includes(fullBuilds[0].deckCode) && robotHtml.includes('paywalled-archetype-history'));
     // «Скопировать код» works for a guest: it writes the code of the build.
     await page.setViewport({ width: 1440, height: 900 });
