@@ -7,6 +7,7 @@ import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js'
 import { canonicalBattlegroundCardSlug, createBattlegroundLibraryCatalogCache, createBattlegroundLibraryIdentityReader, createBattlegroundLibraryAuxiliaryPublicRouter,
   createBattlegroundLibraryPublicRouter, readBattlegroundLibraryIdentity, withBattlegroundLibraryDeadline as withDeadline } from './modules/battlegroundLibrary/public.js';
 import { renderTextPlurals } from '../shared/hearthstoneCardText.js';
+import { CONSTRUCTED_MECHANIC_TRANSLATIONS } from '../shared/constructedCardTranslations.js';
 import { createBattlegroundLibraryListingRouter } from './battlegroundLibraryListing.js';
 import { createLibraryStatsStore } from './battlegroundLibraryOpenStats.js';
 import { createLibraryOpenLayerLoader } from './battlegroundLibraryOpenCard.js';
@@ -150,13 +151,25 @@ function publicRulesText(card: JsonRecord): { ru: string | null; en: string | nu
   };
 }
 
+/**
+ * Game tokens the source leaves untranslated (the whole catalog checked 2026-11-20): the Battlegrounds tooltips
+ * here, the card keywords (IMMUNE, SECRET…) from the shared ruRU dictionary. Another untranslated token is not shown.
+ */
+const BATTLEGROUND_TOKEN_LABELS: Record<string, string> = {
+  BACON_BLOOD_GEM_TOOLTIP: 'Кровавые самоцветы', BACON_REFRESH_TOOLTIP: 'Обновление таверны',
+  BACON_ACTIVATE_TOOLTIP: 'Активация', BACON_PASS_TOOLTIP: 'Передача',
+};
+const tokenLabel = (token: string): string | null => BATTLEGROUND_TOKEN_LABELS[token] ?? CONSTRUCTED_MECHANIC_TRANSLATIONS[token] ?? null;
+
 function publicMechanics(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   const mechanics: string[] = [];
   const seen = new Set<string>();
   for (const raw of value) {
     const mechanic = record(raw);
-    const label = plainCatalogText(mechanic.name_ru ?? mechanic.name_en ?? mechanic.slug ?? raw, 120);
+    const source = plainCatalogText(mechanic.name_ru ?? mechanic.name_en ?? mechanic.slug ?? raw, 120);
+    // «BACON_BLOOD_GEM_TOOLTIP» is a game code, not words: a reader and a snippet must never see it.
+    const label = source && /^[A-Z0-9_]+$/.test(source) ? tokenLabel(source) : source;
     if (!label) continue;
     const key = cleanSearch(mechanic.slug ?? label).replace(/[^a-zа-я0-9]+/g, '_');
     if (!key || seen.has(key)) continue;

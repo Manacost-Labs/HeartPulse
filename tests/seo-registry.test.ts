@@ -140,7 +140,8 @@ const deferredRoutesSource = readFileSync(new URL('../src/features/DeferredRoute
 assert.doesNotMatch(deferredRoutesSource, /<ArenaTierListSearchIntro \/>/);
 
 const battlegroundsSource = readFileSync(new URL('../src/features/Battlegrounds.tsx', import.meta.url), 'utf8');
-assert.match(battlegroundsSource, /<BattlegroundsTierListSearchIntro \/>/);
+const battlegroundTierListSource = readFileSync(new URL('../src/features/BattlegroundTierList.tsx', import.meta.url), 'utf8');
+assert.match(battlegroundTierListSource, /<BattlegroundsTierListSearchIntro \/>/);
 assert.match(battlegroundsSource, /<BattlegroundsStrategyBuilderSearchIntro \/>/);
 assert.match(battlegroundsSource, /герой Полей сражений \| HearthPulse/);
 assert.doesNotMatch(battlegroundsSource, /герой Полей сражений \| Manacost Stats/);

@@ -399,3 +399,68 @@ assert.deepEqual(assembleOfferedVariants(first as never, second as never).map(va
 const bases = [{ card: { cardClass: 'MAGE' } }, { card: { cardClass: 'ROGUE' } }, { card: { cardClass: 'NEUTRAL' } }] as never[];
 assert.equal(assembleBasesForClass(bases, 'MAGE').length, 2);
 assert.equal(assembleBasesForClass(bases, null).length, 3);
+
+// Stale-while-revalidate: an expired answer is served at once, renewed in the background by one read per key, and a failed renewal keeps it.
+{
+  let clock = 0;
+  let calls = 0;
+  let version = 1;
+  let release: (() => void) | null = null;
+  let upstreamFails = false;
+  const errors: unknown[] = [];
+  const swrApp = express();
+  swrApp.use('/api', createCardAssembleRouter({
+    request: async () => {
+      calls += 1;
+      const gate = new Promise<void>(resolve => { release = resolve; });
+      if (calls > 1) await gate;
+      if (upstreamFails) throw new Error('down');
+      return new Response(JSON.stringify(version === 1 ? LIST : { ...LIST, data: LIST.data.slice(0, 2) }), { status: 200 });
+    },
+    cacheMs: 1_000,
+    now: () => clock,
+    onError: error => errors.push(error),
+  }));
+  const swrServer = swrApp.listen(0, '127.0.0.1');
+  await new Promise<void>((resolve, reject) => { swrServer.once('listening', resolve); swrServer.once('error', reject); });
+  const swrAddress = swrServer.address();
+  assert.ok(swrAddress && typeof swrAddress === 'object');
+  const swrUrl = `http://127.0.0.1:${swrAddress.port}/api/card-assemble/standard`;
+  const cardsOf = async () => ((await (await fetch(swrUrl)).json()) as CardAssembleListData).cards.length;
+  const settle = () => new Promise(resolve => setTimeout(resolve, 20));
+  try {
+    assert.equal(await cardsOf(), 13, 'cold read waits for the upstream');
+    // Expired: the old answer comes at once while the renewal is still waiting; many readers start one renewal.
+    version = 2;
+    clock = 5_000;
+    assert.deepEqual(await Promise.all([cardsOf(), cardsOf(), cardsOf()]), [13, 13, 13]);
+    assert.equal(calls, 2, 'one background read per key');
+    assert.equal(await cardsOf(), 13, 'the old answer until the renewal lands');
+    assert.equal(calls, 2);
+    (release as (() => void) | null)?.();
+    await settle();
+    assert.equal(await cardsOf(), 2, 'the renewed answer');
+    assert.equal(calls, 2, 'fresh again: no further read');
+    // A failed renewal keeps the cache; the next expired request tries again.
+    upstreamFails = true;
+    clock = 10_000;
+    assert.deepEqual(await Promise.all([cardsOf(), cardsOf(), cardsOf()]), [2, 2, 2]);
+    (release as (() => void) | null)?.();
+    await settle();
+    assert.equal(errors.length, 1, 'one failed read is reported once, not once per waiting reader');
+    assert.equal(calls, 3);
+    assert.equal(await cardsOf(), 2, 'a failed renewal does not spoil the cache');
+    (release as (() => void) | null)?.();
+    await settle();
+    assert.equal(calls, 4, 'retried after the failure');
+    upstreamFails = false;
+    version = 1;
+    assert.equal(await cardsOf(), 2, 'still the old answer while the recovered upstream is read');
+    (release as (() => void) | null)?.();
+    await settle();
+    assert.equal(await cardsOf(), 13, 'renewed once the upstream is back');
+  } finally {
+    (release as (() => void) | null)?.();
+    await new Promise(resolve => swrServer.close(resolve));
+  }
+}

@@ -44,6 +44,28 @@ const KNOWN_DATASET_ISSUES = {
   'hs-data-api': '#398',
 };
 const PRIVATE_PAYLOAD_PATTERN = /QA_PRIVATE|\b(?:deckCode|statsAccess|subscriptionPayload|privateSentinel)\b/i;
+const PRIVATE_PAYLOAD_PATTERN_WITHOUT_DECK_CODE = /QA_PRIVATE|\b(?:statsAccess|subscriptionPayload|privateSentinel)\b/i;
+// Deck codes are open by the owner's decision of 2026-11-18 (#444, #446; see
+// docs/specs/soft-paywall-meta-archetype.md and public-card-read-model.md), so
+// `deckCode` is not a private marker on the pages that publish them. Everywhere
+// else, including the unknown-card 404 and sitemaps, it still is (#580).
+const OPEN_DECK_CODE_ROUTES = [
+  // Archetype detail: open builds with a copyable deck code (#444).
+  /^\/standard\/archetypes\/(?:standard|wild)\/[a-z0-9-]{1,90}\/$/,
+  // Fun decks: every deck with its list and code (#446).
+  /^\/standard\/fun-decks\/$/,
+  // Card detail: the decks with the card, winrate and score nulled (#547).
+  /^\/standard\/cards\/(?:standard|wild)\/(?:[A-Za-z0-9_]{2,80}|blizzard%3A[1-9][0-9]{0,18})\/$/,
+];
+
+// Returns the private marker found in a page body, or null. `pathname` is the
+// page's own path; without it every marker counts.
+export function privatePayloadMarker(body, pathname = null) {
+  const pattern = pathname !== null && OPEN_DECK_CODE_ROUTES.some(route => route.test(pathname))
+    ? PRIVATE_PAYLOAD_PATTERN_WITHOUT_DECK_CODE
+    : PRIVATE_PAYLOAD_PATTERN;
+  return body.match(pattern)?.[0] ?? null;
+}
 const MONITOR_PROFILES = new Set(['full', 'release', 'freshness']);
 const DEFAULT_SAMPLE_COUNT = 3;
 const ENTITY_SITEMAP_SEGMENTS = [
@@ -580,7 +602,8 @@ function assertIndexableEntityHtml(html, response, canonical, identity, identity
     `${label} ${identity}: response is not HTML`);
   ensure(!/noindex/i.test(response.headers.get('x-robots-tag') || ''),
     `${label} ${identity}: X-Robots-Tag is noindex`);
-  ensure(!PRIVATE_PAYLOAD_PATTERN.test(html), `${label} ${identity}: private payload marker found`);
+  ensure(privatePayloadMarker(html, new URL(canonical).pathname) === null,
+    `${label} ${identity}: private payload marker found`);
   ensure([...html.matchAll(/<h1(?:\s[^>]*)?>/gi)].length === 1,
     `${label} ${identity}: expected exactly one H1`);
   const canonicals = [...html.matchAll(/<link\b(?=[^>]*\brel=["']canonical["'])[^>]*\bhref=["']([^"']+)["'][^>]*>/gi)]
@@ -716,7 +739,7 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal, sitemapWarnM
     if (sitemapSource === 'last-known-good') {
       warnings.push({ label: segment.label, message: `${segment.path} is served from the last-known-good copy` });
     }
-    ensure(!PRIVATE_PAYLOAD_PATTERN.test(body), `${segment.label} contains private payload fields`);
+    ensure(privatePayloadMarker(body) === null, `${segment.label} contains private payload fields`);
     const segmentEntries = sitemapEntries(body, 'urlset', segment.label);
     const locations = segmentEntries.map(entry => entry.location);
     await assertIndexLastmodOrRecheck(lastmodContext, `${origin}${segment.path}`, segmentEntries,
@@ -810,7 +833,7 @@ async function checkSeoCrawl(baseUrl, fetchImpl, timeoutMs, signal, sitemapWarnM
   }
   ensure(/noindex/i.test(unknownResponse.headers.get('x-robots-tag') || ''),
     'unknown card HTML: noindex response header is missing');
-  ensure(!PRIVATE_PAYLOAD_PATTERN.test(unknownHtml), 'unknown card HTML contains private payload fields');
+  ensure(privatePayloadMarker(unknownHtml) === null, 'unknown card HTML contains private payload fields');
   ensure(htmlAttributeValues(unknownHtml, 'meta', 'name', 'robots').some(value => /noindex/i.test(value)),
     'unknown card HTML: noindex metadata is missing');
   ensure(!/<link\b[^>]*\brel=["']canonical["']/i.test(unknownHtml),
@@ -1028,6 +1051,12 @@ async function checkPageTemplates(baseUrl, fetchImpl, timeoutMs, signal, setting
         url, fetchImpl, timeoutMs, MAX_ENTITY_HTML_BYTES, label, signal,
       );
       assertIndexablePage(response, body);
+      // A page that publishes deck codes must not carry the paid fields next to
+      // them. Other templates are not checked: card listings carry the guest
+      // flag `statsAccess:false`.
+      if (OPEN_DECK_CODE_ROUTES.some(route => route.test(url.pathname))) {
+        ensure(privatePayloadMarker(body, url.pathname) === null, 'private payload marker found');
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(`${url.pathname}: ${message} (${Date.now() - pageStartedAt} ms)`);

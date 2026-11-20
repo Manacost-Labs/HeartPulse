@@ -1,4 +1,4 @@
-import { Search, X, Grid3X3, List, ChevronDown } from 'lucide-react';
+import { Search, X, Grid3X3, List, ChevronDown, LockKeyhole } from 'lucide-react';
 import type { ClassSection } from '../model/types';
 import './TierListControls.css';
 
@@ -29,6 +29,21 @@ interface ControlsProps {
   onViewChange: (value: 'gallery' | 'table') => void;
   canUseTable: boolean;
   onReset: () => void;
+  /**
+   * A viewer without access: the rarity and mana filters stay in place as locked buttons that call this
+   * (the subscription offer); `.paywalled-tierlist` is the closed part the page's JSON-LD names.
+   */
+  onLockedFilter?: () => void;
+}
+
+function LockedFilter({ label, icon, onClick }: { label: string; icon: string; onClick: () => void }) {
+  return <button type="button" className="arena-tier-select arena-tier-select--locked paywalled-tierlist" onClick={onClick}
+    aria-label={`${label}: фильтр по подписке`}>
+    <span>{label}</span>
+    <img className="arena-tier-select-icon" src={icon} alt="" draggable={false} />
+    <b className="arena-tier-select-locked-value">{label === 'Мана' ? 'Любая мана' : 'Любая редкость'}</b>
+    <LockKeyhole size={15} aria-hidden="true" />
+  </button>;
 }
 
 export function TierListControls(props: ControlsProps) {
@@ -58,6 +73,10 @@ export function TierListControls(props: ControlsProps) {
         <h2>{activeName}</h2>
       </div>
       <div className="arena-tier-filters">
+        {props.onLockedFilter ? <>
+          <LockedFilter label="Редкость" icon="/assets/common.png" onClick={props.onLockedFilter} />
+          <LockedFilter label="Мана" icon="/assets/mana-64.webp" onClick={props.onLockedFilter} />
+        </> : <>
         <label className="arena-tier-select"><span>Редкость</span>
           <img className="arena-tier-select-icon arena-tier-select-icon--rarity"
             src={`/assets/${props.rarity === 'all' ? 'common' : props.rarity}.png`} alt="" draggable={false} />
@@ -77,6 +96,7 @@ export function TierListControls(props: ControlsProps) {
             </option>)}
           </select><ChevronDown size={16} aria-hidden="true" />
         </label>
+        </>}
         {filtered && <button className="arena-tier-reset" type="button" onClick={props.onReset}>Сбросить</button>}
         {props.canUseTable && <div className="arena-tier-view" role="group" aria-label="Вид карт" data-tour-id="arena-tier-view">
           <button type="button" aria-label="Галерея" title="Галерея" aria-pressed={props.view === 'gallery'}

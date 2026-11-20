@@ -23,7 +23,7 @@ export function ArchetypeOpenBuilds({ item, builds, total, next }: {
     <header className="archetype-section-heading">
       <div>
         <h2 id="archetype-open-builds-title">Сборки архетипа</h2>
-        <p>Источник — {item.sourceUrl ? <a href={item.sourceUrl} rel="noopener">HSGuru</a> : 'HSGuru'}.</p>
+        <p>Источник — {item.sourceUrl ? <a href={item.sourceUrl} rel="noopener">HSGuru</a> : 'HSGuru'}. Выборка сборок своя — цифры могут отличаться от архетипа.</p>
       </div>
       {builds.length || next !== null ? <span className="archetype-section-heading__count">{total} {pluralRu(total, 'сборка', 'сборки', 'сборок')}</span> : null}
     </header>

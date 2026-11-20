@@ -131,41 +131,36 @@ same data and last-known-good fallback as the full endpoint.
 - Failure order: fresh projection, origin, stale projection (`warning: stale`),
   last known good file (`warning: fallback`), then 503 with `Retry-After: 60`.
   The page then renders without the list (still HTTP 200).
-- The page renders the `hsreplay` projection as one table per class (anchors
-  `#tierlist-<classKey>`), the cards grouped by tier under the painted tier mark
-  (`TierBadge`, one image per tier group, not per card). The class filter is a
-  client enhancement over the same server markup (without a script every
-  section is visible and the links are plain anchors); a choice is written to
-  the address as `?class=<classKey>` and read back on load. The server HTML of
-  the list stays well under 300 KB: rows carry text only.
-- The open list is the page's content for everyone (#410), not a block below a
-  gate: the banner and breadcrumbs, a line with the date, sample and source, the
-  class chips and the tables. The server HTML does not branch on cookies or
-  user agent. A browser that has no access never loads the full view: it is a
-  separate chunk, fetched only for a subscriber (or when the server had no
-  list, then the old subscription gate shows).
-- **Locks in the data.** The closed values are shown as locks, never as values:
-  the last column of every class table («Ещё», a hatched column behind a lock
-  button) and two filter chips, «Мана» and «Редкость». A tap opens the
-  subscription offer (`ArenaPaidOffer`, loaded on that tap); a guest who signs
-  in comes back to the same address, class included, and the full view opens on
-  that class. The lock buttons, the closed column and the closed chips carry
-  `.paywalled-tierlist`.
-- **A subscriber** gets the full interactive view in the open list's place. The
-  swap happens only when the full view's code and the protected data have both
-  arrived; until then the open list stays, so a subscriber never sees a gate or
-  a skeleton first and the page does not shift (CLS under 0.01 is checked by
-  `tests/next-arena-open-first-screen-browser.test.mjs`).
-- Table columns at 360 px: the card takes what is left, «Винрейт, %» 5.25 rem,
-  «Выбор, %» 4.5 rem, the lock 3 rem; no header overflows and no table scrolls
-  sideways (#462).
+- The page renders the `hsreplay` projection in the subscriber's own view
+  (`TierList` of `src/features/DeferredRoutes.tsx`, through
+  `apps/public-web/lib/openTierlistView.ts`), on the server, for everyone: the
+  banner and breadcrumbs, the source switch, the class buttons, search, the
+  gallery or the table, tier groups under the painted marks (`TierBadge`) and
+  the cards, «Показать ещё» after the first 48. The whole pool travels in the
+  page data (RSC payload, rounded figures only), so class, search and card
+  details work without a request. The chosen class is written to the address
+  as `?class=<classKey>` and read back after hydration. The server HTML does
+  not branch on cookies or user agent (#575 owner rule: the same interface for
+  a guest and a subscriber, only data and functions are closed).
+- **Locks in place.** For a viewer without access (`openLayer`) the closed
+  parts are shown where a subscriber has them: the HearthArena and Firestone
+  sources, the rarity and mana filters, and in the card details, the hover
+  card and the table every paid figure (played and drawn winrate, share of
+  decks, copies, games, ArenaSmith, offer rate) is «По подписке». A lock opens
+  the subscription offer under the controls (a lock in the card details closes
+  them first). Locked elements carry `.paywalled-tierlist`.
+- **A subscriber** gets the same view; it switches to the protected data once
+  that has arrived, keeping class and filters. Until then, and when the
+  protected answer fails, the open data with its locks stays: no gate, no
+  skeleton, no shift (CLS under 0.01, checked by
+  `tests/next-arena-open-first-screen-browser.test.mjs`). On a phone the
+  banner is short for everyone (`TierListPage.css`).
 - `/tierlist/` is a five-minute ISR page. The copy made at build time has no
   list (the build has no Express); after a deploy it is replaced on the first
   regeneration, and the post-deploy warm-up waits for the marker
-  `tierlist-public-pool`.
-- The paid view sits in `.paywalled-tierlist`, the container named by the
-  page's JSON-LD (`isAccessibleForFree: false`, `hasPart`): the full view for a
-  subscriber, the locks for a guest.
+  `hs-tier-card` (a rendered card; the skeleton has none).
+- `.paywalled-tierlist` is the closed part named by the page's JSON-LD
+  (`isAccessibleForFree: false`, `hasPart`): the locks of the open view.
 
 The rules shared by all open slices are in
 [SEO foundation](seo-foundation.md#открытый-слой-и-платная-разметка).

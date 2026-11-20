@@ -325,7 +325,7 @@ assert.match(unknownSitemaps?.body || '', /proxy_pass\s+http:\/\/127\.0\.0\.1:31
   'unknown sitemap segments must reach the authoritative 404 resolver');
 assert.match(unknownSitemaps?.body || '', /proxy_intercept_errors\s+off;/,
   'unknown sitemap 404 responses must pass through nginx');
-assert.match(routingSource, /location\s+~\s+\^\/\(robots\\\.txt\|llms\\\.txt\)\$/,
+assert.match(routingSource, /location\s+~\s+\^\/\(robots\\\.txt\|llms\\\.txt\|[0-9a-f]{32}\\\.txt\)\$/,
   'robots and llms controls remain strict static files');
 assert.doesNotMatch(routingSource, /location\s+~[^\n]*sitemap\\\.xml[^\n]*\{[\s\S]*?try_files\s+\$uri/,
   'sitemap.xml must no longer be served as a build-time static URL set');
@@ -1345,6 +1345,7 @@ async function runNginxContractCheck() {
       join(projectRoot, 'public/yandex_eaea2c59052dad81.html'),
       join(www, 'yandex_eaea2c59052dad81.html'),
     );
+    copyFileSync(join(projectRoot, 'public/58284b575f81b49cc64477a6413fe046.txt'), join(www, '58284b575f81b49cc64477a6413fe046.txt'));
 
     const securitySnippet = join(root, 'arena-security-headers.conf');
     writeFileSync(securitySnippet, [
@@ -2011,6 +2012,9 @@ http {
         `${removedDraftPath} robots policy`,
       );
     }
+    const indexNowKey = await requestNginx(port, '/58284b575f81b49cc64477a6413fe046.txt');
+    assert.equal(indexNowKey.status, 200, 'the IndexNow key file is served as a static file');
+    assert.equal(indexNowKey.body, '58284b575f81b49cc64477a6413fe046', 'the IndexNow key file holds its own name');
     const missingPage = await requestNginx(port, '/definitely-unknown');
     assert.equal(missingPage.status, 404, 'unknown HTML must be a real 404');
     assert.match(missingPage.body, /<title>Next 404<\/title>/, 'Next 404 document body');
