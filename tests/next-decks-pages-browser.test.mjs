@@ -221,8 +221,9 @@ test('deck hub and class pages: server HTML with open codes, 404 for an unknown 
   }
 });
 
-// Details that hang must neither hold the page nor pile up requests (GPT review of #639): one shared deadline for
-// the details of a page, one request per archetype whoever asks, at most four at once; the codes come back after.
+// Details that hang must neither hold the page nor pile up requests (GPT reviews of #639): one shared deadline for
+// the details of a page, one request per archetype whoever asks, at most four at once, each cancelled after five
+// seconds; the first visit after the source recovers has the codes.
 test('hanging archetype details: the page answers by its deadline without codes and without piling up requests', async () => {
   const DRUIDS = Array.from({ length: 9 }, (_, index) => row(`druid-${'abcdefghi'[index]}`, `Друид ${index + 1}`, 'druid', 5000 + index, 50 + index, 2));
   const rows = [...DRUIDS, ...ROWS];
@@ -247,6 +248,7 @@ test('hanging archetype details: the page answers by its deadline without codes 
       const response = await fetch(`${stand.origin}${path}`);
       return { path, status: response.status, ms: Date.now() - started, html: await response.text() };
     };
+    const hangStarted = Date.now();
     const visits = await Promise.all(['/standard/decks/druid/', '/standard/decks/druid/', '/standard/decks/', '/standard/decks/paladin/',
       '/standard/decks/druid/'].map(visit));
     for (const { path, status, ms, html } of visits) {
@@ -256,15 +258,12 @@ test('hanging archetype details: the page answers by its deadline without codes 
     }
     assert.ok(maxActive <= 4, `at most four detail requests at once, saw ${maxActive}`);
     assert.equal(new Set(requested).size, requested.length, `one request per archetype: ${requested.join(', ')}`);
-    // The source answers again: the codes come back.
+    // The source never answers those reads; once their five seconds are over it answers again. Hanging reads were
+    // cancelled and freed their slots, so the first visit after it gets the codes: no fresh read waits behind them.
+    await delay(Math.max(0, hangStarted + 5600 - Date.now()));
     hold = false;
-    for (const answer of held.splice(0)) answer();
-    let recovered = '';
-    for (let attempt = 0; attempt < 40 && !recovered.includes('AAECAZ8FAAAAdruidiAAA='); attempt++) {
-      await delay(250);
-      recovered = (await visit('/standard/decks/druid/')).html;
-    }
-    assert.ok(recovered.includes('AAECAZ8FAAAAdruidiAAA='), 'the best build is back once its detail answers');
+    const recovered = (await visit('/standard/decks/druid/')).html;
+    assert.ok(recovered.includes('AAECAZ8FAAAAdruidiAAA='), 'the first visit after the source answers again has the best build');
   } finally {
     for (const answer of held.splice(0)) answer();
     await stand.close();

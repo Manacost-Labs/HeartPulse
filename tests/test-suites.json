@@ -280,6 +280,7 @@
         "tests/recoverable-surface.test.tsx",
         "tests/standard-matchups-controls-ui.test.ts",
         "tests/standard-archetype-label.test.ts",
+        "tests/class-decks-detail-loader.test.ts",
         "tests/archetype-label-golden.test.ts",
         "tests/standard-meta-table-model.test.ts",
         "tests/profile-stats-model.test.ts",
