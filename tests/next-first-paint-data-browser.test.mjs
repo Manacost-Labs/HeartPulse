@@ -72,7 +72,8 @@ function startLegacy(state) {
       return;
     }
     const payload = path === '/api/auth/me' ? { user: null }
-      : path === '/api/standard-meta/public' ? metaTeaser('patch_36.6.3')
+      : path === '/api/standard-meta/public' ? (url.searchParams.get('format') === 'wild'
+        ? { ...metaTeaser('patch_36.6.3'), format: 'wild', formatLabel: 'Вольный' } : metaTeaser('patch_36.6.3'))
         : path === '/api/constructed-archetypes/teaser' ? catalog
           : path === '/api/fun-decks' ? funDecks
             : null;
@@ -86,6 +87,11 @@ function startLegacy(state) {
     // Latency and stalls apply to server reads only; the browser, through the gateway, is answered at once.
     const serverRead = !browser && /^\/api\/(standard-meta|constructed-archetypes|fun-decks)/.test(url.pathname);
     if (serverRead && state.stall) return;
+    // The source is down but Express still holds a last-good slice: it answers it to a browser and a plain read, and an error to a prerender read.
+    if (serverRead && state.down && url.pathname === '/api/standard-meta/public' && request.headers['x-hearthpulse-prerender']) {
+      response.setHeader('Retry-After', '60');
+      return response.writeHead(503, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end('{"error":"down"}');
+    }
     if (serverRead && state.delay) setTimeout(() => respond(url, response), state.delay);
     else respond(url, response);
   });
@@ -93,7 +99,7 @@ function startLegacy(state) {
 
 test('public previews render on the server and hydrate without a guest data request', async () => {
   assert.equal(existsSync('apps/public-web/.next/BUILD_ID'), true, 'run build:next before browser QA');
-  const state = { reads: [], stall: false, delay: 0 };
+  const state = { reads: [], stall: false, delay: 0, down: false };
   const legacy = startLegacy(state);
   const legacyOrigin = await listen(legacy);
   const next = await startNextServer({ legacyOrigin });
@@ -205,34 +211,38 @@ test('public previews render on the server and hydrate without a guest data requ
     assert.ok(Date.now() - started < 1500, 'the earlier copy is served at once');
     assert.equal(kept.match(/class="standard-meta-card"/g)?.length, 3, 'with the numbers it had');
 
-    // A stalled Express during a regeneration: it gives up after the 5 s
-    // budget with the loader (no 500), and the browser loads the teaser itself.
-    // The probe passes (Express answers), the page is marked stale, and only then the source stalls for the regeneration.
+    // A stalled Express during a regeneration (the probe passed, the page is marked stale, then the source stalls): the
+    // render gives up after the 5 s budget and fails, so Next publishes nothing. A page without data is never printed in
+    // place of the one with data; once the source answers again the earlier copy is served as before.
     state.stall = false;
     await regenerate();
     state.stall = true;
     started = Date.now();
-    const stalled = await (await fetch(`${origin}/standard/meta/`)).text();
+    const stalledResponse = await fetch(`${origin}/standard/meta/`);
+    const stalled = await stalledResponse.text();
     const stalledMs = Date.now() - started;
-    assert.ok(stalledMs >= 4500 && stalledMs < 9000, `a stalled Express read gives up at the budget (${stalledMs} ms)`);
-    assert.match(stalled, /data-loading-surface="panel"/, 'without data the page renders its loader');
-    assert.match(stalled, /Архетипов<\/dt><dd><span class="loading-block loading-value"/, 'and no fake zero: a value placeholder');
-    const page = await browser.newPage();
-    await page.setViewport({ width: 390, height: 844 });
-    const errors = [];
-    page.on('pageerror', error => errors.push(error.message));
-    const browserReads = [];
-    page.on('request', request => {
-      if (new URL(request.url()).pathname === '/api/standard-meta/public') browserReads.push(request.url());
-    });
-    await page.goto(`${origin}/standard/meta/`, { waitUntil: 'networkidle0' });
-    await page.waitForSelector('#root .standard-meta-card', { visible: true });
-    assert.ok(browserReads.length >= 1, 'the browser loads the teaser the server could not');
-    assert.match(await page.$eval('#root .traditional-mode-banner__summary dd', node => node.textContent), /^3$/);
-    assert.match(await summaryValue(page, 'Игр в выборке'), /^52\s500$/, 'the teaser the browser loads itself shows the slice sample too');
-    assert.deepEqual(errors, []);
-    await page.close();
+    assert.ok(stalledMs >= 4500 && stalledMs < 11_000, `a stalled Express read gives up at the budget (${stalledMs} ms)`);
+    assert.ok(!(stalledResponse.status === 200 && !stalled.includes('class="standard-meta-card"')), 'no empty page in place of the one with data');
     state.stall = false;
+    const restored = await (await fetch(`${origin}/standard/meta/`)).text();
+    assert.equal(restored.match(/class="standard-meta-card"/g)?.length, 3, 'the earlier copy is served again, with its numbers');
+
+    // The source is down while Express still holds a last-good slice: the warm-up's probe reads it as a prerender read does,
+    // gets the error and skips both meta pages, which keep their earlier copy (no 500, no stale slice in the data cache).
+    await regenerate();
+    for (const path of ['/standard/meta/', '/standard/meta/wild/']) await fetch(`${origin}${path}`);
+    state.down = true;
+    const downAnswer = await (await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).json();
+    for (const path of ['/standard/meta', '/standard/meta/wild']) {
+      assert.ok(downAnswer.skipped.some(item => item.path === path && item.reason === 'source-unavailable'), `${path} is skipped`);
+      assert.ok(!downAnswer.revalidated.includes(path), `${path} is not marked stale`);
+    }
+    for (const path of ['/standard/meta/', '/standard/meta/wild/']) {
+      const response = await fetch(`${origin}${path}`);
+      assert.equal(response.status, 200, `${path} answers while the source is down`);
+      assert.equal((await response.text()).match(/class="standard-meta-card"/g)?.length, 3, `${path} keeps its copy`);
+    }
+    state.down = false;
   } finally {
     if (browser) await browser.close();
     gateway.closeAllConnections();

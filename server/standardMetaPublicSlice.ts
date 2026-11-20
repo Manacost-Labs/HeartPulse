@@ -88,6 +88,8 @@ export async function loadPublicStandardMeta(loadMeta: PublicSource['loadMeta'],
  * viewer, so it may sit in a shared cache.
  */
 export function createPublicStandardMetaHandler(dependencies: PublicSource): RequestHandler {
+  // The last good slice of each format: a source failure answers it before it answers an error.
+  const lastGood = new Map<StandardMetaFormat, ReturnType<typeof projectPublicStandardMeta>>();
   return async (request, response) => {
     const format = readFormat(request.query.format);
     if (!format) return response.status(400).json({ error: 'Неизвестный формат' });
@@ -95,12 +97,23 @@ export function createPublicStandardMetaHandler(dependencies: PublicSource): Req
       const body = await loadPublicStandardMeta(dependencies.loadMeta, format);
       response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=900');
       response.set('X-Content-Type-Options', 'nosniff');
+      lastGood.set(format, body);
       return response.json(body);
     } catch (error) {
       dependencies.onError?.('meta', error);
-      // A degraded answer must not sit in a shared cache for long.
-      response.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=60');
-      return response.status(502).json({ error: 'Данные меты временно недоступны' });
+      // A prerender read is cached by Next for minutes: it gets no last-good copy (the page keeps its earlier one).
+      const stale = request.get('X-Hearthpulse-Prerender') ? undefined : lastGood.get(format);
+      response.set('X-Content-Type-Options', 'nosniff');
+      if (stale) {
+        // The last good slice stays a short-lived shared answer: it is data, but not fresh.
+        response.set('Cache-Control', 'public, max-age=60, stale-while-revalidate=60');
+        response.set('X-Standard-Meta-Source', 'stale');
+        return response.json(stale);
+      }
+      // An error never sits in a shared cache; callers retry after a minute.
+      response.set('Cache-Control', 'no-store');
+      response.set('Retry-After', '60');
+      return response.status(503).json({ error: 'Данные меты временно недоступны' });
     }
   };
 }

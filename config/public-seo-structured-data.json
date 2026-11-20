@@ -613,7 +613,7 @@
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/standard/meta/#collection",
         "name": "HSGuru: мета Hearthstone",
-        "description": "Тир-лист колод Стандарта и Вольного режима с винрейтами, популярностью и готовыми сборками.",
+        "description": "Тир-лист колод Стандарта с винрейтами, популярностью и готовыми сборками.",
         "url": "https://hearthpulse.net/standard/meta/",
         "inLanguage": "ru",
         "about": {
@@ -624,7 +624,7 @@
         "@type": "Dataset",
         "@id": "https://hearthpulse.net/standard/meta/#dataset",
         "name": "Мета Стандарта Hearthstone: винрейт, популярность и число игр архетипов",
-        "description": "Общий срез меты Стандарта и Вольного формата Hearthstone по данным HSGuru: винрейт, популярность и число игр каждого архетипа открыты. Узкие срезы по рангу, очерёдности хода и периоду, динамика и рекомендации доступны по подписке.",
+        "description": "Общий срез меты Стандарта Hearthstone по данным HSGuru: винрейт, популярность и число игр каждого архетипа открыты. Узкие срезы по рангу, очерёдности хода и периоду, динамика и рекомендации доступны по подписке.",
         "url": "https://hearthpulse.net/standard/meta/",
         "isAccessibleForFree": false,
         "hasPart": {
@@ -656,6 +656,81 @@
         "keywords": [
           "Hearthstone",
           "мета Стандарта",
+          "архетипы",
+          "винрейт",
+          "тир-лист колод"
+        ],
+        "about": {
+          "@type": "VideoGame",
+          "name": "Hearthstone"
+        }
+      }
+    ],
+    "/standard/meta/wild": [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Главная",
+            "item": "https://hearthpulse.net"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Мета Вольного формата Hearthstone",
+            "item": "https://hearthpulse.net/standard/meta/wild/"
+          }
+        ]
+      },
+      {
+        "@type": "CollectionPage",
+        "@id": "https://hearthpulse.net/standard/meta/wild/#collection",
+        "name": "HSGuru: мета Вольного формата Hearthstone",
+        "description": "Тир-лист колод Вольного формата с винрейтами и популярностью.",
+        "url": "https://hearthpulse.net/standard/meta/wild/",
+        "inLanguage": "ru",
+        "about": {
+          "@id": "https://hearthpulse.net/standard/meta/wild/#dataset"
+        }
+      },
+      {
+        "@type": "Dataset",
+        "@id": "https://hearthpulse.net/standard/meta/wild/#dataset",
+        "name": "Мета Вольного формата Hearthstone: винрейт, популярность и число игр архетипов",
+        "description": "Общий срез меты Вольного формата Hearthstone по данным HSGuru: винрейт, популярность и число игр каждого архетипа открыты. Узкие срезы по рангу, очерёдности хода и периоду, динамика и рекомендации доступны по подписке.",
+        "url": "https://hearthpulse.net/standard/meta/wild/",
+        "isAccessibleForFree": false,
+        "hasPart": {
+          "@type": "WebPageElement",
+          "isAccessibleForFree": false,
+          "cssSelector": ".paywalled-standard-meta"
+        },
+        "isBasedOn": {
+          "@type": "Dataset",
+          "name": "HSGuru: Meta",
+          "url": "https://www.hsguru.com/meta"
+        },
+        "variableMeasured": [
+          {
+            "@type": "PropertyValue",
+            "name": "Винрейт",
+            "unitText": "%"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Популярность",
+            "unitText": "%"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Число игр"
+          }
+        ],
+        "keywords": [
+          "Hearthstone",
+          "мета Вольного формата",
           "архетипы",
           "винрейт",
           "тир-лист колод"

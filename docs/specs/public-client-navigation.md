@@ -683,5 +683,7 @@ own banner and list; it adds no page and no route.
 7. The palette lists the Wild items with their mode («Мета», «Вольный»); patch
    notes appear once. The 503 page builds its list from `NAVIGATION_DATA`, which
    has no Wild items, so it shows no duplicates.
-8. SEO is unchanged: `/standard/meta/?format=wild` is the same page as
-   `/standard/meta/` with a query, with the same canonical and robots.
+8. Wild's meta has its own address, `/standard/meta/wild/` (E21 #477): its own
+   title, H1 and canonical, prerendered like `/standard/meta/`. The old
+   `/standard/meta/?format=wild` is one permanent nginx hop to it, other query
+   keys kept; the menu's «Мета» in the Wild list leads there.

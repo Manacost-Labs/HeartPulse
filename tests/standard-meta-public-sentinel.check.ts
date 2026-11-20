@@ -10,12 +10,13 @@ import { projectPublicStandardMeta } from '../server/standardMetaPublicSlice.js'
 const PAID_LABELS = ['77.7701', '77.7702', '-7.7703', 'SENTINEL_DECK_CODE', 'SENTINEL_TREND', 'SENTINEL_NARROW', '66.6066'];
 const updatedAt = '2026-07-21T05:05:30.230Z';
 const calls: string[] = [];
+const failing = new Set<string>();
 
 const rows = (rank: string) => Array.from({ length: 4 }, (_, index) => ({
   id: `m-${index + 1}`, slug: `arch-${index + 1}`, archetype: `Archetype ${index + 1}`, archetypeLabel: `Архетип ${index + 1}`,
   translated: true, classKey: 'mage',
   winrate: rank === 'legend' ? 66.6066 : 52 - index, popularity: 20 - index, games: 1_000 - index * 50,
-  turns: 7.7701 * 10, durationMinutes: 77.7702, climbingSpeed: -7.7703,
+  turns: 77.7701, durationMinutes: 77.7702, climbingSpeed: -7.7703,
   deckCode: 'SENTINEL_DECK_CODE', trend: 'SENTINEL_TREND', narrowSlice: 'SENTINEL_NARROW',
 }));
 
@@ -27,6 +28,7 @@ const dependencies: StandardMetaRouterDependencies = {
   },
   loadMeta: async (format, rank, period, coin, minGames) => {
     calls.push(`${format}:${rank}:${period}:${coin}:${minGames}`);
+    if (failing.has(format)) throw new Error('source down');
     return {
       publicationMode: 'stable', publishedAt: updatedAt, format, formatLabel: format === 'standard' ? 'Стандарт' : 'Вольный',
       rank, rankLabel: rank, period,
@@ -94,6 +96,36 @@ try {
   const envelope = await (await fetch(`${origin}/standard-meta`, { headers: { 'X-Test-Access': 'allowed' } })).json() as any;
   const leaky = { ...projectPublicStandardMeta(envelope, null), items: envelope.items };
   assert.throws(() => assertNoPaidLabels(JSON.stringify(leaky)), /paid label/, 'the sentinel must catch a leaking projection');
+
+  // Degradation: the last good slice of the format, then 503 with Retry-After and no-store, never a public 502.
+  failing.add('standard');
+  const stale = await fetch(`${origin}/standard-meta/public?format=standard`);
+  assert.equal(stale.status, 200);
+  assert.equal(((await stale.json()) as any).items.length, 4);
+  // A prerender read is cached by Next for minutes: it gets no last-good copy, only the error.
+  const prerender = await fetch(`${origin}/standard-meta/public?format=standard`, { headers: { 'X-Hearthpulse-Prerender': '1' } });
+  assert.equal(prerender.status, 503, 'a prerender read never gets the stale slice');
+  assert.equal(prerender.headers.get('cache-control'), 'no-store');
+  assert.equal(prerender.headers.get('retry-after'), '60');
+  failing.delete('standard');
+  failing.add('wild');
+  const stats = await fetch(`${origin}/standard-meta/public?format=wild`);
+  assert.equal(stats.status, 200, 'wild was loaded earlier in this run');
+  const fresh = createStandardMetaRouter({ ...dependencies, loadMeta: async () => { throw new Error('down'); } });
+  const cold = express().use('/api', fresh).listen(0, '127.0.0.1');
+  await new Promise<void>(resolve => cold.once('listening', resolve));
+  try {
+    const coldAddress = cold.address();
+    assert.ok(coldAddress && typeof coldAddress === 'object');
+    for (const format of ['standard', 'wild']) {
+      const down = await fetch(`http://127.0.0.1:${coldAddress.port}/api/standard-meta/public?format=${format}`);
+      assert.equal(down.status, 503);
+      assert.equal(down.headers.get('retry-after'), '60');
+      assert.equal(down.headers.get('cache-control'), 'no-store');
+    }
+  } finally {
+    cold.close();
+  }
 } finally {
   server.close();
 }

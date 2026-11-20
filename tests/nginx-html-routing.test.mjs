@@ -605,7 +605,7 @@ for (const route of inventory.routes) {
       `${route.id} filters and errors must retain their robots policy`);
     continue;
   }
-  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/streamers', '/leaderboards', '/classes', '/tierlist', '/legendaries', '/standard/matchups', '/standard/meta', '/standard/fun-decks', '/standard/patches', '/standard/assemble', '/standard/radar', '/standard/vicious-gold', '/standard/archetypes', '/standard/archetypes/wild', '/standard/deck-builder'].includes(path)) {
+  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/streamers', '/leaderboards', '/classes', '/tierlist', '/legendaries', '/standard/matchups', '/standard/meta', '/standard/meta/wild', '/standard/fun-decks', '/standard/patches', '/standard/assemble', '/standard/radar', '/standard/vicious-gold', '/standard/archetypes', '/standard/archetypes/wild', '/standard/deck-builder'].includes(path)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }
@@ -1036,6 +1036,11 @@ async function startCardSeoUpstream() {
       status: 200,
       headers: { 'Cache-Control': 'private, no-cache' },
       body: '<!doctype html><title>Next Wild hub</title>',
+    }],
+    ['/standard/meta/wild/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next meta wild</title>',
     }],
     ['/standard/fun-decks/', {
       status: 200,
@@ -1688,6 +1693,33 @@ http {
     assert.equal(legacyHead.status, 301);
     assert.equal(new URL(legacyHead.headers.location).pathname, '/standard/archetypes/standard/tempo-mage/');
     assert.equal(legacyHead.body, '');
+    // Meta of Wild has its own path: the slash is added in one hop, the page is Next's, an
+    // unknown segment is a real 404, and the old ?format=wild query is one hop with other keys kept.
+    const wildNoSlash = await requestNginx(port, '/standard/meta/wild?utm_source=x');
+    assert.equal(wildNoSlash.status, 301);
+    assert.equal(new URL(wildNoSlash.headers.location).pathname + new URL(wildNoSlash.headers.location).search, '/standard/meta/wild/?utm_source=x');
+    const wildPage = await requestNginx(port, '/standard/meta/wild/');
+    assert.equal(wildPage.status, 200);
+    assert.match(wildPage.body, /Next meta wild/);
+    assert.equal(wildPage.headers['x-robots-tag'], undefined, 'the Wild meta page is indexable');
+    assert.equal((await requestNginx(port, '/standard/meta/foo/')).status, 404);
+    for (const [from, to] of [
+      ['/standard/meta/?format=wild', '/standard/meta/wild/'],
+      ['/standard/meta?format=wild', '/standard/meta/wild/'],
+      ['/standard/meta?format=wild&rank=legend', '/standard/meta/wild/?rank=legend'],
+      ['/standard/meta/?format=wild&utm_source=x', '/standard/meta/wild/?utm_source=x'],
+      ['/standard/meta/?utm_source=x&format=wild', '/standard/meta/wild/?utm_source=x'],
+      ['/standard/meta/?a=1&format=wild&b=2', '/standard/meta/wild/?a=1&b=2'],
+    ]) {
+      const old = await requestNginx(port, from);
+      assert.equal(old.status, 301, `${from} must redirect permanently`);
+      const target = new URL(old.headers.location);
+      assert.equal(`${target.pathname}${target.search}`, to);
+      assert.match(old.headers['cache-control'] || '', /no-store/);
+    }
+    for (const path of ['/standard/meta/?format=standard', '/standard/meta/?format=wilder', '/standard/meta/']) {
+      assert.equal((await requestNginx(port, path)).status, 200, `${path} stays the Standard page`);
+    }
     // The archetype URL without a slash still gets its slash in one hop, query kept, without noindex.
     const archetypeSlash = await requestNginx(port, '/standard/archetypes/standard/tempo-mage?period=7d');
     assert.equal(archetypeSlash.status, 301);
