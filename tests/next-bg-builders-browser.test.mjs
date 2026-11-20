@@ -14,10 +14,10 @@ import { isMenuBackgroundRead, MENU_PATCH_ARCHIVE } from './helpers/menuBackgrou
 
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
 const pages = [
-  { path: '/battlegrounds/strategies/', heading: 'Конструктор стратегий Полей сражений', canonical: 'https://hearthpulse.net/battlegrounds/strategies/',
+  { path: '/battlegrounds/strategies/', heading: 'Конструктор стратегий Полей сражений', indexed: true,
     script: 'strategy-builder.gridfix2.js', initialized: '#builder-comp-select', placeholder: 'Загружаю сборки...' },
-  // The tier builder is a tool without an open layer: noindex, no canonical (#538).
-  { path: '/battlegrounds/tier-builder/', heading: 'Конструктор тир-листов Полей сражений', canonical: undefined,
+  // The tier builder is a tool without an open layer: noindex, no canonical, og:url or JSON-LD (#553).
+  { path: '/battlegrounds/tier-builder/', heading: 'Конструктор тир-листов Полей сражений', indexed: false,
     script: 'shared.js', initialized: '#tier-builder-summary', placeholder: 'Загружаю библиотеку...' },
 ];
 
@@ -89,7 +89,7 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
 
     for (const width of [3560, 1440, 390, 320]) {
       await page.setViewport({ width, height: 900 });
-      for (const { path, heading, canonical } of pages) {
+      for (const { path, heading, indexed } of pages) {
         const response = await page.goto(`${origin}${path}`, { waitUntil: 'networkidle2' });
         assert.equal(response.status(), 200, path);
         await page.waitForFunction(() => !document.body.textContent.includes('Проверяем доступ'));
@@ -98,6 +98,9 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
           h1: [...document.querySelectorAll('h1')].map(node => node.textContent?.trim()),
           mainCount: document.querySelectorAll('main').length,
           canonical: document.querySelector('link[rel="canonical"]')?.href,
+          ogUrl: document.querySelector('meta[property="og:url"]')?.getAttribute('content'),
+          robots: document.querySelector('meta[name="robots"]')?.getAttribute('content'),
+          jsonLd: document.querySelectorAll('script[type="application/ld+json"]').length,
           // The strategies page shows its open builds and a closed-part note instead of a gate (E21 R7).
           paywall: document.body.textContent.includes('доступен подписчикам') || Boolean(document.querySelector('.paywalled-builds .bg-builds-locks button')),
           contentWidth: document.querySelector('.arena-content').getBoundingClientRect().width,
@@ -109,7 +112,14 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
         }));
         assert.deepEqual(state.h1, [heading], path);
         assert.equal(state.mainCount, 1, path);
-        assert.equal(state.canonical, canonical, path);
+        const url = `https://hearthpulse.net${path}`;
+        assert.equal(state.canonical, indexed ? url : undefined, path);
+        assert.equal(state.ogUrl, indexed ? url : undefined, path);
+        if (!indexed) {
+          // Strategies' robots follow its open list (a fixture without builds is noindex), so only the builder is pinned here.
+          assert.equal(state.robots, 'noindex, follow', path);
+          assert.equal(state.jsonLd, 0, path);
+        }
         assert.equal(state.paywall, true, path);
         if (width >= 1024) assert.ok(state.contentWidth >= state.mainWidth - 48,
           `${path} fills the workspace beside the sidebar at ${width}px`);

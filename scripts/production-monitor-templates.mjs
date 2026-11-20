@@ -24,7 +24,6 @@ export const SAMPLE_SOURCES = {
   'bg-hero-detail': [{ segment: 'battlegroundHeroes' }],
   'bg-library-kind': [{ path: '/library/minions/' }],
   'bg-library-detail': [{ segment: 'battlegroundMinions' }],
-  'bg-library-archive': [{ path: '/library/archive/minions/' }],
   'constructed-archetype-detail': [{ segment: 'archetypes' }],
 };
 

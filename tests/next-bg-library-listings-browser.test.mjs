@@ -74,6 +74,9 @@ test('Next Battleground library listings preserve anonymous SEO without private 
         await page.evaluate(axe);
         const state = await page.evaluate(async () => ({
           canonical: document.querySelector('link[rel=canonical]')?.href,
+          ogUrl: document.querySelector('meta[property="og:url"]')?.getAttribute('content'),
+          robots: document.querySelector('meta[name="robots"]')?.getAttribute('content'),
+          jsonLd: document.querySelectorAll('script[type="application/ld+json"]').length,
           h1: [...document.querySelectorAll('h1')].map(node => node.textContent?.trim()),
           main: document.querySelectorAll('main').length,
           overflow: document.documentElement.scrollWidth > innerWidth,
@@ -83,8 +86,11 @@ test('Next Battleground library listings preserve anonymous SEO without private 
           violations: (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } }))
             .violations.map(violation => violation.id),
         }));
-        // The archive has no open layer: noindex without a canonical (#538).
+        // The archive has no open layer: noindex without a canonical, og:url or JSON-LD (#553).
         assert.equal(state.canonical, open ? `https://hearthpulse.net${path}` : undefined, path);
+        assert.equal(state.ogUrl, open ? `https://hearthpulse.net${path}` : undefined, path);
+        assert.equal(state.robots, open ? 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' : 'noindex, follow', path);
+        assert.equal(state.jsonLd > 0, open, path);
         assert.deepEqual(state.h1, [heading]);
         assert.equal(state.main, 1);
         assert.equal(state.overflow, false);

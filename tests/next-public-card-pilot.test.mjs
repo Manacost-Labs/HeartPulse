@@ -243,9 +243,9 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.equal(viciousGold.status, 200, runtime.output());
     const viciousGoldHtml = await viciousGold.text();
     assert.match(viciousGoldHtml, /<h1>Vicious Syndicate Gold<\/h1>/);
-    // No open layer yet: the page stays reachable but out of the index and without a canonical (#538).
+    // No open layer yet: reachable, out of the index, no canonical, share tags or JSON-LD (#553).
     assert.match(viciousGoldHtml, /<meta name="robots" content="noindex, follow"\/>/);
-    assert.doesNotMatch(viciousGoldHtml, /rel="canonical"/);
+    assert.doesNotMatch(viciousGoldHtml, /rel="canonical"|property="og:url"|application\/ld\+json/);
     assert.equal((viciousGoldHtml.match(/<main\b/g) || []).length, 1);
     assert.doesNotMatch(viciousGoldHtml, /deckCode|card-reader@example|manacost_auth_token/);
 
@@ -265,7 +265,7 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     const contestsHtml = await contests.text();
     assert.match(contestsHtml, /Проверочный конкурс Next/);
     assert.match(contestsHtml, /<meta name="robots" content="noindex, follow"\/>/);
-    assert.doesNotMatch(contestsHtml, /rel="canonical"/);
+    assert.doesNotMatch(contestsHtml, /rel="canonical"|property="og:url"|application\/ld\+json/);
     assert.equal((contestsHtml.match(/<main\b/g) || []).length, 1);
     assert.doesNotMatch(contestsHtml, /createdBy|card-reader@example|manacost_auth_token/);
   } finally { await runtime.close(); }
