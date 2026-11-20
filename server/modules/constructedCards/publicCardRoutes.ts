@@ -15,7 +15,8 @@ export function createPublicCardRouter(read: ReturnType<typeof createConstructed
       if (!card) return response.status(404).json({ error: 'Card not found' });
       return response.json({
         card: project(card),
-        classCode: typeof card.class === 'string' && /^[A-Z]+$/.test(card.class) ? card.class : 'NEUTRAL',
+        // A multi-class card has no single class: null, not NEUTRAL, so no page calls it neutral.
+        classCode: typeof card.class === 'string' && /^[A-Z]+$/.test(card.class) ? card.class : null,
         dbf: Number.isSafeInteger(card.dbf) && Number(card.dbf) > 0 ? card.dbf : null,
       });
     } catch {

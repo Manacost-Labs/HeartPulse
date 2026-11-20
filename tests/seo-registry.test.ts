@@ -553,6 +553,11 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
     name: 'Монетка', id: 'GAME_005', format: 'wild', set: 'Базовый', classCode: 'NEUTRAL', type: 'Заклинание', mana: 0,
     rulesText: 'Вы получаете 1 кристалл маны до конца хода.',
   }), 'Монетка (Вольный формат) — нейтральная карта: заклинание за 0 маны, набор «Базовый». Вы получаете 1 кристалл маны до конца хода.');
+  assert.equal(constructedCardDescription({
+    name: 'Смертокрыл Разрушитель миров', id: 'CATA_190h', format: 'standard', set: 'Катаклизм', classCode: null, type: 'Герой', rarity: 'Легендарная', mana: 10,
+    rulesText: 'Похищение жизни . Боевой клич: наносит 10 ед. урона .',
+  }), 'Смертокрыл Разрушитель миров — карта: герой за 10 маны, легендарная, набор «Катаклизм». Похищение жизни. Боевой клич: наносит 10 ед. урона.',
+  'a card of several classes is not called neutral; stray spaces before punctuation go');
   assert.equal(constructedCardDescription({ name: 'Прилив маны', id: 'X_2', format: 'standard', set: 'Основной', classCode: 'MAGE', type: 'Заклинание', mana: 1, rulesText: 'Вы берете карту' }),
     'Прилив маны — карта мага: заклинание за 1 ману, набор «Основной». Вы берете карту. История изменений и колоды с картой.', 'the tail fits');
   assert.equal(constructedCardDescription({ name: 'Клинок', id: 'X_3', format: 'standard', set: 'Основной', classCode: 'ROGUE', type: 'Оружие', rarity: 'Обычная', mana: 2, attack: 3, durability: 2 }),

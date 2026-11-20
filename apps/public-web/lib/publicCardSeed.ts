@@ -13,7 +13,7 @@ export function publicCardSeed(payload: unknown, cardId: string): PublicCardSeed
   return {
     card_id: cardId, dbf: number(data.dbf), name: { ru: card.name, en: text(card.englishName) },
     text: { ru: text(card.rulesText) }, flavor: { ru: text(card.flavorText) },
-    class: text(data.classCode) ?? 'NEUTRAL', card_set: text(card.set), card_type: { name_ru: text(card.type) },
+    class: text(data.classCode), card_set: text(card.set), card_type: { name_ru: text(card.type) },
     rarity: text(card.rarity), mana_cost: number(card.mana), attack: number(card.attack), health: number(card.health),
     durability: number(card.durability), armor: number(card.armor), artist: text(card.artist),
     images: { card: localImage ?? null }, stats: null,

@@ -55,7 +55,8 @@ const CLASS_GENITIVE: Record<string, string> = {
   WARLOCK: 'чернокнижника', WARRIOR: 'воина',
 };
 
-const clean = (value: string | null | undefined): string => String(value ?? '').replace(/\s+/g, ' ').trim();
+// The source text has stray spaces before punctuation («Похищение жизни .»); the browser's plain text drops them.
+const clean = (value: string | null | undefined): string => String(value ?? '').replace(/\s+/g, ' ').replace(/ ([.,!?:;…])/g, '$1').trim();
 const lowerFirst = (value: string): string => value ? `${value[0].toLocaleLowerCase('ru-RU')}${value.slice(1)}` : value;
 
 /**

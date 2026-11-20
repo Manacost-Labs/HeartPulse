@@ -5,7 +5,8 @@ export type PublicCardSeed = {
   name: { ru: string; en: string | null };
   text: { ru: string | null };
   flavor: { ru: string | null };
-  class: string;
+  /** The class code; null for a card of several classes, as in the full record. */
+  class: string | null;
   card_set: string | null;
   card_type: { name_ru: string | null };
   rarity: string | null;
