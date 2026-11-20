@@ -173,6 +173,19 @@ try {
   assert.equal((await request('/guides-archive?q=PAID_SENTINEL_BODY_TEXT', { headers })).body.total, 1,
     'a subscriber keeps the full-text search');
 
+  // A guide without a description is described by its open part: never by the start of the body text, which may be the paid part.
+  database.prepare(`INSERT INTO guides VALUES (4, 'no-description', '/guides/no-description', 400, NULL, 'Без описания', '',
+    '', NULL, 'Арена', 'arena', 'Гайды', 'guides', '', ?, ?, ?, 0)`).run(
+    `<p>FREE_START ${'слово '.repeat(10)}</p>`, `<p>${'слово '.repeat(300)}PAID_DEEP_SENTINEL</p>`,
+    `PAID_BODY_TEXT_FIRST ${'слово '.repeat(300)}`);
+  const described = await request('/guides-archive/public/list');
+  const noDescription = described.body.items.find((item: any) => item.slug === 'no-description');
+  assert.match(noDescription.description, /^FREE_START слово/, 'described by the open part');
+  assert.equal(JSON.stringify(described.body).includes('PAID_'), false, 'no paid text in the list, whatever the description is');
+  const describedTeaser = await request('/guides-archive/teaser/no-description');
+  assert.match(describedTeaser.body.description, /^FREE_START слово/);
+  assert.equal(JSON.stringify(describedTeaser.body).includes('PAID_'), false);
+
   // Stale copy of the same request, else 503 with Retry-After; never a 500 and never an empty list.
   const flaky = async (path: string) => fetch(`${origin(flakyServer)}${path}`);
   assert.equal((await flaky('/guides-archive/public/list?page=1')).status, 200);

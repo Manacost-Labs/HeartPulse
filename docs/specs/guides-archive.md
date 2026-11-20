@@ -70,7 +70,10 @@ robots, guests and subscribers alike; filters, search and paging load in
 the browser. A guest's search covers title, description and keywords but not
 `body_text`, so it cannot tell whether a word stands in the paid text; a
 subscriber's search (`GET /api/guides-archive`, access-guarded) keeps the
-full-text search. When the database fails, the open list answers from the
+full-text search. The open list never selects `body_text`/`body_html` for its
+cards; a guide without its own description (20 of 621 today) is described by
+the start of its open part (the same cut the guide page shows), never by the
+start of the whole body. When the database fails, the open list answers from the
 last good copy of the same request, else `503` with `Retry-After: 60`.
 
 A restart of Express (a deploy) must not turn a guide page into a 500:

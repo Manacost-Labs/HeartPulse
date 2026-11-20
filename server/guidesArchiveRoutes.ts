@@ -40,6 +40,11 @@ function excerptText(value: unknown, maxLength = 220): string {
 
 type GuideSanitizer = ReturnType<typeof createOldGuideSanitizer>;
 
+/** The description of a guide that has none: the start of the open part only, never of the whole body. */
+function openGuideDescription(row: Record<string, unknown>, sanitizer: GuideSanitizer): string {
+  return excerptText(prepareGuide(row, sanitizer).excerptHtml, 220);
+}
+
 function guideListItem(row: Record<string, unknown>, sanitizer: GuideSanitizer) {
   return {
     id: Number(row.id),
@@ -75,6 +80,8 @@ function publicGuideTeaserRoute(dependencies: GuidesArchiveRouterDependencies, s
       const item = guideListItem(row, sanitizer);
       // Only the open part leaves the server; the rest of the text is cut here, not in the page.
       const guide = prepareGuide(row, sanitizer);
+      // Without its own description the guide is described by the open part, not by the start of the whole body.
+      if (!String(row.description ?? '').trim()) item.description = excerptText(guide.excerptHtml, 220);
       response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');
       return response.json({
         slug: item.slug, title: item.title, description: item.description,
@@ -100,7 +107,8 @@ export function createGuidesArchiveRouter(dependencies: GuidesArchiveRouterDepen
 
   router.get('/guides-archive/teaser/:slug', publicGuideTeaserRoute(dependencies, sanitizer, logError));
 
-  const listRoute = createGuidesListRoute({ getDatabase: dependencies.getDatabase, cacheHeader, logError, toItem: rowToListItem });
+  const listRoute = createGuidesListRoute({ getDatabase: dependencies.getDatabase, cacheHeader, logError, toItem: rowToListItem,
+    openDescription: row => openGuideDescription(row, sanitizer) });
 
   router.get('/guides-archive/public/list', listRoute(false));
   router.get('/guides-archive', dependencies.accessGuard, listRoute(true));

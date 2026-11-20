@@ -10,12 +10,24 @@ export function escapeGuideLike(value: string): string {
  * The archive list. The open one (`fullText` false) is for everyone: only the search differs, and a failure
  * answers from the last good copy of the same request or with 503 and Retry-After.
  */
-export function createGuidesListRoute({ getDatabase, cacheHeader, logError, toItem }: {
+export function createGuidesListRoute({ getDatabase, cacheHeader, logError, toItem, openDescription }: {
   getDatabase: () => ListDatabase; cacheHeader: string; logError: (message: string, error: unknown) => void;
-  toItem: (row: Row) => object;
+  toItem: (row: Row) => { description: string };
+  /** The description of a guide without one, from its open part (`free_html`, `body_html`, `short_html` of the row). */
+  openDescription: (row: Row) => string;
 }) {
   // The list is open to everyone: only the search differs. A guest's search never reads the paid text
   // (`body_text`), so it cannot tell whether a word stands in the closed part.
+  // A guest's card: the row never carries the body. A guide without a description is described by its open part,
+  // read from the text columns of that one row and cut here; the text itself is not returned.
+  const guestItem = (database: ListDatabase, row: Row) => {
+    const item = { ...toItem(row), oldUrl: null };
+    if (!item.description.trim()) {
+      const text = database.prepare('SELECT free_html, body_html, short_html FROM guides WHERE id = ?').get(row.id);
+      item.description = text ? openDescription(text) : '';
+    }
+    return item;
+  };
   const lastOpenList = new Map<string, unknown>();
   const rememberOpenList = (key: string, body: unknown) => {
     lastOpenList.delete(key);
@@ -53,7 +65,7 @@ export function createGuidesListRoute({ getDatabase, cacheHeader, logError, toIt
       const whereSql = where.join(' AND ');
       const totalRow = database.prepare(`SELECT COUNT(*) AS total FROM guides WHERE ${whereSql}`).get(...params);
       const rows = database.prepare(`
-        SELECT id, slug, old_url, published_at, published_iso, title, description, image, menu_name, menu_code, kind, kind_slug, body_text, body_html
+        SELECT id, slug, old_url, published_at, published_iso, title, description, image, menu_name, menu_code, kind, kind_slug${fullText ? ', body_text, body_html' : ''}
         FROM guides
         WHERE ${whereSql}
         ORDER BY published_at DESC, id DESC
@@ -80,7 +92,7 @@ export function createGuidesListRoute({ getDatabase, cacheHeader, logError, toIt
         total: Number(totalRow?.total ?? 0),
         totalPages: Math.max(1, Math.ceil(Number(totalRow?.total ?? 0) / limit)),
         // A guest's items carry no address of the legacy site, where the whole text stands.
-        items: rows.map(row => fullText ? toItem(row) : { ...toItem(row), oldUrl: null }),
+        items: rows.map(row => fullText ? toItem(row) : guestItem(database, row)),
         filters: {
           kinds: kindRows.map(row => ({ slug: String(row.slug || 'other'), label: String(row.label || 'Другое'), count: Number(row.count || 0) })),
           menus: menuRows.map(row => ({ slug: String(row.slug || ''), label: String(row.label || 'Без раздела'), count: Number(row.count || 0) })),
