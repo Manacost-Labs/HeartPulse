@@ -104,15 +104,9 @@ export const BG_TIER_VISIBLE_STEP: Record<BattlegroundTierListKey, number> = {
 /** Tier S of the strategies is shown whole: its builds lead the page and are named in its description. */
 export const bgTierInitialVisible = (list: BattlegroundTierListKey, tier: string): number =>
   list === 'strategies' && tier === 'S' ? Number.POSITIVE_INFINITY : BG_TIER_INITIAL_VISIBLE[list];
-/**
- * The page anchor of a build (a strategy), also the address the page's JSON-LD list points at. Every key the
- * projection accepts gets one: a character outside `[A-Za-z0-9_.-]` is written as `~<hex code>~` (so `foo#1` is
- * `build-foo~23~1`), which keeps anchors distinct and safe in an `id` and a URL fragment.
- */
-export const bgBuildAnchor = (item: { key?: unknown }): string | undefined =>
-  typeof item?.key === 'string' && item.key
-    ? `build-${item.key.replace(/[^A-Za-z0-9_.-]/gu, char => `~${(char.codePointAt(0) ?? 0).toString(16)}~`)}`
-    : undefined;
+/** The build's page anchor (also the JSON-LD list's address); an unsafe character becomes `~<hex>~`: `foo#1` → `build-foo~23~1`. */
+export const bgBuildAnchor = (item: { key?: unknown }): string | undefined => typeof item?.key === 'string' && item.key
+  ? `build-${item.key.replace(/[^A-Za-z0-9_.-]/gu, char => `~${(char.codePointAt(0) ?? 0).toString(16)}~`)}` : undefined;
 
 export function bgNormalizeDeepLinkValue(value: unknown): string {
   return String(value || '').toLowerCase().replace(/ё/g, 'е').replace(/[^a-zа-я0-9]+/g, '-').replace(/^-+|-+$/g, '');
