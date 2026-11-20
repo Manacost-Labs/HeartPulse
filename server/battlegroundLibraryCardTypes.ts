@@ -3,6 +3,8 @@ export type BattlegroundLibraryKind = 'minion' | 'spell';
 
 export type PublicBattlegroundLibraryCard = {
   dbfId: number;
+  /** The catalog card id (`BG26_146`), which names its pictures; `null` when the catalog has none. */
+  cardId: string | null;
   kind: BattlegroundLibraryKind;
   typeName: string;
   nameRu: string;
@@ -25,4 +27,6 @@ export type PublicBattlegroundLibraryCard = {
   };
   artist: string | null;
   inPool: boolean;
+  /** A card of the Duos mode only. */
+  duosOnly: boolean;
 };

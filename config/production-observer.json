@@ -58,7 +58,7 @@
       {
         "id": "battlegrounds-library-open-listing",
         "path": "/library/minions",
-        "assertions": [{ "selector": ".bg-library-public tbody tr", "minCount": 100 }],
+        "assertions": [{ "selector": "[data-library-card-tile]", "minCount": 30 }],
         "forbiddenSelectors": [".arena-paywall"]
       },
       {

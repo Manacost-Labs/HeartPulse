@@ -47,6 +47,9 @@
     "tests/next-bg-library-listings-browser.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
+    "tests/next-bg-library-list-behavior-browser.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
     "tests/next-paywall-access-check-browser.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
@@ -618,6 +621,7 @@
         "tests/next-wild-menu-browser.test.mjs",
         "tests/next-bg-hero-detail-browser.test.mjs",
         "tests/next-bg-library-listings-browser.test.mjs",
+        "tests/next-bg-library-list-behavior-browser.test.mjs",
         "tests/bg-library-controls-browser.test.mjs",
         "tests/next-bg-builders-browser.test.mjs",
         "tests/next-assemble-tool-browser.test.mjs",

@@ -10,7 +10,7 @@ import { createBattlegroundLibrarySeoRouter } from '../server/battlegroundLibrar
 import { CLOSED, fetchImpl, slug } from './helpers/battlegroundLibraryOpenFixture.ts';
 
 // The built library pages against an Express that serves the real open projections: a guest and a robot get the
-// same HTML with the open listing (every card of the pool, tier, tribe, attack/health, average place and popularity),
+// same HTML with the subscriber's listing view on the open cards (tiles with picture, names and badges, by tier),
 // the open layer of a card page (facts, statistics, related cards) and nothing closed, neither in the HTML, nor in the
 // RSC payload (`self.__next_f`), nor in the JSON-LD. A card below the indexing threshold is noindex without JSON-LD.
 
@@ -47,7 +47,7 @@ test('the guest HTML of the library carries the open layer and nothing closed', 
     const cold = await get('/library/minions/');
     assert.equal(cold.status, 200);
     assert.match(cold.html, /Список карт временно недоступен/);
-    assert.match(cold.html, /class="paywalled-library"/);
+    assert.match(cold.html, /class="[^"]*\bpaywalled-library\b/);
     assert.equal(rowsCount(cold.html), 0);
     state.listingDown = false;
     let listed = cold;
@@ -56,20 +56,22 @@ test('the guest HTML of the library carries the open layer and nothing closed', 
       await delay(250);
       listed = await get('/library/minions/');
     }
-    // The listing of minions: every card of the current pool, grouped by tavern tier, with the open statistics.
+    // The listing of minions: the subscriber's tiles on the open cards of the current pool, by tavern tier then name.
     const { status, html } = listed;
     assert.equal(status, 200);
-    // The rows are valid HTML without the optional end tags (`LibraryListingTable`).
-    const rows = [...html.matchAll(/<tr><th scope=row><a href="(\/library\/minions\/[^"]+)">([^<]+)<\/a><td>([^<]+)<td>([^<]+)(?:<td>([^<]+)<td>([^<]+))?(?=<tr>|<\/table>)/g)]
-      .map(match => ({ href: match[1], name: match[2], tribe: match[3], body: match[4], avg: match[5], popularity: match[6] }));
+    const rows = tilesOf(html, 'minions');
     assert.deepEqual(rows.map(row => row.name), ['Без выборки', 'Мурлок', 'Первый зверь', 'Второй зверь'], 'every card of the pool, by tier then name');
     assert.deepEqual(rows.find(row => row.name === 'Первый зверь'), {
-      href: `/library/minions/${slug('Первый зверь')}-1001/`, name: 'Первый зверь', tribe: 'Зверь', body: '3/4', avg: '3,90', popularity: '7,5%' });
-    assert.equal(rows.find(row => row.name === 'Без выборки').avg, '—', 'below the sample there are no figures');
-    assert.match(html, /Данные на <time dateTime="2026-11-19T02:45:13\.000Z">19 ноября 2026, 05:45 МСК<\/time> · источник HSReplay · рейтинг «Топ 50%»/);
-    assert.ok(html.indexOf('<h1') < html.indexOf('<table') && html.indexOf('<table') < html.indexOf('class="paywalled-library"'),
-      'the open list stands after the H1 and before the closed part');
-    assert.doesNotMatch(html, /доступна подписчикам/, 'the open list replaces the gate');
+      href: `/library/minions/${slug('Первый зверь')}-1001/`, name: 'Первый зверь',
+      image: '/api/public-resource/db/uploads/cards/BG_T1001.png?width=480&amp;quality=82&amp;format=webp' });
+    assert.match(html, /<h2 class="font-hs[^"]*">Таверна 2<\/h2>/, 'the cards are grouped by tavern tier');
+    assert.match(html, /lang="en"[^>]*>Первый зверь EN</, 'the English name under the Russian one');
+    assert.match(html, /aria-label="Поиск карт"/, 'the same search as for a subscriber');
+    assert.doesNotMatch(html, /Данные на|Среднее место/, 'the listing view prints no statistics');
+    const locked = html.search(/class="[^"]*\bpaywalled-library\b/);
+    assert.ok(html.indexOf('<h1') < locked && locked < html.indexOf('data-library-card-tile'), 'the locked controls stand after the H1, above the cards');
+    assert.match(html, /<h1[^>]*>Существа Полей сражений<\/h1>/);
+    assert.doesNotMatch(html, /доступна подписчикам/, 'the open view replaces the gate');
     const payload = payloadOf(html);
     const jsonLd = jsonLdOf(html);
     assert.ok(payload.length > 0 && jsonLd.length > 0, 'both are present, so the checks below are not vacuous');
@@ -80,12 +82,10 @@ test('the guest HTML of the library carries the open layer and nothing closed', 
     const collection = graph.find(node => node['@type'] === 'CollectionPage');
     assert.equal(collection.isAccessibleForFree, false);
     assert.deepEqual(collection.hasPart, { '@type': 'WebPageElement', isAccessibleForFree: false, cssSelector: '.paywalled-library' });
-    const dataset = graph.find(node => node['@type'] === 'Dataset');
-    assert.deepEqual(dataset.hasPart, collection.hasPart);
-    assert.equal(dataset.isAccessibleForFree, false);
+    assert.equal(graph.find(node => node['@type'] === 'Dataset'), undefined, 'no statistics are printed, so no Dataset');
     const list = graph.find(node => node['@type'] === 'ItemList');
     assert.equal(list.numberOfItems, 4);
-    assert.deepEqual(list.itemListElement.map(item => item.url), rows.map(row => encodeURI(`https://hearthpulse.net${row.href}`)), 'the ItemList equals the table');
+    assert.deepEqual(list.itemListElement.map(item => item.url), rows.map(row => encodeURI(`https://hearthpulse.net${row.href}`)), 'the ItemList equals the printed tiles');
 
     // The server reads the open projection anonymously: the listing, never a closed route.
     const protectedReads = state.reads.filter(read => /^\/api\/bg\/library\/(?!public\/)/.test(read.path));
@@ -99,7 +99,7 @@ test('the guest HTML of the library carries the open layer and nothing closed', 
     // A staged listing and the hub: links to every listing with its size; the hub never fails.
     const anomalies = await get('/library/anomalies/');
     assert.equal(anomalies.status, 200);
-    assert.deepEqual([...anomalies.html.matchAll(/<tr><th scope=row><a href="\/library\/anomalies\/[^"]+">(Аномалия \d)<\/a>/g)].map(match => match[1]), ['Аномалия 1', 'Аномалия 2']);
+    assert.deepEqual(tilesOf(anomalies.html, 'anomalies').map(row => row.name), ['Аномалия 1', 'Аномалия 2']);
     assert.deepEqual(closedIn(anomalies.html), []);
     // The hub is prerendered at build, without Express, so its copy has the links and no sizes: regenerate it with data.
     let hub = await get('/library/');
@@ -168,6 +168,12 @@ test('the guest HTML of the library carries the open layer and nothing closed', 
   }
 });
 
+/** The card tiles of a listing in the server HTML: link, name (the picture's `alt`) and picture. */
+function tilesOf(html, kind) {
+  return [...html.matchAll(new RegExp(`<a href="(/library/${kind}/[^"]+)"[^>]*data-library-card-tile[^>]*>[\\s\\S]*?<img src="([^"]+)" alt="([^"]+)"`, 'g'))]
+    .map(match => ({ href: match[1], name: match[3], image: match[2] }));
+}
+
 function rowsCount(html) {
-  return [...html.matchAll(/<tr><th scope=row><a href="\/library\//g)].length;
+  return [...html.matchAll(/data-library-card-tile/g)].length;
 }
