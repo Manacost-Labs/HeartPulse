@@ -2,8 +2,8 @@
 
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { LockKeyhole } from 'lucide-react';
-import type { SubscriptionEntitlementKey } from '@/src/modules/subscriptions/public';
 import { OfferContext, usePaidOffer } from '@/src/shared/ui/paidOfferContext';
+import type { SubscriptionEntitlementKey } from '@/src/modules/subscriptions/public';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 
 const ArenaPaidOffer = lazy(() => import('./ArenaPaidOffer').then(module => ({ default: module.ArenaPaidOffer })));
@@ -43,7 +43,7 @@ export function PaidLockButton({ className, label, closed, children }: {
   className: string;
   /** What the lock closes, for a screen reader: «Остальные показатели». */
   label: string;
-  closed: 'paywalled-tierlist' | 'paywalled-classes' | 'paywalled-standard-meta';
+  closed: 'paywalled-tierlist' | 'paywalled-classes' | 'paywalled-guides' | 'paywalled-standard-meta';
   children?: ReactNode;
 }) {
   const open = usePaidOffer();

@@ -1231,7 +1231,7 @@ function HSReplayCardsTable({ tiers, onCardOpen, previewSuppressed = false }: {
   );
 }
 
-export function TierList({ data, loading, error, companionIds, tierlistSource, onTierlistSourceChange, switchingTierlistSource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, accessGranted, initialClassId, openLayer = false, serverRendered = false, onPaidOffer, dataLine, fullClassId, classHref }: {
+export function TierList({ data, loading, error, companionIds, tierlistSource, onTierlistSourceChange, switchingTierlistSource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, accessGranted, initialClassId, openLayer = false, serverRendered = false, onPaidOffer, dataLine, fullClassId, classHref, classPage }: {
   data: TierlistData; loading: boolean; error: boolean;
   companionIds: Set<string>;
   tierlistSource: TierlistSource;
@@ -1261,6 +1261,8 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
   fullClassId?: string;
   /** Class pages exist: the class choice is a link to `/tierlist/<class>/` (see `TierListControls`). */
   classHref?: (id: string) => string;
+  /** A class page names its class in the H1 (not a duplicate of the tier list's) and in the breadcrumbs. */
+  classPage?: { title: string; name: string; href: string };
 }) {
   const [activeClassId, setActiveClassId] = useState<string>(initialClassId ?? ALL_CARDS_ID);
   const [offer, setOffer] = useState(false);
@@ -1459,10 +1461,11 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
 
   return (
     <div className="arena-tierlist-page">
-      <SectionBanner title="Тир-лист карт Арены Hearthstone" subtitle="Оценки карт для каждого класса — текущий патч" />
+      <SectionBanner title={classPage?.title ?? 'Тир-лист карт Арены Hearthstone'} subtitle="Оценки карт для каждого класса — текущий патч" />
       <Breadcrumbs items={[
         { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
         { name: 'Тир-лист', href: '/tierlist/' },
+        ...(classPage ? [{ name: classPage.name, href: classPage.href }] : []),
       ]} />
       <PaywallGate
         active={paywallActive}

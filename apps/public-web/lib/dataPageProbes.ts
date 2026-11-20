@@ -9,6 +9,7 @@ import { standardMatchupsPublicPath } from './publicStandardMatchupsData';
 import { standardMetaPublicPath } from './publicStandardMetaTeaserData';
 import { PUBLIC_TIERLIST_PATH } from './publicTierlistData';
 import { archetypeTeaserPath } from './publicDataPaths';
+import { GUIDES_LIST_PATH } from './publicGuidesListData';
 
 /**
  * The Express read each prerendered data page makes for its first paint, keyed by the page path of
@@ -32,6 +33,7 @@ export const DATA_PAGE_PROBES = {
   '/arena': CLASSES_TEASER_PATH,
   '/battlegrounds': heroesRankingPath('solo'),
   '/wild': archetypeTeaserPath('wild', null),
+  '/guides-archive': GUIDES_LIST_PATH,
 } as Record<string, string>;
 
 export type DataPageProbePath = string;

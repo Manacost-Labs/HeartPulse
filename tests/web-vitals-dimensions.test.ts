@@ -45,6 +45,8 @@ test('paths collapse to their page template, never to raw ids', () => {
     ['/heroes/57421/', '/heroes/[dbfId]/'],
     ['/archetypes/wild/', '/archetypes/wild/'],
     ['/standard/archetypes/wild', '/standard/archetypes/wild/'],
+    ['/standard/decks/', '/standard/decks/'],
+    ['/standard/decks/paladin/', '/standard/decks/[classKey]/'],
     ['/archetypes/123/', '/archetypes/[archetypeId]/'],
     ['/library/minions/', '/library/[kind]/'],
     ['/library/archive/', '/library/archive/'],

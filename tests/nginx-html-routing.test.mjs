@@ -605,7 +605,7 @@ for (const route of inventory.routes) {
       `${route.id} filters and errors must retain their robots policy`);
     continue;
   }
-  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/streamers', '/leaderboards', '/classes', '/tierlist', '/legendaries', '/standard/matchups', '/standard/meta', '/standard/meta/wild', '/standard/fun-decks', '/standard/patches', '/standard/assemble', '/standard/radar', '/standard/vicious-gold', '/standard/archetypes', '/standard/archetypes/wild', '/standard/deck-builder'].includes(path)) {
+  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/streamers', '/leaderboards', '/classes', '/tierlist', '/legendaries', '/standard/matchups', '/standard/meta', '/standard/meta/wild', '/standard/fun-decks', '/standard/patches', '/standard/assemble', '/standard/radar', '/standard/vicious-gold', '/standard/archetypes', '/standard/archetypes/wild', '/standard/deck-builder', '/standard/decks', '/standard/decks/deathknight'].includes(path)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }
@@ -1089,6 +1089,21 @@ async function startCardSeoUpstream() {
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next wild archetype missing</title>',
     }],
+    ['/standard/decks/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next decks hub</title>',
+    }],
+    ['/standard/decks/paladin/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next paladin decks</title>',
+    }],
+    ['/standard/decks/necromancer/', {
+      status: 404,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next decks class missing</title>',
+    }],
     ['/guides-archive/', {
       status: 200,
       headers: { 'Cache-Control': 'private, no-store' },
@@ -1255,7 +1270,7 @@ async function startCardSeoUpstream() {
     const pathname = incomingUrl.pathname;
     const fixture = pathname === '/404.html' && errorDocumentStatus !== 404
       ? { status: errorDocumentStatus, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next error document unavailable</p>' }
-      : ['/', '/admin/', '/deck-builder/', '/archetypes/', '/archetypes/856/', '/archetypes/wild/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/wild/', '/standard/archetypes/standard/tempo-mage/', '/standard/archetypes/wild/tempo-mage/', '/library/', '/library/archive/minions/', '/standard/cards/standard/', '/standard/cards/wild/', '/standard/deck-builder/'].includes(pathname) && incomingUrl.searchParams.has('fail')
+      : ['/', '/admin/', '/deck-builder/', '/archetypes/', '/archetypes/856/', '/archetypes/wild/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/wild/', '/standard/archetypes/standard/tempo-mage/', '/standard/archetypes/wild/tempo-mage/', '/standard/decks/', '/standard/decks/paladin/', '/library/', '/library/archive/minions/', '/standard/cards/standard/', '/standard/cards/wild/', '/standard/deck-builder/'].includes(pathname) && incomingUrl.searchParams.has('fail')
       ? { status: 503, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next listing unavailable</p>' }
       : responses.get(pathname);
     if (!fixture) {
@@ -1570,6 +1585,8 @@ http {
       ['/standard/vicious-gold/', /Next Vicious Gold/],
       ['/standard/archetypes/', /Next archetypes/],
       ['/standard/archetypes/wild/', /Next Wild archetypes/],
+      ['/standard/decks/', /Next decks hub/],
+      ['/standard/decks/paladin/', /Next paladin decks/],
       ['/gallery/', /Next gallery/],
       ['/heroes/', /Next heroes/],
       ['/library/', /Next \/library\//],
@@ -1649,6 +1666,24 @@ http {
     const failedWildList = await requestNginx(port, '/standard/archetypes/wild/?fail=1');
     assert.equal(failedWildList.status, 503, 'Wild archetype list upstream errors must retain their status');
     assert.equal(failedWildList.headers['x-robots-tag'], 'noindex, nofollow', 'Wild archetype list errors must not be indexed');
+    // Deck hub and class pages (#309): one permanent hop adds the slash and keeps the query; Next answers an
+    // unknown class with its 404 and a missing catalog with its 503, both kept out of the index.
+    for (const [from, to] of [['/standard/decks?utm_source=x', '/standard/decks/?utm_source=x'],
+      ['/standard/decks/paladin?utm_source=x', '/standard/decks/paladin/?utm_source=x']]) {
+      const decksRedirect = await requestNginx(port, from);
+      assert.equal(decksRedirect.status, 301, `${from} normalizes its slash`);
+      const target = new URL(decksRedirect.headers.location);
+      assert.equal(`${target.pathname}${target.search}`, to);
+    }
+    for (const path of ['/standard/decks/?fail=1', '/standard/decks/paladin/?fail=1']) {
+      const failedDecks = await requestNginx(port, path);
+      assert.equal(failedDecks.status, 503, `${path} keeps the Next 503`);
+      assert.equal(failedDecks.headers['x-robots-tag'], 'noindex, nofollow', `${path} is not indexed`);
+    }
+    const missingClass = await requestNginx(port, '/standard/decks/necromancer/');
+    assert.equal(missingClass.status, 404, 'an unknown class reaches the Next 404');
+    assert.match(missingClass.body, /Next decks class missing/);
+    assert.equal(missingClass.headers['x-robots-tag'], 'noindex, nofollow', 'an unknown class is noindex, nofollow');
     for (const path of ['/standard/archetypes/standard/missing-mage/', '/standard/archetypes/wild/missing-mage/']) {
       const missing = await requestNginx(port, path);
       assert.equal(missing.status, 404, `${path} keeps the Next 404`);
