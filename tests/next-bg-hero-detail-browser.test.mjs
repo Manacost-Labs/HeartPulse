@@ -23,7 +23,8 @@ const hero = { hero: {
 },
 // The open statistics (base range). The closed marks ride in as an upstream mistake would: extra fields at every level.
 stats: {
-  mmr: 'TOP_50_PERCENT', updatedAt: '2026-11-18T17:01:18.000Z', source: 'HSReplay',
+  // Two hours before the server's clock: a browser clock five days behind then puts the data date in its future.
+  mmr: 'TOP_50_PERCENT', updatedAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), source: 'HSReplay',
   topRange: 'SENTINEL_TOP_1_PERCENT_4.4321',
   modes: {
     solo: { tier: 'S', avgPlacement: 3.57, top4Rate: 61.4, pickRate: 12.3, bestComposition: 'Нежить', keyMinions: ['Падальщик', 'Скелет'],
@@ -53,12 +54,21 @@ const bigHero = { ...hero,
     cardId: `TB_BaconShop_HERO_16_SKIN_${index}`, title: `Скин с длинным названием номер ${index}`,
     image: 'https://hearthpulse.net/assets/og-preview.png', url: `https://hearthstone.wiki.gg/wiki/Skin_${index}` })) },
 };
+// A hero whose statistics, at their parser's caps, do not fit the header either: the proxy carries the identity
+// only, and both loaders (statistics and profile) fall back to one shared read of the page.
+const longText = word => Array.from({ length: 30 }, () => word).join(' ').slice(0, 180);
+const capped = { ...hero.stats.modes.solo, bestComposition: longText('Нежить'), keyMinions: ['Падальщик', 'Скелет', 'Гуль'].map(longText) };
+const bigStatsHero = { ...hero,
+  hero: { ...hero.hero, dbfId: 57947, name: 'Герой с длинной статистикой' },
+  stats: { ...hero.stats, heroPowerName: longText('Прокрастинация'), modes: { solo: capped, duos: { ...capped, top4Rate: null } } },
+};
 const CLOSED_MARKS = ['PRIVATE_HERO_STATISTICS', 'SENTINEL_TOP_1_PERCENT', 'SENTINEL_PLACE', 'SENTINEL_ADJUSTED', 'SENTINEL_COMPOSITION_METRICS',
   'SENTINEL_PATCH_HISTORY', 'SENTINEL_PROFILE_EXTRA', 'SENTINEL_BUDDY_WINRATE', 'SENTINEL_SKIN_POPULARITY', 'SENTINEL_PATCH_PLACEMENT'];
 
 test('Next hero detail renders a safe teaser and real 404 without guest statistics requests', async () => {
   let publicCalls = 0;
   let bigCalls = 0;
+  let bigStatsCalls = 0;
   const legacy = http.createServer((request, response) => {
     const pathname = new URL(request.url, 'http://fixture').pathname;
     response.setHeader('Content-Type', 'application/json');
@@ -67,6 +77,9 @@ test('Next hero detail renders a safe teaser and real 404 without guest statisti
     }
     if (pathname === '/api/bg/heroes/public/57946') {
       bigCalls += 1; response.end(JSON.stringify(bigHero)); return;
+    }
+    if (pathname === '/api/bg/heroes/public/57947') {
+      bigStatsCalls += 1; response.end(JSON.stringify(bigStatsHero)); return;
     }
     if (pathname === '/api/bg/heroes/public/888888') {
       response.writeHead(503, { 'Retry-After': '45' }).end('{"error":"unavailable"}'); return;
@@ -183,6 +196,13 @@ test('Next hero detail renders a safe teaser and real 404 without guest statisti
     assert.equal(big.status, 200);
     assert.match(await big.text(), /Скин с длинным названием номер 23/);
     assert.equal(bigCalls, 2, 'the proxy read and one read of the page for the profile');
+    const bigStats = await fetch(`${origin}/heroes/57947/`);
+    assert.equal(bigStats.status, 200);
+    const bigStatsHtml = await bigStats.text();
+    assert.match(bigStatsHtml, /Герой с длинной статистикой/);
+    assert.match(bigStatsHtml, /Компаньон QA/, 'the profile is there');
+    assert.match(bigStatsHtml, /Падальщик Падальщик/, 'the statistics are there');
+    assert.equal(bigStatsCalls, 2, 'the proxy read and one read shared by the statistics and profile loaders');
     // The date of the open figures is computed on the server: a browser whose clock is five days behind (the data date
     // then lies in its future) hydrates the same text, without a mismatch.
     const skewed = await browser.newPage();
