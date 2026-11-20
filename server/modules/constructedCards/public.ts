@@ -65,3 +65,5 @@ export type { CardChoicesPayload } from './cardChoices.js';
 export { createCardAssembleRouter, projectCardAssemble, projectCardAssembleList } from './cardAssemble.js';
 export type { CardAssembleListPayload, CardAssemblePayload } from './cardAssemble.js';
 export type { CatalogCardMedia } from './catalogCardMedia.js';
+export { formatEvidence } from './catalogFormatEvidence.js';
+export { createCatalogHealthSummary, type CatalogSummaryInspection } from './catalogHealthSummary.js';

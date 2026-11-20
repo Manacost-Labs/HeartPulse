@@ -938,7 +938,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
 
   const getCatalogHealth = (format: ConstructedCardFormat): ConstructedCardCatalogHealth => {
     const cached = catalogCache.get(format)?.value;
-    const inspection = catalogStore.inspect(format);
+    const inspection = catalogStore.inspectSummary(format);
     const document = cached?.document ?? inspection.document;
     const unavailable = !document || inspection.state === 'expired';
     const degraded = !unavailable && (
