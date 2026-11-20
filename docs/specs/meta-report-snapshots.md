@@ -128,6 +128,14 @@ The page copies the snapshot field by field once more
 (`apps/public-web/lib/publicMetaReportData.ts`) and computes the report in
 `lib/metaReportView.ts`:
 
+- Under the H1 one line of data (design.md, «Pages carry no explanation
+  text»): the date of the snapshot, the sources and, for a patch younger
+  than 72 hours at the snapshot, «ранние данные». The only methodology note
+  is a collapsed «Об отчёте» beside it, the same for people and robots: the
+  change is counted only inside one HSGuru period. No intro paragraph and no
+  methodology section; the archive is its H1, one line «N отчётов, последний
+  — …» and the list.
+
 - Standard, Diamond–Legend: top 10 by winrate among archetypes with at least
   0.5 % of games, top 10 by popularity; winrate, popularity, games.
 - Change to the previous snapshot only when both Standard sections have the

@@ -106,7 +106,7 @@ const heroes = (date: string) => ({
 const patches = (date: string) => ({
   patches: [
     { version: '37.0.2', title: 'Обновление 37.0.2', official_published_at: '2026-11-03T18:00:00+00:00' },
-    ...(date >= '2026-12-07' ? [{ version: '37.2.0.255000', title: 'Обновление 37.2', official_published_at: '2026-12-03T17:00:00+00:00' }] : []),
+    ...(date >= '2026-12-07' ? [{ version: '37.2.0.255000', title: 'Обновление 37.2', official_published_at: '2026-12-05T12:00:00+00:00' }] : []),
   ],
 });
 

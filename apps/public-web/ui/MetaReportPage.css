@@ -31,10 +31,18 @@
   font-size: 0.875rem;
 }
 
-.meta-report__warning {
-  padding: 8px 12px;
-  border: 1px solid var(--arena-paper-line);
-  border-radius: 8px;
+.meta-report__lead {
+  font-size: 0.875rem;
+}
+
+/* The one methodology note that changes how the figures read: collapsed, beside the date, the same for everyone. */
+.meta-report__about {
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+}
+
+.meta-report__about summary {
+  cursor: pointer;
 }
 
 .meta-report__table {

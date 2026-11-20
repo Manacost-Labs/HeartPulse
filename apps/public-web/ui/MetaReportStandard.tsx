@@ -43,16 +43,15 @@ function Top({ id, title, rows, left, compared, linkable }: {
 }
 
 function ComparisonNote({ comparison }: { comparison: Comparison }) {
-  if (comparison.kind === 'first') return <p>Это первый отчёт, изменений к прошлой неделе нет.</p>;
+  if (comparison.kind === 'first') return <p>Первый отчёт: изменений к прошлой неделе нет.</p>;
   if (comparison.kind === 'same-period') {
     return <p>
-      Изменения — к <a href={`/reports/meta/${comparison.previousDate}/`}>отчёту на {reportDateLabel(comparison.previousDate)}</a>:
-      винрейт и популярность в процентных пунктах, игры — сколько добавилось за неделю.
+      Изменения к <a href={`/reports/meta/${comparison.previousDate}/`}>отчёту на {reportDateLabel(comparison.previousDate)}</a>
     </p>;
   }
   return <p>
-    С прошлого отчёта сменился период HSGuru ({periodLabel(comparison.previousPeriod) ?? 'неизвестен'} →{' '}
-    {periodLabel(comparison.period) ?? 'неизвестен'}): игры в новом периоде считаются заново, поэтому разницу с прошлой неделей не считаем.
+    Сменился период HSGuru: {periodLabel(comparison.previousPeriod) ?? 'неизвестен'} → {periodLabel(comparison.period) ?? 'неизвестен'},
+    изменений к прошлой неделе нет.
   </p>;
 }
 

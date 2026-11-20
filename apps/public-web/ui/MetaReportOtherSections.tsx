@@ -12,7 +12,7 @@ function Note({ section, href, live }: { section: ReportSection<unknown>; href: 
 function Missing({ id, title }: { id: string; title: string }) {
   return <section aria-labelledby={id}>
     <h2 id={id}>{title}</h2>
-    <p>В день среза источник не ответил, раздела в этом отчёте нет.</p>
+    <p>Нет данных: источник не ответил в день среза.</p>
   </section>;
 }
 
@@ -27,7 +27,7 @@ export function MetaReportMatchups({ rows, section, slugOf, linkable }: {
   const period = periodLabel(section.data?.period ?? null);
   return <section aria-labelledby="meta-report-matchups">
     <h2 id="meta-report-matchups">Матчапы самых популярных архетипов</h2>
-    <p>Все ранги{period ? `, ${period}` : ''}. Лучший и худший соперник — только пары от {REPORT_MIN_MATCHUP_GAMES} игр.</p>
+    <p>Все ранги{period ? `, ${period}` : ''}, пары от {REPORT_MIN_MATCHUP_GAMES} игр</p>
     <ul className="meta-report__list">
       {rows.map(row => <li key={row.archetype}>
         <strong><ArchetypeName slug={slugOf(row.archetype)} name={row.label} linkable={linkable} /></strong>
@@ -62,7 +62,7 @@ export function MetaReportHeroes({ heroes, section, mmr }: { heroes: ReportHero[
   const rating = mmrLabel(mmr);
   return <section aria-labelledby="meta-report-heroes">
     <h2 id="meta-report-heroes">Поля сражений: лучшие герои</h2>
-    <p>Одиночная игра{rating ? `, рейтинг «${rating}»` : ''}, по среднему месту.</p>
+    <p>Одиночная игра{rating ? `, рейтинг «${rating}»` : ''}, по среднему месту</p>
     <ol className="meta-report__list">
       {heroes.map(hero => <li key={hero.dbfId}>
         <a href={`/heroes/${hero.dbfId}/`}>{hero.name}</a>

@@ -19,6 +19,11 @@ function tableRows(html, headingId) {
   return [...table.matchAll(/<tbody>([\s\S]*)<\/tbody>/g)].flatMap(body => [...body[1].matchAll(/<tr>([\s\S]*?)<\/tr>/g)])
     .map(row => [...row[1].matchAll(/<t[hd][^>]*>([\s\S]*?)<\/t[hd]>/g)].map(cell => plain(cell[1])).join(' | '));
 }
+/** The line under the H1. */
+const lead = html => {
+  const start = html.indexOf('class="meta-report__lead"');
+  return plain(html.slice(html.indexOf('>', start) + 1, html.indexOf('</p>', start)));
+};
 const links = html => [...main(html).matchAll(/<a\b[^>]*href="([^"]*)"/g)].map(match => match[1]);
 // Next adds its own noindex to a 404 next to the one of the not-found page: every robots tag must say noindex.
 const noindexed = html => {
@@ -43,6 +48,11 @@ test('a report prints the snapshot with the change to the previous week of the s
     assert.deepEqual([...html.matchAll(/<link rel="canonical" href="([^"]*)"/g)].map(match => match[1]),
       ['https://hearthpulse.net/reports/meta/2026-11-30/']);
 
+    // Under the H1 one line of data: the date of the snapshot and the sources; methodology only in «Об отчёте».
+    assert.equal(lead(html), 'Срез 30 ноября 2026 · HSGuru, HSReplay');
+    assert.equal(plain(html.slice(html.indexOf('</h1>'), html.indexOf('<section'))),
+      'Срез 30 ноября 2026 · HSGuru, HSReplay Об отчёте Изменения к прошлой неделе считаются только внутри одного периода HSGuru: '
+      + 'в новом периоде игры копятся заново.', 'nothing else stands between the H1 and the data');
     assert.deepEqual(tableRows(html, 'meta-report-standard-winrate'), [
       '1 | Йогг Воин | 60,2% +1,1 п.п. | 3,0% +0,1 п.п. | 8 100 +2 100 за неделю',
       '2 | Зоо Чернокнижник | 56,9% −0,6 п.п. | 10,4% +0,6 п.п. | 26 000 +6 000 за неделю',
@@ -52,7 +62,7 @@ test('a report prints the snapshot with the change to the previous week of the s
     ], 'a rare archetype (0.4 %) is not ranked by winrate');
     const text = plain(main(html));
     for (const line of [
-      'Изменения — к отчёту на 23 ноября 2026',
+      'Изменения к отчёту на 23 ноября 2026',
       'Выбыли из топа: Редкость 5.',
       'Данные на 30 ноября 2026, 03:00 МСК · источник HSGuru.',
       'Зоо Чернокнижник Лучший матчап: ДК Крови — 52,9% (32 997 игр). Худший матчап: Вор Жрец — 44,8% (197 688 игр).',
@@ -86,19 +96,22 @@ test('no change across a new HSGuru period, none for the first report; nothing p
       '3 | Зоо Чернокнижник | 51,0% | 7,0% | 4 000',
     ]);
     const changedText = plain(main(changed));
-    assert.ok(changedText.includes('С прошлого отчёта сменился период HSGuru (Патч 37.0.2 → Патч 37.2.0)'));
-    assert.ok(changedText.includes('На этой неделе вышел патч 37.2.0 (3 декабря 2026).'));
+    assert.ok(changedText.includes('Сменился период HSGuru: Патч 37.0.2 → Патч 37.2.0, изменений к прошлой неделе нет.'));
+    assert.ok(changedText.includes('На этой неделе вышел патч 37.2.0 (5 декабря 2026).'));
+    assert.equal(lead(changed), 'Срез 7 декабря 2026 · HSGuru, HSReplay · ранние данные: патч вышел меньше чем за 72 часа до среза');
     assert.ok(!changedText.includes('п.п.') && !changedText.includes('Выбыли'), 'no difference between periods');
     assert.ok(!links(changed).some(href => href === '/reports/meta/2026-12-14/'), 'the newest report has no next one');
 
     const first = await (await fetch(`${stand.origin}/reports/meta/2026-11-23/`)).text();
     const firstText = plain(main(first));
-    assert.ok(firstText.includes('Это первый отчёт, изменений к прошлой неделе нет.'));
+    assert.ok(firstText.includes('Первый отчёт: изменений к прошлой неделе нет.'));
+    assert.equal(lead(first), 'Срез 23 ноября 2026 · HSGuru, HSReplay');
     assert.ok(!firstText.includes('п.п.') && !firstText.includes('новый в топе'));
 
     const archive = await (await fetch(`${stand.origin}/reports/meta/`)).text();
     assert.deepEqual(meta(archive, 'robots'), ['noindex, follow']);
     assert.match(archive, /<title>Мета-отчёты Hearthstone по неделям \| HearthPulse<\/title>/);
+    assert.equal(lead(archive), '3 отчёта, последний — 7 декабря 2026', 'the archive has one line under its H1, then the list');
     assert.deepEqual(links(archive).filter(href => href.startsWith('/reports/meta/2')),
       ['/reports/meta/2026-12-07/', '/reports/meta/2026-11-30/', '/reports/meta/2026-11-23/']);
 

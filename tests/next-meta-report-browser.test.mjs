@@ -38,7 +38,7 @@ test('the archive and the weekly reports read at 390 and 1440 px and link the we
       assert.deepEqual(state, {
         heading: 'Мета Hearthstone на 30 ноября 2026: еженедельный отчёт',
         sections: ['Стандарт: Алмаз — Легенда', 'Матчапы самых популярных архетипов', 'Арена: классы по проценту побед',
-          'Поля сражений: лучшие герои', 'Патч недели', 'Как собран отчёт'],
+          'Поля сражений: лучшие герои', 'Патч недели'],
         pageOverflow: false,
         tablesInside: true,
         firstRow: '1 Йогг Воин 60,2% +1,1 п.п. 3,0% +0,1 п.п. 8 100 +2 100 за неделю',
