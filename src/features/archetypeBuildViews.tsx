@@ -57,6 +57,7 @@ export function ArchetypeBuildView({ build, index, format, archetype, classKey, 
     ],
     view,
     heading: 'h3',
+    showCode: true,
   };
   return layout === 'tiles' ? <DeckTileCard {...props} /> : <DeckRowCard {...props} />;
 }

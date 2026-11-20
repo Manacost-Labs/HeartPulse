@@ -13,6 +13,7 @@ import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
 import '../shared/ui/LoadingSurface.css';
 import './ConstructedArchetypeDeckGallery.css';
 import { usePendingDecks, useReportedPending } from './archetypeDeckGalleryPending';
+import { DeckCodeLine } from './deckViews/deckViewParts';
 import { DeckLayoutSwitch, useDeckLayout } from './deckViews/DeckLayoutSwitch';
 import { pluralRu } from './deckViews/deckClass';
 import type { FunDeckCard } from './funDecks/deckEntries';
@@ -173,6 +174,7 @@ function DeckBuildCard({
         )}
       </DeckRenderPreview>
 
+      <DeckCodeLine deckCode={build.deckCode} />
       <button
         type="button"
         className={`archetype-deck-card__copy${copyState === 'ok' ? ' is-copied' : ''}`}

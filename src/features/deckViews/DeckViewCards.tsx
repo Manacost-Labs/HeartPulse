@@ -2,7 +2,7 @@ import { useMemo, type CSSProperties } from 'react';
 import { useResolvedDeck } from '../decklist/useResolvedDeck';
 import { funDeckEntries, type FunDeckCard } from '../funDecks/deckEntries';
 import { seededDeck } from './seededDeck';
-import { CopyDeckButton, DeckLoadState, DeckPortrait, ManaCurve, TileEntry } from './deckViewParts';
+import { CopyDeckButton, DeckCodeLine, DeckLoadState, DeckPortrait, ManaCurve, TileEntry } from './deckViewParts';
 import { useNearScreen } from '../funDecks/useNearScreen';
 import '../funDecks/FunDeckLayouts.css';
 
@@ -49,6 +49,8 @@ export type DeckViewCardProps = {
   view: DeckView;
   eager?: boolean;
   heading?: 'h2' | 'h3';
+  /** Prints the deck code as text (archetype builds): the code is part of the page, not only of the copy button. */
+  showCode?: boolean;
 };
 
 function fullSubtitle(subtitle: string, view: DeckView): string {
@@ -92,6 +94,7 @@ export function DeckTileCard(props: DeckViewCardProps) {
         ) : <DeckLoadState error={view.error} reload={view.reload} layout="tiles" empty={Boolean(view.data)} />}
       </div>
       <footer className="fun-deck-tiles__foot">
+        {props.showCode ? <DeckCodeLine deckCode={deckCode} /> : null}
         <CopyDeckButton deckCode={deckCode} title={title} className="fun-deck-tiles__copy" />
       </footer>
     </article>
@@ -129,6 +132,7 @@ export function DeckRowCard(props: DeckViewCardProps) {
             <ManaCurve entries={view.entries} />
           </>
         ) : <DeckLoadState error={view.error} reload={view.reload} layout="rows" empty={Boolean(view.data)} />}
+        {props.showCode ? <DeckCodeLine deckCode={deckCode} /> : null}
       </div>
     </article>
   );

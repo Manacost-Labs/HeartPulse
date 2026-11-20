@@ -276,6 +276,8 @@ test('Next archetype details isolate access and load builds before independent o
           text: builds.innerText.replaceAll('\u00a0', ' ').toLowerCase(),
           titles: [...builds.querySelectorAll('h3')].map(node => node.textContent),
           code: builds.querySelector('button[data-deck-code]')?.getAttribute('data-deck-code'),
+          // The visible text of the page, not an attribute: what a reader and a search engine read without a script.
+          visibleCodes: (builds.innerText.match(/AAE[A-Za-z0-9+/=]{20,}/g) ?? []),
           cards: [...(builds.querySelector('ul[aria-label="Состав колоды Сборка 1"]')?.querySelectorAll('a') ?? [])]
             .map(link => [link.getAttribute('aria-label'), link.getAttribute('href')]),
         }, paidFrames };
@@ -299,6 +301,8 @@ test('Next archetype details isolate access and load builds before independent o
     assert.equal(bare.builds.titles.length, 7, 'the first page of builds, less the refused one, is in the HTML');
     assert.ok(['9 сборок', 'король ллейн', 'винрейт', '57,1%', 'игры', '2 216', 'тестовый удар'].every(part => bare.builds.text.includes(part)), bare.builds.text);
     assert.equal(bare.builds.code, OPEN_DECK);
+    assert.equal(bare.builds.visibleCodes.length, 7, 'every open build prints its deck code as visible text');
+    assert.ok(bare.builds.visibleCodes.includes(OPEN_DECK));
     assert.deepEqual(bare.builds.cards, [['1 маны · Тестовый удар ×2', '/standard/cards/standard/TST_001/'], ['4 маны · Тестовый страж', '/standard/cards/standard/TST_002/']]);
     // The paid parts of the subscriber's page stand at their places without JavaScript too, named but closed.
     assert.deepEqual(bare.paidFrames, ['Матчапы против классов', 'Муллиган и влияние карт', 'Винрейт по рангам', 'История архетипа']);

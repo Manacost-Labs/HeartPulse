@@ -2,6 +2,7 @@
 
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { LockKeyhole } from 'lucide-react';
+import type { SubscriptionEntitlementKey } from '@/src/modules/subscriptions/public';
 import { OfferContext, usePaidOffer } from '@/src/shared/ui/paidOfferContext';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 
@@ -15,7 +16,7 @@ export { usePaidOffer };
  * itself once the viewer turns out to have access.
  */
 export function PaidOfferProvider({ title, text, entitlement = 'arena', children }: {
-  title: string; text: string; entitlement?: 'arena' | 'standard'; children: ReactNode;
+  title: string; text: string; entitlement?: SubscriptionEntitlementKey; children: ReactNode;
 }) {
   const access = usePublicAccess();
   const { allowed } = paidAccess(access, entitlement);

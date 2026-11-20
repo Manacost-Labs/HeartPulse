@@ -31,6 +31,11 @@ export function CardLink({ card, cost, className, children }: { card: FunDeckCar
   );
 }
 
+/** The deck code as text: a reader (and a search engine) sees it without a script, and it can be selected by hand. */
+export function DeckCodeLine({ deckCode }: { deckCode: string }) {
+  return <code className="fun-deck-code">{deckCode}</code>;
+}
+
 export function CopyDeckButton({ deckCode, title, className }: { deckCode: string; title: string; className: string }) {
   const { state, label, copy } = useCopyDeckCode(deckCode);
   return (

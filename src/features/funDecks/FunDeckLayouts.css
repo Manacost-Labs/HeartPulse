@@ -727,3 +727,17 @@ a.fun-deck-portrait:focus-visible { outline: 2px solid var(--fun-red); outline-o
 .fun-decks-layout-bar--end { justify-content: flex-end; }
 /* The view switch while a page loads: one bar of the switch's size. */
 .fun-decks-layout-skeleton { width: min(100%, 300px); height: 44px; border-radius: 5px; }
+
+/* The deck code of an archetype build, printed as text: compact monospace, wrapped, selectable in one go. */
+.fun-deck-code {
+  display: block;
+  margin: 0 0 6px;
+  font: 0.6875rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.fun-deck-tiles .fun-deck-code,
+.archetype-deck-card .fun-deck-code { padding: 0 2px; color: #e6d3ab; }
+.archetype-deck-card .fun-deck-code { padding: 6px 8px 0; margin: 0; }
+.fun-deck-rowcard .fun-deck-code { margin: 6px 0 0; padding: 0 10px 6px; color: #4a3323; }
