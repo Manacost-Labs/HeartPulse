@@ -57,6 +57,7 @@
     "sync:constructed-card-images": "node build/server/constructedCardImagePrewarmer.js",
     "test:tierlist": "tsx tests/hsreplay-tierlist.test.ts",
     "test:patch-notes": "tsx --test tests/patch-notes.test.ts",
+    "test:meta-report": "tsx --test tests/meta-report-snapshots.test.ts",
     "test:radar": "tsx --test tests/radar.test.ts",
     "test:leaderboards": "tsx --test tests/leaderboards.test.ts",
     "test:streamers": "tsx --test tests/streamers.test.ts",

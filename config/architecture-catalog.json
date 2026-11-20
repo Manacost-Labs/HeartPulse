@@ -2031,6 +2031,24 @@
       "forbiddenImports": ["src/**", "other server module internals"]
     },
     {
+      "name": "backend-meta-report",
+      "status": "modular",
+      "owner": "traditional-data",
+      "purpose": "Keep weekly append-only snapshots of the open meta layer (Standard, matchups, Arena classes, Battlegrounds Solo heroes, latest patch) for the weekly meta report.",
+      "paths": ["server/modules/metaReport"],
+      "publicEntrypoints": ["server/modules/metaReport/public.ts"],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": ["server/modules/metaReport/contract.ts", "docs/specs/meta-report-snapshots.md"],
+      "jobs": ["server/modules/metaReport/public.ts"],
+      "cacheNamespaces": [],
+      "dataStores": ["sqlite:weekly_snapshots (DATA_DIR/meta-report-snapshots-v1)"],
+      "externalServices": [],
+      "tests": ["tests/meta-report-snapshots.test.ts"],
+      "allowedDependencies": ["Node.js sqlite"],
+      "forbiddenImports": ["src/**", "other server module internals"]
+    },
+    {
       "name": "frontend-patch-notes",
       "status": "modular",
       "owner": "traditional-data",
