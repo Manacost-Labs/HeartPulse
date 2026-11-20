@@ -168,14 +168,19 @@ test('concurrent requests share one read, a malformed answer keeps the last good
 
 test('a refresh keeps its starting profile when the hero is dropped meanwhile; a throwing or rejecting fetch is a failure', async () => {
   let now = 0;
-  let mode: 'ok' | 'hold' | 'throw' | 'reject' = 'ok';
+  let mode: 'ok' | 'hold' | 'throw' | 'reject' | 'renamed' = 'ok';
+  const calls: string[] = [];
   let held: ((response: Response) => void) | null = null;
   const load = createHeroProfileLoader({
     libraryUrl: dbfId => `https://library.example/heroes?dbf=${dbfId}`, imageUrl, now: () => now,
     fetchImpl: url => {
       const dbfId = Number(new URL(String(url)).searchParams.get('dbf'));
+      calls.push(`${mode}:${dbfId}`);
       if (mode === 'throw') throw new Error('synchronous failure');
       if (mode === 'reject') return Promise.reject(new Error('network'));
+      if (mode === 'renamed') {
+        return Promise.resolve(new Response(JSON.stringify({ data: [{ ...row, dbf: dbfId, artist: 'Recovered' }] }), { status: 200 }));
+      }
       if (mode === 'hold' && dbfId === 59807) return new Promise<Response>(resolve => { held = resolve; });
       return Promise.resolve(new Response(JSON.stringify({ data: [{ ...row, dbf: dbfId }] }), { status: 200 }));
     },
@@ -190,12 +195,18 @@ test('a refresh keeps its starting profile when the hero is dropped meanwhile; a
   (held as (response: Response) => void)(new Response('{"error":"x"}', { status: 200 }));
   assert.equal((await refresh)?.artist, 'Alex Horley', 'the profile the refresh started from');
 
+  let lastGood = 'Alex Horley';
   for (const failure of ['throw', 'reject'] as const) {
     now += 11 * 60_000;
     mode = failure;
-    assert.equal((await load(59807))?.artist, 'Alex Horley', `a ${failure} keeps the last good profile`);
-    mode = 'ok';
-    assert.equal((await load(59807))?.artist, 'Alex Horley', 'and the hero is not left in flight');
+    assert.equal((await load(59807))?.artist, lastGood, `a ${failure} keeps the last good profile`);
+    assert.equal(calls.at(-1), `${failure}:59807`, `the ${failure} was really read`);
+    // Past the failure pause the hero is read again (a settled read left in flight would answer instead).
+    now += 61_000;
+    mode = 'renamed';
+    assert.equal((await load(59807))?.artist, 'Recovered', `the hero is read again after a ${failure}`);
+    assert.equal(calls.at(-1), 'renamed:59807');
+    lastGood = 'Recovered';
   }
 });
 
