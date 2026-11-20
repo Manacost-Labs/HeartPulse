@@ -30,3 +30,17 @@ condition = "AND"
 paths = ['''^src/features/playerStats/playerStatsFixtures\.ts$''']
 regexTarget = "line"
 regexes = ['''"key": "AAE[A-Za-z0-9+/=]{8,}"''']
+
+# The IndexNow key is public by protocol: search engines read it from
+# https://hearthpulse.net/<key>.txt (public/, server/indexNow.ts, #304). Only
+# that value and the obviously fake test key are allowed, only in these files.
+[[allowlists]]
+description = "Public IndexNow key and its test double"
+targetRules = ["generic-api-key"]
+condition = "AND"
+paths = [
+  '''^server/indexNow\.ts$''',
+  '''^tests/indexnow\.test\.ts$''',
+  '''^tests/nginx-html-routing\.test\.mjs$''',
+]
+regexes = ['''58284b575f81b49cc64477a6413fe046''', '''0123456789abcdef0123456789abcdef''']

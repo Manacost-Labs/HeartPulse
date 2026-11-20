@@ -460,6 +460,17 @@ canonical, `og:url` и `@id` JSON-LD ведут на страницу Станд
 self-canonical. В `wild-cards.xml` копий карт Стандарта нет
 (`excludeStandardCardsFromWildCatalog`).
 
+## IndexNow (E25, #304)
+
+Сегмент карты сайта, пересобранный из источника с изменившимся списком,
+вызывает `onSegmentPublished(segment, previous, next)` роутера
+(`server/entitySitemapRoutes.ts` → `entitySitemapDynamicLoader.ts`).
+`changedSitemapLocations` из `server/indexNow.ts` отдаёт новые, изменённые
+(другой `semanticHash` или адрес) и ушедшие адреса; без предыдущего состояния —
+пустой список. Запасная копия и устаревший источник хук не вызывают; ошибка
+хука или IndexNow не меняет ответ карты сайта. Порядок работы и выключение —
+`docs/runbooks/search-consoles.md#indexnow-304`.
+
 ## Documentation impact
 
 - This specification records the new sitemap segment and page-quality contract.
