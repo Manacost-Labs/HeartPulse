@@ -1298,14 +1298,15 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
   // unless the visitor has chosen a class meanwhile.
   const addressClass = useRef<string | null | undefined>(undefined);
   useEffect(() => {
-    if (!serverRendered) return;
+    // A class page is its class: an address `?class=` does not switch it.
+    if (!serverRendered || fullClassId !== undefined) return;
     if (addressClass.current === undefined) addressClass.current = new URLSearchParams(window.location.search).get('class');
     const id = addressClass.current;
     if (id && sections.some(section => section.id === id)) {
       addressClass.current = null;
       setActiveClassId(id);
     }
-  }, [serverRendered, sections]);
+  }, [serverRendered, sections, fullClassId]);
   // The details of a card opened on the open data would keep its figures (and miss the paid ones) after the switch.
   useEffect(() => setModalCard(null), [openLayer]);
 
