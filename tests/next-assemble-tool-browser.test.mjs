@@ -141,6 +141,13 @@ test('the Assemble tool page draws the chosen card on the server, takes the choi
     await page.waitForFunction(() => document.querySelector('[data-card-assemble] h2')?.textContent === 'Радж');
     assert.equal(await page.evaluate(() => location.search), '?card=BE_004');
 
+    // #582: choosing the card that is already open leaves nothing waiting.
+    await page.click('a.assemble-card[data-card="BE_004"]');
+    await new Promise(resolve => setTimeout(resolve, 600));
+    assert.equal(await page.$eval('[data-assemble-tool]', node => node.getAttribute('aria-busy')), 'false', 'a second click on the open card is not a load');
+    assert.equal(await page.$eval('[data-card-assemble]', node => getComputedStyle(node).opacity), '1', 'the section stays opaque');
+    assert.equal(await page.evaluate(() => location.search), '?card=BE_004');
+
     // The menu lists the page after the deck builder and highlights it; Wild has its twin.
     const menu = await page.$$eval('.arena-sidebar-nav .hp-nav-list[data-for="standard"] a', links => links.map(link => [link.textContent?.trim(), link.getAttribute('aria-current')]));
     const labels = menu.map(item => item[0]);

@@ -214,6 +214,31 @@ try {
   assert.doesNotMatch(await text('[data-card-assemble]'), /г\.\./);
   await page.goto(storybook.storyUrl('card-detail-assemble--not-enough-data'), { waitUntil: 'networkidle0' });
   assert.match(await text('[data-card-assemble]'), /Мало данных/);
+
+  // The card page's block: the pool, the best base and a button to the tool; the section itself is not on the page.
+  await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
+  await page.goto(storybook.storyUrl('card-detail-assemble-teaser--default'), { waitUntil: 'networkidle0' });
+  await page.waitForFunction(() => /Пул 38 существ · лучшая база — /.test(document.querySelector('[data-card-assemble-teaser] .assemble-teaser__stats')?.textContent ?? ''));
+  assert.equal(await page.$eval('.assemble-teaser__button', node => node.getAttribute('href')), '/standard/assemble/?card=BE_044');
+  assert.equal(await page.$('[data-card-assemble]'), null, 'no full section on the card page');
+  await page.goto(storybook.storyUrl('card-detail-assemble-teaser--wild'), { waitUntil: 'networkidle0' });
+  assert.equal(await page.$eval('.assemble-teaser__button', node => node.getAttribute('href')), '/standard/assemble/?card=BE_044&format=wild');
+  // A failed or unknown card keeps the button without any message, and the line's place does not move the button.
+  for (const story of ['failed', 'missing']) {
+    await page.goto(storybook.storyUrl(`card-detail-assemble-teaser--${story}`), { waitUntil: 'networkidle0' });
+    assert.ok(await page.$('.assemble-teaser__button'), `${story} keeps the button`);
+    assert.equal(await page.$('[role="alert"]'), null, `${story} shows no error`);
+    assert.equal((await text('.assemble-teaser__stats')).trim(), '');
+  }
+  await page.goto(storybook.storyUrl('card-detail-assemble-teaser--default'), { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.assemble-teaser__button');
+  const buttonTop = await page.$eval('.assemble-teaser__button', node => node.getBoundingClientRect().top);
+  await page.waitForFunction(() => /Пул/.test(document.querySelector('.assemble-teaser__stats')?.textContent ?? ''));
+  assert.equal(await page.$eval('.assemble-teaser__button', node => node.getBoundingClientRect().top), buttonTop, 'the figures arrive without moving the button');
+  await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
+  await page.goto(storybook.storyUrl('card-detail-assemble-teaser--phone'), { waitUntil: 'networkidle0' });
+  assert.ok(await overflow() <= 0, 'the block fits a phone');
+  assert.ok(await page.$eval('.assemble-teaser__button', node => node.getBoundingClientRect().height) >= 44, 'the button is a finger target');
   assert.deepEqual(runtimeErrors, []);
 } finally {
   await browser?.close();

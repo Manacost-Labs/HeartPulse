@@ -4,6 +4,7 @@ import {
   assembleActiveBase, assembleBasesByOffer, assembleBestBase, assembleOptionsOfBase,
   type CardAssembleData,
 } from '../model/cardAssemble';
+import { creaturesLabel } from '../model/plural';
 import { cardChoiceDate, formatChoicePercent } from '../model/cardChoices';
 import { useCardAssemble } from '../useCardAssemble';
 import { BuildRow, BuildsSkeleton, Legend } from './AssembleBuilds';
@@ -29,15 +30,6 @@ export type CardAssembleSectionProps = {
   /** Replaces «Сборка» when the page already has its own H1. */
   heading?: string;
 };
-
-
-function plural(count: number, one: string, few: string, many: string): string {
-  const tail = count % 100;
-  if (tail >= 11 && tail <= 14) return many;
-  const last = count % 10;
-  if (last === 1) return one;
-  return last >= 2 && last <= 4 ? few : many;
-}
 
 
 /**
@@ -96,7 +88,7 @@ export function CardAssembleSection({ format, cardId, initial = null, staticStyl
           <h2 id={headingId}>{heading}</h2>
           {hasBases && data && (
             <p className="assemble-summary">
-              <span>Пул <b>{data.basesTotal} {plural(data.basesTotal, 'существо', 'существа', 'существ')}</b></span>
+              <span>Пул <b>{data.basesTotal} {creaturesLabel(data.basesTotal)}</b></span>
               {data.winRate !== null && <span>средний винрейт после сборки <b>{formatChoicePercent(data.winRate)}</b></span>}
               {best && <span>лучшая база — <b>{best.card.name}</b> {formatChoicePercent(best.winRate)}</span>}
             </p>

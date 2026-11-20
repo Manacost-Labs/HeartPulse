@@ -259,6 +259,12 @@ assert.equal(isAssembleCard({ text: { ru: HSJ_TEXTS.BE_740.ru, en: null } }), tr
 assert.equal(isAssembleCard({ mechanics: ['BATTLECRY', 'ASSEMBLE'], text: null }), true);
 assert.equal(isAssembleCard({ text: { ru: '<b>Раскопка</b> сокровища.', en: '<b>Excavate</b> a treasure.' }, mechanics: ['EXCAVATE'] }), false);
 assert.equal(isAssembleCard({ text: { ru: 'Собирает всё, что плохо лежит.', en: 'Assemble your team.' } }), false, 'plain words are not the keyword');
+// The server's card seed has the text without markup: the keyword is found by what it assembles.
+for (const plain of ['Боевой клич: собирает существо за (4).', 'Собирает существо. Оно стоит на (2) меньше.', 'Собирает механизм. Вы получаете «Форсаж».',
+  'Вы собираете существо с «Провокацией». Оно получает +2/+3.', 'Боевой клич: вы собираете зверя.', 'Серия приемов: собирает существо другого класса.']) {
+  assert.equal(isAssembleCard({ text: { ru: plain, en: null } }), true, plain);
+}
+assert.equal(isAssembleCard({ text: { ru: null, en: 'Battlecry: Assemble a minion.' } }), true);
 assert.equal(isAssembleCard({ text: { ru: '<b>Собирательство</b> 2', en: null } }), false);
 assert.equal(isAssembleCard({ text: { ru: '<b>Боевой клич:</b> наносит 2 ед. урона.', en: null }, mechanics: ['BATTLECRY'] }), false);
 assert.equal(isAssembleCard(null), false);

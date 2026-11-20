@@ -93,11 +93,30 @@ tool page `/standard/assemble/`. Answer, typed as `CardAssembleListData`:
   of the source. A list with no surviving row is a contract mismatch (503 or the
   last answer), never `200` with `[]`.
 
+## Card page: the «Сборка» block (HeartPulse#535)
+
+The page of each of the 13 cards (`isAssembleCard(card)`) shows
+`CardAssembleTeaser` (`src/modules/constructedCards/ui/`), not the full section:
+an emblem (the menu icon), the heading «Сборка», one line «Пул N существ ·
+лучшая база — <имя> <винрейт>» and a big button «Открыть инструмент сборки».
+
+- The button is a plain link `/standard/assemble/?card=<id>` (`&format=wild` on
+  `/standard/cards/wild/…`). It is in the server HTML and works without
+  JavaScript; with it the card page navigates softly (`navigatePath`).
+- The figures come from the same `useCardAssemble(format, cardId, 'top', true)`
+  request as before (`?base=top`), so the traffic does not grow. The best base is
+  `assembleBestBase(data)`. Until the answer, and on a 404, `not_collected`,
+  `no_data` or an error, the line stays empty with its place reserved
+  (`min-height`): no message, no layout shift; the button stays.
+- An ordinary card has neither the block nor the request.
+- The block is not lazy (its link belongs to the HTML) and brings its own small
+  CSS. The lazy `CardAssembleLazy` and its stylesheets are gone from the card
+  routes (approval `designer-494-card-assemble.json` removed).
+
 ## Section (HeartPulse#494)
 
-`CardAssembleSection` (`src/modules/constructedCards/ui/`, lazy, rendered by
-`StandardCardDetail` for `isAssembleCard(card)` next to the choices section)
-is open to everyone, like «Что берут из Открытия».
+The full section lives on the tool page (`docs/specs/assemble-tool.md`):
+`CardAssembleSection` is open to everyone, like «Что берут из Открытия».
 
 - Header: pool size, mean winrate after assembling, the best base by
   winrate among real samples, and the period.
