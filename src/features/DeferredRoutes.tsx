@@ -1231,7 +1231,7 @@ function HSReplayCardsTable({ tiers, onCardOpen, previewSuppressed = false }: {
   );
 }
 
-export function TierList({ data, loading, error, companionIds, tierlistSource, onTierlistSourceChange, switchingTierlistSource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, accessGranted, initialClassId, openLayer = false, serverRendered = false, onPaidOffer, dataLine }: {
+export function TierList({ data, loading, error, companionIds, tierlistSource, onTierlistSourceChange, switchingTierlistSource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, accessGranted, initialClassId, openLayer = false, serverRendered = false, onPaidOffer, dataLine, fullClassId, classHref }: {
   data: TierlistData; loading: boolean; error: boolean;
   companionIds: Set<string>;
   tierlistSource: TierlistSource;
@@ -1257,6 +1257,10 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
   onPaidOffer?: () => void;
   /** The date, sample and source of the shown data, under the source switch. */
   dataLine?: React.ReactNode;
+  /** The class of a class page: its cards are shown whole (no «Показать ещё»), so its server HTML holds them all. */
+  fullClassId?: string;
+  /** Class pages exist: the class choice is a link to `/tierlist/<class>/` (see `TierListControls`). */
+  classHref?: (id: string) => string;
 }) {
   const [activeClassId, setActiveClassId] = useState<string>(initialClassId ?? ALL_CARDS_ID);
   const [offer, setOffer] = useState(false);
@@ -1281,7 +1285,8 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
     [deferredSearchQuery],
   );
   // A server-rendered list keeps the server's first page on a phone too: shrinking it after hydration would move the page.
-  const cardPageSize = isSmallViewport && !serverRendered ? INITIAL_TIERLIST_CARDS_MOBILE : INITIAL_TIERLIST_CARDS_DESKTOP;
+  const cardPageSize = fullClassId !== undefined && activeClassId === fullClassId ? Number.POSITIVE_INFINITY
+    : isSmallViewport && !serverRendered ? INITIAL_TIERLIST_CARDS_MOBILE : INITIAL_TIERLIST_CARDS_DESKTOP;
   const cardPageStep = isSmallViewport ? TIERLIST_CARDS_STEP_MOBILE : TIERLIST_CARDS_STEP_DESKTOP;
   const [visibleCardLimit, setVisibleCardLimit] = useState(() => cardPageSize);
 
@@ -1293,14 +1298,15 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
   // unless the visitor has chosen a class meanwhile.
   const addressClass = useRef<string | null | undefined>(undefined);
   useEffect(() => {
-    if (!serverRendered) return;
+    // A class page is its class: an address `?class=` does not switch it.
+    if (!serverRendered || fullClassId !== undefined) return;
     if (addressClass.current === undefined) addressClass.current = new URLSearchParams(window.location.search).get('class');
     const id = addressClass.current;
     if (id && sections.some(section => section.id === id)) {
       addressClass.current = null;
       setActiveClassId(id);
     }
-  }, [serverRendered, sections]);
+  }, [serverRendered, sections, fullClassId]);
   // The details of a card opened on the open data would keep its figures (and miss the paid ones) after the switch.
   useEffect(() => setModalCard(null), [openLayer]);
 
@@ -1525,7 +1531,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
             mana={selectedManaCost} onManaChange={setSelectedManaCost}
             view={viewMode} onViewChange={setViewMode} canUseTable={canUseTableView}
             onReset={() => { setSearchQuery(''); setSelectedRarity('all'); setSelectedManaCost('all'); }}
-            onLockedFilter={openLayer ? openOffer : undefined}
+            onLockedFilter={openLayer ? openOffer : undefined} classHref={classHref}
           />
           {openLayer && offer && (
             <div className="tierlist-offer mb-6" ref={offerRef}>
