@@ -369,6 +369,14 @@ SEO cost is 250–400 words fewer on three indexed pages.
   gives the static text with the year. No paid figure (offer rate, ArenaSmith
   score, narrow ranges) enters a snippet. The static descriptions name the
   open data and say which part is for subscribers.
+- `/standard/matchups` and `/standard/patches` follow the same rule (#540):
+  the matchups title and description carry the date of the open Standard
+  slice only (the page prints no count of archetypes or games); the patch
+  notes title names the version the page shows first (the newest, or
+  `?version=`) and the description its release date (`publishedAt`, never the
+  request time), without a count of changes the page does not print. The
+  Battlegrounds builds description names up to three tribes of tier S, then
+  «и другие».
 - Static titles: «Тир-лист Арены Hearthstone (хс), {year}», «Лучшие классы
   Арены Hearthstone, {year}», «Легендарки Арены Hearthstone, {year}», «Тир-лист
   героев Полей сражений Hearthstone {year}», «Сборки Полей сражений

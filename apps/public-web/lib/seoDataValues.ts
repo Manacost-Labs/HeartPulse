@@ -1,5 +1,7 @@
 import type { ArchetypeCatalog, ArchetypeDetail } from '@/src/features/ConstructedArchetypes';
 import type { LegendariesData } from '@/src/modules/arenaLegendaries/public';
+import type { PatchNotesDetail } from '@/src/modules/patchNotes/public';
+import type { PublicStandardMatchups } from '@/src/modules/standardMatchups/public';
 import { standardMetaPeriodLabel } from '@/src/features/standardMetaFilterModel';
 import type { StandardMetaTeaserSeed } from '@/src/features/standardMetaTeaser';
 import { renderSeoDataTemplate, type SeoDataValues } from '@/src/seo/dataTemplate';
@@ -195,6 +197,8 @@ export function battlegroundHeroesSeoValues(ranking: PublicBattlegroundHeroesRan
   };
 }
 
+const TIER_S_TRIBES_SHOWN = 3;
+
 /** `/battlegrounds/tier-list`: the date and the tribes of tier S (the page does not print a count of builds). */
 export function battlegroundBuildsSeoValues(data: PublicBattlegroundBuilds | null, now: number): SeoDataValues | null {
   const date = data && isHsreplay(data.source) && seoDataDate(data.updatedAt, now);
@@ -202,5 +206,33 @@ export function battlegroundBuildsSeoValues(data: PublicBattlegroundBuilds | nul
   // «Нежить: APM-нежить» → «Нежить»: the tribe before the colon, each once, in the page's order.
   const tribes = [...new Set(data.builds.filter(build => build.tier === 'S')
     .map(build => build.title.split(':')[0].trim()).filter(Boolean))];
-  return { ...seoDateValues(date), leader: tribes.length > 0 ? tribes.join(', ') : null };
+  // Three tribes fit a description with the longest date; more are «и другие» (the page prints no count of them).
+  const shown = tribes.slice(0, TIER_S_TRIBES_SHOWN).join(', ');
+  return { ...seoDateValues(date), leader: tribes.length === 0 ? null : tribes.length > TIER_S_TRIBES_SHOWN ? `${shown} и другие` : shown };
+}
+
+// ── Standard matchups and patch notes (#540) ──
+
+/**
+ * `/standard/matchups`: the date of the open Standard slice. The page prints no count of archetypes
+ * (only a screen-reader caption) nor the slice's total of games, so the snippet carries neither.
+ */
+export function standardMatchupsSeoValues(data: PublicStandardMatchups | null, now: number): SeoDataValues | null {
+  const date = data && seoDataDate(data.updatedAt, now);
+  if (!data || !date || data.format !== 'standard' || data.archetypes.length === 0) return null;
+  return seoDateValues(date);
+}
+
+/**
+ * `/standard/patches`: the version the page shows first (the newest, or the one of `?version=`) and its
+ * release date, the patch's own `publishedAt`, never the request time. The page prints no count of
+ * changes, so the snippet carries none.
+ */
+export function patchNotesSeoValues(patches: readonly PatchNotesDetail[] | null, now: number): SeoDataValues | null {
+  const patch = patches?.[0];
+  if (!patch?.version) return null;
+  return {
+    patch: patch.version,
+    released: seoDataDate(patch.publishedAt, now)?.date ?? null,
+  };
 }

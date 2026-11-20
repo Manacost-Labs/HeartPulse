@@ -20,7 +20,8 @@ import { standardMetaPeriodLabel } from '../src/features/standardMetaFilterModel
 import { seoDataDate } from '../apps/public-web/lib/seoDataDate';
 import {
   archetypeCatalogSeoValues, archetypeDetailSeoText, arenaClassesSeoValues, arenaLegendariesSeoValues,
-  arenaTierlistSeoValues, battlegroundBuildsSeoValues, battlegroundHeroesSeoValues, standardMetaSeoValues,
+  arenaTierlistSeoValues, battlegroundBuildsSeoValues, battlegroundHeroesSeoValues, patchNotesSeoValues, standardMatchupsSeoValues,
+  standardMetaSeoValues,
 } from '../apps/public-web/lib/seoDataValues';
 import { publicArchetypeCatalog } from '../apps/public-web/lib/publicArchetypeCatalogTeaserData';
 import { publicArchetypeTeaser } from '../apps/public-web/lib/publicArchetypeTeaserData';
@@ -718,10 +719,10 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
     build('A', 'Механизмы: APM-магнетизм'),
   ]), NOW)), {
     title: 'Сборки Полей сражений Hearthstone: тир-лист, ноябрь 2026',
-    description: 'Лучшие сборки Полей сражений Hearthstone (хс) на 20 ноября 2026: тир S — Нежить, Элементали. Ключевые существа и как играть, данные HSReplay.',
+    description: 'Лучшие сборки Полей сражений Hearthstone (хс) на 20 ноября 2026: тир S — Нежить, Элементали. Ключевые существа, данные HSReplay.',
   });
   assert.equal(text('/battlegrounds/tier-list', battlegroundBuildsSeoValues(builds([build('A', 'Механизмы: APM-магнетизм')]), NOW)).description,
-    'Лучшие сборки Полей сражений Hearthstone (хс) на 20 ноября 2026. Ключевые существа и как играть, данные HSReplay.');
+    'Лучшие сборки Полей сражений Hearthstone (хс) на 20 ноября 2026. Ключевые существа, данные HSReplay.');
 
   // Limits: the longest month and real-size lists keep every text inside the meta limits.
   const SEPTEMBER = '2026-09-15T06:00:00.000Z';
@@ -739,6 +740,52 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
     assert.ok(value.description.includes('15 сентября 2026'), value.description);
     assert.ok(value.description.split('(хс)').length <= 2, `one «(хс)» at most: ${value.description}`);
   }
+  // Five tribes in tier S (the production case of 20.11.2026): three are named, then «и другие», and it fits.
+  assert.equal(text('/battlegrounds/tier-list', battlegroundBuildsSeoValues({ ...builds([build('S', 'Нежить: x'), build('S', 'Элементали: y'),
+    build('S', 'Свинобразы: z'), build('S', 'Мурлоки: w'), build('S', 'Звери: v')]), updatedAt: SEPTEMBER }, september)).description,
+    'Лучшие сборки Полей сражений Hearthstone (хс) на 15 сентября 2026: тир S — Нежить, Элементали, Свинобразы и другие. Ключевые существа, данные HSReplay.');
+}
+
+// ── Standard matchups and patch notes: date, size of the matrix, version and release date (#540) ──
+{
+  const NOW = Date.parse('2026-11-20T09:00:00Z');
+  const text = (path: string, values: ReturnType<typeof patchNotesSeoValues>) => seoPageText(seoPageForExactPath(path)!, values);
+  const staticText = (path: string) => {
+    const page = seoPageForExactPath(path)!;
+    return { title: page.title, description: page.description };
+  };
+  const archetype = (index: number) => ({
+    name: `A${index}`, label: `А${index}`, slug: `a-${index}`, classKey: null, popularity: '1.0%', games: 1000, winrate: 50,
+  });
+  const matchups = (archetypes: number, updatedAt: string | null = '2026-11-20T08:10:02.597Z', format: 'standard' | 'wild' = 'standard') => ({
+    format, formatLabel: 'Стандарт', rankLabel: 'Все ранги', period: null, minGames: 25, totalGames: 21_093_412,
+    sourceUrl: 'https://www.hsguru.com/matchups', updatedAt,
+    archetypes: Array.from({ length: archetypes }, (_, index) => archetype(index)), pairs: [], truncated: false,
+  });
+  assert.deepEqual(text('/standard/matchups', standardMatchupsSeoValues(matchups(42), NOW)), {
+    title: 'Матчапы Hearthstone: винрейты колод, ноябрь 2026',
+    description: 'Матрица матчапов Стандарта Hearthstone (хс) на 20 ноября 2026: винрейт популярных архетипов против каждого. Все ранги, данные HSGuru.',
+  });
+  assert.deepEqual(text('/standard/matchups', standardMatchupsSeoValues(matchups(0), NOW)), staticText('/standard/matchups'));
+  assert.deepEqual(text('/standard/matchups', standardMatchupsSeoValues(matchups(42, null), NOW)), staticText('/standard/matchups'));
+  assert.deepEqual(text('/standard/matchups', standardMatchupsSeoValues(matchups(42, undefined, 'wild'), NOW)), staticText('/standard/matchups'),
+    'the Standard page never titles a Wild slice');
+  assert.equal(text('/standard/matchups', standardMatchupsSeoValues(matchups(42, '2026-11-01T08:00:00Z'), NOW)).title,
+    staticText('/standard/matchups').title, 'stale data leaves the month out');
+
+  const patch = (version: string, publishedAt: string | null, changeCount: number) => ({
+    version, build: `${version}.1`, title: `Патч ${version}`, publishedAt, sourceUrl: null, officialUrl: null, changeCount,
+    summary: null, entries: [], missingBefore: 0, pictureSections: [], generalChanges: [], meta: null,
+  });
+  assert.deepEqual(text('/standard/patches', patchNotesSeoValues([patch('37.0.2', '2026-11-03T15:55:00+00:00', 42), patch('37.0', '2026-10-12T16:55:00+00:00', 120)], NOW)), {
+    title: 'Патч Hearthstone 37.0.2: изменения карт | HearthPulse',
+    description: 'Патч 37.0.2 Hearthstone (хс) вышел 3 ноября 2026. Что усилили и ослабили — карты было → стало по классам, Поля сражений и архив патчей.',
+  });
+  assert.equal(text('/standard/patches', patchNotesSeoValues([patch('36.6.3', null, 0)], NOW)).description,
+    'Патч 36.6.3 Hearthstone (хс). Что усилили и ослабили — карты было → стало по классам, Поля сражений и архив патчей.',
+    'without a date the description promises none');
+  assert.deepEqual(text('/standard/patches', patchNotesSeoValues(null, NOW)), staticText('/standard/patches'));
+  assert.deepEqual(text('/standard/patches', patchNotesSeoValues([], NOW)), staticText('/standard/patches'));
 }
 
 console.log(`SEO registry assertions passed (${pages.length} pages, ${sitemapPages.length} sitemap URLs)`);
