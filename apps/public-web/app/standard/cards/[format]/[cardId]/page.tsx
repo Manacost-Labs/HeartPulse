@@ -4,7 +4,8 @@ import { notFound } from 'next/navigation';
 import { constructedCardPath, type CardFormat, type PublicCardSeed } from '@/src/modules/constructedCards/public';
 import { buildEntityStructuredData } from '@/shared/entitySeoStructuredData';
 import { sameOriginPublicResourceUrl } from '@/shared/publicResourceUrl';
-import { loadPublicCard } from '@/apps/public-web/lib/publicCard';
+import { isStandardCard, loadPublicCard } from '@/apps/public-web/lib/publicCard';
+import { loadPublicCardDetail } from '@/apps/public-web/lib/publicCardDetail';
 import { LegacyCardDetailPage } from '@/apps/public-web/ui/LegacyCardDetailPage';
 import { INDEXABLE_ROBOTS } from '@/src/shared/seo/robots';
 import { constructedCardDescription, constructedCardTitle } from '@/shared/entityPageTitles';
@@ -24,7 +25,9 @@ async function resolveCard() {
   const card = await loadPublicCard(typedFormat, cardId);
   if (!card) notFound();
   const pathname = constructedCardPath(typedFormat, cardId);
-  return { card, format: typedFormat, pathname, canonical: `${ORIGIN}${pathname}/` };
+  // A Wild page of a card legal in Standard repeats the Standard page: one canonical for both (#307).
+  const canonicalFormat: CardFormat = typedFormat === 'wild' && await isStandardCard(cardId) ? 'standard' : typedFormat;
+  return { card, format: typedFormat, pathname, canonical: `${ORIGIN}${constructedCardPath(canonicalFormat, cardId)}/` };
 }
 
 /** The open facts the title and the description name; the same call as Express and the browser make. */
@@ -95,6 +98,6 @@ export default async function CardPage(props: Props) {
   return <>
     <script type="application/ld+json" data-server-entity-jsonld data-entity-path={pathname}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(structured).replace(/</g, '\\u003c') }} />
-    <LegacyCardDetailPage card={card} pathname={pathname} initialSearch={query.toString()} />
+    <LegacyCardDetailPage card={await loadPublicCardDetail(format, card) ?? card} pathname={pathname} initialSearch={query.toString()} />
   </>;
 }

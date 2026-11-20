@@ -22,6 +22,12 @@ const VISIBLE_BUILDS = 10;
 export type CardAssembleSectionProps = {
   format: CardAssembleData['format'];
   cardId: string;
+  /** What the server read for the default base: shown at once, the first request is skipped. */
+  initial?: CardAssembleData | null;
+  /** The page of the tool brings the stylesheets itself, so the section draws on the server too. */
+  staticStyles?: boolean;
+  /** Replaces «Сборка» when the page already has its own H1. */
+  heading?: string;
 };
 
 
@@ -40,22 +46,23 @@ function plural(count: number, one: string, few: string, many: string): string {
  * the best of the four builds from two offered donors. Renders nothing for a card the
  * data source does not know.
  */
-export function CardAssembleSection({ format, cardId }: CardAssembleSectionProps) {
+export function CardAssembleSection({ format, cardId, initial = null, staticStyles = false, heading = 'Сборка' }: CardAssembleSectionProps) {
   const headingId = useId();
   const [selected, setSelected] = useState<number | 'top'>('top');
   const [reload, setReload] = useState(0);
   const [view, setView] = useState<'best' | 'offered'>('best');
   const [showAll, setShowAll] = useState(false);
   const [playerClass, setPlayerClass] = useState<string | null>(null);
-  const state = useCardAssemble(format, cardId, selected, true, reload);
-  const [styled, setStyled] = useState(false);
+  const state = useCardAssemble(format, cardId, selected, true, reload, initial);
+  const [styled, setStyled] = useState(staticStyles);
   useEffect(() => {
+    if (staticStyles) return undefined;
     let alive = true;
     void loadStyles().then(() => { if (alive) setStyled(true); }, () => { if (alive) setStyled(true); });
     return () => { alive = false; };
-  }, []);
+  }, [staticStyles]);
   // The ribbon stays on screen while the donors of another base load.
-  const [kept, setKept] = useState<CardAssembleData | null>(null);
+  const [kept, setKept] = useState<CardAssembleData | null>(initial);
   useEffect(() => { if (state.status === 'ready') setKept(state.data); }, [state]);
   const data = state.status === 'ready' ? state.data : kept;
   const classDependent = assembleClassDependent(data);
@@ -86,7 +93,7 @@ export function CardAssembleSection({ format, cardId }: CardAssembleSectionProps
     <section className="constructed-card-detail__section card-choices assemble" aria-labelledby={headingId} data-card-assemble="">
       <header className="assemble-header">
         <div>
-          <h2 id={headingId}>Сборка</h2>
+          <h2 id={headingId}>{heading}</h2>
           {hasBases && data && (
             <p className="assemble-summary">
               <span>Пул <b>{data.basesTotal} {plural(data.basesTotal, 'существо', 'существа', 'существ')}</b></span>

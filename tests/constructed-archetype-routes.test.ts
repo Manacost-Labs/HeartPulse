@@ -5,6 +5,7 @@ import { loadArchetypeCatalogForPeriod, loadArchetypeCatalogForSlug } from '../s
 import { createArchetypeCatalogCache, createArchetypeRankMatrixLoader } from '../server/modules/constructedArchetypes/public.js';
 import { withCatalogCardMedia } from '../server/modules/constructedCards/public.js';
 import {
+  createArchetypeCardDictionaries,
   createConstructedArchetypeRouter,
   constructedArchetypeSlug,
   type ConstructedArchetypeCatalog,
@@ -59,7 +60,7 @@ const catalog: ConstructedArchetypeCatalog = {
     deckCount: 1,
     sourceUrl: 'https://www.hsguru.com/meta',
     builds: [{
-      deckCode: 'AAEBAa0GValidDeckCode',
+      deckCode: 'AAECAf0GAfKiBALxogTzogQAAA==',
       games: 2_216,
       winrate: 57.1,
       sourceUrl: 'https://www.hsguru.com/deck/40919030',
@@ -107,13 +108,16 @@ const dependencies: ConstructedArchetypeRouterDependencies = {
   loadHistory: async () => { historyReads++; if (historyFails) throw new Error('History unavailable'); return [{
     recordedAt: '2026-07-24T12:38:57.727Z',
     games: 31_959,
-    winrate: 58.3,
+    winrate: 41.4141,
     popularity: 13.5,
     turns: 7.9,
     durationMinutes: 8,
     climbingSpeed: 1.24,
   }]; },
-  loadCardCatalog: async () => { mediaReads++; if (!mediaAvailable) throw new Error('Catalog unavailable'); return { cards: [{ card_id: 'different-id', dbf: 123, rarity: 'EPIC', images: { tile: 'https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/TOY_330-test.png', horizontal: 'https://api.kolodahearthstone.com/uploads/horizontal-art/constructed_card/TOY_330.webp' } }] }; },
+  loadCardCatalog: async () => { mediaReads++; if (!mediaAvailable) throw new Error('Catalog unavailable'); return { cards: [{ card_id: 'different-id', dbf: 123, rarity: 'EPIC', images: { tile: 'https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/TOY_330-test.png', horizontal: 'https://api.kolodahearthstone.com/uploads/horizontal-art/constructed_card/TOY_330.webp' } },
+    { card_id: 'TST_001', dbf: 70_001, name: { ru: 'Тестовый удар', en: 'Test Strike' }, mana_cost: 1, rarity: 'COMMON' },
+    { card_id: 'TST_002', dbf: 70_002, name: { ru: 'Тестовый страж', en: 'Test Warden' }, mana_cost: 4, rarity: 'LEGENDARY' },
+    { card_id: 'TST_003', dbf: 70_003, name: { ru: 'Тестовая буря', en: 'Test Storm' }, mana_cost: 2, rarity: 'RARE' }] }; },
   loadAnalysis: async () => { analysisReads++; if (analysisFails) throw new Error('Analysis unavailable'); return ({
     rank: 'legend',
     period: 'past_week',
@@ -137,11 +141,11 @@ const dependencies: ConstructedArchetypeRouterDependencies = {
       dbfId: 123,
       cardName: 'Гость из Бездны',
       cost: 3,
-      mulliganImpact: 4.8,
+      mulliganImpact: 7.1717,
       mulliganCount: 1_250,
       drawnImpact: -1.2,
       drawnCount: 980,
-      keptImpact: 6.1,
+      keptImpact: 6.2626,
       keptCount: 740,
     }],
   }); },
@@ -180,7 +184,7 @@ try {
   const teaserListingBody = await teaserListing.json() as any;
   assert.equal(teaserListingBody.items.length, 1);
   assert.deepEqual(teaserListingBody.items[0].builds, []);
-  assert.equal(JSON.stringify(teaserListingBody).includes('AAEBAa0GValidDeckCode'), false);
+  assert.equal(JSON.stringify(teaserListingBody).includes('AAECAf0GAfKiBALxogTzogQAAA=='), false, 'the catalog lists no deck codes');
 
   // The period is optional: absent opens the default catalog, an unknown one is refused before any read.
   assert.equal(catalogPeriods.at(-1), null);
@@ -193,8 +197,23 @@ try {
 
   const teaserDetail = await fetch(`${origin}/teaser/wild/thief-priest`);
   assert.equal(teaserDetail.status, 200, 'The detail hero teaser is public');
+  assert.match(teaserDetail.headers.get('cache-control') ?? '', /^public,/);
   const teaserDetailBody = await teaserDetail.json() as any;
-  assert.deepEqual(teaserDetailBody.item.builds, []);
+  // Open layer (owner decision 2026-11-18): the builds with their deck codes and card lists, nothing else of a build.
+  assert.deepEqual(teaserDetailBody.item.builds, [{
+    deckCode: 'AAECAf0GAfKiBALxogTzogQAAA==', games: 2_216, winrate: 57.1, updatedAt: '2026-07-22T21:05:32.877Z',
+    sampleRank: 'all', samplePeriod: 'past_30_days',
+    cards: [
+      { id: 'TST_001', name: 'Тестовый удар', cost: 1, count: 2, hasPage: true },
+      { id: 'TST_003', name: 'Тестовая буря', cost: 2, count: 2, hasPage: true },
+      { id: 'TST_002', name: 'Тестовый страж', cost: 4, count: 1, hasPage: true },
+    ],
+  }]);
+  // Sentinel: the paid layer (mulligan and card statistics, class matchups, history, ranks) is never read for the open answer.
+  for (const paid of ['7.1717', '6.2626', 'mulliganImpact', 'keptImpact', 'classMatchups', '54.2', '41.4141', 'hsguru.com/deck/']) {
+    assert.equal(JSON.stringify(teaserDetailBody).includes(paid), false, `the open archetype answer carries ${paid}`);
+  }
+  assert.deepEqual([historyReads, analysisReads, rankReads, mediaReads], [0, 0, 0, 1]);
   assert.deepEqual(teaserDetailBody.history, []);
   assert.equal(teaserDetailBody.analysis, null);
   assert.deepEqual(teaserDetailBody.featuredBuild, {
@@ -204,7 +223,6 @@ try {
     sampleRank: 'all',
     samplePeriod: 'past_30_days',
   });
-  assert.equal(JSON.stringify(teaserDetailBody).includes('AAEBAa0GValidDeckCode'), false);
 
   assert.equal((await fetch(`${origin}?format=wild`)).status, 403);
 
@@ -225,14 +243,14 @@ try {
   assert.equal(coreBody.item.builds[0].deckCode, catalog.items[0].builds[0].deckCode);
   assert.deepEqual(coreBody.history, []);
   assert.equal(coreBody.analysis, null);
-  assert.deepEqual([historyReads, analysisReads, mediaReads], [0, 0, 0], 'core must not start optional work');
+  assert.deepEqual([historyReads, analysisReads, mediaReads], [0, 0, 1], 'core must not start optional work');
   assert.equal(core.headers.get('cache-control'), 'no-store');
   const history = await fetch(`${origin}/wild/thief-priest?section=history`, { headers });
   assert.equal((await history.json() as any).history.length, 1);
-  assert.deepEqual([historyReads, analysisReads, mediaReads], [1, 0, 0]);
+  assert.deepEqual([historyReads, analysisReads, mediaReads], [1, 0, 1]);
   const analysis = await fetch(`${origin}/wild/thief-priest?section=analysis`, { headers });
   assert.equal((await analysis.json() as any).analysis.cardStats[0].rarity, 'EPIC');
-  assert.deepEqual([historyReads, analysisReads, mediaReads], [1, 1, 1]);
+  assert.deepEqual([historyReads, analysisReads, mediaReads], [1, 1, 2]);
   historyFails = true; analysisFails = true;
   assert.equal((await fetch(`${origin}/wild/thief-priest?section=core`, { headers })).status, 200);
   assert.equal((await fetch(`${origin}/wild/thief-priest?section=history`, { headers })).status, 502);
@@ -273,7 +291,7 @@ try {
   assert.equal(detailBody.history.length, 1);
   assert.equal(detailBody.analysis.rank, 'legend');
   assert.equal(detailBody.analysis.classMatchups[0].classKey, 'mage');
-  assert.equal(detailBody.analysis.cardStats[0].mulliganImpact, 4.8);
+  assert.equal(detailBody.analysis.cardStats[0].mulliganImpact, 7.1717);
   assert.equal(detailBody.analysis.cardStats[0].cost, 3);
   assert.equal(detailBody.analysis.cardStats[0].tile, 'https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/TOY_330-test.png');
   assert.equal(detailBody.analysis.cardStats[0].rarity, 'EPIC');
@@ -282,7 +300,7 @@ try {
   assert.equal(withoutMedia.status, 200);
   const withoutMediaBody = await withoutMedia.json() as any;
   assert.equal(withoutMediaBody.analysis.cardStats[0].tile, null);
-  assert.equal(withoutMediaBody.analysis.cardStats[0].mulliganImpact, 4.8);
+  assert.equal(withoutMediaBody.analysis.cardStats[0].mulliganImpact, 7.1717);
 
   assert.equal((await fetch(`${origin}/classic/thief-priest`, { headers })).status, 400);
   assert.equal((await fetch(`${origin}/wild/missing`, { headers })).status, 404);
@@ -299,7 +317,9 @@ try {
     assert.deepEqual(responses.map(response => response.status), [200, 200, 403]);
     const guest = await responses[0].json() as any;
     const member = await responses[1].json() as any;
-    assert.deepEqual(guest.item.builds, [], 'refresh must preserve the public projection');
+    assert.deepEqual(Object.keys(guest.item.builds[0]), ['deckCode', 'games', 'winrate', 'updatedAt', 'sampleRank', 'samplePeriod', 'cards'],
+      'refresh must preserve the public projection');
+    assert.equal(guest.item.builds[0].cards, null, 'without the card catalog a build keeps its code and loses only the list');
     assert.equal(member.item.builds[0].deckCode, catalog.items[0].builds[0].deckCode);
     assert.equal(responses[1].headers.get('cache-control'), 'no-store');
     assert.equal(catalogReads, 2, 'guest and protected routes share a single refresh');
@@ -374,4 +394,161 @@ try {
   } finally {
     await new Promise<void>((resolve, reject) => chainServer.close(error => (error ? reject(error) : resolve())));
   }
+}
+
+{
+  // Open builds (#444): every build is open, a page of 8 at a time; a stalled or failed card catalog never holds the
+  // answer, which then carries the codes without card lists and a short cache, so the lists come back with the catalog.
+  const nine = { ...catalog.items[0], slug: 'nine', deckCount: 9,
+    builds: Array.from({ length: 9 }, () => catalog.items[0].builds[0]) };
+  let cardsMode: 'ok' | 'fail' | 'hang' = 'ok';
+  const cardCatalog = { cards: [{ card_id: 'TST_001', dbf: 70_001, name: { ru: 'Тестовый удар' }, mana_cost: 1 },
+    { card_id: 'TST_002', dbf: 70_002, name: { ru: 'Тестовый страж' }, mana_cost: 4 },
+    { card_id: 'TST_003', dbf: 70_003, name: { ru: 'Тестовая буря' }, mana_cost: 2 }] };
+  const openApp = express();
+  openApp.use('/api', createConstructedArchetypeRouter({
+    ...dependencies, cardCatalogDeadlineMs: 200,
+    loadCatalog: async () => ({ ...catalog, items: [nine] }),
+    loadCardCatalog: () => (cardsMode === 'hang' ? new Promise(() => {})
+      : cardsMode === 'fail' ? Promise.reject(new Error('Catalog unavailable')) : Promise.resolve(cardCatalog)),
+  }));
+  const openServer = openApp.listen(0, '127.0.0.1');
+  await new Promise<void>(resolve => openServer.once('listening', resolve));
+  const openAddress = openServer.address();
+  assert.ok(openAddress && typeof openAddress === 'object');
+  const read = async (query = '') => {
+    const response = await fetch(`http://127.0.0.1:${openAddress.port}/api/constructed-archetypes/teaser/wild/nine${query}`,
+      { signal: AbortSignal.timeout(2_000) });
+    return { status: response.status, cache: response.headers.get('cache-control'), body: await response.json() as any };
+  };
+  try {
+    let answer = await read();
+    assert.deepEqual([answer.body.item.builds.length, answer.body.buildsTotal, answer.body.buildsOffset, answer.body.nextOffset], [8, 9, 0, 8]);
+    assert.equal(answer.cache, 'public, max-age=300, stale-while-revalidate=900');
+    answer = await read('?buildsOffset=8');
+    assert.deepEqual([answer.body.item.builds.length, answer.body.buildsTotal, answer.body.buildsOffset, answer.body.nextOffset], [1, 9, 8, null]);
+    assert.equal(answer.body.item.builds[0].cards.length, 3, 'the ninth build is open with its card list');
+    assert.equal((await read('?buildsOffset=-1')).status, 400);
+    assert.equal((await read('?buildsOffset=abc')).status, 400);
+    cardsMode = 'hang';
+    answer = await read();
+    assert.equal(answer.status, 200, 'a stalled card catalog does not hold the answer');
+    assert.deepEqual(answer.body.item.builds.map((build: any) => build.cards), Array(8).fill(null));
+    assert.equal(answer.body.item.builds[0].deckCode, 'AAECAf0GAfKiBALxogTzogQAAA==');
+    assert.equal(answer.cache, 'public, max-age=30, stale-while-revalidate=30');
+    cardsMode = 'fail';
+    answer = await read();
+    assert.deepEqual([answer.body.item.builds[0].cards, answer.cache], [null, 'public, max-age=30, stale-while-revalidate=30']);
+    cardsMode = 'ok';
+    answer = await read();
+    assert.deepEqual([answer.body.item.builds[0].cards.length, answer.cache], [3, 'public, max-age=300, stale-while-revalidate=900'],
+      'the lists are back once the catalog answers');
+  } finally {
+    openServer.closeAllConnections();
+    await new Promise<void>(resolve => openServer.close(() => resolve()));
+  }
+}
+
+{
+  // Regression (QA on PR 552): a real «Айяйя Разбойник» deck with Гарона Полуорчиха. Its two companion cards are in the
+  // deck code but not in the format's catalog; they must not drop the list. They are named from the deck builder's
+  // dictionaries and listed without a page link; a card no dictionary knows keeps its place and count.
+  const GARONA_DECK = 'AAECAaIHCs7+BsODB4aoB4eoB4ioB+WvB5qzB6XYB4jZB8OLCAqRnwT3nwTZogbBlwe0wQfFwQfVxQek2AeR2QeN2gcAAA==';
+  const garonaCatalog = { cards: [
+    { card_id: 'CORE_CS2_072', dbf: 69521, name: { ru: 'Удар в спину' }, mana_cost: 0 },
+    { card_id: 'CORE_EX1_145', dbf: 69623, name: { ru: 'Подготовка' }, mana_cost: 0 },
+    { card_id: 'CORE_EX1_129', dbf: 102745, name: { ru: 'Веер клинков' }, mana_cost: 2 },
+    { card_id: 'EDR_523', dbf: 114510, name: { ru: 'Паутина обмана' }, mana_cost: 2 },
+    { card_id: 'EDR_856', dbf: 115139, name: { ru: 'Повелитель кошмаров Ксавий' }, mana_cost: 4 },
+    { card_id: 'TLC_515', dbf: 117697, name: { ru: 'Карта сектантов' }, mana_cost: 2 },
+    { card_id: 'TIME_875', dbf: 119814, name: { ru: 'Гарона Полуорчиха' }, mana_cost: 4 },
+    { card_id: 'TIME_713', dbf: 120805, name: { ru: 'Хроноадмирал Крюкохвост' }, mana_cost: 5 },
+    { card_id: 'END_000', dbf: 121242, name: { ru: 'Бесчисленные возможности' }, mana_cost: 2 },
+    { card_id: 'CATA_200', dbf: 123060, name: { ru: 'Агент Древних' }, mana_cost: 1 },
+    { card_id: 'CATA_203', dbf: 123077, name: { ru: 'Последний бой Гароны' }, mana_cost: 2 },
+    { card_id: 'CATA_785', dbf: 123605, name: { ru: 'Сумеречный обряд' }, mana_cost: 2 },
+    { card_id: 'JAIL_503', dbf: 125988, name: { ru: 'Кнут Черной Лапы' }, mana_cost: 3 },
+    { card_id: 'JAIL_504', dbf: 125989, name: { ru: 'Айя, главарь «Лотоса»' }, mana_cost: 6 },
+    { card_id: 'CORE_RLK_567', dbf: 126088, name: { ru: 'Гибельная тень' }, mana_cost: 0 },
+    { card_id: 'CATA_EVENT_402', dbf: 126097, name: { ru: 'Смертельная взятка' }, mana_cost: 3 },
+    { card_id: 'JAIL_720', dbf: 126221, name: { ru: 'Букмекер из «Лотоса»' }, mana_cost: 2 },
+    { card_id: 'BE_009', dbf: 132547, name: { ru: 'Манипулятор Йогг-Сарон' }, mana_cost: 9 },
+  ] };
+  // `cards_ru.json` names the companions as «<legendary> (<n> - <name>)».
+  const cardsRu = {
+    TIME_875t: { name: 'Гарона Полуорчиха (1 - Король Ллейн)', mana: 3, rarity: '', dbf: 119815 },
+    TIME_875t1: { name: 'Гарона Полуорчиха (2 - Убийцы Королей)', mana: 2, rarity: '', dbf: 119816 },
+  };
+  let dictionariesFail = false;
+  const ayaya = { ...catalog.items[0], slug: 'ayaya-rogue', classKey: 'rogue' as const, format: 'standard' as const,
+    builds: [{ ...catalog.items[0].builds[0], deckCode: GARONA_DECK }] };
+  const garonaApp = express();
+  garonaApp.use('/api', createConstructedArchetypeRouter({
+    ...dependencies, cardCatalogDeadlineMs: 200,
+    loadCatalog: async () => ({ ...catalog, format: 'standard', items: [ayaya] }),
+    loadCardCatalog: async () => garonaCatalog,
+    loadCardDictionaries: async () => { if (dictionariesFail) throw new Error('HearthstoneJSON unavailable'); return [cardsRu]; },
+  }));
+  const garonaServer = garonaApp.listen(0, '127.0.0.1');
+  await new Promise<void>(resolve => garonaServer.once('listening', resolve));
+  const garonaAddress = garonaServer.address();
+  assert.ok(garonaAddress && typeof garonaAddress === 'object');
+  const readAyaya = async () => {
+    const response = await fetch(`http://127.0.0.1:${garonaAddress.port}/api/constructed-archetypes/teaser/standard/ayaya-rogue`);
+    return { cache: response.headers.get('cache-control'), cards: (await response.json() as any).item.builds[0].cards };
+  };
+  try {
+    let answer = await readAyaya();
+    assert.equal(answer.cards.length, 20, 'the whole main deck is listed');
+    assert.equal(answer.cards.reduce((sum: number, card: any) => sum + card.count, 0), 30);
+    assert.deepEqual(answer.cards.filter((card: any) => card.id?.startsWith('TIME_875')), [
+      { id: 'TIME_875t1', name: 'Убийцы Королей', cost: 2, count: 1, hasPage: false },
+      { id: 'TIME_875t', name: 'Король Ллейн', cost: 3, count: 1, hasPage: false },
+      { id: 'TIME_875', name: 'Гарона Полуорчиха', cost: 4, count: 1, hasPage: true },
+    ]);
+    assert.equal(answer.cards.filter((card: any) => card.hasPage).length, 18, 'every card of the catalog links to its page');
+    assert.equal(answer.cache, 'public, max-age=300, stale-while-revalidate=900');
+    dictionariesFail = true;
+    answer = await readAyaya();
+    assert.equal(answer.cards.length, 20, 'without the dictionaries the list stays whole');
+    assert.deepEqual(answer.cards.slice(-2), [
+      { id: null, name: null, cost: null, count: 1, hasPage: false },
+      { id: null, name: null, cost: null, count: 1, hasPage: false },
+    ]);
+    assert.equal(answer.cache, 'public, max-age=30, stale-while-revalidate=30', 'an unnamed card is back soon');
+  } finally {
+    garonaServer.closeAllConnections();
+    await new Promise<void>(resolve => garonaServer.close(() => resolve()));
+  }
+}
+
+{
+  // The card dictionaries of the open builds, as production wires them: the local `cards_ru.json` always answers, whatever
+  // HearthstoneJSON does; HearthstoneJSON is read once and kept, a failure is retried only after a pause, never per render.
+  const local = { TIME_875t: { name: 'Гарона Полуорчиха (1 - Король Ллейн)', mana: 3, rarity: '', dbf: 119815 } };
+  const remote = { TIME_850t: { name: 'Кровавый боец Бролл', mana: 3, rarity: '', dbf: 119453 } };
+  let clock = 0, calls = 0, mode: 'hang' | 'fail' | 'ok' = 'hang';
+  const source = () => {
+    calls += 1;
+    return mode === 'hang' ? new Promise<Record<string, unknown>>(() => {}) : mode === 'fail' ? Promise.reject(new Error('HearthstoneJSON 503')) : Promise.resolve(remote);
+  };
+  const options = { local: () => local, remote: source, deadlineMs: 50, retryMs: 60_000, ttlMs: 6 * 3_600_000, now: () => clock };
+  const hanging = createArchetypeCardDictionaries(options);
+  const started = Date.now();
+  assert.deepEqual(await hanging(), [local], 'a stalled HearthstoneJSON keeps the local dictionary');
+  assert.ok(Date.now() - started < 1_000);
+  assert.deepEqual(await hanging(), [local]);
+  assert.equal(calls, 1, 'one request in flight, not one per render');
+  calls = 0; mode = 'fail';
+  const failing = createArchetypeCardDictionaries(options);
+  assert.deepEqual(await failing(), [local], 'a failed HearthstoneJSON keeps the local dictionary');
+  assert.deepEqual(await failing(), [local]);
+  assert.equal(calls, 1, 'a failure is not retried on every render');
+  clock += 60_000; mode = 'ok';
+  assert.deepEqual(await failing(), [local, remote], 'after the pause HearthstoneJSON is read again');
+  clock += 1_000;
+  assert.deepEqual(await failing(), [local, remote]);
+  assert.equal(calls, 2, 'a loaded HearthstoneJSON is kept');
+  const noLocal = createArchetypeCardDictionaries({ ...options, local: () => { throw new Error('cards_ru.json unreadable'); } });
+  assert.deepEqual(await noLocal(), [remote], 'an unreadable local file keeps HearthstoneJSON');
 }

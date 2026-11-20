@@ -97,6 +97,13 @@
       "description": "Библиотека карт Hearthstone для Стандарта и Вольного формата: фильтры, изображения и отдельная индексируемая страница каждой карты.",
       "sitemap": true
     },
+    "/standard/assemble": {
+      "policyRouteId": "standard-assemble",
+      "navigationRouteId": "standard-assemble",
+      "title": "Сборка Hearthstone: лучшие сборки и выбор | HearthPulse",
+      "description": "Карты с «Собирает»: какие существа выпадают основой, какие сборки с донором выигрывают чаще и какой из двух вариантов выбрать. Данные HSReplay.",
+      "sitemap": true
+    },
     "/standard/patches": {
       "policyRouteId": "patch-notes",
       "navigationRouteId": "patch-notes",

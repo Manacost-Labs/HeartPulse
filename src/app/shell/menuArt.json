@@ -1,5 +1,5 @@
 {
-  "version": "59b3f211f2",
+  "version": "84eabcd8cf",
   "icons": [
     "admin-panel",
     "articles",
@@ -24,6 +24,7 @@
     "mode-standard",
     "mode-wild",
     "patch-notes",
+    "standard-assemble",
     "standard-cards",
     "standard-matchups",
     "standard-meta",

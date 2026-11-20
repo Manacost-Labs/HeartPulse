@@ -107,7 +107,7 @@ import {
   type StandardMetaRecommendation,
 } from './standardMetaRoutes.js';
 import {
-  createConstructedArchetypeRouter,
+  createConstructedArchetypeRouter, createArchetypeCardDictionaries,
   constructedArchetypeSlug,
   type ConstructedArchetypeCatalog,
   type ConstructedArchetypeAnalysis,
@@ -198,7 +198,7 @@ import {
   type UntranslatedArchetype,
 } from './adminArchetypeTranslationRoutes.js';
 import { createAdminArchetypesRouter } from './adminArchetypesRoutes.js';
-import { createDeckBuilderRouter, resolveDeckPayload } from './deckBuilderRoutes.js';
+import { createDeckBuilderRouter, loadHsjsonAllCards, resolveDeckPayload } from './deckBuilderRoutes.js';
 import { decodeDeckDefinition } from './deckBuilderResolve.js';
 import { registerSavedDecks } from './app/registerSavedDecks.js';
 import {
@@ -7484,7 +7484,7 @@ app.use('/api', createConstructedArchetypeRouter({
   loadHistory: loadConstructedArchetypeHistory,
   loadAnalysis: loadConstructedArchetypeAnalysis,
   loadRanks: createArchetypeRankMatrixLoader((format, rank, period, coin) => loadStandardMeta(format, rank, period, coin, 100)),
-  loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards,
+  loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards, loadCardDictionaries: createArchetypeCardDictionaries({ local: () => loadDataCached('cards_ru.json')?.data ?? null, remote: async () => (await loadHsjsonAllCards()).byId, deadlineMs: 1_500 }),
   setPrivateNoStore,
   onError: (scope, error) => console.error(
     `[constructed-archetypes] ${scope} failed:`,
