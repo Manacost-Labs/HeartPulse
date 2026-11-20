@@ -107,6 +107,9 @@ export function usePublicAccessState(routeKey: string) {
   const current = useRef(state);
   const apply = useCallback((event: AccessEvent) => {
     current.current = reduceAccess(current.current, event);
+    // A confirmed guest is no remembered viewer: the head script's mark (which silences the placeholders and hides the
+    // locks of a subscriber's page) must not outlive an expired or revoked session. A pending check keeps it.
+    if (current.current.phase === 'confirmed' && current.current.viewer === null) unmarkRememberedViewer();
     setState(current.current);
   }, []);
   const rememberedOnMount = useRef(false);

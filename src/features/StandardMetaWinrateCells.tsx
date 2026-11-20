@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Sparkline } from '../vendor/varylo-ui/charts/Sparkline';
 import { standardMetaWinrateAxis, type StandardMetaWinrateEstimate } from './standardMetaTableModel';
 
@@ -6,7 +7,11 @@ export const point = (value: number) => value.toLocaleString('ru-RU', { minimumF
 const tone = (value: number) => (value >= 52 ? 'strong' : value >= 49 ? 'even' : 'weak');
 
 /** Win rate, a bar from 50% with its 95% interval, and the change against the previous window. */
-export function WinrateCell({ estimate, change }: { estimate: StandardMetaWinrateEstimate | null; change: number | null }) {
+export function WinrateCell({ estimate, change, changeLock }: {
+  estimate: StandardMetaWinrateEstimate | null; change: number | null;
+  /** What stands in the place of the change for a guest. */
+  changeLock?: ReactNode;
+}) {
   if (!estimate) return <span className="standard-meta-table__winrate-value">—</span>;
   const { winrate, low, high } = estimate;
   const value = standardMetaWinrateAxis(winrate);
@@ -20,7 +25,7 @@ export function WinrateCell({ estimate, change }: { estimate: StandardMetaWinrat
         <span className="standard-meta-table__winrate-fill" style={{ insetInlineStart: `${Math.min(value, middle)}%`, inlineSize: `${Math.abs(value - middle)}%` }} />
       </span>
       <span className="sr-only">{interval}</span>
-      {change !== null && <ChangeValue change={change} />}
+      {changeLock ?? (change !== null && <ChangeValue change={change} />)}
     </span>
   );
 }

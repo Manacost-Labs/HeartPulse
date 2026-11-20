@@ -12,6 +12,7 @@ import {
   type StandardMetaSortKey,
 } from './standardMetaTableModel';
 import { point, WinrateCell, WinrateSparkline } from './StandardMetaWinrateCells';
+import { MetaLockedCell } from './StandardMetaLocks';
 import { useStandardMetaTrends, type StandardMetaTrendsQuery } from './useStandardMetaTrends';
 import '../vendor/varylo-ui/styles/index.css';
 import './StandardMetaVarylo.css';
@@ -58,7 +59,7 @@ export default function StandardMetaArchetypeTable(props: StandardMetaArchetypeT
   const changeSort = (key: StandardMetaSortKey) => setSort(current => (current.key === key
     ? { key, direction: current.direction === 'desc' ? 'asc' : 'desc' }
     : { key, direction: key === 'archetype' ? 'asc' : 'desc' }));
-  const missing = !loadTrends ? 'Изменение и тренд доступны с подпиской.'
+  const missing = !loadTrends ? ''
     : error ? `Изменение и тренд не загрузились: ${error}`
       : trends && !comparison ? `Для периода «${periodLabel}» источник не даёт предыдущего окна, поэтому изменение не показано.` : '';
 
@@ -88,7 +89,7 @@ export default function StandardMetaArchetypeTable(props: StandardMetaArchetypeT
             <tr>
               <th scope="col" className="standard-meta-table__position" data-export-value="Место"><span className="sr-only">Место</span>#</th>
               {COLUMNS.slice(0, 2).map(column => <SortHeading key={column.key} column={column} sort={sort} onSort={changeSort} />)}
-              {loadTrends && <th scope="col" className="standard-meta-table__trend">Тренд</th>}
+              <th scope="col" className="standard-meta-table__trend">Тренд</th>
               {COLUMNS.slice(2).map(column => <SortHeading key={column.key} column={column} sort={sort} onSort={changeSort} />)}
             </tr>
           </thead>
@@ -102,7 +103,7 @@ export default function StandardMetaArchetypeTable(props: StandardMetaArchetypeT
                 tourTarget={index === 0}
                 trend={trendById.get(item.id) ?? null}
                 showChange={Boolean(comparison)}
-                showTrend={loadTrends}
+                locked={!loadTrends}
                 buckets={trends?.buckets ?? []}
                 maxPopularity={maxPopularity}
               />
@@ -159,12 +160,13 @@ type ArchetypeRowProps = {
   tourTarget: boolean;
   trend: StandardMetaTrendItem | null;
   showChange: boolean;
-  showTrend: boolean;
+  /** A guest: trend, change and the secondary columns are locks of the same size. */
+  locked: boolean;
   buckets: string[];
   maxPopularity: number;
 };
 
-function ArchetypeRow({ item, position, href, tourTarget, trend, showChange, showTrend, buckets, maxPopularity }: ArchetypeRowProps) {
+function ArchetypeRow({ item, position, href, tourTarget, trend, showChange, locked, buckets, maxPopularity }: ArchetypeRowProps) {
   const estimate = standardMetaWinrateEstimate(item.winrate, item.games);
   const previous = showChange ? trend?.previous?.winrate ?? null : null;
   const change = previous !== null && item.winrate !== null ? item.winrate - previous : null;
@@ -182,13 +184,13 @@ function ArchetypeRow({ item, position, href, tourTarget, trend, showChange, sho
         </span>
       </th>
       <td className="standard-meta-table__winrate" data-label="Винрейт" data-export-value={number(item.winrate, 1, '%')}>
-        <WinrateCell estimate={estimate} change={change} />
+        <WinrateCell estimate={estimate} change={change}
+          changeLock={locked ? <MetaLockedCell what="Изменение винрейта" className="standard-meta-table__change-lock" /> : undefined} />
       </td>
-      {showTrend && (
-        <td className="standard-meta-table__trend" data-label="Тренд" data-export-value="">
-          <WinrateSparkline winrates={trend?.winrates ?? null} buckets={buckets} />
-        </td>
-      )}
+      <td className="standard-meta-table__trend" data-label="Тренд" data-export-value="">
+        {locked ? <MetaLockedCell what="Тренд" className="standard-meta-table__trend-lock" />
+          : <WinrateSparkline winrates={trend?.winrates ?? null} buckets={buckets} />}
+      </td>
       <td className="standard-meta-table__popularity" data-label="Популярность" data-export-value={number(item.popularity, 2, '%')}>
         <span className="standard-meta-table__share">
           <span>{item.popularity === null ? '—' : `${point(item.popularity)}%`}</span>
@@ -199,13 +201,13 @@ function ArchetypeRow({ item, position, href, tourTarget, trend, showChange, sho
         {item.games?.toLocaleString('ru-RU') ?? '—'}
         {estimate?.lowSample && <span className="standard-meta-table__low-sample">мало</span>}
       </td>
-      <td className="standard-meta-table__secondary" data-label="Ходы">{number(item.turns)}</td>
-      <td className="standard-meta-table__secondary" data-label="Мин">{number(item.durationMinutes)}</td>
+      <td className="standard-meta-table__secondary" data-label="Ходы">{locked ? <MetaLockedCell what="Ходы" /> : number(item.turns)}</td>
+      <td className="standard-meta-table__secondary" data-label="Мин">{locked ? <MetaLockedCell what="Длительность" /> : number(item.durationMinutes)}</td>
       <td
         className={`standard-meta-table__secondary${item.climbingSpeed !== null && item.climbingSpeed < 0 ? ' standard-meta-table__climb--negative' : ''}`}
         data-label="★/ч"
       >
-        {number(item.climbingSpeed, 2)}
+        {locked ? <MetaLockedCell what="Скорость набора" /> : number(item.climbingSpeed, 2)}
       </td>
     </tr>
   );

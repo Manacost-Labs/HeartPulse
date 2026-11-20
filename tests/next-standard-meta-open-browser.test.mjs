@@ -14,9 +14,14 @@ import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 const READER = { id: 'sm-reader', email: 'reader@example.test', name: 'Подписчик', role: 'user' };
 const SUBSCRIBED = { hasAccess: true, entitlements: { arena: true, standard: true }, source: 'boosty', checkedAt: null,
   stale: false, message: '', boosty: { checked: true, hasAccess: true }, patreon: {}, telegram: {} };
+// A signed-in account without a subscription (and the subscriber's answer once the subscription has expired).
+const FREE = { id: 'sm-free', email: 'free@example.test', name: 'Без подписки', role: 'user' };
+const NO_ACCESS = { hasAccess: false, entitlements: {}, source: 'boosty', checkedAt: null, stale: false, message: '',
+  boosty: { checked: true, hasAccess: false }, patreon: {}, telegram: {} };
 const PROTECTED_DELAY_MS = 800;
 const SENTINELS = ['77.7701', '66.6066', 'SENTINEL_TREND'];
 const DESKTOP = { width: 1440, height: 900 };
+const PHONE = { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 };
 
 const rows = (format, paid) => Array.from({ length: 8 }, (_, index) => ({
   id: `${format}-${index + 1}`, slug: `${format}-arch-${index + 1}`, archetype: `Archetype ${format} ${index + 1}`,
@@ -32,14 +37,22 @@ const slice = (format, paid) => ({
 });
 
 async function startStack() {
-  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [], protectedQueries: [] };
+  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [], protectedQueries: [], protectedDown: false, protectedDelay: PROTECTED_DELAY_MS, protectedHang: false, protectedDenied: 0, protectedDeniedOnce: 0, statusDelay: 0, authDelay: 0, readerExpired: false };
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://stack');
     const reader = /(?:^|;\s*)sm_session=reader/.test(request.headers.cookie ?? '');
+    const free = /(?:^|;\s*)sm_session=free/.test(request.headers.cookie ?? '');
+    // A signed-in viewer without access: an account that never subscribed, or the reader once the subscription expired.
+    const refused = free || (reader && state.readerExpired);
     const json = (status, payload) => response.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store' })
       .end(JSON.stringify(payload));
-    if (url.pathname === '/api/auth/me') return json(200, { user: reader ? READER : null });
-    if (url.pathname === '/api/subscription/status') return reader ? json(200, SUBSCRIBED) : json(401, { error: 'guest' });
+    // The session answer names the viewer tag it read (the `hp_viewer` cookie), as the real API does: the browser then
+    // remembers the viewer under that tag, and a guest answer for a tag ends that session.
+    const tag = /(?:^|;\s*)hp_viewer=([A-Za-z0-9_-]{22})/.exec(request.headers.cookie ?? '')?.[1] ?? null;
+    if (url.pathname === '/api/auth/me') return void setTimeout(() => json(200, { user: reader ? READER : free ? FREE : null, viewerSession: tag }), reader || free ? 0 : state.authDelay);
+    if (url.pathname === '/api/subscription/refresh' || url.pathname === '/api/subscription/status') {
+      return reader || free ? void setTimeout(() => json(200, refused ? NO_ACCESS : SUBSCRIBED), state.statusDelay) : json(401, { error: 'guest' });
+    }
     if (url.pathname === '/api/standard-meta/public') {
       state.publicReads.push(`${url.pathname}${url.search}`);
       state.publicHeaders.push(request.headers['x-hearthpulse-prerender'] ?? null);
@@ -47,9 +60,13 @@ async function startStack() {
       return json(200, slice(url.searchParams.get('format') === 'wild' ? 'wild' : 'standard', false));
     }
     if (url.pathname === '/api/standard-meta') {
+      if (refused) return json(403, { error: 'subscription required' });
       if (!reader) return json(401, { error: 'subscription required' });
       state.protectedReads += 1;
       state.protectedQueries.push(Object.fromEntries(url.searchParams));
+      if (state.protectedDown) return json(503, { error: 'paid source down' });
+      if (state.protectedDenied) return json(state.protectedDenied, { error: 'subscription required' });
+      if (state.protectedDeniedOnce) { const code = state.protectedDeniedOnce; state.protectedDeniedOnce = 0; return json(code, { error: 'subscription required' }); }
       // Like the real route: a period or rank it does not serve is refused.
       const askedPeriod = url.searchParams.get('period');
       const askedRank = url.searchParams.get('rank');
@@ -60,7 +77,8 @@ async function startStack() {
         rank: url.searchParams.get('rank') ?? 'diamond_legend', coin: url.searchParams.get('coin') ?? 'any_player',
         minGames: Number(url.searchParams.get('min_games') ?? 100), period: url.searchParams.get('period') ?? 'patch_36.6.3',
       };
-      return void setTimeout(() => json(200, { ...slice(url.searchParams.get('format') === 'wild' ? 'wild' : 'standard', true), ...asked }), PROTECTED_DELAY_MS);
+      if (state.protectedHang) return undefined; // never answers
+      return void setTimeout(() => json(200, { ...slice(url.searchParams.get('format') === 'wild' ? 'wild' : 'standard', true), ...asked }), state.protectedDelay);
     }
     if (url.pathname.startsWith('/api/')) return json(401, { error: 'guest' });
     const upstream = http.request(new URL(state.next), { method: request.method, path: request.url, headers: request.headers },
@@ -90,6 +108,20 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     assert.equal((bareHtml.match(/class="standard-meta-card"/g) ?? []).length, 8, 'all eight archetypes are in the HTML');
     assert.ok(bareHtml.includes('Стандартный архетип 8') && bareHtml.includes('50%'), 'names and winrates are printed');
     assert.deepEqual(SENTINELS.filter(value => bareHtml.includes(value)), [], 'no sentinel in the HTML a guest gets');
+    // The summary of the open slice is printed in the HTML itself (a value, never a placeholder).
+    assert.match(bareHtml, /Архетипов<\/dt><dd>8<\/dd>/, 'the archetype count is printed');
+    assert.match(bareHtml, /Игр в выборке<\/dt><dd>99(?:[\s\u00a0\u202f]|&nbsp;)000<\/dd>/, 'the games of the slice are printed');
+    // The locks stand in their places in the HTML itself (the paid figures of every card, the paid filters), and the page
+    // has no subscription block at its end.
+    assert.equal((bareHtml.match(/aria-label="Ходы: по подписке/g) ?? []).length, 8, 'a lock for the turns of every card');
+    assert.equal((bareHtml.match(/aria-label="Скорость набора: по подписке/g) ?? []).length, 8, 'a lock for the climb speed of every card');
+    assert.equal((bareHtml.match(/data-locked-filter/g) ?? []).length, 3, 'the paid filters are in the HTML');
+    assert.ok(!bareHtml.includes('standard-meta-paywall'), 'no subscription block at the end of the page');
+    // Without a script nothing on the page may be focusable but links: every control waits for hydration, its place reserved.
+    const dead = await bare.evaluate(() => [...document.querySelectorAll('.standard-meta a[href],.standard-meta button,.standard-meta input,.standard-meta select,.standard-meta textarea,.standard-meta [tabindex]')]
+      .filter(node => !node.closest('[inert]') && !node.disabled && node.tagName !== 'A')
+      .map(node => `${node.tagName} ${node.getAttribute('aria-label') ?? node.textContent.trim().slice(0, 30)}`));
+    assert.deepEqual(dead, [], 'no focusable control that does nothing without JavaScript');
     const crawler = await (await fetch(`${stack.origin}/standard/meta/`, { headers: { 'User-Agent': 'Googlebot/2.1' } })).text();
     const guestHtml = await (await fetch(`${stack.origin}/standard/meta/`)).text();
     assert.equal(crawler, guestHtml, 'a crawler gets the guest HTML');
@@ -110,11 +142,18 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     assert.equal(stack.protectedReads, 0, 'a guest never asks the protected route');
     assert.equal(await guest.$$eval('[data-locked-filter]', nodes => nodes.length), 3, 'period, coin and floor are locks');
     await guest.click('.standard-meta__rank-tabs button:not([aria-pressed="true"])');
-    await guest.waitForSelector('.standard-meta__locked-note');
+    await guest.waitForSelector('[data-testid="arena-paid-offer"]');
+    assert.match(await guest.$eval('[data-testid="arena-paid-offer"]', node => node.textContent), /Узкие срезы, история и тренды — в подписке/);
+    await guest.keyboard.press('Escape');
+    await guest.waitForFunction(() => !document.querySelector('[data-testid="arena-paid-offer"]'));
     assert.match(await guest.$eval('.standard-meta__rank-tabs button[aria-pressed="true"]', node => node.textContent), /Алмаз/, 'the rank stays');
     assert.equal(await guest.$$eval('.standard-meta-card', cards => cards.length), 8, 'a locked rank does not change the slice');
     await guest.click('[data-locked-filter]');
-    assert.ok(await guest.$('#standard-meta-paywall'), 'the offer is on the page');
+    await guest.waitForSelector('[data-testid="arena-paid-offer"]');
+    await guest.keyboard.press('Escape');
+    await guest.click('button[aria-label^="Ходы: по подписке"]');
+    await guest.waitForSelector('[data-testid="arena-paid-offer"]');
+    await guest.keyboard.press('Escape');
     assert.equal(stack.publicReads.length, 1, 'locked filters send no request');
     // The format switch is two links, each its own address: Wild opens at /standard/meta/wild/.
     assert.deepEqual(await guest.$$eval('.standard-meta__segmented a', links => links.map(link => link.getAttribute('href'))),
@@ -190,18 +229,230 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
         .observe({ type: 'layout-shift', buffered: true });
     });
     await reader.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
+    await reader.setCookie({ name: 'hp_viewer', value: 'AAAAAAAAAAAAAAAAAAAAAA', url: stack.origin });
     await reader.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
     await reader.waitForSelector('.standard-meta-card');
     const cardTop = () => reader.$eval('.standard-meta-card:nth-child(4)', card => card.getBoundingClientRect().top + scrollY);
     const before = await cardTop();
+    // The summary keeps the open slice's values while the paid slice loads (no placeholder in between).
+    await reader.evaluate(() => {
+      window.__placeholder = false;
+      const look = () => { if (document.querySelector('.traditional-mode-banner__summary .loading-value')) window.__placeholder = true; };
+      new MutationObserver(look).observe(document.body, { subtree: true, childList: true });
+      look();
+    });
+    // The paid slice replaces the open one inside the same page: the same card element, no dimming, no lock on screen.
+    await reader.evaluate(() => {
+      window.__card = document.querySelector('.standard-meta-card');
+      window.__busy = false; window.__lockSeen = false;
+      const watch = () => {
+        if (document.querySelector('[aria-busy="true"]')) window.__busy = true;
+        for (const lock of document.querySelectorAll('[aria-label*="по подписке"]')) {
+          if (getComputedStyle(lock.querySelector('svg')).visibility !== 'hidden') window.__lockSeen = true;
+        }
+      };
+      new MutationObserver(watch).observe(document.body, { attributes: true, subtree: true, childList: true });
+      watch();
+    });
     await reader.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
     assert.equal(await cardTop(), before, 'the paid figures arrive without moving the rows');
     assert.equal(await reader.$('[data-locked-filter]'), null, 'no locks for a subscriber');
-    assert.equal(await reader.$('#standard-meta-paywall'), null, 'no offer for a subscriber');
+    assert.equal(await reader.$('[aria-label*="по подписке"]'), null, 'no lock anywhere for a subscriber');
+    assert.equal(await reader.evaluate(() => window.__card.isConnected), true, 'the cards are not remounted by the paid data');
+    assert.equal(await reader.evaluate(() => window.__placeholder), false, 'the summary is never a placeholder for a subscriber');
+    assert.equal(await reader.evaluate(() => window.__busy), false, 'the page is not dimmed while the paid data loads');
+    assert.equal(await reader.evaluate(() => window.__lockSeen), false, 'no lock is visible to a subscriber while the paid data loads');
+    assert.equal(await reader.$('[data-testid="arena-paid-offer"]'), null, 'no offer for a subscriber');
     assert.ok(stack.protectedReads >= 1);
     const shift = await reader.evaluate(() => window.__shifts.reduce((sum, value) => sum + value, 0));
-    assert.ok(shift <= 0.1, `the subscriber page shifted by ${shift.toFixed(4)}`);
+    assert.ok(shift < 0.01, `the subscriber page shifted by ${shift.toFixed(4)}`);
     await reader.close();
+
+    // A guest's page is as tall as a subscriber's: the locks stand in the boxes of the controls and values they replace.
+    const measure = async (viewport, role) => {
+      const context = await browser.createBrowserContext();
+      const page = await context.newPage();
+      await page.setViewport(viewport);
+      if (role === 'reader') {
+        await page.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin }, { name: 'hp_viewer', value: 'AAAAAAAAAAAAAAAAAAAAAA', url: stack.origin });
+      }
+      await page.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'networkidle0' });
+      if (role === 'reader') await page.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+      const height = selector => page.$eval(selector, node => Math.round(node.getBoundingClientRect().height * 10) / 10);
+      const heights = {
+        controls: await height('.standard-meta__controls'),
+        filter: await page.$eval('.standard-meta__secondary-filters > :first-child', node => Math.round(node.getBoundingClientRect().height * 10) / 10),
+        card: await height('.standard-meta-card'),
+      };
+      await page.click('[data-meta-view="table"]');
+      await page.waitForSelector('[data-meta-surface="table"] tbody tr');
+      heights.row = await height('[data-meta-surface="table"] tbody tr');
+      await context.close();
+      return heights;
+    };
+    for (const viewport of [DESKTOP, PHONE]) {
+      const guestHeights = await measure(viewport, 'guest');
+      const readerHeights = await measure(viewport, 'reader');
+      for (const part of Object.keys(guestHeights)) {
+        assert.ok(Math.abs(guestHeights[part] - readerHeights[part]) <= 1,
+          `${part} at ${viewport.width}px: guest ${guestHeights[part]}, subscriber ${readerHeights[part]}`);
+      }
+    }
+
+    // The paid answer is slow (11 s): no error, the paid data arrives; an answer that never comes ends after the
+    // deadline with the same message and a retry.
+    stack.protectedDelay = 11_000;
+    const slow = await browser.newPage();
+    await slow.setViewport(DESKTOP);
+    await slow.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
+    await slow.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
+    await new Promise(resolve => setTimeout(resolve, 9_000));
+    assert.ok(!(await slow.evaluate(() => document.body.textContent)).includes('Подписочные данные не загрузились'));
+    await slow.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+    await slow.close();
+    stack.protectedDelay = PROTECTED_DELAY_MS;
+    stack.protectedHang = true;
+    const hung = await browser.newPage();
+    await hung.setViewport(DESKTOP);
+    await hung.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
+    await hung.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
+    await hung.waitForFunction(() => document.body.textContent.includes('Подписочные данные не загрузились'), { timeout: 40_000 });
+    assert.match(await hung.evaluate(() => document.body.textContent), /Сервер не ответил за 25 секунд/);
+    assert.equal(await hung.$$eval('.standard-meta-card', cards => cards.length), 8, 'the open slice stays under the message');
+    stack.protectedHang = false;
+    await hung.evaluate(() => [...document.querySelectorAll('button')].find(button => button.textContent.includes('Повторить')).click());
+    await hung.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+    await hung.close();
+
+    // The paid source fails: the open slice stays, a visible message offers a retry, and the retry brings the paid data.
+    stack.protectedDown = true;
+    const failing = await browser.newPage();
+    await failing.setViewport(DESKTOP);
+    await failing.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
+    await failing.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
+    await failing.waitForFunction(() => document.body.textContent.includes('Подписочные данные не загрузились'), { timeout: 15000 });
+    assert.equal(await failing.$$eval('.standard-meta-card', cards => cards.length), 8, 'the open slice stays under the message');
+    assert.equal(await failing.$('[aria-label*="по подписке"]'), null, 'a subscriber sees no lock even when the paid data failed');
+    stack.protectedDown = false;
+    await failing.evaluate(() => [...document.querySelectorAll('button')].find(button => button.textContent.includes('Повторить')).click());
+    await failing.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+    assert.ok(!(await failing.evaluate(() => document.body.textContent)).includes('Подписочные данные не загрузились'), 'the message goes with the retry');
+    await failing.close();
+
+    // Access is withdrawn (the session is gone): not one frame may show the paid slice or the paid rank, and the locks return.
+    const revoked = await browser.newPage();
+    await revoked.setViewport(DESKTOP);
+    await revoked.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
+    await revoked.goto(`${stack.origin}/standard/meta/?rank=legend`, { waitUntil: 'load' });
+    await revoked.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+    assert.equal(await revoked.$eval('.standard-meta__rank-tabs button[aria-pressed="true"]', node => node.textContent.trim()), 'Легенда');
+    await revoked.evaluate(() => {
+      window.__paidFrames = 0;
+      const look = () => {
+        const text = document.body.textContent;
+        const pressed = document.querySelector('.standard-meta__rank-tabs button[aria-pressed="true"]')?.textContent.trim();
+        if (window.__revoking && (/77,77|66,61|7,77 ★/.test(text) || pressed === 'Легенда')) window.__paidFrames += 1;
+      };
+      window.__watch = true;
+      new MutationObserver(look).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true });
+      const loop = () => { look(); if (window.__watch) requestAnimationFrame(loop); };
+      loop();
+      window.__paidFrames = 0; // the page is still the subscriber's here: count only what follows
+    });
+    const paidReadsBeforeRevoke = stack.protectedReads;
+    await revoked.deleteCookie({ name: 'sm_session', url: stack.origin });
+    // A restored page re-checks the session: the server now answers as it does to a guest.
+    await revoked.evaluate(() => { window.__revoking = true; window.dispatchEvent(Object.assign(new Event('pageshow'), { persisted: true })); });
+    await revoked.waitForSelector('button[aria-label^="Ходы: по подписке"]', { timeout: 15000 });
+    await new Promise(resolve => setTimeout(resolve, 500));
+    assert.equal(await revoked.evaluate(() => window.__paidFrames), 0, 'no frame shows the paid slice after access is withdrawn');
+    assert.equal(stack.protectedReads, paidReadsBeforeRevoke, 'no paid request is sent once access is withdrawn');
+    assert.equal(await revoked.$eval('.standard-meta__rank-tabs button[aria-pressed="true"]', node => node.textContent.trim()), 'Алмаз — Легенда');
+    assert.equal(await revoked.$$eval('[data-locked-filter]', nodes => nodes.length), 3, 'the paid filters are locks again');
+    assert.equal(await revoked.$$eval('.standard-meta-card', cards => cards.length), 8, 'the open slice is what is left');
+    await revoked.close();
+
+    // A remembered subscriber whose session has expired: the head script marks the page as a remembered viewer's (its lock
+    // marks stay hidden while the session is checked), the check answers a guest, and the locks must then be visible.
+    const expired = await (await browser.createBrowserContext()).newPage();
+    await expired.setViewport(DESKTOP);
+    await expired.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin }, { name: 'hp_viewer', value: 'BBBBBBBBBBBBBBBBBBBBBB', url: stack.origin });
+    await expired.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
+    await expired.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+    await expired.waitForFunction(() => localStorage.getItem('hs_arena_viewer_hint') !== null, { timeout: 5000 });
+    await expired.deleteCookie({ name: 'sm_session', url: stack.origin });
+    stack.authDelay = 2_500;
+    stack.protectedHang = true; // only the session check may end the remembered viewer here, not a refused paid request
+    await expired.reload({ waitUntil: 'domcontentloaded' });
+    assert.equal(await expired.evaluate(() => document.documentElement.dataset.hpViewer), 'remembered', 'the head script remembers the viewer');
+    await expired.waitForSelector('button[aria-label^="Ходы: по подписке"]', { timeout: 15000 });
+    await expired.waitForFunction(() => document.documentElement.dataset.hpViewer === undefined, { timeout: 15000 });
+    const lockMark = await expired.$eval('button[aria-label^="Ходы: по подписке"] svg', node => {
+      const box = node.getBoundingClientRect();
+      return { visibility: getComputedStyle(node).visibility, width: box.width, height: box.height };
+    });
+    assert.deepEqual({ visibility: lockMark.visibility, sized: lockMark.width > 0 && lockMark.height > 0 }, { visibility: 'visible', sized: true },
+      'a guest whose remembered session ended sees the lock marks');
+    stack.authDelay = 0;
+    stack.protectedHang = false;
+    await expired.close();
+
+    // The paid route refuses a subscriber whose slice is loaded (401/403 on the next paid request, no pageshow): from
+    // the answer on, not one frame shows the paid slice while the access check runs. When the check confirms access the
+    // paid request is made once more: a second refusal keeps the guest's view (exactly two paid requests, no loop), an
+    // answer brings the paid data back in place.
+    stack.statusDelay = 1_500; // the access check answers slowly: the page must not wait for it
+    for (const { code, retryAnswers } of [{ code: 401, retryAnswers: false }, { code: 403, retryAnswers: false }, { code: 401, retryAnswers: true }]) {
+      const refused = await browser.newPage();
+      await refused.setViewport(DESKTOP);
+      await refused.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
+      await refused.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
+      await refused.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+      await refused.evaluate(code => {
+        window.__deniedFrames = 0; window.__denied = false; window.__recovered = false;
+        const nativeFetch = window.fetch.bind(window);
+        window.fetch = async (...args) => {
+          const answer = await nativeFetch(...args);
+          if (String(args[0]).startsWith('/api/standard-meta?')) {
+            // The client has the refusal once it has read the answer's body (the page reads it before it acts): a frame
+            // painted while the body is still on its way is not counted (#645).
+            if (answer.status === code) {
+              const read = answer.json.bind(answer);
+              answer.json = () => read().finally(() => { window.__denied = true; });
+            } else if (answer.ok && window.__denied) window.__recovered = true;
+          }
+          return answer;
+        };
+        const look = () => {
+          const pressed = document.querySelector('.standard-meta__rank-tabs button[aria-pressed="true"]')?.textContent.trim();
+          if (window.__denied && !window.__recovered && (/77,77|66,61|7,77 ★/.test(document.body.textContent) || pressed === 'Топ-5000')) window.__deniedFrames += 1;
+        };
+        new MutationObserver(look).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true });
+        const loop = () => { look(); requestAnimationFrame(loop); };
+        loop();
+      }, code);
+      const readsBefore = stack.protectedReads;
+      stack.protectedDenied = retryAnswers ? 0 : code;
+      stack.protectedDeniedOnce = retryAnswers ? code : 0;
+      await refused.evaluate(() => [...document.querySelectorAll('fieldset button')].find(button => button.textContent.trim() === 'Топ-5000').click());
+      await refused.waitForSelector('button[aria-label^="Ходы: по подписке"]', { timeout: 15000 });
+      await refused.evaluate(() => { window.__guestCard = document.querySelector('.standard-meta-card'); });
+      assert.equal(await refused.evaluate(() => window.__denied), true, 'the paid route did refuse');
+      if (retryAnswers) {
+        await refused.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+        assert.equal(await refused.evaluate(() => window.__guestCard.isConnected), true, 'the paid data replaces the open slice in place');
+        assert.equal(await refused.$('[aria-label*="по подписке"]'), null, 'no lock once the retry has answered');
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 3_500)); // the check (1.5 s), the one retry, and time for a loop to show itself
+        assert.equal(await refused.$$eval('[data-locked-filter]', nodes => nodes.length), 3, 'the paid filters are locks');
+        assert.equal(await refused.$eval('.standard-meta__rank-tabs button[aria-pressed="true"]', node => node.textContent.trim()), 'Алмаз — Легенда');
+      }
+      assert.equal(await refused.evaluate(() => window.__deniedFrames), 0, 'no frame shows the paid slice between the refusal and the retry');
+      assert.equal(stack.protectedReads - readsBefore, 2, `exactly two paid requests: the refused one and one retry (code ${code}, retry answers: ${retryAnswers})`);
+      stack.protectedDenied = 0; stack.protectedDeniedOnce = 0;
+      await refused.close();
+    }
+    stack.statusDelay = 0;
 
     // A subscriber's filters go with the format switch, both ways: the address of the new page carries them, the paid
     // request of the new format is sent with them and its answer is what is shown.
@@ -241,6 +492,14 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     };
     await goTo('Вольный', '/standard/meta/wild/', 'Вольный архетип 1');
     await goTo('Стандарт', '/standard/meta/', 'Стандартный архетип 1');
+    // Back within the hand-off's few seconds opens the page with the filters of its own address, not those just handed to the other format.
+    await filtered.evaluate(() => [...document.querySelectorAll('fieldset button')].find(button => button.textContent.trim() === 'Топ-5000').click());
+    await filtered.evaluate(() => [...document.querySelectorAll('a')].find(link => link.textContent.trim().startsWith('Вольный')
+      && link.closest('[aria-label="Фильтры меты"]')).click());
+    await filtered.waitForFunction(() => window.location.pathname === '/standard/meta/wild/' && document.body.textContent.includes('Вольный архетип 1'), { timeout: 15000 });
+    await filtered.evaluate(() => window.history.back());
+    await filtered.waitForFunction(() => window.location.pathname === '/standard/meta/' && document.body.textContent.includes('Стандартный архетип 1') && document.body.textContent.includes('77,77'), { timeout: 15000 });
+    assert.equal(await filtered.$eval('fieldset button[aria-pressed="true"]', node => node.textContent.trim()), 'Легенда', 'Back opens the filters of the address');
     await filtered.close();
 
     // A direct link with values the server refuses opens the default slice: no error, and no paid request carries them.
@@ -259,6 +518,97 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
       assert.equal(asked.rank, 'diamond_legend', 'the default rank replaces the bad one');
     }
     await broken.close();
+  } finally {
+    if (browser) await browser.close();
+    await next.close();
+    await closeLocal(stack.server);
+  }
+});
+
+// A signed-in viewer this browser remembers keeps the head script's mark (it hides the "Made with" block, among others),
+// so the mark alone must not hide the lock marks: once the page knows the viewer has no access, every lock is visible.
+// A remembered subscriber with access never sees a lock mark.
+test('a remembered signed-in viewer without a subscription sees the lock marks on /standard/meta/', { timeout: 180_000 }, async () => {
+  const stack = await startStack();
+  const next = await startNextServer({ legacyOrigin: stack.origin });
+  stack.next = next.origin;
+  let browser;
+  // The lock marks the viewer can see (a rank button the phone layout replaces with a select has no box): all of them,
+  // and how many of those are hidden.
+  const lockMarks = page => page.$$eval('.standard-meta__lock-mark', nodes => {
+    const shown = nodes.filter(node => node.getClientRects().length > 0);
+    return { shown: shown.length, hidden: shown.filter(node => getComputedStyle(node).visibility === 'hidden').length };
+  });
+  // Reloads the page and waits until its access check has answered (the subscription status), and a little more.
+  const reloadChecked = async page => {
+    const checked = page.waitForResponse(response => response.url().includes('/api/subscription/status'), { timeout: 15000 });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    const marked = await page.evaluate(() => document.documentElement.dataset.hpViewer);
+    await checked;
+    await delay(1_000);
+    return marked;
+  };
+  try {
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+      headless: true, args: ['--no-sandbox'] });
+    for (const viewport of [DESKTOP, PHONE]) {
+      const label = `${viewport.width}px`;
+
+      // An account that never subscribed: the first visit remembers it, the next one starts with the head script's mark.
+      const freeContext = await browser.createBrowserContext();
+      const free = await freeContext.newPage();
+      await free.setViewport(viewport);
+      await free.setCookie({ name: 'sm_session', value: 'free', url: stack.origin }, { name: 'hp_viewer', value: 'CCCCCCCCCCCCCCCCCCCCCC', url: stack.origin });
+      await free.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
+      await free.waitForFunction(() => localStorage.getItem('hs_arena_viewer_hint') !== null, { timeout: 15000 });
+      assert.equal(await reloadChecked(free), 'remembered', `${label}: the head script remembers the account`);
+      assert.equal(await free.evaluate(() => document.documentElement.dataset.hpViewer), 'remembered', `${label}: a signed-in viewer keeps the mark`);
+      const freeMarks = await lockMarks(free);
+      assert.ok(freeMarks.shown >= 24, `${label}: the locks of every card are on the page (${freeMarks.shown})`);
+      assert.equal(freeMarks.hidden, 0, `${label}: an account without a subscription sees every lock mark (${freeMarks.hidden} of ${freeMarks.shown} hidden)`);
+      await freeContext.close();
+
+      // A remembered subscriber: not one frame shows a lock mark. Then the subscription expires while the session lives on.
+      stack.readerExpired = false;
+      const readerContext = await browser.createBrowserContext();
+      const reader = await readerContext.newPage();
+      await reader.setViewport(viewport);
+      await reader.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin }, { name: 'hp_viewer', value: 'DDDDDDDDDDDDDDDDDDDDDD', url: stack.origin });
+      await reader.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
+      await reader.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+      await reader.waitForFunction(() => localStorage.getItem('hs_arena_viewer_hint') !== null, { timeout: 5000 });
+      await reader.evaluateOnNewDocument(() => {
+        window.__lockSeen = 0;
+        const look = () => {
+          for (const node of document.querySelectorAll('.standard-meta__lock-mark')) {
+            if (node.getClientRects().length > 0 && getComputedStyle(node).visibility !== 'hidden') { window.__lockSeen += 1; return; }
+          }
+        };
+        new MutationObserver(look).observe(document, { subtree: true, childList: true, attributes: true });
+        const loop = () => { look(); requestAnimationFrame(loop); };
+        loop();
+      });
+      assert.equal(await reloadChecked(reader), 'remembered', `${label}: the head script remembers the subscriber`);
+      await reader.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+      await delay(500);
+      assert.equal(await reader.evaluate(() => window.__lockSeen), 0, `${label}: a remembered subscriber sees no lock mark`);
+      // The first visit after the subscription expired still remembers the grant (the paid route refuses, the check
+      // confirms the refusal); every later visit remembers the account without it. Both end with every lock visible.
+      stack.readerExpired = true;
+      for (const visit of ['first', 'next']) {
+        assert.equal(await reloadChecked(reader), 'remembered', `${label}: the expired subscriber is still remembered (${visit} visit)`);
+        await reader.waitForSelector('button[aria-label^="Ходы: по подписке"]', { timeout: 15000 });
+        if (visit === 'next') {
+          assert.equal(await reader.evaluate(() => document.documentElement.dataset.hpViewer), 'remembered', `${label}: a signed-in viewer keeps the mark`);
+        }
+        const expiredMarks = await lockMarks(reader);
+        assert.ok(expiredMarks.shown >= 24, `${label}: the locks of every card are on the page (${expiredMarks.shown}, ${visit} visit)`);
+        assert.equal(expiredMarks.hidden, 0,
+          `${label}: a subscriber whose subscription expired sees every lock mark (${expiredMarks.hidden} of ${expiredMarks.shown} hidden, ${visit} visit)`);
+      }
+      stack.readerExpired = false;
+      await readerContext.close();
+    }
   } finally {
     if (browser) await browser.close();
     await next.close();
