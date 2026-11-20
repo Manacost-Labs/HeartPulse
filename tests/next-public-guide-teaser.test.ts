@@ -47,3 +47,21 @@ for (const bad of ['<script>x</script>', '<scr<script>ipt>x</scr</script>ipt>', 
   '<p title="a">a</p>', '<p id="x>y">a</p><p onclick="z">']) {
   assert.throws(() => publicGuideTeaser({ ...raw, excerptHtml: bad }, 'arena-100-percent'), /Invalid/, bad);
 }
+
+// The open list page: field by field, nothing else survives.
+{
+  const { parsePublicGuidesList } = await import('../apps/public-web/lib/publicGuidesListData');
+  const card = { id: 1, slug: 'arena-100-percent', title: 'Арена', description: 'Описание', image: '/images/a.png',
+    publishedAt: '2026-07-10T12:00:00.000Z', menuName: 'Арена', menuCode: 'arena', kind: 'Гайды', kindSlug: 'guides',
+    oldUrl: 'https://old.example.test/PRIVATE_OLD', bodyText: 'PRIVATE_BODY', body_html: 'PRIVATE_HTML', contentHtml: 'PRIVATE_CONTENT' };
+  const page = { page: 1, limit: 18, total: 1, totalPages: 1, items: [card],
+    filters: { kinds: [{ slug: 'guides', label: 'Гайды', count: 1, secret: 'PRIVATE_FILTER' }], menus: [] }, extra: 'PRIVATE_EXTRA' };
+  const parsed = parsePublicGuidesList(page);
+  assert.ok(parsed);
+  assert.equal(JSON.stringify(parsed).includes('PRIVATE'), false);
+  assert.equal(parsed.items[0].oldUrl, null);
+  assert.equal(parsed.items[0].title, 'Арена');
+  for (const bad of [null, [], { ...page, items: [] }, { ...page, page: 2 }, { ...page, items: [{ ...card, slug: 'a/b' }] },
+    { ...page, items: [{ ...card, image: 'javascript:x' }] }, { ...page, items: [{ ...card, id: '1' }] },
+    { ...page, filters: { kinds: 'x', menus: [] } }]) assert.equal(parsePublicGuidesList(bad), null);
+}
