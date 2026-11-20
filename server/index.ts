@@ -82,6 +82,7 @@ import {
 } from './standardMatchupRoutes.js';
 import { createConstructedCardDataService, createConstructedCardRouter } from './constructedCardRoutes.js';
 import { createBattlegroundCatalogLoader, createPatchNotesApi } from './modules/patchNotes/public.js';
+import { withCosmeticsLastGood } from './modules/cosmetics/public.js';
 import { createMetaReportApi } from './metaReportSnapshotSources.js';
 import { createRadarApi } from './modules/radar/public.js';
 import { createLeaderboardsApi } from './modules/leaderboards/public.js';
@@ -7730,18 +7731,15 @@ const cosmeticsDataService = createCosmeticsDataService({
   apiBaseUrl: KOLODAHS_API_BASE_URL,
   localizedCardsUrl: HEARTHSTONE_RU_CARDS_URL,
   cacheTtlMs: EXTERNAL_DATASET_CACHE_MS,
-  fetchJson: async url => {
+  // A restarted server answers the lists from the copy it saved (docs/specs/cosmetics-library.md, «Cold start»).
+  fetchJson: withCosmeticsLastGood(async url => {
     const upstream = await fetch(url, {
       headers: { 'User-Agent': 'Mozilla/5.0 (compatible; ManacostArena/1.0)' },
       signal: AbortSignal.timeout(12_000),
     });
-    if (!upstream.ok) {
-      const error = new Error(`Cosmetics upstream returned HTTP ${upstream.status}`) as Error & { status?: number };
-      error.status = upstream.status;
-      throw error;
-    }
+    if (!upstream.ok) throw Object.assign(new Error(`Cosmetics upstream returned HTTP ${upstream.status}`), { status: upstream.status });
     return renderPayloadCardPlurals(await upstream.json(), originalCardTexts.current());
-  },
+  }, { stateDirectory: DATA_DIR, apiBaseUrl: KOLODAHS_API_BASE_URL, localizedCardsUrl: HEARTHSTONE_RU_CARDS_URL }),
 });
 app.use('/api', createPublicResourceRouter());
 app.use('/api', createCosmeticsRouter(cosmeticsDataService, { fetchMedia: fetch }));
