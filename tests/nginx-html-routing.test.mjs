@@ -1665,6 +1665,8 @@ http {
     assert.equal((await requestNginx(port, '/standard/meta/foo/')).status, 404);
     for (const [from, to] of [
       ['/standard/meta/?format=wild', '/standard/meta/wild/'],
+      ['/standard/meta?format=wild', '/standard/meta/wild/'],
+      ['/standard/meta?format=wild&rank=legend', '/standard/meta/wild/?rank=legend'],
       ['/standard/meta/?format=wild&utm_source=x', '/standard/meta/wild/?utm_source=x'],
       ['/standard/meta/?utm_source=x&format=wild', '/standard/meta/wild/?utm_source=x'],
       ['/standard/meta/?a=1&format=wild&b=2', '/standard/meta/wild/?a=1&b=2'],
