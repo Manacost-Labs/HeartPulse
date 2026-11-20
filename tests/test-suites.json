@@ -35,6 +35,9 @@
     "tests/next-tierlist-public.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
+    "tests/next-assemble-swr-ssr.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
     "tests/next-bg-library-listings-browser.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
@@ -376,6 +379,7 @@
         "tests/ecosystem-internal-routes.test.ts",
         "tests/entity-sitemap-routes.test.ts",
         "tests/entity-sitemap-store.test.ts",
+        "tests/indexnow.test.ts",
         "tests/gallery-routes.test.ts",
         "tests/game-data-audit-repository.test.ts",
         "tests/game-data-audit-store.test.ts",
@@ -602,6 +606,7 @@
         "tests/bg-library-controls-browser.test.mjs",
         "tests/next-bg-builders-browser.test.mjs",
         "tests/next-assemble-tool-browser.test.mjs",
+        "tests/next-assemble-swr-ssr.test.mjs",
         "tests/next-patch-notes-browser.test.mjs",
         "tests/next-radar-browser.test.mjs",
         "tests/next-leaderboards-browser.test.mjs",
@@ -631,6 +636,7 @@
         "tests/skeleton-route-geometry-browser.test.mjs",
         "tests/archetype-vicious-skeleton-geometry-browser.test.mjs",
         "tests/bg-hero-card-preview-browser.test.mjs",
+        "tests/card-preview-image-loading-browser.test.mjs",
         "tests/public-loader-deadline-browser.test.mjs",
         "tests/user-flow-card-search-browser.test.mjs",
         "tests/user-flow-deck-builder-browser.test.mjs",

@@ -3,6 +3,7 @@ import http from 'node:http';
 import { readFileSync } from 'node:fs';
 import {
   EXPECTED_STATIC_SITEMAP_URL_COUNT,
+  privatePayloadMarker,
   runProductionMonitor as runMonitor,
 } from '../scripts/production-monitor.mjs';
 import { pageTemplateSamples, INDEXABLE_TEMPLATES } from '../scripts/production-monitor-templates.mjs';
@@ -24,6 +25,9 @@ let fallbackConstructedId = false;
 let dataHealthMode = null;
 let templateFailure = null;
 const requestedPaths = [];
+
+// An open deck as the pages render it in RSC since #444/#446/#547 (#580).
+const OPEN_DECK_PAYLOAD = '<script>self.__next_f.push([1,"{\\"deckCode\\":\\"AAECAZ8FBtedB8avBwAA\\",\\"winrate\\":null}"])</script>';
 
 const EXTERNAL_TEST_TIMEOUT = Symbol('external test timeout');
 
@@ -343,6 +347,7 @@ const server = http.createServer((req, res) => {
       ...(seoFailure === 'jsonld-identity' ? { identity: 'WRONG_CARD' } : {}),
       ...(seoFailure === 'h1' ? { missingH1: true } : {}),
       ...(seoFailure === 'private' ? { privatePayload: 'QA_PRIVATE_DECK_CODE_AAECA_TEST_ONLY' } : {}),
+      ...(seoFailure === 'open-deck-codes' ? { privatePayload: OPEN_DECK_PAYLOAD } : {}),
     });
     res.writeHead(200, {
       'Content-Type': 'text/html; charset=utf-8',
@@ -356,7 +361,10 @@ const server = http.createServer((req, res) => {
     const cardId = decodeURIComponent(wildCardMatch[1]);
     const canonical = `${origin}/standard/cards/wild/${encodeURIComponent(cardId)}/`;
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'index, follow' });
-    res.end(cardHtml(origin, cardId, { canonical }));
+    res.end(cardHtml(origin, cardId, {
+      canonical,
+      ...(seoFailure === 'open-deck-codes' ? { privatePayload: OPEN_DECK_PAYLOAD } : {}),
+    }));
     return;
   }
   const battlegroundCardMatch = requestUrl.pathname.match(
@@ -390,7 +398,9 @@ const server = http.createServer((req, res) => {
       'Content-Type': 'text/html; charset=utf-8',
       'X-Robots-Tag': seoFailure === 'archetype-header-noindex' ? 'noindex, follow' : 'index, follow',
     });
-    res.end(`<!doctype html><html><head><title>${slug}</title><meta name="robots" content="${robots}"/><link rel="canonical" href="${seoFailure === 'archetype-canonical' ? `${origin}/standard/meta/standard/${slug}/` : canonical}"/>${jsonLd}</head><body><main><h1>${slug}</h1></main></body></html>`);
+    const payload = seoFailure === 'open-deck-codes' ? OPEN_DECK_PAYLOAD
+      : seoFailure === 'archetype-private-sentinel' ? `${OPEN_DECK_PAYLOAD}<script>{"privateSentinel":true}</script>` : '';
+    res.end(`<!doctype html><html><head><title>${slug}</title><meta name="robots" content="${robots}"/><link rel="canonical" href="${seoFailure === 'archetype-canonical' ? `${origin}/standard/meta/standard/${slug}/` : canonical}"/>${jsonLd}</head><body><main><h1>${slug}</h1></main>${payload}</body></html>`);
     return;
   }
   const editorialMatch = requestUrl.pathname.match(/^\/(?:cosmetics\/heroes|guides-archive)\/([A-Za-z0-9_-]+)\/$/);
@@ -405,7 +415,11 @@ const server = http.createServer((req, res) => {
     const dbfId = heroMatch[1];
     const canonical = `${origin}${requestUrl.pathname}`;
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'index, follow' });
-    res.end(cardHtml(origin, dbfId, { canonical, identityFragment: 'hero' }));
+    res.end(cardHtml(origin, dbfId, {
+      canonical,
+      identityFragment: 'hero',
+      ...(seoFailure === 'hero-deck-code' ? { privatePayload: OPEN_DECK_PAYLOAD } : {}),
+    }));
     return;
   }
   if (requestUrl.pathname === '/standard/cards/standard/MANACOST_MONITOR_ABSENT_CARD/') {
@@ -417,7 +431,13 @@ const server = http.createServer((req, res) => {
       'Cache-Control': 'no-store',
       ...(unknownCardHtml === 'retryable' ? { 'Retry-After': '30' } : {}),
     });
-    res.end(`<!doctype html><html><head><meta name="robots" content="noindex, nofollow">${includeCanonical ? `<link rel="canonical" href="${origin}/standard/cards/standard/MANACOST_MONITOR_ABSENT_CARD/">` : ''}</head><body><main><h1>Карта не найдена</h1></main></body></html>`);
+    res.end(`<!doctype html><html><head><meta name="robots" content="noindex, nofollow">${includeCanonical ? `<link rel="canonical" href="${origin}/standard/cards/standard/MANACOST_MONITOR_ABSENT_CARD/">` : ''}</head><body><main><h1>Карта не найдена</h1></main>${seoFailure === 'unknown-deck-code' ? OPEN_DECK_PAYLOAD : ''}</body></html>`);
+    return;
+  }
+  if (requestUrl.pathname === '/standard/fun-decks/' && ['open-deck-codes', 'fun-decks-private-sentinel'].includes(seoFailure)) {
+    const sentinel = seoFailure === 'fun-decks-private-sentinel' ? '<script>{"privateSentinel":true}</script>' : '';
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(`<!doctype html><html><body><main><h1>Фан-колоды</h1></main>${OPEN_DECK_PAYLOAD}${sentinel}</body></html>`);
     return;
   }
   if (['/classes', '/battlegrounds/tier-list'].includes(requestUrl.pathname)) {
@@ -595,6 +615,9 @@ try {
     ['jsonld', /JSON-LD is invalid/i],
     ['jsonld-identity', /JSON-LD identity mismatch/i],
     ['private', /private payload marker/i],
+    ['archetype-private-sentinel', /sample archetypes entity monitor-deck-01: private payload marker found/i],
+    ['hero-deck-code', /sample battlegroundHeroes entity \d+: private payload marker found/i],
+    ['unknown-deck-code', /unknown card HTML contains private payload fields/i],
     ['redirect', /one hop/i],
     ['unknown-status', /unknown card HTML: HTTP 200/i],
     ['unknown-canonical', /must not expose a canonical/i],
@@ -630,6 +653,30 @@ try {
     );
   }
   seoFailure = null;
+
+  // Deck codes are open on archetype, card and fun-deck pages (owner, 2026-11-18; #580).
+  seoFailure = 'open-deck-codes';
+  const openDeckCodes = await runProductionMonitor({ baseUrl, attempts: 1, retryDelayMs: 0, timeoutMs: 2_000 });
+  assert.equal(openDeckCodes.status, 'ok', 'an open deck code on archetype, card and fun-deck pages is not a leak');
+  // The fun-decks template is checked for the other markers next to its open deck codes.
+  seoFailure = 'fun-decks-private-sentinel';
+  const funDecksSentinel = await captureFailure(runProductionMonitor({ baseUrl, attempts: 1, retryDelayMs: 0, timeoutMs: 2_000 }));
+  assert.deepEqual(funDecksSentinel.report.failures.map(failure => failure.label), ['page template fun-decks']);
+  assert.match(funDecksSentinel.report.failures[0].message, /\/standard\/fun-decks\/: private payload marker found/);
+  seoFailure = null;
+  assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD, '/standard/fun-decks/'), null);
+  assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD, '/standard/archetypes/wild/boar-warlock/'), null);
+  assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD, '/standard/cards/standard/BE_000/'), null);
+  assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD, '/standard/matchups/'), 'deckCode');
+  assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD, '/standard/fun-decks/extra/'), 'deckCode');
+  assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD, '/standard/archetypes/'), 'deckCode');
+  assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD, '/standard/archetypes/standard/'), 'deckCode');
+  assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD, '/standard/archetypes/standard/slug/extra/'), 'deckCode');
+  assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD, '/standard/cards/standard/BE_000/decks/'), 'deckCode');
+  assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD), 'deckCode');
+  assert.equal(privatePayloadMarker('{"statsAccess":false}', '/standard/fun-decks/'), 'statsAccess');
+  assert.equal(privatePayloadMarker('{"subscriptionPayload":{}}', '/standard/cards/wild/BE_000/'), 'subscriptionPayload');
+  assert.equal(privatePayloadMarker('QA_PRIVATE_SCORE', '/standard/archetypes/standard/harold-blood-dk/'), 'QA_PRIVATE');
 
   seoFailure = 'archetypes-lkg';
   const lkgArchetypes = await runProductionMonitor({ baseUrl, attempts: 1, retryDelayMs: 0, timeoutMs: 2_000 });

@@ -1,43 +1,49 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import './TierListPage.css';
+
+import { useEffect, useMemo, useState } from 'react';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
-import { TierListSkeleton } from '@/src/features/TierListSkeleton';
-import { Breadcrumbs, SectionBanner } from '@/src/shared/ui/EditorialRouteChrome';
+import { TierList } from '@/src/features/DeferredRoutes';
 import { useArenaCompanionIds, useArenaTierList,
   type TierlistData } from '@/src/modules/arenaTierList/public';
+import { openTierlistView, type CompactTierlist } from '@/apps/public-web/lib/openTierlistView';
+import { seoDataDate } from '@/apps/public-web/lib/seoDataDate';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { navigate, navigateTab } from './navigation';
-import { PaidOfferProvider } from './PaidOffer';
-
-type PaidTierListComponent = typeof import('@/src/features/DeferredRoutes').TierList;
 
 const EMPTY_DATA: TierlistData = {
   sections: [], cards: {}, updatedAt: null, source: 'hsreplay',
 };
 
-const OFFER_TEXT = 'Оценка ArenaSmith, винрейт при розыгрыше и сыгрывании, фильтры по мане и редкости, поиск и история '
-  + 'открываются по подписке: Boosty уровня «Любитель Арены» и выше или VIP Telegram-канал. '
-  + 'Тир, винрейт и частота выбора каждой карты остаются бесплатными.';
-
-/** The class a visitor chose before signing in comes back in the address (`?class=mage`). */
-const requestedClass = (data: TierlistData) => {
-  const id = new URLSearchParams(window.location.search).get('class');
-  return id && data.sections.some(section => section.id === id) ? id : undefined;
-};
-
 /**
- * `children` is the server-rendered open tier list (the whole card pool, the same HTML for everyone) and it
- * is the page's content for a guest. A subscriber gets the full interactive view in its place, but only once
- * its code and data have arrived, so the open list stays until then. `hasOpenData` is false when the server had
- * no snapshot: the page then falls back to the full view and its subscription gate.
+ * One view for everyone. `pool` is the open tier list the server read: a viewer without access (a guest, a
+ * robot, a signed-in visitor without a subscription) gets the subscriber's view on it, rendered on the server,
+ * with the closed parts locked in place. A subscriber gets the same view, which switches to the protected data
+ * once it has arrived (until then the open data stays). Without a snapshot the page falls back to the full
+ * view and its subscription gate.
  */
-export function TierListPageClient({ children, hasOpenData = true }: { children?: ReactNode; hasOpenData?: boolean }) {
+/**
+ * The date, sample and source of the shown data, dated with `<time>` in Moscow time (the same text on the server
+ * and in the browser). The protected answer has its own date and no rounded sample, so it is shown without one.
+ */
+function DataLine({ updatedAt, games }: { updatedAt: string | null; games: number | null }) {
+  const date = seoDataDate(updatedAt, Date.now());
+  return <p className="tierlist-data-line">
+    {date ? <>Данные на <time dateTime={date.iso}>{`${date.date}, ${date.time} МСК`}</time></> : 'Дата обновления неизвестна'}
+    {`${games ? ` · по данным более ${games.toLocaleString('ru-RU')} игр` : ''} · источник HSReplay`}
+  </p>;
+}
+
+export function TierListPageClient({ pool }: { pool: CompactTierlist | null }) {
   const access = usePublicAccess();
   const { allowed, pending } = paidAccess(access, 'arena');
   const tierlist = useArenaTierList(access.user?.id, allowed);
   const companionIds = useArenaCompanionIds(access.user?.id, allowed && tierlist.source !== 'hsreplay');
-  const data = tierlist.state.data ?? { ...EMPTY_DATA, source: tierlist.source };
+  const openData = useMemo(() => pool ? openTierlistView(pool) : null, [pool]);
+  const paidReady = allowed && (tierlist.state.data?.sections.length ?? 0) > 0;
+  const openLayer = openData !== null && !paidReady;
+  const data = openLayer ? openData : (tierlist.state.data ?? { ...EMPTY_DATA, source: tierlist.source });
   const [updatedAtLabel, setUpdatedAtLabel] = useState('Нет данных');
   useEffect(() => {
     setUpdatedAtLabel(data.updatedAt
@@ -46,40 +52,23 @@ export function TierListPageClient({ children, hasOpenData = true }: { children?
       })
       : 'Нет данных');
   }, [data.updatedAt]);
-  // The full view is a separate chunk: a guest never downloads it unless the page has nothing open to show.
-  const [Paid, setPaid] = useState<{ view: PaidTierListComponent } | null>(null);
-  const wantsPaid = allowed || !hasOpenData;
-  useEffect(() => {
-    if (!wantsPaid) return;
-    let current = true;
-    void import('@/src/features/DeferredRoutes').then(module => { if (current) setPaid({ view: module.TierList }); });
-    return () => { current = false; };
-  }, [wantsPaid]);
-  // With an open list the full view needs the protected data itself: a failed answer or one without sections leaves the open list.
-  const showPaid = Paid !== null && (hasOpenData ? allowed && (tierlist.state.data?.sections.length ?? 0) > 0 : true);
 
   return <PublicPageShell activeTab="tierlist" pathname="/tierlist/" parchmentPreload="tablet-up" access={access}
     navigate={navigate} updatedAtLabel={updatedAtLabel}>
-    {showPaid && Paid
-      /* The closed part, named by the page's JSON-LD (`hasPart.cssSelector`); a wrapper without a box of its own. */
-      ? <div className="paywalled-tierlist" style={{ display: 'contents' }}>
-        <Paid.view data={data} loading={tierlist.loading || pending}
-          error={tierlist.error} companionIds={companionIds}
-          tierlistSource={tierlist.source} onTierlistSourceChange={tierlist.changeSource}
-          switchingTierlistSource={tierlist.switching} onNavigate={navigateTab}
-          authUser={access.user} subscriptionStatus={access.subscription}
-          subscriptionLoading={pending} onRefreshSubscription={access.refresh}
-          accessGranted={allowed} initialClassId={requestedClass(data)} />
-      </div>
-      : <div className="arena-tierlist-page">
-        <SectionBanner title="Тир-лист карт Арены Hearthstone" subtitle="Оценки карт для каждого класса — текущий патч" />
-        <Breadcrumbs items={[
-          { name: 'Главная', href: '/', onClick: () => navigateTab('home') },
-          { name: 'Тир-лист', href: '/tierlist/' },
-        ]} />
-        {hasOpenData
-          ? <PaidOfferProvider title="Остальные показатели карт — по подписке" text={OFFER_TEXT}>{children}</PaidOfferProvider>
-          : <div className="paywalled-tierlist" style={{ display: 'contents' }}><TierListSkeleton /></div>}
-      </div>}
+    {/* The full view (protected data, or the gate without a snapshot) is the closed part the JSON-LD names. The same
+        element in both states, so the view is not remounted (class and filters stay) when the protected data arrives. */}
+    <div className={openLayer ? undefined : 'paywalled-tierlist'} style={{ display: 'contents' }}>
+      <TierList data={data} loading={openLayer ? false : tierlist.loading || pending}
+        error={openLayer ? false : tierlist.error} companionIds={companionIds}
+        tierlistSource={openLayer ? 'hsreplay' : tierlist.source} onTierlistSourceChange={tierlist.changeSource}
+        switchingTierlistSource={!openLayer && tierlist.switching} onNavigate={navigateTab}
+        authUser={access.user} subscriptionStatus={access.subscription}
+        subscriptionLoading={pending} onRefreshSubscription={access.refresh}
+        accessGranted={allowed} openLayer={openLayer} serverRendered
+        dataLine={openLayer && pool ? <DataLine updatedAt={pool.updatedAt} games={pool.sampleGamesAtLeast} />
+          // With an open snapshot the line stays when the protected data arrives (no shift); without one the page starts
+          // from the skeleton, which has no line, so the protected view shows none either (skeleton-route-geometry).
+          : pool && tierlist.source === 'hsreplay' && data.updatedAt ? <DataLine updatedAt={data.updatedAt} games={null} /> : undefined} />
+    </div>
   </PublicPageShell>;
 }

@@ -203,29 +203,29 @@ catalog that is 72 of 196 Standard archetypes. Wild is never indexable.
   It keeps `noindex, follow` on Wild (a second layer until Wild's own phase)
   and `noindex, nofollow` on every `4xx`/`5xx`
   (`$arena_next_archetype_robots_header` in `deploy/nginx/arena-seo-map.conf`).
-- Every archetype page, indexable or not, renders the server-side summary
+- Every archetype page, indexable or not, renders the server-side block
   (`apps/public-web/ui/ArchetypeSeoSummary.tsx`, passed to
   `ArchetypeDetailPageClient` as `children`, so the client bundle only grows by
-  the pass-through): a question heading («Насколько силён <Архетип> в Стандарте
-  сейчас»), an answer in the first 40–60 words (winrate, popularity, games and
-  builds as of the `<time datetime>` date, the HSGuru period), the comparison
-  with the median winrate of the format and of the class (rows of the public
-  catalog with at least 1000 games; a median over fewer than 5 or 3 rows is not
-  printed), the place by games, how to read the numbers («от N игр»), the
-  «Источник: HSGuru» link, a sentence that builds and deck codes are for
-  subscribers (no values) and 4–6 links to archetypes of the same class
-  (indexable first). 150–250 words. The word «лидер» is not used: a ranking
-  word needs a sample threshold. A share above zero that rounds to zero is
-  printed «менее 0,1%». When two catalog rows share a Russian name, the English
-  one follows it in brackets in the title, the heading, the first sentence and
+  the pass-through). Owner rule (#570): no paragraphs written for a robot at
+  the bottom of a page, only interface a reader sees, all of it in the server
+  HTML. The block is a heading («Среди архетипов Стандарта»), plates «Место по
+  играм N из M», «Медиана формата» and «Медиана класса» (the median winrate
+  over rows of the public catalog with at least 1000 games, the archetype's
+  difference in percentage points, «среди N архетипов … от 1 000 игр»; a
+  median over fewer than 5 or 3 rows is not shown), a line «date (`<time
+  datetime>`) · period · Источник: HSGuru», a one-line hint for a sample under
+  1000 games, a `<nav>` «Другие архетипы <класса>» (up to 6 links with name and
+  winrate, indexable first) and «Все архетипы <формата>». The word «лидер» is
+  not used: a ranking word needs a sample threshold. When two catalog rows
+  share a Russian name, the English one follows it in brackets in the title and
   the links (the H1 stays as the page prints it). Without the catalog (it did
-  not answer within the first-paint budget) or with fewer than three archetypes
-  of the class to link, a short neutral primer («Что такое архетип», no catalog
-  numbers) replaces the comparison and the links, so the text keeps its length.
-  Builds, deck codes, history and analysis never reach the HTML or the RSC
-  payload, and the summary and the JSON-LD do not use the numbers of
-  `featuredBuild` (the public teaser carries them and the page's «Главная сборка»
-  block shows them); the sentinel test in `tests/next-seo-page-metadata.test.mjs`
+  not answer within the first-paint budget) the plates and the class links are
+  left out; the date, the source and the catalog link stay. The indexable page
+  meets `shared/seoIndexThreshold.ts` through its open builds with card lists
+  and the plates (150 own words or 10 own facts).
+  History and analysis never reach the HTML or the RSC
+  payload, and the block and the JSON-LD do not use the numbers of
+  `featuredBuild`; the sentinel test in `tests/next-seo-page-metadata.test.mjs`
   fails on any leak.
 - JSON-LD only for an indexable archetype, built by `archetypeStructuredDataGraph`
   (`src/seo/archetypeStructuredData.ts`) through the same finishing step as the
@@ -459,6 +459,17 @@ canonical, `og:url` и `@id` JSON-LD ведут на страницу Станд
 оставляет canonical на себя, а не угадывает. Карта только Вольного формата —
 self-canonical. В `wild-cards.xml` копий карт Стандарта нет
 (`excludeStandardCardsFromWildCatalog`).
+
+## IndexNow (E25, #304)
+
+Сегмент карты сайта, пересобранный из источника с изменившимся списком,
+вызывает `onSegmentPublished(segment, previous, next)` роутера
+(`server/entitySitemapRoutes.ts` → `entitySitemapDynamicLoader.ts`).
+`changedSitemapLocations` из `server/indexNow.ts` отдаёт новые, изменённые
+(другой `semanticHash` или адрес) и ушедшие адреса; без предыдущего состояния —
+пустой список. Запасная копия и устаревший источник хук не вызывают; ошибка
+хука или IndexNow не меняет ответ карты сайта. Порядок работы и выключение —
+`docs/runbooks/search-consoles.md#indexnow-304`.
 
 ## Documentation impact
 

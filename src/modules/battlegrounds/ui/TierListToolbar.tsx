@@ -1,5 +1,5 @@
 import { useId, useState, type ReactNode } from 'react';
-import { ChevronDown, SlidersHorizontal } from 'lucide-react';
+import { ChevronDown, LockKeyhole, SlidersHorizontal } from 'lucide-react';
 import { BATTLEGROUND_TIER_LISTS, type BattlegroundTierListKey } from '../model/tierList';
 
 export type TierListToolbarProps = {
@@ -11,6 +11,13 @@ export type TierListToolbarProps = {
   primary?: ReactNode;
   /** Filters behind a toggle whose label is a summary of their current values. */
   secondary?: { summary: string; content: ReactNode };
+  /**
+   * Lists the viewer may not open: their tabs stay in place with a lock and `lockedClassName`, a press
+   * calls `onList` (the host shows its offer, whose state is `offerOpen`).
+   */
+  locked?: readonly BattlegroundTierListKey[];
+  lockedClassName?: string;
+  offerOpen?: boolean;
 };
 
 export function TierListChoice({ active, onClick, label, children }: {
@@ -41,16 +48,23 @@ export function TierListChoices({ label, legend = false, scroll = false, childre
 }
 
 /** One compact control bar for every Battlegrounds tier list. */
-export function TierListToolbar({ list, onList, meta, primary, secondary }: TierListToolbarProps) {
+export function TierListToolbar({ list, onList, meta, primary, secondary, locked = [], lockedClassName, offerOpen = false }: TierListToolbarProps) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   return <div className="bg-tierlist-toolbar">
     <div className="bg-tierlist-toolbar__row">
       <div className="bg-tierlist-tabs" role="group" aria-label="Тип тир-листа" data-tour-id="bg-tier-list-switcher">
-        {BATTLEGROUND_TIER_LISTS.map(entry => <button key={entry.id} type="button" aria-pressed={entry.id === list}
-          data-tour-id={entry.id === 'strategies' ? 'bg-tier-list-strategy' : undefined} onClick={() => onList(entry.id)}>
-          {entry.label}
-        </button>)}
+        {BATTLEGROUND_TIER_LISTS.map(entry => {
+          const closed = locked.includes(entry.id);
+          return <button key={entry.id} type="button" aria-pressed={entry.id === list}
+            aria-expanded={closed ? offerOpen : undefined} title={closed ? 'Доступно по подписке' : undefined}
+            className={closed ? ['bg-tierlist-tab--locked', lockedClassName].filter(Boolean).join(' ') : undefined}
+            data-tour-id={entry.id === 'strategies' ? 'bg-tier-list-strategy' : undefined} onClick={() => onList(entry.id)}>
+            {closed && <LockKeyhole aria-hidden="true" />}
+            {entry.label}
+            {closed && <span className="sr-only"> — по подписке</span>}
+          </button>;
+        })}
       </div>
       <p className="bg-tierlist-toolbar__meta" role="status">{meta}</p>
     </div>

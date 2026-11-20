@@ -147,10 +147,12 @@ try {
     document.querySelector('.archetype-builds').compareDocumentPosition(document.querySelector('.archetype-history')) & Node.DOCUMENT_POSITION_FOLLOWING
   ), 4, 'the independently loaded builds precede optional history');
   assert.deepEqual(await page.$$eval(
-    '.archetype-builds, .archetype-compare, .constructed-analysis-stack, .archetype-ranks, .archetype-radar-section, .archetype-history, .archetype-methodology',
-    nodes => nodes.map(node => node.className.split(' ').find(name => /^(archetype-(builds|compare|ranks|radar-section|history|methodology)|constructed-analysis-stack)$/.test(name))),
-  ), ['archetype-builds', 'archetype-compare', 'constructed-analysis-stack', 'archetype-ranks', 'archetype-radar-section', 'archetype-history', 'archetype-methodology'],
-  'rank winrates follow the mulligan and the history comes second to last');
+    '.archetype-builds, .archetype-compare, .constructed-analysis-stack, .archetype-ranks, .archetype-radar-section, .archetype-history',
+    nodes => nodes.map(node => node.className.split(' ').find(name => /^(archetype-(builds|compare|ranks|radar-section|history)|constructed-analysis-stack)$/.test(name))),
+  ), ['archetype-builds', 'archetype-compare', 'constructed-analysis-stack', 'archetype-ranks', 'archetype-radar-section', 'archetype-history'],
+  'rank winrates follow the mulligan and the history comes last');
+  // Owner rule (#570): no «how to read the data» block; the period is in the date line of the block under the page.
+  assert.equal(await page.evaluate(() => [...document.querySelectorAll('h2')].some(node => node.textContent === 'Как читать данные')), false);
   assert.equal(await page.$('.archetype-main-build'), null, 'there is no separate main build block');
   assert.equal(await page.$eval('.archetype-builds .archetype-deck-card__number', node => node.textContent), '#1',
     'the gallery starts with the largest-sample build');

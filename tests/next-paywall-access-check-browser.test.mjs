@@ -137,7 +137,8 @@ test('a remembered subscriber gets the preloaded paid view as soon as access is 
     gateway = await startGateway(next.origin);
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
-    for (const [path, root] of [['/battlegrounds/tier-list/', '.bg-tier-list-page'], ['/library/', '.bg-library-page']]) {
+    // The tier list's open view has the same root: the paid one is the view inside `.arena-paid-view`.
+    for (const [path, root] of [['/battlegrounds/tier-list/', '.arena-paid-view .bg-tier-list-page'], ['/library/', '.bg-library-page']]) {
       const page = await browser.newPage();
       await page.setViewport({ width: 1440, height: 900 });
       await page.setCookie({ name: 'pending_reader', value: '1', url: gateway.origin });
@@ -414,6 +415,7 @@ test('the library keeps its open layer until the paid view has loaded, without a
           const page = await browser.newPage();
           await page.setViewport(viewport);
           if (subscriber) await page.setCookie({ name: 'pending_reader', value: '1', url: frontOrigin });
+          else await page.deleteCookie({ name: 'pending_reader', url: frontOrigin });
           await page.evaluateOnNewDocument(() => {
             window.__layoutShifts = [];
             new PerformanceObserver(list => {
@@ -519,6 +521,7 @@ test('the builds pages show the open list without a placeholder and keep it unti
           const page = await browser.newPage();
           await page.setViewport(viewport);
           if (subscriber) await page.setCookie({ name: 'pending_reader', value: '1', url: frontOrigin });
+          else await page.deleteCookie({ name: 'pending_reader', url: frontOrigin });
           await page.evaluateOnNewDocument(() => {
             window.__layoutShifts = [];
             new PerformanceObserver(list => {
@@ -537,7 +540,9 @@ test('the builds pages show the open list without a placeholder and keep it unti
             }).catch(() => request.continue().catch(() => {}));
           });
           await page.goto(`${frontOrigin}${path}`, { waitUntil: 'domcontentloaded' });
-          const articles = () => page.evaluate(() => document.querySelectorAll('.bg-builds-public article').length);
+          // The open builds: the strategy cards of the tier list's open view, the open list of the strategies page.
+          const openBuild = path.includes('tier-list') ? '.bg-tierlist-strategy' : '.bg-builds-public article';
+          const articles = () => page.evaluate(selector => [...document.querySelectorAll(selector)].filter(node => !node.closest('.arena-paid-view')).length, openBuild);
           assert.equal(await articles(), 6, `${path}: the open builds are in the first paint`);
           assert.equal(await page.$('.arena-paywall-pending'), null, 'no placeholder while access is checked');
           assert.equal(await page.$('.arena-paywall'), null, 'no gate for a visitor of an open page');
@@ -545,18 +550,19 @@ test('the builds pages show the open list without a placeholder and keep it unti
             await page.waitForFunction(() => performance.getEntriesByType('resource').some(entry => entry.name.endsWith('/api/subscription/status')), { timeout: 10_000 });
             await delay(1200);
             // Access is confirmed, the chunk is still on its way: the list has not been replaced by a placeholder.
-            const state = await page.evaluate(() => ({ articles: document.querySelectorAll('.bg-builds-public article').length,
-              pending: !!document.querySelector('.arena-paywall-pending'), text: document.querySelector('main')?.innerText.slice(0, 200) }));
+            const state = await page.evaluate(selector => ({ articles: [...document.querySelectorAll(selector)].filter(node => !node.closest('.arena-paid-view')).length,
+              pending: !!document.querySelector('.arena-paywall-pending'), text: document.querySelector('main')?.innerText.slice(0, 200) }), openBuild);
             assert.equal(state.articles, 6, `${path}: the list stays until the paid view has loaded: ${JSON.stringify(state)}`);
             assert.equal(await page.$('.arena-paywall-pending'), null, 'no placeholder while the paid view loads');
             assert.ok(held > 0, 'the chunk of the paid view was held back (the scenario is real)');
             await page.waitForSelector('.arena-paid-view', { timeout: 15_000 });
             // The paid view is mounted hidden; it replaces the list once the data it asked for has come back.
-            if (path.includes('tier-list')) await page.waitForFunction(() => !document.querySelector('.bg-builds-public article'), { timeout: 10_000 });
+            if (path.includes('tier-list')) await page.waitForFunction(() => ![...document.querySelectorAll('.bg-tierlist-strategy')].some(node => !node.closest('.arena-paid-view')), { timeout: 10_000 });
             assert.equal(await articles(), 0, 'the list is replaced, not doubled');
             assert.equal(await page.$$eval('h1', nodes => nodes.filter(node => node.getClientRects().length > 0).length), 1, `${path}: a subscriber sees exactly one H1`);
           } else {
-            await page.waitForSelector('.bg-builds-locks button', { timeout: 10_000 });
+            // The closed part: the tier list's locked tabs, the strategies page's note and button.
+            await page.waitForSelector(path.includes('tier-list') ? '.paywalled-builds.bg-tierlist-tab--locked' : '.bg-builds-locks button', { timeout: 10_000 });
           }
           await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
           const total = (await page.evaluate(() => window.__layoutShifts)).reduce((sum, value) => sum + value, 0);
@@ -564,6 +570,30 @@ test('the builds pages show the open list without a placeholder and keep it unti
           await page.close();
         }
       }
+    }
+    // A closed list in the address (`?list=spells`): a guest gets the offer once there is no access; a subscriber
+    // still being checked never sees it, the list stays in the address for the paid view.
+    for (const subscriber of [false, true]) {
+      const page = await browser.newPage();
+      // The browser keeps the cookies of the pages above: a guest must not carry the subscriber's.
+      if (subscriber) await page.setCookie({ name: 'pending_reader', value: '1', url: frontOrigin });
+      else await page.deleteCookie({ name: 'pending_reader', url: frontOrigin });
+      const offers = [];
+      await page.exposeFunction('__offerSeen', () => offers.push(Date.now()));
+      await page.evaluateOnNewDocument(() => {
+        new MutationObserver(() => { if (document.querySelector('.arena-inline-paywall')) window.__offerSeen?.(); })
+          .observe(document, { childList: true, subtree: true });
+      });
+      await page.goto(`${frontOrigin}/battlegrounds/tier-list/?list=spells`, { waitUntil: 'domcontentloaded' });
+      if (subscriber) {
+        await page.waitForSelector('.arena-paid-view', { timeout: 15_000 });
+        await delay(500);
+        assert.deepEqual(offers, [], 'a subscriber never sees the offer of a closed list in the address');
+        assert.match(await page.evaluate(() => location.search), /list=spells/);
+      } else {
+        await page.waitForSelector('.arena-inline-paywall', { timeout: 10_000 });
+      }
+      await page.close();
     }
   } finally {
     if (browser) await browser.close();
