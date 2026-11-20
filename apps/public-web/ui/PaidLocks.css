@@ -1,0 +1,47 @@
+/* Shared locks of paid figures and filters: the same place and size as the open value, a lock instead of it. */
+.paid-lock {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px dashed rgba(174, 136, 83, 0.75);
+  border-radius: 6px;
+  padding: 0.15rem 0.4rem;
+  color: #8b5a1b;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+button.paid-lock {
+  min-height: 28px;
+  cursor: pointer;
+  background: rgba(255, 244, 217, 0.7);
+}
+button.paid-lock:hover { border-color: #7e4b20; color: #5a3000; }
+button.paid-lock:focus-visible { outline: 2px solid #6d1117; outline-offset: 2px; }
+/* A card shows the figure under its caption: the lock keeps the card's rhythm. */
+.paid-lock--card { min-height: 28px; font-size: 0.78rem; }
+
+.paid-filter-lock {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 44px;
+  box-sizing: border-box;
+  padding: 0 12px;
+  border: 1px dashed #ae8853;
+  border-radius: 6px;
+  color: #6b4c2a;
+  background: #fff4d9;
+  font-size: 14px;
+  cursor: pointer;
+}
+.paid-filter-lock b { font-weight: 400; white-space: nowrap; }
+.paid-filter-lock > svg { order: 1; margin-left: auto; color: #8b5a1b; }
+.paid-filter-lock img { width: 24px; height: 24px; object-fit: contain; }
+.paid-filter-lock:focus-visible { outline: 2px solid #6d1117; outline-offset: 3px; }
+@media (max-width: 767px) {
+  .paid-filter-lock { width: 100%; justify-content: flex-start; }
+}
