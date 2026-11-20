@@ -15,7 +15,7 @@ import { SENTINELS, openAnswer, protectedAnswer } from './helpers/standardMatchu
 const READER = { id: 'mx-reader', email: 'reader@example.test', name: 'Подписчик', role: 'user' };
 const SUBSCRIBED = { hasAccess: true, entitlements: { arena: true, standard: true }, source: 'boosty', checkedAt: null,
   stale: false, message: '', boosty: { checked: true, hasAccess: true }, patreon: {}, telegram: {} };
-const PROTECTED_DELAY_MS = 800;
+const PROTECTED_DELAY_MS = 2500;
 const DESKTOP = { width: 1440, height: 900 };
 const PHONE = { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 };
 
@@ -169,16 +169,50 @@ test('a guest and a subscriber on /standard/matchups/ in a real browser', { time
       new PerformanceObserver(list => { for (const entry of list.getEntries()) if (!entry.hadRecentInput) { window.__shifts.push(entry.value); window.__why = (window.__why ?? []).concat((entry.sources ?? []).map(source => `${entry.value.toFixed(3)} @${Math.round(entry.startTime)} ${source.node?.className || source.node?.nodeName}`)); } })
         .observe({ type: 'layout-shift', buffered: true });
     });
+    // Every frame of the swap, as a viewer sees it: is there a matrix, is a loading skeleton up, where is the matrix, are
+    // the paid values (the leader's 63,4 %) on screen.
+    await reader.evaluateOnNewDocument(() => {
+      window.__frames = [];
+      const tick = () => {
+        const grid = document.querySelector('[role="grid"]');
+        const box = grid?.getBoundingClientRect();
+        const text = document.body?.innerText ?? '';
+        window.__frames.push({ cells: grid ? grid.querySelectorAll('[role="gridcell"]').length : 0, loading: text.includes('Загружаем матчапы'),
+          top: box ? Math.round(box.top + window.scrollY) : null, height: box ? Math.round(box.height) : null, paid: text.includes('63,4') });
+        requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
     await reader.setCookie({ name: 'mx_session', value: 'reader', url: stack.origin });
     await reader.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'load' });
     await shown(reader, 'Открытый архетип 1');
     await shown(reader, 'Топ-1000');
     assert.equal(await reader.evaluate(() => document.body.innerText.includes('Матчапы · Стандарт · Все ранги')), true, 'the open slice is on screen while the paid one loads');
     for (const label of ['Рейтинг', 'Период', 'Минимум игр в паре']) assert.equal(await lockNamed(reader, label), null, `a subscriber sees no lock on «${label}»`);
-    await reader.evaluate(() => { document.querySelector('[role="grid"]').dataset.sameGrid = 'yes'; });
+    // The reader picks an archetype on the open slice; the paid slice must not take the choice away.
+    const pick = '::-p-aria([name="Открытый архетип 3"][role="button"])';
+    for (let attempt = 0; attempt < 20; attempt += 1) {
+      const button = await reader.waitForSelector(pick, { timeout: 20_000 });
+      await button.click();
+      if (await button.evaluate(node => node.getAttribute('aria-pressed')) === 'true') break;
+      await delay(250);
+    }
+    assert.equal(await reader.$eval(pick, node => node.getAttribute('aria-pressed')), 'true', 'the pick took');
+    const swapFrom = await reader.evaluate(() => window.__frames.length);
+    assert.equal(await reader.evaluate(() => document.body.innerText.includes('63,4')), false, 'the paid values are not here before their answer');
     if (process.env.MATCHUPS_SHOTS) await reader.screenshot({ path: `${process.env.MATCHUPS_SHOTS}/sub-loading-${reader.viewport().width}.png` });
     await shown(reader, 'Матчапы · Стандарт · Легенда');
-    assert.equal(await reader.evaluate(() => document.querySelector('[role="grid"]')?.dataset.sameGrid), 'yes', 'the grid was not remounted');
+    await delay(500);
+    assert.equal(await reader.$eval(pick, node => node.getAttribute('aria-pressed')), 'true', 'the reader\'s pick survives the swap');
+    assert.equal(await reader.evaluate(() => document.body.innerText.includes('63,4')), true, 'the paid values are on screen at the end');
+    const frames = await reader.evaluate(() => window.__frames);
+    const onScreen = frames.slice(frames.findIndex(frame => frame.cells > 0 && frame.height > 0 && !frame.loading));
+    assert.ok(onScreen.length > 30 && onScreen.some(frame => frame.paid), 'the swap was observed frame by frame');
+    assert.equal(onScreen.filter(frame => frame.cells === 0 || frame.loading).length, 0, `the matrix is on screen in every frame: no skeleton, no empty frame: ${JSON.stringify(onScreen.map((frame, index) => ({ ...frame, index })).filter(frame => frame.cells === 0 || frame.loading))}`);
+    // From the pick, on the open slice, to the paid values: the matrix neither moves nor changes its height.
+    const swap = frames.slice(swapFrom);
+    assert.ok(Math.max(...swap.map(frame => frame.top)) - Math.min(...swap.map(frame => frame.top)) <= 2, 'the matrix does not move');
+    assert.ok(Math.max(...swap.map(frame => frame.height)) - Math.min(...swap.map(frame => frame.height)) <= 2, 'the matrix keeps its height');
     assert.ok(stack.protectedReads >= 1);
     await delay(1000);
     const shift = await reader.evaluate(() => window.__shifts.reduce((sum, value) => sum + value, 0));
