@@ -5,6 +5,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
+import { CLOSED_HTML_VALUES, MISTAKEN_OPEN_ANSWER } from './fixtures/viciousGoldSentinels.mjs';
 
 // /standard/vicious-gold/ (#656) in a real browser against an Express stub. A guest, Googlebot and YandexBot get one
 // HTML: the subscriber's report on the open frame (header, classes and archetypes in a neutral order, the rank
@@ -25,32 +26,15 @@ const YANDEXBOT_UA = 'Mozilla/5.0 (compatible; YandexBot/3.0; +http://yandex.com
 const DESKTOP = { width: 1440, height: 900 };
 const PHONE = { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 };
 
-// The open frame the public route answers, with the values it must never carry added by mistake: the page rebuilds
-// the frame field by field, so none of them may reach the HTML or the RSC payload.
-const OPEN = {
-  title: 'Vicious Syndicate Gold', format: 'Standard', source: 'Vicious Syndicate Live',
-  sourceUrl: 'https://www.vicioussyndicate.com/data-reaper-live/', updatedAt: '2026-11-20T08:15:00.000Z',
-  timeRanges: { distribution: 'lastDay', tierLadder: 'lastWeek', tierMatchups: 'last2Weeks' },
-  classes: [
-    { class: 'Warrior', classLabel: 'Воин', classIcon: 'warrior', frequency: 41.37 },
-    { class: 'Mage', classLabel: 'Маг', classIcon: 'mage' },
-    { class: 'DeathKnight', classLabel: 'Рыцарь смерти', classIcon: 'death-knight' },
-  ],
-  archetypes: [
-    { class: 'Warrior', classLabel: 'Воин', classIcon: 'warrior', deck: 'Dragon Warrior', deckLabel: 'Драконий Воин', archetypeSlug: 'dragon-warrior', winrate: 54.91 },
-    { class: 'Warrior', classLabel: 'Воин', classIcon: 'warrior', deck: 'Control Warrior', deckLabel: 'Контроль Воин', archetypeSlug: null },
-    { class: 'Mage', classLabel: 'Маг', classIcon: 'mage', deck: 'Protoss Mage', deckLabel: 'Протосс Маг', archetypeSlug: null, build: { deckCode: 'SENTINEL_DECK_CODE' } },
-    { class: 'DeathKnight', classLabel: 'Рыцарь смерти', classIcon: 'death-knight', deck: 'Blood Death Knight', deckLabel: 'Рыцарь смерти крови', archetypeSlug: 'blood-dk' },
-  ],
-  rankBrackets: [{ rankBracket: 'All ranks', rankLabel: 'Все ранги' }, { rankBracket: 'Legend', rankLabel: 'Легенда' }],
-  games: 917_331, minimumDeckFrequency: 0.4917,
-};
+// The open answer carries every closed field of the report by mistake (tests/fixtures/viciousGoldSentinels.mjs): the
+// page rebuilds the frame field by field, so none of them may reach the HTML or the RSC payload.
+const OPEN = MISTAKEN_OPEN_ANSWER;
 const deck = (deckName, deckLabel, className, classLabel, classIcon, frequency) => ({
   deck: deckName, deckLabel, class: className, classLabel, classIcon, frequency, archetypeSlug: null, build: null });
 const PAID = {
   title: 'Vicious Syndicate Gold', format: 'Standard', games: 917_331, source: 'Vicious Syndicate Live',
   sourceUrl: 'https://www.vicioussyndicate.com/data-reaper-live/', updatedAt: '2026-11-20T08:15:00.000Z', minimumDeckFrequency: 0.5,
-  timeRanges: OPEN.timeRanges,
+  timeRanges: { distribution: 'lastDay', tierLadder: 'lastWeek', tierMatchups: 'last2Weeks' },
   classDistribution: [
     { class: 'Warrior', classLabel: 'Воин', classIcon: 'warrior', frequency: 41.37 },
     { class: 'DeathKnight', classLabel: 'Рыцарь смерти', classIcon: 'death-knight', frequency: 33.29 },
@@ -78,12 +62,13 @@ const PAID_TEXT = /41,37|33,29|17,73|12,61|54,91|52,17|56,08|917[\s  ]?331|SE
 const PAID_RAW = ['41.37', '33.29', '17.73', '54.91', '917331', '917 331', 'SENTINEL_DECK_CODE', '0.4917'];
 
 async function startStack() {
-  const state = { next: null, publicReads: 0, paidReads: 0, paidRefusal: 0 };
+  // `buildsRefusal`: the builds route refuses (401/403) after `buildsDelay` and the subscription lapses with it (`lapsed`).
+  const state = { next: null, publicReads: 0, paidReads: 0, paidRefusal: 0, buildsRefusal: 0, buildsDelay: 0, summaryDelay: 500, lapsed: false };
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://stack');
     const cookie = request.headers.cookie ?? '';
     const reader = /(?:^|;\s*)vg_session=reader/.test(cookie);
-    const plan = /(?:^|;\s*)vg_plan=arena/.test(cookie) ? 'arena' : 'standard';
+    const plan = state.lapsed || /(?:^|;\s*)vg_plan=arena/.test(cookie) ? 'arena' : 'standard';
     const json = (code, payload) => response.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store' })
       .end(JSON.stringify(payload));
     const tag = /(?:^|;\s*)hp_viewer=([A-Za-z0-9_-]{22})/.exec(cookie)?.[1] ?? null;
@@ -97,10 +82,14 @@ async function startStack() {
     }
     if (url.pathname === '/api/vicious-syndicate-gold' || url.pathname === '/api/vicious-syndicate-gold/builds') {
       if (!reader || plan !== 'standard') return json(401, { error: 'subscription required' });
-      if (url.pathname.endsWith('/builds')) return json(200, { builds: [], buildCoverage: PAID.buildCoverage });
+      if (url.pathname.endsWith('/builds')) {
+        const refusal = state.buildsRefusal;
+        if (!refusal) return json(200, { builds: [], buildCoverage: PAID.buildCoverage });
+        return void setTimeout(() => { state.lapsed = true; json(refusal, { error: 'subscription required' }); }, state.buildsDelay);
+      }
       state.paidReads += 1;
       if (state.paidRefusal) return json(state.paidRefusal, { error: 'subscription required' });
-      return void setTimeout(() => json(200, PAID), 500);
+      return void setTimeout(() => json(200, PAID), state.summaryDelay);
     }
     if (url.pathname.startsWith('/api/')) return json(401, { error: 'guest' });
     const upstream = http.request(new URL(state.next), { method: request.method, path: request.url, headers: request.headers },
@@ -110,6 +99,17 @@ async function startStack() {
   const origin = await listenLocal(server);
   return Object.assign(state, { server, origin });
 }
+
+/** Records every animation frame with its time and whether it shows a paid value. */
+const recordFrames = () => {
+  window.__frames = [];
+  const loop = () => {
+    const paid = Boolean(document.body) && /41,37|33,29|17,73|12,61|54,91|52,17|56,08|917[\s\u00a0\u202f]?331/.test(document.body.textContent);
+    window.__frames.push({ at: performance.now(), paid });
+    requestAnimationFrame(loop);
+  };
+  loop();
+};
 
 const html = async (origin, userAgent) => (await fetch(`${origin}/standard/vicious-gold/`, { headers: { 'User-Agent': userAgent } })).text();
 
@@ -156,13 +156,16 @@ test('a guest, a robot, an Arena-only viewer and a subscriber on /standard/vicio
 
     // The HTML (with its RSC payload) has the open frame and no paid value.
     const text = guestHtml.replaceAll('<!-- -->', '');
+    assert.deepEqual(CLOSED_HTML_VALUES.filter(value => text.includes(value)), [], 'no closed value of the open answer in the HTML or the RSC payload');
     assert.deepEqual(PAID_RAW.filter(value => text.includes(value)), [], 'no paid value in the HTML or the RSC payload');
     assert.doesNotMatch(text, PAID_TEXT);
     assert.doesNotMatch(text, /arena-paywall/, 'no gate over the page');
-    assert.equal((text.match(/class="vsgold-deck-row"/g) ?? []).length, 4, 'every archetype of the report is a row');
-    // A neutral order: by class name (Воин, Маг, Рыцарь смерти), then by archetype name; not by share.
-    const order = [...text.matchAll(/<strong>([^<]+)<\/strong><small lang="en">/g)].map(match => match[1]);
-    assert.deepEqual(order, ['Драконий Воин', 'Контроль Воин', 'Протосс Маг', 'Рыцарь смерти крови']);
+    assert.equal((text.match(/class="vsgold-deck-row"/g) ?? []).length, 8, 'every archetype of the open frame is a row');
+    // The open frame's neutral order (class, name, slug, deck), not the source's order by share.
+    const order = [...text.matchAll(/<strong>([^<]+)<\/strong><small lang="en">([^<]+)<\/small>/g)].map(match => `${match[1]} / ${match[2]}`);
+    assert.deepEqual(order, ['Агро Воин / Control Warrior', 'Агро Воин / Aggro Warrior', 'Агро Воин / Face Warrior',
+      'Драконий Воин / Dragon Warrior', 'Протосс Маг / Protoss Mage', 'Святой Паладин / Holy Paladin',
+      'Циклоразбойник / Cycle Rogue', 'Рыцарь смерти крови / Blood Death Knight']);
     assert.ok(text.includes('href="/standard/archetypes/standard/dragon-warrior/"'), 'an archetype links to our archetype page');
     assert.ok(text.includes('>Все ранги</button>') && text.includes('>Легенда</button>'), 'the rank brackets are named');
     assert.ok(text.includes('href="https://www.vicioussyndicate.com/data-reaper-live/"'), 'the source is linked');
@@ -249,10 +252,39 @@ test('a guest, a robot, an Arena-only viewer and a subscriber on /standard/vicio
       await delay(1_500);
       assert.equal(await refused.evaluate(() => window.__paidFrames), 0, `${code}: no frame shows a paid value`);
       assert.equal(stack.paidReads - before, 2, `${code}: one retry after the access check, then the open frame stays`);
-      assert.equal(await refused.$$eval('.vsgold-deck-row', rows => rows.length), 4, `${code}: the open frame is what is left`);
+      assert.equal(await refused.$$eval('.vsgold-deck-row', rows => rows.length), 8, `${code}: the open frame is what is left`);
       await refused.close();
     }
     stack.paidRefusal = 0;
+
+    // The builds route refuses (401/403) once the subscription has lapsed, in both orders: after the report is shown
+    // (no frame after the refusal arrived may show it) and before the report answers (the report never shows).
+    for (const [code, order] of [[401, 'report first'], [403, 'report first'], [401, 'builds first'], [403, 'builds first']]) {
+      Object.assign(stack, { buildsRefusal: code, lapsed: false,
+        summaryDelay: order === 'report first' ? 300 : 1_500, buildsDelay: order === 'report first' ? 2_000 : 0 });
+      const lapsing = await (await browser.createBrowserContext()).newPage();
+      await lapsing.setViewport(DESKTOP);
+      await lapsing.setCookie({ name: 'vg_session', value: 'reader', url: stack.origin });
+      await lapsing.evaluateOnNewDocument(recordFrames);
+      await lapsing.goto(`${stack.origin}/standard/vicious-gold/`, { waitUntil: 'load' });
+      if (order === 'report first') await lapsing.waitForFunction(() => document.body.textContent.includes('17,73'), { timeout: 15_000 });
+      // Bounded wait: without the drop the page never gets its locks back, and the frame check below names the failure.
+      await lapsing.waitForFunction(() => document.querySelector('.vsgold[data-access-settled] .paid-lock'), { timeout: 8_000 }).catch(() => undefined);
+      await delay(2_500);
+      const { refusedAt, paidAfter, paidEver } = await lapsing.evaluate(() => {
+        const refusal = performance.getEntriesByType('resource').find(entry => entry.name.endsWith('/api/vicious-syndicate-gold/builds'));
+        const at = refusal ? refusal.responseEnd : Infinity;
+        return { refusedAt: at, paidAfter: window.__frames.filter(frame => frame.paid && frame.at > at).length,
+          paidEver: window.__frames.filter(frame => frame.paid).length };
+      });
+      assert.ok(Number.isFinite(refusedAt), `${code} ${order}: the builds request was made`);
+      assert.equal(paidAfter, 0, `${code} ${order}: no frame after the builds refusal shows the paid report`);
+      if (order === 'builds first') assert.equal(paidEver, 0, `${code} ${order}: the report refused before it answered never shows`);
+      else assert.ok(paidEver > 0, `${code} ${order}: the report was on screen before the refusal`);
+      assert.equal(await lapsing.$$eval('.vsgold-deck-row', rows => rows.length), 8, `${code} ${order}: the open frame is what is left`);
+      await lapsing.close();
+    }
+    Object.assign(stack, { buildsRefusal: 0, lapsed: false, summaryDelay: 500, buildsDelay: 0 });
 
     // Access is withdrawn while the paid report is on screen (the session ended): from then on no frame shows it.
     const revoked = await (await browser.createBrowserContext()).newPage();

@@ -12,8 +12,9 @@ import { DeckShareList } from './viciousGold/DeckShareList';
 import { MetaShare } from './viciousGold/MetaShare';
 import { PowerTierBoard } from './viciousGold/PowerTierBoard';
 import { ViciousGoldBanner, ViciousGoldLoading, ViciousGoldSummaryLoading } from './viciousGold/ViciousGoldBanner';
+import { lockedPayload } from './viciousGold/viciousGoldOpen';
 import { ViciousGoldReport } from './viciousGold/ViciousGoldReport';
-import { lockedPayload, reportWindowLabel, type BuildState, type DeckBuild, type ViciousGoldPayload } from './viciousGold/viciousGoldModel';
+import { reportWindowLabel, type BuildState, type DeckBuild, type ViciousGoldPayload } from './viciousGold/viciousGoldModel';
 
 type ViciousGoldBuildsPayload = {
   builds: Array<{ deck: string; build: DeckBuild | null }>;
@@ -85,8 +86,18 @@ export default function ViciousSyndicateGold({ open: initialOpen = null, hasFull
     });
     const summaryRequest = request('/api/vicious-syndicate-gold');
     const buildsRequest = request('/api/vicious-syndicate-gold/builds');
+    // Either paid route refusing the viewer (401/403) means access was withdrawn: whichever answers first, the paid
+    // data is dropped and the page goes to the open frame in the same render; the other read is cancelled.
+    const refuse = () => {
+      if (ignore) return;
+      ignore = true;
+      controller.abort();
+      setData(null);
+      denied.current?.();
+    };
+    const refusing = (response: Response) => response.status === 401 || response.status === 403;
     // A rejection is read by fetchBuilds after the summary; until then it must not be unhandled.
-    buildsRequest.catch(() => undefined);
+    buildsRequest.then(response => { if (refusing(response)) refuse(); }, () => undefined);
 
     async function fetchBuilds() {
       try {
@@ -124,11 +135,7 @@ export default function ViciousSyndicateGold({ open: initialOpen = null, hasFull
     async function fetchSummary() {
       try {
         const response = await summaryRequest;
-        // The route refused the viewer: access was withdrawn. The page drops to the open frame, nothing paid is shown.
-        if (response.status === 401 || response.status === 403) {
-          if (!ignore) denied.current?.();
-          return;
-        }
+        if (refusing(response)) return refuse();
         const payload = await response.json().catch(() => ({}));
         if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить статистику');
         if (ignore) return;
