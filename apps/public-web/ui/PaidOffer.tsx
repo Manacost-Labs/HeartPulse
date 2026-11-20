@@ -2,6 +2,7 @@
 
 import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { LockKeyhole } from 'lucide-react';
+import type { SubscriptionEntitlementKey } from '@/src/modules/subscriptions/public';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 
 const ArenaPaidOffer = lazy(() => import('./ArenaPaidOffer').then(module => ({ default: module.ArenaPaidOffer })));
@@ -13,9 +14,11 @@ const OfferContext = createContext<(() => void) | null>(null);
  * (`PaidLockButton`). The offer's code loads on the first tap. It closes by
  * itself once the viewer turns out to have access.
  */
-export function PaidOfferProvider({ title, text, children }: { title: string; text: string; children: ReactNode }) {
+export function PaidOfferProvider({ title, text, entitlement = 'arena', children }: {
+  title: string; text: string; entitlement?: SubscriptionEntitlementKey; children: ReactNode;
+}) {
   const access = usePublicAccess();
-  const { allowed } = paidAccess(access, 'arena');
+  const { allowed } = paidAccess(access, entitlement);
   const [shown, setShown] = useState(false);
   const open = useCallback(() => setShown(true), []);
   useEffect(() => { if (allowed) setShown(false); }, [allowed]);
@@ -29,6 +32,11 @@ export function PaidOfferProvider({ title, text, children }: { title: string; te
   </OfferContext.Provider>;
 }
 
+/** Opens the offer from code that renders its own locks (a feature that cannot import this app layer); null outside a provider. */
+export function usePaidOffer(): (() => void) | null {
+  return useContext(OfferContext);
+}
+
 /**
  * A lock in the open data: names what is closed and opens the offer. Without
  * the provider (or a script) it does nothing, and the data stays readable.
@@ -38,7 +46,7 @@ export function PaidLockButton({ className, label, closed, children }: {
   className: string;
   /** What the lock closes, for a screen reader: «Остальные показатели». */
   label: string;
-  closed: 'paywalled-tierlist' | 'paywalled-classes';
+  closed: 'paywalled-tierlist' | 'paywalled-classes' | 'paywalled-standard-meta';
   children?: ReactNode;
 }) {
   const open = useContext(OfferContext);

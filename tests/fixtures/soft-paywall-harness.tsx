@@ -274,15 +274,15 @@ export function SoftPaywallFixture() {
         <div className="arena-main">
           <div className="arena-content arena-content-open">
             {page === 'meta' ? (
-              <StandardMetaPage hasFullAccess={hasFullAccess} paywall={paywall} />
+              <StandardMetaPage hasFullAccess={hasFullAccess} />
             ) : page === 'fun-decks' ? (
-              <FunDecksPage hasFullAccess={hasFullAccess} paywall={paywall} />
+              <FunDecksPage hasFullAccess={hasFullAccess} />
             ) : (
               <ConstructedArchetypes
                 currentPath={path}
                 navigatePath={setPath}
                 hasFullAccess={hasFullAccess}
-                paywall={paywall}
+               
               />
             )}
           </div>

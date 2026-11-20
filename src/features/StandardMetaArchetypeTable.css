@@ -337,3 +337,9 @@
   .standard-meta-archetypes .standard-meta-table tbody .standard-meta-table__secondary { font-size: 0.7rem; }
   .standard-meta-archetypes .standard-meta-table tbody td.standard-meta-table__secondary::before { display: inline; margin-right: 0.3rem; }
 }
+
+/* A guest's closed column or change: a lock in the place of the value, the width of what it stands for. */
+.standard-meta-table__lock { display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 0; color: #6f5236; font: inherit; background: none; opacity: 0.65; }
+button.standard-meta-table__lock { min-block-size: 24px; min-inline-size: 24px; cursor: pointer; }
+.standard-meta-table__trend-lock { inline-size: 72px; block-size: 22px; }
+.standard-meta-table__change-lock { justify-self: start; }

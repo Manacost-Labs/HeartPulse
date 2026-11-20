@@ -32,7 +32,7 @@ const slice = (format, paid) => ({
 });
 
 async function startStack() {
-  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [] };
+  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [], protectedDown: false };
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://stack');
     const reader = /(?:^|;\s*)sm_session=reader/.test(request.headers.cookie ?? '');
@@ -49,6 +49,7 @@ async function startStack() {
     if (url.pathname === '/api/standard-meta') {
       if (!reader) return json(401, { error: 'subscription required' });
       state.protectedReads += 1;
+      if (state.protectedDown) return json(503, { error: 'paid source down' });
       return void setTimeout(() => json(200, slice(url.searchParams.get('format') === 'wild' ? 'wild' : 'standard', true)), PROTECTED_DELAY_MS);
     }
     if (url.pathname.startsWith('/api/')) return json(401, { error: 'guest' });
@@ -79,6 +80,17 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     assert.equal((bareHtml.match(/class="standard-meta-card"/g) ?? []).length, 8, 'all eight archetypes are in the HTML');
     assert.ok(bareHtml.includes('Стандартный архетип 8') && bareHtml.includes('50%'), 'names and winrates are printed');
     assert.deepEqual(SENTINELS.filter(value => bareHtml.includes(value)), [], 'no sentinel in the HTML a guest gets');
+    // The locks stand in their places in the HTML itself (the paid figures of every card, the paid filters), and the page
+    // has no subscription block at its end.
+    assert.equal((bareHtml.match(/aria-label="Ходы: по подписке/g) ?? []).length, 8, 'a lock for the turns of every card');
+    assert.equal((bareHtml.match(/aria-label="Скорость набора: по подписке/g) ?? []).length, 8, 'a lock for the climb speed of every card');
+    assert.equal((bareHtml.match(/data-locked-filter/g) ?? []).length, 3, 'the paid filters are in the HTML');
+    assert.ok(!bareHtml.includes('standard-meta-paywall'), 'no subscription block at the end of the page');
+    // Without a script nothing on the page may be focusable but links: every control waits for hydration, its place reserved.
+    const dead = await bare.evaluate(() => [...document.querySelectorAll('.standard-meta a[href],.standard-meta button,.standard-meta input,.standard-meta select,.standard-meta textarea,.standard-meta [tabindex]')]
+      .filter(node => !node.closest('[inert]') && !node.disabled && node.tagName !== 'A')
+      .map(node => `${node.tagName} ${node.getAttribute('aria-label') ?? node.textContent.trim().slice(0, 30)}`));
+    assert.deepEqual(dead, [], 'no focusable control that does nothing without JavaScript');
     const crawler = await (await fetch(`${stack.origin}/standard/meta/`, { headers: { 'User-Agent': 'Googlebot/2.1' } })).text();
     const guestHtml = await (await fetch(`${stack.origin}/standard/meta/`)).text();
     assert.equal(crawler, guestHtml, 'a crawler gets the guest HTML');
@@ -99,11 +111,18 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     assert.equal(stack.protectedReads, 0, 'a guest never asks the protected route');
     assert.equal(await guest.$$eval('[data-locked-filter]', nodes => nodes.length), 3, 'period, coin and floor are locks');
     await guest.click('.standard-meta__rank-tabs button:not([aria-pressed="true"])');
-    await guest.waitForSelector('.standard-meta__locked-note');
+    await guest.waitForSelector('[data-testid="arena-paid-offer"]');
+    assert.match(await guest.$eval('[data-testid="arena-paid-offer"]', node => node.textContent), /Узкие срезы, история и тренды — в подписке/);
+    await guest.keyboard.press('Escape');
+    await guest.waitForFunction(() => !document.querySelector('[data-testid="arena-paid-offer"]'));
     assert.match(await guest.$eval('.standard-meta__rank-tabs button[aria-pressed="true"]', node => node.textContent), /Алмаз/, 'the rank stays');
     assert.equal(await guest.$$eval('.standard-meta-card', cards => cards.length), 8, 'a locked rank does not change the slice');
     await guest.click('[data-locked-filter]');
-    assert.ok(await guest.$('#standard-meta-paywall'), 'the offer is on the page');
+    await guest.waitForSelector('[data-testid="arena-paid-offer"]');
+    await guest.keyboard.press('Escape');
+    await guest.click('button[aria-label^="Ходы: по подписке"]');
+    await guest.waitForSelector('[data-testid="arena-paid-offer"]');
+    await guest.keyboard.press('Escape');
     assert.equal(stack.publicReads.length, 1, 'locked filters send no request');
     // The format switch is two links, each its own address: Wild opens at /standard/meta/wild/.
     assert.deepEqual(await guest.$$eval('.standard-meta__segmented a', links => links.map(link => link.getAttribute('href'))),
@@ -179,18 +198,51 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
         .observe({ type: 'layout-shift', buffered: true });
     });
     await reader.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
+    await reader.setCookie({ name: 'hp_viewer', value: 'AAAAAAAAAAAAAAAAAAAAAA', url: stack.origin });
     await reader.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
     await reader.waitForSelector('.standard-meta-card');
     const cardTop = () => reader.$eval('.standard-meta-card:nth-child(4)', card => card.getBoundingClientRect().top + scrollY);
     const before = await cardTop();
+    // The paid slice replaces the open one inside the same page: the same card element, no dimming, no lock on screen.
+    await reader.evaluate(() => {
+      window.__card = document.querySelector('.standard-meta-card');
+      window.__busy = false; window.__lockSeen = false;
+      const watch = () => {
+        if (document.querySelector('[aria-busy="true"]')) window.__busy = true;
+        for (const lock of document.querySelectorAll('[aria-label*="по подписке"]')) {
+          if (getComputedStyle(lock.querySelector('svg')).visibility !== 'hidden') window.__lockSeen = true;
+        }
+      };
+      new MutationObserver(watch).observe(document.body, { attributes: true, subtree: true, childList: true });
+      watch();
+    });
     await reader.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
     assert.equal(await cardTop(), before, 'the paid figures arrive without moving the rows');
     assert.equal(await reader.$('[data-locked-filter]'), null, 'no locks for a subscriber');
-    assert.equal(await reader.$('#standard-meta-paywall'), null, 'no offer for a subscriber');
+    assert.equal(await reader.$('[aria-label*="по подписке"]'), null, 'no lock anywhere for a subscriber');
+    assert.equal(await reader.evaluate(() => window.__card.isConnected), true, 'the cards are not remounted by the paid data');
+    assert.equal(await reader.evaluate(() => window.__busy), false, 'the page is not dimmed while the paid data loads');
+    assert.equal(await reader.evaluate(() => window.__lockSeen), false, 'no lock is visible to a subscriber while the paid data loads');
+    assert.equal(await reader.$('[data-testid="arena-paid-offer"]'), null, 'no offer for a subscriber');
     assert.ok(stack.protectedReads >= 1);
     const shift = await reader.evaluate(() => window.__shifts.reduce((sum, value) => sum + value, 0));
-    assert.ok(shift <= 0.1, `the subscriber page shifted by ${shift.toFixed(4)}`);
+    assert.ok(shift < 0.01, `the subscriber page shifted by ${shift.toFixed(4)}`);
     await reader.close();
+
+    // The paid source fails: the open slice stays, a visible message offers a retry, and the retry brings the paid data.
+    stack.protectedDown = true;
+    const failing = await browser.newPage();
+    await failing.setViewport(DESKTOP);
+    await failing.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
+    await failing.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
+    await failing.waitForFunction(() => document.body.textContent.includes('Подписочные данные не загрузились'), { timeout: 15000 });
+    assert.equal(await failing.$$eval('.standard-meta-card', cards => cards.length), 8, 'the open slice stays under the message');
+    assert.equal(await failing.$('[aria-label*="по подписке"]'), null, 'a subscriber sees no lock even when the paid data failed');
+    stack.protectedDown = false;
+    await failing.evaluate(() => [...document.querySelectorAll('button')].find(button => button.textContent.includes('Повторить')).click());
+    await failing.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+    assert.ok(!(await failing.evaluate(() => document.body.textContent)).includes('Подписочные данные не загрузились'), 'the message goes with the retry');
+    await failing.close();
 
     // A subscriber's filters go with the format switch, in the address of the link.
     const filtered = await browser.newPage();
