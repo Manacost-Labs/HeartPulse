@@ -761,8 +761,8 @@ test('the catalog dataset is dated by the catalog and the page asks the API once
     assert.equal('creator' in dataset, false);
     assert.equal('license' in dataset, false);
     assert.doesNotMatch(JSON.stringify(graph), /PAID_BUILD_CODE|deckCode|Зоолок|gameMode|temporalCoverage|P7D/);
-    const wild = (await page('/standard/archetypes/?format=wild')).graph;
-    assert.equal(nodeOfType(wild, 'Dataset').dateModified, DATA_DATE);
+    // The old address of the Wild catalog (#543) prints no JSON-LD of the Standard list.
+    assert.equal((await page('/standard/archetypes/?format=wild')).graph, undefined);
 
     // A success is reused for two seconds; the catalog changes after them.
     await delay(2200);
@@ -918,7 +918,7 @@ const numbersIn = (value, found = []) => {
   return found;
 };
 
-test('archetype pages: only a strong Standard archetype is indexable; every page carries the plates and nothing paid', { timeout: 180_000 }, async () => {
+test('archetype pages: only a strong archetype is indexable (Wild from 5000 games); every page carries the plates and nothing paid', { timeout: 180_000 }, async () => {
   assert.equal(existsSync('apps/public-web/.next/BUILD_ID'), true, 'run build:next before browser QA');
   const state = { catalogOk: true, updatedAt: new Date(Date.now() - 3 * HOUR).toISOString() };
   const express = startArchetypeExpress(state);
@@ -998,11 +998,20 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
       assert.ok(JSON.stringify(teaserItem).includes(JSON.stringify(value)), `${value} is written as the teaser writes it`);
     }
 
-    // Not strong enough, Wild and the old family: noindex, follow, no graph, the same block.
-    const weak = await page('/standard/archetypes/standard/weak-warlock/');
+    // A strong Wild archetype (#543, 20 000 games, builds and a share of games): indexable and self-canonical, with its graph.
     const wild = await page('/standard/archetypes/wild/zoolock/');
+    assert.equal(wild.robots, strong.robots, 'wild robots');
+    assert.equal(wild.canonical, 'https://hearthpulse.net/standard/archetypes/wild/zoolock/');
+    assert.equal(wild.graphs.length, 1, 'a strong Wild archetype has its JSON-LD');
+    assert.deepEqual(nodeOfType(wild.graphs[0]['@graph'], 'Dataset').variableMeasured.map(({ name, value }) => [name, value]),
+      [['Винрейт', 58], ['Популярность', 10], ['Число игр', 20000]]);
+    assertNoProse(wild, 'wild');
+
+    // Not strong enough (a Wild one under 5000 games too) and the old family: noindex, follow, no graph, the same block.
+    const weak = await page('/standard/archetypes/standard/weak-warlock/');
+    const wildWeak = await page('/standard/archetypes/wild/wild-a/');
     const legacy = await page('/standard/meta/standard/zoolock/');
-    for (const [name, other] of [['weak', weak], ['wild', wild], ['legacy', legacy]]) {
+    for (const [name, other] of [['weak', weak], ['wild under 5000 games', wildWeak], ['legacy', legacy]]) {
       assert.equal(other.robots, 'noindex, follow', `${name} robots`);
       assert.deepEqual(other.graphs, [], `${name} has no JSON-LD`);
       assertNoProse(other, name);
@@ -1014,10 +1023,49 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
     assert.ok(weak.text.includes('Медиана формата 51,3% −1,3 п. п.'), weak.text);
     assert.match(weak.summary, /title="ниже медианы на 1,3 п\. п\."/);
     assert.ok(wild.text.includes('Среди архетипов Вольного формата') && wild.text.includes('Другие архетипы Чернокнижника'), wild.text);
-    assert.equal(wild.links.at(-1), '/standard/archetypes/?format=wild');
-    for (const [name, other] of [['weak', weak], ['wild', wild], ['legacy', legacy], ['strong', strong]]) {
+    assert.equal(wild.links.at(-1), '/standard/archetypes/wild/', 'a Wild archetype links the Wild list (#543)');
+    for (const [name, other] of [['weak', weak], ['wild', wild], ['wild under 5000 games', wildWeak], ['legacy', legacy], ['strong', strong]]) {
       assert.equal((other.html.match(/<h1[\s>]/g) ?? []).length, 1, `${name} has one H1`);
     }
+
+    // The Wild list (#543): the whole Wild catalog in the server HTML (name, winrate, share and games of each
+    // archetype, a link to its page), the date and the source; noindex, follow and no canonical until SEO-A opens it.
+    const wildList = await page('/standard/archetypes/wild/');
+    assert.equal(wildList.robots, 'noindex, follow');
+    assert.equal(wildList.canonical, undefined, 'a noindex page names no canonical, least of all the Standard list');
+    assert.match(wildList.title, new RegExp(`^Архетипы Вольного формата Hearthstone: винрейт, (${MONTH_NAMES}) \\d{4}$`));
+    assert.match(wildList.html, /<meta name="description" content="Вольный формат Хартстоуна \(хс\) на [^":]*: 5 архетипов — винрейт, популярность и число игр каждого архетипа\. Данные HSGuru\."/);
+    assert.deepEqual([...wildList.html.matchAll(/<h1[^>]*>([^<]*)<\/h1>/g)].map(match => match[1]), ['Архетипы Вольного формата']);
+    assert.deepEqual([...wildList.html.matchAll(/<a class="archetype-row__open"[^>]*href="([^"]+)"/g)].map(match => match[1]), [
+      '/standard/archetypes/wild/zoolock/', '/standard/archetypes/wild/wild-a/', '/standard/archetypes/wild/wild-b/',
+      '/standard/archetypes/wild/wild-c/', '/standard/archetypes/wild/wild-d/']);
+    const wildRows = [...wildList.html.matchAll(/<article class="archetype-row"[\s\S]*?<\/article>/g)]
+      .map(([row]) => visibleText(row.replace(/<\/(?:span|h2|small|dt|dd)>/g, '$& ')).replaceAll('\u00a0', ' ').replace(/\s+/g, ' ').trim());
+    assert.equal(wildRows[0], '1 Чернокнижник Зоолок Zoolock Винрейт 58% Популярность 10% Игры 20 000 Сборки 3 Открыть');
+    assert.equal(wildRows[4], '5 Чернокнижник Вольный d Wild d Винрейт 50% Популярность 1% Игры 2 700 Сборки 1 Открыть');
+    const wildTools = visibleText(wildList.html.match(/<section class="archetypes-tools"[\s\S]*?<\/section>/)?.[0] ?? '');
+    assert.match(wildTools, /Вольный.*Баны · минимум 50 игр · обновлено .+ · данные HSGuru/);
+    // The old address of the Wild catalog, with or without other keys (#543): still Wild, but out of the index, pointing at
+    // the Wild list, with no JSON-LD of the Standard list. Without the key, and with `format=standard`, the Standard list as before.
+    for (const path of ['/standard/archetypes/?format=wild', '/standard/archetypes/?class=warlock&format=wild']) {
+      const old = await page(path);
+      assert.equal(old.robots, 'noindex, follow', `${path} robots`);
+      assert.equal(old.canonical, 'https://hearthpulse.net/standard/archetypes/wild/', `${path} canonical`);
+      assert.ok(old.html.includes('<meta property="og:url" content="https://hearthpulse.net/standard/archetypes/wild/"/>'), `${path} og:url`);
+      assert.deepEqual(old.graphs, [], `${path} JSON-LD`);
+      assert.equal(old.html.includes('"@type":"Dataset"'), false, `${path} has no dataset`);
+      assert.ok(old.html.includes('/standard/archetypes/wild/zoolock/'), `${path} still lists Wild`);
+    }
+    for (const path of ['/standard/archetypes/', '/standard/archetypes/?format=standard']) {
+      const standard = await page(path);
+      assert.equal(standard.robots, 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1', `${path} robots`);
+      assert.equal(standard.canonical, 'https://hearthpulse.net/standard/archetypes/', `${path} canonical`);
+      assert.ok(standard.html.includes('"@type":"Dataset"'), `${path} keeps the JSON-LD of the Standard list`);
+    }
+
+    // Both lists link each other in their server HTML: the format switch is two links.
+    assert.deepEqual([...wildList.html.matchAll(/<a href="([^"]+)"(?: aria-current="page")?><img src="[^"]*card-format/g)].map(match => match[1]),
+      ['/standard/archetypes/', '/standard/archetypes/wild/']);
 
     // Two slugs with one Russian name: different titles; a name nobody shares keeps the plain one.
     const pure = await page('/standard/archetypes/standard/pure-paladin/');
@@ -1069,7 +1117,7 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
       assertNoProse(other, `without the catalog, page ${index}`);
       assert.match(other.summary, /<time datetime="/i, `without the catalog, page ${index} keeps the date`);
       assert.doesNotMatch(other.text, /Медиана|Место по играм|Другие архетипы|\(Pure Paladin\)|\(Archmage Paladin\)|51,3|52%/, `without the catalog, page ${index}`);
-      assert.deepEqual(other.links.filter(href => /^\/standard\/archetypes\/(?:standard|wild)\//.test(href)), [], `without the catalog, page ${index} links no archetype`);
+      assert.deepEqual(other.links.filter(href => /^\/standard\/archetypes\/(?:standard|wild)\/[a-z0-9-]+\/$/.test(href)), [], `without the catalog, page ${index} links no archetype`);
     }
     state.catalogOk = true;
 

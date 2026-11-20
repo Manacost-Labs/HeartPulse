@@ -204,7 +204,9 @@ export function projectConstructedArchetypeSitemapCatalog(
     const row = asRecord(raw);
     const item = asRecord(row.item);
     const slug = archetypePageSlug(item);
-    if (!slug || !isIndexableArchetype(archetypeIndexingFacts(item))) {
+    const facts = archetypeIndexingFacts(item);
+    // Every location below is a Standard URL: a Wild row (indexable on its own page since #543) is a wiring mistake here.
+    if (!slug || facts.format !== 'standard' || !isIndexableArchetype(facts)) {
       throw new Error('Archetype sitemap catalog contains a page that is not indexable');
     }
     const publicFacts = {

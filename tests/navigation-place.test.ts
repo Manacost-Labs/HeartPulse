@@ -57,6 +57,8 @@ const ROWS: readonly Row[] = [
   ['/standard/meta/', null, null, null, 'standard-meta'],
   ['/standard/matchups/', null, 'standard', null, 'standard-matchups'],
   ['/standard/deck-builder/', null, 'wild', null, 'deck-builder'],
+  ['/standard/archetypes/wild/', null, null, 'wild', 'wild-archetypes'],
+  ['/standard/archetypes/wild', '', 'standard', 'wild', 'wild-archetypes'],
   ['/standard/archetypes/wild/quest-mage', null, null, 'wild', 'wild-archetypes'],
   ['/standard/archetypes/standard/quest-mage', null, null, 'standard', 'constructed-archetypes'],
   ['/standard/patches/', null, null, null, 'patch-notes'],
@@ -84,7 +86,7 @@ test('the Wild list has the pages of the issue and no VS Gold', () => {
   assert.deepEqual(WILD_NAVIGATION_ITEMS.map(item => [item.id, item.path]), [
     ['wild-meta', '/standard/meta/wild'],
     ['wild-matchups', '/standard/matchups?format=wild'],
-    ['wild-archetypes', '/standard/archetypes?format=wild'],
+    ['wild-archetypes', '/standard/archetypes/wild'],
     ['wild-fun-decks', '/standard/fun-decks?format=wild'],
     ['wild-cards', '/standard/cards/wild'],
     ['wild-deck-builder', '/standard/deck-builder?format=wild'],

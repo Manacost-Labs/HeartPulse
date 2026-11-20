@@ -57,6 +57,7 @@ export const WEB_VITAL_ROUTE_TEMPLATES = [
   '/standard/archetypes/',
   '/standard/assemble/',
   '/standard/archetypes/[format]/[archetypeSlug]/',
+  '/standard/archetypes/wild/',
   '/standard/cards/',
   '/standard/cards/[format]/',
   '/standard/cards/[format]/[cardId]/',

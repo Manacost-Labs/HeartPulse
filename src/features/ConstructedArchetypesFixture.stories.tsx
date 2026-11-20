@@ -18,6 +18,10 @@ const meta = {
 export default meta;
 
 export const Fixture: StoryObj<typeof meta> = {};
+/** The Wild catalog's own page, `/standard/archetypes/wild/` (#543): the format comes from the path. */
+export const WildCatalog: StoryObj<typeof meta> = {
+  args: { initialPath: '/standard/archetypes/wild/' },
+};
 export const ArchetypeDetail: StoryObj<typeof meta> = {
   args: { initialPath: '/standard/archetypes/wild/thief-priest' },
   play: async ({ canvas }) => {

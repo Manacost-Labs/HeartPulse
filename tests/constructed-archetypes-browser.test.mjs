@@ -64,10 +64,29 @@ try {
   // The tile and row views are covered by tests/deck-views-sitewide-browser.test.mjs.
   await page.evaluateOnNewDocument(() => window.localStorage.setItem('hp:deck-layout', 'images'));
   await page.setViewport({ width: 1440, height: 1100, deviceScaleFactor: 1 });
+  // The Wild catalog's own page (#543): its heading, the switch as two links with Wild current,
+  // rows that open Wild pages, and a class filter that stays on the Wild address.
+  await page.goto(storybook.storyUrl('browser-test-fixtures-constructed-archetypes--wild-catalog'), { waitUntil: 'networkidle0' });
+  await page.waitForSelector('.archetype-row');
+  assert.equal(await page.$eval('#storybook-root h1', heading => heading.textContent), 'Архетипы Вольного формата');
+  assert.deepEqual(await page.$$eval('.archetypes-format-switch a', links => links.map(link => [link.textContent, link.getAttribute('href'), link.getAttribute('aria-current')])), [
+    ['СтандартКарты текущей ротации', '/standard/archetypes/', null],
+    ['ВольныйКарты всех дополнений', '/standard/archetypes/wild/', 'page'],
+  ]);
+  assert.deepEqual(await page.$$eval('.archetype-row__open', links => links.map(link => link.getAttribute('href').split('/').slice(0, 4).join('/'))),
+    ['/standard/archetypes/wild', '/standard/archetypes/wild', '/standard/archetypes/wild']);
+  await page.click('.archetypes-class-filter button[aria-label^="Маг:"]');
+  await page.waitForFunction(() => document.querySelectorAll('.archetype-row').length === 1);
+  assert.equal(new URL(page.url()).pathname + new URL(page.url()).search, '/standard/archetypes/wild/?class=mage');
+  assert.deepEqual(await page.$$eval('.archetypes-format-switch a', links => links.map(link => link.getAttribute('href'))),
+    ['/standard/archetypes/?class=mage', '/standard/archetypes/wild/?class=mage'], 'the other format keeps the class');
+
   await page.goto(fixture('format=wild'), { waitUntil: 'networkidle0' });
   await page.waitForSelector('.archetype-row');
   assert.equal(await page.$$eval('.archetype-row', rows => rows.length), 3);
-  assert.equal(await page.$$eval('.archetypes-format-switch button', buttons => buttons.length), 2);
+  // The old address with ?format=wild still opens Wild; its switch links to both catalog pages.
+  assert.deepEqual(await page.$$eval('.archetypes-format-switch a', links => links.map(link => [link.getAttribute('href'), link.getAttribute('aria-current')])),
+    [['/standard/archetypes/', null], ['/standard/archetypes/wild/', 'page']]);
   assert.equal(await page.$$eval('.archetypes-class-filter button', buttons => buttons.length), 12);
   assert.equal(await page.$eval('#storybook-root h1', heading => heading.textContent), 'Архетипы');
   assert.ok(await page.$('[data-tour-id="archetypes-format"]'));
@@ -87,7 +106,7 @@ try {
     await page.setViewport({ width, height: 900, deviceScaleFactor: 1 });
     const responsiveCatalog = await page.evaluate(() => ({
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      minFormatButtonHeight: Math.min(...[...document.querySelectorAll('.archetypes-format-switch button')].map(element => element.getBoundingClientRect().height)),
+      minFormatButtonHeight: Math.min(...[...document.querySelectorAll('.archetypes-format-switch a')].map(element => element.getBoundingClientRect().height)),
       minClassButtonHeight: Math.min(...[...document.querySelectorAll('.archetypes-class-filter button')].map(element => element.getBoundingClientRect().height)),
       minOpenHeight: Math.min(...[...document.querySelectorAll('.archetype-row__open')].map(element => element.getBoundingClientRect().height)),
     }));
@@ -109,6 +128,9 @@ try {
   await page.waitForSelector('.constructed-card-stats tbody tr');
   assert.equal(await page.$('.archetype-detail-page .section-banner-modern'), null);
   assert.equal(await page.$eval('.archetype-dossier h1', title => title.textContent), 'Воровской Жрец');
+  // The breadcrumb of a Wild archetype: «Архетипы / Вольный» both lead to their catalogs (#543).
+  assert.deepEqual(await page.$$eval('.archetype-breadcrumb a', links => links.map(link => [link.textContent.trim(), link.getAttribute('href')])),
+    [['Архетипы', '/standard/archetypes/'], ['Вольный', '/standard/archetypes/wild/']]);
   assert.equal(await page.$eval('.archetype-dossier h1', title => getComputedStyle(title).color), 'rgb(255, 240, 200)');
   const metricRows = await page.$$eval('.archetype-dossier__metrics > li', cells => cells.map(cell => Math.round(cell.getBoundingClientRect().top)));
   assert.equal(new Set(metricRows).size, 1, 'six desktop statistics share one aligned row');
@@ -431,7 +453,7 @@ try {
     scrollTo(0, 0);
     return {
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      minFormatButtonHeight: Math.min(...[...document.querySelectorAll('.archetypes-format-switch button')].map(element => element.getBoundingClientRect().height)),
+      minFormatButtonHeight: Math.min(...[...document.querySelectorAll('.archetypes-format-switch a')].map(element => element.getBoundingClientRect().height)),
       minClassButtonHeight: Math.min(...[...document.querySelectorAll('.archetypes-class-filter button')].map(element => element.getBoundingClientRect().height)),
       minOpenHeight: Math.min(...openHeights),
     };

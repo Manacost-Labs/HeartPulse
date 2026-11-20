@@ -231,7 +231,8 @@ test('with data each hub shows its open layer with the date and nothing closed; 
     // A strong archetype links to its page; one below the sample threshold does not (its page is not indexed).
     assert.match(html['/standard/'], /<a href="\/standard\/archetypes\/standard\/zoolock\/">Зоолок<\/a>/);
     assert.doesNotMatch(html['/standard/'], /href="\/standard\/archetypes\/standard\/nzoth-warlock\/"/);
-    assert.doesNotMatch(html['/wild/'], /href="\/standard\/archetypes\/wild\//, 'Wild archetype pages are not indexed, so not linked');
+    // The menu links the Wild list (#543); the hub links no Wild archetype page.
+    assert.doesNotMatch(html['/wild/'], /href="\/standard\/archetypes\/wild\/[a-z0-9]/, 'the hub links no Wild archetype page');
 
     const arena = nowBlock(html['/arena/']);
     assert.deepEqual(arena.slice(0, 6), ['Сейчас на Арене', 'Данные на', '15 ноября 2026, 20:00 МСК', '· источник HSReplay',

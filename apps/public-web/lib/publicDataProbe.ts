@@ -67,8 +67,9 @@ export async function probePublicData(pathname: string, searchParams: URLSearchP
     return SLUG.test(slug) ? probeReads([streamerPath(slug), isStreamerPage]) : 'none';
   }
   if (path === '/standard/fun-decks') return probeReads([FUN_DECKS_PATH, funDecksCheck]);
-  if (path === '/standard/archetypes') {
-    const { format } = readInitialCatalogFilters(search, []);
+  if (path === '/standard/archetypes' || path === '/standard/archetypes/wild') {
+    // The Wild catalog's own page (#543) needs Wild's catalog whatever its query says.
+    const format = path === '/standard/archetypes/wild' ? 'wild' : readInitialCatalogFilters(search, []).format;
     return probeReads([archetypeTeaserPath(format, null), archetypeTeaserCheck(format)]);
   }
   if (path === '/standard/patches') {

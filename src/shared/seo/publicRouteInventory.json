@@ -410,6 +410,20 @@
       "entitlement": "standard"
     },
     {
+      "id": "constructed-archetypes-wild",
+      "pattern": "/standard/archetypes/wild",
+      "kind": "static",
+      "owner": "traditional-data",
+      "indexPolicy": "noindex-follow",
+      "canonicalPolicy": "none",
+      "sitemap": false,
+      "htmlStrategy": "prerender-teaser",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "constructed-archetypes-anonymous",
+      "entitlement": "standard"
+    },
+    {
       "id": "constructed-archetype-detail",
       "pattern": "/standard/archetypes/:format/:archetypeSlug",
       "kind": "detail",
