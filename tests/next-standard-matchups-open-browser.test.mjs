@@ -18,6 +18,9 @@ const SUBSCRIBED = { hasAccess: true, entitlements: { arena: true, standard: tru
 const PROTECTED_DELAY_MS = 5000;
 const DESKTOP = { width: 1440, height: 900 };
 const PHONE = { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 };
+/** Phones tall enough to show the ledger heading on the first screen (Android 412×915, iPhone Pro Max 430×932). */
+const TALL_PHONES = [{ width: 412, height: 915, isMobile: true, hasTouch: true, deviceScaleFactor: 2 },
+  { width: 430, height: 932, isMobile: true, hasTouch: true, deviceScaleFactor: 3 }];
 
 async function startStack() {
   const state = { next: null, publicReads: [], protectedReads: 0, wildDown: false };
@@ -39,7 +42,7 @@ async function startStack() {
     if (url.pathname === '/api/standard/matchups') {
       if (!reader) return json(401, { error: 'subscription required' });
       state.protectedReads += 1;
-      return void setTimeout(() => json(200, protectedAnswer()), PROTECTED_DELAY_MS);
+      return void setTimeout(() => json(200, protectedAnswer({ format: url.searchParams.get('format') === 'wild' ? 'wild' : 'standard' })), PROTECTED_DELAY_MS);
     }
     if (url.pathname.startsWith('/api/')) return json(401, { error: 'guest' });
     const upstream = http.request(new URL(state.next), { method: request.method, path: request.url, headers: request.headers },
@@ -255,6 +258,38 @@ test('a guest and a subscriber on /standard/matchups/ in a real browser', { time
       const readerFilters = (await (await reader.waitForSelector('::-p-aria([name="Срез матчапов"][role="group"])')).boundingBox()).height;
       assert.ok(Math.abs(readerFilters - filterHeights[name].guest) <= 2, `${name}: filters ${readerFilters} (subscriber) vs ${filterHeights[name].guest} (guest)`);
       await reader.close();
+    }
+
+    // Tall phones, where the ledger heading is on the first screen: the paid slice renames the rank in it («Все ранги» →
+    // «Легенда»), and the heading's lines must not move (the shift a subscriber sees, in both formats).
+    for (const viewport of TALL_PHONES) {
+      for (const [format, label] of [['standard', 'Стандарт'], ['wild', 'Вольный']]) {
+        const tall = await browser.newPage();
+        await tall.setViewport(viewport);
+        await tall.evaluateOnNewDocument(() => { try { localStorage.clear(); } catch { /* none */ } });
+        await tall.evaluateOnNewDocument(() => {
+          window.__shifts = [];
+          new PerformanceObserver(list => { for (const entry of list.getEntries()) if (!entry.hadRecentInput) { window.__shifts.push(entry.value); window.__why = (window.__why ?? []).concat((entry.sources ?? []).map(source => `${entry.value.toFixed(3)} @${Math.round(entry.startTime)} ${source.node?.textContent?.slice(0, 40) || source.node?.nodeName}`)); } })
+            .observe({ type: 'layout-shift', buffered: true });
+        });
+        await tall.setCookie({ name: 'mx_session', value: 'reader', url: stack.origin });
+        await tall.goto(`${stack.origin}/standard/matchups/${format === 'wild' ? '?format=wild' : ''}`, { waitUntil: 'load' });
+        const where = `${viewport.width}×${viewport.height} ${label}`;
+        await shown(tall, `Матчапы · ${label} · Все ранги`);
+        const box = await tall.evaluate(needle => {
+          const heading = [...document.querySelectorAll('h1, h2, h3, [role="heading"]')].find(node => node.textContent.includes(needle));
+          const rect = heading?.getBoundingClientRect();
+          return rect ? { y: rect.y, height: rect.height } : null;
+        }, `Матчапы · ${label}`);
+        assert.ok(box, `${where}: the heading is on the page`);
+        assert.ok(box.y + 20 <= viewport.height, `${where}: the heading's first line is on the first screen (${Math.round(box.y)}..${Math.round(box.y + box.height)})`);
+        await shown(tall, `Матчапы · ${label} · Легенда`);
+        await delay(1000);
+        const shift = await tall.evaluate(() => window.__shifts.reduce((sum, value) => sum + value, 0));
+        console.log(`${where} subscriber CLS ${shift.toFixed(4)}`);
+        assert.ok(shift < 0.01, `${where}: the subscriber page shifted by ${shift.toFixed(4)}: ${JSON.stringify(await tall.evaluate(() => window.__why))}`);
+        await tall.close();
+      }
     }
   } finally {
     if (browser) await browser.close();

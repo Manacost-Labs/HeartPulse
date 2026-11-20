@@ -326,7 +326,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
         >
           <div className="standard-matchups__ledger-heading flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
-              <h2 className="font-hs text-2xl" style={{ color: '#3d2208' }}>Матчапы · {formatLabel} · {data.rankLabel}</h2>
+              <h2 className="font-hs text-2xl" style={{ color: '#3d2208' }}>Матчапы · {formatLabel} · <span className="standard-matchups__heading-rank"><span>{data.rankLabel}</span></span></h2>
               <p className="text-sm text-[#7a5a35]">Цвет показывает силу матчапа: зеленый - хороший, красный - плохой.</p>
             </div>
             <div className="standard-matchups__updated flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs"

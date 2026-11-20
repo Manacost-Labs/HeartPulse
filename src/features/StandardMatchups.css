@@ -213,6 +213,26 @@
   line-height: 1.2;
 }
 
+/*
+ * The rank in the ledger heading is one unbreakable piece, at least as wide as «Все ранги» (the open slice's label,
+ * on screen first): when the subscriber's slice renames it («Легенда»), the heading keeps its line breaks and nothing
+ * in it moves. The reserved label is generated content, hidden: no text in the HTML, nothing for a screen reader.
+ */
+.arena-app-standard-matchups .standard-matchups__heading-rank {
+  display: inline-grid;
+  white-space: nowrap;
+}
+
+.arena-app-standard-matchups .standard-matchups__heading-rank > span,
+.arena-app-standard-matchups .standard-matchups__heading-rank::after {
+  grid-area: 1 / 1;
+}
+
+.arena-app-standard-matchups .standard-matchups__heading-rank::after {
+  content: 'Все ранги';
+  visibility: hidden;
+}
+
 @media (max-width: 720px) {
   .arena-app-standard-matchups .standard-matchups__masthead {
     padding: 1rem 0.9rem !important;
