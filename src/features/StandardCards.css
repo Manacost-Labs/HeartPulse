@@ -281,6 +281,10 @@
 .constructed-card-detail__statistics .constructed-cards__stat dt { color: #3a2718; font-size: 0.8125rem; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
 .constructed-card-detail__statistics .constructed-cards__stat-value { grid-area: 1 / 2; margin: 0; color: var(--cards-ink); font-family: var(--font-body); font-size: 1.0625rem; font-variant-numeric: tabular-nums; font-weight: 700; line-height: 1.2; text-align: right; white-space: nowrap; }
 .constructed-card-detail__statistics .constructed-cards__stat dd:not(.constructed-cards__stat-value) { grid-column: 1 / -1; margin: 0.2rem 0 0; color: #5d4733; font-size: 0.75rem; font-weight: 400; line-height: 1.35; overflow-wrap: anywhere; }
+.constructed-card-detail__stats-about { margin-top: 0.6rem; color: #5d4733; font-size: 0.8125rem; }
+.constructed-card-detail__stats-about summary { padding: 0.7rem 0; cursor: pointer; font-weight: 600; }
+.constructed-card-detail__stats-about dt { font-weight: 600; }
+.constructed-card-detail__stats-about dd { margin: 0 0 0.35rem; }
 @container card-statistics (width >= 26.25rem) {
   .constructed-card-detail__statistics-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .constructed-card-detail__statistics .constructed-cards__stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -382,6 +386,8 @@ button.constructed-card-detail__related-card-image:focus-visible img { transform
 .constructed-card-detail__deck-copy button:hover { filter: brightness(1.08); }
 .constructed-card-detail__media-grid { display: grid; grid-template-columns: 1.35fr 0.9fr 0.75fr; gap: 0.8rem; margin-top: 0.8rem; }
 .constructed-card-detail__media-grid--two { grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr); }
+.constructed-card-detail__lower-grid--one,
+.constructed-card-detail__media-grid--one { grid-template-columns: minmax(0, 1fr); }
 .constructed-card-detail__gallery { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.45rem; }
 .constructed-card-detail__gallery button { display: grid; min-width: 0; padding: 0; border: 1px solid #a97b45; color: #4a2d1b; background: rgba(255, 248, 225, 0.5); cursor: zoom-in; }
 .constructed-card-detail__gallery img { width: 100%; height: 130px; object-fit: cover; }

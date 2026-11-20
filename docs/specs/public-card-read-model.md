@@ -60,6 +60,10 @@ then renders the seed alone; Express still finishes and caches an abandoned
 read for the next visit. So the server HTML shows the same mechanics, patch
 history, related cards and decks a guest sees after the page loads, and never
 says «История изменений не найдена» for a card that has a history.
+A section without data (mechanics, patch history, gallery, sounds, links) is
+not printed at all, and the statistics block lists name and value only: what
+each number counts is told once in the folded «Что значат цифры» (owner's rule
+2026-11-20: no filler or explanation sheet at the foot of a page).
 
 Checks: `test:public-card-read-model`, `test:constructed-card-seo-routes`,
 `test:constructed-card-urls`, `test:next-public-card-seed`, `test:next-pilot`,

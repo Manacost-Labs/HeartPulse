@@ -103,6 +103,8 @@ fi
 
 # 4. Same-origin and CDN media that public pages actually reference: article
 #    covers, banners, hero skins, catalog card URLs with their page version.
+#    The site serves only its own `/uploads/admin/`; a bare `/uploads/…` in
+#    page data belongs to the data API and is warmed through the proxy (step 5).
 pages="$work_dir/pages.txt"
 edge_curl "https://${site_host}/sitemaps/static.xml" 2>/dev/null \
   | grep -oE "<loc>https://${site_host//./\\.}/[^<]*" | sed -E "s#^<loc>https://${site_host//./\\.}##" \
@@ -111,7 +113,7 @@ edge_curl "https://${site_host}/sitemaps/static.xml" 2>/dev/null \
 while IFS= read -r page; do
   edge_curl --compressed "https://${site_host}${page}" 2>/dev/null \
     | sed -e 's/\\u0026/\&/g' -e 's/&amp;/\&/g' -e 's/\\"/"/g' \
-    | grep -oE "(https://(${site_host//./\\.}|${cdn_host//./\\.}))?/(api/(article-cover|public-resource|card-image)|uploads|_next/static|wallpaper|class_icon|bg-legacy|archetype-art|generated|main_assets|site-icons|source-logos)[^\"'\\\\[:space:],<>)]*" \
+    | grep -oE "(https://(${site_host//./\\.}|${cdn_host//./\\.}))?/(api/(article-cover|public-resource|card-image)|uploads/admin|_next/static|wallpaper|class_icon|bg-legacy|archetype-art|generated|main_assets|site-icons|source-logos)[^\"'\\\\[:space:],<>)]*" \
     || true
 done < "$pages" | sort -u | while IFS= read -r url; do
   host="$site_host"; path="$url"
@@ -139,6 +141,8 @@ collect_origin() {
     | sed -E "s#^https://${host_pattern}#/api/public-resource/${source_key}#" >> "$raw" || true
 }
 collect_origin 'hearthstone\.wiki\.gg' wiki '/images/'
+# The data API moved to api.kolodahearthstone.com; db.kolodahs.ru stays for old records.
+collect_origin 'api\.kolodahearthstone\.com' db '/uploads/'
 collect_origin 'db\.kolodahs\.ru' db '/uploads/'
 collect_origin 'bg\.kolodahearthstone\.ru' bg '/assset/'
 collect_origin 'art\.hearthstonejson\.com' hsjson '/v1/'

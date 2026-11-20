@@ -30,6 +30,7 @@ function substituteRouteParameters(route) {
     additionalKind: 'anomalies',
     slug: 'invite_1',
     publicProfileId: '1',
+    date: '2026-11-23',
     legacyPublicProfileId: 'p_0123456789abcdefghijkl',
     path: 'legacy/item',
   };

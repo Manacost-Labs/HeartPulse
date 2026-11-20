@@ -2,6 +2,8 @@ import type { MetaReportRunResult, MetaReportSnapshot, MetaReportSources } from 
 import { hasReportableStandard, readMetaReportSections } from './projection.js';
 import { MetaReportSnapshotStore } from './store.js';
 
+export { createMetaReportRouter } from './routes.js';
+
 export type {
   MetaReportArena, MetaReportBattlegrounds, MetaReportMatchups, MetaReportPatch, MetaReportRunResult, MetaReportSection,
   MetaReportSectionStatus, MetaReportSnapshot, MetaReportSources, MetaReportStandard,

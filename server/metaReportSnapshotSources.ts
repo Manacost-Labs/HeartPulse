@@ -1,4 +1,5 @@
-import { createMetaReportSnapshots, type MetaReportSnapshots } from './modules/metaReport/public.js';
+import type { Router } from 'express';
+import { createMetaReportRouter, createMetaReportSnapshots, type MetaReportSnapshots } from './modules/metaReport/public.js';
 import { createBattlegroundHeroCatalogLoader } from './battlegroundHeroRankingSource.js';
 import { projectBattlegroundHeroRanking } from './battlegroundHeroRankingProjection.js';
 import { loadPublicStandardMatchups } from './standardMatchupPublicSlice.js';
@@ -47,6 +48,18 @@ export function startMetaReportSnapshots(dependencies: {
       battlegrounds: async () => projectBattlegroundHeroRanking(await loadHeroCatalog('solo'), 'solo'),
       patches: () => dependencies.fetchJson(dependencies.patchesUrl),
     },
+  });
+}
+
+/**
+ * Starts the weekly snapshots and answers them under `/api`: `GET /api/meta-reports` and
+ * `GET /api/meta-reports/:date` (docs/specs/meta-report-snapshots.md, «HTTP»), the reads of the report pages.
+ */
+export function createMetaReportApi(dependencies: Parameters<typeof startMetaReportSnapshots>[0]): Router {
+  const snapshots = startMetaReportSnapshots(dependencies);
+  return createMetaReportRouter({
+    list: snapshots.list, get: snapshots.get,
+    onError: error => console.error('[meta-report-snapshots] read failed:', error instanceof Error ? error.message : error),
   });
 }
 

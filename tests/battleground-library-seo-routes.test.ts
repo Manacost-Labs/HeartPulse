@@ -28,6 +28,7 @@ const minion = {
     'BACON_BLOOD_GEM_TOOLTIP',
     'BACON_REFRESH_TOOLTIP',
     'IMMUNE',
+    'BACON_PASS_TOOLTIP',
     'BACON_UNKNOWN_TOOLTIP',
   ],
   text: {
@@ -238,7 +239,8 @@ try {
   assert.match(html, /Магнетизм/);
   assert.equal(occurrences(html, />Магнетизм</g), 1, 'duplicate mechanics must collapse');
   assert.equal(occurrences(html, />Кровавые самоцветы</g), 1, 'a known game token is translated');
-  assert.equal(occurrences(html, />Обновление таверны</g), 1, 'a translated token stays a mechanic: it is a fact the page states');
+  assert.equal(occurrences(html, />В следующих обновлениях</g), 1, 'a translated token stays a mechanic, named as the library names it');
+  assert.equal(html.includes('Передача'), false, 'a token the library hides (design.md) is not shown here either');
   assert.equal(occurrences(html, />Неуязвимость</g), 1, 'a card keyword token takes the shared ruRU name');
   assert.equal(html.includes('BACON_'), false, 'no raw game token reaches the page');
   assert.match(html, /Магнетизм\. В конце хода получает \+1 к здоровью\./);

@@ -71,7 +71,8 @@ function startLegacy(state) {
       return;
     }
     const payload = path === '/api/auth/me' ? { user: null }
-      : path === '/api/standard-meta/public' ? metaTeaser('patch_36.6.3')
+      : path === '/api/standard-meta/public' ? (url.searchParams.get('format') === 'wild'
+        ? { ...metaTeaser('patch_36.6.3'), format: 'wild', formatLabel: 'Вольный' } : metaTeaser('patch_36.6.3'))
         : path === '/api/constructed-archetypes/teaser' ? catalog
           : path === '/api/fun-decks' ? funDecks
             : null;
@@ -85,6 +86,11 @@ function startLegacy(state) {
     // Latency and stalls apply to server reads only; the browser, through the gateway, is answered at once.
     const serverRead = !browser && /^\/api\/(standard-meta|constructed-archetypes|fun-decks)/.test(url.pathname);
     if (serverRead && state.stall) return;
+    // The source is down but Express still holds a last-good slice: it answers it to a browser and a plain read, and an error to a prerender read.
+    if (serverRead && state.down && url.pathname === '/api/standard-meta/public' && request.headers['x-hearthpulse-prerender']) {
+      response.setHeader('Retry-After', '60');
+      return response.writeHead(503, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end('{"error":"down"}');
+    }
     if (serverRead && state.delay) setTimeout(() => respond(url, response), state.delay);
     else respond(url, response);
   });
@@ -92,7 +98,7 @@ function startLegacy(state) {
 
 test('public previews render on the server and hydrate without a guest data request', async () => {
   assert.equal(existsSync('apps/public-web/.next/BUILD_ID'), true, 'run build:next before browser QA');
-  const state = { reads: [], stall: false, delay: 0 };
+  const state = { reads: [], stall: false, delay: 0, down: false };
   const legacy = startLegacy(state);
   const legacyOrigin = await listen(legacy);
   const next = await startNextServer({ legacyOrigin });
@@ -209,6 +215,23 @@ test('public previews render on the server and hydrate without a guest data requ
     state.stall = false;
     const restored = await (await fetch(`${origin}/standard/meta/`)).text();
     assert.equal(restored.match(/class="standard-meta-card"/g)?.length, 3, 'the earlier copy is served again, with its numbers');
+
+    // The source is down while Express still holds a last-good slice: the warm-up's probe reads it as a prerender read does,
+    // gets the error and skips both meta pages, which keep their earlier copy (no 500, no stale slice in the data cache).
+    await regenerate();
+    for (const path of ['/standard/meta/', '/standard/meta/wild/']) await fetch(`${origin}${path}`);
+    state.down = true;
+    const downAnswer = await (await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).json();
+    for (const path of ['/standard/meta', '/standard/meta/wild']) {
+      assert.ok(downAnswer.skipped.some(item => item.path === path && item.reason === 'source-unavailable'), `${path} is skipped`);
+      assert.ok(!downAnswer.revalidated.includes(path), `${path} is not marked stale`);
+    }
+    for (const path of ['/standard/meta/', '/standard/meta/wild/']) {
+      const response = await fetch(`${origin}${path}`);
+      assert.equal(response.status, 200, `${path} answers while the source is down`);
+      assert.equal((await response.text()).match(/class="standard-meta-card"/g)?.length, 3, `${path} keeps its copy`);
+    }
+    state.down = false;
   } finally {
     if (browser) await browser.close();
     gateway.closeAllConnections();
