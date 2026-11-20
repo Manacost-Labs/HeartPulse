@@ -123,9 +123,9 @@ assert.ok(
   'responsive QA must protect the shared header and footer geometry',
 );
 assert.ok(
-  browserQa.includes("const expectedFooterColumns = profileId === 'medium' ? 3 : 1;")
-    && browserQa.includes('chrome.footerLinks.length === 12'),
-  'responsive QA must model the three-section footer and legal links at every mobile profile',
+  browserQa.includes("const expectedFooterColumns = profileId === 'medium' ? 2 : 1;")
+    && browserQa.includes('chrome.footerLinks.length === 16'),
+  'responsive QA must model the four-section footer (mode hubs first) and legal links at every mobile profile',
 );
 assert.ok(
   browserQa.includes("'/developers/api/'")

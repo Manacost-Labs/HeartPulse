@@ -19,7 +19,7 @@ export function AssemblePageClient({ format, card, initialList, initialCard }: {
     <section className="space-y-5">
       <SectionBanner title="Сборка"
         subtitle="Карты со «Собирает»: какие существа выпадают основой, какие сборки с донором выигрывают чаще и какой из двух предложенных вариантов выбрать." />
-      <AssembleTool format={format} requestedCard={card} initialList={initialList} initialCard={initialCard} onNavigate={navigate} />
+      <AssembleTool key={`${format}:${card ?? ''}`} format={format} requestedCard={card} initialList={initialList} initialCard={initialCard} onNavigate={navigate} />
     </section>
   </PublicPageShell>;
 }

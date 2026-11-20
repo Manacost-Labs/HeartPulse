@@ -826,19 +826,19 @@ async function inspectSharedMobileChrome(page) {
 }
 
 function assertSharedMobileChrome(label, profileId, chrome) {
-  // The developer resources are a first-class third footer section. On
-  // phones the sections stack into one column; the medium profile has enough
-  // room for all three columns. Keep the height caps close to the measured
-  // geometry including the two legal links so future content growth still
-  // has an explicit review point.
-  const footerHeightMaximum = { 'compact-min': 890, 'phone-baseline': 825, medium: 404 }[profileId];
-  const expectedFooterColumns = profileId === 'medium' ? 3 : 1;
+  // Four footer sections: the mode hubs (#596), the site sections, the
+  // community and the developer resources. On phones the sections stack into
+  // one column; the medium profile (tablet) shows two. Keep the height caps
+  // close to the measured geometry (2026-11-20: 1093/1028/503 px) including the
+  // two legal links so future content growth still has an explicit review point.
+  const footerHeightMaximum = { 'compact-min': 1110, 'phone-baseline': 1045, medium: 520 }[profileId];
+  const expectedFooterColumns = profileId === 'medium' ? 2 : 1;
   const targetIsLargeEnough = target => target && target.width >= 44 && target.height >= 44;
   const valid = chrome.header?.height >= 40 && chrome.header.height <= 50
     && targetIsLargeEnough(chrome.searchInput)
     && targetIsLargeEnough(chrome.faqButton)
     && chrome.footerColumnCount === expectedFooterColumns
-    && chrome.footerLinks.length === 12
+    && chrome.footerLinks.length === 16
     && chrome.footerLinks.every(targetIsLargeEnough)
     && chrome.footer?.height <= footerHeightMaximum
     && !chrome.pageOverflows
@@ -4611,6 +4611,10 @@ for (const [device, viewport] of [
     if (!homeCssState.supportCss) failures.push('home lazy sections: support-prompt owner CSS did not load');
     if (!homeCssState.footerCss || !homeCssState.footerMarkup) failures.push('home lazy sections: site-footer owner or markup did not load');
     const expectedFooterLinks = [
+      '/standard/',
+      '/wild/',
+      '/arena/',
+      '/battlegrounds/',
       '/',
       '/classes/',
       '/tierlist/',

@@ -22,6 +22,6 @@ export default async function Page({ searchParams }: { searchParams: PageSearchP
   const seed = await loadPublicCardAssemble(format, card);
   return <>
     <SeoStructuredData path="/standard/assemble" />
-    <AssemblePageClient key={`${format}:${card ?? ''}`} format={format} card={card} initialList={seed.list} initialCard={seed.card} />
+    <AssemblePageClient format={format} card={card} initialList={seed.list} initialCard={seed.card} />
   </>;
 }

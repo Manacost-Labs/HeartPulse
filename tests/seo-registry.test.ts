@@ -696,7 +696,7 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
 
   const hero = (name: string, avgPlacement: number) => ({
     dbfId: 1, name, image: null, tier: 'A', avgPlacement, top4Rate: 59.6, pickRate: 52.7, games: null,
-    heroPowerName: null, bestComposition: null, keyMinions: [],
+    heroPowerName: null, heroPowerText: null, heroPowerImage: null, bestComposition: null, keyMinions: [],
   });
   const heroes = (count: number) => ({
     mode: 'solo' as const, updatedAt: FRESH, source: 'HSReplay',
