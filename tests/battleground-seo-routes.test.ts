@@ -6,6 +6,9 @@ import './battleground-hero-ranking-public.check';
 // The open builds of the tier list and strategies (E21 R7): hosted here for the same reason.
 import './battleground-builds-public.check';
 
+// As in production: the hs-data-api root is a loopback upstream that has no hero library.
+process.env.HS_DATA_API_BASE_URL = 'http://127.0.0.1:9';
+
 const privateSentinels = [
   'QA_BG_PRIVATE_PICK_RATE_97_77',
   'QA_BG_PRIVATE_PLACEMENT_DISTRIBUTION',
@@ -156,6 +159,10 @@ try {
   assert.equal(publicProjection.headers.get('cache-control'), 'public, max-age=60');
   const projection = await publicProjection.json();
   assert.equal(projection.hero.dbfId, 57944);
+  // The hero library is read from the kolodahearthstone API root (`KOLODAHS_API_BASE_URL`), not from
+  // `HS_DATA_API_BASE_URL`: production points that one at a loopback upstream without `/heroes` (a 404).
+  assert.ok(calls.some(call => call.url === 'https://api.kolodahearthstone.com/api/v1/heroes?dbf=57944'), 'profile read from the hero library');
+  assert.equal(calls.some(call => call.url.includes('127.0.0.1:9') && call.url.includes('/heroes')), false);
   assert.match(projection.hero.name, /А\. Ф\. Ка/);
   assertNoPrivateData(JSON.stringify(projection), 'public hero API');
   const missingProjection = await fetch(`${origin}/api/bg/heroes/public/999999`);

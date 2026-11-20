@@ -1,8 +1,16 @@
 import type { PublicBattlegroundHeroCard, PublicBattlegroundHeroProfile } from './battlegroundHeroPublicTypes.js';
+import { DEFAULT_HS_DATA_API_ORIGIN } from './hsDataApiOrigin.js';
 
 type JsonRecord = Record<string, unknown>;
 
 /** Hosts a hero's outbound links may point to: the wiki and the card databases the library names. */
+/**
+ * The hero library (`/heroes?dbf=`): the kolodahearthstone API root the subscriber's library proxy reads
+ * (`KOLODAHS_API_BASE_URL`); `HS_DATA_API_BASE_URL` may be a loopback upstream without the hero library.
+ */
+export const heroLibraryUrl = (dbfId: string | number) =>
+  `${(process.env.KOLODAHS_API_BASE_URL || `${DEFAULT_HS_DATA_API_ORIGIN}/api/v1`).replace(/\/+$/, '')}/heroes?dbf=${dbfId}`;
+
 const LINK_HOSTS = new Set(['hearthstone.wiki.gg', 'hsreplay.net', 'www.hearthpwn.com', 'hearthpwn.com']);
 const PROFILE_TTL_MS = 10 * 60_000;
 const FAILURE_PAUSE_MS = 60_000;
@@ -115,6 +123,8 @@ export function projectBattlegroundHeroProfile(
  */
 export function createHeroProfileLoader(options: {
   libraryUrl: (dbfId: number) => string;
+  /** The public origin of the library's own picture paths (the kolodahearthstone API by default). */
+  assetOrigin?: string;
   imageUrl: (value: unknown) => string | null;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
@@ -141,8 +151,9 @@ export function createHeroProfileLoader(options: {
       if (!response.ok) throw new Error(`Battleground hero library HTTP ${response.status}`);
       const payload: unknown = await response.json();
       if (!Array.isArray(record(payload).data)) throw new Error('Battleground hero library answered without data');
-      // The library names some pictures by a path of its own (`/uploads/golden/…`): resolved against the library.
-      const libraryOrigin = new URL(options.libraryUrl(dbfId)).origin;
+      // The library names some pictures by a path of its own (`/uploads/golden/…`): resolved against its public origin
+      // (the resource proxy serves that host; a loopback library origin would not be).
+      const libraryOrigin = options.assetOrigin ?? DEFAULT_HS_DATA_API_ORIGIN;
       const profile = projectBattlegroundHeroProfile(payload, dbfId, value => options.imageUrl(
         typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') ? `${libraryOrigin}${value}` : value));
       if (!profile) throw new Error(`Battleground hero library has no hero ${dbfId}`);

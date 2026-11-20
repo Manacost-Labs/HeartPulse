@@ -219,9 +219,9 @@ test('a refresh keeps its starting profile when the hero is dropped meanwhile; a
   }
 });
 
-test('a picture the library names by its own path is resolved against the library', async () => {
+test('a picture the library names by its own path is resolved against its public origin, not the read URL', async () => {
   const load = createHeroProfileLoader({
-    libraryUrl: dbfId => `https://img.example/api/v1/heroes?dbf=${dbfId}`, imageUrl,
+    libraryUrl: dbfId => `http://127.0.0.1:9/heroes?dbf=${dbfId}`, assetOrigin: 'https://img.example', imageUrl,
     fetchImpl: async () => new Response(JSON.stringify({ data: [{ ...row,
       buddy: { card: { ...row.buddy.card, image_gold: '/uploads/golden/buddy.png' } } }] }), { status: 200 }),
   });
