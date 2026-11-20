@@ -126,11 +126,19 @@ test('the guest HTML of /heroes/ carries the open ranking of both modes and noth
     assert.equal(await guestHtml(next.origin, { 'User-Agent': ROBOT_UA }), await guestHtml(next.origin, { 'User-Agent': BROWSER_UA }),
       'the HTML does not depend on the user agent');
 
-    // No data: a 200 page without the ranking but with a notice.
+    // No data at runtime (a new projection without a copy, the source down): a failed regeneration keeps the last
+    // good page — for a guest and for a robot — and never publishes the notice (#631).
     state.reset();
     state.down = true;
-    const empty = await regenerated(page => !hasRanking(page), 'ranking disappears without data');
-    assert.match(empty, /Рейтинг героев временно недоступен/);
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      process.kill(next.pid, 'SIGUSR2');
+      for (const headers of [{ 'User-Agent': BROWSER_UA }, { 'User-Agent': ROBOT_UA }]) {
+        const kept = await guestHtml(next.origin, headers);
+        assert.ok(hasRanking(kept), 'the last good ranking stays while the source is down');
+        assert.doesNotMatch(kept, /Рейтинг героев временно недоступен/);
+      }
+      await delay(300);
+    }
   } finally {
     await next.close();
     legacyServer.closeAllConnections();
