@@ -45,7 +45,7 @@ const HUBS = [
   },
   {
     path: '/wild/', heading: 'Вольный формат Hearthstone: колоды и карты',
-    links: ['/standard/meta/', '/standard/archetypes/wild/', '/standard/matchups/', '/standard/fun-decks/', '/standard/cards/wild/',
+    links: ['/standard/meta/wild/', '/standard/archetypes/wild/', '/standard/matchups/', '/standard/fun-decks/', '/standard/cards/wild/',
       '/standard/patches/', '/standard/', '/arena/', '/battlegrounds/'],
   },
 ];
