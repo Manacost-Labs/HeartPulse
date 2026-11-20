@@ -258,6 +258,11 @@ test('Next archetype details isolate access and load builds before independent o
       main?.querySelectorAll('nav:not(.archetype-seo-summary__class), footer').forEach(node => node.remove());
       return { text: (summary?.innerText ?? '').replaceAll('\u00a0', ' '), time: summary?.querySelector('time')?.getAttribute('datetime'),
         main: main?.textContent ?? '',
+        facts: [
+          ...[...(main?.querySelectorAll('li') ?? [])].filter(tile => tile.querySelector('bdi'))
+            .map(tile => [tile.querySelector('span')?.textContent, tile.querySelector('bdi').textContent.replaceAll('\u00a0', ' ')]),
+          ...[...(main?.querySelectorAll('dt') ?? [])].map(term => [term.textContent, term.nextElementSibling?.textContent.replaceAll('\u00a0', ' ')]),
+        ],
         links: [...(summary?.querySelectorAll('a[href^="/standard/archetypes/standard/"]') ?? [])].length,
         // The page's headings in order: the builds come right after the archetype's name and metrics.
         headings: [...document.querySelectorAll('h1, h2')].map(node => node.textContent),
@@ -270,11 +275,13 @@ test('Next archetype details isolate access and load builds before independent o
         } };
     });
     await plain.close();
-    // shared/seoIndexThreshold.ts: at least 150 own words or at least 10 own facts (here: the numbers the page states).
-    const tokens = bare.main.split(/\s+/);
-    const ownWords = tokens.filter(token => /[\p{L}\p{N}]/u.test(token)).length;
-    const ownNumbers = tokens.filter(token => /\d/.test(token)).length;
-    assert.ok(ownWords >= 150 || ownNumbers >= 10, `${ownWords} own words, ${ownNumbers} numbers without JavaScript`);
+    // shared/seoIndexThreshold.ts: at least 150 own words or at least 10 own facts. A fact is a signed value the reader
+    // sees: a metric tile of the hero (label and value) or a term of a list with its value (builds, plates).
+    const ownWords = bare.main.split(/\s+/).filter(token => /[\p{L}\p{N}]/u.test(token)).length;
+    assert.deepEqual(bare.facts.slice(0, 6), [['Винрейт', '61,2 %'], ['Популярность', '20,4 %'], ['Игры', '14 800'], ['Сборки', '9'],
+      ['Средний матч', '8 мин'], ['Средний ход', '7,9']]);
+    assert.deepEqual(bare.facts.slice(-2), [['Место по играм', '1 из 5'], ['Медиана класса', '53,8% +7,5 п. п.']]);
+    assert.ok(ownWords >= 150 || bare.facts.length >= 10, `${ownWords} own words, ${bare.facts.length} own facts without JavaScript`);
     for (const phrase of ['Насколько силён', 'Как читать эти цифры', 'в этом тексте их нет', 'В каталог входят']) assert.ok(!bare.text.includes(phrase), phrase);
     for (const part of ['место по играм\n1 из 5', 'медиана класса\n53,8% +7,5 п. п.\nсреди 4 архетипов чернокнижника от 1 000 игр', 'источник: hsguru', 'другие архетипы чернокнижника']) {
       assert.ok(bare.text.toLowerCase().includes(part), `«${part}» in ${bare.text}`);

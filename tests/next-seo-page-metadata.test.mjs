@@ -873,6 +873,18 @@ const assertNoProse = ({ summary, text }, name) => {
   }
   assert.ok(text.includes('Источник: HSGuru'), `${name} names the source`);
 };
+/**
+ * The facts a page states about its archetype, as a reader sees them without JavaScript: every signed value of
+ * `<main>` — a metric tile (label and value) or a term of a description list with its first value. Counted for
+ * the content threshold of shared/seoIndexThreshold.ts (10 own facts), never by digits in the text.
+ */
+const signedFacts = html => {
+  const main = html.match(/<main[\s\S]*?<\/main>/)?.[0] ?? '';
+  const clean = part => visibleText(part).replace(/\s+/g, ' ').trim();
+  const tiles = [...main.matchAll(/ui-kpi-group__label">([^<]*)<\/span>[\s\S]*?<bdi>([\s\S]*?)<\/bdi>/g)].map(match => [clean(match[1]), clean(match[2])]);
+  const terms = [...main.matchAll(/<dt>([\s\S]*?)<\/dt><dd[^>]*>([\s\S]*?)<\/dd>/g)].map(match => [clean(match[1]), clean(match[2])]);
+  return [...tiles, ...terms];
+};
 const numbersIn = (value, found = []) => {
   if (typeof value === 'number') found.push(value);
   else if (Array.isArray(value)) value.forEach(item => numbersIn(item, found));
@@ -923,6 +935,10 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
       assert.ok(strong.text.includes(expected), `the block says «${expected}»: ${strong.text}`);
     }
     assertNoProse(strong, 'strong');
+    // Own facts of the indexable page (shared/seoIndexThreshold.ts): the hero's tiles, the open build, the plates.
+    assert.deepEqual(signedFacts(strong.html), [['Винрейт', '61,2 %'], ['Популярность', '20,4 %'], ['Игры', '14 800'], ['Сборки', '3'],
+      ['Средний матч', '7 мин'], ['Средний ход', '8'], ['Винрейт', '50%'], ['Игры', '100'], ['Данные на', '—'],
+      ['Место по играм', '2 из 14'], ['Медиана формата', '51,3% +10 п. п.'], ['Медиана класса', '52% +9,2 п. п.']]);
     // «+10 п. п.» beside the median says whose difference it is on hover.
     assert.deepEqual([...strong.summary.matchAll(/<span class="archetype-seo-summary__delta"[^>]* title="([^"]+)"/g)].map(match => match[1]),
       ['выше медианы на 10 п. п.', 'выше медианы на 9,2 п. п.']);
@@ -1001,12 +1017,24 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
       assertNoProse(other, name);
     }
 
-    // Without the catalog the page keeps its robots, its graph, the date and the source; the plates and the links go.
-    // The server keeps the last good catalog and would serve it; a restarted one has none.
+    // The catalog fails: the server answers with its last good copy, so the indexable page keeps its plates and links.
     state.catalogOk = false;
+    await delay(2_100);
+    const kept = await page('/standard/archetypes/standard/zoolock/');
+    assert.deepEqual(signedFacts(kept.html).slice(-3), [['Место по играм', '2 из 14'], ['Медиана формата', '51,3% +10 п. п.'], ['Медиана класса', '52% +9,2 п. п.']],
+      'the last good catalog keeps the plates');
+    assert.ok(kept.text.includes('Другие архетипы Чернокнижника'), 'and the class links');
+
+    // Without any copy of the catalog the page keeps its robots, its graph, the date and the source; the plates and the links go.
+    // The server keeps the last good catalog and would serve it; a restarted one has none.
     await next.close();
     next = await startNextServer({ legacyOrigin });
     const alone = await page('/standard/archetypes/standard/pure-paladin/');
+    // A server without any copy of the catalog (restarted during the outage) loses the plates: the hero's tiles and the
+    // open builds remain. With real builds (eight per page, each with its card list) that is far above the threshold;
+    // a page with no open build in this state is the case left open in #584.
+    assert.deepEqual(signedFacts(alone.html), [['Винрейт', '51 %'], ['Популярность', '1,7 %'], ['Игры', '53 208'], ['Сборки', '86'],
+      ['Средний матч', '7 мин'], ['Средний ход', '8'], ['Винрейт', '50%'], ['Игры', '100'], ['Данные на', '—']]);
     assert.equal(alone.robots, strong.robots);
     assert.equal(alone.graphs.length, 1);
     assert.match(alone.title, /^Чистый Паладин — колода Hearthstone/);
