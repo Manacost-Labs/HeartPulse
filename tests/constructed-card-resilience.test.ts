@@ -395,19 +395,21 @@ try {
 
   const boundedDetailDirectory = mkdtempSync(join(tmpdir(), 'arena-constructed-card-detail-cache-'));
   try {
+    const threeCards = [...baseCards, { ...baseCards[1], card_id: 'CARD_3', dbf: 3, name: { ru: 'Гамма', en: 'Gamma' } }];
     const boundedDetail = serviceHarness({
       directory: boundedDetailDirectory,
       now: () => now,
       detailCacheTtlMs: 60_000,
-      detailCacheMaxEntries: 1,
-      detail: cardId => ({ data: { ...baseCards.find(card => card.card_id === cardId), wiki: {} } }),
+      detailCacheMaxEntries: 2,
+      catalog: () => ({ data: threeCards, updated_at: '2026-07-21T07:55:00.000Z', pagination: { page: 1, total: 3, total_pages: 1 } }),
+      detail: cardId => ({ data: { ...threeCards.find(card => card.card_id === cardId), wiki: {} } }),
     });
+    for (const cardId of ['CARD_1', 'CARD_2', 'CARD_1', 'CARD_3']) await boundedDetail.service.loadCardDetail('standard', cardId);
+    assert.equal(boundedDetail.calls.detail, 3, 'a cached detail inside the bound is not read again');
     await boundedDetail.service.loadCardDetail('standard', 'CARD_1');
-    await boundedDetail.service.loadCardDetail('standard', 'CARD_1');
-    assert.equal(boundedDetail.calls.detail, 1, 'a cached detail inside the bound is not read again');
+    assert.equal(boundedDetail.calls.detail, 3, 'the card read again stays when a new one comes');
     await boundedDetail.service.loadCardDetail('standard', 'CARD_2');
-    await boundedDetail.service.loadCardDetail('standard', 'CARD_1');
-    assert.equal(boundedDetail.calls.detail, 3, 'a crawl of every card does not keep every detail: the oldest goes');
+    assert.equal(boundedDetail.calls.detail, 4, 'the least recently read card is the one that went');
   } finally {
     rmSync(boundedDetailDirectory, { recursive: true, force: true });
   }

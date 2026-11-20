@@ -115,7 +115,8 @@ metadata.
 
 Enriched card details (wiki, related cards, decks) are kept for six hours
 (`detailCacheTtlMs`) in a bounded map: at most 2 000 entries
-(`detailCacheMaxEntries`), the least recently read go first. Since the Next card
+(`detailCacheMaxEntries`, `server/modules/constructedCards/boundedCache.ts`),
+the least recently read go first. Since the Next card
 page reads the anonymous detail for its server HTML (`publicCardDetail.ts`), one
 crawl of the catalog touches every card; unbounded, that held ~1.4 GB
 (2026-11-20).
