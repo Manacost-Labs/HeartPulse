@@ -229,12 +229,13 @@ export function createEntitySitemapRouter(dependencies: EntitySitemapRouterDepen
   const retryAfterSeconds = Math.max(1, Math.floor(dependencies.retryAfterSeconds ?? 300));
   assertValidStaticSitemapUrls(dependencies.staticUrls, origin);
   const definitions = dynamicSitemapDefinitions(dependencies, origin);
+  const { onSegmentPublished } = dependencies;
   const segmentLoaders = definitions.map(definition => [definition, createDynamicDocumentLoader({
     definition, origin, now, cacheTtlMs, stateDirectory: dependencies.stateDirectory,
     responseDeadlineMs: dependencies.responseDeadlineMs, loadDeadlineMs: dependencies.loadDeadlineMs,
     onError: dependencies.onError, toDocument: dynamicDocument,
-    onPublished: dependencies.onSegmentPublished
-      ? (previous, next) => dependencies.onSegmentPublished!(definition.segment, previous, next)
+    onPublished: onSegmentPublished
+      ? (previous, next) => onSegmentPublished(definition.segment, previous, next)
       : undefined,
   })] as const);
   const dynamicLoaders = new Map(segmentLoaders.map(([definition, load]) => [definition.pathname, load]));
