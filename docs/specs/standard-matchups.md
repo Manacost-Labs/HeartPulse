@@ -38,8 +38,8 @@ the JSON-LD.
   (`openStandardMatchupsData` turns it into the subscriber's model). Rank,
   period and the games floor stand in their places as locks
   (`StandardMatchupsFilterLocks` on the shared `PaidLocks`,
-  `.paywalled-standard-matchups`, named by the JSON-LD `hasPart`); a press opens the subscription offer
-  (`PaidOfferProvider`). While a signed-in reader's access is checked the
+  `.paywalled-standard-matchups`, named by the JSON-LD `hasPart`); a
+  press opens the subscription offer (`PaidOfferProvider`). While a signed-in reader's access is checked the
   locks are neutral and inert. A subscriber's slice replaces the open data
   inside the same component, with no remount; if it does not arrive, the open
   data stays with the message and «Повторить». Until the browser has run the
