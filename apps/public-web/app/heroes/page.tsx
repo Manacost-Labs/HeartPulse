@@ -16,6 +16,12 @@ export const generateMetadata = seoStaticPageMetadata('/heroes', 'HearthPulse â€
 
 export default async function Page() {
   const { solo, duos } = await loadPublicBattlegroundHeroes();
+  // Regenerating at runtime without data throws: Next does not publish the result and keeps the earlier copy
+  // (also after a restart, when it is the copy on disk). Only the build, which has no Express, prints the stub;
+  // the warm-up after a deploy replaces it (#631, as /legendaries/ and /standard/matchups/).
+  if (!solo && !duos && process.env.NEXT_PHASE !== 'phase-production-build') {
+    throw new Error('Open hero ranking unavailable: the earlier copy stays');
+  }
   const first = solo ?? duos;
   return <>
     <SeoStructuredData path="/heroes" data={first}
