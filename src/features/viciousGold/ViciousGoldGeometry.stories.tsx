@@ -12,6 +12,7 @@ import { summary, builds } from '../../../tests/fixtures/viciousGoldPayload.mjs'
 const meta = {
   title: 'Vicious Gold/Measured loading geometry',
   component: ViciousSyndicateGold,
+  args: { hasFullAccess: true },
   parameters: { layout: 'fullscreen' },
   beforeEach: () => {
     const original = globalThis.fetch;

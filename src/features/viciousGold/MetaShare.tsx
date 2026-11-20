@@ -7,13 +7,15 @@ import type { ClassDistribution, DeckDistribution } from './viciousGoldModel';
  * (`children`). Picking a class filters the list. Stacked bars replaced a class -> archetype
  * treemap: at 412 px most treemap tiles were too small for a name, the bars keep one.
  */
-export function MetaShare({ classes, decks, selectedClass, onSelectClass, minimumFrequency, children }: {
+export function MetaShare({ classes, decks, selectedClass, onSelectClass, minimumFrequency, children, locked = false }: {
   classes: ClassDistribution[];
   decks: DeckDistribution[];
   selectedClass: string;
   onSelectClass: (classKey: string) => void;
   minimumFrequency: number;
   children: ReactNode;
+  /** The open frame (#656): shares are locks. */
+  locked?: boolean;
 }) {
   return (
     <section className="vsgold-section vsgold-share" id="vsgold-classes" aria-labelledby="vsgold-share-title">
@@ -22,7 +24,7 @@ export function MetaShare({ classes, decks, selectedClass, onSelectClass, minimu
           <h2 id="vsgold-share-title">Доли меты</h2>
         </div>
       </header>
-      <ClassShareBars classes={classes} decks={decks} selectedClass={selectedClass} onSelectClass={onSelectClass} minimumFrequency={minimumFrequency} />
+      <ClassShareBars classes={classes} decks={decks} selectedClass={selectedClass} onSelectClass={onSelectClass} minimumFrequency={minimumFrequency} locked={locked} />
       {children}
     </section>
   );

@@ -4197,7 +4197,7 @@ for (const width of [320, 430]) {
 
 // Traditional analytics require Diamond, while the card catalog stays public
 // and locks only its statistical fields.
-for (const path of ['/standard/meta', '/standard/vicious-gold']) {
+for (const path of ['/standard/meta']) {
   const page = await createQaPage();
   await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
   await mockApplicationApi(page, { authenticated: false });
@@ -4224,6 +4224,40 @@ for (const path of ['/standard/meta', '/standard/vicious-gold']) {
     console.log(`✓ ${path} [mobile guest] Diamond paywall + axe`);
   } catch (error) {
     failures.push(`${path} [mobile guest]: ${error.message}`);
+  } finally {
+    await page.close();
+  }
+}
+
+// The Vicious Gold report of a guest (#656) is the subscriber's report on the open frame: a lock stands in place of
+// every paid value and opens the Standard (Diamond) offer; there is no gate.
+{
+  const page = await createQaPage();
+  await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+  await mockApplicationApi(page, { authenticated: false });
+  try {
+    await page.goto(`${BASE}/standard/vicious-gold`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
+    await page.waitForSelector('.vsgold[data-locked] .vsgold-deck-row', { visible: true, timeout: 20_000 });
+    for (let attempt = 0; attempt < 20 && !(await page.$('[data-testid="arena-paid-offer"]')); attempt += 1) {
+      await page.click('button[aria-label^="Лидер Power Tier: по подписке"]');
+      await new Promise(resolve => setTimeout(resolve, 300));
+    }
+    const state = await page.evaluate(() => ({
+      gate: Boolean(document.querySelector('.arena-paywall')),
+      diamond: document.querySelector('[data-testid="arena-paid-offer"]')?.textContent?.includes('Алмаз') || false,
+      locks: document.querySelectorAll('.vsgold [aria-label*="по подписке"]').length,
+      standardLinks: document.querySelectorAll('a[href^="/standard/"]').length,
+      overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    }));
+    if (state.gate || !state.diamond || state.locks < 4 || state.standardLinks < 4 || state.overflow) {
+      failures.push(`/standard/vicious-gold [mobile guest]: locked open frame regressed (${JSON.stringify(state)})`);
+    }
+    await page.keyboard.press('Escape');
+    await auditAccessibility(page, '/standard/vicious-gold [mobile guest]');
+    await page.screenshot({ path: `${OUT}/vicious-gold-guest-locks-mobile.png`, fullPage: false });
+    console.log('✓ /standard/vicious-gold [mobile guest] locked open frame + Diamond offer + axe');
+  } catch (error) {
+    failures.push(`/standard/vicious-gold [mobile guest]: ${error.message}`);
   } finally {
     await page.close();
   }

@@ -10,7 +10,7 @@ import './ArenaPaidOffer.css';
  * so signing in or paying and pressing «Проверить доступ» unlocks the same view.
  * Loaded on that tap, not with the page.
  */
-export function ArenaPaidOffer({ title, text, returnTo, signedIn, checking, onRefresh, onClose }: {
+export function ArenaPaidOffer({ title, text, returnTo, signedIn, checking, onRefresh, onClose, tier = 'default' }: {
   title: string;
   text: string;
   /** The page address with its query, for the sign-in to come back to. */
@@ -19,6 +19,8 @@ export function ArenaPaidOffer({ title, text, returnTo, signedIn, checking, onRe
   checking: boolean;
   onRefresh: () => Promise<unknown>;
   onClose: () => void;
+  /** The cheapest Boosty tier the page needs: a Standard page names «Алмаз», not the Arena tier. */
+  tier?: 'default' | 'standard';
 }) {
   const titleId = useId();
   const textId = useId();
@@ -32,7 +34,7 @@ export function ArenaPaidOffer({ title, text, returnTo, signedIn, checking, onRe
       </button>
       <h2 id={titleId}>{title}</h2>
       <p id={textId}>{text}</p>
-      <SubscriptionPurchaseButtons />
+      <SubscriptionPurchaseButtons variant={tier} />
       <div className="arena-paid-offer__actions">
         {signedIn
           ? <button type="button" disabled={checking} onClick={() => { void onRefresh(); }}>{checking ? 'Проверяем...' : 'Проверить доступ'}</button>

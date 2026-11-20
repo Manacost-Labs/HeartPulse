@@ -26,6 +26,8 @@ export const DATA_PAGES = [
   { path: '/legendaries/', isr: true, marker: 'legendary-group-card', copyWords: 346, dataWords: 4931 },
   { path: '/heroes/', isr: true, marker: 'battleground-hero-card', copyWords: 172, dataWords: 2250 },
   { path: '/standard/matchups/', isr: true, marker: 'ui-matchup-matrix__grid', copyWords: 120, dataWords: 1500 }, // words: an estimate, not a stand measurement
+  // The open frame of the Vicious Gold report (#656): the archetype rows exist only with data; words not measured.
+  { path: '/standard/vicious-gold/', isr: true, marker: 'vsgold-deck-row', copyWords: 0, dataWords: 0 },
   { path: '/battlegrounds/tier-list/', isr: true, marker: 'bg-tierlist-strategy__cards', copyWords: 95, dataWords: 1500 },
   { path: '/library/', isr: true, marker: 'bg-library-public__size', copyWords: 0, dataWords: 0 },
   { path: '/library/minions/', isr: true, marker: 'bg-library-card-tile', copyWords: 0, dataWords: 0 },

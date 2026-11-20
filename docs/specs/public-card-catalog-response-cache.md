@@ -180,3 +180,15 @@ Measured on the server with a production-sized test catalog: the first Wild
 card after a restart answers in 0.23–0.25 s (3.7–4.4 s before).
 Check: `tests/constructed-card-deadline-cases.ts` (restart with a stored
 catalog while the source hangs or fails).
+
+## Readiness
+
+`/api/health/ready` reports both catalogs (`getCatalogHealth`) through
+`ConstructedCardCatalogStore.inspectSummary`. It returns what `inspect` returns,
+without the cards, and reads and compares both copies again only after one of
+them, or the degradation marker, changed on disk (inode, size, mtime). A publish
+by this process records the summary itself. Age and the in-process degradation
+flag are evaluated on every call. Before #669 every readiness call read and
+compared both copies, ~2 s for Wild (2 × 33 MB). Monitors call readiness about
+once a minute, and each call froze Express long enough for card pages, which
+wait 2 s, to answer 503. Check: `tests/constructed-card-catalog-health-summary.test.ts`.
