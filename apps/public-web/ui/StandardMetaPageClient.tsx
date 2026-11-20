@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import StandardMetaPage from '@/src/features/StandardMeta';
@@ -10,6 +10,8 @@ import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { useHydrated } from '@/src/shared/ui/useHydrated';
 import { navigate } from './navigation';
 import { sessionTag } from './viewerHint';
+
+const NO_REFUSAL = { denied: false, checked: false, retried: false };
 
 const OFFER_TITLE = 'Узкие срезы, история и тренды — в подписке';
 const OFFER_TEXT = 'Другие ранги и периоды, очерёдность хода, порог игр, ходы, длительность, скорость набора и динамика архетипов открываются подпиской.';
@@ -24,21 +26,20 @@ function MetaView({ initialTeaser, format, hasFullAccess, teaserWaitsForAccess, 
   // the open slice at once (flushed: no frame with the paid slice) while the check runs. If the check confirms access, the
   // paid request is made once more and its answer replaces the open slice in place; a second refusal (or a check that does
   // not confirm) keeps the guest's view until access is lost for good, so a refusing route cannot make a loop.
-  const [guard, setGuard] = useState({ denied: false, checked: false });
-  const retried = useRef(false);
-  if (accessLost && (guard.denied || guard.checked || retried.current)) {
-    retried.current = false;
-    setGuard({ denied: false, checked: false });
+  const [guard, setGuard] = useState(NO_REFUSAL);
+  const latest = useRef(guard);
+  useEffect(() => { latest.current = guard; });
+  if (accessLost && (guard.denied || guard.checked || guard.retried)) {
+    setGuard(NO_REFUSAL);
   } else if (guard.denied && guard.checked && hasFullAccess) {
-    retried.current = true;
-    setGuard({ denied: false, checked: false });
+    setGuard({ denied: false, checked: false, retried: true });
   }
   const granted = hasFullAccess && !guard.denied;
   const [state, setState] = useState({ allowed: granted, epoch: 0 });
   if (state.allowed !== granted) setState({ allowed: granted, epoch: state.epoch + (state.allowed ? 1 : 0) });
   const refused = () => {
-    const mayRetry = !retried.current;
-    flushSync(() => setGuard({ denied: true, checked: false }));
+    const mayRetry = !latest.current.retried;
+    flushSync(() => setGuard(current => ({ denied: true, checked: false, retried: current.retried })));
     if (mayRetry) void onAccessDenied().then(() => undefined, () => undefined).then(() => setGuard(current => ({ ...current, checked: true })));
   };
   return <StandardMetaPage key={state.epoch} embedded hasFullAccess={granted} teaserWaitsForAccess={teaserWaitsForAccess} accessPending={accessPending}
