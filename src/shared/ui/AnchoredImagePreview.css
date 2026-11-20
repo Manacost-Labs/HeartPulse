@@ -40,6 +40,19 @@
 
 .anchored-image-preview__media img.is-loaded { opacity: 1; }
 
+/* A card-shaped placeholder while the picture is on its way, so a cold image
+   never leaves an empty frame. It sits under the transparent <img>. */
+.anchored-image-preview__media[aria-busy="true"]::before {
+  content: "";
+  position: absolute;
+  inset: 4% 12%;
+  border-radius: 14px;
+  background:
+    linear-gradient(100deg, #0000 30%, #fff8e980 50%, #0000 70%) 0 0 / 250% 100%,
+    linear-gradient(160deg, #d9bd86, #c9a66a);
+  animation: anchored-image-preview-shimmer 1.2s linear infinite;
+}
+
 .anchored-image-preview__status {
   position: absolute;
   inset: 0;
@@ -61,6 +74,12 @@
   .anchored-image-preview { display: none; }
 }
 
+@keyframes anchored-image-preview-shimmer {
+  from { background-position: 125% 0, 0 0; }
+  to { background-position: -125% 0, 0 0; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .anchored-image-preview { animation: none; }
+  .anchored-image-preview,
+  .anchored-image-preview__media[aria-busy="true"]::before { animation: none; }
 }

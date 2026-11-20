@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
-import { fallbackCardRender } from './CardPreviewTooltip';
+import { cardPreviewSources } from './CardPreviewTooltip';
 import './CardPreviewSheet.css';
 
 export type CardPreviewSheetCard = {
@@ -17,14 +17,15 @@ type CardPreviewSheetProps = {
 export default function CardPreviewSheet({ card, onClose }: CardPreviewSheetProps) {
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement | null>(null);
-  const fallback = fallbackCardRender(card.id);
-  const [source, setSource] = useState(card.imageUrl || fallback);
-  const [imageFailed, setImageFailed] = useState(false);
+  const sources = cardPreviewSources(card.id, card.imageUrl);
+  const sourcesKey = sources.join('|');
+  const [sourceIndex, setSourceIndex] = useState(0);
+  const imageFailed = sourceIndex >= sources.length;
+  const source = sources[Math.min(sourceIndex, sources.length - 1)];
 
   useEffect(() => {
-    setSource(card.imageUrl || fallback);
-    setImageFailed(false);
-  }, [card.id, card.imageUrl, fallback]);
+    setSourceIndex(0);
+  }, [sourcesKey]);
 
   return (
     <ModalSurface
@@ -61,10 +62,7 @@ export default function CardPreviewSheet({ card, onClose }: CardPreviewSheetProp
             data-lightbox-media=""
             src={source}
             alt={card.name}
-            onError={() => {
-              if (source !== fallback) setSource(fallback);
-              else setImageFailed(true);
-            }}
+            onError={() => setSourceIndex(index => index + 1)}
           />
         ) : (
           <figcaption role="alert" data-card-preview-image-state="error">
@@ -72,10 +70,7 @@ export default function CardPreviewSheet({ card, onClose }: CardPreviewSheetProp
             <button
               type="button"
               data-card-preview-image-retry=""
-              onClick={() => {
-                setSource(card.imageUrl || fallback);
-                setImageFailed(false);
-              }}
+              onClick={() => setSourceIndex(0)}
             >
               Повторить загрузку
             </button>
