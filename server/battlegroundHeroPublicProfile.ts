@@ -41,10 +41,25 @@ function card(value: unknown, imageUrl: (value: unknown) => string | null): Publ
   return { name, text: plain(source.text, 500), image, imageGold: imageUrl(source.image_gold) };
 }
 
+/** The balance history of a hero, copied field by field from `wiki.card_changes`: texts plain, links to the allowed hosts only. */
+function patchHistory(value: unknown): PublicBattlegroundHeroProfile['patches'] {
+  return (Array.isArray(value) ? value : []).slice(0, 8).map(record).map(group => ({
+    heading: plain(group.heading, 120),
+    entries: (Array.isArray(group.entries) ? group.entries : []).slice(0, 80).map(record).map(entry => ({
+      date: plain(entry.date, 20),
+      patch: plain(entry.patch, 80),
+      patch_url: link(entry.patch_url),
+      wiki_url: link(entry.wiki_url),
+      items: (Array.isArray(entry.items) ? entry.items : []).slice(0, 30)
+        .flatMap(item => { const line = plain(item, 500); return line ? [line] : []; }),
+    })).filter(entry => entry.items.length > 0 || entry.patch),
+  })).filter(group => group.entries.length > 0);
+}
+
 /**
  * The open profile of a hero from the hero library (`/api/v1/heroes?dbf=`): game content only, copied field by field
  * (the artist, race, health and armor, the description, the full art, the companion and its golden version, skins,
- * outbound links). The patch history (`wiki.card_changes`), statistics and every other field stay out. Pictures are
+ * outbound links, the patch history). Statistics and every other field stay out. Pictures are
  * same-origin resource URLs (`imageUrl` answers `null` for a host the proxy does not serve: the picture is dropped).
  */
 export function projectBattlegroundHeroProfile(
@@ -86,6 +101,7 @@ export function projectBattlegroundHeroProfile(
     buddy: buddyCard ? { ...buddyCard, golden: card(buddy.golden, imageUrl) } : null,
     skins: skins.slice(0, 24),
     links: links.slice(0, 8),
+    patches: patchHistory(wiki.card_changes),
   };
 }
 

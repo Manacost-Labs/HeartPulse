@@ -3,7 +3,7 @@ import test from 'node:test';
 import { createHeroProfileLoader, projectBattlegroundHeroProfile } from '../server/battlegroundHeroPublicProfile.ts';
 
 // A library row as `/api/v1/heroes?dbf=` answers it, with a sentinel in every field the open profile must not copy:
-// the patch history, statistics a library row could carry, and extra fields next to each copied one (a projection
+// statistics a library row could carry, and extra fields next to each copied one (a projection
 // that spreads a record instead of copying fields by name leaks them).
 const CLOSED = 'SENTINEL_CLOSED';
 const imageUrl = (value: unknown) => typeof value === 'string' && value.startsWith('https://img.example/')
@@ -26,7 +26,11 @@ const row = {
     status: `${CLOSED}_wiki_status`,
     page: { title: `${CLOSED}_page_title`, url: 'https://hearthstone.wiki.gg/wiki/Battlegrounds/Lord_Jaraxxus' },
     availability: { notes: [`${CLOSED}_availability`] },
-    card_changes: [{ version: `${CLOSED}_patch`, changes: [`${CLOSED}_patch_change`] }],
+    card_changes: [{ heading: 'Balance changes', note: `${CLOSED}_group_note`, entries: [
+      { date: '2026-01-27', patch: 'Patch 34.4.2.234747', patch_url: 'https://hearthstone.wiki.gg/wiki/Patch_34.4.2.234747',
+        items: ['Now has <b>15</b> armor (previously: 10).', 42], author: `${CLOSED}_entry_author` },
+      { date: '2020-01-01', items: [], patch_url: 'https://evil.example/patch' },
+    ] }],
     gallery: [`${CLOSED}_gallery`],
     hero_skins: [{ cards: [
       { card_id: 'TB_BaconShop_HERO_37_SKIN_A', title: 'Shado-pan Jaraxxus', image_url: 'https://img.example/skin-a.png',
@@ -59,6 +63,11 @@ test('the open hero profile copies game content by name and nothing closed', () 
       { label: 'Hearthstone Wiki', url: 'https://hearthstone.wiki.gg/wiki/Battlegrounds/Lord_Jaraxxus' },
       { label: 'HSReplay.net', url: 'https://hsreplay.net/cards/59807' },
     ],
+    // The balance history is open (owner, 2026-11-20): copied by field, plain text; an entry without lines or patch drops.
+    patches: [{ heading: 'Balance changes', entries: [{
+      date: '2026-01-27', patch: 'Patch 34.4.2.234747', patch_url: 'https://hearthstone.wiki.gg/wiki/Patch_34.4.2.234747',
+      wiki_url: null, items: ['Now has 15 armor (previously: 10).'],
+    }] }],
   });
   assert.equal(JSON.stringify(profile).includes(CLOSED), false, 'no closed field reaches the open profile');
   assert.equal(projectBattlegroundHeroProfile({ data: [row] }, 1, imageUrl), null, 'another hero has no profile here');
