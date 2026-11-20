@@ -15,7 +15,6 @@ import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
-  BarChart3,
   BookOpenText,
   Check,
   ChevronDown,
@@ -652,13 +651,6 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         </ArchetypeDetailSection>
       ) : null}
 
-      {!core.loading ? <section className="archetype-methodology">
-        <BarChart3 size={24} aria-hidden="true" />
-        <div>
-          <h2>Как читать данные</h2>
-          <p>Статистика архетипа относится к периоду «{catalogPeriodLabel(detail)}» и учитывает архетипы от {detail.minimumGames} игр. У сборок своя выборка HSGuru, поэтому их показатели могут отличаться от общей статистики архетипа.</p>
-        </div>
-      </section> : null}
     </Root>
   );
 }

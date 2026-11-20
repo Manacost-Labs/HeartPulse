@@ -923,6 +923,11 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
       assert.ok(strong.text.includes(expected), `the block says «${expected}»: ${strong.text}`);
     }
     assertNoProse(strong, 'strong');
+    // «+10 п. п.» beside the median says whose difference it is on hover.
+    assert.deepEqual([...strong.summary.matchAll(/<span class="archetype-seo-summary__delta"[^>]* title="([^"]+)"/g)].map(match => match[1]),
+      ['выше медианы на 10 п. п.', 'выше медианы на 9,2 п. п.']);
+    assert.ok(!strong.html.includes('Как читать данные'), 'no «how to read the data» block');
+    assert.ok(visibleText(strong.html).includes('Выборка сборок своя — цифры могут отличаться от архетипа.'), 'one hint line at the builds');
     assert.ok(!strong.text.includes('Выборка меньше'), 'a full sample has no warning');
     assert.doesNotMatch(strong.text, /лидер/i, '«лидер» needs its own sample threshold');
     assert.match(strong.summary, new RegExp(`<time datetime="${state.updatedAt}">`, 'i'), 'the date is machine-readable');
@@ -967,6 +972,7 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
       'the old family names the archetype URL, the one real address (nginx redirects it there)');
     assert.ok(weak.text.includes('Выборка меньше 1 000 игр: винрейт ненадёжен.'), weak.text);
     assert.ok(weak.text.includes('Медиана формата 51,3% −1,3 п. п.'), weak.text);
+    assert.match(weak.summary, /title="ниже медианы на 1,3 п\. п\."/);
     assert.ok(wild.text.includes('Среди архетипов Вольного формата') && wild.text.includes('Другие архетипы Чернокнижника'), wild.text);
     assert.equal(wild.links.at(-1), '/standard/archetypes/?format=wild');
     for (const [name, other] of [['weak', weak], ['wild', wild], ['legacy', legacy], ['strong', strong]]) {

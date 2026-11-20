@@ -27,8 +27,11 @@ const withAlias = (label: string, alias: string | null) => (alias ? `${label} ($
 function Delta({ comparison }: { comparison: MedianComparison }) {
   if (isLevelWithMedian(comparison)) return <span className="archetype-seo-summary__delta">на уровне</span>;
   const up = comparison.delta > 0;
-  return <span className="archetype-seo-summary__delta" data-trend={up ? 'up' : 'down'}>
-    {`${up ? '+' : '−'}${formatNumber(Math.abs(comparison.delta))} п. п.`}
+  const size = `${formatNumber(Math.abs(comparison.delta))} п. п.`;
+  // «+4,7 п. п.» next to the median could read as the median's own change: the title says whose difference it is (an aria-label on a plain span is prohibited by ARIA).
+  const meaning = `${up ? 'выше' : 'ниже'} медианы на ${size}`;
+  return <span className="archetype-seo-summary__delta" data-trend={up ? 'up' : 'down'} title={meaning}>
+    {`${up ? '+' : '−'}${size}`}
   </span>;
 }
 
