@@ -1029,10 +1029,21 @@ test('archetype pages: only a strong archetype is indexable (Wild from 5000 game
     }
 
     // The Wild list (#543): the whole Wild catalog in the server HTML (name, winrate, share and games of each
-    // archetype, a link to its page), the date and the source; noindex, follow and no canonical until SEO-A opens it.
+    // archetype, a link to its page), the date and the source. Indexable since #637: self-canonical, with its JSON-LD.
     const wildList = await page('/standard/archetypes/wild/');
-    assert.equal(wildList.robots, 'noindex, follow');
-    assert.equal(wildList.canonical, undefined, 'a noindex page names no canonical, least of all the Standard list');
+    assert.equal(wildList.robots, strong.robots, 'the Wild list is indexable');
+    assert.equal(wildList.canonical, 'https://hearthpulse.net/standard/archetypes/wild/', 'the Wild list is its own canonical');
+    assert.equal(wildList.graphs.length, 1, 'the Wild list has its JSON-LD');
+    const wildListGraph = wildList.graphs[0]['@graph'];
+    assert.deepEqual(wildListGraph.map(node => node['@type']), ['Organization', 'BreadcrumbList', 'Dataset']);
+    assert.deepEqual(nodeOfType(wildListGraph, 'BreadcrumbList').itemListElement.map(({ name, item }) => [name, item]), [
+      ['Главная', 'https://hearthpulse.net/'], ['Вольный формат', 'https://hearthpulse.net/wild/'],
+      ['Архетипы', 'https://hearthpulse.net/standard/archetypes/wild/']]);
+    const wildListDataset = nodeOfType(wildListGraph, 'Dataset');
+    assert.equal(wildListDataset.url, 'https://hearthpulse.net/standard/archetypes/wild/');
+    assert.equal(wildListDataset.name, 'Архетипы Hearthstone: Вольный формат');
+    assert.equal(wildListDataset.isBasedOn.url, 'https://www.hsguru.com/meta');
+    assert.equal(typeof wildListDataset.dateModified, 'string', 'dated by the Wild catalog');
     assert.match(wildList.title, new RegExp(`^Архетипы Вольного формата Hearthstone: винрейт, (${MONTH_NAMES}) \\d{4}$`));
     assert.match(wildList.html, /<meta name="description" content="Вольный формат Хартстоуна \(хс\) на [^":]*: 5 архетипов — винрейт, популярность и число игр каждого архетипа\. Данные HSGuru\."/);
     assert.deepEqual([...wildList.html.matchAll(/<h1[^>]*>([^<]*)<\/h1>/g)].map(match => match[1]), ['Архетипы Вольного формата']);

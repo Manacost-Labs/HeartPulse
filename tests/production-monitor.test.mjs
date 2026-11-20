@@ -76,11 +76,17 @@ const sitemapMinionIds = Array.from({ length: 500 }, (_value, index) => 10_000 +
 const sitemapHeroIds = Array.from({ length: 80 }, (_value, index) => 30_000 + index);
 const sitemapCosmeticIds = Array.from({ length: 500 }, (_value, index) => `HERO_${index + 1}`);
 const sitemapGuideSlugs = Array.from({ length: 500 }, (_value, index) => `guide-${index + 1}`);
-// The archetype segment holds about 70 URLs on real data; 40 is enough to tell the five samples apart.
+// The archetype segment holds about 78 Standard and 48 Wild URLs on real data; 40 + 2 is enough to tell the five samples apart.
 const sitemapArchetypeSlugs = Array.from(
   { length: 40 },
   (_value, index) => `monitor-deck-${String(index + 1).padStart(2, '0')}`,
 );
+// Wild archetype pages are in the same segment (#637); the last of the five samples is one of them.
+const sitemapArchetypePaths = [
+  ...sitemapArchetypeSlugs.map(slug => `/standard/archetypes/standard/${slug}/`),
+  '/standard/archetypes/wild/monitor-deck-41/',
+  '/standard/archetypes/wild/monitor-deck-42/',
+];
 
 sitemapCardIds[0] = 'blizzard:12345';
 sitemapWildCardIds[0] = 'blizzard:67890';
@@ -327,10 +333,10 @@ const server = http.createServer((req, res) => {
     '/sitemaps/cosmetics.xml': sitemapCosmeticIds.map(cardId => `${origin}/cosmetics/heroes/${cardId}/`),
     '/sitemaps/guides-archive.xml': sitemapGuideSlugs.map(slug => `${origin}/guides-archive/${slug}/`),
     '/sitemaps/archetypes.xml': [
-      ...(seoFailure === 'archetypes-small' ? sitemapArchetypeSlugs.slice(0, 29) : sitemapArchetypeSlugs)
-        .map(slug => `${origin}/standard/archetypes/standard/${slug}/`),
+      ...(seoFailure === 'archetypes-small' ? sitemapArchetypePaths.slice(0, 29) : sitemapArchetypePaths)
+        .map(path => `${origin}${path}`),
       ...(seoFailure === 'archetypes-meta-family' ? [`${origin}/standard/meta/standard/monitor-deck-99/`] : []),
-      ...(seoFailure === 'archetypes-wild' ? [`${origin}/standard/archetypes/wild/monitor-deck-99/`] : []),
+      ...(seoFailure === 'archetypes-other-format' ? [`${origin}/standard/archetypes/classic/monitor-deck-99/`] : []),
       ...(seoFailure === 'archetypes-query' ? [`${origin}/standard/archetypes/standard/monitor-deck-99/?format=wild`] : []),
     ],
   };
@@ -394,12 +400,13 @@ const server = http.createServer((req, res) => {
     res.end(cardHtml(origin, dbfId, { canonical }));
     return;
   }
-  const archetypeMatch = requestUrl.pathname.match(/^\/standard\/archetypes\/standard\/(monitor-deck-\d{2})\/$/);
+  const archetypeMatch = requestUrl.pathname.match(/^\/standard\/archetypes\/(?:standard|wild)\/(monitor-deck-\d{2})\/$/);
   if (archetypeMatch) {
     const slug = archetypeMatch[1];
     const canonical = `${origin}${requestUrl.pathname}`;
-    // The 30th archetype is the fourth of five samples: neither first, middle nor last.
-    const broken = seoFailure === 'archetype-page-4' && slug === 'monitor-deck-30';
+    // The 31st archetype is the fourth of five samples: neither first, middle nor last.
+    const broken = (seoFailure === 'archetype-page-4' && slug === 'monitor-deck-31')
+      || (seoFailure === 'archetype-wild-noindex' && requestUrl.pathname.startsWith('/standard/archetypes/wild/'));
     const robots = seoFailure === 'archetype-meta-noindex' || broken
       ? 'noindex, follow'
       : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
@@ -489,7 +496,7 @@ try {
     battlegroundHeroes: 80,
     cosmetics: 500,
     guidesArchive: 500,
-    archetypes: 40,
+    archetypes: 42,
   });
   assert.equal(seoCheck.staticUrls, EXPECTED_STATIC_SITEMAP_URL_COUNT);
   assert.equal(seoCheck.sampledDetails, 23,
@@ -663,11 +670,12 @@ try {
     ['cosmetics-without-lastmod', /entry 1 has no lastmod/i],
     ['archetypes-small', /archetype sitemap has invalid entry count 29/i],
     ['archetypes-meta-family', /archetype sitemap contains a non-canonical URL/i],
-    ['archetypes-wild', /archetype sitemap contains a non-canonical URL/i],
+    ['archetypes-other-format', /archetype sitemap contains a non-canonical URL/i],
     ['archetypes-query', /archetype sitemap contains a non-canonical URL/i],
     ['archetype-header-noindex', /sample archetypes entity monitor-deck-01: X-Robots-Tag is noindex/i],
     ['archetype-meta-noindex', /sample archetypes entity monitor-deck-01: index robots metadata is missing/i],
-    ['archetype-page-4', /sample archetypes entity monitor-deck-30: index robots metadata is missing/i],
+    ['archetype-page-4', /sample archetypes entity monitor-deck-31: index robots metadata is missing/i],
+    ['archetype-wild-noindex', /sample archetypes entity monitor-deck-42: index robots metadata is missing/i],
     ['archetype-canonical', /sample archetypes entity monitor-deck-01: canonical mismatch/i],
     ['archetype-jsonld-missing', /sample archetypes entity monitor-deck-01: JSON-LD is missing/i],
     ['archetype-jsonld-invalid', /sample archetypes entity monitor-deck-01: JSON-LD is invalid/i],

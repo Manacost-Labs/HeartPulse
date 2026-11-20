@@ -832,6 +832,69 @@
         }
       }
     ],
+    "/standard/archetypes/wild": [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Главная",
+            "item": "https://hearthpulse.net"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Вольный формат",
+            "item": "https://hearthpulse.net/wild/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": "Архетипы",
+            "item": "https://hearthpulse.net/standard/archetypes/wild/"
+          }
+        ]
+      },
+      {
+        "@type": "Dataset",
+        "@id": "https://hearthpulse.net/standard/archetypes/wild/#dataset",
+        "name": "Архетипы Hearthstone: Вольный формат",
+        "description": "Архетипы Вольного формата по данным HSGuru: винрейт, популярность и число игр каждого архетипа.",
+        "url": "https://hearthpulse.net/standard/archetypes/wild/",
+        "isBasedOn": {
+          "@type": "Dataset",
+          "name": "HSGuru: Meta",
+          "url": "https://www.hsguru.com/meta"
+        },
+        "variableMeasured": [
+          {
+            "@type": "PropertyValue",
+            "name": "Винрейт",
+            "unitText": "%"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Популярность",
+            "unitText": "%"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Число игр"
+          }
+        ],
+        "keywords": [
+          "Hearthstone",
+          "Вольный формат",
+          "архетипы",
+          "винрейт"
+        ],
+        "about": {
+          "@type": "VideoGame",
+          "name": "Hearthstone"
+        }
+      }
+    ],
     "/standard/assemble": [
       {
         "@type": "BreadcrumbList",
