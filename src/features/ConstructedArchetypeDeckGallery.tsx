@@ -75,7 +75,7 @@ function DeckBuildCard({
   archetype, archetypeLabel = archetype,
   classKey,
   seed,
-  full,
+  full, openOnly,
   onPendingChange,
 }: {
   key?: React.Key;
@@ -85,11 +85,11 @@ function DeckBuildCard({
   archetype: string; archetypeLabel?: string;
   classKey: string | null;
   seed?: readonly FunDeckCard[] | null;
-  full?: boolean;
+  full?: boolean; openOnly?: boolean;
   onPendingChange: (deckCode: string, pending: boolean) => void;
 }) {
   const [read, setDeck] = useState<ResolvedDeck | null>(null);
-  const seeded = useMemo(() => (seed ? seededDeck(build.deckCode, format, seed) : null), [build.deckCode, format, seed]);
+  const seeded = useMemo(() => (seed || openOnly ? seededDeck(build.deckCode, format, seed ?? []) : null), [build.deckCode, format, seed, openOnly]);
   const deck = full ? read : seeded ?? read; // in the render that drops `full` (access lost): no full list for one frame
   const [error, setError] = useState('');
   const [renderState, setRenderState] = useState<DeckRenderState>('idle');
@@ -102,7 +102,7 @@ function DeckBuildCard({
     const controller = new AbortController();
     setDeck(seed ? seededDeck(build.deckCode, format, seed) : null);
     setError('');
-    if (seed && !full) return undefined;
+    if ((seed && !full) || openOnly) return undefined;
     void resolveDeck(build, format, archetype, controller.signal)
       .then(setDeck)
       .catch(cause => {
@@ -111,7 +111,7 @@ function DeckBuildCard({
         }
       });
     return () => controller.abort();
-  }, [archetype, build, format, revision, seed, full]);
+  }, [archetype, build, format, revision, seed, full, openOnly]);
 
   useEffect(() => {
     if (copyState === 'idle') return undefined;
@@ -197,6 +197,7 @@ export default function ConstructedArchetypeDeckGallery({
   classKey,
   seeds,
   full = false,
+  openOnly = false,
 }: {
   builds: ArchetypeBuild[];
   format: ArchetypeFormat;
@@ -208,6 +209,8 @@ export default function ConstructedArchetypeDeckGallery({
   seeds?: ReadonlyMap<string, readonly FunDeckCard[]>;
   /** A subscriber's gallery: the seeds stand in only until each full deck list is read. */
   full?: boolean;
+  /** A guest's archetype gallery: only the seeds are shown, nothing is read (a build without one shows its list as unavailable). */
+  openOnly?: boolean;
 }) {
   const [pendingDecks, setDeckPending] = usePendingDecks();
   const [layout, setLayout] = useDeckLayout();
@@ -224,7 +227,7 @@ export default function ConstructedArchetypeDeckGallery({
       <div className={GALLERY_CLASS[layout]}>
         {builds.map((build, index) => layout !== 'images' ? (
           <ArchetypeBuildView key={build.deckCode} build={build} index={index} format={format} archetype={archetype}
-            classKey={classKey} layout={layout} seed={seeds?.get(build.deckCode)} full={full} onPendingChange={setDeckPending} />
+            classKey={classKey} layout={layout} seed={seeds?.get(build.deckCode)} full={full} openOnly={openOnly} onPendingChange={setDeckPending} />
         ) : (
           <DeckBuildCard
             key={build.deckCode}
@@ -236,6 +239,7 @@ export default function ConstructedArchetypeDeckGallery({
             classKey={classKey}
             seed={seeds?.get(build.deckCode)}
             full={full}
+            openOnly={openOnly}
             onPendingChange={setDeckPending}
           />
         ))}

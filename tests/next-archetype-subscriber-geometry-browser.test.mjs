@@ -17,8 +17,10 @@ const CARDS = [{ id: 'TST_001', name: 'Тестовый удар', cost: 1, coun
 const deckOf = index => `AAECAf0GAfKiBALxogTzogQ${'ABCDEFGHIJKLMNOP'[index]}AA==`;
 // Twelve builds, a page of eight; `PAID_ONLY` is a build the open page does not have (refused by the allowlist, or the
 // open copy is older than the live paid answer) and the paid answer ranks it first.
+// The eighth build has no open card list (its cards could not be named): a guest sees its list as unavailable.
+const BARE = 7;
 const OPEN = Array.from({ length: 12 }, (_, index) => ({ deckCode: deckOf(index), games: 3000 - index * 10, winrate: 55.5,
-  updatedAt: '2026-11-19T00:00:00.000Z', sampleRank: 'all', samplePeriod: 'past_week', cards: CARDS }));
+  updatedAt: '2026-11-19T00:00:00.000Z', sampleRank: 'all', samplePeriod: 'past_week', cards: index === BARE ? null : CARDS }));
 const PAID_ONLY = { deckCode: 'AAECAf0GAfKiBALxogTzogQZZAA==', games: 4000, winrate: 56.5, updatedAt: '2026-11-19T00:00:00.000Z',
   sampleRank: 'all', samplePeriod: 'past_week' };
 const item = { slug: 'zoolock', archetype: 'Zoolock', archetypeLabel: 'Зоолок', translated: true, classKey: 'warlock', format: 'standard',
@@ -31,8 +33,11 @@ const HISTORY = [0, 1, 2, 3].map(day => ({ recordedAt: `2026-11-1${day}T00:00:00
   popularity: 19 + day * 0.4, turns: 7.9, durationMinutes: 8, climbingSpeed: 1.2, patch: null }));
 const placeholder = readFileSync(new URL('../public/arena-logo-icon.webp', import.meta.url));
 const WIDTHS = [1440, 390];
-// Both sides of every width where a paid section's skeleton changes its layout (1120: history, 980: analysis, 820: all).
-const THRESHOLDS = [1121, 1120, 981, 980, 821, 820];
+// Both sides of every width where a paid section's skeleton changes (the history at 1120; the analysis where its layout
+// or a line of its copy changes, the ends of the bands in ArchetypePaidFrames.css; the earlier band ends 1200, 1030,
+// 900, 580 and 450), and widths between them.
+const THRESHOLDS = [1280, 1200, 1199, 1195, 1194, 1121, 1120, 1100, 1038, 1037, 1030, 1029, 1024, 1023, 981, 980, 960, 900, 899, 887, 886,
+  860, 821, 820, 700, 580, 579, 578, 500, 453, 452, 450, 449, 440, 439, 420, 391, 390, 360];
 // The subscriber's full list of a build and its paid numbers, which a lost access must take off the page at once.
 const SENTINEL_CARD = 'СЕНТИНЕЛ-карта';
 const SENTINEL_SIDEBOARD = 'Доп. карты';
@@ -83,11 +88,12 @@ async function startStand() {
     }
     if (pathname === '/api/deck/render') { send({ ok: true, ready: true, imageUrl: '/arena-logo-icon.webp', renderer: 'rust', style: 'parchment' }); return; }
     if (pathname === '/api/deck/resolve') {
-      // The full list of a build: its open list (the tiles keep their content, only the list of builds may differ), or
-      // with `sentinel` a card and a sideboard the open list never has.
+      // The full list of a build: its open list (the tiles keep their content, only the list of builds may differ; the
+      // build without an open list has none either), or with `sentinel` a card and a sideboard the open list never has.
       const card = (card, index) => ({ id: card.id, dbfId: index + 1, name: card.name, cost: card.cost, rarity: 'COMMON', elite: false, count: card.count, image: '' });
       const extra = { id: 'TST_PAID', name: SENTINEL_CARD, cost: 2, count: 1 };
-      send({ ok: true, cards: (state.sentinel ? [...CARDS, extra] : CARDS).map(card), totalCards: state.sentinel ? 4 : 3, deckSizeLimit: 30,
+      const bare = url.searchParams.get('code') === deckOf(BARE) && !state.sentinel;
+      send({ ok: true, cards: bare ? [] : (state.sentinel ? [...CARDS, extra] : CARDS).map(card), totalCards: bare ? 0 : state.sentinel ? 4 : 3, deckSizeLimit: 30,
         sideboards: state.sentinel ? [{ keyCardDbfId: 1, label: SENTINEL_SIDEBOARD, cards: [card({ ...extra, id: 'TST_SIDE' }, 9)] }] : [] });
       return;
     }
@@ -235,12 +241,38 @@ test('the archetype page keeps its geometry from guest to subscriber and while t
         assert.deepEqual(tiles, OPEN.slice(0, 8).map(build => build.deckCode), `${width}px: every tile keeps its build`);
       }
     }
-    // On both sides of each layout change of the skeletons the locked frames still stand where the skeletons will.
-    for (const width of THRESHOLDS) {
-      const { locked, loading, pending } = await lockedAndLoading(stand, width);
-      await pending.close();
-      assertSameParts(width, locked, loading);
-    }
+    // On both sides of each change of the skeletons, and between them, the locked frames stand where the skeletons will
+    // (one page of each, resized: the frames and skeletons are laid out by CSS alone).
+    const across = async (page, measure) => {
+      const result = new Map();
+      for (const width of THRESHOLDS) {
+        await page.setViewport({ width, height: 900 });
+        await delay(50);
+        result.set(width, await measure(page));
+      }
+      return result;
+    };
+    Object.assign(state, { member: false, paidOnly: false }); state.hold.clear();
+    const guest = await stand.open(1440);
+    await guest.page.waitForSelector('[data-paid-frame="history"]');
+    await settle(guest.page);
+    // The history frame is sized by the skeleton's chart frames, out of sight: their controls take no focus and are
+    // not in the accessibility tree.
+    assert.equal(await guest.page.$$eval('[data-paid-frame] button:not(.paid-lock)', nodes => nodes.filter(node => {
+      node.focus();
+      return document.activeElement === node;
+    }).length), 0, 'no control of the sized history frame takes focus');
+    assert.equal(JSON.stringify(await guest.page.accessibility.snapshot()).includes('Скачать'), false, 'the sized history frame is not in the accessibility tree');
+    const lockedAcross = await across(guest.page, async page => ({ parts: await paidParts(page, LOCKED), overflow: await overflow(page) }));
+    await guest.close();
+    Object.assign(state, { member: true }); state.hold = new Set(['analysis', 'ranks', 'history']);
+    const pendingPage = await stand.open(1440);
+    await pendingPage.page.waitForSelector('.loading-surface .constructed-matchup-ledger li');
+    await settle(pendingPage.page);
+    const loadingAcross = await across(pendingPage.page, async page => ({ parts: await paidParts(page, LOADING) }));
+    stand.release();
+    await pendingPage.close();
+    for (const width of THRESHOLDS) assertSameParts(width, lockedAcross.get(width), loadingAcross.get(width));
     // A narrow phone with the text enlarged: the frames grow with their content, nothing is cut or pushes the page wider.
     Object.assign(state, { member: false }); state.hold.clear();
     const large = await stand.open(320);
@@ -283,11 +315,15 @@ test('a subscriber who loses access without a reload never sees the paid full li
         // picks the layout: rows draw the sideboard as a group of portraits, images keep the list under the picture.
         await paidList('.archetype-builds', SENTINEL_CARD);
         await page.waitForFunction(() => /97\D?531/.test(document.querySelector('.archetype-builds')?.textContent ?? ''));
+        // The build without an open list shows the full list too (read for the subscriber only); every view prints the code.
+        const bareTile = (text, code) => page.waitForFunction((what, deck) => [...document.querySelectorAll('.archetype-builds article')]
+          .find(node => node.textContent.includes(deck))?.innerHTML.includes(what), { timeout: 15_000 }, text, code);
         if (layout !== 'tiles') {
           await page.$$eval('.archetype-builds .fun-decks-layout button', (nodes, name) => nodes.find(node => node.textContent.trim() === name)?.click(),
             layout === 'rows' ? 'Строки' : 'Картинки');
           await paidList(layout === 'rows' ? '.archetype-builds .fun-deck-rowcard' : '.archetype-builds .archetype-deck-card', layout === 'rows' ? SENTINEL_SIDEBOARD : SENTINEL_CARD);
         }
+        await bareTile(layout === 'rows' ? SENTINEL_SIDEBOARD : SENTINEL_CARD, deckOf(BARE));
         const tile = await page.$('.archetype-builds article');
         if (loss === 'session') {
           // The session ends elsewhere; the page hears of it when it is shown again (a page restored from the back-forward cache).
@@ -300,11 +336,12 @@ test('a subscriber who loses access without a reload never sees the paid full li
           await page.waitForFunction(() => document.body.textContent.includes('Доступ изменился'));
         }
         await settle(page);
-        const after = await page.evaluate(([card, sideboard]) => ({
+        const after = await page.evaluate(([card, sideboard, bare]) => ({
+          bare: [...document.querySelectorAll('.archetype-builds article')].find(node => node.textContent.includes(bare))?.textContent ?? '',
           paid: window.__paidAfterLoss,
           dom: document.body.innerHTML.includes(card) || document.body.innerHTML.includes(sideboard) || /97\D?531/.test(document.body.textContent),
           open: document.querySelector('.archetype-builds')?.innerHTML.includes('Тестовый удар') && /3\D?000/.test(document.querySelector('.archetype-builds')?.textContent ?? ''),
-        }), [SENTINEL_CARD, SENTINEL_SIDEBOARD]);
+        }), [SENTINEL_CARD, SENTINEL_SIDEBOARD, deckOf(BARE)]);
         // A refused section takes the access away in place: the tiles stay the same nodes, back on the open list.
         const sameTile = loss === 'session' ? null : await page.evaluate(node => node.isConnected && node === document.querySelector('.archetype-builds article'), tile);
         state.hold.clear(); stand.release();
@@ -312,6 +349,8 @@ test('a subscriber who loses access without a reload never sees the paid full li
         assert.deepEqual(after.paid, [], `${label}: no DOM change or frame after the loss holds paid data`);
         assert.equal(after.dom, false, `${label}: no paid data in the DOM`);
         assert.equal(after.open, true, `${label}: the tiles show the open list and numbers`);
+        // The build without an open list has no list to fall back on: it says its list is unavailable.
+        assert.match(after.bare, /пока недоступен/, `${label}: the build without an open list shows no list`);
         if (sameTile !== null) assert.equal(sameTile, true, `${label}: the tile is not remounted`);
       }
     }

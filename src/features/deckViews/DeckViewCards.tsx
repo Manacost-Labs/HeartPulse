@@ -25,19 +25,20 @@ export function useDeckView(
   seed: readonly FunDeckCard[] | null = null,
   /** The full list is wanted (a subscriber's gallery): the seed only stands in until it arrives, and never wins over it. */
   full = false,
+  /** Only open lists may be shown (a guest's archetype gallery): nothing is read, a deck without a seed shows its list as unavailable. */
+  openOnly = false,
 ) {
   const { ref, near } = useNearScreen<HTMLElement>(eager);
-  const resolved = useResolvedDeck(deckCode, { ...options, enabled: near && (!seed || full) });
-  const seeded = useMemo(() => (seed ? seededDeck(deckCode, options.format, seed) : null), [seed, deckCode, options.format]);
-  // Chosen in the render that changes `full`: when the full list is no longer wanted (access lost in place), the
-  // list read for it is not shown for a single frame; the seed stands again. Without a seed the read list is the
-  // one anyone gets.
+  const resolved = useResolvedDeck(deckCode, { ...options, enabled: near && (full || (!seed && !openOnly)) });
+  const seeded = useMemo(() => (seed || openOnly ? seededDeck(deckCode, options.format, seed ?? []) : null), [seed, openOnly, deckCode, options.format]);
+  // Chosen in the render that changes `full`: when the full list is no longer wanted (access lost in place), a list
+  // read for it is not shown for a single frame, seed or not; the open list (or none) stands.
   const data = full ? resolved.data ?? seeded : seeded ?? resolved.data;
   const entries = useMemo(
     () => (data ? funDeckEntries(data.cards, data.sideboards) : []),
     [data],
   );
-  return seed ? { ...resolved, data, error: data ? '' : resolved.error, loading: false, entries, ref, near } : { ...resolved, entries, ref, near };
+  return seeded ? { ...resolved, data, error: data ? '' : resolved.error, loading: false, entries, ref, near } : { ...resolved, entries, ref, near };
 }
 
 export type DeckView = ReturnType<typeof useDeckView>;
