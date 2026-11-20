@@ -1051,6 +1051,12 @@ async function checkPageTemplates(baseUrl, fetchImpl, timeoutMs, signal, setting
         url, fetchImpl, timeoutMs, MAX_ENTITY_HTML_BYTES, label, signal,
       );
       assertIndexablePage(response, body);
+      // A page that publishes deck codes must not carry the paid fields next to
+      // them. Other templates are not checked: card listings carry the guest
+      // flag `statsAccess:false`.
+      if (OPEN_DECK_CODE_ROUTES.some(route => route.test(url.pathname))) {
+        ensure(privatePayloadMarker(body, url.pathname) === null, 'private payload marker found');
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       throw new Error(`${url.pathname}: ${message} (${Date.now() - pageStartedAt} ms)`);

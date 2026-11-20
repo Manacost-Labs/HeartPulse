@@ -434,9 +434,10 @@ const server = http.createServer((req, res) => {
     res.end(`<!doctype html><html><head><meta name="robots" content="noindex, nofollow">${includeCanonical ? `<link rel="canonical" href="${origin}/standard/cards/standard/MANACOST_MONITOR_ABSENT_CARD/">` : ''}</head><body><main><h1>Карта не найдена</h1></main>${seoFailure === 'unknown-deck-code' ? OPEN_DECK_PAYLOAD : ''}</body></html>`);
     return;
   }
-  if (requestUrl.pathname === '/standard/fun-decks/' && seoFailure === 'open-deck-codes') {
+  if (requestUrl.pathname === '/standard/fun-decks/' && ['open-deck-codes', 'fun-decks-private-sentinel'].includes(seoFailure)) {
+    const sentinel = seoFailure === 'fun-decks-private-sentinel' ? '<script>{"privateSentinel":true}</script>' : '';
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-    res.end(`<!doctype html><html><body><main><h1>Фан-колоды</h1></main>${OPEN_DECK_PAYLOAD}</body></html>`);
+    res.end(`<!doctype html><html><body><main><h1>Фан-колоды</h1></main>${OPEN_DECK_PAYLOAD}${sentinel}</body></html>`);
     return;
   }
   if (['/classes', '/battlegrounds/tier-list'].includes(requestUrl.pathname)) {
@@ -657,6 +658,11 @@ try {
   seoFailure = 'open-deck-codes';
   const openDeckCodes = await runProductionMonitor({ baseUrl, attempts: 1, retryDelayMs: 0, timeoutMs: 2_000 });
   assert.equal(openDeckCodes.status, 'ok', 'an open deck code on archetype, card and fun-deck pages is not a leak');
+  // The fun-decks template is checked for the other markers next to its open deck codes.
+  seoFailure = 'fun-decks-private-sentinel';
+  const funDecksSentinel = await captureFailure(runProductionMonitor({ baseUrl, attempts: 1, retryDelayMs: 0, timeoutMs: 2_000 }));
+  assert.deepEqual(funDecksSentinel.report.failures.map(failure => failure.label), ['page template fun-decks']);
+  assert.match(funDecksSentinel.report.failures[0].message, /\/standard\/fun-decks\/: private payload marker found/);
   seoFailure = null;
   assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD, '/standard/fun-decks/'), null);
   assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD, '/standard/archetypes/wild/boar-warlock/'), null);
