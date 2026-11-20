@@ -1,6 +1,7 @@
 import { useMemo, type CSSProperties } from 'react';
 import { useResolvedDeck } from '../decklist/useResolvedDeck';
-import { funDeckEntries } from '../funDecks/deckEntries';
+import { funDeckEntries, type FunDeckCard } from '../funDecks/deckEntries';
+import { seededDeck } from './seededDeck';
 import { CopyDeckButton, DeckLoadState, DeckPortrait, ManaCurve, TileEntry } from './deckViewParts';
 import { useNearScreen } from '../funDecks/useNearScreen';
 import '../funDecks/FunDeckLayouts.css';
@@ -18,14 +19,19 @@ export function winRateTone(value: number | null | undefined): DeckStat['tone'] 
 }
 
 /** A deck code resolved into the cards of the views, once the deck is about a screen away (`eager`: at once). */
-export function useDeckView(deckCode: string, options: { format: 'standard' | 'wild'; archetype?: string }, eager = false) {
+export function useDeckView(
+  deckCode: string, options: { format: 'standard' | 'wild'; archetype?: string }, eager = false,
+  /** The card list the page already has (the open builds): used as the resolved deck, nothing is requested. */
+  seed: readonly FunDeckCard[] | null = null,
+) {
   const { ref, near } = useNearScreen<HTMLElement>(eager);
-  const resolved = useResolvedDeck(deckCode, { ...options, enabled: near });
+  const resolved = useResolvedDeck(deckCode, { ...options, enabled: near && !seed });
+  const data = useMemo(() => (seed ? seededDeck(deckCode, options.format, seed) : resolved.data), [seed, deckCode, options.format, resolved.data]);
   const entries = useMemo(
-    () => (resolved.data ? funDeckEntries(resolved.data.cards, resolved.data.sideboards) : []),
-    [resolved.data],
+    () => (data ? funDeckEntries(data.cards, data.sideboards) : []),
+    [data],
   );
-  return { ...resolved, entries, ref, near };
+  return seed ? { ...resolved, data, error: '', loading: false, entries, ref, near } : { ...resolved, entries, ref, near };
 }
 
 export type DeckView = ReturnType<typeof useDeckView>;

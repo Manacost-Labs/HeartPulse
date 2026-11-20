@@ -35,7 +35,7 @@ export function CopyDeckButton({ deckCode, title, className }: { deckCode: strin
   const { state, label, copy } = useCopyDeckCode(deckCode);
   return (
     <button type="button" className={`${className}${state === 'ok' ? ' is-copied' : ''}`}
-      aria-label={`${label}: ${title}`} onClick={() => void copy()}>
+      aria-label={`${label}: ${title}`} data-deck-code={deckCode} onClick={() => void copy()}>
       <Copy aria-hidden="true" />
       <span aria-live="polite">{state === 'idle' ? 'Копировать код' : label}</span>
     </button>

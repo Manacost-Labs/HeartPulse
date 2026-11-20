@@ -15,6 +15,8 @@ import './ConstructedArchetypeDeckGallery.css';
 import { usePendingDecks, useReportedPending } from './archetypeDeckGalleryPending';
 import { DeckLayoutSwitch, useDeckLayout } from './deckViews/DeckLayoutSwitch';
 import { pluralRu } from './deckViews/deckClass';
+import type { FunDeckCard } from './funDecks/deckEntries';
+import { seededDeck } from './deckViews/seededDeck';
 import { ArchetypeBuildView, GALLERY_CLASS, formatNumber, formatPercent, type ArchetypeBuild, type ArchetypeFormat } from './archetypeBuildViews';
 
 
@@ -71,6 +73,7 @@ function DeckBuildCard({
   format,
   archetype, archetypeLabel = archetype,
   classKey,
+  seed,
   onPendingChange,
 }: {
   key?: React.Key;
@@ -79,6 +82,7 @@ function DeckBuildCard({
   format: ArchetypeFormat;
   archetype: string; archetypeLabel?: string;
   classKey: string | null;
+  seed?: readonly FunDeckCard[] | null;
   onPendingChange: (deckCode: string, pending: boolean) => void;
 }) {
   const [deck, setDeck] = useState<ResolvedDeck | null>(null);
@@ -88,16 +92,12 @@ function DeckBuildCard({
   const [revision, setRevision] = useState(0);
   const [copyState, setCopyState] = useState<'idle' | 'ok' | 'error'>('idle');
   const classColor = CLASS_COLORS[classKey || ''] || '#67131c';
-  const copyLabel = copyState === 'ok'
-    ? 'Код скопирован'
-    : copyState === 'error'
-      ? 'Не удалось скопировать'
-      : 'Скопировать код колоды';
-
+  const copyLabel = { ok: 'Код скопирован', error: 'Не удалось скопировать', idle: 'Скопировать код колоды' }[copyState];
   useEffect(() => {
     const controller = new AbortController();
-    setDeck(null);
+    setDeck(seed ? seededDeck(build.deckCode, format, seed) : null);
     setError('');
+    if (seed) return undefined;
     void resolveDeck(build, format, archetype, controller.signal)
       .then(setDeck)
       .catch(cause => {
@@ -106,7 +106,7 @@ function DeckBuildCard({
         }
       });
     return () => controller.abort();
-  }, [archetype, build, format, revision]);
+  }, [archetype, build, format, revision, seed]);
 
   useEffect(() => {
     if (copyState === 'idle') return undefined;
@@ -192,6 +192,7 @@ export default function ConstructedArchetypeDeckGallery({
   archetype,
   archetypeLabel,
   classKey,
+  seeds,
 }: {
   builds: ArchetypeBuild[];
   format: ArchetypeFormat;
@@ -199,6 +200,8 @@ export default function ConstructedArchetypeDeckGallery({
   archetype: string;
   archetypeLabel?: string;
   classKey: string | null;
+  /** Card lists the page already holds, by deck code (the open builds): those decks are not requested. */
+  seeds?: ReadonlyMap<string, readonly FunDeckCard[]>;
 }) {
   const [pendingDecks, setDeckPending] = usePendingDecks();
   const [layout, setLayout] = useDeckLayout();
@@ -215,7 +218,7 @@ export default function ConstructedArchetypeDeckGallery({
       <div className={GALLERY_CLASS[layout]}>
         {builds.map((build, index) => layout !== 'images' ? (
           <ArchetypeBuildView key={build.deckCode} build={build} index={index} format={format} archetype={archetype}
-            classKey={classKey} layout={layout} onPendingChange={setDeckPending} />
+            classKey={classKey} layout={layout} seed={seeds?.get(build.deckCode)} onPendingChange={setDeckPending} />
         ) : (
           <DeckBuildCard
             key={build.deckCode}
@@ -225,6 +228,7 @@ export default function ConstructedArchetypeDeckGallery({
             archetype={archetype}
             archetypeLabel={archetypeLabel}
             classKey={classKey}
+            seed={seeds?.get(build.deckCode)}
             onPendingChange={setDeckPending}
           />
         ))}

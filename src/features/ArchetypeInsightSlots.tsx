@@ -115,14 +115,16 @@ export function BuildComparisonSection({ builds, format, archetype }: { builds: 
 type Format = 'standard' | 'wild';
 
 /** The format's catalog summary is the anonymous teaser list the catalog page already reads. */
-export function ArchetypeRadarSection({ item, viewerId }: { item: RadarItem & { format: Format }; viewerId?: string }) {
+export function ArchetypeRadarSection({ item, viewerId, matchupLock }: {
+  item: RadarItem & { format: Format }; viewerId?: string; matchupLock?: React.ReactNode;
+}) {
   const catalog = useArchetypeCatalog<{ format: Format; items: RadarItem[] }>(item.format, null);
   const items = catalog.data?.format === item.format ? catalog.data.items : null;
   return <section className="archetype-insight archetype-radar-section" aria-labelledby="archetype-radar-title" data-tour-id="archetype-radar">
     <InsightHeading icon={<Radar size={15} />} eyebrow="Профиль архетипа" title="Сравнение с другим архетипом"
       text="Найдите соперника: радар показывает место обоих архетипов в формате (0 — минимум, 100 — максимум) и их реальные значения, таблица — кто впереди, ниже — их очный матчап." />
     <React.Suspense fallback={<LoadingBlock className="archetype-radar__reserve" />}>
-      {items ? <LazyRadar item={item} items={items} viewerId={viewerId} /> : catalog.error
+      {items ? <LazyRadar item={item} items={items} viewerId={viewerId} matchupLock={matchupLock} /> : catalog.error
         ? <p className="archetype-insight-empty">{catalog.error}</p> : <LoadingBlock className="archetype-radar__reserve" />}
     </React.Suspense>
   </section>;

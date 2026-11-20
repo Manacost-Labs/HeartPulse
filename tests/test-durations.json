@@ -77,6 +77,7 @@
     "tests/archetype-deck-codes-schema.test.ts": 0.2,
     "tests/archetype-deck-identity.test.ts": 0.4,
     "tests/archetype-detail-model.test.ts": 0.2,
+    "tests/archetype-open-builds.test.ts": 0.2,
     "tests/archetype-hsguru-stats.test.ts": 0.4,
     "tests/archetype-insights-model.test.ts": 0.2,
     "tests/archetype-label-golden.test.ts": 0.2,

@@ -14,9 +14,11 @@ export { usePaidOffer };
  * (`PaidLockButton`). The offer's code loads on the first tap. It closes by
  * itself once the viewer turns out to have access.
  */
-export function PaidOfferProvider({ title, text, children }: { title: string; text: string; children: ReactNode }) {
+export function PaidOfferProvider({ title, text, entitlement = 'arena', children }: {
+  title: string; text: string; entitlement?: 'arena' | 'standard'; children: ReactNode;
+}) {
   const access = usePublicAccess();
-  const { allowed } = paidAccess(access, 'arena');
+  const { allowed } = paidAccess(access, entitlement);
   const [shown, setShown] = useState(false);
   const open = useCallback(() => setShown(true), []);
   useEffect(() => { if (allowed) setShown(false); }, [allowed]);
@@ -40,7 +42,7 @@ export function PaidLockButton({ className, label, closed, children }: {
   className: string;
   /** What the lock closes, for a screen reader: «Остальные показатели». */
   label: string;
-  closed: 'paywalled-tierlist' | 'paywalled-classes';
+  closed: 'paywalled-tierlist' | 'paywalled-classes' | 'paywalled-archetype';
   children?: ReactNode;
 }) {
   const open = usePaidOffer();

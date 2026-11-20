@@ -111,11 +111,12 @@ test('Next archetype details isolate access and load builds before independent o
       response.end('{"user":null,"adminAllowed":false,"contestAdminAllowed":false}'); return;
     }
     if (isMenuBackgroundRead(pathname)) { response.end(JSON.stringify(MENU_PATCH_ARCHIVE)); return; }
-    if (pathname.startsWith('/api/')) {
-      response.writeHead(401).end('{"error":"guest"}'); return;
-    }
+    // Card art of the gallery's tiles (`/api/card-image/<id>/row.webp`) is an image, not a protected read.
     if (/\.(?:webp|png|jpg|jpeg)$/.test(pathname)) {
       response.setHeader('Content-Type', 'image/webp'); response.end(placeholder); return;
+    }
+    if (pathname.startsWith('/api/')) {
+      response.writeHead(401).end('{"error":"guest"}'); return;
     }
     response.writeHead(204).end();
   });
@@ -150,7 +151,7 @@ test('Next archetype details isolate access and load builds before independent o
     const isAbortedImage = request => request.resourceType() === 'image' && request.failure()?.errorText === 'net::ERR_ABORTED';
     page.on('requestfailed', request => { if (!isAbortedRoutePrefetch(request) && !isAbortedImage(request)) failed.push(request.url()); });
     page.on('request', request => {
-      if (/^\/api\/constructed-archetypes\/(?!teaser\/)/.test(new URL(request.url()).pathname)) protectedCalls.push(request.url());
+      if (/^\/api\/constructed-archetypes\/(?!teaser(?:\/|$))/.test(new URL(request.url()).pathname)) protectedCalls.push(request.url());
     });
     // Strong archetypes are offered to search engines (Wild from 5000 games, #543); every page carries the plates and the class links.
     // The old `meta` family is redirected by nginx; served without it (here) it names the archetype URL as canonical.
@@ -197,7 +198,7 @@ test('Next archetype details isolate access and load builds before independent o
     // The server answer itself (HTML with its RSC payload and JSON-LD, and the RSC payload of a client navigation) carries no paid value.
     for (const init of [{}, { headers: { RSC: '1' } }]) {
       const body = await (await fetch(`${origin}/standard/archetypes/standard/zoolock/`, init)).text();
-      assert.ok(body.includes(OPEN_DECK) && body.includes('/standard/cards/standard/TST_001/'), `${JSON.stringify(init)} carries the open build`);
+      assert.ok(body.includes(OPEN_DECK) && body.includes('TST_001'), `${JSON.stringify(init)} carries the open build`);
       for (const paid of [...PAID_SENTINELS, 'mulliganImpact', 'keptImpact', 'PRIVATE_']) {
         assert.equal(body.includes(paid), false, `${JSON.stringify(init)} carries ${paid}`);
       }
@@ -208,8 +209,8 @@ test('Next archetype details isolate access and load builds before independent o
     assert.equal(JSON.stringify(graph).includes('isAccessibleForFree'), false, 'the deck code is not marked as paid');
     // A guest copies the deck code.
     await browser.defaultBrowserContext().overridePermissions(origin, ['clipboard-read', 'clipboard-write', 'clipboard-sanitized-write']);
-    await page.click('button[aria-label="Скопировать код колоды: Зоолок, сборка 1"]');
-    await page.waitForSelector('button[aria-label="Код скопирован: Зоолок, сборка 1"]');
+    await page.click('.archetype-builds button[aria-label="Скопировать код колоды: Сборка 1"]');
+    await page.waitForSelector('.archetype-builds button[aria-label="Код скопирован: Сборка 1"]');
     assert.equal(await page.evaluate(() => navigator.clipboard.readText()), OPEN_DECK);
     // Every build is open, for a guest too: a page of eight in the HTML, «Загрузить ещё» for the rest. The next page starts
     // where the source's page ended, whatever the allowlist refused: no build twice, none skipped.
@@ -218,30 +219,34 @@ test('Next archetype details isolate access and load builds before independent o
       button?.click();
       return Boolean(button);
     }, text);
-    const openBuilds = () => page.$$eval('section[aria-labelledby="archetype-open-builds-title"] article', nodes => nodes.map(node => [
-      node.querySelector('h3')?.textContent, node.querySelector('code')?.textContent]));
+    // The guest's gallery is the subscriber's: tiles titled «Сборка N», the code on the copy button.
+    const openBuilds = () => page.$$eval('.archetype-builds article', nodes => nodes.map(node => [
+      node.querySelector('h3')?.textContent, node.querySelector('button[data-deck-code]')?.getAttribute('data-deck-code')]));
     assert.equal((await openBuilds()).length, 7, 'the refused second build is left out');
     assert.ok(await pressButton('Загрузить ещё 1'), 'the guest gets «Загрузить ещё»');
-    await page.waitForFunction(() => document.body.textContent.includes('Зоолок, сборка 8'));
+    await page.waitForFunction(() => document.querySelectorAll('.archetype-builds article').length === 8);
     await delay(300);
-    assert.deepEqual((await openBuilds()).slice(-2), [['Зоолок, сборка 7', deckOf(7)], ['Зоолок, сборка 8', deckOf(8)]]);
+    assert.deepEqual((await openBuilds()).slice(-2), [['Сборка 7', deckOf(7)], ['Сборка 8', deckOf(8)]]);
     assert.equal(new Set((await openBuilds()).map(([, code]) => code)).size, 8, 'every build once');
     assert.equal(await page.$$eval('button', nodes => nodes.some(node => node.textContent.includes('Загрузить ещё'))), false, 'nothing more to load');
-    assert.ok(await page.$('ol[aria-label="Карты: Зоолок, сборка 8"] a[href="/standard/cards/standard/TST_002/"]'));
+    assert.ok(await page.$('.archetype-builds ul[aria-label="Состав колоды Сборка 8"] a[href="/standard/cards/standard/TST_002/"]'));
     // A first page refused whole still offers the next one, which has a valid build.
     await page.goto(`${origin}/standard/archetypes/standard/handlock/`, { waitUntil: 'networkidle2' });
     assert.equal((await openBuilds()).length, 0);
     assert.ok(await pressButton('Загрузить ещё 1'), 'the guest gets «Загрузить ещё»');
-    await page.waitForFunction(() => document.body.textContent.includes('Ханделок, сборка 1'));
-    assert.deepEqual(await openBuilds(), [['Ханделок, сборка 1', deckOf(8)]]);
+    await page.waitForFunction(() => document.querySelectorAll('.archetype-builds article').length === 1);
+    assert.deepEqual(await openBuilds(), [['Сборка 1', deckOf(8)]]);
     // Without open builds (none, or all refused) the paywall sells only what is paid and nothing says decks are paid.
     for (const [path, state] of [['/standard/archetypes/standard/weak-warlock/', 'Колоды появятся, когда наберётся выборка'],
       ['/standard/archetypes/standard/cube-warlock/', 'Сборок пока нет.']]) {
       const html = await (await fetch(`${origin}${path}`)).text();
       assert.ok(html.includes(state) && !html.includes('Загружаем сборки архетипа'), `${path}: a short state, not a skeleton, without builds`);
       await page.goto(`${origin}${path}`, { waitUntil: 'networkidle2' });
-      await page.waitForSelector('.arena-inline-paywall--archetype');
-      assert.equal(await page.$eval('.arena-inline-paywall--archetype h2', node => node.textContent), 'Матчапы, муллиган и история', path);
+      // The paid parts stand at their places behind locks (no single paywall block); the open ones are open.
+      await page.waitForSelector('[data-paid-frame]');
+      assert.deepEqual(await page.$$eval('[data-paid-frame] h2', nodes => nodes.map(node => node.textContent)),
+        ['Матчапы против классов', 'Муллиган и влияние карт', 'Винрейт по рангам', 'История архетипа'], path);
+      assert.equal(await page.$$eval('[data-paid-frame] button', nodes => nodes.length), 4, `${path}: a lock in every paid frame`);
       const text = await page.evaluate(() => document.body.textContent);
       assert.ok(!/Колоды, матчапы|коды колод|Состав и код колоды/i.test(text), `${path} sells decks as paid`);
     }
@@ -254,6 +259,7 @@ test('Next archetype details isolate access and load builds before independent o
       const summary = document.querySelector('.archetype-seo-summary');
       const heading = [...document.querySelectorAll('h2')].find(node => node.textContent === 'Сборки архетипа');
       const builds = heading?.closest('section');
+      const paidFrames = [...document.querySelectorAll('[data-paid-frame] h2')].map(node => node.textContent);
       const main = document.querySelector('main')?.cloneNode(true);
       main?.querySelectorAll('nav:not(.archetype-seo-summary__class), footer').forEach(node => node.remove());
       return { text: (summary?.innerText ?? '').replaceAll('\u00a0', ' '), time: summary?.querySelector('time')?.getAttribute('datetime'),
@@ -269,10 +275,10 @@ test('Next archetype details isolate access and load builds before independent o
         builds: builds && {
           text: builds.innerText.replaceAll('\u00a0', ' ').toLowerCase(),
           titles: [...builds.querySelectorAll('h3')].map(node => node.textContent),
-          code: builds.querySelector('code')?.textContent, time: builds.querySelector('time')?.getAttribute('datetime'),
-          cards: [...(builds.querySelector('ol[aria-label="Карты: Зоолок, сборка 1"]')?.querySelectorAll('a') ?? [])]
-            .map(link => [link.textContent, link.getAttribute('href')]),
-        } };
+          code: builds.querySelector('button[data-deck-code]')?.getAttribute('data-deck-code'),
+          cards: [...(builds.querySelector('ul[aria-label="Состав колоды Сборка 1"]')?.querySelectorAll('a') ?? [])]
+            .map(link => [link.getAttribute('aria-label'), link.getAttribute('href')]),
+        }, paidFrames };
     });
     await plain.close();
     // shared/seoIndexThreshold.ts: at least 150 own words or at least 10 own facts. A fact is a signed value the reader
@@ -291,10 +297,11 @@ test('Next archetype details isolate access and load builds before independent o
     // Right after the metrics, without JavaScript: the build's numbers, date, source, linked cards and code.
     assert.deepEqual(bare.headings.slice(0, 2), ['Зоолок', 'Сборки архетипа']);
     assert.equal(bare.builds.titles.length, 7, 'the first page of builds, less the refused one, is in the HTML');
-    assert.ok(['9 сборок', 'король ллейн', 'винрейт', '57,1%', 'игры', '2 216', 'hsguru', 'тестовый удар ×2'].every(part => bare.builds.text.includes(part)), bare.builds.text);
-    assert.equal(bare.builds.time, '2026-07-22T21:05:32.877Z');
+    assert.ok(['9 сборок', 'король ллейн', 'винрейт', '57,1%', 'игры', '2 216', 'тестовый удар'].every(part => bare.builds.text.includes(part)), bare.builds.text);
     assert.equal(bare.builds.code, OPEN_DECK);
-    assert.deepEqual(bare.builds.cards, [['Тестовый удар', '/standard/cards/standard/TST_001/'], ['Тестовый страж', '/standard/cards/standard/TST_002/']]);
+    assert.deepEqual(bare.builds.cards, [['1 маны · Тестовый удар ×2', '/standard/cards/standard/TST_001/'], ['4 маны · Тестовый страж', '/standard/cards/standard/TST_002/']]);
+    // The paid parts of the subscriber's page stand at their places without JavaScript too, named but closed.
+    assert.deepEqual(bare.paidFrames, ['Матчапы против классов', 'Муллиган и влияние карт', 'Винрейт по рангам', 'История архетипа']);
     assert.deepEqual(errors, []);
     assert.deepEqual(failed, []);
     assert.deepEqual(protectedCalls, []);
@@ -335,34 +342,38 @@ test('Next archetype details isolate access and load builds before independent o
     coreFails = true;
     await page.reload({ waitUntil: 'networkidle2' });
     assert.equal(await page.$eval('h1', node => node.textContent), 'Воровской Жрец', 'public identity survives a core failure');
-    const openHeading = () => page.$eval('#archetype-open-builds-title', node => node.textContent).catch(() => null);
-    assert.equal(await openHeading(), 'Сборки архетипа', 'a failed paid answer keeps the open builds for a subscriber');
+    const paidBuild = () => page.$('button[data-deck-code="AAEBAa0GValidDeckCode"]');
+    const openBuild = () => page.$(`button[data-deck-code="${OPEN_DECK}"]`);
+    assert.ok(await openBuild(), 'a failed paid answer keeps the open builds for a subscriber');
+    assert.equal(await paidBuild(), null);
     // One «Сборки архетипа» on the page: the failed gallery is a line with its retry, not a second section that says builds are unavailable.
     const coreFailed = await page.evaluate(() => ({
       headings: [...document.querySelectorAll('h2')].filter(node => node.textContent === 'Сборки архетипа').length,
+      locks: document.querySelectorAll('[data-paid-frame]').length,
       regions: document.querySelectorAll('section[aria-label="Сборки архетипа"]').length,
       line: document.querySelector('[role="status"]:has(button)')?.textContent,
       text: document.querySelector('main').textContent,
     }));
-    assert.deepEqual([coreFailed.headings, coreFailed.regions], [1, 0]);
-    assert.equal(coreFailed.line, 'Галерея подписчика не загрузилась, ниже — открытые сборки. Повторить загрузку');
+    assert.deepEqual([coreFailed.headings, coreFailed.regions, coreFailed.locks], [1, 0, 0], 'one gallery, no locks for a subscriber');
+    assert.equal(coreFailed.line, 'Данные подписчика не загрузились, показаны открытые сборки. Повторить загрузку');
     assert.equal(coreFailed.text.includes('Сборки временно недоступны'), false);
     const optionalCalls = sectionCalls.filter(section => section !== 'core').length;
     coreFails = false;
     await page.click('[role="status"] button');
-    await page.waitForSelector('.archetype-builds');
+    await page.waitForSelector('button[data-deck-code="AAEBAa0GValidDeckCode"]');
     assert.equal(sectionCalls.filter(section => section !== 'core').length, optionalCalls);
-    assert.equal(await openHeading(), null, 'the subscriber gallery takes the place of the open builds');
+    assert.equal(await openBuild(), null, 'the subscriber gallery takes the place of the open builds');
     coreEmpty = true;
     await page.reload({ waitUntil: 'networkidle2' });
     await page.waitForSelector('.archetype-history');
-    assert.equal(await openHeading(), 'Сборки архетипа', 'an empty paid answer keeps the open builds');
+    assert.ok(await openBuild(), 'an empty paid answer keeps the open builds');
+    assert.equal(await paidBuild(), null);
     coreEmpty = false;
     optionalGate = new Promise(resolve => { releaseOptional = resolve; });
     optionalMode = 'denied';
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => document.body.textContent.includes('Доступ изменился'));
-    assert.equal(await page.$('.archetype-builds'), null, 'a rejected section immediately removes all protected data');
+    assert.equal(await paidBuild(), null, 'a rejected section immediately removes all protected data');
     releaseOptional();
     await delay(300);
     assert.equal(await page.$('.archetype-history'), null, 'a late cancelled history reply must not restore paid data');
@@ -388,12 +399,13 @@ test('Next archetype details isolate access and load builds before independent o
     await chunkPage.close();
     member = false;
     await page.reload({ waitUntil: 'networkidle2' });
-    assert.equal(await page.$('.archetype-builds'), null, 'logout removes protected builds');
+    assert.equal(await paidBuild(), null, 'logout removes protected builds');
+    assert.equal((await page.$$('[data-paid-frame]')).length, 4, 'logout puts the locks back in the same places');
     assert.equal(await page.$('.archetype-history'), null, 'logout removes protected history');
     member = 'admin';
     await page.reload({ waitUntil: 'networkidle2' });
-    await page.waitForSelector('.archetype-builds');
-    assert.ok(await page.$('.archetype-history'), 'administrator access remains independent of a subscription');
+    await page.waitForSelector('.archetype-history');
+    assert.ok(await paidBuild(), 'administrator access remains independent of a subscription');
     await page.close();
   } finally {
     releaseOptional();

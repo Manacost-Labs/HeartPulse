@@ -40,10 +40,11 @@ function safeSourceUrl(value: unknown): string {
  * format's catalog); a companion card of a Fabled legendary is named without a link; `name: null` is a card no
  * dictionary knows, kept for its count.
  */
-export type OpenArchetypeCard = { id: string | null; name: string | null; cost: number | null; count: number; hasPage: boolean };
+export type OpenArchetypeCard = { id: string | null; name: string | null; cost: number | null; rarity?: string | null; count: number; hasPage: boolean };
 /** A build of the open layer: its deck code, numbers and card list (`null` when the source could not name every card). */
 export type OpenArchetypeBuild = {
-  deckCode: string; games: number | null; winrate: number | null; updatedAt: string | null; cards: OpenArchetypeCard[] | null;
+  deckCode: string; games: number | null; winrate: number | null; updatedAt: string | null; sampleRank?: string; samplePeriod?: string;
+  cards: OpenArchetypeCard[] | null;
 };
 /**
  * `openBuilds` is one page of the open builds (from `buildsOffset`), without the ones the allowlist refuses and
@@ -63,7 +64,8 @@ function openCard(value: unknown): OpenArchetypeCard {
   const name = typeof row.name === 'string' && row.name && row.name.length <= 120 ? row.name : null;
   const cost = row.cost === null || row.cost === undefined ? null : count(row.cost);
   if (!Number.isInteger(copies) || copies < 1 || copies > MAX_DECK_CARDS) throw new Error('Invalid public archetype teaser');
-  return { id, name, cost, count: copies, hasPage: row.hasPage === true && id !== null && name !== null };
+  const rarity = typeof row.rarity === 'string' && /^[A-Z_]{2,20}$/.test(row.rarity) ? row.rarity : null;
+  return { id, name, cost, rarity, count: copies, hasPage: row.hasPage === true && id !== null && name !== null };
 }
 
 /** A build the page cannot show as a whole (no code, a malformed card) is left out, never passed through. */
@@ -74,7 +76,10 @@ function openBuild(value: unknown): OpenArchetypeBuild | null {
     if (!/^[A-Za-z0-9+/=]{20,600}$/.test(deckCode)) return null;
     const cards = row.cards === null || row.cards === undefined ? null
       : Array.isArray(row.cards) && row.cards.length <= MAX_DECK_CARDS ? row.cards.map(openCard) : null;
-    return { deckCode, games: nullableNumber(row.games), winrate: nullableNumber(row.winrate), updatedAt: nullableString(row.updatedAt), cards };
+    return {
+      deckCode, games: nullableNumber(row.games), winrate: nullableNumber(row.winrate), updatedAt: nullableString(row.updatedAt),
+      sampleRank: nullableString(row.sampleRank) ?? '', samplePeriod: nullableString(row.samplePeriod) ?? '', cards,
+    };
   } catch {
     return null;
   }
