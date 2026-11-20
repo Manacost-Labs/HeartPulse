@@ -521,7 +521,10 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
 
 // ── Detail page titles and descriptions: one builder for Express, Next and the browser ──
 {
-  type CardFixture = { id: string; format: 'standard' | 'wild'; name: string; text: string };
+  type CardFixture = {
+    id: string; format: 'standard' | 'wild'; name: string; text: string;
+    set: string; classCode: string; type: string; rarity: string | null; mana: number; attack?: number; health?: number; durability?: number;
+  };
   type SkinFixture = { id: string; name: string; class: string; rarity: string };
   const catalog = JSON.parse(readFileSync(new URL('./fixtures/seo-title-catalog.json', import.meta.url), 'utf8')) as {
     cards: CardFixture[]; heroSkins: SkinFixture[]; coins: string[]; pets: string[];
@@ -531,36 +534,64 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
     assert.deepEqual(repeated, [], `${label} must not repeat`);
   };
 
-  // A card: the first variant that fits 60 characters; the format and the ID stay in every one.
+  // A card with its set: the set, not the ID, tells reprints apart; the Wild page says so.
+  const rajh = {
+    name: 'Радж', id: 'BE_004', format: 'standard' as const, set: 'Власть Темной империи', classCode: 'PALADIN',
+    type: 'Существо', rarity: 'Легендарная', mana: 5, attack: 4, health: 4,
+    rulesText: 'Боевой клич: собирает существо любого класса. Оно становится пассивной силой героя.',
+  };
+  assert.equal(constructedCardTitle(rajh), 'Радж — карта Hearthstone (Власть Темной империи)', 'the brand goes first');
+  assert.equal(constructedCardTitle({ ...rajh, format: 'wild' }), 'Радж — карта Hearthstone (Вольный, Власть Темной империи)');
+  assert.equal(constructedCardTitle({ ...rajh, name: 'Ягуар', set: 'Основной' }), 'Ягуар — карта Hearthstone (Основной) | HearthPulse');
+  assert.equal(constructedCardTitle({ ...rajh, name: 'Вихлепых, король контрабандистов', set: 'Побег из Аметистовой крепости' }),
+    'Вихлепых, король контрабандистов (Побег из Аметистовой крепости)', 'a name and a set too long for 60 characters keep both');
+  assert.equal(constructedCardDescription(rajh),
+    'Радж — карта паладина: существо 4/4 за 5 маны, легендарная, набор «Власть Темной империи». Боевой клич: собирает существо любого класса. Оно становится…');
+  assert.equal(constructedCardDescription({ ...rajh, format: 'wild' }),
+    'Радж (Вольный формат) — карта паладина: существо 4/4 за 5 маны, легендарная, набор «Власть Темной империи». Боевой клич: собирает существо любого класса. Оно…');
+  assert.equal(constructedCardDescription({
+    name: 'Монетка', id: 'GAME_005', format: 'wild', set: 'Базовый', classCode: 'NEUTRAL', type: 'Заклинание', mana: 0,
+    rulesText: 'Вы получаете 1 кристалл маны до конца хода.',
+  }), 'Монетка (Вольный формат) — нейтральная карта: заклинание за 0 маны, набор «Базовый». Вы получаете 1 кристалл маны до конца хода.');
+  assert.equal(constructedCardDescription({ name: 'Прилив маны', id: 'X_2', format: 'standard', set: 'Основной', classCode: 'MAGE', type: 'Заклинание', mana: 1, rulesText: 'Вы берете карту' }),
+    'Прилив маны — карта мага: заклинание за 1 ману, набор «Основной». Вы берете карту. История изменений и колоды с картой.', 'the tail fits');
+  assert.equal(constructedCardDescription({ name: 'Клинок', id: 'X_3', format: 'standard', set: 'Основной', classCode: 'ROGUE', type: 'Оружие', rarity: 'Обычная', mana: 2, attack: 3, durability: 2 }),
+    'Клинок — карта разбойника: оружие 3/2 за 2 маны, обычная, набор «Основной». История изменений и колоды с картой.');
+
+  const titles = catalog.cards.map(card => ({ card, title: constructedCardTitle({ ...card, rulesText: card.text }) }));
+  for (const { card, title } of titles) {
+    assert.ok(title.length <= 60 || title === `${card.name} (${card.format === 'wild' ? 'Вольный, ' : ''}${card.set})`, `${title.length}: ${title}`);
+    assert.ok(title.startsWith(card.name) && title.includes(card.set) && !title.includes(card.id), title);
+    assert.equal(title.includes('Вольный'), card.format === 'wild', `the Wild page says so: ${title}`);
+  }
+  unique(titles.map(({ title }) => title), 'card titles of the catalog sample (reprints share a name, not a set)');
+  const descriptions = catalog.cards.map(card => ({ card, description: constructedCardDescription({ ...card, rulesText: card.text }) }));
+  for (const { card, description } of descriptions) {
+    assert.ok(description.length >= 70 && description.length <= 160, `${description.length}: ${description}`);
+    assert.ok(description.startsWith(card.name) && description.includes(`«${card.set}»`) && description.includes(`за ${card.mana} ман`), description);
+  }
+  unique(descriptions.map(({ description }) => description), 'card descriptions of the catalog sample');
+
+  // Without a set (a card the catalog has not described yet) the ID keeps the page unique, as before.
   assert.equal(constructedCardTitle({ name: 'Ягуар', id: 'BE_572', format: 'standard' }),
     'Ягуар — карта Hearthstone (Стандарт, BE_572) | HearthPulse');
-  assert.equal(constructedCardTitle({ name: 'Огненный шар', id: 'CORE_CS2_029', format: 'standard' }),
-    'Огненный шар — карта Hearthstone (Стандарт, CORE_CS2_029)', 'the brand goes first');
   assert.equal(constructedCardTitle({ name: 'Огненный шар', id: 'CORE_CS2_029', format: 'wild' }),
     'Огненный шар — карта (Вольный формат, CORE_CS2_029)', 'then the filler words');
-  const titles = catalog.cards.map(card => ({ card, title: constructedCardTitle(card) }));
-  for (const { card, title } of titles) {
-    assert.ok(title.length <= 60, `${title.length}: ${title}`);
-    assert.ok(title.startsWith(card.name) && title.includes(card.id), title);
-    assert.ok(title.includes(card.format === 'wild' ? 'Вольный' : 'Стандарт'), `the format stays in: ${title}`);
-  }
-  unique(titles.map(({ title }) => title), 'card titles of the catalog sample');
+  assert.equal(constructedCardDescription({ name: 'Монетка', id: 'GAME_005', format: 'wild' }),
+    'Монетка (Вольный формат, GAME_005) — карта Hearthstone: характеристики, статистика и колоды с картой на HearthPulse.');
   // The same card in both formats is two pages with two titles and two descriptions, even under a long rules text.
   const longRules = 'Боевой клич: '.concat('добавьте в руку случайную карту и получите бонус. '.repeat(8));
-  for (const id of ['CORE_CS2_029', 'EX1_001_with_a_long_identifier_of_a_card']) {
-    const standard = { name: 'Очень длинное название карты Хартстоуна', id, rulesText: longRules };
+  for (const facts of [{ id: 'CORE_CS2_029' }, { id: 'CORE_CS2_029', set: 'Основной', classCode: 'MAGE', type: 'Заклинание', mana: 4 }]) {
+    const standard = { name: 'Очень длинное название карты Хартстоуна', rulesText: longRules, ...facts };
     assert.notEqual(constructedCardTitle({ ...standard, format: 'standard' }), constructedCardTitle({ ...standard, format: 'wild' }));
     assert.notEqual(constructedCardDescription({ ...standard, format: 'standard' }), constructedCardDescription({ ...standard, format: 'wild' }));
   }
-  const descriptions = catalog.cards.map(card => constructedCardDescription({ ...card, rulesText: card.text }));
-  for (const description of descriptions) assert.ok(description.length >= 70 && description.length <= 160, `${description.length}: ${description}`);
-  unique(descriptions, 'card descriptions of the catalog sample (reprints share name and text, not the ID)');
-  assert.ok(constructedCardDescription({ name: 'Монетка', id: 'GAME_005', format: 'wild' }).length >= 70, 'a card without rules text');
 
   // A property over any name: it fits, or even the shortest variant cannot hold it.
   assertProperty(fc.property(fc.string({ minLength: 1, maxLength: 80 }), name => {
-    const title = constructedCardTitle({ name, id: 'CORE_X_1', format: 'wild' });
-    assert.ok(title.length <= 60 || title === `${name} (Вольный, CORE_X_1)`, title);
+    const title = constructedCardTitle({ name, id: 'CORE_X_1', format: 'wild', set: 'Основной' });
+    assert.ok(title.length <= 60 || title === `${name} (Вольный, Основной)`, title);
+    assert.ok(constructedCardDescription({ name, id: 'CORE_X_1', format: 'wild', set: 'Основной', rulesText: longRules }).length <= 160);
   }));
 
   // Cosmetics: skins share names across classes and versions, so a hero skin keeps its class and ID.

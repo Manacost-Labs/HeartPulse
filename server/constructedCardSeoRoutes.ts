@@ -245,8 +245,13 @@ export function extractConstructedCardFrontendAssets(shellHtml: string): string 
   return tags.join('\n    ');
 }
 
-function descriptionForCard(card: PublicConstructedCardSeoData, format: ConstructedCardFormat): string {
-  return constructedCardDescription({ name: card.name, id: card.id, format, rulesText: card.rulesText });
+/** The facts the title and the description name: the same call as the Next page and the browser make. */
+function cardFacts(card: PublicConstructedCardSeoData, format: ConstructedCardFormat, classCode: unknown) {
+  return {
+    name: card.name, id: card.id, format, rulesText: card.rulesText, set: card.set,
+    classCode: typeof classCode === 'string' ? classCode : null, type: card.type, rarity: card.rarity,
+    mana: card.mana, attack: card.attack, health: card.health, durability: card.durability,
+  };
 }
 
 function renderFacts(card: PublicConstructedCardSeoData, format: ConstructedCardFormat): string {
@@ -365,21 +370,12 @@ export function renderConstructedCardSeoDocument(options: {
   const origin = canonicalOrigin(options.canonicalOrigin);
   const canonical = `${origin}/standard/cards/${options.format}/${encodeURIComponent(card.id)}/`;
   const image = safeImageUrl(card.image, origin);
-  const title = constructedCardTitle({ name: card.name, id: card.id, format: options.format });
-  const description = descriptionForCard(card, options.format);
-  const additionalProperty = [
-    ['Формат', FORMAT_LABELS[options.format]],
-    ['Мана', card.mana],
-    ['Класс', card.className],
-    ['Тип', card.type],
-    ['Редкость', card.rarity],
-    ['Дополнение', card.set],
-    ['Атака', card.attack],
-    ['Здоровье', card.health],
-    ['Прочность', card.durability],
-    ['Броня', card.armor],
-  ].filter((entry): entry is [string, string | number] => entry[1] !== null)
-    .map(([name, value]) => ({ '@type': 'PropertyValue', name, value }));
+  const facts = cardFacts(card, options.format, options.card.class);
+  const title = constructedCardTitle(facts);
+  const description = constructedCardDescription(facts);
+  // schema.org has no `additionalProperty` on a CreativeWork; the facts go to `keywords`, as on the Next page.
+  const keywords = ['Hearthstone', FORMAT_LABELS[options.format], card.type, card.rarity, card.set]
+    .filter((fact): fact is string => Boolean(fact)).join(', ');
   const structuredData = buildEntityStructuredData({
     canonical, title, description, origin, image, entityFragment: 'card',
     entity: {
@@ -390,7 +386,7 @@ export function renderConstructedCardSeoDocument(options: {
         description,
         inLanguage: 'ru',
         isPartOf: { '@type': 'VideoGame', name: 'Hearthstone' },
-        additionalProperty,
+        keywords,
     },
     breadcrumbs: [
       { name: 'Главная', item: `${origin}/` },

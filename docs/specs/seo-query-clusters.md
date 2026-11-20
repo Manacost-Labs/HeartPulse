@@ -66,11 +66,17 @@ pages of the registry share a title, a description or an H1
 
 One builder (`shared/entityPageTitles.ts`) serves Express, Next and the
 browser. A title is a ladder of variants: the first one up to 60 characters
-wins, the brand goes first, then the filler words; the format and the ID of a
-card, and the ID of a hero skin, stay in every variant. A name too long for
-every variant keeps the shortest one.
+wins, the brand goes first, then the filler words; what makes the page unique
+(the set of a card and «Вольный» on its Wild page, the ID of a hero skin) stays
+in every variant. A name too long for every variant keeps the shortest one.
 
-- Card: `<Название> — карта Hearthstone (<формат>, <ID>) | HearthPulse`.
+- Card: `<Название> — карта Hearthstone (<набор>) | HearthPulse`, on the Wild
+  page `(Вольный, <набор>)`. A name repeats across reprints but not together
+  with its set inside one format (whole catalog checked 2026-11-20); a card
+  without a set falls back to `(<формат>, <ID>)`. The description leads with
+  the facts: `<Название> — карта <класса>: <тип> <атака>/<здоровье> за <N>
+  маны, <редкость>, набор «<набор>». <текст правил>`; the Wild page adds
+  `(Вольный формат)` after the name.
 - Hero skin: `<Название> — скин героя (<класс>, <ID>) | HearthPulse`.
 - Coin, pet: `<Название> — монета Hearthstone | HearthPulse`, `… — питомец …`.
 - Battlegrounds card: `<Название> — существо Полей сражений | HearthPulse`,

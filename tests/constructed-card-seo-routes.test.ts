@@ -211,7 +211,7 @@ try {
   assert.equal(occurrences(html, /<meta name="description"/gi), 1, 'detail must have one description');
   assert.equal(occurrences(html, /<link rel="canonical"/gi), 1, 'detail must have one canonical');
   assert.equal(occurrences(html, /<h1(?:\s[^>]*)?>/gi), 1, 'detail must have one H1');
-  assert.match(html, /<title>Огненный &lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt; дракон \(Стандарт, CARD_1\)<\/title>/);
+  assert.match(html, /<title>Огненный &lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt; дракон \(Побег из Аметистовой крепости\)<\/title>/);
   assert.match(html, /<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">/);
   assert.match(html, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/standard\/cards\/standard\/CARD_1\/">/);
   assert.match(html, /<meta property="og:title"/);
@@ -272,7 +272,8 @@ try {
   assert.deepEqual(jsonLd['@graph'].map((node: any) => node['@type']), ['WebPage', 'CreativeWork', 'BreadcrumbList', 'Organization']);
   assert.equal(jsonLd['@graph'][0].mainEntity['@id'], 'https://hearthpulse.net/standard/cards/standard/CARD_1/#card');
   assert.equal(jsonLd['@graph'][1].identifier, 'CARD_1');
-  assert.equal(jsonLd['@graph'][1].additionalProperty.find((item: any) => item.name === 'Формат')?.value, 'Стандарт');
+  assert.equal(jsonLd['@graph'][1].keywords, 'Hearthstone, Стандарт, Существо, Легендарная, Побег из Аметистовой крепости');
+  assert.equal(jsonLd['@graph'][1].additionalProperty, undefined, 'schema.org defines no additionalProperty on a CreativeWork');
   assertNoPrivateData(html, 'existing detail');
   assert.deepEqual(calls, ['standard'], 'existence must be resolved by loadCards for the requested format');
   assert.deepEqual(detailCalls, ['standard:CARD_1'],

@@ -33,7 +33,7 @@ import DeckListView, {
 import DeckRenderPreview from './deckrender/DeckRenderPreview';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
 import { constructedCardDescription, constructedCardTitle } from '../../shared/entityPageTitles';
-import { constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
+import { CONSTRUCTED_SET_LABELS, constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
 import {
   constructedClassIcon as classIcon,
   constructedClassLabel as classLabel,
@@ -564,9 +564,17 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
     if (!card) return;
     const name = cardName(card);
     const resolvedCardId = card.card_id || cardId;
+    // The same facts as the server title (`page.tsx`), so loading the full record does not change the title a crawler rendered:
+    // the seed carries the labels, the full record the codes.
+    const facts = {
+      name, id: resolvedCardId, format, rulesText: plainText(card.text?.ru || card.text?.en), classCode: card.class,
+      set: card.card_set ? CONSTRUCTED_SET_LABELS[card.card_set] ?? card.card_set : null,
+      rarity: card.rarity ? constructedRarityLabel(card.rarity) : null,
+      type: card.card_type?.name_ru, mana: card.mana_cost, attack: card.attack, health: card.health, durability: card.durability,
+    };
     void applyDocumentPageMeta({
-      title: constructedCardTitle({ name, id: resolvedCardId, format }),
-      description: constructedCardDescription({ name, id: resolvedCardId, format, rulesText: plainText(card.text?.ru || card.text?.en) }),
+      title: constructedCardTitle(facts),
+      description: constructedCardDescription(facts),
       pathname: constructedCardPath(format, resolvedCardId),
       search: '',
       image: publicResourceUrl(card.images?.card),
@@ -636,7 +644,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
 
   return (
     <article className="constructed-cards constructed-card-detail">
-      <nav className="constructed-card-detail__breadcrumb" aria-label="Breadcrumb"><a href={constructedCardStatsUrl(`/standard/cards/${format}/`, { period, rank })} onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}/`, period, rank); }}>Карты</a><span>/</span><span>{format === 'standard' ? 'Стандарт' : 'Вольный'}</span><span>/</span><strong>{cardName(card)}</strong></nav>
+      <nav className="constructed-card-detail__breadcrumb" aria-label="Breadcrumb">{[['/standard/cards/', 'Карты'], [`/standard/cards/${format}/`, format === 'standard' ? 'Стандарт' : 'Вольный']].map(([path, label]) => <React.Fragment key={path}><a href={constructedCardStatsUrl(path, { period, rank })} onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigateWithConstructedCardContext(navigatePath, path, period, rank); }}>{label}</a><span>/</span></React.Fragment>)}<strong>{cardName(card)}</strong></nav>
       <button type="button" className="constructed-card-detail__back" onClick={() => navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}`, period, rank)}><ArrowLeft size={17} /> Назад к картам</button>
       <section className="constructed-card-detail__hero">
         <div className="constructed-card-detail__visual">
