@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createEntitySitemapRouter } from '../server/entitySitemapRoutes.js';
 import {
-  changedSitemapLocations, createIndexNowNotifier, INDEXNOW_CONFIG, isMassChange, type IndexNowConfig,
+  changedSitemapLocations, createIndexNowNotifier, createSitemapIndexNowHook, INDEXNOW_CONFIG, isMassChange, type IndexNowConfig,
 } from '../server/indexNow.js';
 
 const ORIGIN = 'https://hearthpulse.net';
@@ -99,6 +99,29 @@ test('the daily limit stops requests, and a disabled notifier sends nothing', as
   const disabled = notifier([200], { ...CONFIG, enabled: false });
   await disabled.notify([`${ORIGIN}/a/`]);
   assert.equal(disabled.sent.length, 0);
+});
+
+test('the sitemap hook says once whether it is on, sends the changed addresses in production only and skips a mass change', async () => {
+  const doc = (count: number, hash: string) => ({
+    schemaVersion: 1 as const, segment: 'standard-cards' as const, updatedAt: '2026-11-20T00:00:00.000Z', entryCount: count, contentHash: hash,
+    entries: Array.from({ length: count }, (_, index) => ({ key: `C${index}`, location: `${ORIGIN}/c/${index}/`, semanticHash: index === 0 ? hash : 'same', lastmod: '2026-11-20' })),
+  });
+  const network = endpoint([200]);
+  const lines: string[] = [];
+  const hook = createSitemapIndexNowHook('production', { config: CONFIG, log: line => lines.push(line), fetchImpl: network.fetchImpl });
+  hook('standard-cards', doc(300, 'a'), doc(300, 'b'));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(network.sent.map(request => request.body.urlList), [[`${ORIGIN}/c/0/`]]);
+  const mass = { ...doc(300, 'x'), entries: doc(300, 'x').entries.map(entry => ({ ...entry, semanticHash: 'new' })) };
+  hook('standard-cards', doc(300, 'a'), mass);
+  assert.equal(lines.at(-1), '[indexnow] standard-cards: 300 of 300 URL changed at once, not sent');
+  assert.equal(lines[0], '[indexnow] enabled');
+  const off: string[] = [];
+  const silent = endpoint([200]);
+  createSitemapIndexNowHook('development', { config: CONFIG, log: line => off.push(line), fetchImpl: silent.fetchImpl })('standard-cards', doc(300, 'a'), doc(300, 'b'));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(off, ['[indexnow] disabled (NODE_ENV=development)']);
+  assert.equal(silent.sent.length, 0);
 });
 
 test('changed addresses: new, changed and removed; none on a first build', () => {

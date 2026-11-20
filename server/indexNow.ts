@@ -146,3 +146,28 @@ export const INDEXNOW_CONFIG: IndexNowConfig = {
   endpoint: 'https://yandex.com/indexnow',
   maxRequestsPerDay: 100,
 };
+
+/**
+ * The `onSegmentPublished` hook of the sitemap router: announces each segment's
+ * changed addresses, production only, and skips a mass change. It logs once
+ * whether it is enabled, so a silent production can be told from «no changes».
+ */
+export function createSitemapIndexNowHook(nodeEnv: string | undefined, options: {
+  config?: IndexNowConfig; origin?: string; log?: (line: string) => void; fetchImpl?: typeof fetch;
+} = {}) {
+  const base = options.config ?? INDEXNOW_CONFIG;
+  const enabled = base.enabled && nodeEnv === 'production';
+  const log = options.log ?? (line => console.log(line));
+  log(enabled ? '[indexnow] enabled' : `[indexnow] disabled (NODE_ENV=${nodeEnv ?? 'unset'})`);
+  const announce = createIndexNowNotifier({
+    config: { ...base, enabled }, origin: options.origin ?? 'https://hearthpulse.net', log, fetchImpl: options.fetchImpl,
+  });
+  return (segment: string, previous: SemanticSitemapDocument | null, next: SemanticSitemapDocument): void => {
+    const changed = changedSitemapLocations(previous, next);
+    if (isMassChange(changed.length, next.entryCount)) {
+      log(`[indexnow] ${segment}: ${changed.length} of ${next.entryCount} URL changed at once, not sent`);
+      return;
+    }
+    void announce(changed);
+  };
+}
