@@ -1,6 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import type { ComponentProps } from 'react';
+import { useState, type ReactNode } from 'react';
 import { expect, fn, userEvent } from 'storybook/test';
+import { INITIAL_ACCESS_STATE } from './accessState';
+import { PaidOfferProvider } from './PaidOffer';
+import { PublicAccessContext, usePublicAccessStore } from './usePublicAccess';
 import { PaidFilterLock, PaidMetricLock } from './PaidLocks';
 
 const meta = {
@@ -35,3 +39,34 @@ export const Filter: StoryObj<ComponentProps<typeof PaidFilterLock> & { onRow: (
     await expect(args.onRow).not.toHaveBeenCalled();
   },
 };
+
+const guest = { state: INITIAL_ACCESS_STATE, user: null, checking: true, refresh: async () => undefined };
+
+/** A guest of a page with the subscription offer: the access context the layout provides. */
+function GuestPage({ children }: { children: ReactNode }) {
+  const store = usePublicAccessStore(guest as unknown as Parameters<typeof usePublicAccessStore>[0]);
+  return <PublicAccessContext.Provider value={store}>
+    <PaidOfferProvider title="Платные показатели — по подписке" text="Откройте подписку.">{children}</PaidOfferProvider>
+  </PublicAccessContext.Provider>;
+}
+
+/** The locks in a clickable row (a matchup or meta row that navigates): a press on a lock must not reach the row. */
+function ClickableRow({ opener }: { opener: boolean }) {
+  const [rowClicks, setRowClicks] = useState(0);
+  const [opened, setOpened] = useState(0);
+  const onOpen = opener ? () => setOpened(count => count + 1) : undefined;
+  return <GuestPage>
+    <div role="presentation" onClick={() => setRowClicks(count => count + 1)} style={{ padding: 8 }}>
+      <span>Строка таблицы</span>
+      <PaidMetricLock label="Винрейт" onOpen={onOpen} />
+      <PaidMetricLock label="Игры" variant="card" onOpen={onOpen} />
+      <PaidFilterLock label="Мана" value="Любая мана" onOpen={onOpen} />
+    </div>
+    <output>Строка нажата: {rowClicks}; колбэк: {opened}</output>
+  </GuestPage>;
+}
+
+/** Without `onOpen` a lock opens the provider's offer. */
+export const InClickableRow: StoryObj = { render: () => <ClickableRow opener={false} /> };
+/** With `onOpen` the callback runs instead. */
+export const InClickableRowWithOnOpen: StoryObj = { render: () => <ClickableRow opener /> };

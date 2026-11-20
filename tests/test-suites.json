@@ -557,6 +557,7 @@
       "id": "browser",
       "files": [
         "tests/archetype-radar-picker-browser.test.mjs",
+        "tests/paid-locks-browser.test.mjs",
         "tests/hsguru-archetype-stats-browser.test.mjs",
         "tests/archetypes-detail-browser.test.mjs",
         "tests/arena-card-motion.browser.test.mjs",
