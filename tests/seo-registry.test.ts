@@ -705,7 +705,7 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
   });
   assert.deepEqual(text('/heroes', battlegroundHeroesSeoValues(heroes(116), NOW)), {
     title: 'Тир-лист героев Полей сражений Hearthstone, ноябрь 2026',
-    description: 'Рейтинг 116 героев Полей сражений Hearthstone (хс) в Соло на 20 ноября 2026: лучший — Лорд Джараксус, среднее место 4,04. Тир, топ-4 и выбор, данные HSReplay.',
+    description: 'Рейтинг 116 героев Полей сражений Hearthstone (хс) в Соло на 20 ноября 2026: лучший — Лорд Джараксус, среднее место 4,04. Тир и выбор, данные HSReplay.',
   });
   assert.ok(text('/heroes', battlegroundHeroesSeoValues(heroes(121), NOW)).description.startsWith('Рейтинг 121 героя '));
   assert.deepEqual(text('/heroes', battlegroundHeroesSeoValues(heroes(0), NOW)), staticText('/heroes'));

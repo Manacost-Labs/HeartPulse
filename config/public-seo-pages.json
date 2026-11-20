@@ -242,9 +242,9 @@
       "policyRouteId": "bg-heroes",
       "navigationRouteId": "bg-heroes",
       "title": "Тир-лист героев Полей сражений Hearthstone {year}",
-      "description": "Тир-лист героев Полей сражений Hearthstone (хс): тир, среднее место, топ-4 и выбор в Соло и Дуо, силы героев и отдельная страница каждого героя.",
+      "description": "Тир-лист героев Полей сражений Hearthstone (хс): тир, среднее место и выбор в Соло и Дуо, силы героев и отдельная страница каждого героя.",
       "dataTitle": "Тир-лист героев Полей сражений Hearthstone, {month}[ | HearthPulse]",
-      "dataDescription": "Рейтинг {items} Полей сражений Hearthstone (хс) в Соло{asOf}[: лучший — {leader}]. Тир, топ-4 и выбор, данные HSReplay.",
+      "dataDescription": "Рейтинг {items} Полей сражений Hearthstone (хс) в Соло{asOf}[: лучший — {leader}]. Тир и выбор, данные HSReplay.",
       "sitemap": true
     },
     "/library": {
