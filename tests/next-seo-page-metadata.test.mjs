@@ -332,6 +332,9 @@ test('every SEO registry page takes its title, description and share metadata fr
   const registryTexts = new Map();
   try {
     for (const page of REGISTRY_PAGES) {
+      // The class pages of the tier list (#668) title themselves with the date of the pool this runtime reads today;
+      // their registry texts, robots, canonical and share tags are checked on a fixed clock in next-tierlist-class-pages.
+      if (page.policyRouteId === 'tierlist-class') continue;
       const response = await fetch(`${runtime.nextOrigin}${page.url}`, { redirect: 'manual' });
       assert.equal(response.status, 200, page.path);
       const html = await response.text();

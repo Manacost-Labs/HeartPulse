@@ -7,7 +7,6 @@ import {
   Download,
   Gem,
   LayoutGrid,
-  Lock,
   Maximize2,
   RefreshCw,
   Search,
@@ -19,10 +18,10 @@ import {
 } from 'lucide-react';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
 import { canonicalPagePath } from '../app/routing/canonicalPagePath';
-import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
 import { StandardMetaSearchIntro } from '../modules/searchLanding/public';
 import { AsyncSurfaceState, RecoverableSurfaceBoundary } from './recovery/RecoverableSurface';
 import { datasetContractErrorMessage } from '../../shared/datasetEnvelope';
+import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
 import {
   STANDARD_META_MEDIA_TYPE,
   parseStandardMetaApiResponse,
@@ -37,7 +36,10 @@ import {
   standardMetaPeriodLabel,
 } from './standardMetaFilterModel';
 import StandardMetaChart from './StandardMetaChart';
-import { PaidValue, PeriodCoinFloorFilters } from './StandardMetaGuestFilters';
+import { PeriodCoinFloorFilters } from './StandardMetaGuestFilters';
+import { MetaLockedRank, MetaLockedValue } from './StandardMetaLocks';
+import { useHydrated } from '../shared/ui/useHydrated';
+import { usePaidOffer } from '../shared/ui/paidOfferContext';
 import { STANDARD_META_CLASS_COLORS, standardMetaClassIcon } from './standardMetaClassModel';
 import {
   carriedMetaFilters, handOffMetaFilters, metaFilterSearch, metaRequestKey, teaserSeedKey, TEASER_SEED_FILTERS, type StandardMetaTeaserSeed,
@@ -187,9 +189,12 @@ const EMPTY_DATA: MetaPayload = {
   items: [],
 };
 
+/** A slice that has not come in this long is a failure with a retry, not an open slice that waits for ever. */
+const META_DEADLINE_MS = 25_000;
+
 async function apiJson<T>(url: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(url, {
-    credentials: 'same-origin',
+  const response = await fetchWithDeadline(url, {
+    deadlineMs: META_DEADLINE_MS,
     ...init,
     headers: {
       Accept: 'application/json',
@@ -419,19 +424,19 @@ export function DeckModal({ state, onClose, onRenderPreview }: { state: DeckModa
   );
 }
 
-const DEFAULT_PAYWALL_ACCESS: PaywallAccessState = {
-  authUser: null,
-  subscriptionStatus: null,
-  subscriptionLoading: false,
-  onRefreshSubscription: async () => null,
-};
-
 type StandardMetaPageProps = {
   hasFullAccess?: boolean;
-  accessPending?: boolean;
   /** The browser holds a session whose access is still checked: no teaser request until it is known. */
   teaserWaitsForAccess?: boolean;
-  paywall?: PaywallAccessState;
+  /** The viewer's access is being checked: the locks are not shown yet. */
+  accessPending?: boolean;
+  /**
+   * The hydrated page knows the viewer's access (granted or not). Until then the head script's mark of a remembered
+   * viewer hides the locks; from then on a viewer without access sees them, whether signed in or not.
+   */
+  accessKnown?: boolean;
+  /** The paid route refused the viewer (401/403): the page asks for the access check again. */
+  onAccessDenied?: () => void;
   embedded?: boolean;
   initialTeaser?: StandardMetaTeaserSeed | null;
   /** The format of the address: `/standard/meta/` is Standard, `/standard/meta/wild/` is Wild. */
@@ -440,13 +445,12 @@ type StandardMetaPageProps = {
 
 /**
  * The banner's totals. Until the slice lands (`data` null) each value is a
- * placeholder, not a dash: one change from placeholder to number.
- * `data-teaser` lets a remembered subscriber's server HTML hide the guest
- * preview's totals before hydration (PublicPageBanner.css).
+ * placeholder, not a dash: one change from placeholder to number. A subscriber
+ * reads the open slice's totals until the full slice replaces them.
  */
-function MetaSummary({ data, hasFullAccess }: { data: MetaPayload | null; hasFullAccess: boolean }) {
+function MetaSummary({ data }: { data: MetaPayload | null }) {
   return (
-    <dl className="traditional-mode-banner__summary" aria-label="Сводка меты" data-teaser={hasFullAccess ? undefined : ''}>
+    <dl className="traditional-mode-banner__summary" aria-label="Сводка меты">
       <div><dt>Архетипов</dt><dd>{data ? data.items.length : <LoadingValue />}</dd></div>
       <div><dt>Игр в выборке</dt><dd>{data ? (data.totalGames ?? data.items.reduce((sum, item) => sum + (item.games ?? 0), 0)).toLocaleString('ru-RU') : <LoadingValue wide />}</dd></div>
     </dl>
@@ -469,29 +473,39 @@ function useIdleMetaViews(ready: boolean) {
 
 function StandardMetaContent({
   hasFullAccess,
-  accessPending, teaserWaitsForAccess,
-  paywall,
+  teaserWaitsForAccess,
+  onAccessDenied,
   initialTeaser,
   format,
-}: Required<Omit<StandardMetaPageProps, 'embedded'>>) {
-  // A subscriber arrives from the other format with the filters in the address; a guest's filters are the page's own.
-  const [carried] = useState(() => (hasFullAccess && typeof window !== 'undefined' ? carriedMetaFilters(window.location.search) : {}));
-  const [rank, setRank] = useState<MetaRank>(carried.rank ?? TEASER_SEED_FILTERS.rank);
-  const [period, setPeriod] = useState<MetaPeriod | null>(carried.period ?? initialTeaser?.period ?? null);
-  const [coin, setCoin] = useState<MetaCoin>(carried.coin ?? TEASER_SEED_FILTERS.coin);
-  const [minGames, setMinGames] = useState<MetaMinGames>(carried.minGames ?? TEASER_SEED_FILTERS.minGames);
+}: Required<Omit<StandardMetaPageProps, 'embedded' | 'accessPending' | 'accessKnown'>>) {
+  const [rank, setRank] = useState<MetaRank>(TEASER_SEED_FILTERS.rank);
+  const [period, setPeriod] = useState<MetaPeriod | null>(initialTeaser?.period ?? null);
+  const [coin, setCoin] = useState<MetaCoin>(TEASER_SEED_FILTERS.coin);
+  const [minGames, setMinGames] = useState<MetaMinGames>(TEASER_SEED_FILTERS.minGames);
   const [query, setQuery] = useState('');
+  // A subscriber arrives from the other format with the filters in the address. The page is not remounted when access
+  // arrives, so they are taken then, in the render that grants it (before any paid request); a guest's filters are the page's own.
+  const [carriedTaken, setCarriedTaken] = useState(false);
+  if (hasFullAccess && !carriedTaken && typeof window !== 'undefined') {
+    setCarriedTaken(true);
+    const carried = carriedMetaFilters(window.location.search);
+    if (carried.rank) setRank(carried.rank);
+    if (carried.period) setPeriod(carried.period);
+    if (carried.coin) setCoin(carried.coin);
+    if (carried.minGames) setMinGames(carried.minGames);
+  }
   // A guest's paid filters (rank, period, coin, floor) open the subscription offer instead of changing the slice.
-  const [lockedNotice, setLockedNotice] = useState(false);
-  const openOffer = () => setLockedNotice(true);
+  const openOffer = usePaidOffer();
+  const hydrated = useHydrated();
   const deferredQuery = useDeferredValue(query);
   const [view, setView] = useState<MetaView>('cards');
   const tableRef = useRef<HTMLTableElement>(null);
-  // A subscriber's page starts from the teaser too, busy until the full slice replaces it.
+  // A subscriber's page starts from the open slice too; the full slice replaces it in place.
   const [data, setData] = useState<MetaPayload>(initialTeaser?.data ?? EMPTY_DATA);
   const hasPayload = data !== EMPTY_DATA;
-  // The teaser's top-three totals are not a subscriber's numbers: a dash until the full slice lands.
-  const summaryReady = hasPayload && !(hasFullAccess && data === initialTeaser?.data);
+  const summaryReady = hasPayload;
+  // A subscriber reads the open slice until the paid one arrives: that swap does not dim the page.
+  const showsOpenSlice = hasFullAccess && data === initialTeaser?.data;
   const [arrivesLater] = useState(!initialTeaser);
   const [metaRevision, setMetaRevision] = useState(0);
   const requestKey = metaRequestKey(format, rank, hasFullAccess ? period : null, coin, minGames, metaRevision, hasFullAccess);
@@ -547,7 +561,7 @@ function StandardMetaContent({
       .catch(cause => {
         if ((cause instanceof DOMException && cause.name === 'AbortError') || controller.signal.aborted) return;
         if (currentRequest === requestId.current) {
-          if (cause instanceof Error && cause.name === 'MetaAccessDenied') setData(EMPTY_DATA);
+          if (hasFullAccess && cause instanceof Error && cause.name === 'MetaAccessDenied') onAccessDenied?.();
           setRequestError({ key: requestKey, message: datasetContractErrorMessage(cause) });
         }
       })
@@ -586,7 +600,7 @@ function StandardMetaContent({
     <>
       <section className="traditional-mode-banner">
         <StandardMetaSearchIntro format={format} />
-        <MetaSummary data={summaryReady ? data : null} hasFullAccess={hasFullAccess} />
+        <MetaSummary data={summaryReady ? data : null} />
       </section>
 
       <section className="standard-meta__controls paywalled-standard-meta" aria-label="Фильтры меты" data-page-still data-tour-id="meta-filters">
@@ -607,7 +621,7 @@ function StandardMetaContent({
             ))}
           </div>
         </div>
-        <div data-tour-id="meta-controls">
+        <div data-tour-id="meta-controls" inert={!hydrated}>
           <span className="standard-meta__control-label">Рейтинг</span>
           <div className="standard-meta__rank-groups">
             {RANK_GROUPS.map(group => {
@@ -619,11 +633,9 @@ function StandardMetaContent({
                     <legend className="sr-only">{`Ранги: ${group.label}`}</legend>
                     {group.ranks.map(rankId => {
                       const option = RANKS.find(candidate => candidate.id === rankId)!;
-                      return (
-                        <button key={option.id} type="button" aria-pressed={rank === option.id} onClick={() => hasFullAccess ? setRank(option.id) : openOffer()}>
-                          {!hasFullAccess && option.id !== rank ? <Lock size={12} aria-hidden="true" /> : null}{option.label}
-                        </button>
-                      );
+                      return !hasFullAccess && option.id !== rank
+                        ? <MetaLockedRank key={option.id} label={option.label} />
+                        : <button key={option.id} type="button" aria-pressed={rank === option.id} onClick={() => setRank(option.id)}>{option.label}</button>;
                     })}
                   </fieldset>
                 </div>
@@ -633,26 +645,21 @@ function StandardMetaContent({
           <select
             className="standard-meta__rank-select"
             value={rank}
-            onChange={event => hasFullAccess ? setRank(event.target.value as MetaRank) : openOffer()}
+            onChange={event => hasFullAccess ? setRank(event.target.value as MetaRank) : openOffer?.()}
             aria-label="Рейтинг"
           >
-            {RANKS.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+            {RANKS.map(option => <option key={option.id} value={option.id}>{!hasFullAccess && option.id !== rank ? `${option.label} — в подписке` : option.label}</option>)}
           </select>
         </div>
-        <div className="standard-meta__secondary-filters">
+        <div className="standard-meta__secondary-filters" inert={!hydrated}>
           <PeriodCoinFloorFilters hasFullAccess={hasFullAccess} selectedPeriod={selectedPeriod} periodOptions={periodOptions}
-            onPeriod={setPeriod} coin={coin} onCoin={setCoin} minGames={minGames} onMinGames={setMinGames} onLocked={openOffer} />
+            onPeriod={setPeriod} coin={coin} onCoin={setCoin} minGames={minGames} onMinGames={setMinGames} />
           <label className="standard-meta__search" data-tour-id="meta-search">
             <Search size={18} />
             <span className="sr-only">Поиск архетипа</span>
             <input value={query} onChange={event => setQuery(event.target.value)} placeholder="Найти архетип…" />
           </label>
         </div>
-        {lockedNotice && !hasFullAccess ? (
-          <p className="standard-meta__locked-note" role="status">
-            Другие ранги, периоды, очерёдность хода и порог игр — в подписке. <a href="#standard-meta-paywall">Смотреть предложение</a>
-          </p>
-        ) : null}
       </section>
 
       {loading && !hasPayload && (
@@ -663,13 +670,17 @@ function StandardMetaContent({
         />
       )}
       {!loading && error && (
-        <AsyncSurfaceState
-          variant="error"
-          title="Не удалось загрузить мету"
-          message={error}
-          actionLabel="Повторить"
-          onAction={() => setMetaRevision(revision => revision + 1)}
-        />
+        // With a slice on screen (the open one stays when the paid answer fails) the message sits above it.
+        <div data-meta-swap-error={hasPayload ? '' : undefined}>
+          <AsyncSurfaceState
+            variant="error"
+            title={hasPayload && hasFullAccess ? 'Подписочные данные не загрузились' : 'Не удалось загрузить мету'}
+            message={hasPayload && hasFullAccess ? `${error} Ниже открытый срез: без ходов, длительности и скорости набора.` : error}
+            actionLabel="Повторить"
+            onAction={() => setMetaRevision(revision => revision + 1)}
+            compact={hasPayload}
+          />
+        </div>
       )}
       {!loading && !error && data.items.length === 0 && (
         <AsyncSurfaceState
@@ -678,21 +689,23 @@ function StandardMetaContent({
           message="Попробуйте другой формат или рейтинг. Данные появятся после следующего обновления источника."
         />
       )}
-      {(!loading || hasPayload) && !error && data.items.length > 0 && (
-        <div className={`standard-meta__results data-surface${arrivesLater ? ' data-arrive' : ''}`} aria-busy={loading}>
-          <StandardMetaChart
-            items={visibleItems}
-            format={format}
-            formatLabel={data.formatLabel}
-            rankLabel={data.rankLabel}
-          />
+      {(!loading || hasPayload) && !(error && !hasPayload) && data.items.length > 0 && (
+        <div className={`standard-meta__results data-surface${arrivesLater ? ' data-arrive' : ''}`} aria-busy={loading && !showsOpenSlice}>
+          <div style={{ display: 'contents' }} inert={!hydrated}>
+            <StandardMetaChart
+              items={visibleItems}
+              format={format}
+              formatLabel={data.formatLabel}
+              rankLabel={data.rankLabel}
+            />
 
-          <section className="standard-meta__results-toolbar" aria-label="Представление меты">
-            <p data-tour-id="meta-results">
-              <strong>{visibleItems.length}</strong> архетипов в текущем срезе
-            </p>
-            <MetaViewActions view={view} onView={setView} tableRef={tableRef} csvTitle={`Мета ${data.formatLabel}, ${data.rankLabel}`} />
-          </section>
+            <section className="standard-meta__results-toolbar" aria-label="Представление меты">
+              <p data-tour-id="meta-results">
+                <strong>{visibleItems.length}</strong> архетипов в текущем срезе
+              </p>
+              <MetaViewActions view={view} onView={setView} tableRef={tableRef} csvTitle={`Мета ${data.formatLabel}, ${data.rankLabel}`} />
+            </section>
+          </div>
 
           <ViewSwitch viewKey={data.format} order={MODE_ORDER}><ViewSwitch viewKey={view} order={META_VIEWS}>
           {view === 'cards' && visibleItems.length > 0 ? (
@@ -709,13 +722,13 @@ function StandardMetaContent({
                   <dl className="standard-meta-card__metrics">
                     <div><dt>Популярность</dt><dd>{formatNumber(item.popularity, '%')}</dd></div>
                     <div><dt>Игры</dt><dd>{item.games?.toLocaleString('ru-RU') ?? '—'}</dd></div>
-                    <div><dt>Ходы</dt><dd>{hasFullAccess ? formatNumber(item.turns) : <PaidValue />}</dd></div>
-                    <div><dt>Длительность</dt><dd>{hasFullAccess ? formatNumber(item.durationMinutes, ' мин') : <PaidValue />}</dd></div>
+                    <div><dt>Ходы</dt><dd>{hasFullAccess ? formatNumber(item.turns) : <MetaLockedValue what="Ходы" />}</dd></div>
+                    <div><dt>Длительность</dt><dd>{hasFullAccess ? formatNumber(item.durationMinutes, ' мин') : <MetaLockedValue what="Длительность" />}</dd></div>
                   </dl>
                   <div className={`standard-meta-card__climb ${item.climbingSpeed !== null && item.climbingSpeed < 0 ? 'standard-meta-card__climb--negative' : ''}`}>
                     <Swords size={17} />
                     <span>Скорость набора</span>
-                    <strong>{hasFullAccess ? formatNumber(item.climbingSpeed, ' ★/ч') : <PaidValue />}</strong>
+                    <strong>{hasFullAccess ? formatNumber(item.climbingSpeed, ' ★/ч') : <MetaLockedValue what="Скорость набора" />}</strong>
                   </div>
                   <a
                     className="standard-meta__primary-button standard-meta__deck-action standard-meta-card__deck-button"
@@ -750,18 +763,6 @@ function StandardMetaContent({
           )}
           </ViewSwitch></ViewSwitch>
 
-          {!hasFullAccess && !accessPending ? (
-            <div id="standard-meta-paywall">
-              <PaywallGate
-                active
-                presentation="inline"
-                surface="meta"
-                variant="standard"
-                title="Узкие срезы, история и тренды — в подписке"
-                {...paywall}
-              />
-            </div>
-          ) : null}
         </div>
       )}
 
@@ -771,22 +772,24 @@ function StandardMetaContent({
 
 export default function StandardMetaPage({
   hasFullAccess = true,
-  accessPending = false,
   teaserWaitsForAccess = false,
-  paywall = DEFAULT_PAYWALL_ACCESS,
+  accessPending = false,
+  accessKnown = false,
+  onAccessDenied,
   embedded = false,
   initialTeaser = null,
   format = TEASER_SEED_FILTERS.format,
 }: StandardMetaPageProps) {
   const Root = embedded ? 'section' : 'main';
   return (
-    <Root className="standard-meta" id={embedded ? undefined : 'main-content'}>
+    <Root className="standard-meta" id={embedded ? undefined : 'main-content'} data-access-pending={accessPending ? '' : undefined}
+      data-access-known={accessKnown ? '' : undefined}>
       <RecoverableSurfaceBoundary
         scope="standard-meta"
         title="Раздел меты временно недоступен"
         message="Навигация и остальные разделы сайта продолжают работать. Попробуйте открыть мету ещё раз."
       >
-        <StandardMetaContent {...{ hasFullAccess, accessPending, teaserWaitsForAccess, paywall, initialTeaser, format }} />
+        <StandardMetaContent {...{ hasFullAccess, teaserWaitsForAccess, onAccessDenied, initialTeaser, format }} />
       </RecoverableSurfaceBoundary>
     </Root>
   );

@@ -64,6 +64,12 @@ test('static root is assembled from public assets and SEO registries', () => {
       .sort();
     assert.deepEqual(actualUrls, expectedUrls, 'sitemap URLs must exactly match indexable registry pages');
     assert.equal(new Set(actualUrls).size, actualUrls.length, 'sitemap URLs must be unique');
+    // The tier list and its class pages (#668), the neutral cards' page included.
+    assert.deepEqual(actualUrls.filter(url => url.startsWith(`${routeInventory.canonicalOrigin}/tierlist/`)), [
+      '/tierlist/', '/tierlist/death-knight/', '/tierlist/demon-hunter/', '/tierlist/druid/', '/tierlist/hunter/', '/tierlist/mage/',
+      '/tierlist/neutral/', '/tierlist/paladin/', '/tierlist/priest/', '/tierlist/rogue/', '/tierlist/shaman/', '/tierlist/warlock/',
+      '/tierlist/warrior/',
+    ].map(path => `https://hearthpulse.net${path}`));
     assert.doesNotMatch(staticSitemap, /[?&#](?:preview|page|sort)=/i, 'sitemap must not contain query URLs');
     assert.doesNotMatch(staticSitemap, new RegExp(`${routeInventory.canonicalOrigin.replaceAll('.', '\\.')}/(?:admin|404)/`),
       'private and error documents must stay out of the sitemap');

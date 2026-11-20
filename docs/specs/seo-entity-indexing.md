@@ -450,22 +450,31 @@ list on the open pool with every card of one class in the server HTML.
   each page renders on its first request with the data. An unknown slug is a
   404 in Nginx (only the 12 slugs reach Next, the slash-less form gets one
   301) and in Next (`notFound()`).
-- Indexing: inventory route `tierlist-class` is `noindex-follow`,
-  `canonicalPolicy: "none"`, `sitemap: false`; the page takes robots and
-  canonical from the inventory, so SEO-A switches them on in one place
-  (index, canonical self, registry and `static.xml` entries) after deploy.
+- Indexing (#668): inventory route `tierlist-class` is `index`,
+  `canonicalPolicy: "self"`, `sitemap: true`; each of the 12 pages has a
+  record in `config/public-seo-pages.json` (`policyRouteId: tierlist-class`)
+  and so a URL in `static.xml`, dated like `/tierlist/` by the build ledger.
   JSON-LD nodes come from `apps/public-web/lib/tierlistClassStructuredData.ts`
-  (the visible breadcrumb «Главная › Тир-лист › <класс>» and a
-  `CollectionPage`) through `seoStructuredDataGraphOf`, which writes nothing
-  while the route is noindex.
-- Title and description are built in `generateMetadata`
-  (`apps/public-web/lib/tierlistClassSeo.ts`, which also holds the class
-  names, so a page without data keeps its class title), not in the registry:
-  «Тир-лист Арены Hearthstone: <класс>, {month}» and «Нейтральные карты Арены
-  Hearthstone: тир-лист, {month}», no brand; the description has the date and
-  the sample the page prints («более 53 000 игр»), no count of cards (the page
-  prints none). The month drops for data older than a week or when the title
-  would pass 60 characters; without data of the class there is no date.
+  through `seoStructuredDataGraphOf`: the visible breadcrumb «Главная ›
+  Тир-лист › <класс>», a `CollectionPage` and a `Dataset` of the class with
+  the sources, measures and closed part (`.paywalled-tierlist`) of the
+  `/tierlist/` Dataset, no figures.
+- The old class view `/tierlist/?class=<id>` (slash or not) is one 301 to the
+  class page with the other query keys kept: `$arena_tierlist_class_target`
+  in `deploy/nginx/arena-seo-map.conf` (`any` → `neutral`; `__all__`, empty or
+  unknown values stay on `/tierlist/`).
+- Title and description come from the registry record through
+  `seoRegistryMetadata` (`apps/public-web/lib/tierlistClassSeo.ts` picks the
+  data values and holds the class names of the breadcrumb):
+  «Тир-лист Арены Hearthstone (хс): <класс>, {month}» and «Нейтральные карты
+  Арены Hearthstone: тир-лист, {month}», no brand; the description has the
+  date and the sample the page prints («более 53 000 игр»), no count of cards
+  (the page prints none). The month drops for data older than a week or when
+  the title would pass 60 characters (always for «Охотник на демонов»);
+  without cards of the class the record's static text with the year is used.
+- Deploy warm-up: the 12 pages are in `DATA_PAGES`
+  (`scripts/lib/post-deploy-data-pages.mjs`, marker `hs-tier-card`, no `isr`:
+  there is no build copy); the production monitor samples `/tierlist/mage/`.
 - Size: on the production pool of 2026-11-20 the largest class page
   (Рыцарь смерти, 102 cards) is 189 KB of HTML and `/tierlist/neutral/`
   (279 cards) is 333 KB, over the 300 KB budget of a page; with the lighter

@@ -1,25 +1,71 @@
 'use client';
 
+import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import StandardMetaPage from '@/src/features/StandardMeta';
 import type { StandardMetaTeaserSeed } from '@/src/features/standardMetaTeaser';
+import { PaidOfferProvider } from './PaidOffer';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
+import { useHydrated } from '@/src/shared/ui/useHydrated';
 import { navigate } from './navigation';
 import { sessionTag } from './viewerHint';
 
+const NO_REFUSAL = { denied: false, checked: false, retried: false };
+
+const OFFER_TITLE = 'Узкие срезы, история и тренды — в подписке';
+const OFFER_TEXT = 'Другие ранги и периоды, очерёдность хода, порог игр, ходы, длительность, скорость набора и динамика архетипов открываются подпиской.';
+
+function MetaView({ initialTeaser, format, hasFullAccess, teaserWaitsForAccess, accessPending, accessKnown, accessLost, onAccessDenied }: {
+  initialTeaser: StandardMetaTeaserSeed | null; format: 'standard' | 'wild'; hasFullAccess: boolean; teaserWaitsForAccess: boolean; accessPending: boolean; accessKnown: boolean; accessLost: boolean; onAccessDenied: () => Promise<unknown>;
+}) {
+  // Access is raised in place (the paid slice replaces the open one), but when it is withdrawn (sign-out, an expired
+  // subscription, a refused status check) the page restarts from the open slice in the same render: no frame shows
+  // the paid slice, its rank, period or filters to a viewer without access.
+  // The paid route refusing the viewer (401/403) is a withdrawal known before the access check answers: the page drops to
+  // the open slice at once (flushed: no frame with the paid slice) while the check runs. If the check confirms access, the
+  // paid request is made once more and its answer replaces the open slice in place; a second refusal (or a check that does
+  // not confirm) keeps the guest's view until access is lost for good, so a refusing route cannot make a loop.
+  const [guard, setGuard] = useState(NO_REFUSAL);
+  const latest = useRef(guard);
+  useEffect(() => { latest.current = guard; });
+  if (accessLost && (guard.denied || guard.checked || guard.retried)) {
+    setGuard(NO_REFUSAL);
+  } else if (guard.denied && guard.checked && hasFullAccess) {
+    setGuard({ denied: false, checked: false, retried: true });
+  }
+  const granted = hasFullAccess && !guard.denied;
+  const [state, setState] = useState({ allowed: granted, epoch: 0 });
+  if (state.allowed !== granted) setState({ allowed: granted, epoch: state.epoch + (state.allowed ? 1 : 0) });
+  const refused = () => {
+    const mayRetry = !latest.current.retried;
+    flushSync(() => setGuard(current => ({ denied: true, checked: false, retried: current.retried })));
+    if (mayRetry) void onAccessDenied().then(() => undefined, () => undefined).then(() => setGuard(current => ({ ...current, checked: true })));
+  };
+  return <StandardMetaPage key={state.epoch} embedded hasFullAccess={granted} teaserWaitsForAccess={teaserWaitsForAccess} accessPending={accessPending} accessKnown={accessKnown}
+    initialTeaser={initialTeaser} format={format} onAccessDenied={refused} />;
+}
+
+/**
+ * One view for everyone: the guest's page is the subscriber's, on the open slice the server rendered, with the closed
+ * parts locked in place. Access does not remount the page: the paid slice replaces the open one inside it.
+ */
 export function StandardMetaPageClient({ initialTeaser, format = 'standard' }: {
   initialTeaser: StandardMetaTeaserSeed | null; format?: 'standard' | 'wild';
 }) {
   const access = usePublicAccess();
   const { allowed, pending } = paidAccess(access, 'standard');
-  // The teaser is the same for every viewer, so it is not reloaded when the
-  // check names the account; full access belongs to that account.
-  const pageKey = allowed ? `${access.user?.id ?? ''}:full` : 'teaser';
+  const hydrated = useHydrated();
+  // A browser holding a session is probably a subscriber's: its locks stay hidden until the check ends (never in server HTML).
+  const remembered = hydrated && pending && sessionTag() !== null;
+  // Once the hydrated page knows the access, the locks show even under the head script's mark of a remembered viewer:
+  // the mark stays for a signed-in viewer (it hides the "Made with" block), whose subscription may be gone.
+  const accessKnown = hydrated && !pending;
   return <PublicPageShell activeTab="standard-meta" pathname={format === 'wild' ? '/standard/meta/wild/' : '/standard/meta/'}
     access={access} navigate={navigate} wide>
-    <StandardMetaPage key={pageKey} embedded hasFullAccess={allowed} accessPending={pending}
-      teaserWaitsForAccess={pending && sessionTag() !== null} initialTeaser={initialTeaser} format={format}
-      paywall={{ authUser: access.user, subscriptionStatus: access.subscription,
-        subscriptionLoading: access.checking, onRefreshSubscription: access.refresh }} />
+    <PaidOfferProvider entitlement="standard" title={OFFER_TITLE} text={OFFER_TEXT}>
+      <MetaView initialTeaser={initialTeaser} format={format} hasFullAccess={allowed}
+        teaserWaitsForAccess={pending && sessionTag() !== null} accessPending={remembered} accessKnown={accessKnown} accessLost={!allowed && !pending} onAccessDenied={access.refresh} />
+    </PaidOfferProvider>
   </PublicPageShell>;
 }

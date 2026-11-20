@@ -118,9 +118,8 @@ locked preview keeps its placeholders still.
 - **Matchups**: View switch, picker, quick filters, search and three responsive
   matchup groups.
 - **Meta and Vicious Gold KPIs**: Banner totals are `LoadingValue`s until
-  the slice lands. A remembered subscriber's server HTML is the guest preview,
-  so its totals (`data-teaser`) show as the same placeholders before
-  hydration instead of guest numbers.
+  the slice lands. A meta subscriber reads the open slice's totals until the
+  paid slice replaces them in place; nothing is reset to placeholders.
 - **Vicious Gold**: The real report plate (copy, contents, KPI strip) and the
   Power Tier head, rank tabs, first tier and rows inside the one-viewport reserve.
 - **Home latest articles**: Real responsive lead/secondary grid, 16:8.5 covers,

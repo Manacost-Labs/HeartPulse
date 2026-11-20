@@ -52,7 +52,7 @@ try {
   await page.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
   await go('page=meta');
   try {
-    await page.waitForSelector('.arena-inline-paywall--meta', { timeout: 60_000 });
+    await page.waitForSelector('.standard-meta-card', { timeout: 60_000 });
   } catch (error) {
     throw new Error(
       `soft paywall did not render; page errors=${JSON.stringify(runtimeErrors)} console errors=${JSON.stringify(consoleErrors)}`,
@@ -61,10 +61,9 @@ try {
   }
   assert.equal(await page.$$eval('.standard-meta-card', cards => cards.length), 3);
   assert.equal(await page.$$eval('.arena-paywall__overlay', nodes => nodes.length), 0);
-  assert.equal(
-    await page.$eval('.arena-inline-paywall__primary span', node => node.textContent),
-    'Открыть всю мету',
-  );
+  // The guest's page is the subscriber's with locks in place of the paid parts, not a block of the subscription at its end.
+  assert.equal(await page.$('.arena-inline-paywall--meta'), null);
+  assert.equal(await page.$$eval('[data-locked-filter]', nodes => nodes.length), 3);
   assert.ok(await page.$('.standard-meta__controls'));
   assert.ok(await page.$('.standard-meta-chart'));
   // The format switch is two links to the two addresses (a story does not navigate, so only the markup is checked).
@@ -75,14 +74,12 @@ try {
   for (const width of [390, 320]) {
     await page.setViewport({ width, height: 844, deviceScaleFactor: 1, hasTouch: true, isMobile: true });
     await open(page.url());
-    await page.waitForSelector('.arena-inline-paywall--meta');
+    await page.waitForSelector('.standard-meta-card');
     const layout = await page.evaluate(() => ({
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      primaryHeight: document.querySelector('.arena-inline-paywall__primary')?.getBoundingClientRect().height ?? 0,
       cardCount: document.querySelectorAll('.standard-meta-card').length,
     }));
     assert.ok(layout.overflow <= 1, `meta teaser overflowed by ${layout.overflow}px at ${width}px`);
-    assert.ok(layout.primaryHeight >= 48);
     assert.equal(layout.cardCount, 3);
   }
   await page.screenshot({ path: `${screenshotPrefix}-meta-mobile.png`, fullPage: true });
