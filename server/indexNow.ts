@@ -40,6 +40,16 @@ export function changedSitemapLocations(
   return [...changed];
 }
 
+/**
+ * A large segment whose addresses nearly all changed at once points at a change of the
+ * projection (its `semanticHash` formula), not of the content: such a batch is not sent.
+ */
+export const INDEXNOW_MASS_CHANGE = { minEntries: 200, ratio: 0.5 } as const;
+
+export function isMassChange(changed: number, segmentSize: number): boolean {
+  return segmentSize >= INDEXNOW_MASS_CHANGE.minEntries && changed > segmentSize * INDEXNOW_MASS_CHANGE.ratio;
+}
+
 export type IndexNowNotifier = (urls: string[]) => Promise<void>;
 
 type NotifierOptions = {
@@ -57,7 +67,7 @@ type NotifierOptions = {
 
 /**
  * A notifier that posts changed addresses in batches of at most 10 000, retries
- * a 429/5xx/network failure once, and stops at the daily limit. It never throws:
+ * a 5xx/network failure once (never a 429), and stops at the daily limit. It never throws:
  * a failure costs only the announcement, never the sitemap.
  */
 export function createIndexNowNotifier(options: NotifierOptions): IndexNowNotifier {
@@ -93,10 +103,17 @@ export function createIndexNowNotifier(options: NotifierOptions): IndexNowNotifi
           body: body(urlList),
           signal: AbortSignal.timeout(options.timeoutMs ?? 10_000),
         });
+        await response.body?.cancel().catch(() => undefined);
+        if (response.status === 202) {
+          // The engine has not checked the key file yet; it asks to send again later, not now.
+          log(`[indexnow] 202 (key pending): ${urlList.length} URL accepted`);
+          return;
+        }
         if (response.ok) { log(`[indexnow] ${response.status}: ${urlList.length} URL sent`); return; }
         outcome = `HTTP ${response.status}`;
-        // Only overload and server errors may pass on a retry; 400/403/422 mean the request itself is wrong.
-        if (response.status !== 429 && response.status < 500) {
+        // Only server errors may pass on a retry. 429 is a rate limit (Yandex asks for ten minutes
+        // between submissions) and 400/403/422 mean the request itself is wrong: no retry.
+        if (response.status < 500) {
           log(`[indexnow] rejected (${outcome}): ${urlList.length} URL`);
           return;
         }

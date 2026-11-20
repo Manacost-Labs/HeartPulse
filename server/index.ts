@@ -95,7 +95,7 @@ import {
 import { createBattlegroundHeroSeoRouter } from './battlegroundSeoRoutes.js';
 import { createBattlegroundLibrarySeoRouter } from './battlegroundLibrarySeoRoutes.js';
 import { createEntitySitemapRouter, loadStaticSitemapArtifact } from './entitySitemapRoutes.js';
-import { changedSitemapLocations, createIndexNowNotifier, INDEXNOW_CONFIG } from './indexNow.js';
+import { changedSitemapLocations, createIndexNowNotifier, INDEXNOW_CONFIG, isMassChange } from './indexNow.js';
 import { createEntitySitemapRuntimeOptions } from './entitySitemapSources.js';
 import {
   createStandardMetaRouter,
@@ -7380,8 +7380,10 @@ const staticSitemapArtifact = loadStaticSitemapArtifact(staticSitemapCandidates,
 });
 if (staticSitemapArtifact) {
   // IndexNow announces changed sitemap addresses to Yandex; production only (server/indexNow.ts).
+  const indexNowEnabled = INDEXNOW_CONFIG.enabled && process.env.NODE_ENV === 'production';
+  console.log(indexNowEnabled ? '[indexnow] enabled' : `[indexnow] disabled (NODE_ENV=${process.env.NODE_ENV ?? 'unset'})`);
   const announceSitemapChanges = createIndexNowNotifier({
-    config: { ...INDEXNOW_CONFIG, enabled: INDEXNOW_CONFIG.enabled && process.env.NODE_ENV === 'production' },
+    config: { ...INDEXNOW_CONFIG, enabled: indexNowEnabled },
     origin: 'https://hearthpulse.net',
   });
   app.use(createEntitySitemapRouter({
@@ -7398,8 +7400,13 @@ if (staticSitemapArtifact) {
       '[entity-sitemap] catalog refresh failed:',
       error instanceof Error ? error.message : error,
     ),
-    onSegmentPublished: (_segment, previous, next) => {
-      void announceSitemapChanges(changedSitemapLocations(previous, next));
+    onSegmentPublished: (segment, previous, next) => {
+      const changed = changedSitemapLocations(previous, next);
+      if (isMassChange(changed.length, next.entryCount)) {
+        console.log(`[indexnow] ${segment}: ${changed.length} of ${next.entryCount} URL changed at once, not sent`);
+        return;
+      }
+      void announceSitemapChanges(changed);
     },
   }));
 }

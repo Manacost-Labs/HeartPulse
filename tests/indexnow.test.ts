@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createEntitySitemapRouter } from '../server/entitySitemapRoutes.js';
 import {
-  changedSitemapLocations, createIndexNowNotifier, INDEXNOW_CONFIG, type IndexNowConfig,
+  changedSitemapLocations, createIndexNowNotifier, INDEXNOW_CONFIG, isMassChange, type IndexNowConfig,
 } from '../server/indexNow.js';
 
 const ORIGIN = 'https://hearthpulse.net';
@@ -63,19 +63,32 @@ test('more than 10 000 addresses go in batches of 10 000', async () => {
   assert.deepEqual(sent.map(request => request.body.urlList.length), [10_000, 1]);
 });
 
-test('an overload or network failure is retried once, a rejected request is not, and nothing throws', async () => {
-  const overloaded = notifier([429, 'network']);
-  await overloaded.notify([`${ORIGIN}/a/`]);
-  assert.equal(overloaded.sent.length, 2);
-  assert.deepEqual(overloaded.lines, [
-    '[indexnow] attempt 1 failed (HTTP 429): 1 URL',
+test('a server or network failure is retried once; a rate limit, a rejected request and a pending key are not; nothing throws', async () => {
+  const failing = notifier([503, 'network']);
+  await failing.notify([`${ORIGIN}/a/`]);
+  assert.equal(failing.sent.length, 2);
+  assert.deepEqual(failing.lines, [
+    '[indexnow] attempt 1 failed (HTTP 503): 1 URL',
     '[indexnow] attempt 2 failed (TypeError): 1 URL',
   ]);
+  const limited = notifier([429]);
+  await limited.notify([`${ORIGIN}/a/`]);
+  assert.equal(limited.sent.length, 1, 'Yandex asks for ten minutes after a 429');
+  assert.deepEqual(limited.lines, ['[indexnow] rejected (HTTP 429): 1 URL']);
   const rejected = notifier([422]);
   await rejected.notify([`${ORIGIN}/a/`]);
-  assert.equal(rejected.sent.length, 1);
   assert.deepEqual(rejected.lines, ['[indexnow] rejected (HTTP 422): 1 URL']);
-  assert.equal(JSON.stringify([...overloaded.lines, ...rejected.lines]).includes(CONFIG.key), false, 'logs never carry the key');
+  const pending = notifier([202]);
+  await pending.notify([`${ORIGIN}/a/`, `${ORIGIN}/b/`]);
+  assert.deepEqual(pending.lines, ['[indexnow] 202 (key pending): 2 URL accepted']);
+  const lines = [...failing.lines, ...limited.lines, ...rejected.lines, ...pending.lines];
+  assert.equal(JSON.stringify(lines).includes(CONFIG.key), false, 'logs never carry the key');
+});
+
+test('nearly the whole of a large segment changing at once is a mass change; a small segment never is', () => {
+  assert.equal(isMassChange(5000, 6000), true);
+  assert.equal(isMassChange(300, 6000), false);
+  assert.equal(isMassChange(78, 78), false);
 });
 
 test('the daily limit stops requests, and a disabled notifier sends nothing', async () => {
