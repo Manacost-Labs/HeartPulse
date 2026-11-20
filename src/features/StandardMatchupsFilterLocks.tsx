@@ -26,9 +26,15 @@ export function StandardMatchupsFilterLocks({ pending, rankLabel, period, minGam
     <div className={`standard-matchups-filters standard-matchups-filter-locks ${CLOSED}`} role="group" aria-label="Срез матчапов"
       aria-busy={pending || undefined}>
       {pending ? <span className="sr-only" role="status">Загружаем фильтры</span> : null}
-      {values.map(([label, value]) => pending
-        ? <span key={label} className="standard-matchups-filter-locks__pending"><span>{label}</span><b>{value}</b></span>
-        : <PaidFilterLock key={label} label={label} value={value} closed={CLOSED} />)}
+      {values.map(([label, value]) => (
+        // The subscriber's field: a caption over a 40px control, so the swap to the real filters moves nothing.
+        <div key={label} className="standard-matchups-filters__field">
+          <span aria-hidden="true">{label}</span>
+          {pending
+            ? <b className="standard-matchups-filter-locks__pending">{value}</b>
+            : <PaidFilterLock label={label} value={value} closed={CLOSED} />}
+        </div>
+      ))}
     </div>
   );
 }

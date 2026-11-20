@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import StandardMatchupsPage from '@/src/features/StandardMatchups';
 import { setPageFormat, usePageFormat } from '@/src/shared/navigation/pageFormat';
@@ -32,7 +32,14 @@ export function StandardMatchupsPageClient({ initial }: { initial: PublicStandar
   const openData = useMemo(() => open.data ? openStandardMatchupsData(open.data) : null, [open.data]);
   const paidData = matchups.state.data ?? matchups.shown;
   const paidUsable = allowed && paidData !== null && paidData.format === format;
-  const data = paidUsable ? paidData : openData;
+  const target = paidUsable ? paidData : openData;
+  // The page is prerendered as Standard: a reader who asks for Wild (or switches to it) keeps the matrix on screen, in
+  // its own format, until the other format's data is here, then it is replaced in place. No skeleton, no shift. A
+  // format that could not be loaded is never covered by the other one's numbers.
+  const held = useRef<typeof target>(null);
+  if (target) held.current = target;
+  const failed = allowed ? matchups.error && !paidUsable : open.failed;
+  const data = target ?? (failed ? null : held.current);
   const hydrated = useSyncExternalStore(noSubscribe, () => true, () => false);
   const [updatedAtLabel, setUpdatedAtLabel] = useState('Нет данных');
   const updatedAt = data?.updatedAt;
@@ -45,21 +52,21 @@ export function StandardMatchupsPageClient({ initial }: { initial: PublicStandar
   }, [updatedAt]);
 
   const external = {
-    format,
+    format: data?.format ?? format,
     changeFormat: allowed ? matchups.changeFormat : (next: StandardMatchupsFormat) => setPageFormat(next),
     slice: allowed ? matchups.slice : undefined,
     changeSlice: allowed ? matchups.changeSlice : undefined,
     data,
     // The rest of the open slice arriving behind the printed part is not a reload: only an empty page is loading.
-    loading: allowed ? matchups.loading : data === null && !open.failed,
+    loading: allowed ? matchups.loading : data === null && !failed,
     // A subscriber whose own data failed keeps the open slice on screen with the message and its retry.
-    error: allowed ? matchups.error && !paidUsable : open.failed,
+    error: failed,
     retry: allowed ? () => { matchups.retry(); open.retry(); } : open.retry,
     locks: access.user && (pending || access.checking) ? 'pending' as const : 'locked' as const,
   };
   return <PublicPageShell activeTab="standard-matchups" pathname="/standard/matchups/" parchmentPreload="tablet-up"
     access={access} navigate={navigate} updatedAtLabel={updatedAtLabel} wide>
-    <PaidOfferProvider title={OFFER_TITLE} text={OFFER_TEXT}>
+    <PaidOfferProvider title={OFFER_TITLE} text={OFFER_TEXT} entitlement="standard">
       <div inert={!hydrated || undefined}><StandardMatchupsPage external={external} /></div>
     </PaidOfferProvider>
   </PublicPageShell>;

@@ -16,16 +16,18 @@ import { openAnswer, protectedAnswer } from './helpers/standardMatchupsOpenFixtu
 const USERS = {
   reader: { id: 'sw-reader', email: 'reader@example.test', name: 'Подписчик', role: 'user', adminAllowed: false, contestAdminAllowed: false },
   admin: { id: 'sw-admin', email: 'owner@example.test', name: 'Владелец', role: 'admin', adminAllowed: true, contestAdminAllowed: true },
+  late: { id: 'sw-late', email: 'late@example.test', name: 'Позже', role: 'user', adminAllowed: false, contestAdminAllowed: false },
   plain: { id: 'sw-plain', email: 'plain@example.test', name: 'Без подписки', role: 'user', adminAllowed: false, contestAdminAllowed: false },
 };
 const SUBSCRIBED = { hasAccess: true, entitlements: { arena: true, standard: true }, source: 'boosty', checkedAt: null,
   stale: false, message: '', boosty: { checked: true, hasAccess: true }, patreon: {}, telegram: {} };
+const STANDARD_ONLY = { ...SUBSCRIBED, entitlements: { arena: false, standard: true } };
 const NONE = { hasAccess: false, entitlements: {}, source: 'none', checkedAt: null, stale: false, message: '',
   boosty: {}, patreon: {}, telegram: {} };
 const DESKTOP = { width: 1440, height: 900 };
 
 async function startStack() {
-  const state = { next: null, protectedReads: 0, protectedFailures: 0, protectedHangs: 0 };
+  const state = { next: null, lateGranted: false, protectedReads: 0, protectedFailures: 0, protectedHangs: 0 };
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://stack');
     const who = /(?:^|;\s*)sw_session=(\w+)/.exec(request.headers.cookie ?? '')?.[1];
@@ -36,10 +38,10 @@ async function startStack() {
       return json(200, user ? { success: true, user, adminAllowed: user.adminAllowed, contestAdminAllowed: user.contestAdminAllowed }
         : { user: null, adminAllowed: false, contestAdminAllowed: false });
     }
-    if (url.pathname === '/api/subscription/status') return user ? json(200, who === 'reader' ? SUBSCRIBED : NONE) : json(401, { error: 'guest' });
+    if (url.pathname === '/api/subscription/status' || url.pathname === '/api/subscription/refresh') return user ? json(200, who === 'reader' ? SUBSCRIBED : who === 'late' && state.lateGranted ? STANDARD_ONLY : NONE) : json(401, { error: 'guest' });
     if (url.pathname === '/api/standard/matchups/public') return json(200, openAnswer({ format: url.searchParams.get('format') === 'wild' ? 'wild' : 'standard' }));
     if (url.pathname === '/api/standard/matchups') {
-      if (!user || (who === 'plain')) return json(401, { error: 'subscription required' });
+      if (!user || who === 'plain' || (who === 'late' && !state.lateGranted)) return json(401, { error: 'subscription required' });
       state.protectedReads += 1;
       if (state.protectedHangs > 0) {
         state.protectedHangs -= 1;
@@ -133,6 +135,23 @@ test('who sees the interactive matrix on /standard/matchups/, and what a failure
     const lazyOnly = new Set([...plainChunks, ...adminChunks]);
     assert.ok(lazyOnly.size > 0, 'the page loaded no lazy chunk');
 
+    // A reader who has «standard» but not «arena»: the offer opened from a lock closes once access is confirmed, and the
+    // paid slice is theirs.
+    const late = await open(browser, stack, 'late');
+    await late.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'networkidle0' });
+    const OFFER = '::-p-aria([role="heading"][name="Ранги, периоды и порог игр — в подписке"])';
+    let offer = null;
+    for (let attempt = 0; attempt < 20 && !offer; attempt += 1) {
+      await (await late.waitForSelector(RANK_LOCK)).click();
+      offer = await late.waitForSelector(OFFER, { timeout: 1500 }).catch(() => null);
+    }
+    assert.ok(offer, 'the lock opens the offer');
+    stack.lateGranted = true;
+    await (await late.waitForSelector('::-p-aria(Проверить доступ[role="button"])')).click();
+    await late.waitForSelector(OFFER, { hidden: true, timeout: 20000 });
+    await late.waitForSelector(PAID, { timeout: 20000 });
+    await late.close();
+
     // The subscriber's data fails: the open view says so, and «Повторить» brings the matrix.
     stack.protectedFailures = 1;
     const broken = await open(browser, stack, 'reader');
@@ -168,6 +187,8 @@ test('who sees the interactive matrix on /standard/matchups/, and what a failure
     await stale.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'load' });
     await stale.waitForSelector('::-p-text(Раздел нужно обновить)', { timeout: 30000 });
     assert.ok(await stale.$('::-p-text(Сильнейшие архетипы)'), 'the rest of the page stays');
+    const notice = await (await stale.waitForSelector('::-p-aria([role="alert"])')).boundingBox();
+    assert.ok(notice.height >= 100, `the notice is a styled block, not bare text: ${notice.height}px`);
     chunkDown = false;
     await stale.click('::-p-aria(Обновить страницу[role="button"])');
     await stale.waitForSelector(PAID, { timeout: 20000 });

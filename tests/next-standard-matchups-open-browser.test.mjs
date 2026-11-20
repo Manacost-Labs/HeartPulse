@@ -15,7 +15,7 @@ import { SENTINELS, openAnswer, protectedAnswer } from './helpers/standardMatchu
 const READER = { id: 'mx-reader', email: 'reader@example.test', name: 'Подписчик', role: 'user' };
 const SUBSCRIBED = { hasAccess: true, entitlements: { arena: true, standard: true }, source: 'boosty', checkedAt: null,
   stale: false, message: '', boosty: { checked: true, hasAccess: true }, patreon: {}, telegram: {} };
-const PROTECTED_DELAY_MS = 2500;
+const PROTECTED_DELAY_MS = 5000;
 const DESKTOP = { width: 1440, height: 900 };
 const PHONE = { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 };
 
@@ -117,6 +117,7 @@ test('a guest and a subscriber on /standard/matchups/ in a real browser', { time
 
     // The page of a guest does not shift while the rest of the slice arrives, on a desktop and a phone, and a phone's
     // page does not scroll sideways.
+    const filterHeights = {};
     for (const [name, viewport] of [['desktop', DESKTOP], ['phone', PHONE]]) {
       const view = await browser.newPage();
       await view.evaluateOnNewDocument(() => {
@@ -132,8 +133,30 @@ test('a guest and a subscriber on /standard/matchups/ in a real browser', { time
       console.log(`${name} guest CLS ${loadShift.toFixed(4)}`);
       assert.ok(loadShift < 0.01, `${name}: the page shifted by ${loadShift.toFixed(4)} while loading`);
       assert.equal(await view.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth), 0, `${name}: no sideways scroll`);
+      // Every lock shows its icon, and the block of filters is as tall as the subscriber's (checked below).
+      for (const label of ['Рейтинг', 'Период', 'Минимум игр в паре']) {
+        const lock = await lockNamed(view, label);
+        assert.ok(await lock.$eval('svg', icon => icon.getBoundingClientRect().width >= 10), `${name}: the «${label}» lock shows its icon`);
+      }
+      filterHeights[name] = { guest: (await (await view.waitForSelector('::-p-aria([name="Срез матчапов"][role="group"])')).boundingBox()).height };
       await view.close();
     }
+
+    // A page opened as ?format=wild is prerendered as Standard: the matrix is replaced in place, with no skeleton and no shift.
+    const wild = await browser.newPage();
+    await wild.evaluateOnNewDocument(() => {
+      window.__shifts = [];
+      new PerformanceObserver(list => { for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.__shifts.push(entry.value); })
+        .observe({ type: 'layout-shift', buffered: true });
+    });
+    await wild.setViewport(DESKTOP);
+    await wild.goto(`${stack.origin}/standard/matchups/?format=wild`, { waitUntil: 'networkidle0' });
+    await shown(wild, 'Матчапы · Вольный');
+    await delay(1000);
+    const wildShift = await wild.evaluate(() => window.__shifts.reduce((sum, value) => sum + value, 0));
+    console.log(`wild guest CLS ${wildShift.toFixed(4)}`);
+    assert.ok(wildShift < 0.01, `?format=wild shifted by ${wildShift.toFixed(4)}`);
+    await wild.close();
 
     // The menu's «Вольный» opens ?format=wild: the browser reads the address and shows Wild, not Standard.
     const viaMenu = await browser.newPage();
@@ -145,16 +168,16 @@ test('a guest and a subscriber on /standard/matchups/ in a real browser', { time
     assert.equal(await viaMenu.evaluate(() => document.body.innerText.includes('Матчапы · Стандарт')), false);
     await viaMenu.close();
 
-    // Wild is slow and then fails: the Standard numbers must not stay on the screen under the chosen Wild.
+    // Wild is slow and then fails: while it loads the Standard matrix stays, labelled as Standard (no skeleton); once it
+    // has failed, the Standard numbers must not stay on the screen under the chosen Wild.
     stack.wildDown = true;
     const slow = await browser.newPage();
     await slow.setViewport(DESKTOP);
     await slow.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'networkidle0' });
     await shown(slow, 'Открытый архетип 36');
     await (await slow.waitForSelector('::-p-aria([name="Показать матчапы: Вольный"][role="button"])')).click();
-    await shown(slow, 'Матчапы · Вольный');
-    assert.equal(await slow.evaluate(() => document.body.innerText.includes('Открытый архетип 1')), false, 'no Standard numbers while Wild loads');
     await slow.waitForSelector('::-p-aria([role="alert"])', { timeout: 15_000 });
+    await shown(slow, 'Матчапы · Вольный');
     assert.equal(await slow.evaluate(() => document.body.innerText.includes('Открытый архетип 1')), false, 'no Standard numbers after Wild failed');
     assert.equal(await slow.evaluate(() => document.body.innerText.includes('Матчапы · Стандарт')), false, 'the heading does not describe Standard under Wild');
     await slow.close();
@@ -162,63 +185,77 @@ test('a guest and a subscriber on /standard/matchups/ in a real browser', { time
 
     // A subscriber: the same component stays while the paid answer is slow, with no lock to be offered a purchase
     // through; the paid slice replaces the open one inside it (same grid element, no skeleton, no shift).
-    const reader = await browser.newPage();
-    await reader.setViewport(process.env.MATCHUPS_PHONE_READER ? PHONE : DESKTOP);
-    await reader.evaluateOnNewDocument(() => {
-      window.__shifts = [];
-      new PerformanceObserver(list => { for (const entry of list.getEntries()) if (!entry.hadRecentInput) { window.__shifts.push(entry.value); window.__why = (window.__why ?? []).concat((entry.sources ?? []).map(source => `${entry.value.toFixed(3)} @${Math.round(entry.startTime)} ${source.node?.className || source.node?.nodeName}`)); } })
-        .observe({ type: 'layout-shift', buffered: true });
-    });
-    // Every frame of the swap, as a viewer sees it: is there a matrix, is a loading skeleton up, where is the matrix, are
-    // the paid values (the leader's 63,4 %) on screen.
-    await reader.evaluateOnNewDocument(() => {
-      window.__frames = [];
-      const tick = () => {
-        const grid = document.querySelector('[role="grid"]');
-        const box = grid?.getBoundingClientRect();
-        const text = document.body?.innerText ?? '';
-        window.__frames.push({ cells: grid ? grid.querySelectorAll('[role="gridcell"]').length : 0, loading: text.includes('Загружаем матчапы'),
-          top: box ? Math.round(box.top + window.scrollY) : null, height: box ? Math.round(box.height) : null, paid: text.includes('63,4') });
+    for (const [name, viewport] of [['desktop', DESKTOP], ['phone', PHONE]]) {
+      const reader = await browser.newPage();
+      await reader.setViewport(viewport);
+      // The earlier reader's cached paid answer would be shown at once: this one has never seen it.
+      await reader.evaluateOnNewDocument(() => { try { localStorage.clear(); } catch { /* none */ } });
+      await reader.evaluateOnNewDocument(() => {
+        window.__shifts = [];
+        new PerformanceObserver(list => { for (const entry of list.getEntries()) if (!entry.hadRecentInput) { window.__shifts.push(entry.value); window.__why = (window.__why ?? []).concat((entry.sources ?? []).map(source => `${entry.value.toFixed(3)} @${Math.round(entry.startTime)} ${source.node?.className || source.node?.nodeName}`)); } })
+          .observe({ type: 'layout-shift', buffered: true });
+      });
+      // Every frame of the swap, as a viewer sees it: is there a matrix, is a loading skeleton up, where is the matrix, are
+      // the paid values (the leader's 63,4 %) on screen.
+      await reader.evaluateOnNewDocument(() => {
+        window.__frames = [];
+        const tick = () => {
+          const grid = document.querySelector('[role="grid"]');
+          const box = grid?.getBoundingClientRect();
+          const text = document.body?.innerText ?? '';
+          window.__frames.push({ cells: grid ? grid.querySelectorAll('[role="gridcell"]').length : 0, loading: text.includes('Загружаем матчапы'),
+            top: box ? Math.round(box.top + window.scrollY) : null, height: box ? Math.round(box.height) : null, paid: text.includes('63,4') });
+          requestAnimationFrame(tick);
+        };
         requestAnimationFrame(tick);
-      };
-      requestAnimationFrame(tick);
-    });
-    await reader.setCookie({ name: 'mx_session', value: 'reader', url: stack.origin });
-    await reader.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'load' });
-    await shown(reader, 'Открытый архетип 1');
-    await shown(reader, 'Топ-1000');
-    assert.equal(await reader.evaluate(() => document.body.innerText.includes('Матчапы · Стандарт · Все ранги')), true, 'the open slice is on screen while the paid one loads');
-    for (const label of ['Рейтинг', 'Период', 'Минимум игр в паре']) assert.equal(await lockNamed(reader, label), null, `a subscriber sees no lock on «${label}»`);
-    // The reader picks an archetype on the open slice; the paid slice must not take the choice away.
-    const pick = '::-p-aria([name="Открытый архетип 3"][role="button"])';
-    for (let attempt = 0; attempt < 20; attempt += 1) {
-      const button = await reader.waitForSelector(pick, { timeout: 20_000 });
-      await button.click();
-      if (await button.evaluate(node => node.getAttribute('aria-pressed')) === 'true') break;
-      await delay(250);
+      });
+      await reader.setCookie({ name: 'mx_session', value: 'reader', url: stack.origin });
+      await reader.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'load' });
+      await shown(reader, 'Открытый архетип 1');
+      await shown(reader, 'Топ-1000');
+      assert.equal(await reader.evaluate(() => document.body.innerText.includes('Матчапы · Стандарт · Все ранги')), true, `the open slice is on screen while the paid one loads: ${await reader.evaluate(() => (document.body.innerText.match(/Матчапы · [^\\n]*/g) ?? []).join(' | '))}`);
+      for (const label of ['Рейтинг', 'Период', 'Минимум игр в паре']) assert.equal(await lockNamed(reader, label), null, `a subscriber sees no lock on «${label}»`);
+      const pick = '::-p-aria([name="Открытый архетип 3"][role="button"])';
+      let swapFrom = 0;
+      if (name === 'desktop') {  // the phone's matrix is a list, not a grid: its swap is checked by the filters and the shift
+        // The reader picks an archetype on the open slice; the paid slice must not take the choice away.
+        for (let attempt = 0; attempt < 20; attempt += 1) {
+          const button = await reader.waitForSelector(pick, { timeout: 20_000 });
+          await button.click();
+          if (await button.evaluate(node => node.getAttribute('aria-pressed')) === 'true') break;
+          await delay(250);
+        }
+        assert.equal(await reader.$eval(pick, node => node.getAttribute('aria-pressed')), 'true', 'the pick took');
+        swapFrom = await reader.evaluate(() => window.__frames.length);
+      }
+      assert.equal(await reader.evaluate(() => document.body.innerText.includes('63,4')), false, 'the paid values are not here before their answer');
+      if (process.env.MATCHUPS_SHOTS) await reader.screenshot({ path: `${process.env.MATCHUPS_SHOTS}/sub-loading-${viewport.width}.png` });
+      await shown(reader, 'Матчапы · Стандарт · Легенда');
+      await delay(500);
+      if (name === 'desktop') {  // the phone's matrix is a list, not a grid: its swap is checked by the filters and the shift
+        assert.equal(await reader.$eval(pick, node => node.getAttribute('aria-pressed')), 'true', 'the reader\'s pick survives the swap');
+      }
+      assert.equal(await reader.evaluate(() => document.body.innerText.includes('63,4')), true, 'the paid values are on screen at the end');
+      if (name === 'desktop') {  // the phone's matrix is a list, not a grid: its swap is checked by the filters and the shift
+        const frames = await reader.evaluate(() => window.__frames);
+        const onScreen = frames.slice(frames.findIndex(frame => frame.cells > 0 && frame.height > 0 && !frame.loading));
+        assert.ok(onScreen.length > 30 && onScreen.some(frame => frame.paid), 'the swap was observed frame by frame');
+        assert.equal(onScreen.filter(frame => frame.cells === 0 || frame.loading).length, 0, `the matrix is on screen in every frame: no skeleton, no empty frame: ${JSON.stringify(onScreen.map((frame, index) => ({ ...frame, index })).filter(frame => frame.cells === 0 || frame.loading))}`);
+        // From the pick, on the open slice, to the paid values: the matrix neither moves nor changes its height.
+        const swap = frames.slice(swapFrom);
+        assert.ok(Math.max(...swap.map(frame => frame.top)) - Math.min(...swap.map(frame => frame.top)) <= 2, 'the matrix does not move');
+        assert.ok(Math.max(...swap.map(frame => frame.height)) - Math.min(...swap.map(frame => frame.height)) <= 2, 'the matrix keeps its height');
+      }
+      assert.ok(stack.protectedReads >= 1);
+      await delay(1000);
+      const shift = await reader.evaluate(() => window.__shifts.reduce((sum, value) => sum + value, 0));
+      console.log(`${name} subscriber CLS ${shift.toFixed(4)}`);
+      assert.ok(shift < 0.01, `${name}: the subscriber page shifted by ${shift.toFixed(4)}: ${JSON.stringify(await reader.evaluate(() => window.__why))}`);
+      // The subscriber's filters are as tall as the guest's locks: nothing below them moves when the swap happens.
+      const readerFilters = (await (await reader.waitForSelector('::-p-aria([name="Срез матчапов"][role="group"])')).boundingBox()).height;
+      assert.ok(Math.abs(readerFilters - filterHeights[name].guest) <= 2, `${name}: filters ${readerFilters} (subscriber) vs ${filterHeights[name].guest} (guest)`);
+      await reader.close();
     }
-    assert.equal(await reader.$eval(pick, node => node.getAttribute('aria-pressed')), 'true', 'the pick took');
-    const swapFrom = await reader.evaluate(() => window.__frames.length);
-    assert.equal(await reader.evaluate(() => document.body.innerText.includes('63,4')), false, 'the paid values are not here before their answer');
-    if (process.env.MATCHUPS_SHOTS) await reader.screenshot({ path: `${process.env.MATCHUPS_SHOTS}/sub-loading-${reader.viewport().width}.png` });
-    await shown(reader, 'Матчапы · Стандарт · Легенда');
-    await delay(500);
-    assert.equal(await reader.$eval(pick, node => node.getAttribute('aria-pressed')), 'true', 'the reader\'s pick survives the swap');
-    assert.equal(await reader.evaluate(() => document.body.innerText.includes('63,4')), true, 'the paid values are on screen at the end');
-    const frames = await reader.evaluate(() => window.__frames);
-    const onScreen = frames.slice(frames.findIndex(frame => frame.cells > 0 && frame.height > 0 && !frame.loading));
-    assert.ok(onScreen.length > 30 && onScreen.some(frame => frame.paid), 'the swap was observed frame by frame');
-    assert.equal(onScreen.filter(frame => frame.cells === 0 || frame.loading).length, 0, `the matrix is on screen in every frame: no skeleton, no empty frame: ${JSON.stringify(onScreen.map((frame, index) => ({ ...frame, index })).filter(frame => frame.cells === 0 || frame.loading))}`);
-    // From the pick, on the open slice, to the paid values: the matrix neither moves nor changes its height.
-    const swap = frames.slice(swapFrom);
-    assert.ok(Math.max(...swap.map(frame => frame.top)) - Math.min(...swap.map(frame => frame.top)) <= 2, 'the matrix does not move');
-    assert.ok(Math.max(...swap.map(frame => frame.height)) - Math.min(...swap.map(frame => frame.height)) <= 2, 'the matrix keeps its height');
-    assert.ok(stack.protectedReads >= 1);
-    await delay(1000);
-    const shift = await reader.evaluate(() => window.__shifts.reduce((sum, value) => sum + value, 0));
-    console.log(`subscriber CLS ${shift.toFixed(4)}`);
-    assert.ok(shift < 0.01, `the subscriber page shifted by ${shift.toFixed(4)}: ${JSON.stringify(await reader.evaluate(() => window.__why))}`);
-    await reader.close();
   } finally {
     if (browser) await browser.close();
     await next.close();

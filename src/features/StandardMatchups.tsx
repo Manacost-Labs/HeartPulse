@@ -14,6 +14,7 @@ import { StandardMatchupsLeaders } from './StandardMatchupsLeaders';
 import { ViewSwitch } from '../components/transitions/ViewSwitch';
 import { MODE_ORDER } from '../components/transitions/transitionOrder';
 import { RecoverableSurfaceBoundary } from './recovery/RecoverableSurface';
+import './recovery/RecoverableSurface.css';
 
 // The matrix, the overview and their vendored kit load on demand: only a verified subscriber with data sees them.
 const loadStandardMatchupMatrix = () => import('./StandardMatchupMatrix');
