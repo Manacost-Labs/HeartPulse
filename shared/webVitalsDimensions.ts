@@ -50,6 +50,7 @@ export const WEB_VITAL_ROUTE_TEMPLATES = [
   '/privacy/',
   '/replay/[id]/',
   '/standard/archetypes/',
+  '/standard/assemble/',
   '/standard/archetypes/[format]/[archetypeSlug]/',
   '/standard/cards/',
   '/standard/cards/[format]/',
