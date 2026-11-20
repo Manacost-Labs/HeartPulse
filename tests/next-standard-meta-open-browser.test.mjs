@@ -32,7 +32,7 @@ const slice = (format, paid) => ({
 });
 
 async function startStack() {
-  const state = { next: null, publicReads: [], protectedReads: 0, down: false };
+  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [] };
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://stack');
     const reader = /(?:^|;\s*)sm_session=reader/.test(request.headers.cookie ?? '');
@@ -42,6 +42,7 @@ async function startStack() {
     if (url.pathname === '/api/subscription/status') return reader ? json(200, SUBSCRIBED) : json(401, { error: 'guest' });
     if (url.pathname === '/api/standard-meta/public') {
       state.publicReads.push(`${url.pathname}${url.search}`);
+      state.publicHeaders.push(request.headers['x-hearthpulse-prerender'] ?? null);
       if (state.down) return json(503, { error: 'source down' });
       return json(200, slice(url.searchParams.get('format') === 'wild' ? 'wild' : 'standard', false));
     }
@@ -66,7 +67,7 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
   let browser;
   try {
     assert.equal((await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).status, 200);
-    stack.publicReads.length = 0; // the route's own probe of the source is not a page read
+    stack.publicReads.length = 0; stack.publicHeaders.length = 0; // the route's own probe of the source is not a page read
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
 
@@ -139,6 +140,24 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     assert.deepEqual(SENTINELS.filter(value => wildRsc.includes(value)), [], 'no sentinel in the RSC payload');
     await wildBare.close();
 
+    // A Wild page opened directly asks nothing on hydration (its seed answers its own request), even if the source falls
+    // between the server render and the hydration; no error is printed over the correct HTML.
+    stack.down = true;
+    const readsBefore = stack.publicReads.length;
+    const direct = await browser.newPage();
+    await direct.setViewport(DESKTOP);
+    const directErrors = [];
+    direct.on('pageerror', error => directErrors.push(error.message));
+    await direct.goto(`${stack.origin}/standard/meta/wild/`, { waitUntil: 'networkidle0' });
+    assert.equal(await direct.$$eval('.standard-meta-card', cards => cards.length), 8);
+    assert.ok(!(await direct.evaluate(() => document.body.textContent)).includes('Не удалось загрузить мету'), 'no error over the server slice');
+    assert.equal(stack.publicReads.length, readsBefore, 'no public request after hydration');
+    assert.deepEqual(directErrors, []);
+    await direct.close();
+    stack.down = false;
+    // Every server read of the open slice is a prerender read: Express then answers no last-good copy, which Next would keep for minutes.
+    assert.ok(stack.publicHeaders.length > 0 && stack.publicHeaders.every(value => value === '1'), `prerender header on every server read: ${stack.publicHeaders}`);
+
     // The source is down: the revalidation leaves both pages as they are and a guest still gets the data.
     stack.down = true;
     const answer = await (await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).json();
@@ -172,6 +191,15 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     const shift = await reader.evaluate(() => window.__shifts.reduce((sum, value) => sum + value, 0));
     assert.ok(shift <= 0.1, `the subscriber page shifted by ${shift.toFixed(4)}`);
     await reader.close();
+
+    // A subscriber's filters go with the format switch, in the address of the link.
+    const filtered = await browser.newPage();
+    await filtered.setViewport(DESKTOP);
+    await filtered.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
+    await filtered.goto(`${stack.origin}/standard/meta/?rank=legend`, { waitUntil: 'load' });
+    await filtered.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+    assert.equal(await filtered.$eval('.standard-meta__segmented a[href^="/standard/meta/wild/"]', link => link.getAttribute('href')), '/standard/meta/wild/?rank=legend&period=patch_36.6.3');
+    await filtered.close();
   } finally {
     if (browser) await browser.close();
     await next.close();

@@ -94,7 +94,8 @@ export function createPublicStandardMetaHandler(dependencies: PublicSource): Req
       return response.json(body);
     } catch (error) {
       dependencies.onError?.('meta', error);
-      const stale = lastGood.get(format);
+      // A prerender read is cached by Next for minutes: it gets no last-good copy (the page keeps its earlier one).
+      const stale = request.get('X-Hearthpulse-Prerender') ? undefined : lastGood.get(format);
       response.set('X-Content-Type-Options', 'nosniff');
       if (stale) {
         // The last good slice stays a short-lived shared answer: it is data, but not fresh.

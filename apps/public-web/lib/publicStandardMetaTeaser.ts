@@ -13,7 +13,7 @@ import type { StandardMetaFormat } from '@/shared/standardMetaContract';
 export const loadPublicStandardMetaTeaser = cache(async (format: StandardMetaFormat = 'standard') => {
   const deadline = Date.now() + PRERENDERED_DATA_READ_BUDGET_MS;
   return loadStandardMetaTeaserSeed(path => readFirstPaintJson(
-    signal => fetchPublicExpress(path, signal, { revalidate: PRERENDERED_DATA_REVALIDATE_SECONDS }), deadline), format);
+    signal => fetchPublicExpress(path, signal, { revalidate: PRERENDERED_DATA_REVALIDATE_SECONDS, freshOnly: true }), deadline), format);
 });
 
 /**

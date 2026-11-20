@@ -26,7 +26,42 @@ export function metaRequestKey(format: StandardMetaFormat, rank: StandardMetaSer
 /** The request a server-rendered teaser answers, or '' when the viewer needs full data. */
 export function teaserSeedKey(seed: StandardMetaTeaserSeed | null, fullAccess: boolean): string {
   return seed && !fullAccess
-    ? metaRequestKey(TEASER_SEED_FILTERS.format, TEASER_SEED_FILTERS.rank, null, TEASER_SEED_FILTERS.coin,
+    ? metaRequestKey(seed.data.format, TEASER_SEED_FILTERS.rank, null, TEASER_SEED_FILTERS.coin,
       TEASER_SEED_FILTERS.minGames, 0, false)
     : '';
+}
+
+const RANKS = new Set<string>(['diamond', 'diamond_legend', 'legend', 'top_5k', 'top_legend']);
+const COINS = new Set<string>(['any_player', 'on_coin', 'going_first']);
+const FLOORS = new Set<number>([100, 250, 500, 1000, 2500, 5000]);
+const PERIOD = /^[a-z0-9_.]{1,64}$/;
+
+export type StandardMetaFilterQuery = {
+  rank?: StandardMetaServingRank; coin?: StandardMetaCoin; minGames?: StandardMetaMinGames; period?: StandardMetaPeriod;
+};
+
+/** The subscriber's filters kept in the address, so another format opens with the same rank, period, coin and floor. */
+export function readMetaFilterQuery(search: string): StandardMetaFilterQuery {
+  const params = new URLSearchParams(search);
+  const rank = params.get('rank') ?? '';
+  const coin = params.get('coin') ?? '';
+  const period = params.get('period') ?? '';
+  const minGames = Number(params.get('min_games'));
+  return {
+    ...(RANKS.has(rank) ? { rank: rank as StandardMetaServingRank } : {}),
+    ...(COINS.has(coin) ? { coin: coin as StandardMetaCoin } : {}),
+    ...(FLOORS.has(minGames) ? { minGames: minGames as StandardMetaMinGames } : {}),
+    ...(PERIOD.test(period) ? { period: period as StandardMetaPeriod } : {}),
+  };
+}
+
+/** The query of the filters that differ from the page's defaults ('' when none). */
+export function metaFilterSearch(filters: Required<Omit<StandardMetaFilterQuery, 'period'>> & { period: StandardMetaPeriod | null }): string {
+  const params = new URLSearchParams();
+  if (filters.rank !== TEASER_SEED_FILTERS.rank) params.set('rank', filters.rank);
+  if (filters.coin !== TEASER_SEED_FILTERS.coin) params.set('coin', filters.coin);
+  if (filters.minGames !== TEASER_SEED_FILTERS.minGames) params.set('min_games', String(filters.minGames));
+  if (filters.period) params.set('period', filters.period);
+  const query = params.toString();
+  return query ? `?${query}` : '';
 }

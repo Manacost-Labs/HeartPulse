@@ -102,6 +102,11 @@ try {
   const stale = await fetch(`${origin}/standard-meta/public?format=standard`);
   assert.equal(stale.status, 200);
   assert.equal(((await stale.json()) as any).items.length, 4);
+  // A prerender read is cached by Next for minutes: it gets no last-good copy, only the error.
+  const prerender = await fetch(`${origin}/standard-meta/public?format=standard`, { headers: { 'X-Hearthpulse-Prerender': '1' } });
+  assert.equal(prerender.status, 503, 'a prerender read never gets the stale slice');
+  assert.equal(prerender.headers.get('cache-control'), 'no-store');
+  assert.equal(prerender.headers.get('retry-after'), '60');
   failing.delete('standard');
   failing.add('wild');
   const stats = await fetch(`${origin}/standard-meta/public?format=wild`);
