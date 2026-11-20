@@ -213,7 +213,10 @@ indexable.
   link to each page, without JavaScript. The format switch of both lists is two
   links, the menu item «Вольный → Архетипы» and the «Вольный» step of a Wild
   archetype's breadcrumb lead there, and the old `/standard/archetypes/?format=wild`
-  still opens Wild. nginx adds the slash with one `301` (on the old hosts too,
+  still opens Wild, but as `noindex, follow` with its canonical on
+  `/standard/archetypes/wild/` and without the Standard list's JSON-LD (a
+  server 301 to the new address, as `/standard/meta/?format=wild` gets in E21,
+  is SEO-A's decision). nginx adds the slash with one `301` (on the old hosts too,
   `$arena_canonical_edge_path`). Until SEO-A opens it, the list is
   `noindex, follow`, has no canonical and no JSON-LD and stays out of the
   sitemap (`canonicalPolicy: none`, `sitemap: false`); the archetypes segment

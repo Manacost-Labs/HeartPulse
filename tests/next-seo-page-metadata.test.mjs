@@ -737,8 +737,8 @@ test('the catalog dataset is dated by the catalog and the page asks the API once
     assert.equal('creator' in dataset, false);
     assert.equal('license' in dataset, false);
     assert.doesNotMatch(JSON.stringify(graph), /PAID_BUILD_CODE|deckCode|Зоолок|gameMode|temporalCoverage|P7D/);
-    const wild = (await page('/standard/archetypes/?format=wild')).graph;
-    assert.equal(nodeOfType(wild, 'Dataset').dateModified, DATA_DATE);
+    // The old address of the Wild catalog (#543) prints no JSON-LD of the Standard list.
+    assert.equal((await page('/standard/archetypes/?format=wild')).graph, undefined);
 
     // A success is reused for two seconds; the catalog changes after them.
     await delay(2200);
@@ -1021,6 +1021,24 @@ test('archetype pages: only a strong archetype is indexable (Wild from 5000 game
     assert.equal(wildRows[4], '5 Чернокнижник Вольный d Wild d Винрейт 50% Популярность 1% Игры 2 700 Сборки 1 Открыть');
     const wildTools = visibleText(wildList.html.match(/<section class="archetypes-tools"[\s\S]*?<\/section>/)?.[0] ?? '');
     assert.match(wildTools, /Вольный.*Баны · минимум 50 игр · обновлено .+ · данные HSGuru/);
+    // The old address of the Wild catalog, with or without other keys (#543): still Wild, but out of the index, pointing at
+    // the Wild list, with no JSON-LD of the Standard list. Without the key, and with `format=standard`, the Standard list as before.
+    for (const path of ['/standard/archetypes/?format=wild', '/standard/archetypes/?class=warlock&format=wild']) {
+      const old = await page(path);
+      assert.equal(old.robots, 'noindex, follow', `${path} robots`);
+      assert.equal(old.canonical, 'https://hearthpulse.net/standard/archetypes/wild/', `${path} canonical`);
+      assert.ok(old.html.includes('<meta property="og:url" content="https://hearthpulse.net/standard/archetypes/wild/"/>'), `${path} og:url`);
+      assert.deepEqual(old.graphs, [], `${path} JSON-LD`);
+      assert.equal(old.html.includes('"@type":"Dataset"'), false, `${path} has no dataset`);
+      assert.ok(old.html.includes('/standard/archetypes/wild/zoolock/'), `${path} still lists Wild`);
+    }
+    for (const path of ['/standard/archetypes/', '/standard/archetypes/?format=standard']) {
+      const standard = await page(path);
+      assert.equal(standard.robots, 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1', `${path} robots`);
+      assert.equal(standard.canonical, 'https://hearthpulse.net/standard/archetypes/', `${path} canonical`);
+      assert.ok(standard.html.includes('"@type":"Dataset"'), `${path} keeps the JSON-LD of the Standard list`);
+    }
+
     // Both lists link each other in their server HTML: the format switch is two links.
     assert.deepEqual([...wildList.html.matchAll(/<a href="([^"]+)"(?: aria-current="page")?><img src="[^"]*card-format/g)].map(match => match[1]),
       ['/standard/archetypes/', '/standard/archetypes/wild/']);
