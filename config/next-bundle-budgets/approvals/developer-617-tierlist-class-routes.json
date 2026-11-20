@@ -1,8 +1,8 @@
 {
-  "reason": "#617: новый маршрут /tierlist/[class]/ добавляет запись в общий рантайм Next — JS каждого маршрута +71…85 Б gzip (замер: head #619 bc552fee против этой ветки). Сверх лимита локально: /standard/cards/ и /standard/cards/standard/ +19 Б, /library/minions/ +2 Б. Одобрено с запасом 64 Б на шум CI.",
+  "reason": "#617: новый маршрут /tierlist/[class]/ добавляет запись в общий рантайм Next — JS каждого маршрута +71…85 Б gzip (замер: head #619 против этой ветки). После rebase на main 24206592 сверх лимита локально: /standard/meta/ +63 Б, /articles/ +7 Б; /standard/matchups/ остаётся 1 Б запаса. Одобрено с запасом 64 Б на шум CI.",
   "routes": {
-    "/library/minions/": { "jsGzipBytes": 66 },
-    "/standard/cards/": { "jsGzipBytes": 83 },
-    "/standard/cards/standard/": { "jsGzipBytes": 83 }
+    "/articles/": { "jsGzipBytes": 71 },
+    "/standard/matchups/": { "jsGzipBytes": 64 },
+    "/standard/meta/": { "jsGzipBytes": 127 }
   }
 }

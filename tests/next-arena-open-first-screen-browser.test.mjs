@@ -179,7 +179,7 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
       await page.click('.source-toggle-button[data-locked="true"]');
       await page.waitForSelector('[data-testid="arena-paid-offer"]');
       const login = await page.$eval('[data-testid="arena-paid-offer"] a[href^="/?login"]', link => link.getAttribute('href'));
-      assert.equal(new URLSearchParams(login.split('?')[1]).get('returnTo'), '/tierlist/?class=mage', 'sign-in returns to the class');
+      assert.equal(new URLSearchParams(login.split('?')[1]).get('returnTo'), '/tierlist/mage/', 'sign-in returns to the class page');
       assert.deepEqual(errors, []);
       await page.close();
 
