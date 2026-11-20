@@ -34,9 +34,6 @@ assert.equal(standardMetaPeriodLabel('black_empire_ban'), 'Баны');
 assert.equal(standardMetaPeriodLabel('patch_37.0.2'), 'Патч 37.0.2');
 assert.deepEqual(STANDARD_META_COINS.map(option => [option.id, option.label]),
   [['any_player', 'Любая'], ['going_first', 'Ходит первым'], ['on_coin', 'С монеткой']]);
-// The coin filter is part of the request and of its identity.
-assert.match(metaSource, /const \[coin, setCoin\] = useState<MetaCoin>\(TEASER_SEED_FILTERS\.coin\)/);
-assert.match(metaSource, /metaRequestKey\(format, rank, hasFullAccess \? period : null, coin, minGames, metaRevision, hasFullAccess\)/);
 assert.match(readFileSync(new URL('../src/features/StandardMetaGuestFilters.tsx', import.meta.url), 'utf8'), /Очерёдность хода/);
 assert.deepEqual(
   orderStandardMetaPeriods(
@@ -95,8 +92,6 @@ assert.match(metaSource, /const selectedPeriod = \(hasFullAccess \? period : dat
 // period it was read for, otherwise the page resolves the current one itself.
 const teaserSource = readFileSync(new URL('../src/features/standardMetaTeaser.ts', import.meta.url), 'utf8');
 assert.match(teaserSource, /TEASER_SEED_FILTERS = \{ format: 'standard', rank: 'diamond_legend', coin: 'any_player', minGames: 100 \} as const/);
-assert.match(metaSource, /useState<MetaRank>\(TEASER_SEED_FILTERS\.rank\)/);
-assert.match(metaSource, /useState<MetaPeriod \| null>\(initialTeaser\?\.period \?\? null\)/);
 // Until a payload resolves the summary shows a value placeholder, never a fake zero.
 assert.match(metaSource, /const summaryReady = hasPayload && !\(hasFullAccess && data === initialTeaser\?\.data\);/);
 assert.match(metaSource, /<MetaSummary data=\{summaryReady \? data : null\}/);

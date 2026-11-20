@@ -17,6 +17,7 @@ import { archetypeTeaserPath } from './publicDataPaths';
  */
 export const DATA_PAGE_PROBES = {
   '/standard/meta': standardMetaPublicPath(),
+  '/standard/meta/wild': standardMetaPublicPath('wild'),
   '/articles': '/api/articles',
   '/tierlist': PUBLIC_TIERLIST_PATH,
   '/classes': CLASSES_TEASER_PATH,
@@ -38,7 +39,7 @@ export type DataPageProbePath = string;
 /** Whether the source answers 200 with a body that has data (not `null`, not `{}`). */
 export async function dataSourceAvailable(path: string): Promise<boolean> {
   try {
-    const response = await fetchPublicExpress(path, undefined, { timeoutMs: 5_000 });
+    const response = await fetchPublicExpress(path, undefined, { timeoutMs: 5_000, freshOnly: true });
     if (response.status !== 200) return false;
     const body: unknown = await response.json();
     return body !== null && typeof body === 'object' && (Array.isArray(body) || Object.keys(body).length > 0);

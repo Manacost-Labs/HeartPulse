@@ -67,11 +67,9 @@ try {
   );
   assert.ok(await page.$('.standard-meta__controls'));
   assert.ok(await page.$('.standard-meta-chart'));
-  await page.click('.standard-meta__segmented button:nth-child(2)');
-  await page.waitForFunction(() => (
-    document.querySelector('.standard-meta__segmented button:nth-child(2)')
-      ?.getAttribute('aria-pressed') === 'true'
-  ));
+  // The format switch is two links to the two addresses (a story does not navigate, so only the markup is checked).
+  assert.deepEqual(await page.$$eval('.standard-meta__segmented a', links => links.map(link => [link.getAttribute('href'), link.getAttribute('aria-current')])),
+    [['/standard/meta/', 'page'], ['/standard/meta/wild/', null]]);
   await page.screenshot({ path: `${screenshotPrefix}-meta-desktop.png`, fullPage: true });
 
   for (const width of [390, 320]) {

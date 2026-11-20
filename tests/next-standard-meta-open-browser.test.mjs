@@ -32,7 +32,7 @@ const slice = (format, paid) => ({
 });
 
 async function startStack() {
-  const state = { next: null, publicReads: [], protectedReads: 0 };
+  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [], protectedQueries: [] };
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://stack');
     const reader = /(?:^|;\s*)sm_session=reader/.test(request.headers.cookie ?? '');
@@ -42,12 +42,25 @@ async function startStack() {
     if (url.pathname === '/api/subscription/status') return reader ? json(200, SUBSCRIBED) : json(401, { error: 'guest' });
     if (url.pathname === '/api/standard-meta/public') {
       state.publicReads.push(`${url.pathname}${url.search}`);
+      state.publicHeaders.push(request.headers['x-hearthpulse-prerender'] ?? null);
+      if (state.down) return json(503, { error: 'source down' });
       return json(200, slice(url.searchParams.get('format') === 'wild' ? 'wild' : 'standard', false));
     }
     if (url.pathname === '/api/standard-meta') {
       if (!reader) return json(401, { error: 'subscription required' });
       state.protectedReads += 1;
-      return void setTimeout(() => json(200, slice(url.searchParams.get('format') === 'wild' ? 'wild' : 'standard', true)), PROTECTED_DELAY_MS);
+      state.protectedQueries.push(Object.fromEntries(url.searchParams));
+      // Like the real route: a period or rank it does not serve is refused.
+      const askedPeriod = url.searchParams.get('period');
+      const askedRank = url.searchParams.get('rank');
+      if ((askedPeriod && !/^(?:past_day|past_week|patch_\d+(?:\.\d+)*)$/.test(askedPeriod))
+        || (askedRank && !['diamond', 'diamond_legend', 'legend', 'top_5k', 'top_legend'].includes(askedRank))) return json(400, { error: 'bad filter' });
+      // The answer carries the filters it was asked for, as the real route does.
+      const asked = {
+        rank: url.searchParams.get('rank') ?? 'diamond_legend', coin: url.searchParams.get('coin') ?? 'any_player',
+        minGames: Number(url.searchParams.get('min_games') ?? 100), period: url.searchParams.get('period') ?? 'patch_36.6.3',
+      };
+      return void setTimeout(() => json(200, { ...slice(url.searchParams.get('format') === 'wild' ? 'wild' : 'standard', true), ...asked }), PROTECTED_DELAY_MS);
     }
     if (url.pathname.startsWith('/api/')) return json(401, { error: 'guest' });
     const upstream = http.request(new URL(state.next), { method: request.method, path: request.url, headers: request.headers },
@@ -65,7 +78,7 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
   let browser;
   try {
     assert.equal((await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).status, 200);
-    stack.publicReads.length = 0; // the route's own probe of the source is not a page read
+    stack.publicReads.length = 0; stack.publicHeaders.length = 0; // the route's own probe of the source is not a page read
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
 
@@ -103,14 +116,70 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     await guest.click('[data-locked-filter]');
     assert.ok(await guest.$('#standard-meta-paywall'), 'the offer is on the page');
     assert.equal(stack.publicReads.length, 1, 'locked filters send no request');
-    await guest.evaluate(() => [...document.querySelectorAll('.standard-meta__segmented button')].at(1).click());
-    await guest.waitForFunction(() => document.body.textContent.includes('Вольный архетип 1'), { timeout: 15000 });
-    assert.equal(stack.publicReads.at(-1), '/api/standard-meta/public?format=wild');
+    // The format switch is two links, each its own address: Wild opens at /standard/meta/wild/.
+    assert.deepEqual(await guest.$$eval('.standard-meta__segmented a', links => links.map(link => link.getAttribute('href'))),
+      ['/standard/meta/', '/standard/meta/wild/']);
+    await guest.click('.standard-meta__segmented a[href="/standard/meta/wild/"]');
+    await guest.waitForFunction(() => location.pathname === '/standard/meta/wild/' && document.body.textContent.includes('Вольный архетип 1'),
+      { timeout: 15000 });
+    assert.ok(stack.publicReads.includes('/api/standard-meta/public?format=wild'));
     assert.equal(await guest.$$eval('.standard-meta-card', cards => cards.length), 8);
     const guestText = await guest.evaluate(() => document.body.textContent);
     assert.deepEqual(SENTINELS.filter(value => guestText.includes(value)), []);
     assert.deepEqual(errors, []);
     await guest.close();
+
+    // Wild at its own address: the same open slice in the HTML, one H1, a self canonical, the same HTML for a crawler.
+    const wildBare = await browser.newPage();
+    await wildBare.setJavaScriptEnabled(false);
+    await wildBare.goto(`${stack.origin}/standard/meta/wild/`, { waitUntil: 'load' });
+    const wildHtml = await wildBare.content();
+    assert.equal((wildHtml.match(/class="standard-meta-card"/g) ?? []).length, 8, 'all eight Wild archetypes are in the HTML');
+    assert.ok(wildHtml.includes('Вольный архетип 8') && !wildHtml.includes('Стандартный архетип'), 'only the Wild slice is printed');
+    assert.equal((wildHtml.match(/<h1[\s>]/g) ?? []).length, 1, 'one H1');
+    assert.ok(wildHtml.includes('Мета Вольного формата Hearthstone'));
+    assert.match(wildHtml, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/standard\/meta\/wild\/"/);
+    assert.deepEqual(SENTINELS.filter(value => wildHtml.includes(value)), [], 'no sentinel in the Wild HTML');
+    const wildCrawler = await (await fetch(`${stack.origin}/standard/meta/wild/`, { headers: { 'User-Agent': 'Googlebot/2.1' } })).text();
+    const wildGuest = await (await fetch(`${stack.origin}/standard/meta/wild/`)).text();
+    assert.equal(wildCrawler, wildGuest, 'a crawler gets the guest HTML of Wild');
+    const wildLd = [...wildGuest.matchAll(/<script type="application\/ld\+json">([^<]*)<\/script>/g)].map(match => match[1]).join('');
+    assert.match(wildLd, /meta\/wild\/#dataset/);
+    assert.match(wildLd, /"isAccessibleForFree":false/);
+    assert.deepEqual(SENTINELS.filter(value => wildLd.includes(value) || wildGuest.includes(value)), []);
+    const wildRsc = await (await fetch(`${stack.origin}/standard/meta/wild/`, { headers: { RSC: '1' } })).text();
+    assert.deepEqual(SENTINELS.filter(value => wildRsc.includes(value)), [], 'no sentinel in the RSC payload');
+    await wildBare.close();
+
+    // A Wild page opened directly asks nothing on hydration (its seed answers its own request), even if the source falls
+    // between the server render and the hydration; no error is printed over the correct HTML.
+    stack.down = true;
+    const readsBefore = stack.publicReads.length;
+    const direct = await browser.newPage();
+    await direct.setViewport(DESKTOP);
+    const directErrors = [];
+    direct.on('pageerror', error => directErrors.push(error.message));
+    await direct.goto(`${stack.origin}/standard/meta/wild/`, { waitUntil: 'networkidle0' });
+    assert.equal(await direct.$$eval('.standard-meta-card', cards => cards.length), 8);
+    assert.ok(!(await direct.evaluate(() => document.body.textContent)).includes('Не удалось загрузить мету'), 'no error over the server slice');
+    assert.equal(stack.publicReads.length, readsBefore, 'no public request after hydration');
+    assert.deepEqual(directErrors, []);
+    await direct.close();
+    stack.down = false;
+    // Every server read of the open slice is a prerender read: Express then answers no last-good copy, which Next would keep for minutes.
+    assert.ok(stack.publicHeaders.length > 0 && stack.publicHeaders.every(value => value === '1'), `prerender header on every server read: ${stack.publicHeaders}`);
+
+    // The source is down: the revalidation leaves both pages as they are and a guest still gets the data.
+    stack.down = true;
+    const answer = await (await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).json();
+    assert.ok(answer.skipped.some(item => item.path === '/standard/meta/wild'), 'the Wild page is skipped while its source is down');
+    for (const path of ['/standard/meta/', '/standard/meta/wild/']) {
+      const response = await fetch(`${stack.origin}${path}`);
+      assert.equal(response.status, 200, `${path} answers while the source is down`);
+      assert.ok((await response.text()).includes('архетип 8'), `${path} keeps its data`);
+    }
+    stack.down = false;
+    await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' });
 
     // A subscriber: the paid columns replace the locks in place, the rows do not move.
     const reader = await browser.newPage();
@@ -133,6 +202,63 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     const shift = await reader.evaluate(() => window.__shifts.reduce((sum, value) => sum + value, 0));
     assert.ok(shift <= 0.1, `the subscriber page shifted by ${shift.toFixed(4)}`);
     await reader.close();
+
+    // A subscriber's filters go with the format switch, both ways: the address of the new page carries them, the paid
+    // request of the new format is sent with them and its answer is what is shown.
+    const filtered = await browser.newPage();
+    await filtered.setViewport(DESKTOP);
+    await filtered.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
+    await filtered.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
+    await filtered.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+    const choose = (label, value) => filtered.evaluate((name, wanted) => {
+      const select = [...document.querySelectorAll('label')].find(node => node.textContent.trim().startsWith(name))?.querySelector('select');
+      if (!select) throw new Error(`no select ${name}`);
+      select.value = wanted;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    }, label, value);
+    await filtered.evaluate(() => [...document.querySelectorAll('fieldset button')].find(button => button.textContent.trim() === 'Легенда').click());
+    await choose('Период', 'past_day');
+    await choose('Очерёдность хода', 'on_coin');
+    await choose('Минимум игр', '500');
+    const FILTERS = { rank: 'legend', coin: 'on_coin', min_games: '500', period: 'past_day' };
+    const lastQuery = () => stack.protectedQueries.at(-1);
+    await filtered.waitForFunction(() => document.body.textContent.includes('77,77'));
+    assert.deepEqual({ rank: lastQuery().rank, coin: lastQuery().coin, min_games: lastQuery().min_games, period: lastQuery().period }, FILTERS,
+      'the paid request of Standard carries the chosen filters');
+    const goTo = async (name, path, archetype) => {
+      const before = stack.protectedQueries.length;
+      await filtered.evaluate(text => [...document.querySelectorAll('a')].find(link => link.textContent.trim().startsWith(text)
+        && link.closest('[aria-label="Фильтры меты"]')).click(), name);
+      await filtered.waitForFunction(location => window.location.pathname === location, { timeout: 15000 }, path);
+      const search = new URLSearchParams(await filtered.evaluate(() => window.location.search));
+      assert.deepEqual(Object.fromEntries(search), FILTERS, `${path} keeps the filters in its address`);
+      await filtered.waitForFunction(text => document.body.textContent.includes(text) && document.body.textContent.includes('77,77'), { timeout: 15000 }, archetype);
+      assert.ok(stack.protectedQueries.length > before, 'the new format asks its own paid slice');
+      const asked = stack.protectedQueries.at(-1);
+      assert.equal(asked.format, path.includes('wild') ? 'wild' : 'standard');
+      assert.deepEqual({ rank: asked.rank, coin: asked.coin, min_games: asked.min_games, period: asked.period }, FILTERS, 'and asks it with the filters');
+      assert.equal(await filtered.$eval('fieldset button[aria-pressed="true"]', node => node.textContent.trim()), 'Легенда', 'the rank is still chosen');
+    };
+    await goTo('Вольный', '/standard/meta/wild/', 'Вольный архетип 1');
+    await goTo('Стандарт', '/standard/meta/', 'Стандартный архетип 1');
+    await filtered.close();
+
+    // A direct link with values the server refuses opens the default slice: no error, and no paid request carries them.
+    const broken = await browser.newPage();
+    await broken.setViewport(DESKTOP);
+    await broken.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
+    const queriesBefore = stack.protectedQueries.length;
+    await broken.goto(`${stack.origin}/standard/meta/wild/?period=broken&rank=xyz`, { waitUntil: 'load' });
+    await broken.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+    assert.ok(!(await broken.evaluate(() => document.body.textContent)).includes('Не удалось загрузить мету'), 'no error for a bad link');
+    const brokenQueries = stack.protectedQueries.slice(queriesBefore);
+    assert.ok(brokenQueries.length > 0, 'the paid slice was asked');
+    for (const asked of brokenQueries) {
+      assert.notEqual(asked.period, 'broken');
+      assert.notEqual(asked.rank, 'xyz');
+      assert.equal(asked.rank, 'diamond_legend', 'the default rank replaces the bad one');
+    }
+    await broken.close();
   } finally {
     if (browser) await browser.close();
     await next.close();

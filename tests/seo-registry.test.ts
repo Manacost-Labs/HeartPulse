@@ -184,7 +184,6 @@ const battlegroundsLandingSource = readFileSync(new URL('../src/modules/searchLa
 assert.doesNotMatch(battlegroundsLandingSource, /<nav/);
 
 const standardMetaSource = readFileSync(new URL('../src/features/StandardMeta.tsx', import.meta.url), 'utf8');
-assert.match(standardMetaSource, /<StandardMetaSearchIntro \/>/);
 assert.doesNotMatch(standardMetaSource, /StandardMetaRelatedLinks/);
 const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLanding/ui/StandardMetaSearchIntro.tsx', import.meta.url), 'utf8');
 

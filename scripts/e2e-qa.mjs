@@ -2975,7 +2975,7 @@ for (const [device, viewport] of [
       const firstCard = document.querySelector('.standard-meta-card');
       const ornament = document.querySelector('.standard-meta__hero-ornament');
       const rankButtons = [...document.querySelectorAll('.standard-meta__rank-tabs button')];
-      const formatButtons = [...document.querySelectorAll('.standard-meta__segmented button')];
+      const formatButtons = [...document.querySelectorAll('.standard-meta__segmented a')];
       const periodSelect = document.querySelector('.standard-meta__secondary-filters select');
       const rankSelect = document.querySelector('.standard-meta__rank-select');
       const mastheadRect = masthead?.getBoundingClientRect();
