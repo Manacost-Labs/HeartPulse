@@ -291,6 +291,33 @@
     font-weight: 900;
   }
 
+  /* A paid figure for a viewer without access (open tier list): same place, a lock instead of the value. */
+  .tierlist-paid-lock {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.25rem;
+    border: 1px dashed rgba(174, 136, 83, 0.75);
+    border-radius: 6px;
+    padding: 0.15rem 0.4rem;
+    color: #8b5a1b;
+    font-size: 0.7rem;
+    font-weight: 800;
+    line-height: 1.1;
+    white-space: nowrap;
+  }
+
+  button.tierlist-paid-lock {
+    min-height: 28px;
+    cursor: pointer;
+    background: rgba(255, 244, 217, 0.7);
+  }
+
+  button.tierlist-paid-lock:hover {
+    border-color: #7e4b20;
+    color: #5a3000;
+  }
+
   .card-modal-lightbox {
     position: fixed;
     inset: 0;

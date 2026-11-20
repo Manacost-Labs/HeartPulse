@@ -40,7 +40,7 @@
       {
         "id": "arena-tier-list-open-pool",
         "path": "/tierlist",
-        "assertions": [{ "selector": ".tierlist-public-pool tbody tr", "minCount": 100 }],
+        "assertions": [{ "selector": ".tierlist-card-grid .hs-tier-card", "minCount": 40 }],
         "forbiddenSelectors": [".arena-paywall"]
       },
       {

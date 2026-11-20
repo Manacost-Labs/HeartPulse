@@ -5,13 +5,14 @@ import { TableSurface } from '../shared/ui/analytics/TableSurface';
  */
 
 import type { LegendaryCard, LegendaryGroup, LegendariesData, LegendarySource } from '../modules/arenaLegendaries/public';
-import React, { Suspense, lazy, useState, useEffect, useCallback, useRef, useMemo, memo, useDeferredValue } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useCallback, useRef, useMemo, memo, useDeferredValue, createContext, useContext } from 'react';
 import { createPortal } from 'react-dom';
 import '../route-parchment.css';
 import './TraditionalModeBanner.css';
 import './DeferredRoutes.css';
 import { RefreshCw, AlertTriangle, X, Search, Star, LockKeyhole, BookOpen, ThumbsUp, ThumbsDown, ArrowDown, ArrowUp, ChevronDown } from 'lucide-react';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
+import { preferredScrollBehavior } from '../shared/ui/scrollBehavior';
 import PaywallGate from '../components/PaywallGate';
 import { LegendaryPaidStat } from './legendaries/LegendaryPaidStat';
 import { useLegendariesLocation } from './legendaries/useLegendariesLocation';
@@ -240,6 +241,27 @@ const SOURCE_LOGO: Record<TierlistSource, string> = {
   firestone: '/source-logos/firestone-64.webp',
 };
 
+/**
+ * Figures of a card only a subscriber gets. The open tier list (`/api/tierlist/public`) carries the
+ * winrate and the pick rate; everything here is shown in its place as a lock for a viewer without access.
+ */
+const PAID_CARD_METRICS: ReadonlySet<string> = new Set([
+  'drawnWinrate', 'playedWinrate', 'inDecks', 'avgCopies', 'totalGames', 'arenaScore', 'offerRate',
+]);
+/** Provided by the open tier list: a paid figure renders as a lock that calls this (the subscription offer). */
+const PaidMetricLock = createContext<(() => void) | null>(null);
+
+/** A paid figure for a viewer without access; the class is the closed part the page's JSON-LD names. */
+function LockedMetric({ onLocked, label }: { onLocked: (() => void) | null; label: string }) {
+  if (!onLocked) {
+    return <span className="tierlist-paid-lock paywalled-tierlist"><LockKeyhole size={11} aria-hidden="true" /><span>По подписке</span></span>;
+  }
+  return <button type="button" className="tierlist-paid-lock paywalled-tierlist" onClick={event => { event.stopPropagation(); onLocked(); }}
+    aria-label={`${label}: доступно по подписке`}>
+    <LockKeyhole size={11} aria-hidden="true" /><span>По подписке</span>
+  </button>;
+}
+
 const SourceToggleButton: React.FC<{
   source: TierlistSource;
   label: string;
@@ -247,15 +269,18 @@ const SourceToggleButton: React.FC<{
   busy: boolean;
   onClick: () => void;
   allowSwitchWhileBusy?: boolean;
-}> = ({ source, label, active, busy, onClick, allowSwitchWhileBusy = false }) => (
+  /** A source a viewer without access cannot open: the press shows the offer instead. */
+  locked?: boolean;
+}> = ({ source, label, active, busy, onClick, allowSwitchWhileBusy = false, locked = false }) => (
     <button
       type="button"
       onClick={onClick}
       disabled={busy && !active && !allowSwitchWhileBusy}
-      title={label}
+      title={locked ? `${label} — по подписке` : label}
       aria-pressed={active}
       data-active={active ? 'true' : 'false'}
-      className="source-toggle-button min-h-[34px] px-2.5 py-1.5 rounded-lg text-xs font-hs transition-all flex items-center justify-center gap-1.5"
+      data-locked={locked ? 'true' : undefined}
+      className={`source-toggle-button${locked ? ' paywalled-tierlist' : ''} min-h-[34px] px-2.5 py-1.5 rounded-lg text-xs font-hs transition-all flex items-center justify-center gap-1.5`}
       style={active ? {
         background: 'linear-gradient(135deg,#5a3000,#3d1e00)',
         color: '#fcd34d',
@@ -295,6 +320,7 @@ const SourceToggleButton: React.FC<{
         />
       </span>
       <span className="source-toggle-label">{label}</span>
+      {locked && <><LockKeyhole size={11} aria-hidden="true" /><span className="sr-only"> — по подписке</span></>}
     </button>
 );
 
@@ -359,17 +385,18 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
   const sourceLabel = card.source ? TIERLIST_SOURCE_LABEL[card.source] : 'Manacost';
   const deckWinrate = card.deckWinrate ?? card.winrate;
   const primaryWinrateLabel = card.statsContext === 'legendary' ? 'Винрейт группы' : 'Винрейт колоды';
+  const onLocked = useContext(PaidMetricLock);
   const statRows = [
-    { label: primaryWinrateLabel, value: formatPct(deckWinrate), raw: deckWinrate, type: 'pct' as const },
-    { label: 'При взятии', value: formatPct(card.drawnWinrate), raw: card.drawnWinrate, type: 'pct' as const },
-    { label: 'При розыгрыше', value: formatPct(card.playedWinrate), raw: card.playedWinrate, type: 'pct' as const },
-    { label: 'В % заходов', value: formatPct(card.inDecks), raw: card.inDecks, type: 'pct' as const },
-    { label: 'Копий в колоде', value: typeof card.avgCopies === 'number' ? card.avgCopies.toFixed(card.avgCopies % 1 === 0 ? 0 : 1) : '—', raw: card.avgCopies, type: 'score' as const },
-    { label: 'Партии', value: formatCount(card.totalGames), raw: null, type: 'score' as const },
-    { label: 'ArenaSmith', value: typeof card.arenaScore === 'number' ? card.arenaScore.toFixed(0) : '—', raw: card.arenaScore, type: 'score' as const },
-    { label: 'Pick Rate', value: formatPct(card.pickRate), raw: card.pickRate, type: 'pct' as const },
-    { label: 'Частота выбора', value: formatPct(card.offerRate), raw: card.offerRate, type: 'pct' as const },
-  ].filter(row => row.value !== '—');
+    { key: 'deckWinrate', label: primaryWinrateLabel, value: formatPct(deckWinrate), raw: deckWinrate, type: 'pct' as const },
+    { key: 'drawnWinrate', label: 'При взятии', value: formatPct(card.drawnWinrate), raw: card.drawnWinrate, type: 'pct' as const },
+    { key: 'playedWinrate', label: 'При розыгрыше', value: formatPct(card.playedWinrate), raw: card.playedWinrate, type: 'pct' as const },
+    { key: 'inDecks', label: 'В % заходов', value: formatPct(card.inDecks), raw: card.inDecks, type: 'pct' as const },
+    { key: 'avgCopies', label: 'Копий в колоде', value: typeof card.avgCopies === 'number' ? card.avgCopies.toFixed(card.avgCopies % 1 === 0 ? 0 : 1) : '—', raw: card.avgCopies, type: 'score' as const },
+    { key: 'totalGames', label: 'Партии', value: formatCount(card.totalGames), raw: null, type: 'score' as const },
+    { key: 'arenaScore', label: 'ArenaSmith', value: typeof card.arenaScore === 'number' ? card.arenaScore.toFixed(0) : '—', raw: card.arenaScore, type: 'score' as const },
+    { key: 'pickRate', label: 'Pick Rate', value: formatPct(card.pickRate), raw: card.pickRate, type: 'pct' as const },
+    { key: 'offerRate', label: 'Частота выбора', value: formatPct(card.offerRate), raw: card.offerRate, type: 'pct' as const },
+  ].filter(row => row.value !== '—' || (onLocked && PAID_CARD_METRICS.has(row.key)));
   const hasStats = statRows.length > 0;
 
   // Rendered via portal — completely outside app stacking context
@@ -450,9 +477,11 @@ const CardModal: React.FC<{ card: CardData; tier: string; onClose: () => void }>
               {statRows.map(row => (
                 <div key={row.label} className="card-modal-stat-row">
                   <dt className="text-[11px] font-bold uppercase leading-tight text-[#d9c08a]">{row.label}</dt>
-                  <dd className={`text-right text-sm font-black leading-none ${row.raw === null ? 'text-[#fff3cf]' : metricTone(row.raw, row.type)}`}>
-                    {row.value}
-                  </dd>
+                  {onLocked && PAID_CARD_METRICS.has(row.key)
+                    ? <dd className="text-right"><LockedMetric onLocked={onLocked} label={row.label} /></dd>
+                    : <dd className={`text-right text-sm font-black leading-none ${row.raw === null ? 'text-[#fff3cf]' : metricTone(row.raw, row.type)}`}>
+                      {row.value}
+                    </dd>}
                 </div>
               ))}
             </dl>
@@ -518,14 +547,15 @@ function getCardStatsTooltipPosition(el: HTMLElement): CardTooltipPosition {
 }
 
 const CardStatsTooltip: React.FC<{ card: CardData; position: CardTooltipPosition }> = ({ card, position }) => {
-  const rows = [
-    ['Винрейт колоды с этой картой', formatPct(card.deckWinrate ?? card.winrate)],
-    ['Взятие', formatPct(card.pickRate)],
-    ['Винрейт при разыгрывании', formatPct(card.playedWinrate)],
-    ['В % колод', formatPct(card.inDecks)],
-    ['Всего партий', formatCount(card.totalGames)],
-    ['ArenaSmith очко', typeof card.arenaScore === 'number' ? card.arenaScore.toFixed(0) : '—'],
-    ['Частота выбора', formatPct(card.offerRate)],
+  const locked = useContext(PaidMetricLock) !== null;
+  const rows: Array<[string, string, string]> = [
+    ['deckWinrate', 'Винрейт колоды с этой картой', formatPct(card.deckWinrate ?? card.winrate)],
+    ['pickRate', 'Взятие', formatPct(card.pickRate)],
+    ['playedWinrate', 'Винрейт при разыгрывании', formatPct(card.playedWinrate)],
+    ['inDecks', 'В % колод', formatPct(card.inDecks)],
+    ['totalGames', 'Всего партий', formatCount(card.totalGames)],
+    ['arenaScore', 'ArenaSmith очко', typeof card.arenaScore === 'number' ? card.arenaScore.toFixed(0) : '—'],
+    ['offerRate', 'Частота выбора', formatPct(card.offerRate)],
   ];
 
   return createPortal(
@@ -550,10 +580,10 @@ const CardStatsTooltip: React.FC<{ card: CardData; position: CardTooltipPosition
         {card.source && <span className="card-stats-tooltip-source">{TIERLIST_SOURCE_LABEL[card.source]}</span>}
       </div>
       <div className="card-stats-tooltip-rows">
-        {rows.map(([label, value]) => (
+        {rows.map(([key, label, value]) => (
           <div key={label} className="card-stats-tooltip-row">
             <span>{label}</span>
-            <strong>{value}</strong>
+            {locked && PAID_CARD_METRICS.has(key) ? <LockedMetric onLocked={null} label={label} /> : <strong>{value}</strong>}
           </div>
         ))}
       </div>
@@ -820,9 +850,10 @@ const MOBILE_TABLE_METRIC_KEYS: Array<typeof TABLE_METRIC_COLUMNS[number]['key']
   'offerRate',
 ];
 
-function useSmallViewport(): boolean {
+/** `serverRendered`: the first render matches the server HTML (false); the effect then reads the viewport. */
+function useSmallViewport(serverRendered = false): boolean {
   const [small, setSmall] = useState(() => (
-    typeof window !== 'undefined'
+    typeof window !== 'undefined' && !serverRendered
       ? window.matchMedia('(max-width: 639px)').matches
       : false
   ));
@@ -839,7 +870,7 @@ function useSmallViewport(): boolean {
   return small;
 }
 
-function useFineHoverPointer(): boolean {
+function useFineHoverPointer(serverRendered = false): boolean {
   const getFineHover = () => {
     if (typeof window === 'undefined') return false;
     const mediaMatches = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
@@ -847,7 +878,7 @@ function useFineHoverPointer(): boolean {
   };
 
   const [fineHover, setFineHover] = useState(() => (
-    getFineHover()
+    serverRendered ? false : getFineHover()
   ));
 
   useEffect(() => {
@@ -1048,6 +1079,7 @@ function HSReplayCardsTable({ tiers, onCardOpen, previewSuppressed = false }: {
   previewSuppressed?: boolean;
 }) {
   const canHoverPreview = useFineHoverPointer();
+  const onLocked = useContext(PaidMetricLock);
   const rows = useMemo(
     () => tiers.flatMap(tier => tier.cards.map(card => ({ tier: tier.tier, card }))),
     [tiers],
@@ -1137,7 +1169,9 @@ function HSReplayCardsTable({ tiers, onCardOpen, previewSuppressed = false }: {
                 return (
                   <div key={key} className="rounded-lg border border-[#c4a46a]/35 bg-[#f5e2b8]/70 px-2 py-1">
                     <dt className="text-[11px] font-bold uppercase leading-tight text-[#8b6c42]">{col.label}</dt>
-                    <dd className={`mt-0.5 text-sm font-black leading-none ${tone}`}>{tableMetricValue(card, key)}</dd>
+                    {onLocked && PAID_CARD_METRICS.has(key)
+                      ? <dd className="mt-0.5"><LockedMetric onLocked={onLocked} label={col.label} /></dd>
+                      : <dd className={`mt-0.5 text-sm font-black leading-none ${tone}`}>{tableMetricValue(card, key)}</dd>}
                   </div>
                 );
               })}
@@ -1186,7 +1220,9 @@ function HSReplayCardsTable({ tiers, onCardOpen, previewSuppressed = false }: {
                 const tone = col.key === 'arenaScore' ? metricTone(raw, 'score') : metricTone(raw, 'pct');
                 return (
                   <td key={col.key} className={`px-2 py-1 text-right font-bold ${tone}`}>
-                    {tableMetricValue(card, col.key)}
+                    {onLocked && PAID_CARD_METRICS.has(col.key)
+                      ? <LockedMetric onLocked={onLocked} label={col.label} />
+                      : tableMetricValue(card, col.key)}
                   </td>
                 );
               })}
@@ -1199,7 +1235,7 @@ function HSReplayCardsTable({ tiers, onCardOpen, previewSuppressed = false }: {
   );
 }
 
-export function TierList({ data, loading, error, companionIds, tierlistSource, onTierlistSourceChange, switchingTierlistSource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, accessGranted, initialClassId }: {
+export function TierList({ data, loading, error, companionIds, tierlistSource, onTierlistSourceChange, switchingTierlistSource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, accessGranted, initialClassId, openLayer = false, serverRendered = false, onPaidOffer, dataLine }: {
   data: TierlistData; loading: boolean; error: boolean;
   companionIds: Set<string>;
   tierlistSource: TierlistSource;
@@ -1214,27 +1250,54 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
   accessGranted?: boolean;
   /** The class the page was opened on (`?class=` of the open list); the default is all cards. */
   initialClassId?: string;
+  /**
+   * `data` is the open tier list of a viewer without access: the same view, the other sources, the
+   * rarity and mana filters and the paid figures stay in place as locks that open the subscription offer.
+   */
+  openLayer?: boolean;
+  /** Part of the server HTML: the first render ignores the viewport and the address, effects apply them; the class goes to the address. */
+  serverRendered?: boolean;
+  /** The page's own subscription offer for the locks of `openLayer`; without it the offer opens inline under the controls. */
+  onPaidOffer?: () => void;
+  /** The date, sample and source of the shown data, under the source switch. */
+  dataLine?: React.ReactNode;
 }) {
   const [activeClassId, setActiveClassId] = useState<string>(initialClassId ?? ALL_CARDS_ID);
+  const [offer, setOffer] = useState(false);
+  const openOffer = useCallback(() => { if (onPaidOffer) onPaidOffer(); else setOffer(true); }, [onPaidOffer]);
   const [searchQuery, setSearchQuery]     = useState('');
   const [selectedRarity, setSelectedRarity] = useState<string>('all');
   const [selectedManaCost, setSelectedManaCost] = useState<ManaFilterValue>('all');
   const [viewMode, setViewMode] = useState<TierlistViewMode>('gallery');
   const [modalCard, setModalCard] = useState<{ card: CardData; tier: string } | null>(null);
-  const isSmallViewport = useSmallViewport();
-  const canHoverPreview = useFineHoverPointer();
+  // A lock in the card details or the table: the details close and the offer opens under the controls.
+  const offerFromDetails = useCallback(() => { setModalCard(null); openOffer(); }, [openOffer]);
+  const offerRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (offer) offerRef.current?.scrollIntoView({ block: 'nearest', behavior: preferredScrollBehavior() });
+  }, [offer]);
+  const isSmallViewport = useSmallViewport(serverRendered);
+  const canHoverPreview = useFineHoverPointer(serverRendered);
   const [galleryPreview, setGalleryPreview] = useState<{ card: CardData; position: CardTooltipPosition } | null>(null);
   const deferredSearchQuery = useDeferredValue(searchQuery);
   const normalizedSearchQuery = useMemo(
     () => deferredSearchQuery.trim().toLowerCase(),
     [deferredSearchQuery],
   );
-  const cardPageSize = isSmallViewport ? INITIAL_TIERLIST_CARDS_MOBILE : INITIAL_TIERLIST_CARDS_DESKTOP;
+  // A server-rendered list keeps the server's first page on a phone too: shrinking it after hydration would move the page.
+  const cardPageSize = isSmallViewport && !serverRendered ? INITIAL_TIERLIST_CARDS_MOBILE : INITIAL_TIERLIST_CARDS_DESKTOP;
   const cardPageStep = isSmallViewport ? TIERLIST_CARDS_STEP_MOBILE : TIERLIST_CARDS_STEP_DESKTOP;
   const [visibleCardLimit, setVisibleCardLimit] = useState(() => cardPageSize);
 
   const sections = data.sections;
   const cards    = data.cards;
+
+  // The class a visitor chose before signing in comes back in the address (`?class=mage`); a server-rendered list reads it after hydration.
+  useEffect(() => {
+    if (!serverRendered) return;
+    const id = new URLSearchParams(window.location.search).get('class');
+    if (id && sections.some(section => section.id === id)) setActiveClassId(id);
+  }, [serverRendered]);
 
   // Virtual "all cards" section — best tier per unique cardId across all sections
   const allCardsSection = useMemo<ClassSection>(() => {
@@ -1281,6 +1344,12 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
   // When class changes, reset filters
   const handleClassChange = (id: string) => {
     setActiveClassId(id);
+    // The chosen class stays in the address (`?class=mage`): an offer's sign-in returns to it.
+    if (serverRendered) {
+      const params = new URLSearchParams(window.location.search);
+      if (id === ALL_CARDS_ID) params.delete('class'); else params.set('class', id);
+      window.history.replaceState(window.history.state, '', `${window.location.pathname}${params.size ? `?${params}` : ''}${window.location.hash}`);
+    }
     setSearchQuery('');
     setSelectedRarity('all');
     setSelectedManaCost('all');
@@ -1371,7 +1440,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
     [visibleTiers],
   );
   const hiddenCardCount = Math.max(0, totalFilteredCards - visibleCardCount);
-  const paywallActive = !subscriptionLoading
+  const paywallActive = !openLayer && !subscriptionLoading
     && !(accessGranted ?? hasSubscriptionEntitlement(subscriptionStatus, 'arena'));
 
   return (
@@ -1390,6 +1459,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
         subscriptionLoading={subscriptionLoading}
         onRefreshSubscription={onRefreshSubscription}
       >
+      <PaidMetricLock.Provider value={openLayer ? offerFromDetails : null}>
       {/* Source selection */}
       <div
         className="tierlist-source-row flex items-center justify-between mb-4 -mt-2 flex-wrap gap-2"
@@ -1400,6 +1470,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
           style={{ background: 'linear-gradient(135deg,#e8d5a0,#d4b87a)', border: '1.5px solid #b8904a' }}>
           {TIERLIST_SOURCES.map(src => {
             const active = tierlistSource === src;
+            const locked = openLayer && src !== 'hsreplay';
             return (
               <SourceToggleButton
                 key={src}
@@ -1408,12 +1479,15 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
                 active={active}
                 busy={switchingTierlistSource}
                 allowSwitchWhileBusy
-                onClick={() => { if (!active) onTierlistSourceChange(src); }}
+                locked={locked}
+                onClick={() => { if (locked) openOffer(); else if (!active) onTierlistSourceChange(src); }}
               />
             );
           })}
         </div>
       </div>
+
+      {dataLine}
 
       {!loading && <TierlistEarlyStatsNotice provisional={data.provisional} />}
 
@@ -1445,7 +1519,16 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
             mana={selectedManaCost} onManaChange={setSelectedManaCost}
             view={viewMode} onViewChange={setViewMode} canUseTable={canUseTableView}
             onReset={() => { setSearchQuery(''); setSelectedRarity('all'); setSelectedManaCost('all'); }}
+            onLockedFilter={openLayer ? openOffer : undefined}
           />
+          {openLayer && offer && (
+            <div className="tierlist-offer mb-6" ref={offerRef}>
+              <PaywallGate active presentation="inline" headingLevel="h2"
+                title="Оценка ArenaSmith, винрейт при взятии и розыгрыше, фильтры и другие источники — по подписке"
+                authUser={authUser} subscriptionStatus={subscriptionStatus}
+                subscriptionLoading={subscriptionLoading} onRefreshSubscription={onRefreshSubscription} />
+            </div>
+          )}
 
           {/* Tiers */}
           {canUseTableView && viewMode === 'table' ? (
@@ -1537,6 +1620,7 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
         <CardModal card={modalCard.card} tier={modalCard.tier} onClose={() => setModalCard(null)} />
       )}
 
+      </PaidMetricLock.Provider>
       </PaywallGate>
     </div>
   );

@@ -20,7 +20,7 @@
 export const DATA_PAGES = [
   { path: '/standard/meta/', isr: true, marker: 'standard-meta__results', copyWords: 213, dataWords: 345 },
   { path: '/articles/', isr: true, marker: 'article-card-modern', copyWords: 144, dataWords: 895 },
-  { path: '/tierlist/', isr: true, marker: 'tierlist-public-pool', copyWords: 557, dataWords: 831 },
+  { path: '/tierlist/', isr: true, marker: 'hs-tier-card', copyWords: 557, dataWords: 831 },
   { path: '/classes/', isr: true, marker: 'classes-public-teaser', copyWords: 469, dataWords: 554 },
   { path: '/legendaries/', isr: true, marker: 'legendary-group-card', copyWords: 346, dataWords: 4931 },
   { path: '/heroes/', isr: true, marker: 'bg-heroes-public__hero', copyWords: 172, dataWords: 2250 },
