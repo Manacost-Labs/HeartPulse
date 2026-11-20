@@ -1017,6 +1017,22 @@
       ]
     },
     {
+      "id": "server.metaReport",
+      "runtime": "server",
+      "root": "server/modules/metaReport",
+      "purpose": "Owns the weekly append-only snapshots of the open meta layer for the meta report.",
+      "owner": "traditional-data",
+      "publicEntry": "server/modules/metaReport/public.ts",
+      "dependencies": [],
+      "focusedTests": [
+        "npm run test:meta-report"
+      ],
+      "docs": [
+        "docs/architecture/module-boundaries.md",
+        "docs/specs/meta-report-snapshots.md"
+      ]
+    },
+    {
       "id": "client.radar",
       "runtime": "client",
       "root": "src/modules/radar",

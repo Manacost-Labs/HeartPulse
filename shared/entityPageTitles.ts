@@ -56,7 +56,7 @@ const CLASS_GENITIVE: Record<string, string> = {
 };
 
 // The source text has stray spaces before punctuation («Похищение жизни .»); the browser's plain text drops them.
-const clean = (value: string | null | undefined): string => String(value ?? '').replace(/\s+/g, ' ').replace(/ ([.,!?:;…])/g, '$1').trim();
+const clean = (value: string | null | undefined): string => String(value ?? '').replace(/\s+/g, ' ').replace(/ ([.,!?:;…»])/g, '$1').replace(/« /g, '«').trim();
 const lowerFirst = (value: string): string => value ? `${value[0].toLocaleLowerCase('ru-RU')}${value.slice(1)}` : value;
 
 /**

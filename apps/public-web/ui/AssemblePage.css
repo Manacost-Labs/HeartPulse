@@ -1,0 +1,5 @@
+/* Styles of the «Сборка» route. They load with the route, not with the lazy chunk, so the server draws the page styled. */
+@import '../../../src/modules/constructedCards/ui/CardChoicesSection.css';
+@import '../../../src/modules/constructedCards/ui/CardAssembleSection.css';
+@import '../../../src/modules/constructedCards/ui/AssembleTool.css';
+@import '../../../src/shared/ui/LoadingSurface.css';

@@ -4,6 +4,8 @@ export function publicWebOwner(pathname, enabled = false, method = 'GET', pagesE
   if (pathname.startsWith('/_next/') || /^\/health\/next\/?$/.test(pathname)) return 'next';
   if (pagesEnabled && pathname === '/') return 'next';
   if (pagesEnabled && /^\/admin(?:\/.*)?$/.test(pathname)) return 'next';
+  // Mode hubs: the exact section roots only; the pages below them keep their own rules.
+  if (pagesEnabled && /^\/(?:standard|arena|battlegrounds|wild)\/?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/deck-builder(?:\/.*)?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/standard\/deck-builder(?:\/.*)?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/archetypes(?:\/.*)?$/.test(pathname)) return 'next';
@@ -12,7 +14,7 @@ export function publicWebOwner(pathname, enabled = false, method = 'GET', pagesE
   if (pagesEnabled && /^\/cosmetics(?:\/[^/]+){0,2}\/?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/battlegrounds\/tier-list(?:\/.*)?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/battlegrounds\/(?:strategies|tier-builder)(?:\/.*)?$/.test(pathname)) return 'next';
-  if (pagesEnabled && /^\/(?:faq|privacy|terms|developers\/api|articles|guides-archive|heroes|library|contests|streamers|leaderboards|classes|tierlist|legendaries|standard\/(?:matchups|meta|fun-decks|vicious-gold|archetypes|patches|radar))\/?$/.test(pathname)) return 'next';
+  if (pagesEnabled && /^\/(?:faq|privacy|terms|developers\/api|articles|guides-archive|heroes|library|contests|streamers|leaderboards|classes|tierlist|legendaries|standard\/(?:matchups|meta|fun-decks|vicious-gold|archetypes|patches|assemble|radar))\/?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/standard\/(?:archetypes|meta)\/.+/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/guides-archive\/.+/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/streamers\/.+/.test(pathname)) return 'next';

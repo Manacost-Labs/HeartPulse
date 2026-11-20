@@ -574,6 +574,14 @@ for (const route of inventory.routes) {
       'gallery errors must be noindex');
     continue;
   }
+  if (route.id.startsWith('mode-hub-')) {
+    // A hub is an exact location: the section root only, never the pages below it.
+    const hub = locations.find(location => location.modifier === '=' && location.pattern === `${path}/`);
+    assert.match(hub?.body || '', /proxy_pass http:\/\/127\.0\.0\.1:4321;/, `${route.id} HTML must use Next`);
+    assert.match(hub?.body || '', /add_header X-Robots-Tag \$arena_next_html_robots_header always;/,
+      `${route.id} errors must be noindex`);
+    continue;
+  }
   if (route.id === 'bg-heroes') {
     const heroes = locations.find(location => location.modifier === '=' && location.pattern === '/heroes/');
     assert.match(heroes?.body || '', /proxy_pass http:\/\/127\.0\.0\.1:4321;/,
@@ -596,7 +604,7 @@ for (const route of inventory.routes) {
       `${route.id} filters and errors must retain their robots policy`);
     continue;
   }
-  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/streamers', '/leaderboards', '/classes', '/tierlist', '/legendaries', '/standard/matchups', '/standard/meta', '/standard/meta/wild', '/standard/fun-decks', '/standard/patches', '/standard/radar', '/standard/vicious-gold', '/standard/archetypes', '/standard/deck-builder'].includes(path)) {
+  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/streamers', '/leaderboards', '/classes', '/tierlist', '/legendaries', '/standard/matchups', '/standard/meta', '/standard/meta/wild', '/standard/fun-decks', '/standard/patches', '/standard/assemble', '/standard/radar', '/standard/vicious-gold', '/standard/archetypes', '/standard/deck-builder'].includes(path)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }
@@ -996,6 +1004,26 @@ async function startCardSeoUpstream() {
       status: 200,
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next meta</title>',
+    }],
+    ['/standard/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-cache' },
+      body: '<!doctype html><title>Next Standard hub</title>',
+    }],
+    ['/arena/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-cache' },
+      body: '<!doctype html><title>Next Arena hub</title>',
+    }],
+    ['/battlegrounds/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-cache' },
+      body: '<!doctype html><title>Next Battlegrounds hub</title>',
+    }],
+    ['/wild/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-cache' },
+      body: '<!doctype html><title>Next Wild hub</title>',
     }],
     ['/standard/meta/wild/', {
       status: 200,
@@ -1437,6 +1465,23 @@ http {
     assert.equal(materializedRoute.headers['x-robots-tag'], undefined,
       'materialized indexable route must not inherit fallback noindex');
 
+    // The mode hubs: one 301 adds the slash and keeps the query; the section pages below them keep their own routes.
+    for (const hub of ['/standard', '/arena', '/battlegrounds', '/wild']) {
+      const hubRedirect = await requestNginx(port, `${hub}?utm_source=hub`);
+      assert.equal(hubRedirect.status, 301, `${hub} normalizes its slash`);
+      const target = new URL(hubRedirect.headers.location || '', 'http://arena.test');
+      assert.equal(`${target.pathname}${target.search}`, `${hub}/?utm_source=hub`, `${hub} redirect target`);
+      const hubPage = await requestNginx(port, `${hub}/`);
+      assert.equal(hubPage.status, 200, `${hub}/ reaches Next`);
+      assert.equal(hubPage.headers['x-robots-tag'], undefined, `${hub}/ stays indexable`);
+    }
+    assert.match((await requestNginx(port, '/standard/meta/')).body, /Next meta/, 'the Standard hub does not capture its sections');
+    assert.match((await requestNginx(port, '/battlegrounds/tier-list/')).body, /Next BG tier list/,
+      'the Battlegrounds hub does not capture its sections');
+    for (const below of ['/arena/draft/', '/wild/decks/', '/standard/unknown/']) {
+      assert.equal((await requestNginx(port, below)).status, 404, `${below} is not a hub`);
+    }
+
     const bgTierList = await requestNginx(port, '/battlegrounds/tier-list/');
     assert.equal(bgTierList.status, 200);
     assert.match(bgTierList.body, /<title>Next BG tier list<\/title>/);
@@ -1497,6 +1542,10 @@ http {
       ['/legendaries/', /Next legendaries/],
       ['/standard/matchups/', /Next matchups/],
       ['/standard/meta/', /Next meta/],
+      ['/standard/', /Next Standard hub/],
+      ['/arena/', /Next Arena hub/],
+      ['/battlegrounds/', /Next Battlegrounds hub/],
+      ['/wild/', /Next Wild hub/],
       ['/standard/fun-decks/', /Next fun decks/],
       ['/standard/vicious-gold/', /Next Vicious Gold/],
       ['/standard/archetypes/', /Next archetypes/],

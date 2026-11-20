@@ -369,6 +369,14 @@ SEO cost is 250–400 words fewer on three indexed pages.
   gives the static text with the year. No paid figure (offer rate, ArenaSmith
   score, narrow ranges) enters a snippet. The static descriptions name the
   open data and say which part is for subscribers.
+- `/standard/matchups` and `/standard/patches` follow the same rule (#540):
+  the matchups title and description carry the date of the open Standard
+  slice only (the page prints no count of archetypes or games); the patch
+  notes title names the version the page shows first (the newest, or
+  `?version=`) and the description its release date (`publishedAt`, never the
+  request time), without a count of changes the page does not print. The
+  Battlegrounds builds description names up to three tribes of tier S, then
+  «и другие».
 - Static titles: «Тир-лист Арены Hearthstone (хс), {year}», «Лучшие классы
   Арены Hearthstone, {year}», «Легендарки Арены Hearthstone, {year}», «Тир-лист
   героев Полей сражений Hearthstone {year}», «Сборки Полей сражений
@@ -425,6 +433,32 @@ SEO cost is 250–400 words fewer on three indexed pages.
   заклинания несёт 4–6 фактов, ни одна не набирает десять (пустой сегмент
   недопустим, загрузчик не регистрируется). Подробности:
   `docs/specs/battleground-library-open-layer.md`.
+- Статические страницы без открытого слоя (E25 #538, замер прода
+  2026-11-20): `/standard/vicious-gold/`, `/battlegrounds/tier-builder/`,
+  `/contests/`, `/library/archive/` и `/library/archive/<kind>/` отдают гостю
+  только «Проверяем доступ…» или пустой список, 0–28 собственных слов. Они —
+  `noindex, follow`, `canonicalPolicy: none`, без JSON-LD реестра, без
+  `og:url` и вне `static.xml` (#553). `/contests/` и `/standard/vicious-gold/`
+  идут через `seoRegistryMetadata`, который у страниц вне карты сайта не
+  отдаёт `og:*`/`twitter:*`, так что их превью в мессенджерах — без картинки
+  (принято: страницы не индексируются). Крошки JSON-LD деталей архива
+  по-прежнему ведут на noindex-списки архива — допустимо до решения по
+  деталям архива. Вернуть `index` можно только вместе с открытым слоем,
+  который проходит порог выше.
+
+## Canonical карт двух форматов (#307)
+
+Карта, легальная в Стандарте, имеет одну индексируемую страницу —
+`/standard/cards/standard/<id>/`. Её Вольная копия
+`/standard/cards/wild/<id>/` остаётся доступной (200, `index, follow`), но
+canonical, `og:url` и `@id` JSON-LD ведут на страницу Стандарта: тексты карт
+совпадают, а статистика по форматам платная и в HTML не попадает. Легальность
+в Стандарте страница узнаёт у Express (`isStandardCard` в
+`apps/public-web/lib/publicCard.ts`: 200/404 открытой проекции Стандарта,
+при сбое — последняя удачная копия); если ответа нет, Вольная страница
+оставляет canonical на себя, а не угадывает. Карта только Вольного формата —
+self-canonical. В `wild-cards.xml` копий карт Стандарта нет
+(`excludeStandardCardsFromWildCatalog`).
 
 ## Documentation impact
 

@@ -65,6 +65,51 @@ pages of the registry share a title, a description or an H1
   `/standard/cards/standard` («…: Стандарт»), `/standard/cards/wild`
   («…: Вольный формат»), each with its own title and description.
 
+## Mode hubs
+
+Each game mode has one hub that owns the broad query of the mode and links
+to every indexable page of it (owner decision 2026-11-20, #557):
+
+- `/standard/` — «колоды хс», «колоды Хартстоуна», «Стандарт Hearthstone»;
+  H1 «Стандарт Hearthstone: колоды, мета и архетипы».
+- `/arena/` — «арена хс», «Арена Hearthstone»; H1 «Арена Hearthstone:
+  тир-лист карт и классы».
+- `/battlegrounds/` — «поля сражений хс», «Поля сражений Hearthstone»; H1
+  «Поля сражений Hearthstone: герои, сборки и карты».
+- `/wild/` — «вольный формат хс», «Вольный формат Hearthstone»; H1
+  «Вольный формат Hearthstone: колоды и карты».
+
+A hub does not take the narrow queries of its pages: «мета», «тир-лист
+Арены», «герои Полей сражений» and the others stay with the pages above.
+
+Contract of a hub:
+
+- 200, `index, follow`, self-canonical, in `static.xml`; the address without
+  the slash is one 301 to the slash.
+- No prose for robots (owner rule 2026-11-20, `docs/specs/seo-foundation.md`,
+  «Индексируемое содержимое — интерфейс»): under the H1 one short lead line,
+  then the data rows and the link block. A hub is a navigation page: its
+  block of described links to every page of the mode is the indexable
+  interface the owner rule names, so the hub stays `index` with or without
+  the data rows. A copy without data is transient (ISR every five minutes and
+  the post-deploy regeneration of `DATA_PAGES`), and switching the hub to
+  `noindex` on every source outage would make its indexing flap; this is the
+  one exception to the word/fact threshold of `shared/seoIndexThreshold.ts`.
+- «Сейчас в режиме»: a few rows of the open layer the source page already
+  shows a guest, with the date and the source of the data. Standard: the five
+  most played archetypes of the open meta slice (name, win rate, popularity,
+  games), linked to the archetype page when it has at least the indexing
+  sample. Arena: the class order (win rate, sample) and the five cards with
+  the highest win rate of the open tier list (tier, win rate). Battlegrounds:
+  the first five heroes of the open «Топ 50%» ranking (tier, average place,
+  top 4), linked to their pages. Wild: the five most played archetypes of the
+  open Wild catalog, not linked (Wild archetype pages are noindex). Without
+  data the block is absent.
+- Plain links with a short description to every indexable page of the mode;
+  no noindex page and no URL with a query. Wild pages that switch the format
+  on the page are linked at their canonical address with a note about the
+  switch.
+
 ## Detail page titles
 
 One builder (`shared/entityPageTitles.ts`) serves Express, Next and the

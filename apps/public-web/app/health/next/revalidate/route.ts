@@ -5,7 +5,8 @@ import { isLocalRevalidateRequest } from '@/apps/public-web/lib/localRevalidateR
 
 /** Prerendered pages whose build copy has no data (CI builds without the Express API). */
 const DATA_PAGES = ['/standard/meta', '/standard/meta/wild', '/articles', '/tierlist', '/classes', '/legendaries', '/heroes', '/standard/matchups',
-  '/library', '/library/minions', '/library/spells', '/library/anomalies', '/library/dark-gifts', '/library/quests', '/library/rewards', '/library/darkmoon-prizes', '/library/trinkets', '/library/timewarped', '/battlegrounds/tier-list'] as const satisfies readonly DataPageProbePath[];
+  '/library', '/library/minions', '/library/spells', '/library/anomalies', '/library/dark-gifts', '/library/quests', '/library/rewards', '/library/darkmoon-prizes', '/library/trinkets', '/library/timewarped', '/battlegrounds/tier-list',
+  '/standard', '/arena', '/battlegrounds', '/wild'] as const satisfies readonly DataPageProbePath[];
 
 /**
  * Marks the prerendered data pages stale right after a deploy, so the next

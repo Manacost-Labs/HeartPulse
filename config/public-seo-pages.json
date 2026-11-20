@@ -47,6 +47,8 @@
       "navigationRouteId": "standard-matchups",
       "title": "Матчапы Стандарта Hearthstone {year} | HearthPulse",
       "description": "Матрица матчапов актуальной меты Стандарта Hearthstone по данным HSGuru: винрейты архетипов против друг друга для Легенды и Алмаза 4-1.",
+      "dataTitle": "Матчапы Hearthstone: винрейты колод, {month}[ | HearthPulse]",
+      "dataDescription": "Матрица матчапов Стандарта Hearthstone (хс){asOf}: винрейт популярных архетипов против каждого. Все ранги, данные HSGuru.",
       "sitemap": true
     },
     "/standard/meta": {
@@ -87,7 +89,7 @@
       "navigationRouteId": "standard-vicious-gold",
       "title": "Vicious Syndicate Gold — мета Стандарта {year} | HearthPulse",
       "description": "Распределение классов и колод, готовые сборки и Power Tier по всем доступным рангам Vicious Syndicate Live.",
-      "sitemap": true
+      "sitemap": false
     },
     "/standard/deck-builder": {
       "policyRouteId": "deck-builder",
@@ -103,11 +105,20 @@
       "description": "Библиотека карт Hearthstone для Стандарта и Вольного формата: фильтры, изображения и отдельная индексируемая страница каждой карты.",
       "sitemap": true
     },
+    "/standard/assemble": {
+      "policyRouteId": "standard-assemble",
+      "navigationRouteId": "standard-assemble",
+      "title": "Сборка Hearthstone: лучшие сборки и выбор | HearthPulse",
+      "description": "Карты с «Собирает»: какие существа выпадают основой, какие сборки с донором выигрывают чаще и какой из двух вариантов выбрать. Данные HSReplay.",
+      "sitemap": true
+    },
     "/standard/patches": {
       "policyRouteId": "patch-notes",
       "navigationRouteId": "patch-notes",
       "title": "Патчноуты Hearthstone {year}: изменения карт | HearthPulse",
       "description": "Изменения карт Hearthstone в каждом патче: было → стало, усиления и ослабления по классам, Поля сражений и архив обновлений.",
+      "dataTitle": "Патч Hearthstone {patch}: изменения карт[ | HearthPulse]",
+      "dataDescription": "Патч {patch} Hearthstone (хс)[ вышел {released}]. Что усилили и ослабили — карты было → стало по классам, Поля сражений и архив патчей.",
       "sitemap": true
     },
     "/classes": {
@@ -135,6 +146,30 @@
       "description": "Какую легендарку выбрать на Арене Hearthstone? Группы первого выбора с винрейтом и частотой выбора по данным HSReplay. Оценка ArenaSmith — для подписчиков.",
       "dataTitle": "Легендарки Арены Hearthstone, {month}[ | HearthPulse]",
       "dataDescription": "Какую легендарку взять на Арене Hearthstone{asOf}: {items} первого выбора[, лучшая — {leader}]. Винрейт и выбор, данные HSReplay.",
+      "sitemap": true
+    },
+    "/standard": {
+      "policyRouteId": "mode-hub-standard",
+      "title": "Стандарт Hearthstone (хс): колоды, мета и архетипы",
+      "description": "Колоды Хартстоуна (хс) в Стандарте: самые популярные архетипы с винрейтом на дату данных, мета, матчапы, фан-колоды, карты и патчноуты.",
+      "sitemap": true
+    },
+    "/arena": {
+      "policyRouteId": "mode-hub-arena",
+      "title": "Арена Hearthstone (хс): тир-лист карт и классы | HearthPulse",
+      "description": "Арена Hearthstone: порядок классов по винрейту, лучшие карты открытого тир-листа на дату данных и ссылки на легендарки и все разделы Арены.",
+      "sitemap": true
+    },
+    "/battlegrounds": {
+      "policyRouteId": "mode-hub-battlegrounds",
+      "title": "Поля сражений Hearthstone (хс): герои, сборки и карты",
+      "description": "Поля сражений Hearthstone: лучшие герои по среднему месту на дату данных, тир-лист сборок, конструктор стратегий и библиотека карт режима.",
+      "sitemap": true
+    },
+    "/wild": {
+      "policyRouteId": "mode-hub-wild",
+      "title": "Вольный формат Hearthstone (хс): колоды и карты",
+      "description": "Вольный формат Hearthstone: самые популярные архетипы Вольного с винрейтом на дату данных, карты Вольного и страницы с переключателем формата.",
       "sitemap": true
     },
     "/articles": {
@@ -195,7 +230,7 @@
       "navigationRouteId": "contests",
       "title": "Конкурсы Манакоста | HearthPulse",
       "description": "Конкурсы для подписчиков Манакоста: участие, автоматическая проверка подписки и публикация ID победителей после завершения.",
-      "sitemap": true
+      "sitemap": false
     },
     "/streamers": {
       "policyRouteId": "streamers",
@@ -243,19 +278,19 @@
       "policyRouteId": "bg-library-archive-root",
       "title": "Архив карт Полей сражений Hearthstone | HearthPulse",
       "description": "Архивные существа и заклинания Hearthstone Battlegrounds с отдельными страницами карт.",
-      "sitemap": true
+      "sitemap": false
     },
     "/library/archive/minions": {
       "policyRouteId": "bg-library-archive",
       "title": "Архив существ Полей сражений Hearthstone | HearthPulse",
       "description": "Архив существ Hearthstone Battlegrounds: старые существа вне активного пула с карточками и поиском.",
-      "sitemap": true
+      "sitemap": false
     },
     "/library/archive/spells": {
       "policyRouteId": "bg-library-archive",
       "title": "Архив заклинаний Полей сражений Hearthstone | HearthPulse",
       "description": "Архив заклинаний Hearthstone Battlegrounds: старые заклинания таверны вне активного пула.",
-      "sitemap": true
+      "sitemap": false
     },
     "/battlegrounds/tier-list": {
       "policyRouteId": "bg-tier-list",
@@ -263,7 +298,7 @@
       "title": "Сборки Полей сражений Hearthstone: тир-лист {year}",
       "description": "Тир-лист сборок Полей сражений Hearthstone (хс): составы по тирам S–D, ключевые существа и как играть, заклинания и аксессуары актуального патча.",
       "dataTitle": "Сборки Полей сражений Hearthstone: тир-лист, {month}[ | HearthPulse]",
-      "dataDescription": "Лучшие сборки Полей сражений Hearthstone (хс){asOf}[: тир S — {leader}]. Ключевые существа и как играть, данные HSReplay.",
+      "dataDescription": "Лучшие сборки Полей сражений Hearthstone (хс){asOf}[: тир S — {leader}]. Ключевые существа, данные HSReplay.",
       "sitemap": true
     },
     "/battlegrounds/tier-builder": {
@@ -271,7 +306,7 @@
       "navigationRouteId": "bg-tier-builder",
       "title": "Конструктор тир-листов Полей сражений | HearthPulse",
       "description": "Конструктор тир-листов Hearthstone Battlegrounds: создавайте собственные списки героев, карт и стратегий Полей сражений.",
-      "sitemap": true
+      "sitemap": false
     },
     "/admin": {
       "policyRouteId": "admin-panel",

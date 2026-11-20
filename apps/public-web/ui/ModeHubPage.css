@@ -1,0 +1,89 @@
+/* Mode hubs: one readable column of text, the open data rows and a grid of section links. */
+.mode-hub {
+  max-width: 980px;
+  margin: 0 auto;
+  color: var(--arena-ink);
+  overflow-wrap: anywhere;
+}
+
+.mode-hub h1 {
+  margin: 0 0 16px;
+}
+
+.mode-hub p {
+  margin: 0 0 12px;
+  line-height: 1.6;
+}
+
+.mode-hub h2 {
+  margin: 28px 0 12px;
+}
+
+.mode-hub h3 {
+  margin: 16px 0 8px;
+  font-size: 1rem;
+}
+
+.mode-hub__now {
+  padding: 4px 16px 12px;
+  border: 1px solid var(--arena-paper-line);
+  border-radius: 8px;
+}
+
+.mode-hub__note {
+  font-size: 0.875rem;
+}
+
+.mode-hub__rows {
+  margin: 0;
+  padding-left: 1.5em;
+  list-style: decimal;
+}
+
+.mode-hub__rows li {
+  margin: 4px 0;
+  line-height: 1.5;
+}
+
+.mode-hub__links {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mode-hub__links li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px;
+  border: 1px solid var(--arena-paper-line);
+  border-radius: 8px;
+}
+
+.mode-hub a {
+  color: var(--arena-red);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.mode-hub a:focus-visible {
+  outline: 2px solid var(--arena-gold);
+  outline-offset: 2px;
+}
+
+.mode-hub__modes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 28px;
+}
+
+.mode-hub__modes a,
+.mode-hub__links a {
+  display: inline-block;
+  min-height: 24px;
+}

@@ -65,9 +65,26 @@ export function projectPublicStandardMeta(data: ReturnType<typeof createStandard
 }
 
 /**
+ * The open general slice of a format, as a guest gets it: the server picks rank,
+ * coin, floor and the period the page opens with (current patch, then the Bans
+ * window, then the current window). Rejects when the source fails.
+ */
+export async function loadPublicStandardMeta(loadMeta: PublicSource['loadMeta'], format: StandardMetaFormat) {
+  const { rank, coin, minGames } = PUBLIC_STANDARD_META_SLICE;
+  const first = createStandardMetaEnvelope(await loadMeta(format, rank, 'past_day', coin, minGames));
+  const { availablePeriods, currentPeriod, currentPatchPeriod } = first.data;
+  const period = [currentPatchPeriod, latestStandardMetaBanPeriod(availablePeriods, currentPeriod), currentPeriod]
+    .find((candidate): candidate is StandardMetaPeriod => Boolean(candidate && availablePeriods.includes(candidate)))
+    ?? first.data.period;
+  const envelope = period === first.data.period
+    ? first
+    : createStandardMetaEnvelope(await loadMeta(format, rank, period, coin, minGames));
+  return projectPublicStandardMeta(envelope.data, envelope.quality.sampleSize ?? null);
+}
+
+/**
  * The open general slice of a format: archetype, class, winrate, popularity and
- * games of every row. The server picks rank, coin, floor and period itself (the
- * page's defaults); the list of other periods is not sent. One answer for every
+ * games of every row. The list of other periods is not sent. One answer for every
  * viewer, so it may sit in a shared cache.
  */
 export function createPublicStandardMetaHandler(dependencies: PublicSource): RequestHandler {
@@ -76,20 +93,10 @@ export function createPublicStandardMetaHandler(dependencies: PublicSource): Req
   return async (request, response) => {
     const format = readFormat(request.query.format);
     if (!format) return response.status(400).json({ error: 'Неизвестный формат' });
-    const { rank, coin, minGames } = PUBLIC_STANDARD_META_SLICE;
     try {
-      const first = createStandardMetaEnvelope(await dependencies.loadMeta(format, rank, 'past_day', coin, minGames));
-      const { availablePeriods, currentPeriod, currentPatchPeriod } = first.data;
-      // The period the page opens with: current patch, then the Bans window, then the current window.
-      const period = [currentPatchPeriod, latestStandardMetaBanPeriod(availablePeriods, currentPeriod), currentPeriod]
-        .find((candidate): candidate is StandardMetaPeriod => Boolean(candidate && availablePeriods.includes(candidate)))
-        ?? first.data.period;
-      const envelope = period === first.data.period
-        ? first
-        : createStandardMetaEnvelope(await dependencies.loadMeta(format, rank, period, coin, minGames));
+      const body = await loadPublicStandardMeta(dependencies.loadMeta, format);
       response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=900');
       response.set('X-Content-Type-Options', 'nosniff');
-      const body = projectPublicStandardMeta(envelope.data, envelope.quality.sampleSize ?? null);
       lastGood.set(format, body);
       return response.json(body);
     } catch (error) {

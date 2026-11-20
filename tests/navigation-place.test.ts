@@ -88,6 +88,7 @@ test('the Wild list has the pages of the issue and no VS Gold', () => {
     ['wild-fun-decks', '/standard/fun-decks?format=wild'],
     ['wild-cards', '/standard/cards/wild'],
     ['wild-deck-builder', '/standard/deck-builder?format=wild'],
+    ['wild-assemble', '/standard/assemble?format=wild'],
     ['wild-patch-notes', '/standard/patches'],
   ]);
   assert.equal(WILD_NAVIGATION_ITEMS.some(item => String(item.twin) === 'standard-vicious-gold'), false);
@@ -97,7 +98,7 @@ test('the Wild list has the pages of the issue and no VS Gold', () => {
 test('a Wild item has the access of its twin', () => {
   assert.deepEqual(WILD_NAVIGATION_ITEMS.map(item => [item.id, item.entitlement]), [
     ['wild-meta', 'standard'], ['wild-matchups', 'standard'], ['wild-archetypes', 'standard'], ['wild-fun-decks', 'standard'],
-    ['wild-cards', null], ['wild-deck-builder', null], ['wild-patch-notes', null],
+    ['wild-cards', null], ['wild-deck-builder', null], ['wild-assemble', null], ['wild-patch-notes', null],
   ]);
   assert.equal(pathOfMenuItem('wild-cards'), '/standard/cards/wild');
   assert.equal(pathOfMenuItem('standard-cards'), '/standard/cards');

@@ -215,15 +215,12 @@ test('no registry graph offers a price or claims to be an application, and no da
       assert.deepEqual(node.publisher, { '@id': ORGANIZATION_ID }, `${path} Dataset publisher`);
     }
   }
-  for (const path of ['/', '/battlegrounds/tier-builder/']) {
-    const page = byType((await seoStructuredDataGraph(path))!['@graph'], 'WebPage')!;
-    assert.equal(typeof page.name, 'string', path);
-    assert.equal(typeof page.description, 'string', path);
-    assert.equal(page.url, `https://hearthpulse.net${path}`, path);
-    assert.deepEqual(page.breadcrumb, { '@id': `https://hearthpulse.net${path}#breadcrumb` }, path);
-    // The two tool pages declare no site node, so they have no site to be part of.
-    assert.equal('isPartOf' in page, path === '/', path);
-  }
+  const home = byType((await seoStructuredDataGraph('/'))!['@graph'], 'WebPage')!;
+  assert.equal(typeof home.name, 'string');
+  assert.equal(typeof home.description, 'string');
+  assert.equal(home.url, 'https://hearthpulse.net/');
+  assert.deepEqual(home.breadcrumb, { '@id': 'https://hearthpulse.net/#breadcrumb' });
+  assert.equal('isPartOf' in home, true);
 });
 
 const ORIGIN = 'https://hearthpulse.net';
@@ -343,7 +340,6 @@ test('every dataset names where its data comes from and which metrics it measure
     '/standard/matchups': ['https://www.hsguru.com/matchups'],
     '/standard/meta': ['https://www.hsguru.com/meta'],
     '/standard/archetypes': ['https://www.hsguru.com/meta'],
-    '/standard/vicious-gold': ['https://www.vicioussyndicate.com/data-reaper-live/'],
     '/classes': ['https://hsreplay.net/arena/', 'https://www.firestoneapp.com/'],
     '/tierlist': ['https://www.heartharena.com/ru/tierlist', 'https://hsreplay.net/arena/cards/', 'https://www.firestoneapp.com/'],
   };
@@ -351,7 +347,6 @@ test('every dataset names where its data comes from and which metrics it measure
     '/standard/matchups': ['Винрейт в матчапе', 'Число игр'],
     '/standard/meta': ['Винрейт', 'Популярность', 'Число игр'],
     '/standard/archetypes': ['Винрейт', 'Популярность', 'Число игр'],
-    '/standard/vicious-gold': ['Винрейт колоды', 'Частота колоды', 'Частота класса', 'Power Tier'],
     '/classes': ['Винрейт класса'],
     '/tierlist': ['Оценка карты', 'Винрейт карты', 'Частота выбора карты'],
   };

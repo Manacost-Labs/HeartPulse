@@ -99,6 +99,22 @@ export function standardMatchupsPublicEtag(body: PublicStandardMatchups): string
 const usable = (body: PublicStandardMatchups | null): body is PublicStandardMatchups =>
   Boolean(body && body.rows.length > 0 && body.columns.length > 0);
 
+/** One origin read of the open general slice of a format; rejects on a failed or empty read. */
+export async function loadPublicStandardMatchups(
+  dependencies: Pick<PublicStandardMatchupsDependencies, 'fetchPayload' | 'getTranslations' | 'transform'>,
+  format: StandardMatchupFormat,
+  timestamp: number,
+): Promise<PublicStandardMatchups> {
+  const slice: StandardMatchupSlice = { format, ...PUBLIC_STANDARD_MATCHUP_SLICE };
+  const [payload, translations] = await Promise.all([
+    dependencies.fetchPayload(slice),
+    dependencies.getTranslations(timestamp),
+  ]);
+  const body = projectStandardMatchupsPublic(dependencies.transform(payload, slice, translations), format);
+  if (!usable(body)) throw new Error('Empty public Standard matchups projection');
+  return body;
+}
+
 /**
  * `GET /standard/matchups/public?format=standard|wild`: the open general slice of
  * one format, the same answer for every viewer, so it may sit in a shared cache.
@@ -111,15 +127,7 @@ export function mountPublicStandardMatchups(router: Router, dependencies: Public
   const cache = dependencies.publicCache ?? new Map<string, PublicStandardMatchupsCacheEntry>();
   const pending = new Map<string, Promise<PublicStandardMatchups>>();
 
-  const load = async (slice: StandardMatchupSlice, timestamp: number): Promise<PublicStandardMatchups> => {
-    const [payload, translations] = await Promise.all([
-      dependencies.fetchPayload(slice),
-      dependencies.getTranslations(timestamp),
-    ]);
-    const body = projectStandardMatchupsPublic(dependencies.transform(payload, slice, translations), slice.format);
-    if (!usable(body)) throw new Error('Empty public Standard matchups projection');
-    return body;
-  };
+  const load = (slice: StandardMatchupSlice, timestamp: number) => loadPublicStandardMatchups(dependencies, slice.format, timestamp);
 
   router.get('/standard/matchups/public', async (request, response) => {
     const requested = String(Array.isArray(request.query.format) ? request.query.format[0] : request.query.format ?? 'standard');

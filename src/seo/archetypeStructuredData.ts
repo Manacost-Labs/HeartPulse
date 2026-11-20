@@ -39,8 +39,8 @@ function measured(name: string, value: number | null, unitText?: string): Schema
  * `Dataset` of the archetype's public numbers, the breadcrumb the page shows
  * and the `Organization` the dataset points at. `null` unless the path is
  * indexable. The caller asks it only for an archetype that passes
- * `isIndexableArchetype`; paid data (builds, deck codes, history, analysis)
- * has no input here.
+ * `isIndexableArchetype`; paid data (history, analysis) has no input here,
+ * and the open builds with their deck codes are on the page, not in the graph.
  *
  * The breadcrumb repeats the visible one («Архетипы / Стандарт / Название»)
  * without the step that has no address of its own: the format is a switch of
@@ -72,7 +72,7 @@ export function archetypeStructuredDataGraph(facts: ArchetypeStructuredDataFacts
       '@id': `${url}#dataset`,
       url,
       name: `${facts.label}: винрейт и популярность (${facts.formatLabel})`,
-      description: `Публичная статистика архетипа «${facts.label}» (${facts.formatLabel}${periodNote}): винрейт, популярность и число игр по данным HSGuru. Сборки, коды колод и история — по подписке.`,
+      description: `Публичная статистика архетипа «${facts.label}» (${facts.formatLabel}${periodNote}): винрейт, популярность и число игр по данным HSGuru. История, матчапы и разбор карт — по подписке.`,
       ...(facts.sourceUrl ? { isBasedOn: { '@type': 'Dataset', name: `HSGuru: ${facts.englishName}`, url: facts.sourceUrl } } : {}),
       variableMeasured: [
         ...measured('Винрейт', facts.winrate, '%'),

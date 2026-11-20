@@ -35,7 +35,7 @@ import {
   type ConstructedCardPeriodDescriptor,
   type ConstructedCardRank,
   type ConstructedCardRankDescriptor,
-  validateConstructedCardStatsDataset as validateConstructedCardStatsDatasetModel,
+  validateConstructedCardStatsDataset as validateConstructedCardStatsDatasetModel, BoundedCache,
 } from './modules/constructedCards/public.js';
 
 export {
@@ -135,6 +135,7 @@ type DataServiceDependencies = {
   loadDeadlineMs?: number; // then the shared load leaves deduplication and the next caller retries (15 s)
   onDeadline?: (operation: string, deadlineMs: number) => void;
   negativeDetailCacheMaxEntries?: number;
+  detailCacheMaxEntries?: number;
   catalogPageConcurrency?: number;
   cacheTtlMs?: number;
   detailCacheTtlMs?: number;
@@ -515,7 +516,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
   const catalogJobs = new Map<ConstructedCardFormat, Promise<CatalogLoad>>();
   const cache = new Map<string, { value: ConstructedCardCollection; expiresAt: number }>();
   const jobs = new Map<string, Promise<ConstructedCardCollection>>();
-  const detailCache = new Map<string, { value: JsonRecord; expiresAt: number }>();
+  const detailCache = new BoundedCache<{ value: JsonRecord; expiresAt: number }>(Math.min(20_000, dependencies.detailCacheMaxEntries ?? 2_000));
   const negativeDetailCache = new Map<string, number>();
   const negativeDetailCacheMaxEntries = Math.max(1, Math.min(
     10_000,

@@ -44,6 +44,9 @@
     "tests/next-classes-teaser.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
+    "tests/next-mode-hubs-browser.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
     "tests/next-legendaries-open-layer.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
@@ -418,6 +421,7 @@
         "tests/standard-matchups-public.test.ts",
         "tests/standard-matchups-public-projection.test.ts",
         "tests/card-assemble.test.ts",
+        "tests/assemble-page.test.ts",
         "tests/card-choices.test.ts",
         "tests/standard-matchups-client.test.ts",
         "tests/standard-matchups-matrix.test.ts",
@@ -425,6 +429,7 @@
         "tests/standard-matchups-slice.test.ts",
         "tests/standard-meta-routes.test.ts",
         "tests/patch-notes.test.ts",
+        "tests/meta-report-snapshots.test.ts",
         "tests/radar.test.ts",
         "tests/leaderboards.test.ts",
         "tests/streamers.test.ts",
@@ -595,12 +600,14 @@
         "tests/next-bg-library-listings-browser.test.mjs",
         "tests/bg-library-controls-browser.test.mjs",
         "tests/next-bg-builders-browser.test.mjs",
+        "tests/next-assemble-tool-browser.test.mjs",
         "tests/next-patch-notes-browser.test.mjs",
         "tests/next-radar-browser.test.mjs",
         "tests/next-leaderboards-browser.test.mjs",
         "tests/next-leaderboards-states-browser.test.mjs",
         "tests/next-streamers-browser.test.mjs",
         "tests/next-bg-tier-list-browser.test.mjs",
+        "tests/next-mode-hubs-browser.test.mjs",
         "tests/next-paywall-access-check-browser.test.mjs",
         "tests/next-instant-access-browser.test.mjs",
         "tests/next-paid-panels-pending-browser.test.mjs",

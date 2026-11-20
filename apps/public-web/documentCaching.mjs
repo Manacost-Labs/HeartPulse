@@ -35,10 +35,10 @@ export const PUBLIC_DOCUMENT_RESPONSE_HEADERS = Object.freeze({
 });
 
 export const PUBLIC_DOCUMENT_SOURCES = [
-  '/:section(articles|classes|contests|gallery|leaderboards|legendaries|tierlist)/',
+  '/:section(arena|articles|battlegrounds|classes|contests|gallery|leaderboards|legendaries|standard|tierlist|wild)/',
   '/battlegrounds/:tool(strategies|tier-builder|tier-list)/',
   '/:family(cosmetics|guides-archive|heroes|library|streamers)/:path*/',
-  '/standard/:section(archetypes|cards|fun-decks|matchups|meta|patches|radar|vicious-gold)/:path*/',
+  '/standard/:section(archetypes|assemble|cards|fun-decks|matchups|meta|patches|radar|vicious-gold)/:path*/',
 ];
 
 /** `headers()` entries of `next.config.mjs`. */
