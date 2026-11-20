@@ -62,6 +62,28 @@ missing | ready | error`; ordinary cards send no request).
   higher pick rate. `null` when a donor is not in the loaded donors of the base
   or no variant has a winrate.
 
+## List (HeartPulse#533)
+
+`GET /api/card-assemble/:format` (two path segments; `/:format/:cardId` is the
+card route) proxies hs-data-api `/v1/hsreplay/assemble/cards?format=` for the
+tool page `/standard/assemble/`. Answer, typed as `CardAssembleListData`:
+
+```json
+{ "format": "standard", "checkedAt": "2026-11-19T18:18:42.596650+00:00", "stale": false,
+  "cards": [{ "card": { "cardId": "BE_044", "dbfId": 128892, "name": "РЕ-3-ВЕР", "cost": 3,
+    "cardClass": "NEUTRAL", "rarity": "COMMON" }, "state": "ok", "basesTotal": 38, "winRate": 48.59 }] }
+```
+
+- Same cache and errors as the card route: ten minutes in Express, a failed
+  refresh keeps the last answer, none → 503 with `Retry-After: 30` and
+  `no-store`; wrong `format` → 404 with `no-store`, no upstream request.
+- Allowlist: a row needs a valid card (id `[A-Za-z0-9_]{2,80}`, safe integer dbf)
+  and the requested format in `formats`; `name = name_ru ?? name`; `winRate` is
+  a finite number in 0–100 else `null`; `basesTotal` an integer 0–1000 else
+  `null`; `state` is `[a-z_]{1,32}` else `failed`; at most 40 rows, in the order
+  of the source. A list with no surviving row is a contract mismatch (503 or the
+  last answer), never `200` with `[]`.
+
 ## Section (HeartPulse#494)
 
 `CardAssembleSection` (`src/modules/constructedCards/ui/`, lazy, rendered by
