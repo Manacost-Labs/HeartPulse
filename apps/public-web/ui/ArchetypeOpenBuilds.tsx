@@ -13,9 +13,11 @@ import { ArchetypeOpenBuildsMore } from './ArchetypeOpenBuildsMore';
  * once it has loaded. Matchups, mulligan, history and ranks are not here:
  * they stay behind the paywall.
  */
-export function ArchetypeOpenBuilds({ item, builds, total }: { item: ArchetypeDetail['item']; builds: OpenArchetypeBuild[]; total: number }) {
+export function ArchetypeOpenBuilds({ item, builds, total, next }: {
+  item: ArchetypeDetail['item']; builds: OpenArchetypeBuild[]; total: number; next: number | null;
+}) {
   // Without builds the page's own «Колоды появятся…» note stands; builds the allowlist refused leave one short line.
-  if (!builds.length && item.deckCount === 0) return null;
+  if (!builds.length && next === null && item.deckCount === 0) return null;
   const now = Date.now();
   return <section className="archetype-open-builds" aria-labelledby="archetype-open-builds-title">
     <header className="archetype-section-heading">
@@ -23,12 +25,13 @@ export function ArchetypeOpenBuilds({ item, builds, total }: { item: ArchetypeDe
         <h2 id="archetype-open-builds-title">Сборки архетипа</h2>
         <p>Источник — {item.sourceUrl ? <a href={item.sourceUrl} rel="noopener">HSGuru</a> : 'HSGuru'}.</p>
       </div>
-      {builds.length ? <span className="archetype-section-heading__count">{total} {pluralRu(total, 'сборка', 'сборки', 'сборок')}</span> : null}
+      {builds.length || next !== null ? <span className="archetype-section-heading__count">{total} {pluralRu(total, 'сборка', 'сборки', 'сборок')}</span> : null}
     </header>
-    {builds.length ? <div className="archetype-open-builds__grid">
+    {builds.length || next !== null ? <div className="archetype-open-builds__grid">
       {builds.map((build, index) => <ArchetypeOpenBuild key={`${index}:${build.deckCode}`} build={build} format={item.format} now={now}
         title={`${item.archetypeLabel}, сборка ${index + 1}`} />)}
-      <ArchetypeOpenBuildsMore format={item.format} slug={item.slug} label={item.archetypeLabel} shown={builds.length} total={total} />
+      <ArchetypeOpenBuildsMore format={item.format} slug={item.slug} label={item.archetypeLabel}
+        shownCodes={builds.map(build => build.deckCode)} next={next} total={total} />
     </div> : <p className="archetype-open-builds__empty">Сборок пока нет.</p>}
   </section>;
 }

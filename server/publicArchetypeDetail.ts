@@ -135,7 +135,9 @@ export function publicArchetypeDetail(catalog: SourceCatalog, item: SourceItem, 
         sampleRank: build.sampleRank, samplePeriod: build.samplePeriod, cards: cardIndex ? openDeckCards(build.deckCode, cardIndex, dictionary) : null,
       })),
     },
+    // The next page starts where this one ends in the source list, whatever the page's reader refuses.
     buildsTotal: item.builds.length, buildsOffset: offset,
+    nextOffset: offset + OPEN_ARCHETYPE_BUILDS_PAGE < item.builds.length ? offset + OPEN_ARCHETYPE_BUILDS_PAGE : null,
     featuredBuild: featured ? {
       games: featured.games, winrate: featured.winrate, updatedAt: featured.updatedAt,
       sampleRank: featured.sampleRank, samplePeriod: featured.samplePeriod,

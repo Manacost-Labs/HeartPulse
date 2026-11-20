@@ -547,8 +547,10 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
 
       {/* The open builds stand here until a subscriber's gallery has loaded; without them, while access is
           checked the paid sections hold their loading place. The preview and the paywall belong to a confirmed answer without access. */}
-      {openLayer && (!fullAccess || core.loading) ? openBuilds : accessPending || (fullAccess && (core.loading || core.error)) ? (
-        <ArchetypeDetailSection reserveViewport title="Сборки архетипа" loading={accessPending || core.loading}
+      {/* The open builds stay until a non-empty subscriber gallery replaces them: a failed or empty paid answer keeps them. */}
+      {openLayer && !(fullAccess && !core.loading && !core.error && item.builds.length > 0) ? openBuilds : null}
+      {(!openLayer && accessPending) || (fullAccess && (core.error || (!openLayer && core.loading))) ? (
+        <ArchetypeDetailSection reserveViewport={!openLayer} title="Сборки архетипа" loading={accessPending || core.loading}
           error={accessPending ? null : core.error} onRetry={core.retry} skeleton={<ArchetypeBuildsSkeleton deckCount={item.deckCount} />} />
       ) : null}
       {denied ? <p role="alert">Доступ изменился. Обновите страницу, чтобы проверить подписку.</p> : null}

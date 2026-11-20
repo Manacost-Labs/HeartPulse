@@ -40,9 +40,10 @@ const openRaw = {
     { deckCode: 'AAECAf0GAfKiBALxogTzogQAAA==', games: 10, winrate: 50, updatedAt: null,
       cards: [{ id: '../../admin', name: 'PRIVATE_CARD', cost: 1, count: 1 }] },
     { deckCode: 'PRIVATE_DECK', games: 10, winrate: 50, updatedAt: null, cards: null },
+    { deckCode: 'AAEBAa0GAfGiBAH0ogQAAA==', games: 1, winrate: 1, updatedAt: null, cards: null },
   ] },
   history: [{ recordedAt: '2026-07-24T12:38:57.727Z', winrate: 41.4141 }],
-  buildsTotal: 12, buildsOffset: 0,
+  buildsTotal: 12, buildsOffset: 0, nextOffset: 8,
 };
 const open = publicArchetypeTeaser(openRaw, 'wild', 'thief-priest');
 assert.deepEqual(open.openBuilds, [
@@ -54,6 +55,8 @@ assert.deepEqual(open.openBuilds, [
 ]);
 assert.deepEqual(open.item.builds, [], 'the client gallery never gets the open builds');
 assert.equal(open.openBuildsTotal, 12, 'the page counts every open build, not only the ones of this page');
+assert.equal(open.openBuildsNext, 8, 'the next page starts at the source offset, not at the count of builds kept');
+assert.equal(publicArchetypeTeaser(raw, 'wild', 'thief-priest').openBuildsNext, null);
 assert.equal(publicArchetypeTeaser(raw, 'wild', 'thief-priest').openBuildsTotal, 0);
 for (const paid of ['7.1717', '6.2626', '41.4141', 'PRIVATE_']) {
   assert.equal(JSON.stringify(open).includes(paid), false, `the page data carries ${paid}`);

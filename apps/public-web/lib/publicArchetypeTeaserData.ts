@@ -45,8 +45,12 @@ export type OpenArchetypeCard = { id: string | null; name: string | null; cost: 
 export type OpenArchetypeBuild = {
   deckCode: string; games: number | null; winrate: number | null; updatedAt: string | null; cards: OpenArchetypeCard[] | null;
 };
-/** `openBuilds` is one page of the open builds (from `buildsOffset`); `openBuildsTotal` counts them all. */
-export type PublicArchetypeDetail = ArchetypeDetail & { openBuilds: OpenArchetypeBuild[]; openBuildsTotal: number };
+/**
+ * `openBuilds` is one page of the open builds (from `buildsOffset`), without the ones the allowlist refuses and
+ * without repeated codes; `openBuildsTotal` counts the source's builds; `openBuildsNext` is the source offset of the
+ * next page (`null`: none), never derived from how many builds of this page passed.
+ */
+export type PublicArchetypeDetail = ArchetypeDetail & { openBuilds: OpenArchetypeBuild[]; openBuildsTotal: number; openBuildsNext: number | null };
 
 const OPEN_BUILDS = 8;
 const MAX_DECK_CARDS = 40;
@@ -89,7 +93,8 @@ export function publicArchetypeTeaser(raw: unknown, format: 'standard' | 'wild',
   const rawClass = nullableString(item.classKey);
   const classKey = rawClass && CLASSES.has(rawClass) ? rawClass as ArchetypeDetail['item']['classKey'] : null;
   const openBuilds = Array.isArray(item.builds)
-    ? item.builds.slice(0, OPEN_BUILDS).map(openBuild).filter((build): build is OpenArchetypeBuild => build !== null) : [];
+    ? item.builds.slice(0, OPEN_BUILDS).map(openBuild).filter((build): build is OpenArchetypeBuild => build !== null)
+      .filter((build, index, all) => all.findIndex(other => other.deckCode === build.deckCode) === index) : [];
   const rawBuild = payload.featuredBuild === null || payload.featuredBuild === undefined
     ? null : record(payload.featuredBuild);
   return {
@@ -110,5 +115,6 @@ export function publicArchetypeTeaser(raw: unknown, format: 'standard' | 'wild',
     } : null,
     history: [], analysis: null,
     openBuilds, openBuildsTotal: payload.buildsTotal === undefined ? openBuilds.length : Math.max(openBuilds.length, count(payload.buildsTotal)),
+    openBuildsNext: payload.nextOffset === null || payload.nextOffset === undefined ? null : count(payload.nextOffset),
   };
 }

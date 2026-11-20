@@ -107,7 +107,7 @@ import {
   type StandardMetaRecommendation,
 } from './standardMetaRoutes.js';
 import {
-  createConstructedArchetypeRouter,
+  createConstructedArchetypeRouter, createArchetypeCardDictionaries,
   constructedArchetypeSlug,
   type ConstructedArchetypeCatalog,
   type ConstructedArchetypeAnalysis,
@@ -7484,7 +7484,7 @@ app.use('/api', createConstructedArchetypeRouter({
   loadHistory: loadConstructedArchetypeHistory,
   loadAnalysis: loadConstructedArchetypeAnalysis,
   loadRanks: createArchetypeRankMatrixLoader((format, rank, period, coin) => loadStandardMeta(format, rank, period, coin, 100)),
-  loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards, loadCardDictionaries: async () => [loadDataCached('cards_ru.json')?.data ?? {}, (await loadHsjsonAllCards()).byId],
+  loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards, loadCardDictionaries: createArchetypeCardDictionaries({ local: () => loadDataCached('cards_ru.json')?.data ?? null, remote: async () => (await loadHsjsonAllCards()).byId, deadlineMs: 1_500 }),
   setPrivateNoStore,
   onError: (scope, error) => console.error(
     `[constructed-archetypes] ${scope} failed:`,

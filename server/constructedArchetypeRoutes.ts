@@ -4,6 +4,7 @@ import { Router, type RequestHandler } from 'express';
 import type { StandardMetaClassKey } from './standardMetaClasses.js';
 import { resolveStandardMetaRequestPeriod } from '../shared/standardMetaPeriods.js';
 import { withCatalogCardMedia, loadCatalogCardMedia, type CatalogCardMedia } from './modules/constructedCards/public.js';
+export { createArchetypeCardDictionaries } from './archetypeCardDictionaries.js';
 import { DEGRADED_OPEN_ARCHETYPE_CACHE, PUBLIC_CARD_CATALOG_DEADLINE_MS, publicArchetypeDetail, readBuildsOffset, readPublicCardCatalog, withDeadline } from './publicArchetypeDetail.js';
 
 export type ConstructedArchetypeFormat = 'standard' | 'wild';

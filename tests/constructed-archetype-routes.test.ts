@@ -5,6 +5,7 @@ import { loadArchetypeCatalogForPeriod, loadArchetypeCatalogForSlug } from '../s
 import { createArchetypeCatalogCache, createArchetypeRankMatrixLoader } from '../server/modules/constructedArchetypes/public.js';
 import { withCatalogCardMedia } from '../server/modules/constructedCards/public.js';
 import {
+  createArchetypeCardDictionaries,
   createConstructedArchetypeRouter,
   constructedArchetypeSlug,
   type ConstructedArchetypeCatalog,
@@ -422,10 +423,10 @@ try {
   };
   try {
     let answer = await read();
-    assert.deepEqual([answer.body.item.builds.length, answer.body.buildsTotal, answer.body.buildsOffset], [8, 9, 0]);
+    assert.deepEqual([answer.body.item.builds.length, answer.body.buildsTotal, answer.body.buildsOffset, answer.body.nextOffset], [8, 9, 0, 8]);
     assert.equal(answer.cache, 'public, max-age=300, stale-while-revalidate=900');
     answer = await read('?buildsOffset=8');
-    assert.deepEqual([answer.body.item.builds.length, answer.body.buildsTotal, answer.body.buildsOffset], [1, 9, 8]);
+    assert.deepEqual([answer.body.item.builds.length, answer.body.buildsTotal, answer.body.buildsOffset, answer.body.nextOffset], [1, 9, 8, null]);
     assert.equal(answer.body.item.builds[0].cards.length, 3, 'the ninth build is open with its card list');
     assert.equal((await read('?buildsOffset=-1')).status, 400);
     assert.equal((await read('?buildsOffset=abc')).status, 400);
@@ -519,4 +520,35 @@ try {
     garonaServer.closeAllConnections();
     await new Promise<void>(resolve => garonaServer.close(() => resolve()));
   }
+}
+
+{
+  // The card dictionaries of the open builds, as production wires them: the local `cards_ru.json` always answers, whatever
+  // HearthstoneJSON does; HearthstoneJSON is read once and kept, a failure is retried only after a pause, never per render.
+  const local = { TIME_875t: { name: 'Гарона Полуорчиха (1 - Король Ллейн)', mana: 3, rarity: '', dbf: 119815 } };
+  const remote = { TIME_850t: { name: 'Кровавый боец Бролл', mana: 3, rarity: '', dbf: 119453 } };
+  let clock = 0, calls = 0, mode: 'hang' | 'fail' | 'ok' = 'hang';
+  const source = () => {
+    calls += 1;
+    return mode === 'hang' ? new Promise<Record<string, unknown>>(() => {}) : mode === 'fail' ? Promise.reject(new Error('HearthstoneJSON 503')) : Promise.resolve(remote);
+  };
+  const options = { local: () => local, remote: source, deadlineMs: 50, retryMs: 60_000, ttlMs: 6 * 3_600_000, now: () => clock };
+  const hanging = createArchetypeCardDictionaries(options);
+  const started = Date.now();
+  assert.deepEqual(await hanging(), [local], 'a stalled HearthstoneJSON keeps the local dictionary');
+  assert.ok(Date.now() - started < 1_000);
+  assert.deepEqual(await hanging(), [local]);
+  assert.equal(calls, 1, 'one request in flight, not one per render');
+  calls = 0; mode = 'fail';
+  const failing = createArchetypeCardDictionaries(options);
+  assert.deepEqual(await failing(), [local], 'a failed HearthstoneJSON keeps the local dictionary');
+  assert.deepEqual(await failing(), [local]);
+  assert.equal(calls, 1, 'a failure is not retried on every render');
+  clock += 60_000; mode = 'ok';
+  assert.deepEqual(await failing(), [local, remote], 'after the pause HearthstoneJSON is read again');
+  clock += 1_000;
+  assert.deepEqual(await failing(), [local, remote]);
+  assert.equal(calls, 2, 'a loaded HearthstoneJSON is kept');
+  const noLocal = createArchetypeCardDictionaries({ ...options, local: () => { throw new Error('cards_ru.json unreadable'); } });
+  assert.deepEqual(await noLocal(), [remote], 'an unreadable local file keeps HearthstoneJSON');
 }
