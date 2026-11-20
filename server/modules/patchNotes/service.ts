@@ -1,6 +1,7 @@
 import { buildNumber, supplementOfficialArticles } from './officialArticles.js';
 import { shortPatchVersion, type PatchNotesDetail, type PatchNotesFormat, type PatchNotesSummary } from './contract.js';
 import { createArtworkLookup, createDbfLookup, enrichEntry, withArtwork, withHistory, type PatchEntryContext } from './enrichment.js';
+import { createLastGoodCopy, type PatchNotesLastGoodStorage } from './lastGood.js';
 import { buildPatchMetaIndex, type PatchMetaIndex } from './metaImpact.js';
 import {
   createPatchArchetypeRecorder, moscowDay, patchDay, previousDay, type PatchArchetypeCatalog, type PatchArchetypeSnapshotStorage,
@@ -38,6 +39,8 @@ export type PatchNotesServiceDependencies = {
   /** Card history of the data API for before/after pictures (without it no entry has a pair); read with `fetchCardHistory`. */
   cardHistoryBaseUrl?: string;
   fetchCardHistory?: (url: string) => Promise<unknown>;
+  /** The last archive built in full, served after a restart while the archive is rebuilt; `onError` gets a failed write. */
+  lastGood?: PatchNotesLastGoodStorage; onError?: (error: unknown) => void;
   ttlMs: number;
   now?: () => number;
 };
@@ -155,13 +158,14 @@ export function patchNotesSummary(patch: PatchNotesDetail): PatchNotesSummary {
 /**
  * Keeps one parsed snapshot for `ttlMs`. An expired snapshot is served at once
  * while one background refresh runs; a failed refresh is retried after
- * `retryMs`, not on every request. Only the very first read waits upstream.
+ * `retryMs`, not on every request. Only a first read without a `lastGood` copy waits upstream.
  */
 export function createPatchNotesService(dependencies: PatchNotesServiceDependencies & { retryMs?: number }) {
   const now = dependencies.now ?? Date.now;
   const retryMs = dependencies.retryMs ?? 60_000;
   let snapshot: { value: PatchNotesSnapshot; expiresAt: number } | null = null;
   let pending: Promise<PatchNotesSnapshot> | null = null;
+  const copy = createLastGoodCopy(dependencies.lastGood, dependencies.onError);
   // The art catalog (every Wild card) can take as long as the archive itself,
   // so a snapshot never waits for it: the last lookup is used meanwhile and the
   // new one, read after the snapshot is built, is merged into it on arrival.
@@ -206,10 +210,13 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
     // The cards of the newest patches that the dictionary lacks are read before the first answer (for a moment only); later answers fill in the rest.
     await Promise.race([catalogCards?.load(value.patches.filter(patch => patch.changeCount > 0).slice(0, 2)), new Promise(done => setTimeout(done, 2_500).unref())]);
     if (catalogCards) value.patches = catalogCards.fill(value.patches);
+    await copy.save(value); // Before it is served: the copy on disk is then at least as new as any answer.
     snapshot = { value, expiresAt: now() + dependencies.ttlMs };
     // Started only now: read alongside the archive it still slowed the first answer down.
     loadArtwork();
     cardVersions?.warm(value.patches);
+    if (cardVersions) void copy.savePictured(value, () => snapshot?.value ?? null, async newest => {
+      const pictures = await cardVersions.attach(value.patches, newest); return artwork ? withArtwork(pictures, artwork) : pictures; });
     return value;
   };
   const start = () => {
@@ -223,13 +230,15 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
   return {
     /** Adds before/after pictures of the card history; waits a few seconds for an unread patch, never fails. */
     async withCardVersions(snapshot: PatchNotesSnapshot, patches: PatchNotesDetail[]): Promise<PatchNotesDetail[]> {
-      if (!cardVersions) return patches;
+      if (!cardVersions || copy.isRestored(snapshot)) return patches; // The stored copy keeps the pictures it had.
       const filled = catalogCards ? await catalogCards.fillWithin(patches, CATALOG_WAIT_MS) : patches;
       return cardVersions.attach(snapshot.patches, filled);
     },
     /** True while an answer may still lack cards the catalog is yet to name; such an answer is cached only briefly. */
-    incomplete: () => catalogCards?.pending() ?? false,
+    incomplete: () => (snapshot ? copy.isRestored(snapshot.value) : false) || (catalogCards?.pending() ?? false),
     async load(): Promise<PatchNotesSnapshot> {
+      const stored = snapshot ? null : copy.restore(); // Expired at once: served while this process's first refresh runs.
+      if (stored) snapshot = { value: stored, expiresAt: 0 };
       if (snapshot && snapshot.expiresAt > now()) return snapshot.value;
       if (snapshot) {
         start().catch(() => undefined);

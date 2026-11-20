@@ -19,8 +19,19 @@ Russian hs-manacost.ru article as `content_text` and its headings as
 (about 4 MB) once per 30 minutes and parses every article
 (`server/modules/patchNotes`). An expired copy is served at once while one
 background refresh runs; a failed refresh is retried after a minute, not per
-request. Only the first read after a restart waits; if it fails, the API
-answers `502`.
+request.
+
+Each successful refresh is stored in
+`DATA_DIR/patch-notes-v1/last-good.json` (replaced atomically; an archive
+without any patch with changes is not stored). Once the before/after pictures
+of the two newest patches are read, the copy is stored again with them. After
+a restart the API answers at once from this copy while the archive is rebuilt
+in the background (stale-while-revalidate): `/standard/patches/` does not
+fall to `503` while hs-data-api is slow to send the archive. Answers with
+cards from the copy are `public, max-age=10` and read no card history until
+the rebuild succeeds. Without a copy (first start, or an unreadable file) the
+first read waits for the archive as before; if it fails, the API answers
+`502`.
 
 ### Official article supplements
 

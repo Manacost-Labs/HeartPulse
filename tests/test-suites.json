@@ -439,6 +439,7 @@
         "tests/standard-matchups-slice.test.ts",
         "tests/standard-meta-routes.test.ts",
         "tests/patch-notes.test.ts",
+        "tests/patch-notes-last-good.test.ts",
         "tests/meta-report-snapshots.test.ts",
         "tests/meta-report-api.test.ts",
         "tests/radar.test.ts",
