@@ -83,3 +83,9 @@ Every card has `stats: null` and the envelope has `statsAccess: false`, even
 if a malformed upstream response contains private fields. Empty search results
 remain a valid page. Invalid payloads and upstream failures are retryable server
 errors, never a successful empty catalog or a card 404.
+
+The catalog pages are links (`<a href="/standard/cards/<format>/?page=N">`,
+page 1 without `?page`): without script a reader or a crawler follows them to the
+server-rendered page N (`noindex, follow`), with script the click stays in place.
+A card link carries only the statistics context (`period`, `rank`), never the
+catalog's page, filters or view, so every catalog page links the card's own URL.

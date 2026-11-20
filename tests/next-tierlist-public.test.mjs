@@ -231,7 +231,7 @@ async function warmStand({ articlesReadyAfterMs = 0, expressRecoversAfterFirstRe
   const address = `http://127.0.0.1:${gateway.address().port}`;
   const warm = async env => {
     const child = spawn(process.execPath, ['scripts/warm-prerendered-pages.mjs'], { env: { PATH: process.env.PATH,
-      PRODUCTION_BASE_URL: address, NEXT_LOCAL_ORIGIN: address, WARM_ONLY: '/tierlist/', WARM_DELAY_MS: '300', ...env } });
+      PRODUCTION_BASE_URL: address, NEXT_LOCAL_ORIGIN: address, EXPRESS_LOCAL_ORIGIN: address, WARM_ONLY: '/tierlist/', WARM_DELAY_MS: '300', ...env } });
     let output = '';
     child.stdout.on('data', chunk => { output += chunk; });
     child.stderr.on('data', chunk => { output += chunk; });

@@ -76,7 +76,9 @@ export function handOffMetaFilters(filters: StandardMetaFilterQuery): void {
   handoff = { filters, at: Date.now() };
 }
 
-/** The filters handed off by the format link just pressed, else those of the address. */
+/** The filters handed off by the format link just pressed, else those of the address. The hand-off is read once: Back must open the address's filters. */
 export function carriedMetaFilters(search: string): StandardMetaFilterQuery {
-  return handoff && Date.now() - handoff.at < HANDOFF_MS ? handoff.filters : readMetaFilterQuery(search);
+  const handed = handoff;
+  handoff = null;
+  return handed && Date.now() - handed.at < HANDOFF_MS ? handed.filters : readMetaFilterQuery(search);
 }

@@ -621,9 +621,9 @@
       "pattern": "/tierlist/:classSlug",
       "kind": "listing",
       "owner": "arena-data",
-      "indexPolicy": "noindex-follow",
-      "canonicalPolicy": "none",
-      "sitemap": false,
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
       "htmlStrategy": "server-ssr",
       "expectedStatus": 200,
       "criticality": "P2",
@@ -1191,6 +1191,7 @@
       "appliesTo": [
         "/articles",
         "/guides-archive",
+        "/standard/cards",
         "/standard/cards/:format",
         "/cosmetics/:kind",
         "/admin"

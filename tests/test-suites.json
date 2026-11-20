@@ -74,6 +74,9 @@
     "tests/next-standard-matchups-open-layer.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
+    "tests/next-deploy-restart.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
     "tests/next-standard-matchups-open-browser.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
@@ -205,6 +208,7 @@
         "tests/contest-selection.test.ts",
         "tests/cosmetics-model.test.ts",
         "tests/cosmetics-last-good.test.ts",
+        "tests/page-last-good.test.ts",
         "tests/cover-admin-sso-client.test.ts",
         "tests/cover-admin-sso.test.ts",
         "tests/deck-art-images.test.ts",
@@ -608,6 +612,7 @@
         "tests/next-soft-paywall-requests-browser.test.mjs",
         "tests/next-first-paint-data-browser.test.mjs",
         "tests/next-tierlist-public.test.mjs",
+        "tests/next-deploy-restart.test.mjs",
         "tests/next-tierlist-class-pages.test.mjs",
         "tests/next-classes-teaser.test.mjs",
         "tests/next-arena-open-first-screen-browser.test.mjs",

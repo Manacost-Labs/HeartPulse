@@ -252,6 +252,26 @@ test('a card page describes the card, its site and its path in one JSON-LD graph
   }
 });
 
+test('a card library reaches every page and every card through links in its server HTML (#550)', async () => {
+  const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
+  try {
+    const first = await (await fetch(`${runtime.origin}/standard/cards/standard/`)).text();
+    // Without script a reader (and a crawler) follows the pages; the next page is a plain link.
+    assert.match(first, /<a href="\/standard\/cards\/standard\/\?page=2"[^>]*>/);
+    const second = await (await fetch(`${runtime.origin}/standard/cards/standard/?page=2`)).text();
+    assert.match(second, /<a href="\/standard\/cards\/standard\/"[^>]*>/, 'page 2 links back to the first page without ?page=1');
+    assert.match(second, /<a href="\/standard\/cards\/standard\/\?page=3"[^>]*>/);
+    // A card link names the card, not the catalog page it was found on.
+    for (const html of [first, second]) {
+      const cardLinks = [...html.matchAll(/href="(\/standard\/cards\/standard\/(?:CARD_QA_|blizzard)[^"]*)"/g)].map(match => match[1]);
+      assert.ok(cardLinks.length > 0, 'the page links its cards');
+      assert.deepEqual(cardLinks.filter(link => link.includes('page=')), [], 'no card link carries ?page=');
+    }
+  } finally {
+    await runtime.close();
+  }
+});
+
 test('a card library listing shows its path above the same list of cards', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   try {
@@ -312,6 +332,9 @@ test('every SEO registry page takes its title, description and share metadata fr
   const registryTexts = new Map();
   try {
     for (const page of REGISTRY_PAGES) {
+      // The class pages of the tier list (#668) title themselves with the date of the pool this runtime reads today;
+      // their registry texts, robots, canonical and share tags are checked on a fixed clock in next-tierlist-class-pages.
+      if (page.policyRouteId === 'tierlist-class') continue;
       const response = await fetch(`${runtime.nextOrigin}${page.url}`, { redirect: 'manual' });
       assert.equal(response.status, 200, page.path);
       const html = await response.text();

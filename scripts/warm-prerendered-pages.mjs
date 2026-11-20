@@ -8,21 +8,26 @@
  * The runner lives on the production host, so it asks the local Next server to
  * mark the prerendered pages stale (POST /health/next/revalidate/, local calls
  * only), requests each of them to start the regeneration and waits until a
- * request returns a copy with its data. The dynamic pages are requested on the
+ * request returns a copy with its data. Every page is requested on that local
+ * origin, not through the public address: the edge answers from the copy of the
+ * release before (it has the data), so a check made there says nothing about
+ * the copy Next itself holds. The dynamic pages are requested on the
  * local origin (the edge never stores a copy rendered before the data landed)
  * until they carry theirs. The pages and the marker only the HTML with data
  * has are in scripts/lib/post-deploy-data-pages.mjs.
  * A cold start is the main case: the runner waits for Express (up to
- * WARM_API_WAIT_MS) and keeps going for WARM_TOTAL_MS. A prerendered page that
- * still lacks its data after a regeneration is revalidated again, so an empty
- * copy never stays for five minutes. It never fails the deploy: the browser
+ * WARM_API_WAIT_MS, asking Express itself on the host) and keeps going for
+ * WARM_TOTAL_MS. A prerendered page that still lacks its data after a
+ * regeneration is revalidated again (only that page: a revalidated page is
+ * expired, and a visitor's request waits for its render), so an empty copy
+ * never stays for five minutes. It never fails the deploy: the browser
  * loads the data itself, so each page that stays without data is reported as
  * a warning ("without data") and the exit code stays 0.
  */
 import { countWords, DATA_PAGES, hasMarker, STREAMER_PROFILE_PAGE } from './lib/post-deploy-data-pages.mjs';
 
-const base = process.env.PRODUCTION_BASE_URL || 'https://hearthpulse.net';
 const nextOrigin = process.env.NEXT_LOCAL_ORIGIN || 'http://127.0.0.1:4321';
+const expressOrigin = process.env.EXPRESS_LOCAL_ORIGIN || 'http://127.0.0.1:3101';
 const delayMs = Number(process.env.WARM_DELAY_MS || 5000);
 const apiWaitMs = Number(process.env.WARM_API_WAIT_MS || 120_000);
 const totalMs = Number(process.env.WARM_TOTAL_MS || 300_000);
@@ -50,7 +55,7 @@ function finish() {
 
 // Regenerating while Express is down would replace the build copy with
 // another empty one; wait for the data the pages read, as long as allowed.
-const apiReady = () => fetch(new URL('/api/articles', base), { signal: AbortSignal.timeout(10_000) })
+const apiReady = () => fetch(new URL('/api/articles', expressOrigin), { signal: AbortSignal.timeout(10_000) })
   .then(response => response.ok, () => false);
 const apiDeadline = started + Math.min(apiWaitMs, totalMs);
 let ready = await apiReady();
@@ -89,28 +94,34 @@ async function check(origin, page) {
   return null;
 }
 
-// The prerendered pages are revalidated and then requested through the public
-// address, as a visitor reaches them. A page that is still short after the
-// regeneration got an empty copy for five minutes: all of them are revalidated
-// again (Next regenerates only what is marked stale) and checked again.
+// The prerendered pages are revalidated and then requested on the local Next
+// origin. A page that is still short after the regeneration got an empty copy
+// for five minutes: it is revalidated again (Next regenerates only what is
+// marked stale) and checked again; the pages that already carry their data
+// are left alone.
 // Dynamic pages are primed on the local origin: a cold Next process loads each
 // route's code on its first request, and the patch notes page keeps its Express
 // reads in the Next process (apps/public-web/lib/publicPatchNotesData.ts).
 const prerendered = pages.filter(page => page.isr);
 let dynamic = pages.filter(page => !page.isr);
+let waiting = prerendered;
 let prerenderedDone = prerendered.length === 0;
 for (const page of pages) outcome.set(page.path, 'not requested yet');
 while (!prerenderedDone || dynamic.length) {
   if (!prerenderedDone) {
     try {
-      const response = await fetch(new URL('/health/next/revalidate/', nextOrigin), { method: 'POST', signal: AbortSignal.timeout(10_000) });
+      const everyPage = waiting.length === prerendered.length;
+      const route = new URL('/health/next/revalidate/', nextOrigin);
+      if (!everyPage) route.searchParams.set('paths', waiting.map(page => page.path).join(','));
+      const response = await fetch(route, { method: 'POST', signal: AbortSignal.timeout(10_000) });
       console.log(`[warm] revalidate: HTTP ${response.status}`);
     } catch (error) {
       console.log(`[warm] revalidate failed: ${message(error)}`);
     }
-    const results = [];
-    for (const page of prerendered) results.push(await check(base, page));
-    prerenderedDone = results.every(Boolean);
+    const still = [];
+    for (const page of waiting) if (!(await check(nextOrigin, page))) still.push(page);
+    waiting = still;
+    prerenderedDone = still.length === 0;
   }
   const pending = [];
   for (const page of dynamic) {

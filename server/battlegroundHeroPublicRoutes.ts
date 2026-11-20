@@ -9,11 +9,11 @@ export function isPositiveDbfId(value: unknown): boolean {
 
 /**
  * Registers the anonymous identity of a hero, its open profile (game content of
- * the hero library; see `battlegroundHeroPublicProfile.ts`) and its open
- * statistics (the base rating range, solo and duos; see
+ * the hero library with its patch history; see `battlegroundHeroPublicProfile.ts`)
+ * and its open statistics (the base rating range, solo and duos; see
  * `battlegroundHeroStatsProjection.ts`). Everything else about a hero (other
- * ranges, placement distribution, compositions with metrics, patch history)
- * stays on guarded routes.
+ * ranges, placement distribution, compositions with metrics) stays on guarded
+ * routes.
  */
 export function registerPublicBattlegroundHeroRoute(router: Router, options: {
   loadHero: (dbfId: string) => Promise<PublicBattlegroundHero | null>;

@@ -1637,6 +1637,34 @@ http {
       assert.equal(missing.status, 404, `${outside} is not a class page`);
       assert.equal(missing.headers['x-robots-tag'], 'noindex, nofollow', `${outside} is not indexed`);
     }
+    // The old class view /tierlist/?class=<id> is one 301 to the class page (#668), slash or not, other query keys
+    // kept; the neutral cards' `any` is /tierlist/neutral/. «Все карты» (`__all__`), an empty or unknown class stays.
+    for (const [from, to] of [
+      ['/tierlist/?class=mage', '/tierlist/mage/'],
+      ['/tierlist?class=mage', '/tierlist/mage/'],
+      ['/tierlist/?class=any&x=1', '/tierlist/neutral/?x=1'],
+      ['/tierlist/?class=any', '/tierlist/neutral/'],
+      ['/tierlist/?utm_source=x&class=demon-hunter', '/tierlist/demon-hunter/?utm_source=x'],
+      ['/tierlist/?a=1&class=death-knight&b=2', '/tierlist/death-knight/?a=1&b=2'],
+      ['/tierlist?a=1&class=any', '/tierlist/neutral/?a=1'],
+    ]) {
+      const old = await requestNginx(port, from);
+      assert.equal(old.status, 301, `${from} must redirect permanently`);
+      const target = new URL(old.headers.location || '', 'http://arena.test');
+      assert.equal(`${target.pathname}${target.search}`, to, `${from} redirect target`);
+      assert.match(old.headers['cache-control'] || '', /no-store/, `${from} redirect is not cached`);
+    }
+    for (const [target, body] of [['/tierlist/mage/', /Next tierlist mage/], ['/tierlist/neutral/?x=1', /Next tierlist neutral/]]) {
+      const landed = await requestNginx(port, target);
+      assert.equal(landed.status, 200, `${target} is the end of the one hop`);
+      assert.match(landed.body, body);
+    }
+    for (const path of ['/tierlist/?class=__all__', '/tierlist/?class=', '/tierlist/?class=unknown', '/tierlist/?class=Mage',
+      '/tierlist/?class=mage-x', '/tierlist/?subclass=mage']) {
+      const stays = await requestNginx(port, path);
+      assert.equal(stays.status, 200, `${path} stays the tier list`);
+      assert.match(stays.body, /Next tierlist<\/title>/, `${path} is the tier list`);
+    }
 
     const compressedNextAsset = await requestNginx(port, '/_next/static/test.js', 'GET', {
       'Accept-Encoding': 'gzip',

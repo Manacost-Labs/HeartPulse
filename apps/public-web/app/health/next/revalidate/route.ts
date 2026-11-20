@@ -12,8 +12,10 @@ const DATA_PAGES = ['/standard/meta', '/standard/meta/wild', '/articles', '/tier
  * Marks the prerendered data pages stale right after a deploy, so the next
  * request regenerates them with data instead of serving the build copy for up
  * to five minutes (`scripts/warm-prerendered-pages.mjs`). Anything but a direct
- * call on the host answers 404; it takes no input and only schedules a
- * regeneration of these pages.
+ * call on the host answers 404. `?paths=/a,/b` narrows the call to those of
+ * these pages (the warm-up asks again only for the pages still without data:
+ * a revalidated page is expired, and the next visitor waits for its render);
+ * it only schedules a regeneration of these pages.
  */
 export async function POST(request: Request) {
   if (!isLocalRevalidateRequest(request.headers)) {
@@ -21,10 +23,12 @@ export async function POST(request: Request) {
   }
   // A page whose source is down stays as it is: the earlier copy is better than a page regenerated without data
   // (or a failed regeneration). The warm-up repeats the call until the source answers.
-  const available = await Promise.all(DATA_PAGES.map(path => dataSourceAvailable(DATA_PAGE_PROBES[path])));
+  const asked = new URL(request.url).searchParams.get('paths')?.split(',').map(path => path.replace(/\/$/, '')) ?? null;
+  const pages = asked ? DATA_PAGES.filter(path => asked.includes(path)) : DATA_PAGES;
+  const available = await Promise.all(pages.map(path => dataSourceAvailable(DATA_PAGE_PROBES[path])));
   const revalidated: string[] = [];
   const skipped: { path: string; reason: 'source-unavailable' }[] = [];
-  DATA_PAGES.forEach((path, index) => {
+  pages.forEach((path, index) => {
     if (available[index]) {
       revalidatePath(path, 'page');
       revalidated.push(path);

@@ -1,9 +1,0 @@
-{
-  "reason": "#574: подсказка полной карты берёт лёгкую картинку с CDN (цепочка источников, версия картинок, адрес CDN), запрос при наведении и силуэт во время загрузки. Замер CI: /standard/archetypes/ JS +442 Б, /standard/fun-decks/ JS +321 Б, /standard/cards/ и /standard/cards/standard/ JS +68 Б, CSS +50 Б gzip сверх лимита. Одобрено с запасом 64 Б. Взамен каждая подсказка грузит ~60 КБ вместо ~540 КБ.",
-  "routes": {
-    "/standard/archetypes/": { "jsGzipBytes": 506 },
-    "/standard/fun-decks/": { "jsGzipBytes": 385 },
-    "/standard/cards/": { "jsGzipBytes": 132, "cssGzipBytes": 114 },
-    "/standard/cards/standard/": { "jsGzipBytes": 132, "cssGzipBytes": 114 }
-  }
-}

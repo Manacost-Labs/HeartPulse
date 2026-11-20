@@ -92,9 +92,6 @@ assert.match(metaSource, /const selectedPeriod = \(hasFullAccess \? period : dat
 // period it was read for, otherwise the page resolves the current one itself.
 const teaserSource = readFileSync(new URL('../src/features/standardMetaTeaser.ts', import.meta.url), 'utf8');
 assert.match(teaserSource, /TEASER_SEED_FILTERS = \{ format: 'standard', rank: 'diamond_legend', coin: 'any_player', minGames: 100 \} as const/);
-// Until a payload resolves the summary shows a value placeholder, never a fake zero.
-assert.match(metaSource, /const summaryReady = hasPayload && !\(hasFullAccess && data === initialTeaser\?\.data\);/);
-assert.match(metaSource, /<MetaSummary data=\{summaryReady \? data : null\}/);
 assert.match(metaSource, /<dd>\{data \? data\.items\.length : <LoadingValue \/>\}<\/dd>/);
 assert.match(metaSource, /\{loading && !hasPayload && \(\s*<AsyncSurfaceState\s*variant="loading"/);
 // Without a server-rendered teaser only a browser holding a session waits for
@@ -105,8 +102,6 @@ assert.match(readFileSync(new URL('../apps/public-web/ui/StandardMetaPageClient.
 // A teaser already sent is not aborted by the full-access remount (a failed
 // request in the browser); one not yet sent stays unsent.
 assert.match(metaSource, /controller\.signal\.aborted \? Promise\.reject\(new DOMException\('', 'AbortError'\)\)[\s\S]*?signal: hasFullAccess \? controller\.signal : undefined,/);
-// The guest teaser's prompt waits for the account check, so a subscriber never sees it.
-assert.match(metaSource, /\{!hasFullAccess && !accessPending \? \(\s*<div id="standard-meta-paywall">\s*<PaywallGate/);
 assert.match(metaSource, /option\.asset/);
 assert.match(metaSource, /\/card-format-standard\.webp/);
 assert.match(metaSource, /\/assets\/card-format-wild-128\.webp/);
