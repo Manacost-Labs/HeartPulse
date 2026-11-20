@@ -1674,7 +1674,7 @@
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/library/minions/#collection",
         "name": "Существа Полей сражений Hearthstone",
-        "description": "Актуальные существа Hearthstone Battlegrounds с фильтрами и статистикой.",
+        "description": "Существа Полей сражений Hearthstone по уровням таверны: изображения, атака и здоровье, золотые версии и ссылка на карточку каждой карты.",
         "url": "https://hearthpulse.net/library/minions/",
         "inLanguage": "ru"
       }
@@ -1684,7 +1684,7 @@
         "@type": "CollectionPage",
         "@id": "https://hearthpulse.net/library/spells/#collection",
         "name": "Заклинания Полей сражений Hearthstone",
-        "description": "Актуальные заклинания Hearthstone Battlegrounds с фильтрами и статистикой.",
+        "description": "Заклинания таверны Полей сражений Hearthstone по уровням таверны: изображение, текст и ссылка на карточку каждого заклинания.",
         "url": "https://hearthpulse.net/library/spells/",
         "inLanguage": "ru"
       }

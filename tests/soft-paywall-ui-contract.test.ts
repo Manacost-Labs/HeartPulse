@@ -313,11 +313,10 @@ test('property: a view survives the trip through the address', () => {
 test('pages pass the access decision to their gates and reserve the gate height', () => {
   const read = (path: string) => readFileSync(new URL(path, import.meta.url), 'utf8');
   const metaSource = read('../src/features/StandardMeta.tsx');
-  const archetypesSource = read('../src/features/ConstructedArchetypes.tsx');
+  const archetypesSource = read('../src/features/ArchetypeDetailPage.tsx');
   const funDecksSource = read('../src/features/FunDecksPage.tsx');
   const detailDataSource = read('../src/modules/constructedArchetypes/useArchetypeDetail.ts');
   const catalogDataSource = read('../src/modules/constructedArchetypes/useArchetypeCatalog.ts');
-  assert.match(metaSource, /surface="meta"/);
   // The open layer: a guest reads every row of the general slice from the public route, with the format only.
   assert.doesNotMatch(metaSource, /filteredItems\.slice\(0,\s*3\)/);
   assert.match(metaSource, /'\/api\/standard-meta\/public'/);

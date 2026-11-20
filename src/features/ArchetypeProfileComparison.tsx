@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Swords } from 'lucide-react';
 import { MetricComparison, type ComparisonMetric } from '../vendor/valyro-ui/charts/MetricComparison';
 import { Combobox } from '../vendor/valyro-ui/forms/Combobox';
@@ -163,17 +163,20 @@ function MatchupValue({ winrate, reverse, mine, theirs }: { winrate: number; rev
   </>;
 }
 
-function HeadToHead({ mine, theirs, matchup }: { mine: ProfileItem; theirs: ProfileItem; matchup: MatchupView }) {
+function HeadToHead({ mine, theirs, matchup, lock }: { mine: ProfileItem; theirs: ProfileItem; matchup: MatchupView; lock?: ReactNode }) {
   const note = matchupNote(matchup, mine, theirs);
   return <section className="profile-h2h" aria-label="Очный матчап">
     <h3><Swords size={16} aria-hidden="true" /> Очный матчап · HSGuru, Легенда</h3>
-    {note || typeof matchup !== 'object' || matchup?.winrate == null ? <p className="profile-h2h__note">{note}</p>
+    {lock && matchup === 'unavailable' ? <div className="profile-h2h__lock">{lock}</div>
+      : note || typeof matchup !== 'object' || matchup?.winrate == null ? <p className="profile-h2h__note">{note}</p>
       : <MatchupValue winrate={matchup.winrate} reverse={matchup.reverse} mine={mine} theirs={theirs} />}
   </section>;
 }
 
 /** This archetype against another one of the format: radar of percentiles, table of values, summary and their direct matchup. */
-export function ArchetypeRadar({ item, items, viewerId }: { item: ProfileItem; items: readonly ProfileItem[]; viewerId?: string }) {
+export function ArchetypeRadar({ item, items, viewerId, matchupLock }: {
+  item: ProfileItem; items: readonly ProfileItem[]; viewerId?: string; matchupLock?: ReactNode;
+}) {
   const matchups = useFormatMatchups(viewerId, item.format);
   const others = useMemo(() => items.filter(other => other.slug !== item.slug), [items, item.slug]);
   const [chosen, setChosen] = useState<string | null>(null);
@@ -225,7 +228,7 @@ export function ArchetypeRadar({ item, items, viewerId }: { item: ProfileItem; i
           labels={{ metric: 'Метрика', change: 'Итог', new: 'Новое', increase: 'Больше', decrease: 'Меньше' }}
           ariaLabel={`${item.archetypeLabel} против ${other.archetypeLabel}: значения и место в формате`}
         />
-        <HeadToHead mine={item} theirs={other} matchup={matchup} />
+        <HeadToHead mine={item} theirs={other} matchup={matchup} lock={matchupLock} />
       </div>
     </div>
   </div>;

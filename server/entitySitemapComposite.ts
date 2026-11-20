@@ -18,6 +18,8 @@ const STATIC_PAGE_LISTINGS: Record<string, Listing[]> = {
   '/standard/cards/': [{ segment: 'standard-cards' }],
   '/standard/archetypes/': [{ segment: 'archetypes', prefix: '/standard/archetypes/standard/' }],
   '/standard/archetypes/wild/': [{ segment: 'archetypes', prefix: '/standard/archetypes/wild/' }],
+  // The deck hub prints the best Standard archetype of each class, the class pages more of them.
+  '/standard/decks/': [{ segment: 'decks' }, { segment: 'archetypes', prefix: '/standard/archetypes/standard/' }],
   '/heroes/': [{ segment: 'battleground-heroes' }],
   '/library/': [{ segment: 'battleground-minions' }, { segment: 'battleground-spells' }],
   '/library/minions/': [{ segment: 'battleground-minions' }],

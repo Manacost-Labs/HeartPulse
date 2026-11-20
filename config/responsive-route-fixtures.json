@@ -87,8 +87,8 @@
       "routeId": "standard-meta",
       "path": "/standard/meta",
       "access": "anonymous",
-      "state": "paywall",
-      "ready": { "selector": ".arena-inline-paywall" },
+      "state": "content",
+      "ready": { "selector": ".standard-meta-card" },
       "capture": { "mode": "viewport", "anchor": "top" },
       "checks": ["overflow", "runtime-errors", "axe", "targets"],
       "representative": true

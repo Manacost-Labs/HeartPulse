@@ -12,6 +12,11 @@ third-party data source.
 
 - `/tierlist` owns `тир-лист Арены Hearthstone`, supported by card-tier and
   best-card intent. It does not target Battlegrounds tiers.
+- `/tierlist/<class>/` (11 classes and `/tierlist/neutral/`, #668) owns
+  `тир-лист Арены <класс>` («тир-лист арены маг», «карты Арены для
+  Чернокнижника», «нейтральные карты Арены»): the cards of one class. The hub
+  keeps the whole-pool query and links every class page; the old
+  `/tierlist/?class=<id>` is one 301 to the class page.
 - `/battlegrounds/tier-list` owns `тир-лист Полей сражений Hearthstone`,
   supported by composition, minion, spell and trinket tiers. It does not target
   the builder and does not use the word «герои» (that query belongs to
@@ -30,16 +35,18 @@ third-party data source.
   intent.
 - `/standard/matchups` owns the Hearthstone matchup matrix, supported by HSGuru
   statistics. It does not own the broad meta tier-list intent.
-- `/standard/decks` owns «лучшие колоды хс», «колоды хартстоун», «топ колоды
-  хс» as a ready-deck intent: the best archetype of each class with the code of
-  its best build. It differs from `/standard/meta` (a table of archetypes) and
-  links to it. `/standard/decks/<class>` owns «колоды <класса> хс» as class deck
+- `/standard/decks` owns «колоды хс», «лучшие колоды хс», «колоды
+  Хартстоуна», «колоды хартстоун», «топ колоды хс» as a ready-deck intent: the
+  best archetype of each class with the code of its best build. It differs
+  from `/standard/meta` (a table of archetypes) and links to it.
+  `/standard/decks/<class>` owns «колоды <класса> хс» as class deck
   statistics (archetypes, numbers and codes), not guides: guide texts «Топ
   колоды <класс>» stay with hs-manacost.ru. Title formulas: hub
   `Лучшие колоды Hearthstone (хс), {month} | HearthPulse`, class
   `Колоды {класса} Hearthstone (хс): топ, {month}` (the month goes first when
-  it does not fit 60 characters). Both are `noindex, follow` until SEO-A opens
-  them (#309).
+  it does not fit 60 characters). The hub is `index` and in `static.xml`; a
+  class page is `index` and in `/sitemaps/decks.xml` while it lists at least
+  four archetypes above the indexing sample, `noindex, follow` below (#650).
 
 Query spelling variants such as `тир лист`, `тирлист`, `Battlegrounds`
 and `стратеги` are natural-language variants. The site writes «Поля сражений»
@@ -60,6 +67,10 @@ pages of the registry share a title, a description or an H1
 - «лучший класс Арены», «винрейт классов Арены»: `/classes`, H1 «Винрейт
   классов на Арене», title `Лучшие классы Арены Hearthstone, {month}`.
 - «тир-лист Арены»: `/tierlist`, H1 «Тир-лист карт Арены Hearthstone».
+- «тир-лист Арены <класс>»: `/tierlist/<class>/`, H1 «Тир-лист карт Арены
+  Hearthstone: <класс>», title `Тир-лист Арены Hearthstone (хс): <класс>,
+  {month}`; «нейтральные карты Арены»: `/tierlist/neutral/`, H1 «Нейтральные
+  карты Арены Hearthstone».
 - «легендарки Арены»: `/legendaries`, H1 «Легендарки Арены Hearthstone».
 - «тир-лист героев Полей сражений», «герои Полей сражений»: `/heroes`, H1
   «Герои Полей сражений», title `Тир-лист героев Полей сражений Hearthstone,
@@ -80,8 +91,9 @@ pages of the registry share a title, a description or an H1
 Each game mode has one hub that owns the broad query of the mode and links
 to every indexable page of it (owner decision 2026-11-20, #557):
 
-- `/standard/` — «колоды хс», «колоды Хартстоуна», «Стандарт Hearthstone»;
-  H1 «Стандарт Hearthstone: колоды, мета и архетипы».
+- `/standard/` — «Стандарт Hearthstone»; H1 «Стандарт Hearthstone: колоды,
+  мета и архетипы». «Колоды хс» and «колоды Хартстоуна» belong to
+  `/standard/decks/` (#650), which the hub links as «Лучшие колоды».
 - `/arena/` — «арена хс», «Арена Hearthstone»; H1 «Арена Hearthstone:
   тир-лист карт и классы».
 - `/battlegrounds/` — «поля сражений хс», «Поля сражений Hearthstone»; H1

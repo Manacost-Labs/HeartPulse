@@ -252,6 +252,26 @@ test('a card page describes the card, its site and its path in one JSON-LD graph
   }
 });
 
+test('a card library reaches every page and every card through links in its server HTML (#550)', async () => {
+  const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
+  try {
+    const first = await (await fetch(`${runtime.origin}/standard/cards/standard/`)).text();
+    // Without script a reader (and a crawler) follows the pages; the next page is a plain link.
+    assert.match(first, /<a href="\/standard\/cards\/standard\/\?page=2"[^>]*>/);
+    const second = await (await fetch(`${runtime.origin}/standard/cards/standard/?page=2`)).text();
+    assert.match(second, /<a href="\/standard\/cards\/standard\/"[^>]*>/, 'page 2 links back to the first page without ?page=1');
+    assert.match(second, /<a href="\/standard\/cards\/standard\/\?page=3"[^>]*>/);
+    // A card link names the card, not the catalog page it was found on.
+    for (const html of [first, second]) {
+      const cardLinks = [...html.matchAll(/href="(\/standard\/cards\/standard\/(?:CARD_QA_|blizzard)[^"]*)"/g)].map(match => match[1]);
+      assert.ok(cardLinks.length > 0, 'the page links its cards');
+      assert.deepEqual(cardLinks.filter(link => link.includes('page=')), [], 'no card link carries ?page=');
+    }
+  } finally {
+    await runtime.close();
+  }
+});
+
 test('a card library listing shows its path above the same list of cards', async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   try {
@@ -312,6 +332,9 @@ test('every SEO registry page takes its title, description and share metadata fr
   const registryTexts = new Map();
   try {
     for (const page of REGISTRY_PAGES) {
+      // The class pages of the tier list (#668) title themselves with the date of the pool this runtime reads today;
+      // their registry texts, robots, canonical and share tags are checked on a fixed clock in next-tierlist-class-pages.
+      if (page.policyRouteId === 'tierlist-class') continue;
       const response = await fetch(`${runtime.nextOrigin}${page.url}`, { redirect: 'manual' });
       assert.equal(response.status, 200, page.path);
       const html = await response.text();
@@ -961,13 +984,13 @@ test('archetype pages: only a strong archetype is indexable (Wild from 5000 game
     assertNoProse(strong, 'strong');
     // Own facts of the indexable page (shared/seoIndexThreshold.ts): the hero's tiles, the open build, the plates.
     assert.deepEqual(signedFacts(strong.html), [['Винрейт', '61,2 %'], ['Популярность', '20,4 %'], ['Игры', '14 800'], ['Сборки', '3'],
-      ['Средний матч', '7 мин'], ['Средний ход', '8'], ['Винрейт', '50%'], ['Игры', '100'], ['Данные на', '—'],
+      ['Средний матч', '7 мин'], ['Средний ход', '8'], ['Игры', '100'], ['Винрейт', '50%'],
       ['Место по играм', '2 из 14'], ['Медиана формата', '51,3% +10 п. п.'], ['Медиана класса', '52% +9,2 п. п.']]);
     // «+10 п. п.» beside the median says whose difference it is on hover.
     assert.deepEqual([...strong.summary.matchAll(/<span class="archetype-seo-summary__delta"[^>]* title="([^"]+)"/g)].map(match => match[1]),
       ['выше медианы на 10 п. п.', 'выше медианы на 9,2 п. п.']);
     assert.ok(!strong.html.includes('Как читать данные'), 'no «how to read the data» block');
-    assert.ok(visibleText(strong.html).includes('Выборка сборок своя — цифры могут отличаться от архетипа.'), 'one hint line at the builds');
+    assert.ok(visibleText(strong.html).includes('Сборки отсортированы по размеру выборки.'), 'the subscriber\'s builds heading, for a guest too');
     assert.ok(!strong.text.includes('Выборка меньше'), 'a full sample has no warning');
     assert.doesNotMatch(strong.text, /лидер/i, '«лидер» needs its own sample threshold');
     assert.match(strong.summary, new RegExp(`<time datetime="${state.updatedAt}">`, 'i'), 'the date is machine-readable');
@@ -1117,7 +1140,7 @@ test('archetype pages: only a strong archetype is indexable (Wild from 5000 game
     // open builds remain. With real builds (eight per page, each with its card list) that is far above the threshold;
     // a page with no open build in this state is the case left open in #584.
     assert.deepEqual(signedFacts(alone.html), [['Винрейт', '51 %'], ['Популярность', '1,7 %'], ['Игры', '53 208'], ['Сборки', '86'],
-      ['Средний матч', '7 мин'], ['Средний ход', '8'], ['Винрейт', '50%'], ['Игры', '100'], ['Данные на', '—']]);
+      ['Средний матч', '7 мин'], ['Средний ход', '8'], ['Игры', '100'], ['Винрейт', '50%']]);
     assert.equal(alone.robots, strong.robots);
     assert.equal(alone.graphs.length, 1);
     assert.match(alone.title, /^Чистый Паладин — колода Hearthstone/);

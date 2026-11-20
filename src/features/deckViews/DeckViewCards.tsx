@@ -1,7 +1,8 @@
 import { useMemo, type CSSProperties } from 'react';
 import { useResolvedDeck } from '../decklist/useResolvedDeck';
-import { funDeckEntries } from '../funDecks/deckEntries';
-import { CopyDeckButton, DeckLoadState, DeckPortrait, ManaCurve, TileEntry } from './deckViewParts';
+import { funDeckEntries, type FunDeckCard } from '../funDecks/deckEntries';
+import { seededDeck } from './seededDeck';
+import { CopyDeckButton, DeckCodeLine, DeckLoadState, DeckPortrait, ManaCurve, TileEntry } from './deckViewParts';
 import { useNearScreen } from '../funDecks/useNearScreen';
 import '../funDecks/FunDeckLayouts.css';
 
@@ -18,14 +19,26 @@ export function winRateTone(value: number | null | undefined): DeckStat['tone'] 
 }
 
 /** A deck code resolved into the cards of the views, once the deck is about a screen away (`eager`: at once). */
-export function useDeckView(deckCode: string, options: { format: 'standard' | 'wild'; archetype?: string }, eager = false) {
+export function useDeckView(
+  deckCode: string, options: { format: 'standard' | 'wild'; archetype?: string }, eager = false,
+  /** The card list the page already has (the open builds): used as the resolved deck, nothing is requested. */
+  seed: readonly FunDeckCard[] | null = null,
+  /** The full list is wanted (a subscriber's gallery): the seed only stands in until it arrives, and never wins over it. */
+  full = false,
+  /** Only open lists may be shown (a guest's archetype gallery): nothing is read, a deck without a seed shows its list as unavailable. */
+  openOnly = false,
+) {
   const { ref, near } = useNearScreen<HTMLElement>(eager);
-  const resolved = useResolvedDeck(deckCode, { ...options, enabled: near });
+  const resolved = useResolvedDeck(deckCode, { ...options, enabled: near && (full || (!seed && !openOnly)) });
+  const seeded = useMemo(() => (seed || openOnly ? seededDeck(deckCode, options.format, seed ?? []) : null), [seed, openOnly, deckCode, options.format]);
+  // Chosen in the render that changes `full`: when the full list is no longer wanted (access lost in place), a list
+  // read for it is not shown for a single frame, seed or not; the open list (or none) stands.
+  const data = full ? resolved.data ?? seeded : seeded ?? resolved.data;
   const entries = useMemo(
-    () => (resolved.data ? funDeckEntries(resolved.data.cards, resolved.data.sideboards) : []),
-    [resolved.data],
+    () => (data ? funDeckEntries(data.cards, data.sideboards) : []),
+    [data],
   );
-  return { ...resolved, entries, ref, near };
+  return seeded ? { ...resolved, data, error: data ? '' : resolved.error, loading: false, entries, ref, near } : { ...resolved, entries, ref, near };
 }
 
 export type DeckView = ReturnType<typeof useDeckView>;
@@ -43,6 +56,8 @@ export type DeckViewCardProps = {
   view: DeckView;
   eager?: boolean;
   heading?: 'h2' | 'h3';
+  /** Prints the deck code as text (archetype builds): the code is part of the page, not only of the copy button. */
+  showCode?: boolean;
 };
 
 function fullSubtitle(subtitle: string, view: DeckView): string {
@@ -86,6 +101,7 @@ export function DeckTileCard(props: DeckViewCardProps) {
         ) : <DeckLoadState error={view.error} reload={view.reload} layout="tiles" empty={Boolean(view.data)} />}
       </div>
       <footer className="fun-deck-tiles__foot">
+        {props.showCode ? <DeckCodeLine deckCode={deckCode} /> : null}
         <CopyDeckButton deckCode={deckCode} title={title} className="fun-deck-tiles__copy" />
       </footer>
     </article>
@@ -123,6 +139,7 @@ export function DeckRowCard(props: DeckViewCardProps) {
             <ManaCurve entries={view.entries} />
           </>
         ) : <DeckLoadState error={view.error} reload={view.reload} layout="rows" empty={Boolean(view.data)} />}
+        {props.showCode ? <DeckCodeLine deckCode={deckCode} /> : null}
       </div>
     </article>
   );

@@ -43,7 +43,7 @@ export function PaidLockButton({ className, label, closed, children }: {
   className: string;
   /** What the lock closes, for a screen reader: «Остальные показатели». */
   label: string;
-  closed: 'paywalled-tierlist' | 'paywalled-classes' | 'paywalled-guides';
+  closed: 'paywalled-tierlist' | 'paywalled-classes' | 'paywalled-guides' | 'paywalled-standard-meta' | 'paywalled-archetype';
   children?: ReactNode;
 }) {
   const open = usePaidOffer();

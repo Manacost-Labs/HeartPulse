@@ -180,7 +180,7 @@ export function archetypePageSlug(item: unknown): string | null {
   return typeof slug === 'string' && ARCHETYPE_PAGE_SLUG.test(slug) ? slug : null;
 }
 
-function catalogDataDay(updatedAt: unknown): string {
+export function catalogDataDay(updatedAt: unknown): string {
   const time = typeof updatedAt === 'string' ? Date.parse(updatedAt) : Number.NaN;
   if (!Number.isFinite(time)) throw new Error('Archetype sitemap catalog has no data date');
   return new Date(time).toISOString().slice(0, 10);

@@ -204,9 +204,9 @@ try {
     deckCode: 'AAECAf0GAfKiBALxogTzogQAAA==', games: 2_216, winrate: 57.1, updatedAt: '2026-07-22T21:05:32.877Z',
     sampleRank: 'all', samplePeriod: 'past_30_days',
     cards: [
-      { id: 'TST_001', name: 'Тестовый удар', cost: 1, count: 2, hasPage: true },
-      { id: 'TST_003', name: 'Тестовая буря', cost: 2, count: 2, hasPage: true },
-      { id: 'TST_002', name: 'Тестовый страж', cost: 4, count: 1, hasPage: true },
+      { id: 'TST_001', name: 'Тестовый удар', cost: 1, rarity: 'COMMON', count: 2, hasPage: true },
+      { id: 'TST_003', name: 'Тестовая буря', cost: 2, rarity: 'RARE', count: 2, hasPage: true },
+      { id: 'TST_002', name: 'Тестовый страж', cost: 4, rarity: 'LEGENDARY', count: 1, hasPage: true },
     ],
   }]);
   // Sentinel: the paid layer (mulligan and card statistics, class matchups, history, ranks) is never read for the open answer.
@@ -502,9 +502,9 @@ try {
     assert.equal(answer.cards.length, 20, 'the whole main deck is listed');
     assert.equal(answer.cards.reduce((sum: number, card: any) => sum + card.count, 0), 30);
     assert.deepEqual(answer.cards.filter((card: any) => card.id?.startsWith('TIME_875')), [
-      { id: 'TIME_875t1', name: 'Убийцы Королей', cost: 2, count: 1, hasPage: false },
-      { id: 'TIME_875t', name: 'Король Ллейн', cost: 3, count: 1, hasPage: false },
-      { id: 'TIME_875', name: 'Гарона Полуорчиха', cost: 4, count: 1, hasPage: true },
+      { id: 'TIME_875t1', name: 'Убийцы Королей', cost: 2, rarity: 'COMMON', count: 1, hasPage: false },
+      { id: 'TIME_875t', name: 'Король Ллейн', cost: 3, rarity: 'COMMON', count: 1, hasPage: false },
+      { id: 'TIME_875', name: 'Гарона Полуорчиха', cost: 4, rarity: 'COMMON', count: 1, hasPage: true },
     ]);
     assert.equal(answer.cards.filter((card: any) => card.hasPage).length, 18, 'every card of the catalog links to its page');
     assert.equal(answer.cache, 'public, max-age=300, stale-while-revalidate=900');
@@ -512,8 +512,8 @@ try {
     answer = await readAyaya();
     assert.equal(answer.cards.length, 20, 'without the dictionaries the list stays whole');
     assert.deepEqual(answer.cards.slice(-2), [
-      { id: null, name: null, cost: null, count: 1, hasPage: false },
-      { id: null, name: null, cost: null, count: 1, hasPage: false },
+      { id: null, name: null, cost: null, rarity: null, count: 1, hasPage: false },
+      { id: null, name: null, cost: null, rarity: null, count: 1, hasPage: false },
     ]);
     assert.equal(answer.cache, 'public, max-age=30, stale-while-revalidate=30', 'an unnamed card is back soon');
   } finally {

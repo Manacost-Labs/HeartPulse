@@ -197,9 +197,28 @@ function assertConsumerImports(
 
 // The hero statistics panels own the minion type icons now; the page itself no longer reads them.
 const MINION_ICON_NAMES = ['battlegroundMinionIconByRussianName', 'battlegroundMinionIconBySlug'];
+// The hero detail view (#651) owns the analytics panels and the card image policy; the page keeps only loading and meta.
+const HERO_DETAIL_RUNTIME_NAMES = ['battlegroundFullCardImage', 'useBattlegroundHeroTierData'];
 assertConsumerImports('../src/features/Battlegrounds.tsx', [...CONTRACT_NAMES, 'BattlegroundHeroTierData'],
-  [...RUNTIME_CONTRACT_NAMES.filter(name => !MINION_ICON_NAMES.includes(name) && name !== 'useBattlegroundHeroTierData'),
-    ...ANALYTICS_CONTRACT_NAMES]);
+  RUNTIME_CONTRACT_NAMES.filter(name => !MINION_ICON_NAMES.includes(name) && !HERO_DETAIL_RUNTIME_NAMES.includes(name)));
+const HERO_DETAIL_CONSUMERS: Array<[string, string[], string[]]> = [
+  ['BattlegroundHeroDetailView.tsx', ['HeroAnalyticsCard'], ANALYTICS_CONTRACT_NAMES],
+  ['battlegroundHeroDetailMedia.ts', [], ['battlegroundFullCardImage', 'preferredBattlegroundHeroImage']],
+  ['battlegroundHeroDetailModel.ts', ['HeroAnalyticsCard'], []],
+  ['BattlegroundHeroDetailReliquary.tsx', [], []],
+  ['BattlegroundHeroDetailIdentity.tsx', [], []],
+  ['BattlegroundHeroDetailGallery.tsx', [], []],
+  ['BattlegroundHeroDetailLightbox.tsx', [], []],
+  ['battlegroundHeroDetailText.ts', [], []],
+  ['battlegroundHeroDetailTypes.ts', [], []],
+];
+for (const [file, types, runtime] of HERO_DETAIL_CONSUMERS) {
+  const source = assertConsumerImports(`../src/features/${file}`, types, runtime);
+  assert.equal(source.statements.some(statement => ts.isImportDeclaration(statement)
+    && ts.isStringLiteral(statement.moduleSpecifier)
+    && statement.moduleSpecifier.text === './Battlegrounds'), false,
+  `${file} must not import back from the Battlegrounds route host`);
+}
 // The tier list (minions, strategies, spells, trinkets) lives in its own files: a guest's page renders it without the monolith.
 const TIER_LIST_CONSUMERS: Array<[string, string[], string[]]> = [
   ['BattlegroundTierList.tsx', ['BattlegroundTierListKey'], ['BATTLEGROUND_TIER_LISTS', 'battlegroundTierListMetaLine', 'TierListToolbar']],
@@ -242,6 +261,11 @@ const battlegroundPublicEdges = analyzeModuleBoundaries({ rootDir: PROJECT_ROOT 
   .filter(edge => edge.target === 'src/modules/battlegrounds/public.ts')
   .map(({ source, target, kind }) => ({ source, target, kind }));
 assert.deepEqual(battlegroundPublicEdges, [
+  ...([
+    ['src/features/battlegroundHeroDetailMedia.ts', 'runtime'],
+    ['src/features/battlegroundHeroDetailModel.ts', 'type'],
+    ['src/features/BattlegroundHeroDetailView.tsx', 'runtime'],
+  ] as const).map(([source, kind]) => ({ source, target: 'src/modules/battlegrounds/public.ts', kind })),
   {
     source: 'src/features/BattlegroundHeroLedger.tsx',
     target: 'src/modules/battlegrounds/public.ts',
@@ -282,7 +306,7 @@ assert.deepEqual(battlegroundPublicEdges, [
   { source: 'src/features/BgLibraryListPage.tsx', target: 'src/modules/battlegrounds/public.ts', kind: 'runtime' },
   ...['src/features/useBattlegroundTierListData.ts', 'src/features/useBattlegroundTierListView.ts']
     .map(source => ({ source, target: 'src/modules/battlegrounds/public.ts', kind: 'type' })),
-], 'the canonical module graph must contain only the intended hero, tier-list, tier-builder, library and minion-statistics edges to the public entry');
+], 'the canonical module graph must contain only the intended hero, hero-detail, tier-list, tier-builder, library and minion-statistics edges to the public entry');
 
 function statsHeroes(count: number): unknown {
   return {

@@ -1,0 +1,85 @@
+/* The paid sections of an archetype page for a guest: same frame and place as the subscriber's, closed behind a lock.
+   Each frame is as tall as the subscriber's loading skeleton of that section, so access arriving swaps the lock for the
+   skeleton without moving the page (tests/next-archetype-subscriber-geometry-browser.test.mjs). */
+.archetype-paid-frame {
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.archetype-paid-frame__body {
+  display: grid;
+  flex: 1 0 auto;
+  box-sizing: border-box;
+  min-height: 7.5rem;
+  margin: 0.85rem;
+  place-items: center;
+  padding: 1rem;
+  border: 1px dashed rgba(92, 54, 24, 0.35);
+  background: rgba(255, 248, 219, 0.35);
+}
+
+/* Ranks: the skeleton's heading and its table reserve (ConstructedArchetypeInsights.css). */
+.archetype-paid-frame--ranks .archetype-paid-frame__body { min-height: 20.8rem; }
+
+/* History: the skeleton's own chart frames give the height, out of sight; the lock covers them. The count of slices
+   keeps its box in the heading (it moves under the text on phones), unseen. The frame keeps the `.archetype-insight`
+   class (`.archetype-history` names the loaded history), so it takes the history's own copy size and border here
+   (ConstructedArchetypes.css: 8 px, 5 px from 390 px). */
+.archetype-insight.archetype-paid-frame--history { border-width: 8px; }
+.archetype-insight.archetype-paid-frame--history .archetype-section-heading p { font-size: 0.73rem; line-height: 1.5; }
+@media (max-width: 390px) { .archetype-insight.archetype-paid-frame--history { border-width: 5px; } }
+.archetype-paid-frame__sized { position: relative; }
+.archetype-paid-frame__sizer { visibility: hidden; }
+.archetype-paid-frame__sized > .archetype-paid-frame__body { position: absolute; inset: 0; }
+.archetype-paid-frame__count { visibility: hidden; }
+
+/* Analysis: its skeleton arrives with the lazy analysis chunk, which a guest does not load, so the two frames take
+   its measured heights: the slice filters and the matchups panel (the section follows the previous one without a
+   gap), then the mulligan panel 1rem lower. Measured at every width from 360 to 1440 px: each band is the skeleton's
+   height to within 1 px, flat or growing with the width; a band ends where the skeleton's layout or a line of its copy
+   changes. The test checks both sides of every band's end. */
+.archetype-paid-frame.archetype-paid-frame--matchups { margin-top: 0; min-block-size: calc(43.022rem + 2.783vw); }
+.archetype-paid-frame--mulligan { min-block-size: calc(75.793rem + 2.915vw); }
+@media (max-width: 1194px) { .archetype-paid-frame.archetype-paid-frame--matchups { min-block-size: calc(43.945rem + 3vw); } }
+@media (max-width: 1037px) { .archetype-paid-frame--mulligan { min-block-size: calc(78.487rem + 2.991vw); } }
+@media (max-width: 1023px) {
+  .archetype-paid-frame.archetype-paid-frame--matchups { min-block-size: calc(43.666rem + 1.709vw); }
+  .archetype-paid-frame--mulligan { min-block-size: calc(77.545rem + 0.111vw); }
+}
+@media (max-width: 980px) { .archetype-paid-frame.archetype-paid-frame--matchups { min-block-size: 67.537rem; } }
+@media (max-width: 899px) { .archetype-paid-frame.archetype-paid-frame--matchups { min-block-size: 71.718rem; } }
+@media (max-width: 886px) { .archetype-paid-frame.archetype-paid-frame--matchups { min-block-size: 72.814rem; } }
+@media (max-width: 820px) {
+  .archetype-paid-frame.archetype-paid-frame--matchups { min-block-size: 83.833rem; }
+  .archetype-paid-frame--mulligan { min-block-size: 82.68rem; }
+}
+@media (max-width: 578px) { .archetype-paid-frame.archetype-paid-frame--matchups { min-block-size: 84.929rem; } }
+@media (max-width: 452px) { .archetype-paid-frame--mulligan { min-block-size: 83.776rem; } }
+@media (max-width: 439px) { .archetype-paid-frame--mulligan { min-block-size: 87.026rem; } }
+@media (max-width: 390px) {
+  .archetype-paid-frame.archetype-paid-frame--matchups { min-block-size: 84.628rem; }
+  .archetype-paid-frame--mulligan { min-block-size: 86.724rem; }
+}
+
+/* A subscriber's data that failed to load: one line over the open data, which stays. */
+.archetype-open-builds__retry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 0.75rem;
+  align-items: center;
+  margin: 1rem 0 0;
+  color: #8d171d;
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.archetype-open-builds__retry .archetype-detail-read__retry { margin: 0; }
+.archetype-builds__error { margin: 0.5rem 0 0; color: #8d171d; font-size: 0.75rem; font-weight: 700; text-align: center; }
+/* The direct matchup's lock takes the line the subscriber's «Загружаем матчапы HSGuru…» takes (.profile-h2h__note):
+   its 24 px target overflows that line instead of growing the radar block. */
+.profile-h2h__lock { display: flex; align-items: center; block-size: 1lh; margin: 0.45rem 0 0; font-size: 0.72rem; }
+
+/* A remembered subscriber is granted at hydration: the lock in the server HTML (the same for everyone) stays out of sight until then. */
+html[data-hp-viewer='remembered'] .archetype-paid-frame .paid-lock,
+html[data-hp-viewer='remembered'] .profile-h2h__lock .paid-lock { visibility: hidden; }

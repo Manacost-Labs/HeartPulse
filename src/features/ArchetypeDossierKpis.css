@@ -1,0 +1,45 @@
+/* The change line of the dossier's tiles has one height whatever stands in it: the subscriber's change, a guest's
+   lock (24 px, overflowing by 2 px each way like in a table row) or the empty line a subscriber's history fills. */
+.archetype-dossier__metrics .ui-kpi-group__meta { min-block-size: 1.25rem; }
+.archetype-dossier__trend { display: flex; align-items: center; }
+/* On the dark plate the lock's translucent paper would lose its contrast: the same paper, opaque. */
+.archetype-dossier__trend .paid-lock { background: #fff4d9; }
+
+/* A narrow tile hides the comparison text (KpiGroup.css); the lock stands in for the change, so it stays visible. */
+.archetype-dossier__metrics .ui-kpi-group__caption:has(> .archetype-dossier__trend) {
+  position: static;
+  width: auto;
+  height: auto;
+  overflow: visible;
+  clip-path: none;
+}
+
+/* A narrow tile (phones) has no room for «По подписке»: the lock keeps its icon, its name stays in its label. */
+@container (max-width: 160px) {
+  .archetype-dossier__trend .paid-lock > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* The sparkline's room (KpiGroup.css `.ui-kpi-group__spark`) under a lock or before the history. */
+.archetype-dossier__metrics .ui-kpi-group__tile:has(.archetype-dossier__trend)::after {
+  content: '';
+  display: block;
+  box-sizing: content-box;
+  height: 40px;
+  margin-top: auto;
+  padding-top: var(--ui-space-2);
+}
+
+/* Phones keep the change line but not the sparkline (ConstructedArchetypes.css). */
+@media (max-width: 820px) {
+  .archetype-dossier__metrics .ui-kpi-group__tile:has(.archetype-dossier__trend)::after { display: none; }
+}
+
+/* A remembered subscriber is granted at hydration: the server's lock stays out of sight until then (ArchetypePaidFrames.css). */
+html[data-hp-viewer='remembered'] .archetype-dossier__trend .paid-lock { visibility: hidden; }

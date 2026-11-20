@@ -1,7 +1,9 @@
 import { KpiGroup, type KpiItem } from '../vendor/varylo-ui/data-display/KpiGroup';
 import { historyKpiComparison } from './archetypeInsightsModel';
+import { PaidMetricLock } from '../shared/ui/PaidLocks';
 import '../vendor/varylo-ui/styles/index.css';
 import './archetypeVaryloTheme.css';
+import './ArchetypeDossierKpis.css';
 
 type DossierItem = {
   winrate: number | null;
@@ -35,31 +37,45 @@ function points(latest: number | null, previous: number | null): number | undefi
 }
 
 /**
- * The dossier's statistics strip. Winrate, popularity and games gain their change and a
- * 7-day sparkline when the subscriber history arrives; every tile reserves that room, so
- * nothing below the header moves when it does (guests keep the plain values).
+ * Where a tile's change line stands without the history: a lock for a guest (the change is paid history), an
+ * empty line of the same height while a subscriber's history is on its way. Either keeps the room of the change
+ * and of the sparkline under it (ArchetypeDossierKpis.css), so the guest's header is the subscriber's and the
+ * history arriving moves nothing.
  */
-export function ArchetypeDossierKpis({ item, history }: { item: DossierItem; history: readonly HistoryPoint[] }) {
-  const comparison = historyKpiComparison(history);
+function trendSlot(label: string, locked: boolean) {
+  return locked
+    ? <span className="archetype-dossier__trend"><PaidMetricLock label={`${label}: изменение за неделю`} closed="paywalled-archetype" /></span>
+    : <span className="archetype-dossier__trend" aria-hidden="true" />;
+}
+
+/**
+ * The dossier's statistics strip. Winrate, popularity and games gain their change and a
+ * 7-day sparkline when the subscriber history arrives; until then (and for a guest, behind
+ * `trendLocked`) each of them keeps that room.
+ */
+export function ArchetypeDossierKpis({ item, history, trendLocked = false }: {
+  item: DossierItem; history: readonly HistoryPoint[]; trendLocked?: boolean;
+}) {
+  const comparison = trendLocked ? null : historyKpiComparison(history);
   const since = comparison ? DATE.format(new Date(comparison.previous.recordedAt)) : '';
   const items: KpiItem[] = [
     {
       id: 'winrate', label: 'Винрейт', value: rate(item.winrate), format: PERCENT,
       delta: comparison ? points(comparison.latest.winrate, comparison.previous.winrate) : undefined,
       trend: comparison?.trend.map(point => point.winrate),
-      caption: comparison ? `п. п. к ${since}` : undefined,
+      caption: comparison ? `п. п. к ${since}` : trendSlot('Винрейт', trendLocked),
     },
     {
       id: 'popularity', label: 'Популярность', value: rate(item.popularity), format: PERCENT,
       delta: comparison ? points(comparison.latest.popularity, comparison.previous.popularity) : undefined,
       trend: comparison?.trend.map(point => point.popularity),
-      caption: comparison ? `п. п. к ${since}` : undefined,
+      caption: comparison ? `п. п. к ${since}` : trendSlot('Популярность', trendLocked),
     },
     {
       id: 'games', label: 'Игры', value: item.games, format: { maximumFractionDigits: 0 },
       previous: comparison?.gamesPrevious?.games,
       trend: comparison?.gamesTrend.map(point => point.games),
-      caption: comparison?.gamesPrevious ? `к ${since}` : undefined,
+      caption: comparison?.gamesPrevious ? `к ${since}` : comparison ? undefined : trendSlot('Игры', trendLocked),
     },
     { id: 'builds', label: 'Сборки', value: item.deckCount },
     { id: 'match', label: 'Средний матч', value: item.durationMinutes, format: { style: 'unit', unit: 'minute', unitDisplay: 'short', maximumFractionDigits: 1 } },

@@ -88,6 +88,9 @@ const sitemapArchetypePaths = [
   '/standard/archetypes/wild/monitor-deck-42/',
 ];
 
+// Deck class pages above the content threshold (#650): at most 11; two are enough for first and last samples.
+const sitemapDeckClasses = ['paladin', 'warlock'];
+
 sitemapCardIds[0] = 'blizzard:12345';
 sitemapWildCardIds[0] = 'blizzard:67890';
 
@@ -271,6 +274,7 @@ const server = http.createServer((req, res) => {
       `${origin}/sitemaps/cosmetics.xml`,
       `${origin}/sitemaps/guides-archive.xml`,
       ...(seoFailure === 'index-without-archetypes' ? [] : [`${origin}/sitemaps/archetypes.xml`]),
+      `${origin}/sitemaps/decks.xml`,
     ], {
       lastmod: seoFailure === 'index-without-lastmod' ? ''
         : seoFailure === 'index-stale-lastmod' || (seoFailure === 'index-edge-stale' && !requestUrl.search) ? '2026-11-12' : '2026-11-16',
@@ -338,6 +342,10 @@ const server = http.createServer((req, res) => {
       ...(seoFailure === 'archetypes-meta-family' ? [`${origin}/standard/meta/standard/monitor-deck-99/`] : []),
       ...(seoFailure === 'archetypes-other-format' ? [`${origin}/standard/archetypes/classic/monitor-deck-99/`] : []),
       ...(seoFailure === 'archetypes-query' ? [`${origin}/standard/archetypes/standard/monitor-deck-99/?format=wild`] : []),
+    ],
+    '/sitemaps/decks.xml': [
+      ...(seoFailure === 'decks-empty' ? [] : sitemapDeckClasses.map(key => `${origin}/standard/decks/${key}/`)),
+      ...(seoFailure === 'decks-hub-in-segment' ? [`${origin}/standard/decks/`] : []),
     ],
   };
   if (additionalSitemaps[requestUrl.pathname]) {
@@ -427,6 +435,23 @@ const server = http.createServer((req, res) => {
     res.end(`<!doctype html><html><head><title>${slug}</title><meta name="robots" content="${robots}"/><link rel="canonical" href="${seoFailure === 'archetype-canonical' ? `${origin}/standard/meta/standard/${slug}/` : canonical}"/>${jsonLd}</head><body><main><h1>${slug}</h1></main>${payload}</body></html>`);
     return;
   }
+  const deckClassMatch = requestUrl.pathname.match(/^\/standard\/decks\/([a-z]+)\/$/);
+  if (deckClassMatch) {
+    const canonical = `${origin}${requestUrl.pathname}`;
+    const robots = seoFailure === 'deck-class-noindex' && deckClassMatch[1] === 'warlock'
+      ? 'noindex, follow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
+    const graph = { '@context': 'https://schema.org', '@graph': [{ '@type': 'CollectionPage', url: canonical }] };
+    const payload = seoFailure === 'deck-class-private-sentinel' ? `${OPEN_DECK_PAYLOAD}<script>{"privateSentinel":true}</script>` : OPEN_DECK_PAYLOAD;
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'index, follow' });
+    res.end(`<!doctype html><html><head><meta name="robots" content="${robots}"/><link rel="canonical" href="${canonical}"/><script type="application/ld+json">${JSON.stringify(graph)}</script></head><body><main><h1>${deckClassMatch[1]}</h1></main>${payload}</body></html>`);
+    return;
+  }
+  if (requestUrl.pathname === '/standard/decks/') {
+    // The hub publishes open deck codes (#309): the monitor must not take them for a private marker.
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+    res.end(`<!doctype html><html><body><main><h1>Лучшие колоды</h1></main>${OPEN_DECK_PAYLOAD}</body></html>`);
+    return;
+  }
   const editorialMatch = requestUrl.pathname.match(/^\/(?:cosmetics\/heroes|guides-archive)\/([A-Za-z0-9_-]+)\/$/);
   if (editorialMatch) {
     const canonical = `${origin}${requestUrl.pathname}`;
@@ -497,10 +522,11 @@ try {
     cosmetics: 500,
     guidesArchive: 500,
     archetypes: 42,
+    decks: 2,
   });
   assert.equal(seoCheck.staticUrls, EXPECTED_STATIC_SITEMAP_URL_COUNT);
-  assert.equal(seoCheck.sampledDetails, 23,
-    'six segments sample first, middle and last; archetypes sample five');
+  assert.equal(seoCheck.sampledDetails, 25,
+    'six segments sample first, middle and last; archetypes sample five; two deck classes sample both');
   assert.equal(report.checks[0].attempts, 2);
   assert.deepEqual(report.checks.map(check => check.status), [200, 200, 200, 200, 200, 200, 404, 200, 200, 404, 200, 200, 200, 404, 200, 200, 200, 200]);
   assert.deepEqual(report.checks.filter(check => check.label.startsWith('image')).map(check => check.label), [
@@ -680,6 +706,10 @@ try {
     ['archetype-jsonld-missing', /sample archetypes entity monitor-deck-01: JSON-LD is missing/i],
     ['archetype-jsonld-invalid', /sample archetypes entity monitor-deck-01: JSON-LD is invalid/i],
     ['archetype-jsonld-other-page', /sample archetypes entity monitor-deck-01: JSON-LD does not describe the page/i],
+    ['decks-empty', /deck class sitemap contains no locations/i],
+    ['decks-hub-in-segment', /deck class sitemap contains a non-canonical URL/i],
+    ['deck-class-noindex', /sample decks entity warlock: index robots metadata is missing/i],
+    ['deck-class-private-sentinel', /sample decks entity paladin: private payload marker found/i],
   ]) {
     seoFailure = mode;
     await assert.rejects(
@@ -848,6 +878,8 @@ try {
     samples.filter(sample => sample.id === 'standard-cards-format').map(sample => sample.path),
     ['/standard/cards/standard/', '/standard/cards/wild/'],
   );
+  assert.deepEqual(samples.filter(sample => sample.id === 'tierlist-class'), [{ id: 'tierlist-class', path: '/tierlist/mage/' }],
+    'the indexable class pages of the tier list (#668) are monitored by one of them');
   assert.deepEqual(
     pageTemplateSamples([
       { id: 'new-static', pattern: '/new-page', indexPolicy: 'index' },

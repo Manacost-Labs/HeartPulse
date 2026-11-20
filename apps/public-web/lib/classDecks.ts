@@ -1,5 +1,5 @@
-import { INDEXABLE_ARCHETYPE_MIN_GAMES, isIndexableArchetype } from '@/shared/constructedArchetypeIndexing';
-import { INDEX_MIN_OWN_FACTS, meetsContentThreshold } from '@/shared/seoIndexThreshold';
+import { INDEXABLE_ARCHETYPE_MIN_GAMES } from '@/shared/constructedArchetypeIndexing';
+import { classDeckArchetypes, isIndexableDeckClass } from '@/shared/deckClassIndexing';
 import type { StandardMetaClass } from '@/shared/standardMetaContract';
 import type { ArchetypeCatalog } from '@/src/features/ConstructedArchetypes';
 import { renderSeoDataTemplate } from '@/src/seo/dataTemplate';
@@ -28,16 +28,8 @@ export const DECK_CLASSES: readonly { key: StandardMetaClass; name: string; geni
 export type DeckClass = (typeof DECK_CLASSES)[number];
 export type DeckArchetype = ArchetypeCatalog['items'][number];
 
-/**
- * A class page lists at most this many archetypes: each row reads its archetype's build, so the page asks Express
- * for no more details than this. The live catalog has at most nine strong archetypes in a class.
- */
-export const CLASS_DECKS_MAX_ARCHETYPES = 12;
+export { CLASS_DECKS_MAX_ARCHETYPES, CLASS_DECKS_MIN_ARCHETYPES } from '@/shared/deckClassIndexing';
 
-/** Numbers a row of a class page states (winrate, popularity, games): the facts of the content threshold. */
-const FACTS_PER_ARCHETYPE = 3;
-/** Rows a class page needs to state `INDEX_MIN_OWN_FACTS` facts. */
-export const CLASS_DECKS_MIN_ARCHETYPES = Math.ceil(INDEX_MIN_OWN_FACTS / FACTS_PER_ARCHETYPE);
 /** «от 1 000 игр»: the sample threshold of the archetypes the deck pages list. */
 export const MIN_GAMES_TEXT = `от ${INDEXABLE_ARCHETYPE_MIN_GAMES.toLocaleString('ru-RU')} игр`;
 
@@ -45,16 +37,8 @@ export const deckClass = (key: string): DeckClass | null => DECK_CLASSES.find(en
 export const classDecksPath = (key: string) => `/standard/decks/${key}/`;
 export const archetypePath = (slug: string) => `/standard/archetypes/standard/${slug}/`;
 
-/**
- * The archetypes of a class that pass the indexing rule (`isIndexableArchetype`, the same rule as their own pages),
- * best winrate first, the larger sample breaking ties; at most `CLASS_DECKS_MAX_ARCHETYPES`.
- */
-export function classArchetypes(catalog: ArchetypeCatalog, key: string): DeckArchetype[] {
-  return catalog.items
-    .filter(item => item.format === 'standard' && item.classKey === key && isIndexableArchetype(item))
-    .sort((left, right) => (right.winrate ?? -1) - (left.winrate ?? -1) || right.games - left.games)
-    .slice(0, CLASS_DECKS_MAX_ARCHETYPES);
-}
+/** The archetypes a class page lists (`classDeckArchetypes`, the same rule as the `decks` sitemap segment). */
+export const classArchetypes = (catalog: ArchetypeCatalog, key: string): DeckArchetype[] => classDeckArchetypes(catalog.items, key);
 
 /** The best archetype of each class for the hub: the top row of its class page. */
 export const hubArchetypes = (catalog: ArchetypeCatalog) =>
@@ -66,9 +50,8 @@ export function sampleText(rows: readonly DeckArchetype[]): string {
   return `${rows.length} ${pluralRu(rows.length, 'архетип', 'архетипа', 'архетипов')}, ${games.toLocaleString('ru-RU')} ${pluralRu(games, 'игра', 'игры', 'игр')}`;
 }
 
-/** Whether a class page states enough facts to be offered to search engines (`seoIndexThreshold.ts`). */
-export const classDecksIndexable = (rows: readonly DeckArchetype[]) =>
-  meetsContentThreshold({ ownWords: 0, ownFacts: rows.length * FACTS_PER_ARCHETYPE });
+/** Whether a class page states enough facts to be offered to search engines (`isIndexableDeckClass`). */
+export const classDecksIndexable = (rows: readonly DeckArchetype[]) => isIndexableDeckClass(rows.length);
 
 const percent = (value: number) => `${value.toLocaleString('ru-RU', { maximumFractionDigits: 1 })}%`;
 
