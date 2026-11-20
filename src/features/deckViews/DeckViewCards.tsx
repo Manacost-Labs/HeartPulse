@@ -23,15 +23,17 @@ export function useDeckView(
   deckCode: string, options: { format: 'standard' | 'wild'; archetype?: string }, eager = false,
   /** The card list the page already has (the open builds): used as the resolved deck, nothing is requested. */
   seed: readonly FunDeckCard[] | null = null,
+  /** The full list is wanted (a subscriber's gallery): the seed only stands in until it arrives, and never wins over it. */
+  full = false,
 ) {
   const { ref, near } = useNearScreen<HTMLElement>(eager);
-  const resolved = useResolvedDeck(deckCode, { ...options, enabled: near && !seed });
-  const data = useMemo(() => (seed ? seededDeck(deckCode, options.format, seed) : resolved.data), [seed, deckCode, options.format, resolved.data]);
+  const resolved = useResolvedDeck(deckCode, { ...options, enabled: near && (!seed || full) });
+  const data = useMemo(() => resolved.data ?? (seed ? seededDeck(deckCode, options.format, seed) : null), [seed, deckCode, options.format, resolved.data]);
   const entries = useMemo(
     () => (data ? funDeckEntries(data.cards, data.sideboards) : []),
     [data],
   );
-  return seed ? { ...resolved, data, error: '', loading: false, entries, ref, near } : { ...resolved, entries, ref, near };
+  return seed ? { ...resolved, data, error: data ? '' : resolved.error, loading: false, entries, ref, near } : { ...resolved, entries, ref, near };
 }
 
 export type DeckView = ReturnType<typeof useDeckView>;

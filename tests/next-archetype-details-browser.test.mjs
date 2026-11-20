@@ -92,7 +92,8 @@ test('Next archetype details isolate access and load builds before independent o
       if (!member) { response.writeHead(403).end('{"error":"denied"}'); return; }
       if (section === 'core') {
         if (coreFails) { response.writeHead(502).end('{"error":"Сборки временно недоступны"}'); return; }
-        response.end(JSON.stringify({ ...teaser, item: { ...teaser.item, builds: coreEmpty ? [] : [{ deckCode: 'AAEBAa0GValidDeckCode', games: 2216, winrate: 57.1, sourceUrl: '', classKey: 'priest' }] }, history: [], analysis: null })); return;
+        response.end(JSON.stringify({ ...teaser, item: { ...teaser.item, builds: coreEmpty ? [] : [{ deckCode: 'AAEBAa0GValidDeckCode', games: 2216, winrate: 57.1, sourceUrl: '', classKey: 'priest' },
+          { deckCode: OPEN_DECK, games: 2216, winrate: 57.1, sourceUrl: '', classKey: 'priest' }] }, history: [], analysis: null })); return;
       }
       if (optionalMode === 'denied' && section === 'analysis') { response.writeHead(403).end('{"error":"access revoked"}'); return; }
       if (optionalMode === 'error') { response.writeHead(502).end('{"error":"Временная ошибка истории"}'); return; }
@@ -105,7 +106,14 @@ test('Next archetype details isolate access and load builds before independent o
     }
     if (pathname === '/api/subscription/status') { response.end(JSON.stringify({ hasAccess: member === true, entitlements: { standard: member === true }, active: member === true })); return; }
     if (pathname === '/api/deck/render') { response.end(JSON.stringify({ ok: true, ready: true, imageUrl: '/arena-logo-icon.webp', renderer: 'rust', style: 'parchment' })); return; }
-    if (pathname === '/api/deck/resolve') { response.end(JSON.stringify({ ok: true, cards: [], sideboards: [], totalCards: 30, deckSizeLimit: 30 })); return; }
+    if (pathname === '/api/deck/resolve') {
+      // The full list of the open build's code carries a sideboard, which the open layer's card list never has.
+      const card = (id, dbfId, name, count) => ({ id, dbfId, name, cost: 1, rarity: 'COMMON', elite: false, count, image: '' });
+      const full = new URL(request.url, 'http://fixture').searchParams.get('code') === OPEN_DECK;
+      response.end(JSON.stringify(full ? { ok: true, cards: [card('TST_001', 1, 'Тестовый удар', 2)], totalCards: 30, deckSizeLimit: 30,
+        sideboards: [{ keyCardDbfId: 1, label: 'Доп. карты', cards: [card('TST_SB1', 2, 'Боковая карта', 1)] }] }
+        : { ok: true, cards: [], sideboards: [], totalCards: 30, deckSizeLimit: 30 })); return;
+    }
     if (pathname === '/api/auth/me' && member) { response.end(JSON.stringify({ user: { id: 'test-member', name: 'Тест', email: 'member@example.test', role: member === 'admin' ? 'admin' : 'user', adminAllowed: member === 'admin' } })); return; }
     if (pathname === '/api/auth/me') {
       response.end('{"user":null,"adminAllowed":false,"contestAdminAllowed":false}'); return;
@@ -207,6 +215,11 @@ test('Next archetype details isolate access and load builds before independent o
       .then(() => page.$eval('script[type="application/ld+json"]', node => node.textContent)));
     assert.deepEqual(graph['@graph'].map(node => node['@type']), ['Organization', 'BreadcrumbList', 'ItemPage', 'Dataset']);
     assert.equal(JSON.stringify(graph).includes('isAccessibleForFree'), false, 'the deck code is not marked as paid');
+    // The page tour (src/features/pageTour) points at these anchors; a guest's page carries every one of them, the paid
+    // parts as locked frames at the same places.
+    for (const anchor of ['archetype-summary', 'archetype-builds', 'archetype-compare', 'archetype-analysis', 'archetype-ranks', 'archetype-radar', 'archetype-history']) {
+      assert.ok(await page.$(`[data-tour-id="${anchor}"]`), `the guest's page has the ${anchor} tour anchor`);
+    }
     // A guest copies the deck code.
     await browser.defaultBrowserContext().overridePermissions(origin, ['clipboard-read', 'clipboard-write', 'clipboard-sanitized-write']);
     await page.click('.archetype-builds button[aria-label="Скопировать код колоды: Сборка 1"]');
@@ -312,6 +325,10 @@ test('Next archetype details isolate access and load builds before independent o
     for (const path of ['/standard/archetypes/invalid/thief-priest/', '/standard/meta/wild/missing/']) {
       assert.equal((await page.goto(`${origin}${path}`, { waitUntil: 'networkidle2' })).status(), 404);
     }
+    // The open layer's card list has no sideboard: a guest sees the open list of the build.
+    await page.goto(`${origin}/standard/archetypes/wild/thief-priest/`, { waitUntil: 'networkidle2' });
+    assert.ok(await page.$(`.archetype-builds button[data-deck-code="${OPEN_DECK}"]`), 'the guest sees the open build');
+    assert.equal(await page.$('.archetype-builds .fun-deck-tiles__side'), null, 'the open list carries no sideboard');
     member = true;
     await page.evaluateOnNewDocument(() => {
       window.__detailCls = 0;
@@ -322,6 +339,10 @@ test('Next archetype details isolate access and load builds before independent o
     const started = Date.now();
     await page.goto(`${origin}/standard/archetypes/wild/thief-priest/`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('.archetype-builds', { timeout: 5_000 });
+    // The same code is in the paid answer: the subscriber's gallery reads the full list and shows its sideboard in place
+    // of the open list (the open list stands in only until then).
+    await page.waitForSelector('.archetype-builds .fun-deck-tiles__side', { timeout: 10_000 });
+    assert.ok((await page.$eval('.archetype-builds .fun-deck-tiles__side', node => node.textContent)).includes('Доп. карты'), 'the subscriber sees the sideboard');
     assert.ok(Date.now() - started < 5_000, 'builds must render while optional responses remain held');
     assert.equal(await page.$eval('h1', node => node.textContent), 'Воровской Жрец');
     await page.waitForFunction(() => document.querySelectorAll('section[data-loading=true]').length === 3);
@@ -366,7 +387,7 @@ test('Next archetype details isolate access and load builds before independent o
     await page.click('[role="status"] button');
     await page.waitForSelector('button[data-deck-code="AAEBAa0GValidDeckCode"]');
     assert.equal(sectionCalls.filter(section => section !== 'core').length, optionalCalls);
-    assert.equal(await openBuild(), null, 'the subscriber gallery takes the place of the open builds');
+    assert.ok(await openBuild(), 'a build with the same code keeps its tile');
     coreEmpty = true;
     await page.reload({ waitUntil: 'networkidle2' });
     await page.waitForSelector('.archetype-history');

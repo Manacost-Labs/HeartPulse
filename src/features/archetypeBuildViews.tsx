@@ -30,7 +30,7 @@ export function formatPercent(value: number | null): string {
 }
 
 /** A build in the tile or row view; it reports itself pending until its list arrives. */
-export function ArchetypeBuildView({ build, index, format, archetype, classKey, layout, seed, onPendingChange }: {
+export function ArchetypeBuildView({ build, index, format, archetype, classKey, layout, seed, full, onPendingChange }: {
   key?: React.Key;
   build: ArchetypeBuild;
   index: number;
@@ -40,9 +40,11 @@ export function ArchetypeBuildView({ build, index, format, archetype, classKey, 
   layout: Exclude<DeckLayout, 'images'>;
   /** The card list the page already holds (open builds): drawn as is, no request. */
   seed?: readonly FunDeckCard[] | null;
+  /** The subscriber's gallery: the full list (with sideboards) is read and replaces the seed. */
+  full?: boolean;
   onPendingChange: (deckCode: string, pending: boolean) => void;
 }) {
-  const view = useDeckView(build.deckCode, { format, archetype }, false, seed ?? null);
+  const view = useDeckView(build.deckCode, { format, archetype }, false, seed ?? null, full);
   // A build below the screen waits for the reader; it is pending only once it starts loading.
   useReportedPending(build.deckCode, view.near && !view.data && !view.error, onPendingChange);
   const classMeta = deckClassMeta(classKey);

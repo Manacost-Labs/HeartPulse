@@ -6,11 +6,12 @@ import { RankHeatmapSection } from './ArchetypeInsightSlots';
 import { ArchetypeAnalysisLoading, ArchetypeHistorySkeleton } from './ConstructedArchetypeDetailSkeletons';
 import './ArchetypePaidFrames.css';
 
-type FrameCopy = { id: string; icon: React.ReactNode; eyebrow: string; title: string; text: string };
+/** `tour`: the anchor the page tour points at in the subscriber's view; the locked frame carries it too. */
+type FrameCopy = { id: string; icon: React.ReactNode; eyebrow: string; title: string; text: string; tour?: string };
 
 const FRAMES: Record<'matchups' | 'mulligan' | 'ranks' | 'history', FrameCopy> = {
   matchups: {
-    id: 'matchups', icon: <Swords size={15} aria-hidden="true" />, eyebrow: 'Матчапы', title: 'Матчапы против классов',
+    id: 'matchups', tour: 'archetype-analysis', icon: <Swords size={15} aria-hidden="true" />, eyebrow: 'Матчапы', title: 'Матчапы против классов',
     text: 'Винрейт архетипа против каждого класса на ранге Легенда и доля соперников в выборке.',
   },
   mulligan: {
@@ -18,11 +19,11 @@ const FRAMES: Record<'matchups' | 'mulligan' | 'ranks' | 'history', FrameCopy> =
     text: 'Как каждая карта меняет винрейт: в стартовой руке, при взятии и среди оставленных.',
   },
   ranks: {
-    id: 'ranks', icon: <Grid3x3 size={15} aria-hidden="true" />, eyebrow: 'Ранги и периоды', title: 'Винрейт по рангам',
+    id: 'ranks', tour: 'archetype-ranks', icon: <Grid3x3 size={15} aria-hidden="true" />, eyebrow: 'Ранги и периоды', title: 'Винрейт по рангам',
     text: 'Винрейт архетипа в каждом ранге за разные периоды HSGuru.',
   },
   history: {
-    id: 'history', icon: <TrendingUp size={15} aria-hidden="true" />, eyebrow: 'Накопительная статистика', title: 'История архетипа',
+    id: 'history', tour: 'archetype-history', icon: <TrendingUp size={15} aria-hidden="true" />, eyebrow: 'Накопительная статистика', title: 'История архетипа',
     text: 'Срез добавляется каждые 12 часов: как менялись винрейт, популярность и число игр.',
   },
 };
@@ -30,7 +31,7 @@ const FRAMES: Record<'matchups' | 'mulligan' | 'ranks' | 'history', FrameCopy> =
 /** A paid section for a guest: its place, heading and one line of what it holds, closed behind the lock. */
 function LockedFrame({ frame }: { frame: keyof typeof FRAMES }) {
   const copy = FRAMES[frame];
-  return <section className="archetype-insight archetype-paid-frame" aria-labelledby={`archetype-paid-${copy.id}`} data-paid-frame={copy.id}>
+  return <section className="archetype-insight archetype-paid-frame" aria-labelledby={`archetype-paid-${copy.id}`} data-paid-frame={copy.id} data-tour-id={copy.tour}>
     <header className="archetype-section-heading"><div>
       <span className="archetypes-eyebrow">{copy.icon} {copy.eyebrow}</span>
       <h2 id={`archetype-paid-${copy.id}`}>{copy.title}</h2>

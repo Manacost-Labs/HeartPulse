@@ -8,7 +8,7 @@ declare global {
 }
 
 const builds = Array.from({ length: 14 }, (_, index) => ({
-  deckCode: `AAEBAa0GFixtureDeckCode${String(index + 1).padStart(2, '0')}abcdefghijklmnopqrstuvwxyz`,
+  deckCode: `AAEBAa0GFixtureDeckCode${String(index + 1).padStart(2, '0')}${'abcdefghijklmnopqrstuvwxyz'.repeat(3)}`,
   games: 2_216 - index * 91,
   winrate: 57.1 + (index % 5),
   sourceUrl: 'https://www.hsguru.com/deck/40919030',

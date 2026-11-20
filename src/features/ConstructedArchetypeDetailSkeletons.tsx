@@ -9,7 +9,7 @@ import './ConstructedArchetypeDetailSkeletons.css';
 import './ConstructedArchetypeInsights.css';
 import { Title, Value, Words } from './archetypeSkeletonText';
 import { useDeckLayout, type DeckLayout } from './deckViews/DeckLayoutSwitch';
-import { RowSkeleton as DeckRowSkeleton, TileSkeleton as DeckTileSkeleton } from './deckViews/DeckViewSkeletons';
+import { DeckCodeSkeleton, RowSkeleton as DeckRowSkeleton, TileSkeleton as DeckTileSkeleton } from './deckViews/DeckViewSkeletons';
 import './ConstructedArchetypeDeckGallery.css';
 
 // Placeholders for the independently loaded parts of an archetype page. Each
@@ -29,13 +29,14 @@ export function ArchetypeDeckCardSkeleton() {
       </dl>
     </div>
     <div className="deck-render-preview"><LoadingBlock className="deck-render-preview__loading" /></div>
+    <DeckCodeSkeleton />
     <div className="archetype-deck-card__copy"><Copy /><Words>Скопировать код колоды</Words></div>
   </div>;
 }
 
 const GALLERY_SKELETON: Record<DeckLayout, { className: string; Card: () => React.JSX.Element }> = {
-  tiles: { className: 'fun-decks-tiles-grid archetype-deck-gallery--views', Card: DeckTileSkeleton },
-  rows: { className: 'fun-decks-rows archetype-deck-gallery--views', Card: DeckRowSkeleton },
+  tiles: { className: 'fun-decks-tiles-grid archetype-deck-gallery--views', Card: () => <DeckTileSkeleton code /> },
+  rows: { className: 'fun-decks-rows archetype-deck-gallery--views', Card: () => <DeckRowSkeleton code /> },
   images: { className: 'archetype-deck-gallery', Card: ArchetypeDeckCardSkeleton },
 };
 

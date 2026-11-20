@@ -85,7 +85,7 @@ export function ArchetypeBuildsSection({ item, open, paid, pagePeriod }: {
         <span className="archetype-section-heading__count">{total} {pluralRu(total, 'сборка', 'сборки', 'сборок')}</span>
       </header>
       <ConstructedArchetypeDeckGallery builds={shown} format={item.format} archetype={item.archetype}
-        archetypeLabel={item.archetypeLabel} classKey={item.classKey} seeds={seeds} />
+        archetypeLabel={item.archetypeLabel} classKey={item.classKey} seeds={seeds} full={Boolean(paid)} />
       {remaining > 0 ? (
         <MoreButton label={!paid && list.state === 'loading' ? 'Загружаем сборки…' : `Загрузить ещё ${Math.min(BUILDS_PAGE, remaining)}`}
           disabled={!paid && list.state === 'loading'} onClick={() => (paid ? setVisible(value => value + BUILDS_PAGE) : void list.load())} />
