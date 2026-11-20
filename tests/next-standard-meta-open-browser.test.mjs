@@ -14,6 +14,10 @@ import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 const READER = { id: 'sm-reader', email: 'reader@example.test', name: 'Подписчик', role: 'user' };
 const SUBSCRIBED = { hasAccess: true, entitlements: { arena: true, standard: true }, source: 'boosty', checkedAt: null,
   stale: false, message: '', boosty: { checked: true, hasAccess: true }, patreon: {}, telegram: {} };
+// A signed-in account without a subscription (and the subscriber's answer once the subscription has expired).
+const FREE = { id: 'sm-free', email: 'free@example.test', name: 'Без подписки', role: 'user' };
+const NO_ACCESS = { hasAccess: false, entitlements: {}, source: 'boosty', checkedAt: null, stale: false, message: '',
+  boosty: { checked: true, hasAccess: false }, patreon: {}, telegram: {} };
 const PROTECTED_DELAY_MS = 800;
 const SENTINELS = ['77.7701', '66.6066', 'SENTINEL_TREND'];
 const DESKTOP = { width: 1440, height: 900 };
@@ -33,18 +37,22 @@ const slice = (format, paid) => ({
 });
 
 async function startStack() {
-  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [], protectedQueries: [], protectedDown: false, protectedDelay: PROTECTED_DELAY_MS, protectedHang: false, protectedDenied: 0, protectedDeniedOnce: 0, statusDelay: 0, authDelay: 0 };
+  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [], protectedQueries: [], protectedDown: false, protectedDelay: PROTECTED_DELAY_MS, protectedHang: false, protectedDenied: 0, protectedDeniedOnce: 0, statusDelay: 0, authDelay: 0, readerExpired: false };
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://stack');
     const reader = /(?:^|;\s*)sm_session=reader/.test(request.headers.cookie ?? '');
+    const free = /(?:^|;\s*)sm_session=free/.test(request.headers.cookie ?? '');
+    // A signed-in viewer without access: an account that never subscribed, or the reader once the subscription expired.
+    const refused = free || (reader && state.readerExpired);
     const json = (status, payload) => response.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store' })
       .end(JSON.stringify(payload));
     // The session answer names the viewer tag it read (the `hp_viewer` cookie), as the real API does: the browser then
     // remembers the viewer under that tag, and a guest answer for a tag ends that session.
     const tag = /(?:^|;\s*)hp_viewer=([A-Za-z0-9_-]{22})/.exec(request.headers.cookie ?? '')?.[1] ?? null;
-    if (url.pathname === '/api/auth/me') return void setTimeout(() => json(200, { user: reader ? READER : null, viewerSession: tag }), reader ? 0 : state.authDelay);
-    if (url.pathname === '/api/subscription/refresh') return reader ? void setTimeout(() => json(200, SUBSCRIBED), state.statusDelay) : json(401, { error: 'guest' });
-    if (url.pathname === '/api/subscription/status') return reader ? void setTimeout(() => json(200, SUBSCRIBED), state.statusDelay) : json(401, { error: 'guest' });
+    if (url.pathname === '/api/auth/me') return void setTimeout(() => json(200, { user: reader ? READER : free ? FREE : null, viewerSession: tag }), reader || free ? 0 : state.authDelay);
+    if (url.pathname === '/api/subscription/refresh' || url.pathname === '/api/subscription/status') {
+      return reader || free ? void setTimeout(() => json(200, refused ? NO_ACCESS : SUBSCRIBED), state.statusDelay) : json(401, { error: 'guest' });
+    }
     if (url.pathname === '/api/standard-meta/public') {
       state.publicReads.push(`${url.pathname}${url.search}`);
       state.publicHeaders.push(request.headers['x-hearthpulse-prerender'] ?? null);
@@ -52,6 +60,7 @@ async function startStack() {
       return json(200, slice(url.searchParams.get('format') === 'wild' ? 'wild' : 'standard', false));
     }
     if (url.pathname === '/api/standard-meta') {
+      if (refused) return json(403, { error: 'subscription required' });
       if (!reader) return json(401, { error: 'subscription required' });
       state.protectedReads += 1;
       state.protectedQueries.push(Object.fromEntries(url.searchParams));
@@ -405,8 +414,12 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
         window.fetch = async (...args) => {
           const answer = await nativeFetch(...args);
           if (String(args[0]).startsWith('/api/standard-meta?')) {
-            if (answer.status === code) window.__denied = true;
-            else if (answer.ok && window.__denied) window.__recovered = true;
+            // The client has the refusal once it has read the answer's body (the page reads it before it acts): a frame
+            // painted while the body is still on its way is not counted (#645).
+            if (answer.status === code) {
+              const read = answer.json.bind(answer);
+              answer.json = () => read().finally(() => { window.__denied = true; });
+            } else if (answer.ok && window.__denied) window.__recovered = true;
           }
           return answer;
         };
@@ -505,6 +518,97 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
       assert.equal(asked.rank, 'diamond_legend', 'the default rank replaces the bad one');
     }
     await broken.close();
+  } finally {
+    if (browser) await browser.close();
+    await next.close();
+    await closeLocal(stack.server);
+  }
+});
+
+// A signed-in viewer this browser remembers keeps the head script's mark (it hides the "Made with" block, among others),
+// so the mark alone must not hide the lock marks: once the page knows the viewer has no access, every lock is visible.
+// A remembered subscriber with access never sees a lock mark.
+test('a remembered signed-in viewer without a subscription sees the lock marks on /standard/meta/', { timeout: 180_000 }, async () => {
+  const stack = await startStack();
+  const next = await startNextServer({ legacyOrigin: stack.origin });
+  stack.next = next.origin;
+  let browser;
+  // The lock marks the viewer can see (a rank button the phone layout replaces with a select has no box): all of them,
+  // and how many of those are hidden.
+  const lockMarks = page => page.$$eval('.standard-meta__lock-mark', nodes => {
+    const shown = nodes.filter(node => node.getClientRects().length > 0);
+    return { shown: shown.length, hidden: shown.filter(node => getComputedStyle(node).visibility === 'hidden').length };
+  });
+  // Reloads the page and waits until its access check has answered (the subscription status), and a little more.
+  const reloadChecked = async page => {
+    const checked = page.waitForResponse(response => response.url().includes('/api/subscription/status'), { timeout: 15000 });
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    const marked = await page.evaluate(() => document.documentElement.dataset.hpViewer);
+    await checked;
+    await delay(1_000);
+    return marked;
+  };
+  try {
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+      headless: true, args: ['--no-sandbox'] });
+    for (const viewport of [DESKTOP, PHONE]) {
+      const label = `${viewport.width}px`;
+
+      // An account that never subscribed: the first visit remembers it, the next one starts with the head script's mark.
+      const freeContext = await browser.createBrowserContext();
+      const free = await freeContext.newPage();
+      await free.setViewport(viewport);
+      await free.setCookie({ name: 'sm_session', value: 'free', url: stack.origin }, { name: 'hp_viewer', value: 'CCCCCCCCCCCCCCCCCCCCCC', url: stack.origin });
+      await free.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
+      await free.waitForFunction(() => localStorage.getItem('hs_arena_viewer_hint') !== null, { timeout: 15000 });
+      assert.equal(await reloadChecked(free), 'remembered', `${label}: the head script remembers the account`);
+      assert.equal(await free.evaluate(() => document.documentElement.dataset.hpViewer), 'remembered', `${label}: a signed-in viewer keeps the mark`);
+      const freeMarks = await lockMarks(free);
+      assert.ok(freeMarks.shown >= 24, `${label}: the locks of every card are on the page (${freeMarks.shown})`);
+      assert.equal(freeMarks.hidden, 0, `${label}: an account without a subscription sees every lock mark (${freeMarks.hidden} of ${freeMarks.shown} hidden)`);
+      await freeContext.close();
+
+      // A remembered subscriber: not one frame shows a lock mark. Then the subscription expires while the session lives on.
+      stack.readerExpired = false;
+      const readerContext = await browser.createBrowserContext();
+      const reader = await readerContext.newPage();
+      await reader.setViewport(viewport);
+      await reader.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin }, { name: 'hp_viewer', value: 'DDDDDDDDDDDDDDDDDDDDDD', url: stack.origin });
+      await reader.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
+      await reader.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+      await reader.waitForFunction(() => localStorage.getItem('hs_arena_viewer_hint') !== null, { timeout: 5000 });
+      await reader.evaluateOnNewDocument(() => {
+        window.__lockSeen = 0;
+        const look = () => {
+          for (const node of document.querySelectorAll('.standard-meta__lock-mark')) {
+            if (node.getClientRects().length > 0 && getComputedStyle(node).visibility !== 'hidden') { window.__lockSeen += 1; return; }
+          }
+        };
+        new MutationObserver(look).observe(document, { subtree: true, childList: true, attributes: true });
+        const loop = () => { look(); requestAnimationFrame(loop); };
+        loop();
+      });
+      assert.equal(await reloadChecked(reader), 'remembered', `${label}: the head script remembers the subscriber`);
+      await reader.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+      await delay(500);
+      assert.equal(await reader.evaluate(() => window.__lockSeen), 0, `${label}: a remembered subscriber sees no lock mark`);
+      // The first visit after the subscription expired still remembers the grant (the paid route refuses, the check
+      // confirms the refusal); every later visit remembers the account without it. Both end with every lock visible.
+      stack.readerExpired = true;
+      for (const visit of ['first', 'next']) {
+        assert.equal(await reloadChecked(reader), 'remembered', `${label}: the expired subscriber is still remembered (${visit} visit)`);
+        await reader.waitForSelector('button[aria-label^="Ходы: по подписке"]', { timeout: 15000 });
+        if (visit === 'next') {
+          assert.equal(await reader.evaluate(() => document.documentElement.dataset.hpViewer), 'remembered', `${label}: a signed-in viewer keeps the mark`);
+        }
+        const expiredMarks = await lockMarks(reader);
+        assert.ok(expiredMarks.shown >= 24, `${label}: the locks of every card are on the page (${expiredMarks.shown}, ${visit} visit)`);
+        assert.equal(expiredMarks.hidden, 0,
+          `${label}: a subscriber whose subscription expired sees every lock mark (${expiredMarks.hidden} of ${expiredMarks.shown} hidden, ${visit} visit)`);
+      }
+      stack.readerExpired = false;
+      await readerContext.close();
+    }
   } finally {
     if (browser) await browser.close();
     await next.close();

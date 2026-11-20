@@ -1144,6 +1144,8 @@
 /* A 24px target in the height of the line of the number it replaces (1lh), so a guest's card is as tall as a subscriber's. */
 button.standard-meta__paid-value { vertical-align: top; font: inherit; min-block-size: 24px; min-inline-size: 24px; margin-block: calc((1lh - 24px) / 2); justify-content: center; cursor: pointer; }
 
-/* While the viewer's access is checked (or a remembered subscriber's page is not hydrated yet) the lock marks are hidden: a subscriber does not see them flash. */
+/* While the viewer's access is checked (or a remembered viewer's page does not know the access yet: server HTML, hydration)
+   the lock marks are hidden: a subscriber does not see them flash. Once the page knows the access (`data-access-known`)
+   they show to anyone without it, also to a signed-in viewer who keeps the head script's mark. */
 .standard-meta[data-access-pending] .standard-meta__lock-mark,
-html[data-hp-viewer='remembered'] .standard-meta__lock-mark { visibility: hidden; }
+html[data-hp-viewer='remembered'] .standard-meta:not([data-access-known]) .standard-meta__lock-mark { visibility: hidden; }

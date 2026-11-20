@@ -16,8 +16,8 @@ const NO_REFUSAL = { denied: false, checked: false, retried: false };
 const OFFER_TITLE = 'Узкие срезы, история и тренды — в подписке';
 const OFFER_TEXT = 'Другие ранги и периоды, очерёдность хода, порог игр, ходы, длительность, скорость набора и динамика архетипов открываются подпиской.';
 
-function MetaView({ initialTeaser, format, hasFullAccess, teaserWaitsForAccess, accessPending, accessLost, onAccessDenied }: {
-  initialTeaser: StandardMetaTeaserSeed | null; format: 'standard' | 'wild'; hasFullAccess: boolean; teaserWaitsForAccess: boolean; accessPending: boolean; accessLost: boolean; onAccessDenied: () => Promise<unknown>;
+function MetaView({ initialTeaser, format, hasFullAccess, teaserWaitsForAccess, accessPending, accessKnown, accessLost, onAccessDenied }: {
+  initialTeaser: StandardMetaTeaserSeed | null; format: 'standard' | 'wild'; hasFullAccess: boolean; teaserWaitsForAccess: boolean; accessPending: boolean; accessKnown: boolean; accessLost: boolean; onAccessDenied: () => Promise<unknown>;
 }) {
   // Access is raised in place (the paid slice replaces the open one), but when it is withdrawn (sign-out, an expired
   // subscription, a refused status check) the page restarts from the open slice in the same render: no frame shows
@@ -42,7 +42,7 @@ function MetaView({ initialTeaser, format, hasFullAccess, teaserWaitsForAccess, 
     flushSync(() => setGuard(current => ({ denied: true, checked: false, retried: current.retried })));
     if (mayRetry) void onAccessDenied().then(() => undefined, () => undefined).then(() => setGuard(current => ({ ...current, checked: true })));
   };
-  return <StandardMetaPage key={state.epoch} embedded hasFullAccess={granted} teaserWaitsForAccess={teaserWaitsForAccess} accessPending={accessPending}
+  return <StandardMetaPage key={state.epoch} embedded hasFullAccess={granted} teaserWaitsForAccess={teaserWaitsForAccess} accessPending={accessPending} accessKnown={accessKnown}
     initialTeaser={initialTeaser} format={format} onAccessDenied={refused} />;
 }
 
@@ -58,11 +58,14 @@ export function StandardMetaPageClient({ initialTeaser, format = 'standard' }: {
   const hydrated = useHydrated();
   // A browser holding a session is probably a subscriber's: its locks stay hidden until the check ends (never in server HTML).
   const remembered = hydrated && pending && sessionTag() !== null;
+  // Once the hydrated page knows the access, the locks show even under the head script's mark of a remembered viewer:
+  // the mark stays for a signed-in viewer (it hides the "Made with" block), whose subscription may be gone.
+  const accessKnown = hydrated && !pending;
   return <PublicPageShell activeTab="standard-meta" pathname={format === 'wild' ? '/standard/meta/wild/' : '/standard/meta/'}
     access={access} navigate={navigate} wide>
     <PaidOfferProvider entitlement="standard" title={OFFER_TITLE} text={OFFER_TEXT}>
       <MetaView initialTeaser={initialTeaser} format={format} hasFullAccess={allowed}
-        teaserWaitsForAccess={pending && sessionTag() !== null} accessPending={remembered} accessLost={!allowed && !pending} onAccessDenied={access.refresh} />
+        teaserWaitsForAccess={pending && sessionTag() !== null} accessPending={remembered} accessKnown={accessKnown} accessLost={!allowed && !pending} onAccessDenied={access.refresh} />
     </PaidOfferProvider>
   </PublicPageShell>;
 }

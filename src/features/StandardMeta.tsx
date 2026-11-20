@@ -430,6 +430,11 @@ type StandardMetaPageProps = {
   teaserWaitsForAccess?: boolean;
   /** The viewer's access is being checked: the locks are not shown yet. */
   accessPending?: boolean;
+  /**
+   * The hydrated page knows the viewer's access (granted or not). Until then the head script's mark of a remembered
+   * viewer hides the locks; from then on a viewer without access sees them, whether signed in or not.
+   */
+  accessKnown?: boolean;
   /** The paid route refused the viewer (401/403): the page asks for the access check again. */
   onAccessDenied?: () => void;
   embedded?: boolean;
@@ -472,7 +477,7 @@ function StandardMetaContent({
   onAccessDenied,
   initialTeaser,
   format,
-}: Required<Omit<StandardMetaPageProps, 'embedded' | 'accessPending'>>) {
+}: Required<Omit<StandardMetaPageProps, 'embedded' | 'accessPending' | 'accessKnown'>>) {
   const [rank, setRank] = useState<MetaRank>(TEASER_SEED_FILTERS.rank);
   const [period, setPeriod] = useState<MetaPeriod | null>(initialTeaser?.period ?? null);
   const [coin, setCoin] = useState<MetaCoin>(TEASER_SEED_FILTERS.coin);
@@ -769,6 +774,7 @@ export default function StandardMetaPage({
   hasFullAccess = true,
   teaserWaitsForAccess = false,
   accessPending = false,
+  accessKnown = false,
   onAccessDenied,
   embedded = false,
   initialTeaser = null,
@@ -776,7 +782,8 @@ export default function StandardMetaPage({
 }: StandardMetaPageProps) {
   const Root = embedded ? 'section' : 'main';
   return (
-    <Root className="standard-meta" id={embedded ? undefined : 'main-content'} data-access-pending={accessPending ? '' : undefined}>
+    <Root className="standard-meta" id={embedded ? undefined : 'main-content'} data-access-pending={accessPending ? '' : undefined}
+      data-access-known={accessKnown ? '' : undefined}>
       <RecoverableSurfaceBoundary
         scope="standard-meta"
         title="Раздел меты временно недоступен"
