@@ -86,6 +86,27 @@ const CHART_DATE = '\u2007\u2007 июл';
 
 export const HISTORY_TEXT = 'Срез добавляется каждые 12 часов. HSGuru считает статистику внутри периода — патча или дополнения — и с новым периодом начинает счёт заново, поэтому граница отмечена пунктиром.';
 
+/**
+ * The history's three chart frames with a 240 px plot and its selection controls. A guest's locked history is sized
+ * by them too (ArchetypePaidFrames), out of sight, so the lock stands exactly where the skeleton will.
+ */
+export function HistoryChartsSkeleton() {
+  return <div className="archetype-history__charts">
+    {HISTORY_CHARTS.map(({ title, subtitle }) => <ChartFrame key={title} title={title} subtitle={subtitle} exportable={false}>
+      <div className="analytics-chart__plot">
+        <LoadingBlock className="archetype-skeleton__plot" />
+        <div className="analytics-chart__selection">
+          <LoadingBlock className="archetype-skeleton__selection-value" />
+          <div className="analytics-chart__scrubber">
+            <LoadingBlock className="archetype-skeleton__range" />
+            <div><Words>{CHART_DATE}</Words><Words>{CHART_DATE}</Words></div>
+          </div>
+        </div>
+      </div>
+    </ChartFrame>)}
+  </div>;
+}
+
 /** The history section: real heading frame and three chart frames with a 240 px plot and selection controls. */
 export function ArchetypeHistorySkeleton() {
   return <LoadingSurface label="Загружаем историю архетипа" quiet layout="rows" className="archetype-detail-skeleton">
@@ -98,20 +119,7 @@ export function ArchetypeHistorySkeleton() {
         </div>
         <span className="archetype-section-heading__count"><Value /></span>
       </div>
-      <div className="archetype-history__charts">
-        {HISTORY_CHARTS.map(({ title, subtitle }) => <ChartFrame key={title} title={title} subtitle={subtitle}>
-          <div className="analytics-chart__plot">
-            <LoadingBlock className="archetype-skeleton__plot" />
-            <div className="analytics-chart__selection">
-              <LoadingBlock className="archetype-skeleton__selection-value" />
-              <div className="analytics-chart__scrubber">
-                <LoadingBlock className="archetype-skeleton__range" />
-                <div><Words>{CHART_DATE}</Words><Words>{CHART_DATE}</Words></div>
-              </div>
-            </div>
-          </div>
-        </ChartFrame>)}
-      </div>
+      <HistoryChartsSkeleton />
     </div>
   </LoadingSurface>;
 }

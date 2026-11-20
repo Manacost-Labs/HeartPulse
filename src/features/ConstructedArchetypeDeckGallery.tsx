@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Copy,
   RefreshCw,
@@ -88,7 +88,9 @@ function DeckBuildCard({
   full?: boolean;
   onPendingChange: (deckCode: string, pending: boolean) => void;
 }) {
-  const [deck, setDeck] = useState<ResolvedDeck | null>(null);
+  const [read, setDeck] = useState<ResolvedDeck | null>(null);
+  const seeded = useMemo(() => (seed ? seededDeck(build.deckCode, format, seed) : null), [build.deckCode, format, seed]);
+  const deck = full ? read : seeded ?? read; // in the render that drops `full` (access lost): no full list for one frame
   const [error, setError] = useState('');
   const [renderState, setRenderState] = useState<DeckRenderState>('idle');
   useReportedPending(build.deckCode, renderState === 'loading' || (renderState === 'error' && !deck && !error), onPendingChange);

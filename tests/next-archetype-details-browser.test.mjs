@@ -259,7 +259,10 @@ test('Next archetype details isolate access and load builds before independent o
       await page.waitForSelector('[data-paid-frame]');
       assert.deepEqual(await page.$$eval('[data-paid-frame] h2', nodes => nodes.map(node => node.textContent)),
         ['Матчапы против классов', 'Муллиган и влияние карт', 'Винрейт по рангам', 'История архетипа'], path);
-      assert.equal(await page.$$eval('[data-paid-frame] button', nodes => nodes.length), 4, `${path}: a lock in every paid frame`);
+      assert.equal(await page.$$eval('[data-paid-frame] .paid-lock', nodes => nodes.length), 4, `${path}: a lock in every paid frame`);
+      // The history frame is sized by the skeleton's chart frames, out of sight: none of their controls can be reached.
+      assert.deepEqual(await page.$$eval('[data-paid-frame] button:not(.paid-lock)', nodes => nodes.filter(node => !node.closest('[inert]')).length), 0,
+        `${path}: only the locks of the paid frames can be reached`);
       const text = await page.evaluate(() => document.body.textContent);
       assert.ok(!/Колоды, матчапы|коды колод|Состав и код колоды/i.test(text), `${path} sells decks as paid`);
     }
@@ -367,7 +370,6 @@ test('Next archetype details isolate access and load builds before independent o
     coreFails = true;
     await page.reload({ waitUntil: 'networkidle2' });
     assert.equal(await page.$eval('h1', node => node.textContent), 'Воровской Жрец', 'public identity survives a core failure');
-    const paidBuild = () => page.$('button[data-deck-code="AAEBAa0GValidDeckCode"]');
     // The paid answer has two builds, the open page one: the count says which list the gallery holds.
     const paidList = () => page.$eval('.archetype-builds .archetype-section-heading__count', node => node.textContent === '2 сборки').catch(() => false);
     const openBuild = () => page.$(`button[data-deck-code="${OPEN_DECK}"]`);

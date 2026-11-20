@@ -96,7 +96,7 @@ export function BuildComparisonSection({ builds, format, archetype }: { builds: 
       <div>
         <span className="archetypes-eyebrow"><GitCompareArrows size={15} aria-hidden="true" /> Сборки</span>
         <h2 id="archetype-compare-title">Сравнение сборок</h2>
-        <p>Выберите две из {builds.length} сборок: винрейт с погрешностью, надёжность выборки, кривая маны и карты, которыми они отличаются.</p>
+        <p>Выберите две сборки: винрейт с погрешностью, надёжность выборки, кривая маны и карты, которыми они отличаются.</p>
       </div>
       <button type="button" className="archetype-compare__toggle" aria-expanded={open} aria-controls="archetype-compare-content"
         onClick={() => { setOpened(true); setOpen(value => !value); }}>

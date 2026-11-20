@@ -339,7 +339,7 @@
     "tests/next-admin-entitlements-browser.test.mjs": 36.9,
     "tests/next-analytics-loader.test.ts": 0.2,
     "tests/next-archetype-details-browser.test.mjs": 29.6,
-    "tests/next-archetype-subscriber-geometry-browser.test.mjs": 22,
+    "tests/next-archetype-subscriber-geometry-browser.test.mjs": 28.4,
     "tests/next-archetypes-catalog-rendering-browser.test.mjs": 10.2,
     "tests/next-arena-guest-paywall-browser.test.mjs": 35.3,
     "tests/next-article-covers-browser.test.mjs": 4.7,

@@ -3,7 +3,8 @@ import { Grid3x3, Swords, Sparkles, TrendingUp } from 'lucide-react';
 import { ArchetypeDetailSection } from '../modules/constructedArchetypes/public';
 import { PaidMetricLock } from '../shared/ui/PaidLocks';
 import { RankHeatmapSection, RANKS_TEXT } from './ArchetypeInsightSlots';
-import { ArchetypeAnalysisLoading, ArchetypeHistorySkeleton, HISTORY_TEXT } from './ConstructedArchetypeDetailSkeletons';
+import { ArchetypeAnalysisLoading, ArchetypeHistorySkeleton, HISTORY_TEXT, HistoryChartsSkeleton } from './ConstructedArchetypeDetailSkeletons';
+import { Value } from './archetypeSkeletonText';
 import './ArchetypePaidFrames.css';
 
 /** `tour`: the anchor the page tour points at in the subscriber's view; the locked frame carries it too. */
@@ -30,19 +31,26 @@ const FRAMES: Record<'matchups' | 'mulligan' | 'ranks' | 'history', FrameCopy> =
 
 /**
  * A paid section for a guest: its place, heading and what it holds, closed behind the lock. Each frame is as tall as
- * the subscriber's loading skeleton of that section (ArchetypePaidFrames.css), so access arriving swaps a lock for a
- * skeleton the way a subscriber's skeleton gives way to the data.
+ * the subscriber's loading skeleton of that section, so access arriving swaps a lock for a skeleton the way a
+ * subscriber's skeleton gives way to the data. The ranks and the history share the skeleton's geometry: the same
+ * heading, and the rank table's reserve or the history's chart frames (kept out of sight, the lock over them); the
+ * analysis skeleton comes with its lazy chunk, so its frames take its measured heights (ArchetypePaidFrames.css).
  */
 function LockedFrame({ frame }: { frame: keyof typeof FRAMES }) {
   const copy = FRAMES[frame];
-  return <section className={`archetype-insight archetype-paid-frame archetype-paid-frame--${copy.id}`} aria-labelledby={`archetype-paid-${copy.id}`}
-    data-paid-frame={copy.id} data-tour-id={copy.tour}>
+  const history = frame === 'history';
+  const lock = <div className="archetype-paid-frame__body"><PaidMetricLock variant="card" label={copy.title} closed="paywalled-archetype" /></div>;
+  return <section className={`archetype-insight archetype-paid-frame archetype-paid-frame--${copy.id}`}
+    aria-labelledby={`archetype-paid-${copy.id}`} data-paid-frame={copy.id} data-tour-id={copy.tour}>
     <header className="archetype-section-heading"><div>
       <span className="archetypes-eyebrow">{copy.icon} {copy.eyebrow}</span>
       <h2 id={`archetype-paid-${copy.id}`}>{copy.title}</h2>
       <p>{copy.text}</p>
-    </div></header>
-    <div className="archetype-paid-frame__body"><PaidMetricLock variant="card" label={copy.title} closed="paywalled-archetype" /></div>
+    </div>{history ? <span className="archetype-section-heading__count archetype-paid-frame__count" aria-hidden="true"><Value /></span> : null}</header>
+    {history ? <div className="archetype-paid-frame__sized">
+      <div className="archetype-detail-skeleton archetype-paid-frame__sizer" aria-hidden="true" inert><HistoryChartsSkeleton /></div>
+      {lock}
+    </div> : lock}
   </section>;
 }
 

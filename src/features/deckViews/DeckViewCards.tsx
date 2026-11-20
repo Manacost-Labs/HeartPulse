@@ -28,7 +28,11 @@ export function useDeckView(
 ) {
   const { ref, near } = useNearScreen<HTMLElement>(eager);
   const resolved = useResolvedDeck(deckCode, { ...options, enabled: near && (!seed || full) });
-  const data = useMemo(() => resolved.data ?? (seed ? seededDeck(deckCode, options.format, seed) : null), [seed, deckCode, options.format, resolved.data]);
+  const seeded = useMemo(() => (seed ? seededDeck(deckCode, options.format, seed) : null), [seed, deckCode, options.format]);
+  // Chosen in the render that changes `full`: when the full list is no longer wanted (access lost in place), the
+  // list read for it is not shown for a single frame; the seed stands again. Without a seed the read list is the
+  // one anyone gets.
+  const data = full ? resolved.data ?? seeded : seeded ?? resolved.data;
   const entries = useMemo(
     () => (data ? funDeckEntries(data.cards, data.sideboards) : []),
     [data],
