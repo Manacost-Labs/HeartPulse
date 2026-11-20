@@ -136,8 +136,6 @@ async function heroLightboxClose({ reducedMotion }) {
   await page.waitForSelector('[role="tablist"][aria-label="Статистика героя"]');
   await page.waitForSelector('.bg-hero-action-card', { visible: true });
   await page.click('.bg-hero-action-card');
-  // The lightbox code loads on the first click (#651): wait for it to mount before reading its fade.
-  await page.waitForSelector('.bg-hero-media-lightbox');
   await page.waitForFunction(() => getComputedStyle(document.querySelector('.bg-hero-media-lightbox')).opacity === '1');
   const cdp = await page.createCDPSession();
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 6 });

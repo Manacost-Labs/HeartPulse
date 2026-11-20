@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ChevronLeft } from 'lucide-react';
 import {
   HeroCompositionAnalytics,
@@ -22,10 +22,8 @@ import type {
   BattlegroundHeroMediaItem,
   BattlegroundHeroSkin,
 } from './battlegroundHeroDetailTypes';
+import { BattlegroundHeroMediaLightbox } from './BattlegroundHeroDetailLightbox';
 
-// The lightbox opens only on a click; its code stays out of the page chunk.
-const BattlegroundHeroMediaLightbox = lazy(() => import('./BattlegroundHeroDetailLightbox')
-  .then(module => ({ default: module.BattlegroundHeroMediaLightbox })));
 
 function BattlegroundHeroSkins({ skins, skinMediaItems, openMediaGallery }: {
   skins: BattlegroundHeroSkin[];
@@ -140,14 +138,12 @@ export function BattlegroundHeroDetailView({ dbfId, stats, libraryHero: loadedLi
       />
 
       {lightboxIndex >= 0 && (
-        <Suspense fallback={null}>
-          <BattlegroundHeroMediaLightbox
-            items={lightboxItems}
-            index={lightboxIndex}
-            onClose={closeLightbox}
-            onIndexChange={setLightboxIndex}
-          />
-        </Suspense>
+        <BattlegroundHeroMediaLightbox
+          items={lightboxItems}
+          index={lightboxIndex}
+          onClose={closeLightbox}
+          onIndexChange={setLightboxIndex}
+        />
       )}
     </div>
   );
