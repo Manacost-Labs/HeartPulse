@@ -181,15 +181,19 @@ No new dependency, database migration or public JSON API is introduced.
 page by page. The rule is `isIndexableArchetype`
 (`shared/constructedArchetypeIndexing.ts`), the single reader of which is the
 page's metadata and JSON-LD and the sitemap source of the Express server
-(«Archetype sitemap segment»): format Standard, at least
-`INDEXABLE_ARCHETYPE_MIN_GAMES` (1000) games, at least one build and a
-popularity above zero. At the 2026-10-29
-catalog that is 72 of 196 Standard archetypes. Wild is never indexable.
+(«Archetype sitemap segment»): format Standard with at least
+`INDEXABLE_ARCHETYPE_MIN_GAMES` (1000) games or format Wild with at least
+`INDEXABLE_WILD_ARCHETYPE_MIN_GAMES` (5000) games (#543; both numbers live in
+`shared/seoIndexThreshold.ts`, `INDEX_MIN_SAMPLE_GAMES`), at least one build and
+a popularity above zero. At the 2026-10-29 catalog that is 72 of 196 Standard
+archetypes; at the 2026-11-20 one, 43 of 500 Wild archetypes (the Wild sample
+is thinner: three of four have fewer than 500 games). Any other format is never
+indexable.
 
 - Indexable: HTTP 200, `index, follow` with the preview directives
   (`policy.robots`), self-canonical, the JSON-LD below and a unique title.
-- Below the threshold and every Wild archetype: `noindex, follow`, self
-  canonical, no JSON-LD. The route inventory keeps the listing level
+- Below the threshold of its format: `noindex, follow`, self canonical, no
+  JSON-LD. The route inventory keeps the listing level
   (`constructed-archetype-detail`: `index`, `sitemap: true`, `server-ssr`) and
   `apps/public-web/lib/publicArchetypeRoute.ts` narrows it per page.
 - The legacy `/standard/meta/:format/:archetypeSlug/` family is not a page any
@@ -198,11 +202,22 @@ catalog that is 72 of 196 Standard archetypes. Wild is never indexable.
   string (inventory `standard-meta-legacy-detail`: `kind: redirect`,
   `expectedStatus: 301`). A Next response served without nginx names the
   `archetypes` URL as its canonical and stays `noindex, follow` without JSON-LD.
-- nginx puts no `X-Robots-Tag` on a successful Standard archetype, so the
-  page's meta robots decide; a header the app sends passes through unchanged.
-  It keeps `noindex, follow` on Wild (a second layer until Wild's own phase)
-  and `noindex, nofollow` on every `4xx`/`5xx`
-  (`$arena_next_archetype_robots_header` in `deploy/nginx/arena-seo-map.conf`).
+- nginx puts no `X-Robots-Tag` on a successful archetype page, Standard or Wild
+  (#543 removed the Wild edge layer), so the page's meta robots decide; a header
+  the app sends passes through unchanged. Every `4xx`/`5xx` gets
+  `noindex, nofollow` (`$arena_next_archetype_robots_header` in
+  `deploy/nginx/arena-seo-map.conf`).
+- The Wild catalog has its own server-rendered list, `/standard/archetypes/wild/`
+  (#543; inventory `constructed-archetypes-wild`): every archetype of the Wild
+  catalog with winrate, popularity and games, the date and the source, and a
+  link to each page, without JavaScript. The format switch of both lists is two
+  links, the menu item «Вольный → Архетипы» and the «Вольный» step of a Wild
+  archetype's breadcrumb lead there, and the old `/standard/archetypes/?format=wild`
+  still opens Wild. nginx adds the slash with one `301` (on the old hosts too,
+  `$arena_canonical_edge_path`). Until SEO-A opens it, the list is
+  `noindex, follow`, has no canonical and no JSON-LD and stays out of the
+  sitemap (`canonicalPolicy: none`, `sitemap: false`); the archetypes segment
+  still lists Standard pages only.
 - Every archetype page, indexable or not, renders the server-side block
   (`apps/public-web/ui/ArchetypeSeoSummary.tsx`, passed to
   `ArchetypeDetailPageClient` as `children`, so the client bundle only grows by
@@ -231,7 +246,8 @@ catalog that is 72 of 196 Standard archetypes. Wild is never indexable.
   (`src/seo/archetypeStructuredData.ts`) through the same finishing step as the
   registry pages (`seoStructuredDataGraphOf`): `Organization` `#org`,
   `BreadcrumbList` («Архетипы» › the archetype; the format step of the visible
-  trail has no address of its own and is left out), `ItemPage` (title and
+  trail is left out: Standard's has no address of its own and Wild's list is
+  `noindex` until SEO-A opens it), `ItemPage` (title and
   description of the meta, `dateModified` = `updatedAt`) and `Dataset`
   (`isBasedOn` = the teaser's HSGuru `sourceUrl`; `variableMeasured` carries
   the teaser's winrate, popularity and games as they are, a metric the source

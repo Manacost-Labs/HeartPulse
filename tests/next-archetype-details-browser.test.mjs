@@ -152,11 +152,11 @@ test('Next archetype details isolate access and load builds before independent o
     page.on('request', request => {
       if (/^\/api\/constructed-archetypes\/(?!teaser\/)/.test(new URL(request.url()).pathname)) protectedCalls.push(request.url());
     });
-    // The strong Standard archetype is the only one offered to search engines; every page carries the plates and the class links.
+    // Strong archetypes are offered to search engines (Wild from 5000 games, #543); every page carries the plates and the class links.
     // The old `meta` family is redirected by nginx; served without it (here) it names the archetype URL as canonical.
     const NOINDEX = 'noindex, follow';
     for (const [path, width, h1, robots, graph, canonicalPath = path] of [
-      ['/standard/archetypes/wild/thief-priest/', 1440, 'Воровской Жрец', NOINDEX, false],
+      ['/standard/archetypes/wild/thief-priest/', 1440, 'Воровской Жрец', INDEXABLE_ROBOTS, true],
       ['/standard/meta/wild/thief-priest/', 390, 'Воровской Жрец', NOINDEX, false, '/standard/archetypes/wild/thief-priest/'],
       ['/standard/archetypes/standard/zoolock/', 1440, 'Зоолок', INDEXABLE_ROBOTS, true],
       ['/standard/archetypes/standard/zoolock/', 390, 'Зоолок', INDEXABLE_ROBOTS, true],

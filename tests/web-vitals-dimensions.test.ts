@@ -43,6 +43,7 @@ test('paths collapse to their page template, never to raw ids', () => {
     ['/standard/meta/wild/odd-warrior/', '/standard/meta/[format]/[archetypeSlug]/'],
     ['/heroes/57421/', '/heroes/[dbfId]/'],
     ['/archetypes/wild/', '/archetypes/wild/'],
+    ['/standard/archetypes/wild', '/standard/archetypes/wild/'],
     ['/archetypes/123/', '/archetypes/[archetypeId]/'],
     ['/library/minions/', '/library/[kind]/'],
     ['/library/archive/', '/library/archive/'],

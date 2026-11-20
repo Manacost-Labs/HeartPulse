@@ -2809,42 +2809,20 @@ for (const [device, viewport] of [
     await page.goto(`${BASE}/standard/archetypes`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
     await page.waitForFunction(() => window.location.pathname.replace(/\/+$/, '') === '/standard/archetypes');
     await page.waitForSelector('.archetype-row', { timeout: 20_000 });
-    // The SSR summary needs no browser read; an uncached format exercises recovery.
-    adminState.constructedArchetypeReadFailureOnce = true;
-    await page.click('.archetypes-format-switch button:nth-child(2)');
-    await page.waitForSelector('.archetypes-page [data-recovery-state="error"]', { timeout: 20_000 });
-    await page.evaluate(() => { window.__qaStandardMetaDocumentMarker = 'preserve-on-retry'; });
-    const archetypeErrorState = await page.evaluate(() => {
-      const state = document.querySelector('.archetypes-page [data-recovery-state="error"]');
-      const retry = state?.querySelector('button');
-      return {
-        role: state?.getAttribute('role') || '',
-        text: state?.textContent?.replace(/\s+/g, ' ').trim() || '',
-        retryHeight: retry?.getBoundingClientRect().height ?? 0,
-        shellVisible: Boolean(document.querySelector('.arena-sidebar') && document.querySelector('.global-utility-header')),
-      };
-    });
-    if (archetypeErrorState.role !== 'alert' || !archetypeErrorState.text.includes('Контрольная ошибка загрузки меты')
-      || archetypeErrorState.retryHeight < 43.5 || !archetypeErrorState.shellVisible || adminState.constructedArchetypeReadFailures !== 1) {
-      failures.push(`archetype catalog recovery [${device}]: API error did not stay local or actionable (${JSON.stringify(archetypeErrorState)})`);
-    }
-    await page.click('.archetypes-page [data-recovery-state="error"] button');
-    await page.waitForSelector('.archetype-row', { timeout: 20_000 });
-    const archetypeRetryState = await page.evaluate(() => ({
-      marker: window.__qaStandardMetaDocumentMarker || '',
-      errorPresent: Boolean(document.querySelector('.archetypes-page [data-recovery-state="error"]')),
-      shellRecoveryPresent: Boolean(document.querySelector('[data-app-error]')),
-    }));
-    if (archetypeRetryState.marker !== 'preserve-on-retry' || archetypeRetryState.errorPresent || archetypeRetryState.shellRecoveryPresent) {
-      failures.push(`archetype catalog recovery [${device}]: retry reloaded the document or opened shell recovery (${JSON.stringify(archetypeRetryState)})`);
-    }
-    await page.click('.archetypes-format-switch button:first-child');
-    await page.waitForFunction(() => document.querySelector('.archetype-row__open')?.getAttribute('href')?.includes('/standard/'));
+    // Each format has its own page with its own server summary (#543): the switch is two links and
+    // neither page needs a browser read. A catalog without a server summary recovers in place
+    // (tests/next-archetypes-catalog-rendering-browser.test.mjs).
+    await page.click('.archetypes-format-switch a:nth-child(2)');
+    await page.waitForFunction(() => window.location.pathname === '/standard/archetypes/wild/'
+      && document.querySelector('.archetype-row__open')?.getAttribute('href')?.includes('/wild/'), { timeout: 20_000 });
+    await page.click('.archetypes-format-switch a:first-child');
+    await page.waitForFunction(() => window.location.pathname === '/standard/archetypes/'
+      && document.querySelector('.archetype-row__open')?.getAttribute('href')?.includes('/standard/'), { timeout: 20_000 });
     const archetypeCatalogLayout = await page.evaluate(() => {
       const root = document.querySelector('.archetypes-page');
       const hero = document.querySelector('.traditional-mode-banner');
       const search = document.querySelector('.archetypes-search input');
-      const formatButtons = [...document.querySelectorAll('.archetypes-format-switch button')];
+      const formatButtons = [...document.querySelectorAll('.archetypes-format-switch a')];
       return {
         heading: root?.querySelector('h1')?.textContent?.trim() || '',
         rows: document.querySelectorAll('.archetype-row').length,
@@ -4027,7 +4005,7 @@ for (const width of [320, 430]) {
       const root = document.querySelector('.archetypes-page');
       const hero = document.querySelector('.traditional-mode-banner');
       const search = document.querySelector('.archetypes-search input');
-      const formatButtons = [...document.querySelectorAll('.archetypes-format-switch button')];
+      const formatButtons = [...document.querySelectorAll('.archetypes-format-switch a')];
       return {
         rootOverflow: (root?.scrollWidth ?? 0) > (root?.clientWidth ?? 0) + 1,
         documentOverflow: document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,

@@ -605,7 +605,7 @@ for (const route of inventory.routes) {
       `${route.id} filters and errors must retain their robots policy`);
     continue;
   }
-  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/streamers', '/leaderboards', '/classes', '/tierlist', '/legendaries', '/standard/matchups', '/standard/meta', '/standard/fun-decks', '/standard/patches', '/standard/assemble', '/standard/radar', '/standard/vicious-gold', '/standard/archetypes', '/standard/deck-builder'].includes(path)) {
+  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/streamers', '/leaderboards', '/classes', '/tierlist', '/legendaries', '/standard/matchups', '/standard/meta', '/standard/fun-decks', '/standard/patches', '/standard/assemble', '/standard/radar', '/standard/vicious-gold', '/standard/archetypes', '/standard/archetypes/wild', '/standard/deck-builder'].includes(path)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }
@@ -1052,6 +1052,11 @@ async function startCardSeoUpstream() {
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next archetypes</title>',
     }],
+    ['/standard/archetypes/wild/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next Wild archetypes</title>',
+    }],
     ['/standard/archetypes/standard/tempo-mage/', {
       status: 200,
       headers: { 'Cache-Control': 'private, no-store' },
@@ -1245,7 +1250,7 @@ async function startCardSeoUpstream() {
     const pathname = incomingUrl.pathname;
     const fixture = pathname === '/404.html' && errorDocumentStatus !== 404
       ? { status: errorDocumentStatus, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next error document unavailable</p>' }
-      : ['/', '/admin/', '/deck-builder/', '/archetypes/', '/archetypes/856/', '/archetypes/wild/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/standard/tempo-mage/', '/standard/archetypes/wild/tempo-mage/', '/library/', '/library/archive/minions/', '/standard/cards/standard/', '/standard/cards/wild/', '/standard/deck-builder/'].includes(pathname) && incomingUrl.searchParams.has('fail')
+      : ['/', '/admin/', '/deck-builder/', '/archetypes/', '/archetypes/856/', '/archetypes/wild/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/wild/', '/standard/archetypes/standard/tempo-mage/', '/standard/archetypes/wild/tempo-mage/', '/library/', '/library/archive/minions/', '/standard/cards/standard/', '/standard/cards/wild/', '/standard/deck-builder/'].includes(pathname) && incomingUrl.searchParams.has('fail')
       ? { status: 503, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next listing unavailable</p>' }
       : responses.get(pathname);
     if (!fixture) {
@@ -1559,6 +1564,7 @@ http {
       ['/standard/fun-decks/', /Next fun decks/],
       ['/standard/vicious-gold/', /Next Vicious Gold/],
       ['/standard/archetypes/', /Next archetypes/],
+      ['/standard/archetypes/wild/', /Next Wild archetypes/],
       ['/gallery/', /Next gallery/],
       ['/heroes/', /Next heroes/],
       ['/library/', /Next \/library\//],
@@ -1614,8 +1620,8 @@ http {
     // The barrier was a JavaScript response; after a second one its line would be readable.
     assert.equal((await ownerLogAfterBarrier()).trim().split('\n').length, ownerEvents.length,
       'JavaScript responses must not enter the HTML ownership log');
-    // Archetype details (E9 S3b): the page decides for Standard (its meta robots follow the indexing
-    // rule), nginx keeps only Wild and every error out of the index.
+    // Archetype details (E9 S3b, #543): the page decides for Standard and Wild alike (its meta robots
+    // follow the indexing rule), nginx keeps only every error out of the index.
     const standardArchetype = await requestNginx(port, '/standard/archetypes/standard/tempo-mage/');
     assert.equal(standardArchetype.status, 200, 'a Standard archetype must reach Next');
     assert.match(standardArchetype.body, /Next archetype detail/);
@@ -1628,8 +1634,16 @@ http {
     const wildArchetype = await requestNginx(port, '/standard/archetypes/wild/tempo-mage/');
     assert.equal(wildArchetype.status, 200);
     assert.match(wildArchetype.body, /Next wild archetype detail/);
-    assert.equal(wildArchetype.headers['x-robots-tag'], 'noindex, follow',
-      'Wild stays noindex at the edge too (phase 2)');
+    assert.equal(wildArchetype.headers['x-robots-tag'], undefined,
+      'nginx must not put noindex on a Wild archetype either: its page decides');
+    // The Wild list (#543): its own address, one permanent hop from the address without the slash, query kept.
+    const wildListRedirect = await requestNginx(port, '/standard/archetypes/wild?class=mage');
+    assert.equal(wildListRedirect.status, 301);
+    const wildListTarget = new URL(wildListRedirect.headers.location);
+    assert.equal(`${wildListTarget.pathname}${wildListTarget.search}`, '/standard/archetypes/wild/?class=mage');
+    const failedWildList = await requestNginx(port, '/standard/archetypes/wild/?fail=1');
+    assert.equal(failedWildList.status, 503, 'Wild archetype list upstream errors must retain their status');
+    assert.equal(failedWildList.headers['x-robots-tag'], 'noindex, nofollow', 'Wild archetype list errors must not be indexed');
     for (const path of ['/standard/archetypes/standard/missing-mage/', '/standard/archetypes/wild/missing-mage/']) {
       const missing = await requestNginx(port, path);
       assert.equal(missing.status, 404, `${path} keeps the Next 404`);

@@ -423,7 +423,9 @@ let archetypeCatalog: { format: string; period: string; updatedAt: string | null
   items: [
     ...strongSlugs.map(slug => archetypeItem(slug)),
     archetypeItem('weak-priest', { games: 999 }),
-    archetypeItem('wild-zoo', { format: 'wild' }),
+    // Below the Wild threshold (#543): the Standard segment reads the catalog's format, not a row's;
+    // Wild rows get their own URLs when the segment takes them (SEO-A).
+    archetypeItem('wild-zoo', { format: 'wild', games: 4_999 }),
     archetypeItem('buildless-druid', { deckCount: 0 }),
   ],
 };
