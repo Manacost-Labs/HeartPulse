@@ -149,13 +149,14 @@ const count = (value: number, one: string, few: string, many: string) =>
 const gamesAtLeast = (value: number | null) => value && value > 0 ? `более ${count(value, 'игры', 'игр', 'игр')}` : null;
 const placement = (value: number) => value.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-/** `/tierlist`: the date, the number of distinct cards of the open pool and its sample. */
+/**
+ * `/tierlist`: the date and the sample the page prints («по данным более 53 000 игр»). The number of
+ * cards is not printed on the page, so the snippet does not carry it.
+ */
 export function arenaTierlistSeoValues(pool: PublicTierlist | null, now: number): SeoDataValues | null {
   const date = pool && isHsreplay(pool.source) && seoDataDate(pool.updatedAt, now);
-  if (!pool || !date) return null;
-  const cards = new Set(pool.classes.flatMap(group => group.cards.map(card => card.cardId))).size;
-  if (cards === 0) return null;
-  return { ...seoDateValues(date), items: count(cards, 'карта', 'карты', 'карт'), games: gamesAtLeast(pool.sampleGamesAtLeast) };
+  if (!pool || !date || !pool.classes.some(group => group.cards.length > 0)) return null;
+  return { ...seoDateValues(date), games: gamesAtLeast(pool.sampleGamesAtLeast) };
 }
 
 /** `/classes`: the date and the first class of the open order with its winrate. */

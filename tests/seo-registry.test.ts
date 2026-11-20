@@ -626,11 +626,11 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
   });
   assert.deepEqual(text('/tierlist', arenaTierlistSeoValues(tierlist(FRESH), NOW)), {
     title: 'Тир-лист Арены Hearthstone (хс), ноябрь 2026 | HearthPulse',
-    description: 'Тир-лист карт Арены Hearthstone на 20 ноября 2026: тир, винрейт и частота выбора — 3 карты по классам, более 53 000 игр. Данные HSReplay.',
+    description: 'Тир-лист карт Арены Hearthstone на 20 ноября 2026: тир, винрейт и частота выбора каждой карты по классам, более 53 000 игр. Данные HSReplay.',
   });
   assert.deepEqual(text('/tierlist', arenaTierlistSeoValues(tierlist(STALE), NOW)), {
     title: staticText('/tierlist').title,
-    description: 'Тир-лист карт Арены Hearthstone, обновлено 10 ноября 2026: тир, винрейт и частота выбора — 3 карты по классам, более 53 000 игр. Данные HSReplay.',
+    description: 'Тир-лист карт Арены Hearthstone, обновлено 10 ноября 2026: тир, винрейт и частота выбора каждой карты по классам, более 53 000 игр. Данные HSReplay.',
   });
   assert.deepEqual(text('/tierlist', arenaTierlistSeoValues(tierlist(FRESH, 'firestone'), NOW)), staticText('/tierlist'),
     'another source than the template names keeps the static text');

@@ -356,8 +356,8 @@ SEO cost is 250–400 words fewer on three indexed pages.
 - Titles and descriptions come from the open data the page prints (#539,
   `config/public-seo-pages.json` `dataTitle`/`dataDescription`, values in
   `apps/public-web/lib/seoDataValues.ts`): the month of the data in the title,
-  the date and open figures in the description — `/tierlist` the number of
-  distinct cards and the rounded sample, `/classes` the first class of the open
+  the date and open figures in the description, each one printed on the page —
+  `/tierlist` the rounded sample («более 53 000 игр»), `/classes` the first class of the open
   order with its winrate, `/legendaries` the number of groups and the group with
   the best winrate, `/heroes` the number of ranked heroes and the first of the
   solo ranking with its average place, `/battlegrounds/tier-list` the number of
@@ -365,7 +365,8 @@ SEO cost is 250–400 words fewer on three indexed pages.
   source, data older than a week (no month; «обновлено <дата>») or no data at
   all fall back as `seoPageText` does: stale data keeps the date, missing data
   gives the static text with the year. No paid figure (offer rate, ArenaSmith
-  score, narrow ranges) enters a snippet.
+  score, narrow ranges) enters a snippet. The static descriptions name the
+  open data and say which part is for subscribers.
 - Static titles: «Тир-лист Арены Hearthstone (хс), {year}», «Лучшие классы
   Арены Hearthstone, {year}», «Легендарки Арены Hearthstone, {year}», «Тир-лист
   героев Полей сражений Hearthstone {year}», «Сборки Полей сражений
