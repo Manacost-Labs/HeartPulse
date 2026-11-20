@@ -39,7 +39,7 @@ export const LibraryCardTile = React.memo(function LibraryCardTile({
       onPointerEnter={event => { if (event.pointerType === 'mouse') setShowGolden(true); }}
       onFocus={() => setShowGolden(true)}
       data-tour-id={tourId}
-      className="group relative block overflow-visible rounded-md p-1 text-center transition-transform hover:-translate-y-1"
+      className="bg-library-card-tile group relative block overflow-visible rounded-md p-1 text-center transition-transform hover:-translate-y-1"
       style={{ textDecoration: 'none' }}
     >
       <div className="relative mx-auto aspect-[0.72] w-full max-w-[240px]">
