@@ -35,8 +35,15 @@ the JSON-LD.
   matrix as the main content; there is no block after it. The locked filters
   (`.paywalled-standard-matchups`, named by the JSON-LD `hasPart`) open the
   subscription offer on a press. A subscriber's matrix replaces the open view
-  only once its data and its chunk are loaded. Wild is read from the open route
-  in the browser after the format switch; the server HTML is Standard.
+  only once its data and its chunk are loaded. Wild has its own address,
+  `/standard/matchups/wild/` (E21 #520): its own ISR page with its own open
+  slice in the server HTML (H1 «Матчапы Вольного формата», title, canonical,
+  Dataset, sitemap entry `standard-matchups-wild`). The format switch is two
+  links; a subscriber's switch goes to the other address and keeps rank, period
+  and floor in the query, which never carries `format`. nginx sends the old
+  `/standard/matchups/?format=wild` to the new address in one 301
+  (`$arena_wild_path_target`, other query keys kept). The page is warmed after a
+  deploy like Standard (`DATA_PAGES`, marker `standard-matchups-open__matrix`).
 - `tests/standard-matchups-public.test.ts` puts a label in every paid field
   (the Legend rank `63.3636`, the period list, history) and checks that none
   reaches a guest, with a mutation that turns it red;

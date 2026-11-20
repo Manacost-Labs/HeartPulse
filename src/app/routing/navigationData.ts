@@ -76,7 +76,7 @@ type WildNavigationItem = {
 
 const WILD_ITEM_TABLE = [
   { id: 'wild-meta', twin: 'standard-meta', path: '/standard/meta/wild' },
-  { id: 'wild-matchups', twin: 'standard-matchups', path: '/standard/matchups?format=wild' },
+  { id: 'wild-matchups', twin: 'standard-matchups', path: '/standard/matchups/wild' },
   { id: 'wild-archetypes', twin: 'constructed-archetypes', path: '/standard/archetypes?format=wild' },
   { id: 'wild-fun-decks', twin: 'fun-decks', path: '/standard/fun-decks?format=wild' },
   { id: 'wild-cards', twin: 'standard-cards', path: '/standard/cards/wild' },

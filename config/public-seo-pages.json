@@ -49,6 +49,12 @@
       "description": "Матрица матчапов актуальной меты Стандарта Hearthstone по данным HSGuru: винрейты архетипов против друг друга для Легенды и Алмаза 4-1.",
       "sitemap": true
     },
+    "/standard/matchups/wild": {
+      "policyRouteId": "standard-matchups-wild",
+      "title": "Матчапы Вольного формата Hearthstone {year} | HearthPulse",
+      "description": "Матрица матчапов Вольного формата Hearthstone по данным HSGuru: винрейты популярных архетипов друг против друга и число игр в паре.",
+      "sitemap": true
+    },
     "/standard/meta": {
       "policyRouteId": "standard-meta",
       "navigationRouteId": "standard-meta",

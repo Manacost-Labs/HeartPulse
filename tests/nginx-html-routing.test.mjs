@@ -596,7 +596,7 @@ for (const route of inventory.routes) {
       `${route.id} filters and errors must retain their robots policy`);
     continue;
   }
-  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/streamers', '/leaderboards', '/classes', '/tierlist', '/legendaries', '/standard/matchups', '/standard/meta', '/standard/meta/wild', '/standard/fun-decks', '/standard/patches', '/standard/radar', '/standard/vicious-gold', '/standard/archetypes', '/standard/deck-builder'].includes(path)) {
+  if (path.startsWith('/standard/cards') || ['/faq', '/privacy', '/terms', '/developers/api', '/articles', '/contests', '/streamers', '/leaderboards', '/classes', '/tierlist', '/legendaries', '/standard/matchups', '/standard/matchups/wild', '/standard/meta', '/standard/meta/wild', '/standard/fun-decks', '/standard/patches', '/standard/radar', '/standard/vicious-gold', '/standard/archetypes', '/standard/deck-builder'].includes(path)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }
@@ -1001,6 +1001,11 @@ async function startCardSeoUpstream() {
       status: 200,
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next meta wild</title>',
+    }],
+    ['/standard/matchups/wild/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-store' },
+      body: '<!doctype html><title>Next matchups wild</title>',
     }],
     ['/standard/fun-decks/', {
       status: 200,
@@ -1627,6 +1632,30 @@ http {
       assert.match(old.headers['cache-control'] || '', /no-store/);
     }
     for (const path of ['/standard/meta/?format=standard', '/standard/meta/?format=wilder', '/standard/meta/']) {
+      assert.equal((await requestNginx(port, path)).status, 200, `${path} stays the Standard page`);
+    }
+    // Matchups of Wild: the same shape, and the subscriber's query keys (rank, period, floor) travel with the hop.
+    const matchupsNoSlash = await requestNginx(port, '/standard/matchups/wild?rank=legend');
+    assert.equal(matchupsNoSlash.status, 301);
+    assert.equal(new URL(matchupsNoSlash.headers.location).pathname + new URL(matchupsNoSlash.headers.location).search, '/standard/matchups/wild/?rank=legend');
+    const matchupsWild = await requestNginx(port, '/standard/matchups/wild/');
+    assert.equal(matchupsWild.status, 200);
+    assert.match(matchupsWild.body, /Next matchups wild/);
+    assert.equal(matchupsWild.headers['x-robots-tag'], undefined, 'the Wild matchups page is indexable');
+    assert.equal((await requestNginx(port, '/standard/matchups/foo/')).status, 404);
+    for (const [from, to] of [
+      ['/standard/matchups/?format=wild', '/standard/matchups/wild/'],
+      ['/standard/matchups/?format=wild&rank=legend&min_games=100', '/standard/matchups/wild/?rank=legend&min_games=100'],
+      ['/standard/matchups/?rank=legend&format=wild', '/standard/matchups/wild/?rank=legend'],
+      ['/standard/matchups/?period=patch_36.6.3&format=wild&min_games=50', '/standard/matchups/wild/?period=patch_36.6.3&min_games=50'],
+    ]) {
+      const old = await requestNginx(port, from);
+      assert.equal(old.status, 301, `${from} must redirect permanently`);
+      const target = new URL(old.headers.location);
+      assert.equal(`${target.pathname}${target.search}`, to);
+      assert.match(old.headers['cache-control'] || '', /no-store/);
+    }
+    for (const path of ['/standard/matchups/?format=standard', '/standard/matchups/?format=wilder']) {
       assert.equal((await requestNginx(port, path)).status, 200, `${path} stays the Standard page`);
     }
     // The archetype URL without a slash still gets its slash in one hop, query kept, without noindex.

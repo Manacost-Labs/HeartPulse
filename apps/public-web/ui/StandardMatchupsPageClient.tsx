@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import StandardMatchupsPage from '@/src/features/StandardMatchups';
 import { StandardMatchupsOpen } from '@/src/features/StandardMatchupsOpen';
-import { useStandardMatchups, type PublicStandardMatchups } from '@/src/modules/standardMatchups/public';
+import { useStandardMatchups, type PublicStandardMatchups, type StandardMatchupsFormat } from '@/src/modules/standardMatchups/public';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { navigate } from './navigation';
 
@@ -15,10 +15,16 @@ const loadMatrixChunk = () => import('@/src/features/StandardMatchupMatrix');
  * `initial` is the open slice the server printed (`null`: it had no snapshot, the page says so and the
  * browser asks again). A subscriber's matrix replaces it only once its data and its chunk are both here.
  */
-export function StandardMatchupsPageClient({ initial }: { initial: PublicStandardMatchups | null }) {
+export function StandardMatchupsPageClient({ initial, format = 'standard' }: {
+  initial: PublicStandardMatchups | null; format?: StandardMatchupsFormat;
+}) {
   const access = usePublicAccess();
   const { allowed } = paidAccess(access, 'standard');
-  const matchups = useStandardMatchups(access.user?.id, allowed, { syncUrl: true });
+  const matchups = useStandardMatchups(access.user?.id, allowed, { syncUrl: true, pathFormat: format });
+  // Each format has its own address: the subscriber's switch goes there and keeps rank, period and floor.
+  const changeFormat = useCallback((next: StandardMatchupsFormat) => {
+    if (next !== format) navigate(`${next === 'wild' ? '/standard/matchups/wild/' : '/standard/matchups/'}${window.location.search}`);
+  }, [format]);
   const [chunkReady, setChunkReady] = useState(false);
   useEffect(() => {
     if (!allowed) return;
@@ -42,14 +48,14 @@ export function StandardMatchupsPageClient({ initial }: { initial: PublicStandar
       : 'Нет данных');
   }, [updatedAt]);
 
-  return <PublicPageShell activeTab="standard-matchups" pathname="/standard/matchups/" parchmentPreload="tablet-up"
+  return <PublicPageShell activeTab="standard-matchups" pathname={format === 'wild' ? '/standard/matchups/wild/' : '/standard/matchups/'} parchmentPreload="tablet-up"
     access={access} navigate={navigate} updatedAtLabel={updatedAtLabel} wide>
     {paidReady
-      ? <StandardMatchupsPage external={{ format: matchups.format, changeFormat: matchups.changeFormat,
+      ? <StandardMatchupsPage external={{ format: matchups.format, changeFormat,
         slice: matchups.slice, changeSlice: matchups.changeSlice,
         data: paidData, loading: matchups.loading, error: matchups.error,
         retry: matchups.retry }} />
-      : <StandardMatchupsOpen initial={initial} paywall={{ authUser: access.user, subscriptionStatus: access.subscription,
+      : <StandardMatchupsOpen initial={initial} format={format} paywall={{ authUser: access.user, subscriptionStatus: access.subscription,
         subscriptionLoading: access.checking, onRefreshSubscription: access.refresh }} />}
   </PublicPageShell>;
 }

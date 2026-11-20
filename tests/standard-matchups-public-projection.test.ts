@@ -41,6 +41,10 @@ test('an answer that is not the open general slice of the format is refused', ()
   assert.equal(parsePublicStandardMatchups(null, 'standard'), null);
   assert.equal(parsePublicStandardMatchups(answer({ updatedAt: 'tomorrow' }), 'standard')?.updatedAt, null);
   assert.equal(loadStandardMatchupsSeed(answer())?.archetypes.length, 30);
+  // The Wild page's seed is the Wild slice only: Standard numbers never print under the Wild address.
+  assert.equal(loadStandardMatchupsSeed(answer({ format: 'wild', formatLabel: 'Вольный' }), 'wild')?.format, 'wild');
+  assert.equal(loadStandardMatchupsSeed(answer(), 'wild'), null);
+  assert.equal(loadStandardMatchupsSeed(answer({ format: 'wild' })), null);
 });
 
 test('the browser loader asks the open route anonymously and keeps null on any failure', async () => {

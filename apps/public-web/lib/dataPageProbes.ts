@@ -5,7 +5,7 @@ import { LIBRARY_INDEX_PATH, LIBRARY_LISTING_KINDS, libraryListingPath } from '.
 import { buildsPath } from './publicBattlegroundBuildsData';
 import { heroesRankingPath } from './publicBattlegroundHeroesData';
 import { CLASSES_TEASER_PATH } from './publicClassesTeaserData';
-import { standardMatchupsPublicPath } from './publicStandardMatchupsData';
+import { standardMatchupsPath, standardMatchupsPublicPath } from './publicStandardMatchupsData';
 import { standardMetaPublicPath } from './publicStandardMetaTeaserData';
 import { PUBLIC_TIERLIST_PATH } from './publicTierlistData';
 
@@ -23,6 +23,7 @@ export const DATA_PAGE_PROBES = {
   '/legendaries': `${PUBLIC_LEGENDARIES_PATH}?source=hsreplay`,
   '/heroes': heroesRankingPath('solo'),
   '/standard/matchups': standardMatchupsPublicPath,
+  '/standard/matchups/wild': standardMatchupsPath('wild'),
   '/battlegrounds/tier-list': buildsPath('compositions'),
   '/library': LIBRARY_INDEX_PATH,
   ...Object.fromEntries(LIBRARY_LISTING_KINDS.map(kind => [`/library/${kind}`, libraryListingPath(kind)])),

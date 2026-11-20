@@ -555,7 +555,7 @@
         "@type": "Dataset",
         "@id": "https://hearthpulse.net/standard/matchups/#dataset",
         "name": "Матчапы Стандарта Hearthstone",
-        "description": "Общий срез матчапов Стандарта и Вольного формата Hearthstone по данным HSGuru: винрейт и число игр каждой пары популярных архетипов открыты. Срезы по рангам, периодам и история матчапов доступны по подписке.",
+        "description": "Общий срез матчапов Стандарта Hearthstone по данным HSGuru: винрейт и число игр каждой пары популярных архетипов открыты. Срезы по рангам, периодам и история матчапов доступны по подписке.",
         "url": "https://hearthpulse.net/standard/matchups/",
         "isAccessibleForFree": false,
         "hasPart": {
@@ -582,6 +582,64 @@
         "keywords": [
           "Hearthstone",
           "Стандарт",
+          "матчапы",
+          "винрейт архетипов"
+        ],
+        "about": {
+          "@type": "VideoGame",
+          "name": "Hearthstone"
+        }
+      }
+    ],
+    "/standard/matchups/wild": [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Главная",
+            "item": "https://hearthpulse.net"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Матчапы Вольного формата Hearthstone",
+            "item": "https://hearthpulse.net/standard/matchups/wild/"
+          }
+        ]
+      },
+      {
+        "@type": "Dataset",
+        "@id": "https://hearthpulse.net/standard/matchups/wild/#dataset",
+        "name": "Матчапы Вольного формата Hearthstone",
+        "description": "Общий срез матчапов Вольного формата Hearthstone по данным HSGuru: винрейт и число игр каждой пары популярных архетипов открыты. Срезы по рангам, периодам и история матчапов доступны по подписке.",
+        "url": "https://hearthpulse.net/standard/matchups/wild/",
+        "isAccessibleForFree": false,
+        "hasPart": {
+          "@type": "WebPageElement",
+          "isAccessibleForFree": false,
+          "cssSelector": ".paywalled-standard-matchups"
+        },
+        "isBasedOn": {
+          "@type": "Dataset",
+          "name": "HSGuru: Matchups",
+          "url": "https://www.hsguru.com/matchups"
+        },
+        "variableMeasured": [
+          {
+            "@type": "PropertyValue",
+            "name": "Винрейт в матчапе",
+            "unitText": "%"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Число игр"
+          }
+        ],
+        "keywords": [
+          "Hearthstone",
+          "Вольный формат",
           "матчапы",
           "винрейт архетипов"
         ],

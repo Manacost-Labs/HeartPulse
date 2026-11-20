@@ -38,7 +38,8 @@ async function startStack() {
     if (url.pathname === '/api/standard/matchups') {
       if (!reader) return json(401, { error: 'subscription required' });
       state.protectedReads += 1;
-      return void setTimeout(() => json(200, protectedAnswer()), PROTECTED_DELAY_MS);
+      const wild = url.searchParams.get('format') === 'wild';
+      return void setTimeout(() => json(200, { ...protectedAnswer(), ...(wild ? { format: 'wild', formatLabel: 'Вольный' } : {}) }), PROTECTED_DELAY_MS);
     }
     if (url.pathname.startsWith('/api/')) return json(401, { error: 'guest' });
     const upstream = http.request(new URL(state.next), { method: request.method, path: request.url, headers: request.headers },
@@ -58,13 +59,15 @@ test('a guest and a subscriber on /standard/matchups/ in a real browser', { time
   try {
     // The page is a five-minute ISR page the warm-up route does not cover: move the server's clock past that
     // window and request until the regenerated copy has the matrix.
-    let warm = false;
-    for (let attempt = 0; attempt < 40 && !warm; attempt += 1) {
-      process.kill(next.pid, 'SIGUSR2');
-      warm = (await (await fetch(`${next.origin}/standard/matchups/`)).text()).includes('standard-matchups-open__matrix');
-      if (!warm) await delay(250);
+    for (const path of ['/standard/matchups/', '/standard/matchups/wild/']) {
+      let warm = false;
+      for (let attempt = 0; attempt < 40 && !warm; attempt += 1) {
+        process.kill(next.pid, 'SIGUSR2');
+        warm = (await (await fetch(`${next.origin}${path}`)).text()).includes('standard-matchups-open__matrix');
+        if (!warm) await delay(250);
+      }
+      assert.ok(warm, `${path} was not regenerated with the matrix`);
     }
-    assert.ok(warm, 'the page was not regenerated with the matrix');
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
 
@@ -77,6 +80,28 @@ test('a guest and a subscriber on /standard/matchups/ in a real browser', { time
     assert.deepEqual(SENTINELS.filter(value => bareHtml.includes(value)), []);
     await bare.close();
 
+    // Wild at its own address: its own slice in the HTML, one H1, a self canonical, one HTML for a guest and a crawler.
+    const wildBare = await browser.newPage();
+    await wildBare.setJavaScriptEnabled(false);
+    await wildBare.goto(`${stack.origin}/standard/matchups/wild/`, { waitUntil: 'load' });
+    const wildHtml = await wildBare.content();
+    assert.equal((wildHtml.match(/class="standard-matchups-open__row"/g) ?? []).length, 30, 'the most played Wild archetypes are in the HTML');
+    assert.equal((wildHtml.match(/<h1[\s>]/g) ?? []).length, 1, 'one H1');
+    assert.ok(wildHtml.includes('<h1>Матчапы Вольного формата</h1>'));
+    assert.match(wildHtml, /standard-matchups-open__line[^>]*>Вольный/, 'the line names Wild, with its date and source');
+    assert.match(wildHtml, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/standard\/matchups\/wild\/"/);
+    assert.deepEqual(SENTINELS.filter(value => wildHtml.includes(value)), [], 'no sentinel in the Wild HTML');
+    const wildGuest = await (await fetch(`${stack.origin}/standard/matchups/wild/`)).text();
+    const wildCrawler = await (await fetch(`${stack.origin}/standard/matchups/wild/`, { headers: { 'User-Agent': 'Googlebot/2.1' } })).text();
+    assert.equal(wildCrawler, wildGuest, 'a crawler gets the guest HTML of Wild');
+    const wildLd = [...wildGuest.matchAll(/<script type="application\/ld\+json">([^<]*)<\/script>/g)].map(match => match[1]).join('');
+    assert.match(wildLd, /matchups\/wild\/#dataset/);
+    assert.match(wildLd, /"isAccessibleForFree":false/);
+    assert.deepEqual(SENTINELS.filter(value => wildLd.includes(value)), [], 'no sentinel in the Wild JSON-LD');
+    const wildRsc = await (await fetch(`${stack.origin}/standard/matchups/wild/`, { headers: { RSC: '1' } })).text();
+    assert.deepEqual(SENTINELS.filter(value => wildRsc.includes(value)), [], 'no sentinel in the Wild RSC payload');
+    await wildBare.close();
+
     // A guest with JavaScript: the tail of the slice arrives, Wild reads the same open route, the locks bring the offer.
     const guest = await browser.newPage();
     await guest.setViewport(DESKTOP);
@@ -88,40 +113,35 @@ test('a guest and a subscriber on /standard/matchups/ in a real browser', { time
     assert.equal(await guest.$('.arena-paywall'), null, 'no gate until a lock is pressed');
     await guest.click('[data-locked-filter]');
     await guest.waitForSelector('#standard-matchups-paywall');
-    await guest.evaluate(() => [...document.querySelectorAll('.standard-matchups__segmented button')].at(1).click());
-    await guest.waitForFunction(() => document.querySelector('.standard-matchups-open__line')?.textContent.includes('Вольный'), { timeout: 15000 });
-    assert.equal(stack.publicReads.at(-1), '/api/standard/matchups/public?format=wild');
+    // The format switch is two links: Wild opens at its own address.
+    assert.deepEqual(await guest.$$eval('.standard-matchups__segmented a', links => links.map(link => link.getAttribute('href'))),
+      ['/standard/matchups/', '/standard/matchups/wild/']);
+    await guest.click('.standard-matchups__segmented a[href="/standard/matchups/wild/"]');
+    await guest.waitForFunction(() => location.pathname === '/standard/matchups/wild/'
+      && document.querySelector('.standard-matchups-open__line')?.textContent.includes('Вольный'), { timeout: 15000 });
+    assert.equal(await guest.$eval('.standard-matchups__segmented a[aria-current="page"]', node => node.textContent), 'Вольный');
     const guestText = await guest.evaluate(() => document.body.textContent);
     assert.deepEqual(SENTINELS.filter(value => guestText.includes(value)), []);
     assert.deepEqual(errors, []);
     await guest.close();
 
-    // The menu's «Вольный» opens ?format=wild: the browser reads the address and shows Wild, not Standard.
+    // The menu's «Вольный» opens the Wild address: Wild is the page, not Standard.
     const viaMenu = await browser.newPage();
     await viaMenu.setViewport(DESKTOP);
-    await viaMenu.goto(`${stack.origin}/standard/matchups/?format=wild`, { waitUntil: 'networkidle0' });
-    await viaMenu.waitForFunction(() => document.querySelector('.standard-matchups-open__line')?.textContent.includes('Вольный'), { timeout: 15000 });
-    assert.equal(await viaMenu.$eval('.standard-matchups__segmented button[aria-pressed="true"]', node => node.textContent), 'Вольный');
-    assert.equal(stack.publicReads.at(-1), '/api/standard/matchups/public?format=wild');
+    await viaMenu.goto(`${stack.origin}/standard/matchups/wild/`, { waitUntil: 'networkidle0' });
+    assert.equal(await viaMenu.$eval('.standard-matchups__segmented a[aria-current="page"]', node => node.textContent), 'Вольный');
     assert.ok(!(await viaMenu.evaluate(() => document.querySelector('.standard-matchups-open__line')?.textContent ?? '')).includes('Стандарт'));
     await viaMenu.close();
 
-    // Wild is slow and then fails: the Standard numbers must not stay on the screen under the chosen Wild.
+    // The Wild source is down: the regeneration fails and a guest still gets the earlier copy with its data.
     stack.wildDown = true;
-    const slow = await browser.newPage();
-    await slow.setViewport(DESKTOP);
-    await slow.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'networkidle0' });
-    assert.ok(await slow.$('.standard-matchups-open__matrix'), 'Standard is up first');
-    await slow.evaluate(() => [...document.querySelectorAll('.standard-matchups__segmented button')].at(1).click());
-    await slow.waitForFunction(() => document.querySelector('.standard-matchups__segmented button[aria-pressed="true"]')?.textContent.includes('Вольный'));
-    assert.equal(await slow.$('.standard-matchups-open__matrix'), null, 'no Standard matrix while Wild loads');
-    assert.equal(await slow.$('.standard-matchups-open__row'), null, 'no Standard row while Wild loads');
-    await slow.waitForSelector('.standard-matchups__error', { timeout: 15000 });
-    assert.equal(await slow.$('.standard-matchups-open__matrix'), null, 'no Standard matrix after Wild failed');
-    assert.equal(await slow.$('.standard-matchups-open__row'), null, 'no Standard row after Wild failed');
-    assert.ok(!(await slow.evaluate(() => document.querySelector('.standard-matchups-open__line')?.textContent ?? '')).includes('Стандарт'),
-      'the line does not describe Standard under Wild');
-    await slow.close();
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      process.kill(next.pid, 'SIGUSR2');
+      const response = await fetch(`${stack.origin}/standard/matchups/wild/`);
+      assert.equal(response.status, 200, 'Wild answers while its source is down');
+      assert.ok((await response.text()).includes('standard-matchups-open__matrix'), 'Wild keeps its matrix');
+      await delay(300);
+    }
     stack.wildDown = false;
 
     // A subscriber: the open view stays until the matrix is ready, then the matrix replaces it without shifting.
@@ -145,6 +165,20 @@ test('a guest and a subscriber on /standard/matchups/ in a real browser', { time
     console.log(`subscriber CLS ${shift.toFixed(4)}`);
     assert.ok(shift < 0.01, `the subscriber page shifted by ${shift.toFixed(4)}`);
     await reader.close();
+
+    // A subscriber on the Wild address: the format stays in the path, never in the query, and the switch goes to the other address.
+    const wildReader = await browser.newPage();
+    await wildReader.setViewport(DESKTOP);
+    await wildReader.setCookie({ name: 'mx_session', value: 'reader', url: stack.origin });
+    await wildReader.goto(`${stack.origin}/standard/matchups/wild/?rank=all`, { waitUntil: 'load' });
+    await wildReader.waitForSelector('.standard-matchups__ledger', { timeout: 20000 });
+    assert.equal(await wildReader.evaluate(() => location.pathname), '/standard/matchups/wild/');
+    assert.ok(!(await wildReader.evaluate(() => location.search)).includes('format='), 'the format is not in the query');
+    assert.ok((await wildReader.evaluate(() => location.search)).includes('rank=all'), 'the other parameters stay');
+    await wildReader.evaluate(() => [...document.querySelectorAll('.standard-matchups__segmented button')].find(button => button.textContent === 'Стандарт').click());
+    await wildReader.waitForFunction(() => location.pathname === '/standard/matchups/', { timeout: 15000 });
+    assert.ok((await wildReader.evaluate(() => location.search)).includes('rank=all'), 'rank survives the switch');
+    await wildReader.close();
   } finally {
     if (browser) await browser.close();
     await next.close();

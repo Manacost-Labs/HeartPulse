@@ -123,7 +123,7 @@ issue 298). Старое семейство `/standard/meta/:format/:archetypeSl
 У Вольного свой адрес `/standard/meta/wild/`: свои title, H1, description,
 canonical и запись в карте сайта (`standard-meta-wild`). Старый
 `/standard/meta/?format=wild` Nginx переводит на него одним 301 с сохранением
-остальных параметров запроса (`$arena_meta_wild_target` в
+остальных параметров запроса (`$arena_wild_path_target` в
 `arena-seo-map.conf`); переключатель формата на странице — ссылки на оба
 адреса. Описание Dataset в JSON-LD каждой страницы говорит только о своём
 формате. Деградация `/api/standard-meta/public`: свежий срез, затем

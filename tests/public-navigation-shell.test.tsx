@@ -158,7 +158,7 @@ const wildLists = html.split('class="hp-nav-list" data-for="wild"').slice(1).map
 assert.equal(wildLists.length, 2, 'a Wild list in the drawer and in the sidebar');
 for (const list of wildLists) {
   const hrefs = [...list.matchAll(/<a href="([^"]+)"/g)].map(match => match[1].replace(/&amp;/g, '&'));
-  assert.deepEqual(hrefs, ['/standard/meta/wild/', '/standard/matchups/?format=wild', '/standard/archetypes/?format=wild',
+  assert.deepEqual(hrefs, ['/standard/meta/wild/', '/standard/matchups/wild/', '/standard/archetypes/?format=wild',
     '/standard/fun-decks/?format=wild', '/standard/cards/wild/', '/standard/deck-builder/?format=wild', '/standard/patches/']);
   assert.match(list, /src="\/menu\/icons\/standard-meta-80\.webp\?v=[0-9a-f]{10}"/, 'a Wild item shows the icon of its twin');
   assert.doesNotMatch(list, /vicious-gold|VS Gold/);
@@ -169,7 +169,7 @@ assert.equal(html.split('href="/standard/cards/wild/"').length - 1, 2, 'one Wild
 
 // An address in Wild: the Wild item is the current one, the mode of the page is Wild, the Standard list has none.
 const wildHtml = renderToStaticMarkup(<PublicNavigation {...props} activeTab="standard-matchups" activeItem="wild-matchups" pageMode="wild" mode="wild" />);
-assert.equal(wildHtml.match(/<a href="\/standard\/matchups\/\?format=wild"[^>]*aria-current="page"/g)?.length, 2, 'Матчапы of the Wild list is current in both menus');
+assert.equal(wildHtml.match(/<a href="\/standard\/matchups\/wild\/"[^>]*aria-current="page"/g)?.length, 2, 'Матчапы of the Wild list is current in both menus');
 assert.doesNotMatch(wildHtml, /<a href="\/standard\/matchups\/"[^>]*aria-current/, 'its Standard twin is not');
 assert.match(wildHtml, /<a[^>]*data-mode="wild"[^>]*aria-current="true"/);
 assert.match(wildHtml, /<nav[^>]*class="arena-sidebar-nav hp-nav"[^>]*data-page-mode="wild"/);

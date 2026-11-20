@@ -4,7 +4,7 @@ import { DATA_PAGE_PROBES, dataSourceAvailable, type DataPageProbePath } from '@
 import { isLocalRevalidateRequest } from '@/apps/public-web/lib/localRevalidateRequest';
 
 /** Prerendered pages whose build copy has no data (CI builds without the Express API). */
-const DATA_PAGES = ['/standard/meta', '/standard/meta/wild', '/articles', '/tierlist', '/classes', '/legendaries', '/heroes', '/standard/matchups',
+const DATA_PAGES = ['/standard/meta', '/standard/meta/wild', '/articles', '/tierlist', '/classes', '/legendaries', '/heroes', '/standard/matchups', '/standard/matchups/wild',
   '/library', '/library/minions', '/library/spells', '/library/anomalies', '/library/dark-gifts', '/library/quests', '/library/rewards', '/library/darkmoon-prizes', '/library/trinkets', '/library/timewarped', '/battlegrounds/tier-list'] as const satisfies readonly DataPageProbePath[];
 
 /**

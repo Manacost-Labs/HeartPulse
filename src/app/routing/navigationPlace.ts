@@ -25,7 +25,7 @@ const WILD_OF: ReadonlyMap<string, WildItemId> = new Map(WILD_NAVIGATION_ITEMS.m
 /** Standard pages that exist in both formats, so the address names the format. */
 const FORMAT_BOUND_TABS: ReadonlySet<string> = new Set(WILD_NAVIGATION_ITEMS.filter(item => !('shared' in item)).map(item => item.twin));
 /** The catalog of Wild cards and the pages of one archetype name their format in the path; the path then decides, the query does not. */
-const FORMAT_SEGMENT = /^\/standard\/(?:cards|archetypes|meta)\/(wild|standard)(?:\/|$)/;
+const FORMAT_SEGMENT = /^\/standard\/(?:cards|archetypes|meta|matchups)\/(wild|standard)(?:\/|$)/;
 
 /**
  * `search` is the query of the address, or null while it is not known (the server and the

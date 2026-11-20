@@ -24,7 +24,7 @@ test('pages match every word of the query in their name or mode, ignoring case a
   assert.equal(metas['/standard/meta/'], 'Стандарт', 'a Standard page that has a Wild twin carries its mode');
   assert.equal(metas['/standard/meta/wild/'], 'Вольный', 'the Wild twin is found and labelled with its mode');
   assert.equal(metas['/standard/cards/wild/'], 'Вольный');
-  assert.deepEqual(matchPages('матчапы вольный', false).map(pathOf), ['/standard/matchups/?format=wild']);
+  assert.deepEqual(matchPages('матчапы вольный', false).map(pathOf), ['/standard/matchups/wild/']);
   assert.equal(matchPages('', false).filter(entry => entry.label === 'Патчноуты').length, 1, 'patch notes are one page, not one per mode');
   assert.equal(matchPages('', false).filter(entry => entry.label === 'VS Gold').length, 1, 'VS Gold has no Wild page');
   assert.equal(metas['/tierlist/'], 'Арена', 'a repeated name carries its mode');

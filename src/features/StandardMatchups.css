@@ -66,6 +66,7 @@
   align-items: center;
   justify-content: center;
   padding: 0.5rem 0.85rem;
+  text-decoration: none;
   border: 0 !important;
   border-left: 1px solid rgba(101, 59, 30, 0.24) !important;
   border-radius: 0 !important;
@@ -94,7 +95,7 @@
   outline-offset: 1px;
 }
 
-.arena-app-standard-matchups .standard-matchups__mode-toolbar .standard-matchups__segmented [aria-pressed='true'] {
+.arena-app-standard-matchups .standard-matchups__mode-toolbar .standard-matchups__segmented :is([aria-pressed='true'], [aria-current='page']) {
   border-color: transparent !important;
   color: #fff0c4 !important;
   background: #6d1117 !important;

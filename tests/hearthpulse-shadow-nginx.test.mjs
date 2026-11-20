@@ -340,7 +340,7 @@ async function verifyEdgeDocumentCache() {
   if (!binary) return;
   // Written out here, not taken from the application: the pages that render Express data and the
   // prerendered pages that do not.
-  const DATA_URLS = ['/tierlist/', '/classes/', '/standard/meta/', '/standard/meta/wild/', '/articles/', '/legendaries/', '/heroes/'];
+  const DATA_URLS = ['/tierlist/', '/classes/', '/standard/meta/', '/standard/meta/wild/', '/standard/matchups/wild/', '/articles/', '/legendaries/', '/heroes/'];
   const ISR_WITHOUT_DATA = ['/guides-archive/', '/standard/matchups/', '/standard/vicious-gold/', '/battlegrounds/tier-list/'];
   const VARY = 'rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch, Accept-Encoding';
   const hits = new Map();

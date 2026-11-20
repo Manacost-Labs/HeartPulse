@@ -254,7 +254,7 @@ test('the post-deploy warm-up revalidates again until /tierlist/ carries its sli
     // pages that render data (the literal list is the contract between DATA_PAGES and the route).
     assert.deepEqual(stand.revalidations[0], [], 'a page whose source is down is not marked stale');
     assert.deepEqual([...stand.revalidations.at(-1)].sort(), ['/articles', '/battlegrounds/tier-list', '/classes', '/heroes', '/legendaries', '/library', ...['anomalies', 'dark-gifts', 'darkmoon-prizes', 'minions', 'quests',
-      'rewards', 'spells', 'timewarped', 'trinkets'].map(kind => `/library/${kind}`), '/standard/matchups', '/standard/meta', '/standard/meta/wild', '/tierlist'],
+      'rewards', 'spells', 'timewarped', 'trinkets'].map(kind => `/library/${kind}`), '/standard/matchups', '/standard/matchups/wild', '/standard/meta', '/standard/meta/wild', '/tierlist'],
       'the real route regenerates exactly the pages that render data');
     assert.match(output, /\[warm\] \/tierlist\/: with data/, output);
     // What a visitor gets right after the warm-up, with no clock shifted and no second request needed.
@@ -405,10 +405,10 @@ test('the post-deploy warm-up regenerates /legendaries/, /heroes/, /standard/mat
 
 // The warm-up table lists exactly the ISR pages the real revalidate route regenerates (that literal is asserted against the
 // real route by the warm-up test above).
-test('DATA_PAGES marked isr are the 19 pages of the revalidate route', () => {
+test('DATA_PAGES marked isr are the 20 pages of the revalidate route', () => {
   const expected = ['/articles', '/battlegrounds/tier-list', '/classes', '/heroes', '/legendaries', '/library', ...['anomalies', 'dark-gifts', 'darkmoon-prizes', 'minions', 'quests',
-    'rewards', 'spells', 'timewarped', 'trinkets'].map(kind => `/library/${kind}`), '/standard/matchups', '/standard/meta', '/standard/meta/wild', '/tierlist'];
-  assert.equal(expected.length, 19);
+    'rewards', 'spells', 'timewarped', 'trinkets'].map(kind => `/library/${kind}`), '/standard/matchups', '/standard/matchups/wild', '/standard/meta', '/standard/meta/wild', '/tierlist'];
+  assert.equal(expected.length, 20);
   assert.deepEqual(DATA_PAGES.filter(page => page.isr).map(page => page.path.replace(/\/$/, '')).sort(), [...expected].sort());
   assert.equal(DATA_PAGES.find(page => page.path === '/library/').marker, 'bg-library-public__size', 'the hub marker is not on the copy without sizes');
 });

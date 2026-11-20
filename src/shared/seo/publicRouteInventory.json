@@ -354,6 +354,20 @@
       "entitlement": "standard"
     },
     {
+      "id": "standard-matchups-wild",
+      "pattern": "/standard/matchups/wild",
+      "kind": "static",
+      "owner": "traditional-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender-teaser",
+      "expectedStatus": 200,
+      "criticality": "P0",
+      "mobileFixture": "standard-matchups-anonymous",
+      "entitlement": "standard"
+    },
+    {
       "id": "standard-meta",
       "pattern": "/standard/meta",
       "kind": "static",

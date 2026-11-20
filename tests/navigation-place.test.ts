@@ -25,6 +25,10 @@ const ROWS: readonly Row[] = [
   ['/standard/deck-builder/', '?code=AAEBAQ', 'wild', 'standard', 'deck-builder'],
   // The format may sit in the path: the card catalog and the pages of one archetype.
   ['/standard/cards/wild', '', null, 'wild', 'wild-cards'],
+  ['/standard/meta/wild/', '', 'standard', 'wild', 'wild-meta'],
+  ['/standard/meta/wild', null, null, 'wild', 'wild-meta'],
+  ['/standard/matchups/wild/', '', 'standard', 'wild', 'wild-matchups'],
+  ['/standard/matchups/wild', null, null, 'wild', 'wild-matchups'],
   ['/standard/cards/wild/some-card', null, null, 'wild', 'wild-cards'],
   ['/standard/archetypes/wild/quest-mage', '', 'standard', 'wild', 'wild-archetypes'],
   ['/standard/meta/wild/quest-mage', '', 'standard', 'wild', 'wild-archetypes'],
@@ -83,7 +87,7 @@ test('every Wild item opens a page that its own address puts in Wild, except the
 test('the Wild list has the pages of the issue and no VS Gold', () => {
   assert.deepEqual(WILD_NAVIGATION_ITEMS.map(item => [item.id, item.path]), [
     ['wild-meta', '/standard/meta/wild'],
-    ['wild-matchups', '/standard/matchups?format=wild'],
+    ['wild-matchups', '/standard/matchups/wild'],
     ['wild-archetypes', '/standard/archetypes?format=wild'],
     ['wild-fun-decks', '/standard/fun-decks?format=wild'],
     ['wild-cards', '/standard/cards/wild'],

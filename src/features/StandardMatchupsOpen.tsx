@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle, Lock } from 'lucide-react';
 import '../route-parchment.css';
 import './StandardMatchupsOpen.css';
-import { setPageFormat, usePageFormat } from '../shared/navigation/pageFormat';
 import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
 import {
   loadPublicStandardMatchups, type PublicStandardMatchups, type PublicStandardMatchupsPair, type StandardMatchupsFormat,
@@ -15,7 +14,10 @@ function moscowDate(iso: string | null): string | null {
   return iso ? `${MOSCOW_DATE.format(new Date(iso)).replace(',', '')} МСК` : null;
 }
 
-const FORMATS: ReadonlyArray<readonly [StandardMatchupsFormat, string]> = [['standard', 'Стандарт'], ['wild', 'Вольный']];
+/** Each format has its own address (and its own prerendered open slice), so the switch is two links. */
+const FORMATS: ReadonlyArray<readonly [StandardMatchupsFormat, string, string]> = [
+  ['standard', 'Стандарт', '/standard/matchups/'], ['wild', 'Вольный', '/standard/matchups/wild/'],
+];
 /** A pair with fewer games than this is muted: its rate is a rough guess. */
 const SOLID_GAMES = 100;
 
@@ -31,19 +33,18 @@ function band(pair: PublicStandardMatchupsPair): 's' | 'e' | 'w' | undefined {
  * the history of a pair sit behind a lock; the subscriber's matrix replaces this view only once
  * it is ready (StandardMatchupsPageClient).
  */
-export function StandardMatchupsOpen({ initial, paywall }: {
+export function StandardMatchupsOpen({ initial, paywall, format = 'standard' }: {
   initial: PublicStandardMatchups | null;
   paywall: PaywallAccessState;
+  /** The format of the address: `/standard/matchups/` is Standard, `/standard/matchups/wild/` is Wild. */
+  format?: StandardMatchupsFormat;
 }) {
-  // The format is the address's (`?format=wild`, the menu's «Вольный» opens it): Standard until the browser has read it,
-  // so the server's HTML and the first render agree.
-  const format: StandardMatchupsFormat = usePageFormat() ?? 'standard';
   const [data, setData] = useState<PublicStandardMatchups | null>(initial);
   const [status, setStatus] = useState<'idle' | 'loading' | 'failed'>('idle');
   const [attempt, setAttempt] = useState(0);
   const [offer, setOffer] = useState(false);
 
-  // The server prints the most played archetypes of Standard; the rest of the slice and the other format load here.
+  // The server prints the most played archetypes of the page's format; the rest of the slice loads here.
   const complete = data?.format === format && !data.truncated;
   useEffect(() => {
     if (complete) return undefined;
@@ -65,7 +66,7 @@ export function StandardMatchupsOpen({ initial, paywall }: {
     <section className="standard-matchups standard-matchups-open space-y-5 sm:space-y-6" id="matchups-overview">
       <header className="traditional-mode-banner">
         <div className="traditional-mode-banner__copy">
-          <h1>Матчапы</h1>
+          <h1>{format === 'wild' ? 'Матчапы Вольного формата' : 'Матчапы'}</h1>
           {shown ? (
             <p className="standard-matchups-open__line">
               {label} · {shown.rankLabel || 'Все ранги'} · от {shown.minGames} игр в паре
@@ -83,9 +84,9 @@ export function StandardMatchupsOpen({ initial, paywall }: {
           <legend className="sr-only">Формат игры</legend>
           <span className="standard-matchups__control-label" aria-hidden="true">Формат</span>
           <div className="standard-matchups__rank-switcher standard-matchups__segmented">
-            {FORMATS.map(([value, name]) => (
-              <button key={value} type="button" aria-pressed={format === value} aria-label={`Показать матчапы: ${name}`}
-                onClick={() => setPageFormat(value)}>{name}</button>
+            {FORMATS.map(([value, name, href]) => (
+              <a key={value} href={href} aria-current={format === value ? 'page' : undefined}
+                aria-label={`Показать матчапы: ${name}`}>{name}</a>
             ))}
           </div>
         </fieldset>

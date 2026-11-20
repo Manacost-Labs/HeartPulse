@@ -22,12 +22,16 @@ function browserStorage(): Storage | undefined {
 /**
  * The subscriber's HSGuru matchup slice. With `syncUrl` the slice is read from
  * and written to the page's query (`?format=wild&rank=all&period=…&min_games=…`);
- * the matchups page renders it only after the access check, in the browser.
+ * the matchups page renders it only after the access check, in the browser. A page whose path names the
+ * format (`pathFormat`, `/standard/matchups/wild/`) takes it from there: the query never carries `format`.
  */
-export function useStandardMatchups(accountId: string | undefined, enabled: boolean, { syncUrl = false } = {}) {
-  const [slice, setSlice] = useState<StandardMatchupsSlice>(() => (
-    syncUrl && typeof window !== 'undefined'
-      ? readStandardMatchupsSlice(window.location.search) : DEFAULT_STANDARD_MATCHUPS_SLICE));
+export function useStandardMatchups(accountId: string | undefined, enabled: boolean,
+  { syncUrl = false, pathFormat }: { syncUrl?: boolean; pathFormat?: StandardMatchupsFormat } = {}) {
+  const [slice, setSlice] = useState<StandardMatchupsSlice>(() => {
+    const fromAddress = syncUrl && typeof window !== 'undefined'
+      ? readStandardMatchupsSlice(window.location.search) : DEFAULT_STANDARD_MATCHUPS_SLICE;
+    return pathFormat ? { ...fromAddress, format: pathFormat } : fromAddress;
+  });
   const [view, setView] = useState<ViewState>({ accountId: null, slice, status: 'loading', data: null });
   const [request, setRequest] = useState({ sequence: 0, bust: false });
   const changeSlice = useCallback((patch: Partial<StandardMatchupsSlice>) => {
@@ -46,10 +50,11 @@ export function useStandardMatchups(accountId: string | undefined, enabled: bool
 
   useEffect(() => {
     if (!syncUrl) return;
-    const search = writeStandardMatchupsSlice(window.location.search, slice);
+    // With the format in the path, the default format leaves no parameter, so a stray `?format=` is dropped as well.
+    const search = writeStandardMatchupsSlice(window.location.search, pathFormat ? { ...slice, format: DEFAULT_STANDARD_MATCHUPS_SLICE.format } : slice);
     if (search === window.location.search) return;
     window.history.replaceState(window.history.state, '', `${window.location.pathname}${search}${window.location.hash}`);
-  }, [slice, syncUrl]);
+  }, [slice, syncUrl, pathFormat]);
 
   useEffect(() => {
     if (!enabled || !accountId) {
