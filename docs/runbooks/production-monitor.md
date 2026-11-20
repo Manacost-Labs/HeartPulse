@@ -152,6 +152,16 @@ successful report exposes bounded per-segment URL counts and sitemap sources so
 a collapsed catalog or LKG fallback is diagnosable without logging response
 bodies.
 
+Public-payload privacy fails on `QA_PRIVATE`, `statsAccess`,
+`subscriptionPayload`, `privateSentinel` and `deckCode`. Deck codes are open
+by the owner's decision of 2026-11-18, so `deckCode` is allowed only on the
+pages that publish them: archetype detail
+(`/standard/archetypes/<format>/<slug>/`), `/standard/fun-decks/` and card
+detail (`/standard/cards/<format>/<id>/`) — the `OPEN_DECK_CODE_ROUTES` list
+in `scripts/production-monitor.mjs` (#580). A new page that opens deck codes
+is added to that list together with its owner decision; every other page,
+the unknown-card `404` and sitemaps still fail on `deckCode`.
+
 Release-profile impact is high: users or crawlers may receive an unavailable
 site, the wrong release, an invalid canonical/indexing response, an incomplete
 sitemap, or private fields in a public document. Treat a repeated release
