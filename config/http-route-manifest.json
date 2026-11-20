@@ -3,7 +3,7 @@
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
     "sourceFiles": 116,
-    "routeRegistrations": 306,
+    "routeRegistrations": 307,
     "middlewareRegistrations": 157,
     "explicitGuardRouteRegistrations": 74,
     "unresolvedPaths": 0
@@ -4481,7 +4481,7 @@
     {
       "kind": "route",
       "method": "GET",
-      "path": "/card-assemble/:format/:cardId",
+      "path": "/card-assemble/:format",
       "pathKind": "string",
       "receiver": "router",
       "middleware": [],
@@ -4489,6 +4489,18 @@
       "guardSignals": [],
       "source": "server/modules/constructedCards/cardAssemble.ts",
       "sourceOrder": 0
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/card-assemble/:format/:cardId",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/modules/constructedCards/cardAssemble.ts",
+      "sourceOrder": 1
     },
     {
       "kind": "route",

@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import express from 'express';
-import { createCardAssembleRouter, projectCardAssemble } from '../server/modules/constructedCards/public.js';
+import { createCardAssembleRouter, projectCardAssemble, projectCardAssembleList, type CardAssembleListPayload } from '../server/modules/constructedCards/public.js';
 import {
   assembleFullText, assembleMeanWinrate, assembleOptionsOfBase, assembleWinrateTone, bestOfOffered, isAssembleCard,
-  type AssembleBase, type AssembleDonor, type AssembleOption, type CardAssembleData,
+  type AssembleBase, type AssembleDonor, type AssembleOption, type CardAssembleData, type CardAssembleListData,
 } from '../src/modules/constructedCards/model/cardAssemble.js';
 import {
   assembleBasesForClass, assembleClassDependent, assembleOfferedDonors, assembleOfferedVariants,
@@ -104,15 +104,55 @@ assert.equal(projectCardAssemble(null), null);
 assert.equal(projectCardAssemble({ data: { ...CONTRACT.data, format: 'twist' } }), null);
 assert.equal(projectCardAssemble({ data: { ...CONTRACT.data, card: { card_id: '../x', dbf_id: 1 } } }), null);
 
+// List projection: live slices of /v1/hsreplay/assemble/cards, allowlist, no empty answer.
+const LIST = JSON.parse(readFileSync(new URL('./fixtures/card-assemble-list-standard.json', import.meta.url), 'utf8'));
+const LIST_WILD = JSON.parse(readFileSync(new URL('./fixtures/card-assemble-list-wild.json', import.meta.url), 'utf8'));
+const listed = projectCardAssembleList(LIST, 'standard');
+assert.ok(listed);
+// The server and client types are assignable to each other.
+const asClient: CardAssembleListData = listed;
+const asServer: CardAssembleListPayload = asClient;
+assert.equal(asServer.cards.length, 13);
+assert.deepEqual(listed.cards.map(row => row.card.cardId), LIST.data.map((row: { card: { card_id: string } }) => row.card.card_id), 'source order');
+const rever = listed.cards.find(row => row.card.cardId === 'BE_044');
+assert.deepEqual(rever && [rever.card.name, rever.card.cardClass, rever.basesTotal, rever.state], ['РЕ-3-ВЕР', 'NEUTRAL', 38, 'ok']);
+assert.equal(listed.checkedAt, LIST.meta.fetched_at);
+assert.equal(listed.stale, false);
+assert.equal(JSON.stringify(listed).includes('name_ru'), false);
+assert.equal(JSON.stringify(listed).includes('"type"'), false);
+assert.equal(JSON.stringify(listed).includes('formats'), false);
+const hostileList = structuredClone(LIST);
+hostileList.data[0].win_rate = 140;
+hostileList.data[1].bases_total = 1001;
+hostileList.data[2].state = 'Bad State';
+hostileList.data[3].card.card_id = '<x>';
+hostileList.data[4].card.dbf_id = 2 ** 60;
+hostileList.data[5].formats = ['wild'];
+hostileList.data[6].card.name_ru = null;
+hostileList.data.push(...Array.from({ length: 60 }, (_, index) => ({ ...structuredClone(LIST.data[0]), card: { ...LIST.data[0].card, card_id: `EXTRA_${index}`, dbf_id: 90000 + index } })));
+const cleanList = projectCardAssembleList(hostileList, 'standard');
+assert.ok(cleanList);
+assert.equal(cleanList.cards.length, 40, 'capped');
+assert.deepEqual(cleanList.cards.slice(0, 3).map(row => [row.winRate, row.basesTotal, row.state]), [[null, hostileList.data[0].bases_total, 'ok'], [hostileList.data[1].win_rate, null, 'ok'], [hostileList.data[2].win_rate, hostileList.data[2].bases_total, 'failed']]);
+assert.equal(cleanList.cards[3].card.cardId, hostileList.data[6].card.card_id, 'broken id, broken dbf and the other format are dropped');
+assert.equal(cleanList.cards[3].card.name, hostileList.data[6].card.name, 'English name without name_ru');
+assert.equal(projectCardAssembleList({ data: [], meta: {} }, 'standard'), null);
+assert.equal(projectCardAssembleList({ data: 'x' }, 'standard'), null);
+assert.equal(projectCardAssembleList(LIST, 'classic'), null);
+
 // Router: one upstream read per card, format and base inside the cache window.
 const requested: string[] = [];
 let now = 0;
 let failUpstream = false;
+let emptyList = false;
 const app = express();
 app.use('/api', createCardAssembleRouter({
   request: async path => {
     requested.push(path);
     if (failUpstream) throw new Error('down');
+    if (path.startsWith('/v1/hsreplay/assemble/cards')) {
+      return new Response(JSON.stringify(emptyList ? { data: [], meta: {} } : path.includes('format=wild') ? LIST_WILD : LIST), { status: 200 });
+    }
     if (path.includes('card=CORE_EX1_110')) return new Response('{"detail":"not assemble"}', { status: 404 });
     if (path.includes('card=BE_045')) return new Response('{"detail":"oops"}', { status: 500 });
     if (path.includes('card=BE_046')) return new Response('{"data":{}}', { status: 200 });
@@ -167,6 +207,35 @@ try {
     assert.equal(cold.headers.get('retry-after'), '30');
     assert.equal(cold.headers.get('cache-control'), 'no-store');
   }
+
+  // List: 13 cards, one upstream read per format inside the cache window, nothing else reaches the upstream.
+  const listBefore = requested.length;
+  const standardList = await fetch(`${root}/card-assemble/standard`);
+  assert.equal(standardList.status, 200);
+  assert.equal(standardList.headers.get('cache-control'), 'public, max-age=300, stale-while-revalidate=600');
+  const standardBody = await standardList.json() as CardAssembleListData;
+  assert.equal(standardBody.cards.length, 13);
+  assert.deepEqual(standardBody.cards.find(row => row.card.cardId === 'BE_044'), { card: { cardId: 'BE_044', dbfId: 128892, name: 'РЕ-3-ВЕР', cost: 3, cardClass: 'NEUTRAL', rarity: 'COMMON' }, state: 'ok', basesTotal: 38, winRate: LIST.data[1].win_rate });
+  await fetch(`${root}/card-assemble/standard`);
+  assert.deepEqual(requested.slice(listBefore), ['/v1/hsreplay/assemble/cards?format=standard']);
+  const classic = await fetch(`${root}/card-assemble/classic`);
+  assert.equal(classic.status, 404);
+  assert.equal(classic.headers.get('cache-control'), 'no-store');
+  assert.equal(requested.length, listBefore + 1, 'an unknown format never reaches the upstream');
+  // An empty list is a contract mismatch: 503 cold (not cached), the last answer when there is one.
+  emptyList = true;
+  const emptyCold = await fetch(`${root}/card-assemble/wild`);
+  assert.equal(emptyCold.status, 503);
+  assert.equal(emptyCold.headers.get('retry-after'), '30');
+  assert.equal(emptyCold.headers.get('cache-control'), 'no-store');
+  now = 100_000;
+  assert.equal(((await (await fetch(`${root}/card-assemble/standard`)).json()) as CardAssembleListData).cards.length, 13, 'the last answer is kept');
+  emptyList = false;
+  now = 100_001;
+  const wildList = await fetch(`${root}/card-assemble/wild`);
+  assert.equal(wildList.status, 200);
+  assert.equal(((await wildList.json()) as CardAssembleListData).format, 'wild');
+  now = 0;
 
   // A failed refresh keeps the last answer; a cold failure is 503.
   failUpstream = true;

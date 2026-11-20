@@ -86,7 +86,7 @@ export type CardAssemblePayload = {
 
 type Record_ = Record<string, unknown>;
 
-function record(value: unknown): Record_ {
+export function record(value: unknown): Record_ {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record_ : {};
 }
 
@@ -94,7 +94,7 @@ function finite(value: unknown): number | null {
   return typeof value === 'number' && Number.isFinite(value) ? value : null;
 }
 
-function percent(value: unknown): number | null {
+export function percent(value: unknown): number | null {
   const number = finite(value);
   return number !== null && number >= 0 && number <= 100 ? number : null;
 }
@@ -103,7 +103,7 @@ function count(value: unknown): number | null {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null;
 }
 
-function text(value: unknown): string | null {
+export function text(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value.trim() : null;
 }
 
@@ -116,7 +116,7 @@ export function isFormat(value: unknown): value is CardAssembleFormat {
   return value === 'standard' || value === 'wild';
 }
 
-function readCard(value: unknown): AssembleCard | null {
+export function readCard(value: unknown): AssembleCard | null {
   const row = record(value);
   const cardId = text(row.card_id);
   const dbfId = finite(row.dbf_id);

@@ -67,6 +67,20 @@ export type CardAssembleData = {
   donorPoolStatus?: AssembleDonorPoolStatus | null;
 };
 
+/** `GET /api/card-assemble/:format`: the cards with Assemble, in the order of the source. */
+export type CardAssembleListData = {
+  format: 'standard' | 'wild';
+  checkedAt: string | null;
+  stale: boolean;
+  cards: Array<{
+    card: AssembleCard;
+    /** `ok`, `no_data`, `not_collected` or `failed`. */
+    state: string;
+    basesTotal: number | null;
+    winRate: number | null;
+  }>;
+};
+
 export type AssembleVariant = { donor: AssembleDonor; option: AssembleOption };
 export type AssembleBestOffered = {
   best: AssembleVariant;

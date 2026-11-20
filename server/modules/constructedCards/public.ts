@@ -61,6 +61,6 @@ export { createPublicCardRouter } from './publicCardRoutes.js';
 export { withCatalogCardMedia, loadCatalogCardMedia } from './catalogCardMedia.js';
 export { createCardChoicesRouter, projectCardChoices } from './cardChoices.js';
 export type { CardChoicesPayload } from './cardChoices.js';
-export { createCardAssembleRouter, projectCardAssemble } from './cardAssemble.js';
-export type { CardAssemblePayload } from './cardAssemble.js';
+export { createCardAssembleRouter, projectCardAssemble, projectCardAssembleList } from './cardAssemble.js';
+export type { CardAssembleListPayload, CardAssemblePayload } from './cardAssemble.js';
 export type { CatalogCardMedia } from './catalogCardMedia.js';
