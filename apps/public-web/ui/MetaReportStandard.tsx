@@ -12,7 +12,9 @@ function Delta({ value }: { value: number | null }) {
   return text ? <span className="meta-report__delta">{text}</span> : null;
 }
 
-function Row({ row, place, compared, linkable }: { row: ArchetypeRow; place: number; compared: boolean; linkable: ReadonlySet<string> }) {
+/** `since`: «за неделю» or «с 23 ноября» after the games of a compared row; `null` without a comparison. */
+function Row({ row, place, since, linkable }: { row: ArchetypeRow; place: number; since: string | null; linkable: ReadonlySet<string> }) {
+  const compared = since !== null;
   return <tr>
     <td>{place}</td>
     <th scope="row">
@@ -22,12 +24,12 @@ function Row({ row, place, compared, linkable }: { row: ArchetypeRow; place: num
     <td>{percent(row.winrate)}{compared ? <> <Delta value={row.winrateDelta} /></> : null}</td>
     <td>{percent(row.popularity)}{compared ? <> <Delta value={row.popularityDelta} /></> : null}</td>
     <td>{count(row.games)}{compared && row.gamesDelta !== null
-      ? <span className="meta-report__delta"> +{count(row.gamesDelta)} за неделю</span> : null}</td>
+      ? <span className="meta-report__delta"> +{count(row.gamesDelta)} {since}</span> : null}</td>
   </tr>;
 }
 
-function Top({ id, title, rows, left, compared, linkable }: {
-  id: string; title: string; rows: ArchetypeRow[]; left: string[]; compared: boolean; linkable: ReadonlySet<string>;
+function Top({ id, title, rows, left, since, linkable }: {
+  id: string; title: string; rows: ArchetypeRow[]; left: string[]; since: string | null; linkable: ReadonlySet<string>;
 }) {
   return <>
     <h3 id={id}>{title}</h3>
@@ -35,7 +37,7 @@ function Top({ id, title, rows, left, compared, linkable }: {
       <table aria-labelledby={id}>
         <thead><tr><th scope="col">#</th><th scope="col">Архетип</th><th scope="col">Винрейт</th>
           <th scope="col">Популярность</th><th scope="col">Игры</th></tr></thead>
-        <tbody>{rows.map((row, index) => <Row key={row.slug} row={row} place={index + 1} compared={compared} linkable={linkable} />)}</tbody>
+        <tbody>{rows.map((row, index) => <Row key={row.slug} row={row} place={index + 1} since={since} linkable={linkable} />)}</tbody>
       </table>
     </div>
     {left.length ? <p>Выбыли из топа: {left.join(', ')}.</p> : null}
@@ -43,7 +45,7 @@ function Top({ id, title, rows, left, compared, linkable }: {
 }
 
 function ComparisonNote({ comparison }: { comparison: Comparison }) {
-  if (comparison.kind === 'first') return <p>Первый отчёт: изменений к прошлой неделе нет.</p>;
+  if (comparison.kind === 'first') return <p>Первый отчёт: изменений нет.</p>;
   if (comparison.kind === 'same-period') {
     return <p>
       Изменения к <a href={`/reports/meta/${comparison.previousDate}/`}>отчёту на {reportDateLabel(comparison.previousDate)}</a>
@@ -51,7 +53,7 @@ function ComparisonNote({ comparison }: { comparison: Comparison }) {
   }
   return <p>
     Сменился период HSGuru: {periodLabel(comparison.previousPeriod) ?? 'неизвестен'} → {periodLabel(comparison.period) ?? 'неизвестен'},
-    изменений к прошлой неделе нет.
+    изменений к прошлому отчёту нет.
   </p>;
 }
 
@@ -59,6 +61,9 @@ function ComparisonNote({ comparison }: { comparison: Comparison }) {
 export function MetaReportStandard({ view, comparison, linkable }: { view: StandardView; comparison: Comparison; linkable: ReadonlySet<string> }) {
   const { data } = view;
   const compared = comparison.kind === 'same-period';
+  // A report recorded a week (or more) after a missed Monday compares with the older one: its games are not «за неделю».
+  const since = comparison.kind !== 'same-period' ? null
+    : comparison.weekly ? 'за неделю' : `с ${reportDateLabel(comparison.previousDate).replace(/ \d{4}$/, '')}`;
   const period = periodLabel(data.period);
   return <section aria-labelledby="meta-report-standard">
     <h2 id="meta-report-standard">Стандарт: {rankLabel(data.rank)}</h2>
@@ -68,9 +73,9 @@ export function MetaReportStandard({ view, comparison, linkable }: { view: Stand
     </p>
     <ComparisonNote comparison={comparison} />
     <Top id="meta-report-standard-winrate" title={`Лучшие по винрейту (популярность от ${decimal(REPORT_MIN_POPULARITY)}%)`}
-      rows={view.byWinrate} left={compared ? view.leftByWinrate : []} compared={compared} linkable={linkable} />
+      rows={view.byWinrate} left={compared ? view.leftByWinrate : []} since={since} linkable={linkable} />
     <Top id="meta-report-standard-popularity" title="Самые популярные" rows={view.byPopularity}
-      left={compared ? view.leftByPopularity : []} compared={compared} linkable={linkable} />
+      left={compared ? view.leftByPopularity : []} since={since} linkable={linkable} />
     <p className="meta-report__note">{sectionNote(view.section)}. <a href="/standard/meta/">Мета сейчас</a></p>
   </section>;
 }

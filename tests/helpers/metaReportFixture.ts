@@ -1,14 +1,12 @@
 import { createMetaReportSnapshots, type MetaReportSnapshots } from '../../server/modules/metaReport/public.ts';
 
 /*
- * Three weekly meta report snapshots recorded by the real snapshot job into a
- * real `node:sqlite` file: 23 and 30 November in one HSGuru period
- * (`patch_37.0.2`), 7 December in the next (`patch_37.2.0`). The sources answer
- * what the open projections answer a guest, plus paid fields with sentinels
- * the snapshot must drop.
+ * Weekly meta report snapshots recorded by the real snapshot job into a real
+ * `node:sqlite` file (`SCENARIOS` below). The sources answer what the open
+ * projections answer a guest, plus paid fields with sentinels the snapshot
+ * must drop.
  */
 
-export const REPORT_DATES = ['2026-11-23', '2026-11-30', '2026-12-07'] as const;
 export const PAID_SENTINELS = ['SENTINEL_DECK_CODE', 'SENTINEL_LEGEND', '77.7701', 'SENTINEL_OFFER'];
 
 type Archetype = [slug: string, archetype: string, label: string, winrate: number, popularity: number, games: number];
@@ -49,17 +47,30 @@ const WEEKS: Record<string, { period: string; archetypes: Archetype[] }> = {
 const FILLER: Archetype[] = Array.from({ length: 20 }, (_, index) =>
   [`filler-${index + 1}`, `Filler ${index + 1}`, `Редкость ${index + 1}`, 45, 0.1, 120]);
 
-const meta = (date: string) => ({
-  format: 'standard', formatLabel: 'Стандарт', rank: 'diamond_legend', rankLabel: 'Алмаз — Легенда', period: WEEKS[date].period,
-  currentPatchPeriod: WEEKS[date].period, minGames: 100, totalGames: 3_298_989, source: 'hsguru', updatedAt: `${date}T00:00:00.000Z`,
+/** One recorded Monday: its date, whose figures it carries and since when Arena and Battlegrounds were not refreshed. */
+type Week = { date: string; figures: keyof typeof WEEKS; staleSince?: string };
+
+/**
+ * `weekly`: 23.11, 30.11 (same period) and 07.12 (new period, patch 42 h before the snapshot).
+ * `gap`: 23.11 and 07.12 in one period (30.11 was not recorded); on 07.12 Arena and Battlegrounds
+ * were last refreshed on 1 December, so both are stale.
+ */
+export const SCENARIOS: Record<'weekly' | 'gap', Week[]> = {
+  weekly: [{ date: '2026-11-23', figures: '2026-11-23' }, { date: '2026-11-30', figures: '2026-11-30' }, { date: '2026-12-07', figures: '2026-12-07' }],
+  gap: [{ date: '2026-11-23', figures: '2026-11-23' }, { date: '2026-12-07', figures: '2026-11-30', staleSince: '2026-12-01' }],
+};
+
+const meta = ({ date, figures }: Week) => ({
+  format: 'standard', formatLabel: 'Стандарт', rank: 'diamond_legend', rankLabel: 'Алмаз — Легенда', period: WEEKS[figures].period,
+  currentPatchPeriod: WEEKS[figures].period, minGames: 100, totalGames: 3_298_989, source: 'hsguru', updatedAt: `${date}T00:00:00.000Z`,
   privateBreakdown: 'SENTINEL_LEGEND',
-  items: [...WEEKS[date].archetypes, ...FILLER].map(([slug, archetype, archetypeLabel, winrate, popularity, games]) => ({
+  items: [...WEEKS[figures].archetypes, ...FILLER].map(([slug, archetype, archetypeLabel, winrate, popularity, games]) => ({
     id: slug, slug, archetype, archetypeLabel, translated: true, classKey: 'warlock', winrate, popularity, games,
     turns: 77.7701, durationMinutes: null, climbingSpeed: null, deckCode: 'SENTINEL_DECK_CODE',
   })),
 });
 
-const matchups = (date: string) => ({
+const matchups = ({ date }: Week) => ({
   format: 'standard', formatLabel: 'Стандарт', rank: 'all', rankLabel: 'Все ранги', period: 'black_empire', minGames: 25,
   totalGames: 21_210_830, source: 'hsguru', updatedAt: `${date}T02:00:00.000Z`,
   columns: [
@@ -84,8 +95,8 @@ const matchups = (date: string) => ({
   ],
 });
 
-const arena = (date: string) => ({
-  updatedAt: `${date}T03:00:00.000Z`, source: 'HSReplay', sampleUnit: 'drafts',
+const arena = ({ date, staleSince }: Week) => ({
+  updatedAt: staleSince ? `${staleSince}T03:00:00.000Z` : `${date}T03:00:00.000Z`, source: 'HSReplay', sampleUnit: 'drafts',
   classes: [
     { place: 1, id: 'death-knight', name: 'Рыцарь смерти', winrate: 52.3, sample: 1308 },
     { place: 2, id: 'hunter', name: 'Охотник', winrate: 51.7, sample: 682 },
@@ -94,8 +105,8 @@ const arena = (date: string) => ({
   ],
 });
 
-const heroes = (date: string) => ({
-  mode: 'solo', mmr: 'TOP_50_PERCENT', updatedAt: `${date}T03:01:00.000Z`, source: 'HSReplay',
+const heroes = ({ date, staleSince }: Week) => ({
+  mode: 'solo', mmr: 'TOP_50_PERCENT', updatedAt: staleSince ? `${staleSince}T03:01:00.000Z` : `${date}T03:01:00.000Z`, source: 'HSReplay',
   heroes: [
     { dbfId: 60370, cardId: 'TB_BaconShop_HERO_53', name: 'Изера', tier: 'A', avgPlacement: 4.04, top4Rate: 57.9, pickRate: 25.69, offerRate: 'SENTINEL_OFFER' },
     { dbfId: 59807, cardId: 'TB_BaconShop_HERO_37', name: 'Лорд Джараксус', tier: 'A', avgPlacement: 3.98, top4Rate: 59.6, pickRate: 52.71 },
@@ -103,31 +114,31 @@ const heroes = (date: string) => ({
   ],
 });
 
-const patches = (date: string) => ({
+const patches = ({ figures }: Week) => ({
   patches: [
     { version: '37.0.2', title: 'Обновление 37.0.2', official_published_at: '2026-11-03T18:00:00+00:00' },
-    ...(date >= '2026-12-07' ? [{ version: '37.2.0.255000', title: 'Обновление 37.2', official_published_at: '2026-12-05T12:00:00+00:00' }] : []),
+    ...(WEEKS[figures].period === 'patch_37.2.0' ? [{ version: '37.2.0.255000', title: 'Обновление 37.2', official_published_at: '2026-12-05T12:00:00+00:00' }] : []),
   ],
 });
 
-/** Records the three weeks through the real job (Monday 06:40 UTC each) and returns the open store. */
-export async function recordMetaReportWeeks(stateDirectory: string): Promise<MetaReportSnapshots> {
-  let date: string = REPORT_DATES[0];
+/** Records the weeks of a scenario through the real job (Monday 06:40 UTC each) and returns the open store. */
+export async function recordMetaReportWeeks(stateDirectory: string, scenario: keyof typeof SCENARIOS = 'weekly'): Promise<MetaReportSnapshots> {
+  let week = SCENARIOS[scenario][0];
   const snapshots = createMetaReportSnapshots({
     stateDirectory,
-    now: () => Date.parse(`${date}T06:40:00Z`),
+    now: () => Date.parse(`${week.date}T06:40:00Z`),
     sources: {
-      standard: async () => meta(date),
-      matchups: async () => matchups(date),
-      arena: async () => arena(date),
-      battlegrounds: async () => heroes(date),
-      patches: async () => patches(date),
+      standard: async () => meta(week),
+      matchups: async () => matchups(week),
+      arena: async () => arena(week),
+      battlegrounds: async () => heroes(week),
+      patches: async () => patches(week),
     },
   });
-  for (const week of REPORT_DATES) {
-    date = week;
+  for (const next of SCENARIOS[scenario]) {
+    week = next;
     const result = await snapshots.run();
-    if (result !== 'recorded') throw new Error(`${week}: ${result}`);
+    if (result !== 'recorded') throw new Error(`${week.date}: ${result}`);
   }
   return snapshots;
 }

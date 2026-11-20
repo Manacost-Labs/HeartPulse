@@ -44,7 +44,8 @@ export type StandardView = {
 
 export type Comparison =
   | { kind: 'first' }
-  | { kind: 'same-period'; previousDate: string }
+  /** `weekly`: the previous report is exactly 7 days older; otherwise a week (or more) was not recorded in between. */
+  | { kind: 'same-period'; previousDate: string; weekly: boolean }
   | { kind: 'period-changed'; previousDate: string; previousPeriod: string | null; period: string | null };
 
 export type MatchupView = {
@@ -85,12 +86,13 @@ const byPopularity = (items: ReportStandardItem[]) => items
   .sort((a, b) => (b.popularity ?? 0) - (a.popularity ?? 0) || (b.games ?? 0) - (a.games ?? 0))
   .slice(0, REPORT_TOP);
 
-function comparisonOf(current: ReportStandard, previous: MetaReportSnapshot | null): Comparison {
+function comparisonOf(current: MetaReportSnapshot, previous: MetaReportSnapshot | null): Comparison {
   const before = previous?.sections.standard.data;
+  const period = current.sections.standard.data?.period ?? null;
   if (!previous || !before) return { kind: 'first' };
-  return current.period && current.period === before.period
-    ? { kind: 'same-period', previousDate: previous.date }
-    : { kind: 'period-changed', previousDate: previous.date, previousPeriod: before.period, period: current.period };
+  return period && period === before.period
+    ? { kind: 'same-period', previousDate: previous.date, weekly: Date.parse(current.date) - Date.parse(previous.date) === WEEK_MS }
+    : { kind: 'period-changed', previousDate: previous.date, previousPeriod: before.period, period };
 }
 
 function ranked(list: ReportStandardItem[], previousList: ReportStandardItem[] | null, previous: ReportStandardItem[] | null): ArchetypeRow[] {
@@ -165,7 +167,7 @@ const heroView = (data: ReportBattlegrounds | null): ReportHero[] | null => {
 /** The report of `current`; `previous` is the snapshot right before it (any period), or `null` for the first report. */
 export function buildMetaReportView(current: MetaReportSnapshot, previous: MetaReportSnapshot | null): MetaReportView {
   const data = current.sections.standard.data as ReportStandard;
-  const comparison = comparisonOf(data, previous);
+  const comparison = comparisonOf(current, previous);
   const patchData = current.sections.patch.data;
   const taken = Date.parse(current.recordedAt);
   const released = patchData ? Date.parse(patchData.publishedAt) : Number.NaN;
@@ -174,8 +176,9 @@ export function buildMetaReportView(current: MetaReportSnapshot, previous: MetaR
     comparison,
     standard: standardView(current, comparison.kind === 'same-period' ? previous?.sections.standard.data ?? null : null),
     matchups: matchupView(current.sections.matchups.data),
-    arena: arenaView(current.sections.arena.data),
-    heroes: heroView(current.sections.battlegrounds.data),
+    // A stale or missing source is not a ranking of the snapshot day: the section is skipped and says why.
+    arena: current.sections.arena.status === 'fresh' ? arenaView(current.sections.arena.data) : null,
+    heroes: current.sections.battlegrounds.status === 'fresh' ? heroView(current.sections.battlegrounds.data) : null,
     patch: patchData ? { ...patchData, thisWeek: taken - released >= 0 && taken - released < WEEK_MS } : null,
     earlyData: Number.isFinite(released) && taken - released >= 0 && taken - released < EARLY_PATCH_MS,
   };

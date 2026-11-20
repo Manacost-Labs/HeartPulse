@@ -47,6 +47,9 @@ export const sourceLabel = (source: string | null) => (source ? SOURCES[source.t
 const TIME = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
 const DAY = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Moscow', year: 'numeric', month: '2-digit', day: '2-digit' });
 
+/** «1 декабря 2026» of an instant, in the audience's zone. */
+export const instantDateLabel = (iso: string) => reportDateLabel(DAY.format(new Date(iso)));
+
 /** «20 ноября 2026, 02:00 МСК» of an instant, in the audience's zone. */
 export function instantLabel(iso: string): string {
   const at = new Date(iso);

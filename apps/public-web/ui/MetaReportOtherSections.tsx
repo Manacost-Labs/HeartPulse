@@ -1,18 +1,26 @@
 import type { ReportHero, ReportMatchups, ReportSection } from '@/apps/public-web/lib/publicMetaReportData';
 import type { ArenaView, MatchupView, MetaReportView } from '@/apps/public-web/lib/metaReportView';
 import { REPORT_MIN_ARENA_SAMPLE, REPORT_MIN_MATCHUP_GAMES } from '@/apps/public-web/lib/metaReportView';
-import { count, decimal, mmrLabel, percent, periodLabel, reportDateLabel, sectionNote } from '@/apps/public-web/lib/metaReportText';
+import { count, decimal, instantDateLabel, mmrLabel, percent, periodLabel, reportDateLabel, sectionNote } from '@/apps/public-web/lib/metaReportText';
 import { ArchetypeName } from './MetaReportStandard';
 
 function Note({ section, href, live }: { section: ReportSection<unknown>; href: string; live: string }) {
   return <p className="meta-report__note">{sectionNote(section)}. <a href={href}>{live}</a></p>;
 }
 
-/** A section the snapshot has no data for: said once, without figures. */
-function Missing({ id, title }: { id: string; title: string }) {
+/** Why a section has no figures: the source failed, or it was not refreshed in time for the snapshot. */
+function skipReason(section: ReportSection<unknown>): string {
+  if (section.status !== 'stale') return 'Нет данных: источник не ответил в день среза.';
+  return section.updatedAt
+    ? `Источник не обновлялся с ${instantDateLabel(section.updatedAt)}, раздел в этом отчёте пропущен.`
+    : 'У источника нет даты обновления, раздел в этом отчёте пропущен.';
+}
+
+/** A section the snapshot has no usable data for: one line with the reason, without figures. */
+function Missing({ id, title, section }: { id: string; title: string; section: ReportSection<unknown> }) {
   return <section aria-labelledby={id}>
     <h2 id={id}>{title}</h2>
-    <p>Нет данных: источник не ответил в день среза.</p>
+    <p>{skipReason(section)}</p>
   </section>;
 }
 
@@ -23,7 +31,7 @@ export function MetaReportMatchups({ rows, section, slugOf, linkable }: {
   rows: MatchupView[] | null; section: ReportSection<ReportMatchups>;
   slugOf: (archetype: string) => string | null; linkable: ReadonlySet<string>;
 }) {
-  if (!rows) return <Missing id="meta-report-matchups" title="Матчапы" />;
+  if (!rows) return <Missing id="meta-report-matchups" title="Матчапы" section={section} />;
   const period = periodLabel(section.data?.period ?? null);
   return <section aria-labelledby="meta-report-matchups">
     <h2 id="meta-report-matchups">Матчапы самых популярных архетипов</h2>
@@ -40,7 +48,7 @@ export function MetaReportMatchups({ rows, section, slugOf, linkable }: {
 }
 
 export function MetaReportArena({ view, section }: { view: ArenaView | null; section: ReportSection<unknown> }) {
-  if (!view) return <Missing id="meta-report-arena" title="Арена" />;
+  if (!view) return <Missing id="meta-report-arena" title="Арена" section={section} />;
   const unit = view.sampleUnit === 'games' ? 'игр' : 'забегов';
   return <section aria-labelledby="meta-report-arena">
     <h2 id="meta-report-arena">Арена: классы по проценту побед</h2>
@@ -58,7 +66,7 @@ export function MetaReportArena({ view, section }: { view: ArenaView | null; sec
 }
 
 export function MetaReportHeroes({ heroes, section, mmr }: { heroes: ReportHero[] | null; section: ReportSection<unknown>; mmr: string | null }) {
-  if (!heroes) return <Missing id="meta-report-heroes" title="Поля сражений" />;
+  if (!heroes) return <Missing id="meta-report-heroes" title="Поля сражений" section={section} />;
   const rating = mmrLabel(mmr);
   return <section aria-labelledby="meta-report-heroes">
     <h2 id="meta-report-heroes">Поля сражений: лучшие герои</h2>

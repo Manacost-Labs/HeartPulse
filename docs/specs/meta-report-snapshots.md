@@ -139,9 +139,11 @@ The page copies the snapshot field by field once more
 - Standard, Diamond–Legend: top 10 by winrate among archetypes with at least
   0.5 % of games, top 10 by popularity; winrate, popularity, games.
 - Change to the previous snapshot only when both Standard sections have the
-  same HSGuru `period`: winrate and popularity in percentage points, games of
-  the week (the difference of the accumulated games), «новый в топе» and the
-  archetypes that left a top. The first report and a report after a period
+  same HSGuru `period`: winrate and popularity in percentage points, games
+  added since (the difference of the accumulated games), «новый в топе» and
+  the archetypes that left a top. The games read «за неделю» only when the
+  previous report is exactly 7 days older; after a missed Monday they read
+  «с <дата>» of the older report. The first report and a report after a period
   change print no difference and say why.
 - Matchups: the 5 rows with most games, best and worst opponent among pairs
   of at least 25 games (the mirror left out).
@@ -152,7 +154,10 @@ The page copies the snapshot field by field once more
 - Patch of the week: the newest patch of the snapshot, «вышел на этой
   неделе» when it is younger than 7 days at the snapshot.
 - Every section prints its own «Данные на …» and source and links its live
-  page. A section without data says so, with no figures.
+  page. A section without data says so, with no figures. An Arena or
+  Battlegrounds section whose source was `stale` on the snapshot day is not
+  ranked either: one line «Источник не обновлялся с <дата>, раздел в этом
+  отчёте пропущен».
 - Archetype names link to `/standard/archetypes/standard/<slug>/` only when
   the open catalog of now says the page is indexable
   (`isIndexableArchetype`).

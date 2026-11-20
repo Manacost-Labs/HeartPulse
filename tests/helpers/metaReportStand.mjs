@@ -28,11 +28,11 @@ function leak(snapshot) {
 
 /**
  * Next.js in front of an Express with the real report routes over the three recorded weeks
- * (`empty: true`: an archive without reports) and the open archetype catalog.
+ * of a fixture scenario (`empty: true`: an archive without reports) and the open archetype catalog.
  */
-export async function startMetaReportStand({ empty = false } = {}) {
+export async function startMetaReportStand({ empty = false, scenario = 'weekly' } = {}) {
   const directory = mkdtempSync(join(tmpdir(), 'meta-report-next-'));
-  const snapshots = empty ? null : await recordMetaReportWeeks(directory);
+  const snapshots = empty ? null : await recordMetaReportWeeks(directory, scenario);
   const app = express();
   app.get('/api/auth/me', (_request, response) => response.json({ user: null }));
   app.get('/api/constructed-archetypes/teaser', (request, response) => (request.query.format === 'standard'

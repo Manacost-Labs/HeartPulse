@@ -51,7 +51,7 @@ test('a report prints the snapshot with the change to the previous week of the s
     // Under the H1 one line of data: the date of the snapshot and the sources; methodology only in «Об отчёте».
     assert.equal(lead(html), 'Срез 30 ноября 2026 · HSGuru, HSReplay');
     assert.equal(plain(html.slice(html.indexOf('</h1>'), html.indexOf('<section'))),
-      'Срез 30 ноября 2026 · HSGuru, HSReplay Об отчёте Изменения к прошлой неделе считаются только внутри одного периода HSGuru: '
+      'Срез 30 ноября 2026 · HSGuru, HSReplay Об отчёте Изменения к прошлому отчёту считаются только внутри одного периода HSGuru: '
       + 'в новом периоде игры копятся заново.', 'nothing else stands between the H1 and the data');
     assert.deepEqual(tableRows(html, 'meta-report-standard-winrate'), [
       '1 | Йогг Воин | 60,2% +1,1 п.п. | 3,0% +0,1 п.п. | 8 100 +2 100 за неделю',
@@ -96,7 +96,7 @@ test('no change across a new HSGuru period, none for the first report; nothing p
       '3 | Зоо Чернокнижник | 51,0% | 7,0% | 4 000',
     ]);
     const changedText = plain(main(changed));
-    assert.ok(changedText.includes('Сменился период HSGuru: Патч 37.0.2 → Патч 37.2.0, изменений к прошлой неделе нет.'));
+    assert.ok(changedText.includes('Сменился период HSGuru: Патч 37.0.2 → Патч 37.2.0, изменений к прошлому отчёту нет.'));
     assert.ok(changedText.includes('На этой неделе вышел патч 37.2.0 (5 декабря 2026).'));
     assert.equal(lead(changed), 'Срез 7 декабря 2026 · HSGuru, HSReplay · ранние данные: патч вышел меньше чем за 72 часа до среза');
     assert.ok(!changedText.includes('п.п.') && !changedText.includes('Выбыли'), 'no difference between periods');
@@ -104,7 +104,7 @@ test('no change across a new HSGuru period, none for the first report; nothing p
 
     const first = await (await fetch(`${stand.origin}/reports/meta/2026-11-23/`)).text();
     const firstText = plain(main(first));
-    assert.ok(firstText.includes('Первый отчёт: изменений к прошлой неделе нет.'));
+    assert.ok(firstText.includes('Первый отчёт: изменений нет.'));
     assert.equal(lead(first), 'Срез 23 ноября 2026 · HSGuru, HSReplay');
     assert.ok(!firstText.includes('п.п.') && !firstText.includes('новый в топе'));
 
@@ -120,6 +120,31 @@ test('no change across a new HSGuru period, none for the first report; nothing p
       assert.deepEqual([...LEAKED, ...PAID_SENTINELS].filter(value => html.includes(value)), [], `${path} holds no paid value`);
       assert.ok(!html.includes('"@type":"Dataset"'), `${path} is noindex, so it has no Dataset JSON-LD yet`);
     }
+  } finally {
+    await stand.close();
+  }
+});
+
+test('after a missed Monday the change is to the older report, not «за неделю»; stale Arena and Battlegrounds are skipped', async () => {
+  const stand = await startMetaReportStand({ scenario: 'gap' });
+  try {
+    const html = await (await fetch(`${stand.origin}/reports/meta/2026-12-07/`)).text();
+    assert.deepEqual(tableRows(html, 'meta-report-standard-winrate'), [
+      '1 | Йогг Воин | 60,2% +1,1 п.п. | 3,0% +0,1 п.п. | 8 100 +2 100 с 23 ноября',
+      '2 | Зоо Чернокнижник | 56,9% −0,6 п.п. | 10,4% +0,6 п.п. | 26 000 +6 000 с 23 ноября',
+      '3 | Большой Шаман новый в топе | 55,5% | 1,2% | 3 000',
+      '4 | Вор Жрец | 54,0% −0,1 п.п. | 4,2% +0,2 п.п. | 10 500 +2 500 с 23 ноября',
+      '5 | ДК Крови | 53,1% +1,1 п.п. | 8,1% −0,7 п.п. | 22 000 +4 000 с 23 ноября',
+    ]);
+    const text = plain(main(html));
+    assert.ok(text.includes('Изменения к отчёту на 23 ноября 2026'));
+    assert.ok(!text.includes('за неделю'), 'two weeks of games are not called a week');
+    assert.ok(text.includes('Арена Источник не обновлялся с 1 декабря 2026, раздел в этом отчёте пропущен.'));
+    assert.ok(text.includes('Поля сражений Источник не обновлялся с 1 декабря 2026, раздел в этом отчёте пропущен.'));
+    for (const stale of ['Рыцарь смерти', 'Мало данных', 'Лорд Джараксус', 'Изера']) {
+      assert.ok(!text.includes(stale), `a stale section shows no ranking (${stale})`);
+    }
+    assert.ok(!links(html).includes('/heroes/59807/'));
   } finally {
     await stand.close();
   }

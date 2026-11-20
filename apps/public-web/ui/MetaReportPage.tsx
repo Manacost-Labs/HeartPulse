@@ -38,7 +38,7 @@ export function MetaReportPage({ snapshot, view, previous, next, linkable }: {
       </p>
       <details className="meta-report__about">
         <summary>Об отчёте</summary>
-        Изменения к прошлой неделе считаются только внутри одного периода HSGuru: в новом периоде игры копятся заново.
+        Изменения к прошлому отчёту считаются только внутри одного периода HSGuru: в новом периоде игры копятся заново.
       </details>
       <MetaReportStandard view={view.standard} comparison={view.comparison} linkable={linkable} />
       <MetaReportMatchups rows={view.matchups} section={sections.matchups}
