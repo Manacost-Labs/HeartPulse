@@ -175,10 +175,9 @@ test('Next hero detail renders a safe teaser and real 404 without guest statisti
     assert.equal(dataset.isAccessibleForFree, false);
     assert.deepEqual(dataset.hasPart, { '@type': 'WebPageElement', isAccessibleForFree: false, cssSelector: '.paywalled-hero' });
     assert.match(raw, /class="[^"]*\bpaywalled-hero\b/, 'the selector names a real element');
-    // A robot reads the guest's page: the same markup outside scripts.
-    const markup = html => html.replace(/<script\b[\s\S]*?<\/script>/g, '');
+    // A robot reads the guest's page: the same document.
     const robot = await (await fetch(`${origin}/heroes/57944/`, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' } })).text();
-    assert.equal(markup(robot), markup(raw), 'the robot gets the guest HTML');
+    assert.equal(robot, raw, 'the robot gets the guest HTML');
     assert.equal(JSON.stringify(rawGraph).includes('SENTINEL'), false);
     const callsBeforeSpoof = publicCalls;
     const spoofed = await fetch(`${origin}/heroes/57944/`, { headers: {
