@@ -27,11 +27,14 @@ without any patch with changes is not stored). Once the before/after pictures
 of the two newest patches are read, the copy is stored again with them. After
 a restart the API answers at once from this copy while the archive is rebuilt
 in the background (stale-while-revalidate): `/standard/patches/` does not
-fall to `503` while hs-data-api is slow to send the archive. Answers with
-cards from the copy are `public, max-age=10` and read no card history until
-the rebuild succeeds. Without a copy (first start, or an unreadable file) the
-first read waits for the archive as before; if it fails, the API answers
-`502`.
+fall to `503` while hs-data-api is slow to send the archive. Every answer
+from the copy (the archive list included) is `public, max-age=10`, a version
+the copy lacks is `404` with `no-store`, and no card history is read until the
+rebuild succeeds. Once a build starts being stored, pictures still on their way
+for an older build are never written over it. A copy whose patches miss a
+field of the `PatchNotesDetail` contract is reported and not served. Without a
+copy (first start, or a damaged file) the first read waits for the archive as
+before; if it fails, the API answers `502`.
 
 ### Official article supplements
 

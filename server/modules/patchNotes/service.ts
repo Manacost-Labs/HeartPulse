@@ -234,11 +234,11 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
       const filled = catalogCards ? await catalogCards.fillWithin(patches, CATALOG_WAIT_MS) : patches;
       return cardVersions.attach(snapshot.patches, filled);
     },
-    /** True while an answer may still lack cards the catalog is yet to name; such an answer is cached only briefly. */
-    incomplete: () => (snapshot ? copy.isRestored(snapshot.value) : false) || (catalogCards?.pending() ?? false),
+    /** `incomplete`: an answer may still lack cards the catalog is yet to name; `restored`: the stored copy of a restart. Both are cached briefly. */
+    incomplete: () => catalogCards?.pending() ?? false, restored: copy.isRestored,
     async load(): Promise<PatchNotesSnapshot> {
-      const stored = snapshot ? null : copy.restore(); // Expired at once: served while this process's first refresh runs.
-      if (stored) snapshot = { value: stored, expiresAt: 0 };
+      const stored = snapshot ? null : copy.restore();
+      if (stored) snapshot = { value: stored, expiresAt: 0 }; // Expired at once: served while this process's first refresh runs.
       if (snapshot && snapshot.expiresAt > now()) return snapshot.value;
       if (snapshot) {
         start().catch(() => undefined);
