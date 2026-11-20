@@ -518,7 +518,8 @@ SEO cost is 250–400 words fewer on three indexed pages.
   перечитывается 60 с, не больше 4 запросов одновременно на сервер, каждый
   отменяется через 5 с (`apps/public-web/lib/publicClassDecks.ts`). Без
   каталога — и когда источник отказал (4xx), и когда упал — `proxy.ts`
-  отвечает 503 с `Retry-After` (`publicDataProbe`, только для маршрутов колод). Муллиганы, матчапы, история и узкие ранги в HTML, RSC и JSON-LD не
+  отвечает 503 с `Retry-After` (`publicDataProbe`, только для маршрутов
+  колод). Муллиганы, матчапы, история и узкие ранги в HTML, RSC и JSON-LD не
   попадают (sentinel в `tests/next-decks-pages-browser.test.mjs`).
 - Обе страницы — только данные: под H1 одна строка «дата · выборка ·
   источник HSGuru», без пояснительных блоков; HTML одинаков для робота и
