@@ -155,6 +155,102 @@
       "dataDescription": "Тир-лист карт Арены Hearthstone{asOf}: тир, винрейт и частота выбора каждой карты по классам[, {games}]. Данные HSReplay.",
       "sitemap": true
     },
+    "/tierlist/death-knight": {
+      "policyRouteId": "tierlist-class",
+      "title": "Тир-лист Арены Hearthstone (хс): Рыцарь смерти, {year}",
+      "description": "Рыцарь смерти: тир-лист карт Арены Hearthstone (хс) — тир, винрейт и частота выбора каждой карты класса. Данные HSReplay.",
+      "dataTitle": "Тир-лист Арены Hearthstone (хс): Рыцарь смерти[, {month}]",
+      "dataDescription": "Рыцарь смерти: тир-лист карт Арены Hearthstone[{asOf}]. Тир, винрейт и частота выбора каждой карты[, {games}]. Данные HSReplay.",
+      "sitemap": true
+    },
+    "/tierlist/demon-hunter": {
+      "policyRouteId": "tierlist-class",
+      "title": "Тир-лист Арены Hearthstone (хс): Охотник на демонов, {year}",
+      "description": "Охотник на демонов: тир-лист карт Арены Hearthstone (хс) — тир, винрейт и частота выбора каждой карты класса. Данные HSReplay.",
+      "dataTitle": "Тир-лист Арены Hearthstone (хс): Охотник на демонов[, {month}]",
+      "dataDescription": "Охотник на демонов: тир-лист карт Арены Hearthstone[{asOf}]. Тир, винрейт и частота выбора каждой карты[, {games}]. Данные HSReplay.",
+      "sitemap": true
+    },
+    "/tierlist/druid": {
+      "policyRouteId": "tierlist-class",
+      "title": "Тир-лист Арены Hearthstone (хс): Друид, {year}",
+      "description": "Друид: тир-лист карт Арены Hearthstone (хс) — тир, винрейт и частота выбора каждой карты класса. Данные HSReplay.",
+      "dataTitle": "Тир-лист Арены Hearthstone (хс): Друид[, {month}]",
+      "dataDescription": "Друид: тир-лист карт Арены Hearthstone[{asOf}]. Тир, винрейт и частота выбора каждой карты[, {games}]. Данные HSReplay.",
+      "sitemap": true
+    },
+    "/tierlist/hunter": {
+      "policyRouteId": "tierlist-class",
+      "title": "Тир-лист Арены Hearthstone (хс): Охотник, {year}",
+      "description": "Охотник: тир-лист карт Арены Hearthstone (хс) — тир, винрейт и частота выбора каждой карты класса. Данные HSReplay.",
+      "dataTitle": "Тир-лист Арены Hearthstone (хс): Охотник[, {month}]",
+      "dataDescription": "Охотник: тир-лист карт Арены Hearthstone[{asOf}]. Тир, винрейт и частота выбора каждой карты[, {games}]. Данные HSReplay.",
+      "sitemap": true
+    },
+    "/tierlist/mage": {
+      "policyRouteId": "tierlist-class",
+      "title": "Тир-лист Арены Hearthstone (хс): Маг, {year}",
+      "description": "Маг: тир-лист карт Арены Hearthstone (хс) — тир, винрейт и частота выбора каждой карты класса. Данные HSReplay.",
+      "dataTitle": "Тир-лист Арены Hearthstone (хс): Маг[, {month}]",
+      "dataDescription": "Маг: тир-лист карт Арены Hearthstone[{asOf}]. Тир, винрейт и частота выбора каждой карты[, {games}]. Данные HSReplay.",
+      "sitemap": true
+    },
+    "/tierlist/paladin": {
+      "policyRouteId": "tierlist-class",
+      "title": "Тир-лист Арены Hearthstone (хс): Паладин, {year}",
+      "description": "Паладин: тир-лист карт Арены Hearthstone (хс) — тир, винрейт и частота выбора каждой карты класса. Данные HSReplay.",
+      "dataTitle": "Тир-лист Арены Hearthstone (хс): Паладин[, {month}]",
+      "dataDescription": "Паладин: тир-лист карт Арены Hearthstone[{asOf}]. Тир, винрейт и частота выбора каждой карты[, {games}]. Данные HSReplay.",
+      "sitemap": true
+    },
+    "/tierlist/priest": {
+      "policyRouteId": "tierlist-class",
+      "title": "Тир-лист Арены Hearthstone (хс): Жрец, {year}",
+      "description": "Жрец: тир-лист карт Арены Hearthstone (хс) — тир, винрейт и частота выбора каждой карты класса. Данные HSReplay.",
+      "dataTitle": "Тир-лист Арены Hearthstone (хс): Жрец[, {month}]",
+      "dataDescription": "Жрец: тир-лист карт Арены Hearthstone[{asOf}]. Тир, винрейт и частота выбора каждой карты[, {games}]. Данные HSReplay.",
+      "sitemap": true
+    },
+    "/tierlist/rogue": {
+      "policyRouteId": "tierlist-class",
+      "title": "Тир-лист Арены Hearthstone (хс): Разбойник, {year}",
+      "description": "Разбойник: тир-лист карт Арены Hearthstone (хс) — тир, винрейт и частота выбора каждой карты класса. Данные HSReplay.",
+      "dataTitle": "Тир-лист Арены Hearthstone (хс): Разбойник[, {month}]",
+      "dataDescription": "Разбойник: тир-лист карт Арены Hearthstone[{asOf}]. Тир, винрейт и частота выбора каждой карты[, {games}]. Данные HSReplay.",
+      "sitemap": true
+    },
+    "/tierlist/shaman": {
+      "policyRouteId": "tierlist-class",
+      "title": "Тир-лист Арены Hearthstone (хс): Шаман, {year}",
+      "description": "Шаман: тир-лист карт Арены Hearthstone (хс) — тир, винрейт и частота выбора каждой карты класса. Данные HSReplay.",
+      "dataTitle": "Тир-лист Арены Hearthstone (хс): Шаман[, {month}]",
+      "dataDescription": "Шаман: тир-лист карт Арены Hearthstone[{asOf}]. Тир, винрейт и частота выбора каждой карты[, {games}]. Данные HSReplay.",
+      "sitemap": true
+    },
+    "/tierlist/warlock": {
+      "policyRouteId": "tierlist-class",
+      "title": "Тир-лист Арены Hearthstone (хс): Чернокнижник, {year}",
+      "description": "Чернокнижник: тир-лист карт Арены Hearthstone (хс) — тир, винрейт и частота выбора каждой карты класса. Данные HSReplay.",
+      "dataTitle": "Тир-лист Арены Hearthstone (хс): Чернокнижник[, {month}]",
+      "dataDescription": "Чернокнижник: тир-лист карт Арены Hearthstone[{asOf}]. Тир, винрейт и частота выбора каждой карты[, {games}]. Данные HSReplay.",
+      "sitemap": true
+    },
+    "/tierlist/warrior": {
+      "policyRouteId": "tierlist-class",
+      "title": "Тир-лист Арены Hearthstone (хс): Воин, {year}",
+      "description": "Воин: тир-лист карт Арены Hearthstone (хс) — тир, винрейт и частота выбора каждой карты класса. Данные HSReplay.",
+      "dataTitle": "Тир-лист Арены Hearthstone (хс): Воин[, {month}]",
+      "dataDescription": "Воин: тир-лист карт Арены Hearthstone[{asOf}]. Тир, винрейт и частота выбора каждой карты[, {games}]. Данные HSReplay.",
+      "sitemap": true
+    },
+    "/tierlist/neutral": {
+      "policyRouteId": "tierlist-class",
+      "title": "Нейтральные карты Арены Hearthstone (хс): тир-лист, {year}",
+      "description": "Нейтральные карты Арены Hearthstone (хс): тир, винрейт и частота выбора каждой нейтральной карты. Данные HSReplay.",
+      "dataTitle": "Нейтральные карты Арены Hearthstone: тир-лист[, {month}]",
+      "dataDescription": "Нейтральные карты Арены Hearthstone[{asOf}]: тир, винрейт и частота выбора каждой карты[, {games}]. Данные HSReplay.",
+      "sitemap": true
+    },
     "/legendaries": {
       "policyRouteId": "legendaries",
       "navigationRouteId": "legendaries",

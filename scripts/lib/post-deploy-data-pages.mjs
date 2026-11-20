@@ -70,6 +70,11 @@ export const DATA_PAGES = [
   { path: '/standard/decks/shaman/', marker: 'decks-class__table', copyWords: 0, dataWords: 0 },
   { path: '/standard/decks/warlock/', marker: 'decks-class__table', copyWords: 0, dataWords: 0 },
   { path: '/standard/decks/warrior/', marker: 'decks-class__table', copyWords: 0, dataWords: 0 },
+  // The class pages of the Arena tier list (#617, indexed by #668): ISR without a build copy (`generateStaticParams` is
+  // empty), so after a deploy each is rendered on its first request; the warm-up makes that request once Express
+  // answers. The marker is a card of the class, as on /tierlist/. Words: not measured.
+  ...['death-knight', 'demon-hunter', 'druid', 'hunter', 'mage', 'paladin', 'priest', 'rogue', 'shaman', 'warlock', 'warrior',
+    'neutral'].map(slug => ({ path: `/tierlist/${slug}/`, marker: 'hs-tier-card', copyWords: 0, dataWords: 0 })),
   // The tool page reads two Express answers in a 600 ms budget; `assemble-title` («Что выпало?») is only in the HTML that got both. Words: not measured.
   { path: '/standard/assemble/', marker: 'assemble-title', copyWords: 0, dataWords: 0 },
   { path: '/standard/assemble/?format=wild', marker: 'assemble-title', copyWords: 0, dataWords: 0 },

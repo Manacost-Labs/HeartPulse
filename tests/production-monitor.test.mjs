@@ -878,6 +878,8 @@ try {
     samples.filter(sample => sample.id === 'standard-cards-format').map(sample => sample.path),
     ['/standard/cards/standard/', '/standard/cards/wild/'],
   );
+  assert.deepEqual(samples.filter(sample => sample.id === 'tierlist-class'), [{ id: 'tierlist-class', path: '/tierlist/mage/' }],
+    'the indexable class pages of the tier list (#668) are monitored by one of them');
   assert.deepEqual(
     pageTemplateSamples([
       { id: 'new-static', pattern: '/new-page', indexPolicy: 'index' },

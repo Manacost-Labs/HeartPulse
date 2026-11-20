@@ -4,7 +4,7 @@ import { TIERLIST_CLASS_SLUGS, tierlistClassIdFromSlug, tierlistClassPageHeading
 import { tierlistClassSeoText } from '../apps/public-web/lib/tierlistClassSeo.js';
 import { tierlistClassStructuredNodes } from '../apps/public-web/lib/tierlistClassStructuredData.js';
 import { seoStructuredDataGraphOf } from '../src/seo/structuredData.js';
-import inventory from '../src/shared/seo/publicRouteInventory.json';
+import { DATA_PAGES } from '../scripts/lib/post-deploy-data-pages.mjs';
 import type { PublicTierlist } from '../apps/public-web/lib/publicTierlistData.js';
 
 // The class pages of the Arena tier list (#617): every class of the open pool and the neutral cards have a page,
@@ -41,22 +41,23 @@ assert.deepEqual(neutral.sections.map(section => section.totalCards), [0, 0, 1])
 // A class page has its own H1 and breadcrumb: not a duplicate of the tier list's heading.
 assert.deepEqual(tierlistClassPageHeading('mage', 'Маг'), { title: 'Тир-лист карт Арены Hearthstone: Маг', name: 'Маг', href: '/tierlist/mage/' });
 assert.deepEqual(tierlistClassPageHeading('any', 'Нейтральные'), { title: 'Нейтральные карты Арены Hearthstone', name: 'Нейтральные', href: '/tierlist/neutral/' });
-// Title and description of a class page: the data date and the sample the page prints; data a week old has no
-// month, a title that would pass 60 characters drops it too, and a page without data of its class has neither.
+// Title and description of a class page: its record in the SEO registry with the data date and the sample the page
+// prints; data a week old has no month, a title that would pass 60 characters drops it too, and a page without cards of
+// its class keeps the record's static text.
 const dated: PublicTierlist = { ...pool, updatedAt: '2026-09-20T09:00:00.000Z',
   classes: [...pool.classes, { id: 'demon-hunter', name: 'Охотник на демонов', cards: [card('D1', 'A')] }] };
 const fresh = Date.parse('2026-09-21T00:00:00.000Z');
 const stale = Date.parse('2026-10-21T00:00:00.000Z');
 assert.deepEqual(tierlistClassSeoText(dated, 'mage', fresh), {
-  title: 'Тир-лист Арены Hearthstone: Маг, сентябрь 2026',
+  title: 'Тир-лист Арены Hearthstone (хс): Маг, сентябрь 2026',
   description: 'Маг: тир-лист карт Арены Hearthstone на 20 сентября 2026. Тир, винрейт и частота выбора каждой карты, более 53 000 игр. Данные HSReplay.',
 });
 assert.deepEqual(tierlistClassSeoText(dated, 'demon-hunter', fresh), {
-  title: 'Тир-лист Арены Hearthstone: Охотник на демонов',
+  title: 'Тир-лист Арены Hearthstone (хс): Охотник на демонов',
   description: 'Охотник на демонов: тир-лист карт Арены Hearthstone на 20 сентября 2026. Тир, винрейт и частота выбора каждой карты, более 53 000 игр. Данные HSReplay.',
-}, '«…, сентябрь 2026» would make a 61-character title');
+}, '«…, сентябрь 2026» would make a 66-character title');
 assert.deepEqual(tierlistClassSeoText(dated, 'demon-hunter', stale), {
-  title: 'Тир-лист Арены Hearthstone: Охотник на демонов',
+  title: 'Тир-лист Арены Hearthstone (хс): Охотник на демонов',
   description: 'Охотник на демонов: тир-лист карт Арены Hearthstone, обновлено 20 сентября 2026. Тир, винрейт и частота выбора каждой карты, более 53 000 игр. Данные HSReplay.',
 });
 assert.deepEqual(tierlistClassSeoText(dated, 'any', fresh), {
@@ -68,45 +69,49 @@ assert.deepEqual(tierlistClassSeoText(dated, 'any', stale), {
   description: 'Нейтральные карты Арены Hearthstone, обновлено 20 сентября 2026: тир, винрейт и частота выбора каждой карты, более 53 000 игр. Данные HSReplay.',
 });
 const undated = {
-  title: 'Тир-лист Арены Hearthstone: Жрец',
-  description: 'Жрец: тир-лист карт Арены Hearthstone. Тир, винрейт и частота выбора каждой карты. Данные HSReplay.',
+  title: `Тир-лист Арены Hearthstone (хс): Жрец, ${new Date().getUTCFullYear()}`,
+  description: 'Жрец: тир-лист карт Арены Hearthstone (хс) — тир, винрейт и частота выбора каждой карты класса. Данные HSReplay.',
 };
 assert.deepEqual(tierlistClassSeoText(dated, 'priest', fresh), undated, 'a class without cards in the pool has no date');
 assert.deepEqual(tierlistClassSeoText(null, 'priest', fresh), undated, 'no pool, no date');
+assert.equal(tierlistClassSeoText(null, 'any', fresh).title, `Нейтральные карты Арены Hearthstone (хс): тир-лист, ${new Date().getUTCFullYear()}`);
 
-// Without data the title still names the class (from the page's own names, not the pool).
-assert.equal(tierlistClassSeoText(null, 'demon-hunter', fresh).title, 'Тир-лист Арены Hearthstone: Охотник на демонов');
-assert.equal(tierlistClassSeoText(null, 'any', fresh).title, 'Нейтральные карты Арены Hearthstone: тир-лист');
+// JSON-LD of a class page through the shared graph builder (#668: the route is indexable): the breadcrumb the page
+// shows («Главная › Тир-лист › Маг»), the page, and the Dataset of its cards with the tier list's sources and paywall.
+const magePage = { title: 'Тир-лист Арены Hearthstone (хс): Маг, сентябрь 2026', description: 'Маг: тир-лист карт Арены Hearthstone.' };
+const graph = (await seoStructuredDataGraphOf('/tierlist/mage/', tierlistClassStructuredNodes('mage', magePage),
+  { dateModified: '2026-09-20T09:00:00.000Z' }))!['@graph'];
+assert.deepEqual(graph.map(node => node['@type']), ['Organization', 'BreadcrumbList', 'CollectionPage', 'Dataset']);
+assert.deepEqual(graph[1], {
+  '@type': 'BreadcrumbList', '@id': 'https://hearthpulse.net/tierlist/mage/#breadcrumb',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Главная', item: 'https://hearthpulse.net/' },
+    { '@type': 'ListItem', position: 2, name: 'Тир-лист', item: 'https://hearthpulse.net/tierlist/' },
+    { '@type': 'ListItem', position: 3, name: 'Маг', item: 'https://hearthpulse.net/tierlist/mage/' },
+  ],
+});
+assert.deepEqual(graph[2], {
+  '@type': 'CollectionPage', '@id': 'https://hearthpulse.net/tierlist/mage/#webpage', url: 'https://hearthpulse.net/tierlist/mage/',
+  name: 'Тир-лист Арены Hearthstone (хс): Маг, сентябрь 2026', description: 'Маг: тир-лист карт Арены Hearthstone.',
+  inLanguage: 'ru', breadcrumb: { '@id': 'https://hearthpulse.net/tierlist/mage/#breadcrumb' }, dateModified: '2026-09-20T09:00:00.000Z',
+});
+const dataset = graph[3];
+assert.deepEqual([dataset['@id'], dataset.name, dataset.url, dataset.isAccessibleForFree, dataset.hasPart, dataset.dateModified,
+  dataset.publisher], ['https://hearthpulse.net/tierlist/mage/#dataset', 'Тир-лист карт Арены Hearthstone: Маг',
+  'https://hearthpulse.net/tierlist/mage/', false, { '@type': 'WebPageElement', isAccessibleForFree: false, cssSelector: '.paywalled-tierlist' },
+  '2026-09-20T09:00:00.000Z', { '@id': 'https://hearthpulse.net/#org' }]);
+assert.deepEqual((dataset.isBasedOn as Array<Record<string, unknown>>).map(source => source.name),
+  ['HearthArena: Tierlist', 'HSReplay: Arena cards', 'Firestone']);
+assert.equal(dataset.description, 'Тир-лист карт Арены Hearthstone: Маг с оценками от S до F по данным HSReplay, HearthArena и Firestone. '
+  + 'На открытой странице — все карты класса с тиром, винрейтом и частотой выбора, дата обновления и нижняя граница числа игр. '
+  + 'Остальные показатели карт, узкие фильтры и история доступны по подписке.');
+const neutralGraph = (await seoStructuredDataGraphOf('/tierlist/neutral/', tierlistClassStructuredNodes('any', magePage)))!['@graph'];
+assert.deepEqual((neutralGraph[1].itemListElement as Array<Record<string, unknown>>)[2],
+  { '@type': 'ListItem', position: 3, name: 'Нейтральные', item: 'https://hearthpulse.net/tierlist/neutral/' });
+assert.equal(neutralGraph[3].name, 'Тир-лист нейтральных карт Арены Hearthstone');
 
-// JSON-LD of a class page through the shared graph builder: the breadcrumb is the one the page shows
-// («Главная › Тир-лист › Маг»). While the route is noindex the builder writes nothing.
-const magePage = { title: 'Тир-лист Арены Hearthstone: Маг, сентябрь 2026', description: 'Маг: тир-лист карт Арены Hearthstone.' };
-assert.equal(await seoStructuredDataGraphOf('/tierlist/mage/', tierlistClassStructuredNodes('mage', magePage)), null,
-  'no JSON-LD while /tierlist/<class>/ is noindex');
-// The graph SEO-A switches on with `index` and a canonical of its own (the same inventory object the builder reads).
-const route = (inventory as { routes: Array<Record<string, unknown>> }).routes.find(entry => entry.id === 'tierlist-class')!;
-const policy = { indexPolicy: route.indexPolicy, canonicalPolicy: route.canonicalPolicy };
-Object.assign(route, { indexPolicy: 'index', canonicalPolicy: 'self' });
-try {
-  const graph = (await seoStructuredDataGraphOf('/tierlist/mage/', tierlistClassStructuredNodes('mage', magePage),
-    { dateModified: '2026-09-20T09:00:00.000Z' }))!['@graph'];
-  assert.deepEqual(graph.map(node => node['@type']), ['Organization', 'BreadcrumbList', 'CollectionPage']);
-  assert.deepEqual(graph[1], {
-    '@type': 'BreadcrumbList', '@id': 'https://hearthpulse.net/tierlist/mage/#breadcrumb',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Главная', item: 'https://hearthpulse.net/' },
-      { '@type': 'ListItem', position: 2, name: 'Тир-лист', item: 'https://hearthpulse.net/tierlist/' },
-      { '@type': 'ListItem', position: 3, name: 'Маг', item: 'https://hearthpulse.net/tierlist/mage/' },
-    ],
-  });
-  assert.deepEqual(graph[2], {
-    '@type': 'CollectionPage', '@id': 'https://hearthpulse.net/tierlist/mage/#webpage', url: 'https://hearthpulse.net/tierlist/mage/',
-    name: 'Тир-лист Арены Hearthstone: Маг, сентябрь 2026', description: 'Маг: тир-лист карт Арены Hearthstone.',
-    inLanguage: 'ru', breadcrumb: { '@id': 'https://hearthpulse.net/tierlist/mage/#breadcrumb' }, dateModified: '2026-09-20T09:00:00.000Z',
-  });
-  const neutralCrumbs = (await seoStructuredDataGraphOf('/tierlist/neutral/', tierlistClassStructuredNodes('any', magePage)))!['@graph'][1];
-  assert.deepEqual((neutralCrumbs.itemListElement as Array<Record<string, unknown>>)[2],
-    { '@type': 'ListItem', position: 3, name: 'Нейтральные', item: 'https://hearthpulse.net/tierlist/neutral/' });
-} finally {
-  Object.assign(route, policy);
-}
+// The deploy warm-up renders every class page once Express answers (no build copy to revalidate, so no `isr`).
+assert.deepEqual(DATA_PAGES.filter(page => page.path.startsWith('/tierlist/') && page.path !== '/tierlist/'), [
+  '/tierlist/death-knight/', '/tierlist/demon-hunter/', '/tierlist/druid/', '/tierlist/hunter/', '/tierlist/mage/', '/tierlist/paladin/',
+  '/tierlist/priest/', '/tierlist/rogue/', '/tierlist/shaman/', '/tierlist/warlock/', '/tierlist/warrior/', '/tierlist/neutral/',
+].map(path => ({ path, marker: 'hs-tier-card', copyWords: 0, dataWords: 0 })));
