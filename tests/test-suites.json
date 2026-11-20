@@ -68,6 +68,9 @@
     "tests/next-standard-matchups-open-browser.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
+    "tests/next-standard-matchups-swap-browser.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
     "tests/hsreplay-tierlist.test.ts": {
       "TIERLIST_TEST_SKIP_HANDLER": "1"
     }
@@ -595,6 +598,7 @@
         "tests/next-legendaries-open-layer.test.mjs",
         "tests/next-standard-matchups-open-layer.test.mjs",
         "tests/next-standard-matchups-open-browser.test.mjs",
+        "tests/next-standard-matchups-swap-browser.test.mjs",
         "tests/next-legendaries-open-layer-browser.test.mjs",
         "tests/next-standard-meta-open-browser.test.mjs",
         "tests/next-admin-browser.test.mjs",

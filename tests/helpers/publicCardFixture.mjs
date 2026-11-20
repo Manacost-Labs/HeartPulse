@@ -23,20 +23,21 @@ export async function closeLocal(server) {
 }
 
 /**
+ * `extraCards` are catalog cards placed before the generated ones (same record shape).
  * `externalRoutes` adds hs-data-api answers by path: `(url) => body`, or `null`
  * for a 404. They are served by the external fixture, so the real backend
  * still parses, caches and guards them.
  */
-export async function publicCardFixture({ backendEnv, externalRoutes = {} } = {}) {
+export async function publicCardFixture({ backendEnv, externalRoutes = {}, extraCards = [] } = {}) {
   let unavailable = false;
-  const cards = Array.from({ length: 3000 }, (_, i) => ({
+  const cards = [...extraCards, ...Array.from({ length: 3000 }, (_, i) => ({
     card_id: i === 0 ? 'blizzard:12345' : `CARD_QA_${String(i + 1).padStart(4, '0')}`,
     dbf: i === 0 ? 12345 : 20000 + i, name: { ru: `Публичная карта ${i + 1}`, en: `Public Card ${i + 1}` },
     text: { ru: 'Боевой клич: возьмите карту.' }, flavor: { ru: 'Контрольная карточка для локальной проверки.' },
     class: 'MAGE', card_type: { slug: 'MINION', name_ru: 'Существо' }, rarity: 'COMMON', mana_cost: 2,
     attack: 2, health: 3, card_set: 'CORE', collectible: true, mechanics: ['BATTLECRY'], referenced_tags: [],
     images: { card: '/arena-logo-icon.webp' }, formats: [{ slug: 'standard' }, { slug: 'wild' }],
-  }));
+  }))];
   // One card outside Standard: its Wild page is the only page of the card (#307).
   cards.push({ ...cards[1], card_id: 'CARD_QA_WILD', dbf: 29999, name: { ru: 'Яркая вольная карта', en: 'Wild Card' }, mana_cost: 10,
     formats: [{ slug: 'wild' }] });

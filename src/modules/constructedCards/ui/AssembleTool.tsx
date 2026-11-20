@@ -46,7 +46,10 @@ export function AssembleTool({ format, requestedCard, initialList, initialCard, 
   const selectedId = pending ?? resolved?.card.cardId ?? null;
   const date = cardChoiceDate(list.data?.checkedAt ?? null);
   const choose = (href: string) => {
-    setPending(assembleCardIdFromSearch(new URL(href, 'https://hearthpulse.net').searchParams.get('card')));
+    const target = assembleCardIdFromSearch(new URL(href, 'https://hearthpulse.net').searchParams.get('card'));
+    // The address already names this card: nothing will load, so nothing may be left waiting (#582).
+    if (target === resolved?.card.cardId && target === requestedCard) return;
+    setPending(target);
     onNavigate(href);
     // On a phone the folded choice leaves the tool right below: bring it to the top.
     if (window.matchMedia('(max-width: 640px)').matches) {

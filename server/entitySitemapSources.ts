@@ -165,7 +165,9 @@ export function selectIndexableArchetypeRows(catalogs: ArchetypeSitemapCatalog[]
     const slug = archetypePageSlug(item);
     if (slug === null || seen.has(slug)) return [];
     seen.add(slug);
-    return isIndexableArchetype(archetypeIndexingFacts(item))
+    // The segment lists Standard URLs: a row of another format never enters it, even an indexable Wild one (#543).
+    const facts = archetypeIndexingFacts(item);
+    return facts.format === 'standard' && isIndexableArchetype(facts)
       ? [{ item, updatedAt: catalog.updatedAt, period: catalog.period }]
       : [];
   }));

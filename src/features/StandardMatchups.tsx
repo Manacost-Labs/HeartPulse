@@ -12,6 +12,7 @@ import { StandardMatchupsFilters } from './StandardMatchupsFilters';
 import { StandardMatchupsLeaders } from './StandardMatchupsLeaders';
 import { ViewSwitch } from '../components/transitions/ViewSwitch';
 import { MODE_ORDER } from '../components/transitions/transitionOrder';
+import { RecoverableSurfaceBoundary } from './recovery/RecoverableSurface';
 
 // The matrix, the overview and their vendored kit load on demand: only a verified subscriber with data sees them.
 const loadStandardMatchupMatrix = () => import('./StandardMatchupMatrix');
@@ -138,7 +139,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
   const externalMode = Boolean(external);
 
   // The matrix chunk downloads while the matchups load, not after them.
-  useEffect(() => { void loadStandardMatchupMatrix(); }, []);
+  useEffect(() => { loadStandardMatchupMatrix().catch(() => undefined); }, []);
 
   useEffect(() => {
     if (externalMode) return;
@@ -367,19 +368,23 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
               <ViewSwitch viewKey={data.format} order={MODE_ORDER}><ViewSwitch viewKey={view} order={MATCHUP_VIEWS}>
               {view === 'overview' && activeRow && (
                 <section className="standard-matchups__picker scroll-mt-4 mb-4">
-                  <Suspense fallback={<MatchupsOverviewSkeleton />}>
-                    <StandardMatchupsOverview key={format} data={matrixData} labelOf={getStandardArchetypeLabel}
-                      selected={activeRow.archetype} onSelectedChange={setSelectedArchetype} />
-                  </Suspense>
+                  <RecoverableSurfaceBoundary scope="standard-matchups-overview" title="Обзор архетипа не загрузился">
+                    <Suspense fallback={<MatchupsOverviewSkeleton />}>
+                      <StandardMatchupsOverview key={format} data={matrixData} labelOf={getStandardArchetypeLabel}
+                        selected={activeRow.archetype} onSelectedChange={setSelectedArchetype} />
+                    </Suspense>
+                  </RecoverableSurfaceBoundary>
                 </section>
               )}
 
               {view === 'matrix' && activeRow && (
                 <div id="matchups-matrix" className="scroll-mt-4" data-tour-id="matchups-grid">
-                  <Suspense fallback={<MatchupsSkeleton />}>
-                    <StandardMatchupMatrix data={matrixData} labelOf={getStandardArchetypeLabel}
-                      selected={activeRow.archetype} onSelectedChange={setSelectedArchetype} />
-                  </Suspense>
+                  <RecoverableSurfaceBoundary scope="standard-matchups-matrix" title="Матрица не загрузилась">
+                    <Suspense fallback={<MatchupsSkeleton />}>
+                      <StandardMatchupMatrix data={matrixData} labelOf={getStandardArchetypeLabel}
+                        selected={activeRow.archetype} onSelectedChange={setSelectedArchetype} />
+                    </Suspense>
+                  </RecoverableSurfaceBoundary>
                 </div>
               )}
               </ViewSwitch></ViewSwitch>

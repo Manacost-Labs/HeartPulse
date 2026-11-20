@@ -8,6 +8,13 @@ import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
 const BE044 = JSON.parse(readFileSync(new URL('./fixtures/card-assemble-contract-be044.json', import.meta.url), 'utf8')).data;
 const CHECKED = '2026-11-20T03:10:00+00:00';
+// F3TCH3R in the card catalog, with the rules text as the server's seed has it: plain, without markup.
+const F3TCH3R_CARD = {
+  card_id: 'BE_044', dbf: 128892, name: { ru: 'РЕ-3-ВЕР', en: 'F3TCH3R' }, text: { ru: 'Боевой клич: собирает существо за (4).' }, flavor: { ru: '' },
+  class: 'NEUTRAL', card_type: { slug: 'MINION', name_ru: 'Существо' }, rarity: 'COMMON', mana_cost: 3, attack: 3, health: 3, card_set: 'THE_BLACK_EMPIRE',
+  collectible: true, mechanics: [], referenced_tags: [], images: { card: '/arena-logo-icon.webp' }, formats: [{ slug: 'standard' }, { slug: 'wild' }],
+};
+const BLOCK_LINK = 'Открыть инструмент сборки';
 
 // The data API's list of the cards with «Собирает» and its answer for one card, as the proxy projects them.
 const row = (card_id, dbf_id, name_ru, card_class, state, bases_total, win_rate, formats = ['standard', 'wild']) => ({
@@ -55,7 +62,7 @@ async function visibleText(browser, html) {
 }
 
 test('the Assemble tool page draws the chosen card on the server, takes the choice from the address and works on a phone', { timeout: 420000 }, async () => {
-  const pilot = await startPublicCardPilot({ pagesEnabled: true, externalRoutes });
+  const pilot = await startPublicCardPilot({ pagesEnabled: true, externalRoutes, extraCards: [F3TCH3R_CARD] });
   let browser;
   try {
     // The first request loads the route's modules, which can outlast the first-paint read budget on a busy runner.
@@ -90,7 +97,9 @@ test('the Assemble tool page draws the chosen card on the server, takes the choi
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.setRequestInterception(true);
+    const assembleRequests = [];
     page.on('request', request => {
+      if (new URL(request.url()).pathname.startsWith('/api/card-assemble/')) assembleRequests.push(new URL(request.url()).pathname);
       if (new URL(request.url()).pathname.startsWith('/api/public-resource/')) void request.respond({ status: 200, contentType: 'image/gif', body: Buffer.from('R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==', 'base64') });
       else void request.continue();
     });
@@ -141,12 +150,42 @@ test('the Assemble tool page draws the chosen card on the server, takes the choi
     await page.waitForFunction(() => document.querySelector('[data-card-assemble] h2')?.textContent === 'Радж');
     assert.equal(await page.evaluate(() => location.search), '?card=BE_004');
 
+    // #582: choosing the card that is already open leaves nothing waiting.
+    const tile = await page.evaluateHandle(() => [...document.querySelectorAll('ul[aria-label="Карты со «Собирает»"] a')].find(link => link.textContent?.includes('Радж')));
+    await tile.asElement().click();
+    await new Promise(resolve => setTimeout(resolve, 600));
+    assert.equal(await page.evaluate(() => document.querySelector('[aria-busy]')?.getAttribute('aria-busy')), 'false', 'a second click on the open card is not a load');
+    assert.equal(await page.evaluate(() => getComputedStyle([...document.querySelectorAll('h2')].find(node => node.textContent?.trim() === 'Радж').closest('section')).opacity), '1', 'the section stays opaque');
+    assert.equal(await page.evaluate(() => location.search), '?card=BE_004');
+
     // The menu lists the page after the deck builder and highlights it; Wild has its twin.
     const menu = await page.$$eval('.arena-sidebar-nav .hp-nav-list[data-for="standard"] a', links => links.map(link => [link.textContent?.trim(), link.getAttribute('aria-current')]));
     const labels = menu.map(item => item[0]);
     assert.equal(labels[labels.indexOf('Конструктор колод') + 1], 'Сборка');
     assert.equal(menu.find(item => item[0] === 'Сборка')?.[1], 'page');
     assert.ok(await page.$('.arena-sidebar-nav .hp-nav-list[data-for="wild"] a[href="/standard/assemble/?format=wild"]'), 'Wild menu has the twin');
+
+    // The card pages of the 13 cards link to the tool; the link is in the server HTML (no JavaScript) and an ordinary card has no block.
+    const blockLink = () => page.evaluate(label => {
+      const link = [...document.querySelectorAll('a')].find(node => node.textContent?.trim() === label);
+      return link ? { href: link.getAttribute('href'), role: link.getAttribute('role') ?? 'link' } : null;
+    }, BLOCK_LINK);
+    await page.setJavaScriptEnabled(false);
+    for (const [format, href] of [['standard', '/standard/assemble/?card=BE_044'], ['wild', '/standard/assemble/?card=BE_044&format=wild']]) {
+      await page.goto(`${pilot.origin}/standard/cards/${format}/BE_044/`, { waitUntil: 'load' });
+      assert.deepEqual(await blockLink(), { href, role: 'link' }, `${format}: the link to the tool is in the HTML without JavaScript`);
+    }
+    await page.goto(`${pilot.origin}/standard/cards/standard/CARD_QA_0002/`, { waitUntil: 'load' });
+    assert.equal(await blockLink(), null, 'an ordinary card has no block in the HTML');
+    await page.setJavaScriptEnabled(true);
+    assembleRequests.length = 0;
+    await page.goto(`${pilot.origin}/standard/cards/standard/CARD_QA_0002/`, { waitUntil: 'networkidle2' });
+    assert.equal(await blockLink(), null, 'an ordinary card has no block');
+    assert.deepEqual(assembleRequests, [], 'an ordinary card asks nothing of /api/card-assemble');
+    await page.goto(`${pilot.origin}/standard/cards/standard/BE_044/`, { waitUntil: 'networkidle2' });
+    await page.waitForFunction(() => /Пул 38 существ · лучшая база — /.test(document.body.innerText));
+    assert.deepEqual(assembleRequests, ['/api/card-assemble/standard/BE_044'], 'one request for the figures');
+    assert.doesNotMatch(await page.evaluate(() => document.body.innerText), /Что выпало|Лучшие сборки|Мне предложили/, 'the full section is not on the card page');
 
     await page.goto(`${pilot.origin}/standard/assemble/?format=wild`, { waitUntil: 'networkidle2' });
     assert.equal(await page.$$eval('a.assemble-card', cards => cards.length), 1, 'the Wild list is its own');
