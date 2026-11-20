@@ -2,6 +2,7 @@ import '@/src/route-parchment.css';
 import '@/src/features/TraditionalModeBanner.css';
 import { BattlegroundTierListPageClient } from '@/apps/public-web/ui/BattlegroundTierListPageClient';
 import { printedOpenBuilds } from '@/apps/public-web/lib/publicBattlegroundBuildsData';
+import { bgBuildAnchor } from '@/src/features/battlegroundTierListItems';
 import { seoStaticPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
 import { battlegroundBuildsSeoValues } from '@/apps/public-web/lib/seoDataValues';
 import { loadPublicBattlegroundBuilds } from '@/apps/public-web/lib/publicBattlegroundBuilds';
@@ -20,7 +21,7 @@ export default async function Page() {
   const data = await loadPublicBattlegroundBuilds('compositions');
   return <>
     <SeoStructuredData path="/battlegrounds/tier-list" data={data}
-      items={data ? printedOpenBuilds(data).map(build => ({ name: build.title, url: `https://hearthpulse.net/battlegrounds/tier-list/#build-${build.key}` })) : undefined} />
+      items={data ? printedOpenBuilds(data).map(build => ({ name: build.title, url: `https://hearthpulse.net/battlegrounds/tier-list/#${bgBuildAnchor(build)}` })) : undefined} />
     <BattlegroundTierListPageClient compositions={data} />
   </>;
 }

@@ -37,7 +37,8 @@ function startLegacy(state) {
       const payload = buildSourcePayload(sourceOf(list));
       // More tier-S builds than a tier's first page (6): the tier list must still print every one of them.
       for (let index = 0; index < state.extraS; index += 1) {
-        payload.tiers.S.push({ ...payload.tiers.S[0], key: `fx-s-extra-${index}`, title: `Сборка 0 hsreplay: вариант ${index}` });
+        // The first one has a `#` in its key, which the projection accepts: it still gets an anchor and its JSON-LD entry.
+        payload.tiers.S.push({ ...payload.tiers.S[0], key: index === 0 ? 'fx-s-extra#0' : `fx-s-extra-${index}`, title: `Сборка 0 hsreplay: вариант ${index}` });
       }
       return payload;
     },
@@ -232,6 +233,11 @@ test('the guest HTML of both builds pages carries every open build and nothing c
       assert.ok(named.length > 0, `${agent}: the description names tier S: ${description}`);
       const tribes = new Set(printed.map(title => title.split(':')[0].trim()));
       for (const tribe of named) assert.ok(tribes.has(tribe), `${agent}: «${tribe}» from the description is in the HTML`);
+      assert.match(html, /<article id="build-fx-s-extra~23~0"/, `${agent}: a key with «#» gets a safe anchor`);
+      const items = JSON.parse([...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)]
+        .map(match => match[1]).find(text => text.includes('ItemList')))['@graph'].find(node => node['@type'] === 'ItemList').itemListElement;
+      assert.ok(items.some(item => item.url === 'https://hearthpulse.net/battlegrounds/tier-list/#build-fx-s-extra~23~0'),
+        `${agent}: the JSON-LD list names it with that anchor`);
     }
     state.extraS = 0;
 
