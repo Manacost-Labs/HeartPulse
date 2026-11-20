@@ -482,6 +482,7 @@ async function mapWithConcurrency<T, R>(
 export function createConstructedCardDataService(dependencies: DataServiceDependencies): ConstructedCardDataService {
   const now = dependencies.now ?? Date.now;
   const cacheTtlMs = Math.max(1_000, Math.min(15 * 60_000, dependencies.cacheTtlMs ?? 5 * 60_000));
+  const fallbackTtlMs = Math.min(cacheTtlMs, 30_000); // #396: a recovered source is read again within 30 s, not after 5 min
   // Card descriptions, Wiki relationships and deck membership change much
   // less often than live statistics. Keeping them independently avoids a
   // multi-upstream rebuild whenever the short statistics cache refreshes.
@@ -510,7 +511,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     document: ConstructedCardCatalogDocument;
     cacheSource: 'fresh' | 'LKG';
     dataStatus: 'fresh' | 'stale';
-    warning: string | null;
+    warning: string | null; fallback?: true; // the last good copy after a failed or late refresh (#396)
   };
   const catalogCache = new Map<ConstructedCardFormat, { value: CatalogLoad; expiresAt: number }>();
   const catalogJobs = new Map<ConstructedCardFormat, Promise<CatalogLoad>>();
@@ -646,6 +647,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     const jobGeneration = generation;
     const job = (async () => {
       let value: CatalogLoad;
+      let ttlMs = cacheTtlMs;
       try {
         const candidate = await withDeadline((async () => {
         const firstPage = await fetchConstructedCatalogPage(dependencies, format, 1);
@@ -668,9 +670,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
         const inspection = catalogStore.inspect(format);
         const persistenceDegraded = Boolean(inspection.repairWarning);
         value = {
-          document,
-          cacheSource: persistenceDegraded ? 'LKG' : 'fresh',
-          dataStatus: persistenceDegraded ? 'stale' : 'fresh',
+          document, cacheSource: persistenceDegraded ? 'LKG' : 'fresh', dataStatus: persistenceDegraded ? 'stale' : 'fresh',
           warning: persistenceDegraded
             ? 'Каталог карт сохранён без резервной копии. Показывается проверенная основная версия.'
             : null,
@@ -681,17 +681,16 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
         if (!lastKnownGood) {
           throw new ConstructedCardCatalogUnavailableError(undefined, { cause: error });
         }
+        ttlMs = fallbackTtlMs;
         value = {
-          document: lastKnownGood.document,
-          cacheSource: 'LKG',
-          dataStatus: 'stale',
+          document: lastKnownGood.document, cacheSource: 'LKG', dataStatus: 'stale', fallback: true,
           warning: lastKnownGood.repairWarning
             ? 'Резервная копия каталога повреждена или недоступна. Показывается последняя проверенная версия.'
             : null,
         };
       }
       if (generation === jobGeneration) {
-        catalogCache.set(format, { value, expiresAt: now() + cacheTtlMs });
+        catalogCache.set(format, { value, expiresAt: now() + ttlMs });
       }
       return value;
     })().finally(() => {
