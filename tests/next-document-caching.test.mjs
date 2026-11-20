@@ -60,7 +60,7 @@ const app = join(root, 'apps/public-web/app');
 const FAMILY_DIRECTORIES = ['articles', 'classes', 'contests', 'gallery', 'leaderboards', 'legendaries', 'tierlist',
   'battlegrounds/strategies', 'battlegrounds/tier-builder', 'battlegrounds/tier-list', 'cosmetics',
   'guides-archive', 'heroes', 'library', 'standard/archetypes', 'standard/cards', 'standard/fun-decks',
-  'standard/matchups', 'standard/meta', 'standard/vicious-gold', 'arena', 'wild'];
+  'standard/matchups', 'standard/meta', 'standard/vicious-gold', 'arena', 'wild', 'reports/meta'];
 // The Standard and Battlegrounds hubs are the root pages of directories that hold other families.
 const FAMILY_PAGES = ['standard/page.tsx', 'battlegrounds/page.tsx'];
 const COOKIE_READ = [/\bcookies\s*\(/, /adminAccess/, /get\(\s*['"]cookie['"]\s*\)/, /\bheaders\.cookie\b/, /\bdraftMode\s*\(/];
