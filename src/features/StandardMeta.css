@@ -233,6 +233,7 @@
 }
 
 .standard-meta__segmented button,
+.standard-meta__segmented a,
 .standard-meta__rank-tabs button {
   flex: 1;
   min-height: 40px;
@@ -253,7 +254,13 @@
   margin-top: calc(14px + 0.22rem);
 }
 
-.standard-meta__segmented button {
+.standard-meta__segmented a {
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
+.standard-meta__segmented button,
+.standard-meta__segmented a {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 0.55rem;
@@ -261,7 +268,8 @@
   text-align: left;
 }
 
-.standard-meta__segmented button > img {
+.standard-meta__segmented button > img,
+.standard-meta__segmented a > img {
   display: block;
   width: 32px;
   height: 36px;
@@ -270,9 +278,11 @@
 }
 
 .standard-meta__segmented button:hover,
+.standard-meta__segmented a:hover,
 .standard-meta__rank-tabs button:hover { background: rgba(255, 245, 214, 0.55); }
 
 .standard-meta__segmented button[aria-pressed='true'],
+.standard-meta__segmented a[aria-current='page'],
 .standard-meta__rank-tabs button[aria-pressed='true'] {
   border-color: rgba(239, 197, 104, 0.72);
   color: #fff0c4;
@@ -281,6 +291,7 @@
 }
 
 .standard-meta__segmented button > span,
+.standard-meta__segmented a > span,
 .standard-meta__segmented strong,
 .standard-meta__segmented small { display: block; }
 .standard-meta__segmented strong { font-size: 0.84rem; }
@@ -945,6 +956,7 @@
   .standard-meta__segmented,
   .standard-meta__rank-tabs { height: auto; min-height: 44px; padding: 0.15rem; }
   .standard-meta__segmented button,
+  .standard-meta__segmented a,
   .standard-meta__rank-tabs button { min-height: 44px; padding: 0.3rem 0.48rem; }
   .standard-meta__segmented strong { font-size: 0.76rem; }
   .standard-meta__segmented small { font-size: 0.6875rem; }
@@ -1025,6 +1037,7 @@
 @media (prefers-reduced-motion: reduce) {
   .standard-meta__spinner { animation-duration: 1.8s; }
   .standard-meta__segmented button,
+  .standard-meta__segmented a,
   .standard-meta__rank-tabs button { transition: none; }
 }
 

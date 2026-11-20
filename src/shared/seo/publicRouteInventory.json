@@ -368,6 +368,20 @@
       "entitlement": "standard"
     },
     {
+      "id": "standard-meta-wild",
+      "pattern": "/standard/meta/wild",
+      "kind": "static",
+      "owner": "traditional-data",
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
+      "htmlStrategy": "prerender-teaser",
+      "expectedStatus": 200,
+      "criticality": "P1",
+      "mobileFixture": "standard-meta-anonymous",
+      "entitlement": "standard"
+    },
+    {
       "id": "fun-decks",
       "pattern": "/standard/fun-decks",
       "kind": "static",

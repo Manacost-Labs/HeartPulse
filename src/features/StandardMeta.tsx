@@ -39,8 +39,9 @@ import {
 import StandardMetaChart from './StandardMetaChart';
 import { PaidValue, PeriodCoinFloorFilters } from './StandardMetaGuestFilters';
 import { STANDARD_META_CLASS_COLORS, standardMetaClassIcon } from './standardMetaClassModel';
-import { setPageFormat, usePageFormat } from '../shared/navigation/pageFormat';
-import { metaRequestKey, teaserSeedKey, TEASER_SEED_FILTERS, type StandardMetaTeaserSeed } from './standardMetaTeaser';
+import {
+  carriedMetaFilters, handOffMetaFilters, metaFilterSearch, metaRequestKey, teaserSeedKey, TEASER_SEED_FILTERS, type StandardMetaTeaserSeed,
+} from './standardMetaTeaser';
 import '../route-parchment.css';
 import './recovery/RecoverableSurface.css';
 import '../shared/ui/LoadingSurface.css';
@@ -130,18 +131,20 @@ type DeckModalState = {
   previewError: string;
 };
 
-const FORMATS: Array<{ id: MetaFormat; label: string; description: string; asset: string }> = [
+const FORMATS: Array<{ id: MetaFormat; label: string; description: string; asset: string; href: string }> = [
   {
     id: 'standard',
     label: 'Стандарт',
     description: 'Текущая ротация',
     asset: '/card-format-standard.webp',
+    href: '/standard/meta/',
   },
   {
     id: 'wild',
     label: 'Вольный',
     description: 'Все дополнения',
     asset: '/assets/card-format-wild-128.webp',
+    href: '/standard/meta/wild/',
   },
 ];
 
@@ -431,6 +434,8 @@ type StandardMetaPageProps = {
   paywall?: PaywallAccessState;
   embedded?: boolean;
   initialTeaser?: StandardMetaTeaserSeed | null;
+  /** The format of the address: `/standard/meta/` is Standard, `/standard/meta/wild/` is Wild. */
+  format?: MetaFormat;
 };
 
 /**
@@ -467,13 +472,14 @@ function StandardMetaContent({
   accessPending, teaserWaitsForAccess,
   paywall,
   initialTeaser,
+  format,
 }: Required<Omit<StandardMetaPageProps, 'embedded'>>) {
-  // The format is the address's (`?format=wild`), so the menu follows it and Back restores it; the default until the browser reads it.
-  const format: MetaFormat = usePageFormat() ?? TEASER_SEED_FILTERS.format;
-  const [rank, setRank] = useState<MetaRank>(TEASER_SEED_FILTERS.rank);
-  const [period, setPeriod] = useState<MetaPeriod | null>(initialTeaser?.period ?? null);
-  const [coin, setCoin] = useState<MetaCoin>(TEASER_SEED_FILTERS.coin);
-  const [minGames, setMinGames] = useState<MetaMinGames>(TEASER_SEED_FILTERS.minGames);
+  // A subscriber arrives from the other format with the filters in the address; a guest's filters are the page's own.
+  const [carried] = useState(() => (hasFullAccess && typeof window !== 'undefined' ? carriedMetaFilters(window.location.search) : {}));
+  const [rank, setRank] = useState<MetaRank>(carried.rank ?? TEASER_SEED_FILTERS.rank);
+  const [period, setPeriod] = useState<MetaPeriod | null>(carried.period ?? initialTeaser?.period ?? null);
+  const [coin, setCoin] = useState<MetaCoin>(carried.coin ?? TEASER_SEED_FILTERS.coin);
+  const [minGames, setMinGames] = useState<MetaMinGames>(carried.minGames ?? TEASER_SEED_FILTERS.minGames);
   const [query, setQuery] = useState('');
   // A guest's paid filters (rank, period, coin, floor) open the subscription offer instead of changing the slice.
   const [lockedNotice, setLockedNotice] = useState(false);
@@ -579,7 +585,7 @@ function StandardMetaContent({
   return (
     <>
       <section className="traditional-mode-banner">
-        <StandardMetaSearchIntro />
+        <StandardMetaSearchIntro format={format} />
         <MetaSummary data={summaryReady ? data : null} hasFullAccess={hasFullAccess} />
       </section>
 
@@ -591,14 +597,14 @@ function StandardMetaContent({
         <div className="standard-meta__format-control">
           <span className="standard-meta__control-label">Формат</span>
           <div className="standard-meta__segmented">
-            {FORMATS.map(option => {
-              return (
-                <button key={option.id} type="button" aria-pressed={format === option.id} onClick={() => setPageFormat(option.id)}>
-                  <img src={option.asset} alt="" width="32" height="36" aria-hidden="true" />
-                  <span><strong>{option.label}</strong><small>{option.description}</small></span>
-                </button>
-              );
-            })}
+            {FORMATS.map(option => (
+              // Each format has its own address (and its own prerendered open slice), so the switch is a link.
+              <a key={option.id} href={`${option.href}${hasFullAccess ? metaFilterSearch({ rank, coin, minGames, period }) : ''}`} aria-current={format === option.id ? 'page' : undefined}
+                onClick={hasFullAccess ? () => handOffMetaFilters({ rank, coin, minGames, period: period ?? undefined }) : undefined}>
+                <img src={option.asset} alt="" width="32" height="36" aria-hidden="true" />
+                <span><strong>{option.label}</strong><small>{option.description}</small></span>
+              </a>
+            ))}
           </div>
         </div>
         <div data-tour-id="meta-controls">
@@ -770,6 +776,7 @@ export default function StandardMetaPage({
   paywall = DEFAULT_PAYWALL_ACCESS,
   embedded = false,
   initialTeaser = null,
+  format = TEASER_SEED_FILTERS.format,
 }: StandardMetaPageProps) {
   const Root = embedded ? 'section' : 'main';
   return (
@@ -779,7 +786,7 @@ export default function StandardMetaPage({
         title="Раздел меты временно недоступен"
         message="Навигация и остальные разделы сайта продолжают работать. Попробуйте открыть мету ещё раз."
       >
-        <StandardMetaContent {...{ hasFullAccess, accessPending, teaserWaitsForAccess, paywall, initialTeaser }} />
+        <StandardMetaContent {...{ hasFullAccess, accessPending, teaserWaitsForAccess, paywall, initialTeaser, format }} />
       </RecoverableSurfaceBoundary>
     </Root>
   );

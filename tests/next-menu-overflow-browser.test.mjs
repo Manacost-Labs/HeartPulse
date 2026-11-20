@@ -11,7 +11,7 @@ import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 // Battlegrounds') and with the mode panel open.
 const WINDOWS = [1024, 1280, 1440, 1920];
 const ZOOMS = [0.9, 1, 1.25, 1.5];
-const PAGES = ['/standard/meta/', '/standard/meta/?format=wild', '/classes/', '/heroes/', '/articles/', '/faq/'];
+const PAGES = ['/standard/meta/', '/standard/meta/wild/', '/classes/', '/heroes/', '/articles/', '/faq/'];
 
 function signedOut(response) {
   response.writeHead(401, { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store' })

@@ -31,7 +31,7 @@ const readMenu = page => page.evaluate(() => {
     lists: lists.map(list => list.dataset.for),
     current: lists.flatMap(list => [...list.querySelectorAll('a[aria-current="page"]')].map(link => link.textContent.trim())),
     mode: [...side.querySelectorAll('.hp-mode-name')].find(name => name.checkVisibility())?.textContent,
-    format: [...document.querySelectorAll('#main-content .standard-meta__format-control button[aria-pressed="true"]')].map(button => /^(?:Стандарт|Вольный)/.exec(button.textContent.trim())?.[0]),
+    format: [...document.querySelectorAll('#main-content .standard-meta__format-control a[aria-current="page"]')].map(button => /^(?:Стандарт|Вольный)/.exec(button.textContent.trim())?.[0]),
     where: location.pathname + location.search,
   };
 });
@@ -55,31 +55,31 @@ test('the Wild banner, the format buttons and Back keep the menu and the page in
     await page.waitForFunction(() => [...document.querySelectorAll('.arena-sidebar [data-mode-card]')].every(card => card.checkVisibility() && !card.getAnimations({ subtree: true }).length));
     assert.equal(await page.$$eval('.arena-sidebar [data-mode-card]', cards => cards.map(card => card.dataset.mode).join()), 'standard,wild,arena,battlegrounds,community', 'five banners in order');
     await page.click('.arena-sidebar [data-mode-card][data-mode="wild"]');
-    await page.waitForFunction(() => location.pathname === '/standard/meta/' && location.search === '?format=wild');
-    await page.waitForSelector('#main-content .standard-meta__format-control button[aria-pressed="true"]');
-    assert.deepEqual(await readMenu(page), { lists: ['wild'], current: ['Мета'], mode: 'Вольный', format: ['Вольный'], where: '/standard/meta/?format=wild' });
+    await page.waitForFunction(() => location.pathname === '/standard/meta/wild/');
+    await page.waitForSelector('#main-content .standard-meta__format-control a[aria-current="page"]');
+    assert.deepEqual(await readMenu(page), { lists: ['wild'], current: ['Мета'], mode: 'Вольный', format: ['Вольный'], where: '/standard/meta/wild/' });
     await page.click('.arena-sidebar details.hp-mode > summary');
     await page.waitForFunction(() => [...document.querySelectorAll('.arena-sidebar [data-mode-card]')].every(card => card.checkVisibility()));
     assert.equal(await page.$$eval('.arena-sidebar [data-mode-card]', cards => cards.filter(card => getComputedStyle(card.querySelector('.hp-mode-badge')).display !== 'none').map(card => card.dataset.mode).join()), 'wild');
     await page.keyboard.press('Escape');
 
     // The page's button changes the address and the menu follows, and back.
-    const press = label => page.evaluate(text => [...document.querySelectorAll('#main-content .standard-meta__format-control button')].find(button => button.textContent.trim().startsWith(text)).click(), label);
+    const press = label => page.evaluate(text => [...document.querySelectorAll('#main-content .standard-meta__format-control a')].find(button => button.textContent.trim().startsWith(text)).click(), label);
     await press('Стандарт');
-    await page.waitForFunction(() => location.search === '');
+    await page.waitForFunction(() => location.pathname === '/standard/meta/');
     assert.deepEqual(await readMenu(page), { lists: ['standard'], current: ['Мета'], mode: 'Стандарт', format: ['Стандарт'], where: '/standard/meta/' });
     await press('Вольный');
-    await page.waitForFunction(() => location.search === '?format=wild');
-    assert.deepEqual(await readMenu(page), { lists: ['wild'], current: ['Мета'], mode: 'Вольный', format: ['Вольный'], where: '/standard/meta/?format=wild' });
+    await page.waitForFunction(() => location.pathname === '/standard/meta/wild/');
+    assert.deepEqual(await readMenu(page), { lists: ['wild'], current: ['Мета'], mode: 'Вольный', format: ['Вольный'], where: '/standard/meta/wild/' });
 
     // Back restores the format of the page and the mode of the menu, without a reload.
     await page.evaluate(() => { window.__same = true; });
     await page.goBack();
-    await page.waitForFunction(() => location.search === '');
+    await page.waitForFunction(() => location.pathname === '/standard/meta/');
     assert.deepEqual(await readMenu(page), { lists: ['standard'], current: ['Мета'], mode: 'Стандарт', format: ['Стандарт'], where: '/standard/meta/' });
     await page.goForward();
-    await page.waitForFunction(() => location.search === '?format=wild');
-    assert.deepEqual(await readMenu(page), { lists: ['wild'], current: ['Мета'], mode: 'Вольный', format: ['Вольный'], where: '/standard/meta/?format=wild' });
+    await page.waitForFunction(() => location.pathname === '/standard/meta/wild/');
+    assert.deepEqual(await readMenu(page), { lists: ['wild'], current: ['Мета'], mode: 'Вольный', format: ['Вольный'], where: '/standard/meta/wild/' });
     assert.equal(await page.evaluate(() => window.__same), true, 'the page was not reloaded');
 
     // A Wild item opens its page in Wild; patch notes keep the mode.
@@ -122,8 +122,8 @@ test('the Wild banner, the format buttons and Back keep the menu and the page in
       };
       requestAnimationFrame(sample);
     });
-    await direct.goto(`${gateway.origin}/standard/meta/?format=wild`, { waitUntil: 'domcontentloaded' });
-    await direct.waitForSelector('#main-content .standard-meta__format-control button[aria-pressed="true"]');
+    await direct.goto(`${gateway.origin}/standard/meta/wild/`, { waitUntil: 'domcontentloaded' });
+    await direct.waitForSelector('#main-content .standard-meta__format-control a[aria-current="page"]');
     await new Promise(resolve => setTimeout(resolve, 1500));
     const frames = await direct.evaluate(() => window.__lists);
     assert.ok(frames.length > 5, 'frames were sampled');

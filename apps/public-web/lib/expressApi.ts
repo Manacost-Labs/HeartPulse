@@ -17,6 +17,9 @@ export function expressOrigin(): URL {
   return origin;
 }
 
+/** Marks a prerender read: Express answers 503 instead of a last-good copy, which would sit in the data cache. */
+export const PRERENDER_FRESH_HEADER = 'X-Hearthpulse-Prerender';
+
 /**
  * Anonymous read of a public Express JSON projection. It never sends viewer
  * cookies, never follows redirects and gives up after ten seconds (or `timeoutMs`), so paid or
@@ -25,7 +28,7 @@ export function expressOrigin(): URL {
  * can shorten the deadline and cancel a body that is still being read.
  * `revalidate` (seconds) is for prerendered pages; the default never caches.
  */
-export function fetchPublicExpress(path: string, signal?: AbortSignal, options: { revalidate?: number; timeoutMs?: number } = {}): Promise<Response> {
+export function fetchPublicExpress(path: string, signal?: AbortSignal, options: { revalidate?: number; timeoutMs?: number; freshOnly?: boolean } = {}): Promise<Response> {
   // An absolute or protocol-relative URL would leave the loopback origin.
   if (!path.startsWith('/') || path.startsWith('//')) {
     throw new Error('Express path must be origin-relative');
@@ -39,6 +42,7 @@ export function fetchPublicExpress(path: string, signal?: AbortSignal, options: 
   return fetch(new URL(path, expressOrigin()), {
     ...caching, credentials: 'omit', redirect: 'error',
     signal: signal ? AbortSignal.any([signal, deadline]) : deadline,
-    headers: { Accept: 'application/json' },
+    // A prerender read lands in Next's data cache for `revalidate` seconds: the source must not answer it with a last-good copy.
+    headers: options.freshOnly ? { Accept: 'application/json', [PRERENDER_FRESH_HEADER]: '1' } : { Accept: 'application/json' },
   });
 }

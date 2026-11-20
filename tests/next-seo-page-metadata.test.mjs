@@ -367,6 +367,7 @@ test('every SEO registry page takes its title, description and share metadata fr
     for (const [path, heading] of Object.entries({
       '/': 'Мета Hearthstone на сегодня',
       '/standard/meta': 'Мета Hearthstone: колоды и винрейты',
+      '/standard/meta/wild': 'Мета Вольного формата Hearthstone',
       '/classes': 'Винрейт классов на Арене',
       '/tierlist': 'Тир-лист карт Арены Hearthstone',
       '/legendaries': 'Легендарки Арены Hearthstone',
@@ -456,6 +457,7 @@ const archetypeItem = (slug, label, format = 'standard') => ({
   popularity: 20.4, turns: 8, durationMinutes: 7, climbingSpeed: 1, deckCount: 3, sourceUrl: 'https://www.hsguru.com/archetype',
   builds: [{ deckCode: 'PAID_BUILD_CODE' }],
 });
+const META_PAGES = new Set(['/standard/meta/', '/standard/meta/wild/']);
 const TOP_ROWS = [['Зоолок', 61, 14800], ['Граб\'Зи К\'тун Шаман', 58.2, 5400], ['Н\'зот Чернокнижник', 57.4, 258]];
 const LONGEST_LABEL = 'Колода-завоеватель с очень-очень длинным названием архетипа Стандарта';
 
@@ -465,7 +467,10 @@ function startFakeExpress(state) {
     const detail = url.pathname.match(/^\/api\/constructed-archetypes\/teaser\/(standard|wild)\/([a-z0-9-]+)$/);
     let payload = null;
     if (url.pathname === '/api/auth/me') payload = { user: null };
-    else if (url.pathname === '/api/standard-meta/public') payload = state.meta;
+    else if (url.pathname === '/api/standard-meta/public') {
+      const wild = url.searchParams.get('format') === 'wild';
+      payload = state.meta && (wild ? { ...state.meta, format: 'wild', formatLabel: 'Вольный' } : state.meta);
+    }
     else if (url.pathname === '/api/constructed-archetypes/teaser') {
       const format = url.searchParams.get('format') ?? 'standard';
       payload = state.catalog && {
@@ -495,12 +500,12 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     // /standard/meta/ is prerendered: mark it stale so the next request regenerates it from the fixture.
     let origin = next.origin;
     let fresh = null;
-    if (path === '/standard/meta/' && state.meta === null) {
+    if (META_PAGES.has(path) && state.meta === null) {
       // The revalidate route leaves a page whose source is down as it is (the earlier copy is better than none), so the
       // build's copy without data comes from a process that has not regenerated anything.
       fresh = await startNextServer({ legacyOrigin: `http://127.0.0.1:${express.address().port}` });
       origin = fresh.origin;
-    } else if (path === '/standard/meta/') {
+    } else if (META_PAGES.has(path)) {
       assert.equal((await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).status, 200);
     }
     const response = await fetch(`${origin}${path}`);
@@ -535,6 +540,16 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     assert.ok(!meta.html.includes('standard-meta-data-note'), 'no data note markup');
     assert.ok(meta.text.includes('Зоолок'), 'the open rows are in the server HTML');
     assert.ok(meta.text.includes('Зоолок') && meta.text.includes('61%'), 'the leader of the snippet is on the page');
+
+    // Wild is its own page with its own heading, title and description, from its own slice.
+    const wildMeta = await page('/standard/meta/wild/');
+    assert.match(wildMeta.title, new RegExp(`^Мета Вольного формата Hearthstone, (${MONTH_NAMES}) \\d{4}: колоды$`));
+    assert.match(wildMeta.description, new RegExp(
+      `^Мета Вольного формата Хартстоуна \\(хс\\) на \\d{1,2} (${GENITIVE_MONTHS}) \\d{4}: тир-лист колод Вольного\\. Лидер — Зоолок, 61% побед\\. .*Данные HSGuru\\.$`));
+    assert.ok(wildMeta.html.includes('<h1>Мета Вольного формата Hearthstone</h1>'), 'the Wild H1');
+    assert.ok(wildMeta.text.includes('Зоолок') && wildMeta.text.includes('61%'), 'the open rows of Wild are in the server HTML');
+    assert.match(wildMeta.html, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/standard\/meta\/wild\/"\/>/, 'Wild canonicals itself');
+    assert.ok(wildMeta.html.includes('href="/standard/meta/"') && wildMeta.html.includes('href="/standard/meta/wild/"'), 'the format switch is two links');
 
     // No row of 1000 games: no leader, the rest of the snippet stays.
     state.meta = metaTeaser(updatedAt, [['Шум', 70, 999], ['Пусто', 55, 120]]);
@@ -644,12 +659,12 @@ async function withFakeExpress(scenario) {
   const page = async path => {
     let origin = next.origin;
     let fresh = null;
-    if (path === '/standard/meta/' && state.meta === null) {
+    if (META_PAGES.has(path) && state.meta === null) {
       // The revalidate route leaves a page whose source is down as it is (the earlier copy is better than none), so the
       // build's copy without data comes from a process that has not regenerated anything.
       fresh = await startNextServer({ legacyOrigin: `http://127.0.0.1:${express.address().port}` });
       origin = fresh.origin;
-    } else if (path === '/standard/meta/') {
+    } else if (META_PAGES.has(path)) {
       assert.equal((await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).status, 200);
     }
     const response = await fetch(`${origin}${path}`);
@@ -679,7 +694,7 @@ test('the meta page describes its teaser as a dataset dated by the teaser, from 
     assert.deepEqual(nodeOfType(graph, 'Dataset'), {
       '@type': 'Dataset', '@id': 'https://hearthpulse.net/standard/meta/#dataset', url: 'https://hearthpulse.net/standard/meta/',
       name: 'Мета Стандарта Hearthstone: винрейт, популярность и число игр архетипов',
-      description: 'Общий срез меты Стандарта и Вольного формата Hearthstone по данным HSGuru: винрейт, популярность и число игр каждого архетипа открыты. Узкие срезы по рангу, очерёдности хода и периоду, динамика и рекомендации доступны по подписке.',
+      description: 'Общий срез меты Стандарта Hearthstone по данным HSGuru: винрейт, популярность и число игр каждого архетипа открыты. Узкие срезы по рангу, очерёдности хода и периоду, динамика и рекомендации доступны по подписке.',
       isAccessibleForFree: false,
       hasPart: { '@type': 'WebPageElement', isAccessibleForFree: false, cssSelector: '.paywalled-standard-meta' },
       inLanguage: 'ru',
@@ -695,6 +710,14 @@ test('the meta page describes its teaser as a dataset dated by the teaser, from 
     });
     assert.equal(collection.dateModified, DATA_DATE);
     assert.deepEqual(collection.about, { '@id': 'https://hearthpulse.net/standard/meta/#dataset' });
+    // Wild has its own dataset at its own address, closed the same way.
+    const wildGraph = (await page('/standard/meta/wild/')).graph;
+    const wildDataset = nodeOfType(wildGraph, 'Dataset');
+    assert.equal(wildDataset['@id'], 'https://hearthpulse.net/standard/meta/wild/#dataset');
+    assert.equal(wildDataset.isAccessibleForFree, false);
+    assert.deepEqual(wildDataset.hasPart, { '@type': 'WebPageElement', isAccessibleForFree: false, cssSelector: '.paywalled-standard-meta' });
+    assert.equal(wildDataset.dateModified, DATA_DATE);
+    assert.deepEqual(nodeOfType(wildGraph, 'CollectionPage').about, { '@id': 'https://hearthpulse.net/standard/meta/wild/#dataset' });
     // Names of metrics, no values: no row of the open slice reaches the graph.
     assert.doesNotMatch(JSON.stringify(graph), /Зоолок|Граб|Н'зот|\b(61|58\.2|57\.4|14800|5400|258)\b|gameMode|temporalCoverage|\{\{/);
 
@@ -712,8 +735,9 @@ test('the meta page describes its teaser as a dataset dated by the teaser, from 
     assert.equal(nodeOfType(foreign.graph, 'Dataset').isBasedOn.url, HSGURU_META);
     assert.ok(!JSON.stringify(foreign.graph).includes('evil.example'), 'a foreign address is not named as the source');
 
-    // No public date (no teaser, no date, a date from the future): a normal page, a dataset, and no dateModified anywhere.
-    const noDate = [null, metaTeaser(null, TOP_ROWS), metaTeaser(new Date(Date.now() + 72 * HOUR).toISOString(), TOP_ROWS)];
+    // No public date (no teaser, a date from the future): a normal page, a dataset, and no dateModified anywhere.
+    // A slice without any date is not an open slice at all: the regeneration fails and the earlier copy stays.
+    const noDate = [null, metaTeaser(new Date(Date.now() + 72 * HOUR).toISOString(), TOP_ROWS)];
     for (const teaser of noDate) {
       state.meta = teaser;
       const { graph: bare } = await page('/standard/meta/');

@@ -1,3 +1,4 @@
+import { metaFilterSearch, metaRequestKey, readMetaFilterQuery, teaserSeedKey } from '../src/features/standardMetaTeaser.ts';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { readFirstPaintJson } from '../apps/public-web/lib/publicFirstPaintRead';
@@ -70,6 +71,24 @@ assert.equal(metaSeed?.data.items.length, 3);
 const wholeSlice = await loadStandardMetaTeaserSeed(async () => metaPayload('patch_36.6.3',
   [metaItem(1), metaItem(2), metaItem(3), metaItem(4), metaItem(5)]));
 assert.equal(wholeSlice?.data.items.length, 5, 'every row of the open slice reaches the page');
+const wildSeed = await loadStandardMetaTeaserSeed(async path => {
+  assert.equal(path, '/api/standard-meta/public?format=wild');
+  return { ...metaPayload('patch_36.6.3'), format: 'wild', formatLabel: 'Вольный' };
+}, 'wild');
+assert.equal(wildSeed?.data.format, 'wild');
+assert.equal(await loadStandardMetaTeaserSeed(async () => metaPayload('patch_36.6.3'), 'wild'), null,
+  'a Standard answer is never the seed of the Wild page');
+assert.equal(await loadStandardMetaTeaserSeed(async () => ({ ...metaPayload('patch_36.6.3', [{ ...metaItem(1), climbingSpeed: 7.7 }]),
+  format: 'wild', formatLabel: 'Вольный' }), 'wild'), null, 'a paid column is never printed into the Wild HTML either');
+// The seed answers the request of its own format: a Wild page is not asked again after hydration.
+assert.equal(teaserSeedKey(wildSeed, false), metaRequestKey('wild', 'diamond_legend', null, 'any_player', 100, 0, false));
+assert.equal(teaserSeedKey(metaSeed, false), metaRequestKey('standard', 'diamond_legend', null, 'any_player', 100, 0, false));
+assert.equal(teaserSeedKey(wildSeed, true), '', 'a subscriber needs the full slice');
+assert.deepEqual(readMetaFilterQuery('?rank=legend&min_games=500&coin=on_coin&period=patch_36.6.3&x=1'),
+  { rank: 'legend', coin: 'on_coin', minGames: 500, period: 'patch_36.6.3' });
+assert.deepEqual(readMetaFilterQuery('?rank=bogus&min_games=7&period=broken&coin=x'), {}, 'values the server refuses are dropped');
+assert.equal(metaFilterSearch({ rank: 'legend', coin: 'any_player', minGames: 100, period: null }), '?rank=legend');
+assert.equal(metaFilterSearch({ rank: 'diamond_legend', coin: 'any_player', minGames: 100, period: null }), '');
 assert.equal(await loadStandardMetaTeaserSeed(async () => null), null);
 assert.equal(await loadStandardMetaTeaserSeed(async () => ({ items: 'broken' })), null);
 assert.equal(await loadStandardMetaTeaserSeed(async () => metaPayload('patch_36.6.3', [])), null, 'an empty slice is not seeded');

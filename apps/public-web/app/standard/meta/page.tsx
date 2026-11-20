@@ -1,7 +1,7 @@
 import '@/src/route-parchment.css';
 import '@/src/features/TraditionalModeBanner.css';
 import { StandardMetaPageClient } from '@/apps/public-web/ui/StandardMetaPageClient';
-import { loadPublicStandardMetaTeaser } from '@/apps/public-web/lib/publicStandardMetaTeaser';
+import { loadPublicStandardMetaPageTeaser, loadPublicStandardMetaTeaser } from '@/apps/public-web/lib/publicStandardMetaTeaser';
 import { standardMetaSeoValues } from '@/apps/public-web/lib/seoDataValues';
 import { seoStaticPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
 import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
@@ -16,7 +16,7 @@ export const generateMetadata = seoStaticPageMetadata('/standard/meta', 'HearthP
   async () => standardMetaSeoValues(await loadPublicStandardMetaTeaser(), Date.now()));
 
 export default async function Page() {
-  const teaser = await loadPublicStandardMetaTeaser();
+  const teaser = await loadPublicStandardMetaPageTeaser();
   return <>
     <SeoStructuredData path="/standard/meta" data={teaser?.data} />
     <StandardMetaPageClient initialTeaser={teaser} />

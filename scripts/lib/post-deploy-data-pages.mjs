@@ -19,6 +19,7 @@
  */
 export const DATA_PAGES = [
   { path: '/standard/meta/', isr: true, marker: 'standard-meta__results', copyWords: 213, dataWords: 345 },
+  { path: '/standard/meta/wild/', isr: true, marker: 'standard-meta__results', copyWords: 213, dataWords: 345 }, // words: the Standard page's, not a stand measurement
   { path: '/articles/', isr: true, marker: 'article-card-modern', copyWords: 144, dataWords: 895 },
   { path: '/tierlist/', isr: true, marker: 'hs-tier-card', copyWords: 557, dataWords: 831 },
   { path: '/classes/', isr: true, marker: 'arena-class-meter-label', copyWords: 469, dataWords: 554 },
