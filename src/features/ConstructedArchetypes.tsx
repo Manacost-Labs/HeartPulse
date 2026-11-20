@@ -6,7 +6,6 @@ import {
   BUILDS_PENDING_MESSAGE, classIcon, ErrorState, formatNumber, LoadingState, numberFormat,
 } from './archetypeDetailHelpers';
 import type { OpenBuilds } from './archetypeOpenBuilds';
-import type { PaidLock } from './ArchetypePaidFrames';
 import '../shared/ui/analytics/Analytics.css';
 import React, { useDeferredValue, useMemo, useState } from 'react';
 import {
@@ -324,7 +323,6 @@ export default function ConstructedArchetypes({
   paywall = DEFAULT_PAYWALL_ACCESS,
   openLayer = false,
   openBuilds,
-  paidLock,
 }: {
   currentPath?: string;
   navigatePath?: (path: string) => void;
@@ -337,7 +335,6 @@ export default function ConstructedArchetypes({
   paywall?: PaywallAccessState;
   openLayer?: boolean;
   openBuilds?: OpenBuilds;
-  paidLock?: PaidLock;
 }) {
   const detailMatch = currentPath.match(/^\/standard\/(?:archetypes|meta)\/(standard|wild)\/([a-z0-9-]+)\/?$/);
   const content = detailMatch
@@ -353,7 +350,6 @@ export default function ConstructedArchetypes({
         embedded={embedded}
         openLayer={openLayer}
         openBuilds={openBuilds}
-        paidLock={paidLock}
       />
     )
     : <ArchetypeCatalogPage navigatePath={navigatePath} initialSearch={initialSearch} embedded={embedded}

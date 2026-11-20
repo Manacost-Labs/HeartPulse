@@ -9,7 +9,8 @@ import { ArchetypeDossierKpis } from './ArchetypeDossierKpis';
 import { ArchetypeHistoryCharts } from './ArchetypeHistoryCharts';
 import { ArchetypeRadarSection, BuildComparisonSection, loadInsights, RankHeatmapSection } from './ArchetypeInsightSlots';
 import { openBuildAsBuild, type OpenBuilds } from './archetypeOpenBuilds';
-import { LockedPaidSections, PendingPaidSections, type PaidLock } from './ArchetypePaidFrames';
+import { LockedPaidSections, PendingPaidSections } from './ArchetypePaidFrames';
+import { PaidMetricLock } from '../shared/ui/PaidLocks';
 import type { ArchetypeDetail } from './archetypeDetailTypes';
 import {
   ArchetypeAnalysisLoading, ArchetypeAnalysisReserve, ArchetypeBuildsSkeleton, ArchetypeHistorySkeleton, loadArchetypeAnalysis,
@@ -30,12 +31,11 @@ export type ArchetypeDetailProps = {
   accessPending: boolean;
   /**
    * `openLayer`: a guest sees the subscriber's page on the open data: the gallery of `openBuilds` (printed by the
-   * server), the open comparisons, and every paid part at its place behind `paidLock`. A subscriber's paid answer
+   * server), the open comparisons, and every paid part at its place behind a lock. A subscriber's paid answer
    * replaces them in place.
    */
   openLayer?: boolean;
   openBuilds?: OpenBuilds;
-  paidLock?: PaidLock;
 };
 
 function History({ detail, read }: { detail: ArchetypeDetail; read: { loading: boolean; error: string; retry: () => void } }) {
@@ -94,7 +94,7 @@ function ArchetypeDossier({ item, history, analysis }: { item: ArchetypeDetail['
   );
 }
 
-export function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywall, initialDetail, embedded, accessPending, openLayer, openBuilds, paidLock }: ArchetypeDetailProps) {
+export function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywall, initialDetail, embedded, accessPending, openLayer, openBuilds }: ArchetypeDetailProps) {
   const Root = embedded ? 'section' : 'main';
   const rootProps = { className: 'archetypes-page archetype-detail-page', id: embedded ? undefined : 'main-content', tabIndex: embedded ? undefined : -1 };
   const { detail, core, history: historyRead, analysis: analysisRead, ranks: ranksRead, fullAccess, denied } = useArchetypeDetail({
@@ -128,10 +128,10 @@ export function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess,
   const paidBuilds = openLayer && paidReady && !core.error && item.builds.length > 0 ? item.builds : null;
   const galleryBuilds = paidBuilds ?? (openBuilds?.builds ?? []).map(openBuildAsBuild);
   // Locks stand until access is granted (a remembered subscriber is granted at once); a granted viewer sees the loading state.
-  const locked = Boolean(openLayer && !fullAccess && paidLock);
+  const locked = Boolean(openLayer && !fullAccess);
   const pending = Boolean(openLayer && fullAccess && core.loading);
   const openRadar = openLayer ? <ArchetypeRadarSection item={item} viewerId={viewerId(paywall.authUser)}
-    matchupLock={locked && paidLock ? paidLock({ label: 'Очный матчап', children: <span>Очный матчап — по подписке</span> }) : undefined} /> : null;
+    matchupLock={locked ? <PaidMetricLock variant="card" label="Очный матчап" closed="paywalled-archetype" /> : undefined} /> : null;
 
   return (
     <Root {...rootProps}>
@@ -195,7 +195,7 @@ export function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess,
       ) : null}
       {!openLayer && paidReady ? <BuildComparisonSection builds={item.builds} format={item.format} archetype={item.archetype} /> : null}
 
-      {locked && paidLock ? <LockedPaidSections lock={paidLock} radar={openRadar} /> : null}
+      {locked ? <LockedPaidSections radar={openRadar} /> : null}
       {pending ? <PendingPaidSections radar={openRadar} /> : null}
 
       {paidReady ? <>

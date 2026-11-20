@@ -4,20 +4,15 @@ import { useCallback, useMemo, useState, type ReactNode } from 'react';
 import type { ArchetypeDetail } from '@/src/features/ConstructedArchetypes';
 import ConstructedArchetypes from '@/src/features/ConstructedArchetypes';
 import type { OpenBuilds } from '@/src/features/archetypeOpenBuilds';
-import type { PaidLock } from '@/src/features/ArchetypePaidFrames';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
 import { fetchWithDeadline } from '@/src/shared/http/fetchWithDeadline';
 import { publicArchetypeTeaser } from '@/apps/public-web/lib/publicArchetypeTeaserData';
-import { PaidLockButton, PaidOfferProvider } from './PaidOffer';
+import { PaidOfferProvider } from './PaidOffer';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { navigate } from './navigation';
 
 /** Pages read in one click at most while the allowlist refuses every build of them. */
 const MAX_PAGES_PER_CLICK = 5;
-
-const archetypeLock: PaidLock = ({ label, children }) => (
-  <PaidLockButton className="archetype-paid-lock" label={label} closed="paywalled-archetype">{children}</PaidLockButton>
-);
 
 /**
  * The next page of the open builds: the same public answer as the server page, checked by the same allowlist. The
@@ -61,7 +56,7 @@ export function ArchetypeDetailPageClient({ pathname, detail, openLayer = false,
     <PaidOfferProvider entitlement="standard" title="Матчапы, муллиган, ранги и история архетипа"
       text="Винрейт против каждого класса, влияние карт на винрейт, ранги и история показателей входят в подписку «Алмаз». Сборки, коды колод и сравнение архетипов открыты всем.">
       <ConstructedArchetypes key={`${pathname}:${tracked.epoch}`} currentPath={pathname} navigatePath={navigate}
-        initialDetail={detail} openLayer={openLayer} openBuilds={open} paidLock={openLayer ? archetypeLock : undefined}
+        initialDetail={detail} openLayer={openLayer} openBuilds={open}
         embedded hasFullAccess={allowed} accessPending={pending}
         paywall={{ authUser: access.user, subscriptionStatus: access.subscription,
           subscriptionLoading: access.checking, onRefreshSubscription: access.refresh }} />

@@ -8,25 +8,6 @@
   background: rgba(255, 248, 219, 0.35);
 }
 
-.archetype-paid-lock {
-  display: inline-flex;
-  min-height: 2.75rem;
-  gap: 0.45rem;
-  align-items: center;
-  justify-content: center;
-  padding: 0.5rem 1rem;
-  border: 1px solid rgba(92, 54, 24, 0.5);
-  color: #4a2e18;
-  background: rgba(255, 248, 219, 0.85);
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.archetype-paid-lock:hover,
-.archetype-paid-lock:focus-visible { color: #fff8e6; background: #8d171d; border-color: #8d171d; }
-
 /* A subscriber's data that failed to load: one line over the open data, which stays. */
 .archetype-open-builds__retry {
   display: flex;
@@ -44,4 +25,5 @@
 .profile-h2h__lock { display: grid; justify-items: start; padding-block: 0.4rem; }
 
 /* A remembered subscriber is granted at hydration: the lock in the server HTML (the same for everyone) stays out of sight until then. */
-html[data-hp-viewer='remembered'] .archetype-paid-lock { visibility: hidden; }
+html[data-hp-viewer='remembered'] .archetype-paid-frame .paid-lock,
+html[data-hp-viewer='remembered'] .profile-h2h__lock .paid-lock { visibility: hidden; }
