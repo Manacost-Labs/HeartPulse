@@ -16,8 +16,9 @@ import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 import { buildTierlistFixture, closedValues as closedTierlistValues } from './helpers/tierlistPublicFixture.ts';
 
 // The mode hubs /standard/, /arena/, /battlegrounds/ and /wild/ as a visitor and a
-// crawler get them: one H1 for the mode, the canonical address, indexable, at
-// least 150 words of their own in the server HTML of <main>, a link to every
+// crawler get them: one H1 for the mode, the canonical address, indexable, no
+// prose for robots in <main> (owner rule, #538: a one-line lead, then data rows
+// and links), a link to every
 // indexable page of the mode that answers 200, no horizontal scroll on a phone
 // or a desktop; and, with data, the «Сейчас в режиме» block from the open
 // layers with its date, without a value that is closed on the source pages.
@@ -78,8 +79,10 @@ test('every hub is an indexable page with its own text and links to every page o
       assert.deepEqual([...html.matchAll(/<link rel="canonical" href="([^"]*)"/g)].map(match => match[1]),
         [`https://hearthpulse.net${hub.path}`], `${hub.path} canonical`);
       assert.deepEqual([...html.matchAll(/<meta name="robots" content="([^"]*)"/g)].map(match => match[1]), [INDEXABLE], `${hub.path} robots`);
-      const words = wordCount(mainText(html));
-      assert.ok(words >= 150, `${hub.path} has ${words} words of its own in <main>`);
+      // No wall of text: every paragraph of <main> is a short line (the lead, a data note), not an SEO essay.
+      const main = html.match(/<main\b[\s\S]*?<\/main>/)?.[0] ?? '';
+      const paragraphs = [...main.matchAll(/<p\b[^>]*>([\s\S]*?)<\/p>/g)].map(match => wordCount(decoded(match[1].replace(/<[^>]+>/g, ' '))));
+      assert.ok(paragraphs.length > 0 && paragraphs.every(words => words <= 20), `${hub.path} paragraphs: ${paragraphs}`);
       assert.deepEqual(mainLinks(html), hub.links, `${hub.path} links every page of the mode, then the other hubs`);
       for (const link of hub.links) {
         const target = await fetch(`${runtime.origin}${link}`, { redirect: 'manual' });
@@ -260,12 +263,12 @@ test('with data each hub shows its open layer with the date and nothing closed; 
       assert.equal(await get(path, ROBOT_UA), await get(path, BROWSER_UA), `${path} does not depend on the user agent`);
     }
 
-    // No data: still a 200 hub with its text and links, without the block and without a date.
+    // No data: still a 200 hub with its lead and links, without the block and without a date.
     state.down = true;
     for (const path of ['/standard/', '/wild/']) {
       const empty = await regenerated(path, block => block === null);
       assert.doesNotMatch(mainText(empty), /Данные на/, `${path} prints no date without data`);
-      assert.ok(wordCount(mainText(empty)) >= 150, `${path} keeps its own text`);
+      assert.ok(mainLinks(empty).length >= 4, `${path} keeps its links`);
     }
   } finally {
     await next.close();

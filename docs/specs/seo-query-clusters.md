@@ -86,9 +86,10 @@ Contract of a hub:
 
 - 200, `index, follow`, self-canonical, in `static.xml`; the address without
   the slash is one 301 to the slash.
-- At least 150 own words in the server HTML of `<main>` with or without
-  data: two or three paragraphs about the mode and what the site has for it,
-  without invented facts or dates.
+- No prose for robots (owner rule 2026-11-20, `docs/specs/seo-foundation.md`,
+  «Индексируемое содержимое — интерфейс»): under the H1 one short lead line,
+  then the data rows and the link block. The hub passes the indexing
+  threshold by its facts (`INDEX_MIN_OWN_FACTS`): the dated rows of the block.
 - «Сейчас в режиме»: a few rows of the open layer the source page already
   shows a guest, with the date and the source of the data. Standard: the five
   most played archetypes of the open meta slice (name, win rate, popularity,

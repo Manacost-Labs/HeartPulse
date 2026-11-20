@@ -6,8 +6,8 @@ import { SeoStructuredData } from './SeoStructuredData';
 import { SharedPageShell } from './SharedPageShell';
 
 /**
- * A mode hub (`/standard/`, `/arena/`, `/battlegrounds/`, `/wild/`): H1, the
- * editorial text, the «Сейчас в режиме» block of open data (`children`, absent
+ * A mode hub (`/standard/`, `/arena/`, `/battlegrounds/`, `/wild/`): H1, a
+ * one-line lead, the «Сейчас в режиме» block of open data (`children`, absent
  * without data) and plain links to every indexable page of the mode. A server
  * component: the whole text is server HTML, the same for every visitor; only
  * the shared site shell hydrates. `updatedAt` dates the page's JSON-LD.
@@ -25,7 +25,7 @@ export function ModeHubPage({ hub: id, updatedAt, children }: {
     <SharedPageShell pathname={`${hub.path}/`}>
       <article className="mode-hub">
         <h1>{hub.heading}</h1>
-        {hub.paragraphs.map(text => <p key={text}>{text}</p>)}
+        <p className="mode-hub__lead">{hub.lead}</p>
         {now}
         <section aria-labelledby={`mode-hub-${id}-pages`}>
           <h2 id={`mode-hub-${id}-pages`}>Разделы режима</h2>
