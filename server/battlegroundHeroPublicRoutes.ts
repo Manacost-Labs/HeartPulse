@@ -19,7 +19,7 @@ export function registerPublicBattlegroundHeroRoute(router: Router, options: {
   loadHero: (dbfId: string) => Promise<PublicBattlegroundHero | null>;
   /** Open statistics of the hero; `null` when it is not rated. A rejection is a 503 with `Retry-After`. */
   loadStats?: (dbfId: number) => Promise<PublicBattlegroundHeroStats | null>;
-  /** Open profile of the hero; `null` when the library has none or fails (never a rejection). */
+  /** Open profile of the hero; the last good one when the library fails, `null` without one (never a rejection). */
   loadProfile?: (dbfId: number) => Promise<PublicBattlegroundHeroProfile | null>;
   imageUrl: (value: string | null) => string;
   retryAfterSeconds: number;

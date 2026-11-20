@@ -5,6 +5,9 @@ type JsonRecord = Record<string, unknown>;
 /** Hosts a hero's outbound links may point to: the wiki and the card databases the library names. */
 const LINK_HOSTS = new Set(['hearthstone.wiki.gg', 'hsreplay.net', 'www.hearthpwn.com', 'hearthpwn.com']);
 const PROFILE_TTL_MS = 10 * 60_000;
+const FAILURE_PAUSE_MS = 60_000;
+const PROFILE_TIMEOUT_MS = 3_000;
+const PROFILE_CACHE_SIZE = 256;
 
 const record = (value: unknown): JsonRecord =>
   value && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : {};
@@ -86,8 +89,11 @@ export function projectBattlegroundHeroProfile(
 }
 
 /**
- * Reads the open profile of a hero, kept for ten minutes per hero. A failing library is `null` (the page shows the
- * hero without its profile), never a stale copy and never an error of the whole projection.
+ * Reads the open profile of a hero. The route asks only for a hero of the catalog (an unknown id is a 404 before
+ * this), and at most 256 heroes are kept (least recently read out first), so ids cannot grow memory or fan out reads.
+ * A profile is fresh for ten minutes. A failing library (3 s deadline) answers the last good profile of the hero, or
+ * `null` without one, and is not asked again for this hero for a minute: game content rarely changes, and a page
+ * neither waits for a library that is down nor loses its blocks.
  */
 export function createHeroProfileLoader(options: {
   libraryUrl: (dbfId: number) => string;
@@ -99,22 +105,31 @@ export function createHeroProfileLoader(options: {
 }) {
   const fetchImpl = options.fetchImpl ?? fetch;
   const now = options.now ?? Date.now;
-  const cache = new Map<number, { at: number; profile: PublicBattlegroundHeroProfile | null }>();
+  const cache = new Map<number, { readAt: number; profile: PublicBattlegroundHeroProfile | null; failedAt?: number }>();
+  const keep = (dbfId: number, entry: { readAt: number; profile: PublicBattlegroundHeroProfile | null; failedAt?: number }) => {
+    cache.delete(dbfId);
+    cache.set(dbfId, entry);
+    if (cache.size > PROFILE_CACHE_SIZE) cache.delete(cache.keys().next().value as number);
+  };
   return async (dbfId: number): Promise<PublicBattlegroundHeroProfile | null> => {
     const kept = cache.get(dbfId);
-    if (kept && now() - kept.at < PROFILE_TTL_MS) return kept.profile;
+    if (kept && (now() - kept.readAt < PROFILE_TTL_MS || (kept.failedAt !== undefined && now() - kept.failedAt < FAILURE_PAUSE_MS))) {
+      keep(dbfId, kept);
+      return kept.profile;
+    }
     try {
       const response = await fetchImpl(options.libraryUrl(dbfId), {
-        signal: AbortSignal.timeout(options.timeoutMs ?? 10_000),
+        signal: AbortSignal.timeout(options.timeoutMs ?? PROFILE_TIMEOUT_MS),
         headers: { Accept: 'application/json', 'User-Agent': 'HearthPulse/BattlegroundHeroProfile' },
       });
       if (!response.ok) throw new Error(`Battleground hero library HTTP ${response.status}`);
       const profile = projectBattlegroundHeroProfile(await response.json(), dbfId, options.imageUrl);
-      cache.set(dbfId, { at: now(), profile });
+      keep(dbfId, { readAt: now(), profile });
       return profile;
     } catch (error) {
       try { options.onError?.(error); } catch { /* diagnostics are best-effort */ }
-      return null;
+      keep(dbfId, { readAt: kept?.readAt ?? -Infinity, profile: kept?.profile ?? null, failedAt: now() });
+      return kept?.profile ?? null;
     }
   };
 }

@@ -65,27 +65,45 @@ test('the open hero profile copies game content by name and nothing closed', () 
   assert.equal(projectBattlegroundHeroProfile({ error: 'x' }, 59807, imageUrl), null);
 });
 
-test('the profile loader keeps a hero for ten minutes and answers null when the library fails', async () => {
+test('the profile loader keeps a hero, answers the last good profile when the library fails and holds 256 heroes', async () => {
   let now = 0;
   const reads: string[] = [];
   let failing = false;
   const errors: unknown[] = [];
+  const library = (dbfId: number) => ({ data: [{ ...row, dbf: dbfId }] });
   const load = createHeroProfileLoader({
     libraryUrl: dbfId => `https://library.example/heroes?dbf=${dbfId}`, imageUrl, now: () => now,
     onError: error => errors.push(error),
     fetchImpl: async url => {
       reads.push(String(url));
       if (failing) return new Response('{}', { status: 503 });
-      return new Response(JSON.stringify({ data: [row] }), { status: 200 });
+      return new Response(JSON.stringify(library(Number(new URL(String(url)).searchParams.get('dbf')))), { status: 200 });
     },
   });
   assert.equal((await load(59807))?.artist, 'Alex Horley');
   now = 9 * 60_000;
   await load(59807);
-  assert.equal(reads.length, 1, 'kept within ten minutes');
+  assert.equal(reads.length, 1, 'fresh for ten minutes');
+
   now = 11 * 60_000;
   failing = true;
-  assert.equal(await load(59807), null, 'a failing library is no profile, not a stale one');
+  assert.equal((await load(59807))?.artist, 'Alex Horley', 'a failing library answers the last good profile');
   assert.equal(reads.length, 2);
-  assert.equal(errors.length, 1);
+  now += 30_000;
+  assert.equal((await load(59807))?.artist, 'Alex Horley');
+  assert.equal(reads.length, 2, 'a failing library is not asked again for a minute');
+  assert.equal(await load(1), null, 'a hero never read is null while the library fails');
+  now += 31_000;
+  failing = false;
+  await load(59807);
+  assert.equal(reads.length, 4, 'asked again after the pause');
+  assert.equal(errors.length, 2);
+
+  // At most 256 heroes are kept: the least recently read goes first, and is read again when asked.
+  for (let dbfId = 1000; dbfId < 1256; dbfId += 1) await load(dbfId);
+  const before = reads.length;
+  await load(1255);
+  assert.equal(reads.length, before, 'a kept hero is not read again');
+  await load(59807);
+  assert.equal(reads.length, before + 1, 'the least recently read hero was dropped');
 });

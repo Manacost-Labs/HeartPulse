@@ -416,7 +416,7 @@ export function createBattlegroundHeroSeoRouter(
     loadProfile: createHeroProfileLoader({
       libraryUrl: dbfId => `${hsDataApiOrigin()}/api/v1/heroes?dbf=${dbfId}`,
       imageUrl: value => sameOriginPublicResourceUrl(value, origin),
-      fetchImpl, timeoutMs: catalogTimeoutMs, onError: dependencies.onError,
+      fetchImpl, onError: dependencies.onError,
     }),
     imageUrl: value => safeImageUrl(value, origin),
     retryAfterSeconds,
