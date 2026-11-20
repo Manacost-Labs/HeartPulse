@@ -27,6 +27,15 @@ export function compactTierlist(pool: PublicTierlist): CompactTierlist {
 }
 
 /**
+ * The pool of a class page (`/tierlist/<class>/`): the cards of that class only, so the page's data stays small,
+ * and every other class kept with no cards, so the class choice still names them all (as links to their pages).
+ */
+export function compactTierlistClass(pool: PublicTierlist, classId: string): CompactTierlist {
+  const compact = compactTierlist(pool);
+  return { ...compact, classes: compact.classes.map(([id, name, rows]) => [id, name, id === classId ? rows : []]) };
+}
+
+/**
  * The open tier list in the shape the subscriber's view (`TierList`) reads, so a viewer without access
  * gets the same view on the open figures: tier, winrate, pick rate, cost, rarity and type. The paid
  * figures are simply absent here; the view shows them as locks. The order inside a tier is the projection's.

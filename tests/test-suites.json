@@ -459,6 +459,7 @@
         "tests/tierlist-cache-bust-routes.test.ts",
         "tests/tierlist-routes.test.ts",
         "tests/tierlist-public.test.ts",
+        "tests/tierlist-class-pages.test.ts",
         "tests/classes-public-teaser.test.ts",
         "tests/player-games-routes.test.ts",
         "tests/player-games-schema.test.ts",
