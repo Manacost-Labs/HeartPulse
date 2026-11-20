@@ -44,6 +44,9 @@
     "tests/next-classes-teaser.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
+    "tests/next-mode-hubs-browser.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
     "tests/next-legendaries-open-layer.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
@@ -604,6 +607,7 @@
         "tests/next-leaderboards-states-browser.test.mjs",
         "tests/next-streamers-browser.test.mjs",
         "tests/next-bg-tier-list-browser.test.mjs",
+        "tests/next-mode-hubs-browser.test.mjs",
         "tests/next-paywall-access-check-browser.test.mjs",
         "tests/next-instant-access-browser.test.mjs",
         "tests/next-paid-panels-pending-browser.test.mjs",

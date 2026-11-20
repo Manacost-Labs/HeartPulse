@@ -140,6 +140,30 @@
       "dataDescription": "Какую легендарку взять на Арене Hearthstone{asOf}: {items} первого выбора[, лучшая — {leader}]. Винрейт и выбор, данные HSReplay.",
       "sitemap": true
     },
+    "/standard": {
+      "policyRouteId": "mode-hub-standard",
+      "title": "Стандарт Hearthstone (хс): колоды, мета и архетипы",
+      "description": "Колоды Хартстоуна (хс) в Стандарте: самые популярные архетипы с винрейтом на дату данных, мета, матчапы, фан-колоды, карты и патчноуты.",
+      "sitemap": true
+    },
+    "/arena": {
+      "policyRouteId": "mode-hub-arena",
+      "title": "Арена Hearthstone (хс): тир-лист карт и классы | HearthPulse",
+      "description": "Арена Hearthstone: порядок классов по винрейту, лучшие карты открытого тир-листа на дату данных и ссылки на легендарки и все разделы Арены.",
+      "sitemap": true
+    },
+    "/battlegrounds": {
+      "policyRouteId": "mode-hub-battlegrounds",
+      "title": "Поля сражений Hearthstone (хс): герои, сборки и карты",
+      "description": "Поля сражений Hearthstone: лучшие герои по среднему месту на дату данных, тир-лист сборок, конструктор стратегий и библиотека карт режима.",
+      "sitemap": true
+    },
+    "/wild": {
+      "policyRouteId": "mode-hub-wild",
+      "title": "Вольный формат Hearthstone (хс): колоды и карты",
+      "description": "Вольный формат Hearthstone: самые популярные архетипы Вольного с винрейтом на дату данных, карты Вольного и страницы с переключателем формата.",
+      "sitemap": true
+    },
     "/articles": {
       "policyRouteId": "articles",
       "navigationRouteId": "articles",

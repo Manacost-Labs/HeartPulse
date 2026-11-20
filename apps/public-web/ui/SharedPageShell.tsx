@@ -6,7 +6,7 @@ import { navigate } from './navigation';
 
 /**
  * The site shell (menu, header, parchment) of pages people share by link: a replay, the year in review, the download
- * landing. Their content is server-rendered and arrives as children; no menu item is active.
+ * landing, and of the mode hubs. Their content is server-rendered and arrives as children; no menu item is active.
  */
 export function SharedPageShell({ pathname, children }: { pathname: string; children: ReactNode }) {
   const access = usePublicAccess();
