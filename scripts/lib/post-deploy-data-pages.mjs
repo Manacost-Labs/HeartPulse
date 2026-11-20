@@ -55,6 +55,21 @@ export const DATA_PAGES = [
   // The Wild list (#637): the same rows as the Standard list; words not measured.
   { path: '/standard/archetypes/wild/', marker: 'archetype-row__rank', copyWords: 0, dataWords: 0 },
   { path: '/standard/fun-decks/', marker: 'fun-deck-card__why', copyWords: 279, dataWords: 410 },
+  // The deck hub and the class pages (#309, #650): dynamic, 503 with Retry-After until the catalog is warm after a
+  // restart. The hub's marker is a deck code (only a copy whose builds came in time has one; the warm-up also fills
+  // the shared build loader), a class page's the table of its archetypes. Words: not measured.
+  { path: '/standard/decks/', marker: 'decks-hub__code', copyWords: 0, dataWords: 0 },
+  { path: '/standard/decks/deathknight/', marker: 'decks-class__table', copyWords: 0, dataWords: 0 },
+  { path: '/standard/decks/demonhunter/', marker: 'decks-class__table', copyWords: 0, dataWords: 0 },
+  { path: '/standard/decks/druid/', marker: 'decks-class__table', copyWords: 0, dataWords: 0 },
+  { path: '/standard/decks/hunter/', marker: 'decks-class__table', copyWords: 0, dataWords: 0 },
+  { path: '/standard/decks/mage/', marker: 'decks-class__table', copyWords: 0, dataWords: 0 },
+  { path: '/standard/decks/paladin/', marker: 'decks-class__table', copyWords: 0, dataWords: 0 },
+  { path: '/standard/decks/priest/', marker: 'decks-class__table', copyWords: 0, dataWords: 0 },
+  { path: '/standard/decks/rogue/', marker: 'decks-class__table', copyWords: 0, dataWords: 0 },
+  { path: '/standard/decks/shaman/', marker: 'decks-class__table', copyWords: 0, dataWords: 0 },
+  { path: '/standard/decks/warlock/', marker: 'decks-class__table', copyWords: 0, dataWords: 0 },
+  { path: '/standard/decks/warrior/', marker: 'decks-class__table', copyWords: 0, dataWords: 0 },
   // The tool page reads two Express answers in a 600 ms budget; `assemble-title` («Что выпало?») is only in the HTML that got both. Words: not measured.
   { path: '/standard/assemble/', marker: 'assemble-title', copyWords: 0, dataWords: 0 },
   { path: '/standard/assemble/?format=wild', marker: 'assemble-title', copyWords: 0, dataWords: 0 },

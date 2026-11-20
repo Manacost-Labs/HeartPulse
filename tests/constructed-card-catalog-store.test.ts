@@ -473,4 +473,26 @@ try {
   rmSync(coldWildAmbiguityDirectory, { recursive: true, force: true });
 }
 
+// The serving read (#630): the same verified copy as `readUsable`, from one
+// file and without the checksum, so a page after a restart is not held ~3 s.
+const servingDirectory = mkdtempSync(join(tmpdir(), 'arena-constructed-card-serving-'));
+try {
+  const serving = () => new ConstructedCardCatalogStore({ stateDirectory: servingDirectory, now: clock,
+    maxStaleMs: 48 * 60 * 60_000, minimumCardCountByFormat: { standard: 1, wild: 1 } });
+  const published = serving().publish('wild', cards, { expectedTotal: cards.length });
+  assert.deepEqual(serving().readServingCopy('wild'), { document: published, repairWarning: null });
+  assert.equal(serving().readServingCopy('standard'), null);
+  const primary = join(servingDirectory, 'constructed-card-catalog-v1', 'wild.json');
+  writeFileSync(primary, readFileSync(primary, 'utf8').slice(0, 200));
+  assert.deepEqual(serving().readServingCopy('wild')?.document, published, 'a truncated primary falls back to the recovery copy');
+  writeFileSync(join(servingDirectory, 'constructed-card-catalog-v1', 'wild.lkg.json'), '{}');
+  assert.equal(serving().readServingCopy('wild'), null, 'no readable copy, nothing to serve');
+  serving().publish('wild', cards, { expectedTotal: cards.length });
+  now += 49 * 60 * 60_000;
+  assert.equal(serving().readServingCopy('wild'), null, 'an expired copy is not served');
+  now -= 49 * 60 * 60_000;
+} finally {
+  rmSync(servingDirectory, { recursive: true, force: true });
+}
+
 console.log('constructed-card catalog durable LKG store contracts passed');

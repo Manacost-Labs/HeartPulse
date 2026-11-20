@@ -231,7 +231,7 @@ async function warmStand({ articlesReadyAfterMs = 0, expressRecoversAfterFirstRe
   const address = `http://127.0.0.1:${gateway.address().port}`;
   const warm = async env => {
     const child = spawn(process.execPath, ['scripts/warm-prerendered-pages.mjs'], { env: { PATH: process.env.PATH,
-      PRODUCTION_BASE_URL: address, NEXT_LOCAL_ORIGIN: address, WARM_ONLY: '/tierlist/', WARM_DELAY_MS: '300', ...env } });
+      PRODUCTION_BASE_URL: address, NEXT_LOCAL_ORIGIN: address, EXPRESS_LOCAL_ORIGIN: address, WARM_ONLY: '/tierlist/', WARM_DELAY_MS: '300', ...env } });
     let output = '';
     child.stdout.on('data', chunk => { output += chunk; });
     child.stderr.on('data', chunk => { output += chunk; });
@@ -348,10 +348,12 @@ test('/tierlist/ in a browser: cards without JS, the subscriber view with locks 
       const cards = () => page.evaluate(() => document.querySelectorAll('.tierlist-card-grid .hs-tier-card').length);
       const shift = await page.evaluate(() => window.__layoutShifts.reduce((sum, value) => sum + value, 0));
       assert.ok(shift < 0.02, `${viewport.width}px: the page shifted by ${shift.toFixed(4)} while it hydrated`);
-      await page.click('button[aria-label="Класс mage"]');
+      // A class is a link to its page (#617), which shows the class whole; «Все карты» leads back.
+      await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle2' }), page.click('a[aria-label="Класс mage"]')]);
+      assert.equal(new URL(page.url()).pathname, '/tierlist/mage/');
       await page.waitForFunction(count => document.querySelectorAll('.tierlist-card-grid .hs-tier-card').length === count, {},
         CARDS.filter(card => card.classId === 'mage').length);
-      await page.click('button[aria-label="Все карты"]');
+      await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle2' }), page.click('a[aria-label="Все карты"]')]);
       await page.waitForFunction(count => document.querySelectorAll('.tierlist-card-grid .hs-tier-card').length === count, {}, Math.min(48, CARDS.length));
       // The card details show the open figures and the paid ones as locks; a lock opens the offer in place.
       await page.click('.tierlist-card-grid .hs-tier-card');
@@ -363,6 +365,24 @@ test('/tierlist/ in a browser: cards without JS, the subscriber view with locks 
       assert.deepEqual(errors, [], `${viewport.width}px: no page errors`);
     await page.close();
     }
+
+    // A class page is its class: `?class=` in its address (an old link, a sign-in return) does not switch it after hydration.
+    const conflicting = await browser.newPage();
+    const conflictErrors = [];
+    conflicting.on('pageerror', error => conflictErrors.push(String(error)));
+    await conflicting.goto(`${origin}/tierlist/mage/?class=warrior`, { waitUntil: 'networkidle2' });
+    await conflicting.waitForFunction(() => {
+      const classes = document.querySelector('.arena-tier-classes');
+      return classes !== null && Object.keys(classes).some(key => key.startsWith('__reactFiber'));
+    });
+    await delay(500);
+    assert.equal(await conflicting.$eval('.arena-tier-classes a[aria-current="page"]', link => link.getAttribute('aria-label')), 'Класс mage');
+    assert.deepEqual(await conflicting.$$eval('.tierlist-card-grid .hs-tier-card', items => items.map(item => item.getAttribute('aria-label')).sort()),
+      ['Открыть карту Карта mage-0', 'Открыть карту Карта mage-1', 'Открыть карту Карта mage-2', 'Открыть карту Карта mage-3',
+        'Открыть карту Карта mage-4', 'Открыть карту Карта mage-5', 'Открыть карту Карта mage-6', 'Открыть карту Карта mage-7',
+        'Открыть карту Карта mage-s0', 'Открыть карту Карта mage-s1'], 'the mage cards stay after hydration');
+    assert.deepEqual(conflictErrors, []);
+    await conflicting.close();
   } finally {
     if (browser) await browser.close();
     if (front) { front.closeAllConnections(); await new Promise(done => front.close(done)); }

@@ -20,6 +20,7 @@ export function publicWebOwner(pathname, enabled = false, method = 'GET', pagesE
   if (pagesEnabled && /^\/guides-archive\/.+/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/streamers\/.+/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/reports\/meta(?:\/\d{4}-\d{2}-\d{2})?\/?$/.test(pathname)) return 'next';
+  if (pagesEnabled && /^\/tierlist\/(?:death-knight|demon-hunter|druid|hunter|mage|paladin|priest|rogue|shaman|warlock|warrior|neutral)\/?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/heroes\/.+/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/library\/(?:minions|spells|anomalies|dark-gifts|quests|rewards|darkmoon-prizes|trinkets|timewarped|archive(?:\/(?:minions|spells|anomalies|quests|rewards|darkmoon-prizes|trinkets))?)\/?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/library\/(?:archive\/)?[^/]+\/[^/]+-[1-9][0-9]*\/?$/.test(pathname)) return 'next';

@@ -25,6 +25,7 @@ export const SAMPLE_SOURCES = {
   'bg-library-kind': [{ path: '/library/minions/' }],
   'bg-library-detail': [{ segment: 'battlegroundMinions' }],
   'constructed-archetype-detail': [{ segment: 'archetypes' }],
+  'standard-decks-class': [{ segment: 'decks' }],
 };
 
 export const UNMONITORED_TEMPLATES = {

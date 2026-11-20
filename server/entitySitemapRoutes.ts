@@ -15,14 +15,11 @@ import {
   projectStandardCardSitemapCatalog,
 } from './entitySitemapProjections.js';
 import { projectCosmeticsSitemapCatalog, projectGuideArchiveSitemapCatalog } from './entitySitemapEditorial.js';
+import { projectDeckClassSitemapCatalog } from './entitySitemapDeckSources.js';
 import {
   createStaticPageDays, datedStaticLocations, sendUnavailable, sitemapIndexEntries, type DatedLocation,
 } from './entitySitemapComposite.js';
-import {
-  loadStaticSitemapArtifact,
-  renderSitemapIndex,
-  renderSitemapUrlset,
-} from './entitySitemapXml.js';
+import { loadStaticSitemapArtifact, renderSitemapIndex, renderSitemapUrlset } from './entitySitemapXml.js';
 
 type DynamicSitemapDefinition = {
   segment: SitemapSegment;
@@ -51,6 +48,7 @@ export type EntitySitemapRouterDependencies = {
   loadCosmetics?: () => Promise<unknown[]>;
   loadGuidesArchive?: () => Promise<unknown[]>;
   loadArchetypes?: () => Promise<unknown[]>;
+  loadDecks?: () => Promise<unknown[]>;
   staticUrls: string[];
   /** Content fingerprint by address of each static page, written by the build. The store dates a page by when it first saw one. */
   staticFingerprints?: ReadonlyMap<string, string>;
@@ -66,6 +64,7 @@ export type EntitySitemapRouterDependencies = {
   minimumCosmeticsCount?: number;
   minimumGuideCount?: number;
   minimumArchetypeCount?: number;
+  minimumDeckClassCount?: number;
   staticLastModifiedMs?: number;
   retryAfterSeconds?: number;
   /** A request waits this long for a rebuild before it gets the last known good document. Default 2 s. */
@@ -87,16 +86,12 @@ const ENTITY_SITEMAP_PATHS: DynamicSitemapDefinition['pathname'][] = [
   '/sitemaps/cosmetics.xml',
   '/sitemaps/guides-archive.xml',
   '/sitemaps/archetypes.xml',
+  '/sitemaps/decks.xml',
 ];
 
 export {
-  loadStaticSitemapArtifact,
-  renderSitemapIndex,
-  renderSitemapUrlset,
-  projectBattlegroundHeroSitemapCatalog,
-  projectBattlegroundLibrarySitemapCatalog,
-  projectConstructedCardSitemapCatalog,
-  projectStandardCardSitemapCatalog,
+  loadStaticSitemapArtifact, renderSitemapIndex, renderSitemapUrlset, projectBattlegroundHeroSitemapCatalog,
+  projectBattlegroundLibrarySitemapCatalog, projectConstructedCardSitemapCatalog, projectStandardCardSitemapCatalog,
 };
 
 function documentFromXml(
@@ -216,6 +211,10 @@ function dynamicSitemapDefinitions(
     segment: 'archetypes', pathname: '/sitemaps/archetypes.xml', load: dependencies.loadArchetypes,
     project: rows => projectConstructedArchetypeSitemapCatalog(rows, origin),
     minimumEntryCount: dependencies.minimumArchetypeCount ?? 30,
+  });
+  if (dependencies.loadDecks) definitions.push({
+    segment: 'decks', pathname: '/sitemaps/decks.xml', load: dependencies.loadDecks,
+    project: rows => projectDeckClassSitemapCatalog(rows, origin), minimumEntryCount: dependencies.minimumDeckClassCount ?? 1,
   });
   return definitions;
 }

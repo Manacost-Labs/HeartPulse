@@ -105,9 +105,18 @@ caching](../specs/public-document-caching.md#data-pages-and-the-last-good-copy))
 A page without data is a 503 (or, for the home page, a copy without the edge
 marker) and the edge never keeps it, but the warm-up still fills the copies so
 that the first visitors and crawlers get the pages. The runner waits up to two
-minutes for Express (`WARM_API_WAIT_MS`), revalidates the prerendered pages
-again while any of them lacks its data, and gives up after five minutes
-(`WARM_TOTAL_MS`). A page that stays without data is reported per page and as
+minutes for Express (`WARM_API_WAIT_MS`, asked on the host, not through the
+edge), requests every page on the local Next origin (the edge still answers
+with the copy of the release before, so a check there says nothing about
+Next's own copy), revalidates again only the prerendered pages that still lack
+their data (`POST /health/next/revalidate/?paths=/a,/b`; a revalidated page is
+expired, and the next visitor waits for its render), and gives up after five
+minutes (`WARM_TOTAL_MS`). The meta and matchups pages render from the last
+good open slice (`apps/public-web/lib/pageLastGood.ts`: memory, and a file in
+`shared/server-data/next-page-last-good-v1/` that outlives releases;
+`PAGE_LAST_GOOD_DIR` overrides the directory) when Express does not answer
+during a regeneration, so a restart or a revalidation while Express is busy
+gives a 200 with the last good page, never a 500 or the stub. A page that stays without data is reported per page and as
 `::warning::`; the deploy is not failed. Immutable assets and
 public media keep serving stale copies on origin errors. Content-hashed Next assets of
 earlier releases stay on the origin for 35 days, so a document cached just

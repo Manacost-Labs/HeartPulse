@@ -610,7 +610,7 @@ for (const route of inventory.routes) {
     continue;
   }
   if (['guides-archive', 'guides-archive-detail', 'constructed-archetype-detail', 'standard-meta-legacy-detail', 'streamer-detail',
-    'meta-report-archive', 'meta-report-detail'].includes(route.id)) {
+    'meta-report-archive', 'meta-report-detail', 'tierlist-class'].includes(route.id)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }
@@ -1012,6 +1012,16 @@ async function startCardSeoUpstream() {
       headers: { 'Cache-Control': 'private, no-cache' },
       body: '<!doctype html><title>Next meta reports</title>',
     }],
+    ['/tierlist/mage/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-cache' },
+      body: '<!doctype html><title>Next tierlist mage</title>',
+    }],
+    ['/tierlist/neutral/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-cache' },
+      body: '<!doctype html><title>Next tierlist neutral</title>',
+    }],
     ['/reports/meta/2026-11-23/', {
       status: 200,
       headers: { 'Cache-Control': 'private, no-cache' },
@@ -1270,7 +1280,7 @@ async function startCardSeoUpstream() {
     const pathname = incomingUrl.pathname;
     const fixture = pathname === '/404.html' && errorDocumentStatus !== 404
       ? { status: errorDocumentStatus, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next error document unavailable</p>' }
-      : ['/', '/admin/', '/deck-builder/', '/archetypes/', '/archetypes/856/', '/archetypes/wild/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/wild/', '/standard/archetypes/standard/tempo-mage/', '/standard/archetypes/wild/tempo-mage/', '/standard/decks/', '/standard/decks/paladin/', '/library/', '/library/archive/minions/', '/standard/cards/standard/', '/standard/cards/wild/', '/standard/deck-builder/'].includes(pathname) && incomingUrl.searchParams.has('fail')
+      : ['/', '/admin/', '/deck-builder/', '/archetypes/', '/archetypes/856/', '/archetypes/wild/', '/articles/', '/guides-archive/', '/guides-archive/guide-1/', '/contests/', '/classes/', '/tierlist/', '/tierlist/mage/', '/legendaries/', '/standard/matchups/', '/standard/meta/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/archetypes/', '/standard/archetypes/wild/', '/standard/archetypes/standard/tempo-mage/', '/standard/archetypes/wild/tempo-mage/', '/standard/decks/', '/standard/decks/paladin/', '/library/', '/library/archive/minions/', '/standard/cards/standard/', '/standard/cards/wild/', '/standard/deck-builder/'].includes(pathname) && incomingUrl.searchParams.has('fail')
       ? { status: 503, headers: { 'Cache-Control': 'private, no-store' }, body: '<p>Next listing unavailable</p>' }
       : responses.get(pathname);
     if (!fixture) {
@@ -1577,6 +1587,8 @@ http {
       ['/standard/meta/', /Next meta/],
       ['/reports/meta/', /Next meta reports/],
       ['/reports/meta/2026-11-23/', /Next meta report/],
+      ['/tierlist/mage/', /Next tierlist mage/],
+      ['/tierlist/neutral/', /Next tierlist neutral/],
       ['/standard/', /Next Standard hub/],
       ['/arena/', /Next Arena hub/],
       ['/battlegrounds/', /Next Battlegrounds hub/],
@@ -1612,6 +1624,18 @@ http {
     }
     for (const outside of ['/reports/', '/reports/meta/latest/', '/reports/meta/2026-11-23/extra/']) {
       assert.equal((await requestNginx(port, outside)).status, 404, `${outside} is not a meta report`);
+    }
+    // Tier-list class pages: one 301 adds the slash and keeps the query; only a known class slug reaches Next.
+    for (const classPage of ['/tierlist/demon-hunter', '/tierlist/neutral']) {
+      const classRedirect = await requestNginx(port, `${classPage}?utm_source=tab`);
+      assert.equal(classRedirect.status, 301, `${classPage} normalizes its slash`);
+      const classTarget = new URL(classRedirect.headers.location || '', 'http://arena.test');
+      assert.equal(`${classTarget.pathname}${classTarget.search}`, `${classPage}/?utm_source=tab`, `${classPage} redirect target`);
+    }
+    for (const outside of ['/tierlist/unknown/', '/tierlist/unknown', '/tierlist/any/', '/tierlist/Mage/', '/tierlist/mage/extra/']) {
+      const missing = await requestNginx(port, outside);
+      assert.equal(missing.status, 404, `${outside} is not a class page`);
+      assert.equal(missing.headers['x-robots-tag'], 'noindex, nofollow', `${outside} is not indexed`);
     }
 
     const compressedNextAsset = await requestNginx(port, '/_next/static/test.js', 'GET', {
@@ -1838,6 +1862,9 @@ http {
     const failedTierlist = await requestNginx(port, '/tierlist/?fail=1');
     assert.equal(failedTierlist.status, 503, 'Arena tier-list upstream errors must retain their status');
     assert.equal(failedTierlist.headers['x-robots-tag'], 'noindex, nofollow', 'Arena tier-list errors must not be indexed');
+    const failedTierlistClass = await requestNginx(port, '/tierlist/mage/?fail=1');
+    assert.equal(failedTierlistClass.status, 503, 'Arena tier-list class page upstream errors must retain their status');
+    assert.equal(failedTierlistClass.headers['x-robots-tag'], 'noindex, nofollow', 'Arena tier-list class page errors must not be indexed');
     const failedLegendaries = await requestNginx(port, '/legendaries/?fail=1');
     assert.equal(failedLegendaries.status, 503, 'Arena legendaries upstream errors must retain their status');
     assert.equal(failedLegendaries.headers['x-robots-tag'], 'noindex, nofollow', 'Arena legendaries errors must not be indexed');

@@ -88,6 +88,7 @@ export function createPublicSeoModel(root = process.cwd()) {
       `${siteUrl}/sitemaps/cosmetics.xml`,
       `${siteUrl}/sitemaps/guides-archive.xml`,
       `${siteUrl}/sitemaps/archetypes.xml`,
+      `${siteUrl}/sitemaps/decks.xml`,
     ];
     return `<?xml version="1.0" encoding="UTF-8"?>\n<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${locations.map(location => `  <sitemap><loc>${escapeXml(location)}</loc></sitemap>`).join('\n')}\n</sitemapindex>\n`;
   }

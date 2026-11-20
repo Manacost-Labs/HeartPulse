@@ -7,8 +7,8 @@ export const TIERLIST_CLASS_SLUGS = ['death-knight', 'demon-hunter', 'druid', 'h
   'rogue', 'shaman', 'warlock', 'warrior', 'neutral'] as const;
 export type TierlistClassSlug = typeof TIERLIST_CLASS_SLUGS[number];
 
-/** Switched on by the PR that adds the `app/tierlist/[class]` route and its Nginx contract (#617). */
-export const TIERLIST_CLASS_PAGES_LIVE = false;
+/** On since the `app/tierlist/[class]` route and its Nginx contract are served (#617). */
+export const TIERLIST_CLASS_PAGES_LIVE = true;
 
 const NEUTRAL_ID = 'any';
 const ALL_CARDS_ID = '__all__';

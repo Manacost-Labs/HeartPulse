@@ -7,6 +7,12 @@ type Dependencies = {
   catalogTimeoutMs?: number;
   /** Anonymous projections need catalog identity, not separately loaded wiki/decks/statistics. */
   includeDetail?: boolean;
+  /**
+   * Catalog identity already in memory or on disk. A card found there is
+   * answered at once while `loadCards` refreshes: after a restart the source
+   * load outlasts the 2 s a page waits. Absence is still decided by `loadCards`.
+   */
+  peekCards?: (format: ConstructedCardFormat) => ConstructedCardCollection | null;
 };
 
 /** Null means authoritative absence. Stale/ambiguous membership and timeouts reject. */
@@ -15,6 +21,12 @@ export function createConstructedCardReader(dependencies: Dependencies) {
     const deadline = Date.now() + (dependencies.catalogTimeoutMs ?? 25_000);
     let timer: ReturnType<typeof setTimeout> | undefined;
     const read = async () => {
+      const known = dependencies.peekCards?.(format)?.cards?.filter(card => card.card_id === cardId);
+      if (known?.length === 1 && isIndexableConstructedCard(known[0])) {
+        // After this response: a failing refresh reads the stored catalog again, synchronously.
+        setImmediate(() => { dependencies.loadCards(format).catch(() => { /* the next read reports it */ }); });
+        return known[0];
+      }
       const collection = await dependencies.loadCards(format);
       if (!collection || !Array.isArray(collection.cards) || collection.cards.length === 0) {
         throw new Error('Invalid or empty constructed-card catalog');

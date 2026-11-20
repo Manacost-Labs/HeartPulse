@@ -51,6 +51,8 @@ function normalizedOrigin(value: string | undefined): string {
   }
 }
 
+const UNRATIOED_SEGMENTS = new Set<SitemapSegment>(['archetypes', 'battleground-minions', 'decks', 'static-pages']);
+
 function recoveryFilename(filename: string): string {
   return filename.replace(/\.json$/i, '.lkg.json');
 }
@@ -74,9 +76,9 @@ export class SemanticSitemapStore {
     this.recovery = recoveryFilename(this.filename);
     this.origin = normalizedOrigin(options.canonicalOrigin);
     this.now = options.now ?? Date.now;
-    // These segments are filtered by an indexing rule (archetypes, minions), or are small static lists: a shrinking list is a change of the
-    // data, not a truncation; `minimumEntryCount` stays the guard.
-    const defaultRatio = this.segment === 'archetypes' || this.segment === 'battleground-minions' || this.segment === 'static-pages' ? null : 0.9;
+    // These segments are filtered by an indexing rule (archetypes, minions, deck classes), or are small static lists: a shrinking list is
+    // a change of the data, not a truncation; `minimumEntryCount` stays the guard.
+    const defaultRatio = UNRATIOED_SEGMENTS.has(this.segment) ? null : 0.9;
     const ratio = options.collapseRatio === undefined ? defaultRatio : options.collapseRatio;
     this.collapseRatio = ratio === null ? null : Math.max(0.5, Math.min(0.95, ratio));
     this.minimumEntryCount = Math.max(1, Math.min(MAX_SITEMAP_ENTRIES, Math.floor(options.minimumEntryCount ?? 1)));

@@ -119,6 +119,12 @@ await expectPolicy('/standard/cards/standard', {
   robots: 'noindex, follow',
   canonicalUrl: `${ORIGIN}/standard/cards/standard/`,
 }, '?sort=winrate');
+// The library root paginates like a format listing: page N is a crawl path, not an index entry (#538).
+await expectPolicy('/standard/cards', {
+  routeId: 'standard-cards',
+  robots: 'noindex, follow',
+  canonicalUrl: `${ORIGIN}/standard/cards/`,
+}, '?page=2');
 
 const noindex = await resolvePublicUrlPolicy('/', '?login');
 const indexableAgain = await resolvePublicUrlPolicy('/faq');

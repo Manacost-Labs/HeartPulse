@@ -1,0 +1,8 @@
+{
+  "reason": "#617: новый маршрут /tierlist/[class]/ добавляет запись в общий рантайм Next — JS каждого маршрута +71…85 Б gzip (замер: head #619 против этой ветки). После rebase на main 24206592 сверх лимита локально: /standard/meta/ +63 Б, /articles/ +7 Б; /standard/matchups/ остаётся 1 Б запаса. Одобрено с запасом 64 Б на шум CI.",
+  "routes": {
+    "/articles/": { "jsGzipBytes": 71 },
+    "/standard/matchups/": { "jsGzipBytes": 64 },
+    "/standard/meta/": { "jsGzipBytes": 127 }
+  }
+}

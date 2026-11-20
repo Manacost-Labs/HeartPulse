@@ -318,6 +318,7 @@ const segmentSamplePaths: Record<string, string> = {
   cosmetics: '/cosmetics/heroes/57944/',
   'guides-archive': '/guides-archive/some-guide/',
   archetypes: '/standard/archetypes/standard/aggro-hunter/',
+  decks: '/standard/decks/paladin/',
 };
 for (const [segment, path] of Object.entries(segmentSamplePaths)) {
   const policy = inventory.routes.find(route => routeMatchesPath(route, path));
