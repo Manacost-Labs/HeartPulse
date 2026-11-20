@@ -357,7 +357,8 @@ SEO cost is 250–400 words fewer on three indexed pages.
   `config/public-seo-pages.json` `dataTitle`/`dataDescription`, values in
   `apps/public-web/lib/seoDataValues.ts`): the month of the data in the title,
   the date and open figures in the description, each one printed on the page —
-  `/tierlist` the rounded sample («более 53 000 игр»), `/classes` the first class of the open
+  `/tierlist` the rounded sample («более 53 000 игр»), `/classes` the first
+  class of the open
   order with its winrate, `/legendaries` the number of groups and the group with
   the best winrate, `/heroes` the number of ranked heroes and the first of the
   solo ranking with its average place, `/battlegrounds/tier-list` the number of
