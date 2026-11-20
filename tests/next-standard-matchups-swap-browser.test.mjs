@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
-import fs from 'node:fs';
 import http from 'node:http';
-import path from 'node:path';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
@@ -27,7 +25,7 @@ const NONE = { hasAccess: false, entitlements: {}, source: 'none', checkedAt: nu
 const DESKTOP = { width: 1440, height: 900 };
 
 async function startStack() {
-  const state = { next: null, protectedReads: 0, protectedFailures: 0 };
+  const state = { next: null, protectedReads: 0, protectedFailures: 0, protectedHangs: 0 };
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://stack');
     const who = /(?:^|;\s*)sw_session=(\w+)/.exec(request.headers.cookie ?? '')?.[1];
@@ -43,6 +41,10 @@ async function startStack() {
     if (url.pathname === '/api/standard/matchups') {
       if (!user || (who === 'plain')) return json(401, { error: 'subscription required' });
       state.protectedReads += 1;
+      if (state.protectedHangs > 0) {
+        state.protectedHangs -= 1;
+        return; // no status, ever
+      }
       if (state.protectedFailures > 0) {
         state.protectedFailures -= 1;
         return json(503, { error: 'Standard matchups unavailable' });
@@ -58,19 +60,15 @@ async function startStack() {
   return Object.assign(state, { server, origin });
 }
 
-/** The built chunks that hold the matrix component, so a test can make exactly those fail to load. */
-function matrixChunks() {
-  const root = path.resolve('apps/public-web/.next/static/chunks');
-  const found = [];
-  const walk = directory => {
-    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
-      const file = path.join(directory, entry.name);
-      if (entry.isDirectory()) walk(file);
-      else if (file.endsWith('.js') && fs.readFileSync(file, 'utf8').includes('standard-matchup-matrix__layer')) found.push(`/_next/static/chunks/${path.relative(root, file)}`);
-    }
-  };
-  walk(root);
-  return found;
+const MATRIX = '::-p-aria(Режим просмотра[role="group"])';
+const OPEN_MATRIX = '::-p-aria(История матчапов[role="button"])';
+const FAILURE = '::-p-text(Не удалось загрузить вашу матрицу матчапов)';
+const RETRY = '::-p-aria(Повторить[role="button"])';
+
+/** The scripts the page's own HTML names: every other script is a lazy chunk, loaded after the page is up. */
+async function initialScripts(origin) {
+  const html = await (await fetch(`${origin}/standard/matchups/`)).text();
+  return new Set([...html.matchAll(/static\/chunks\/[\w./%-]+\.js/g)].map(match => `/_next/${match[0]}`));
 }
 
 async function open(browser, stack, who) {
@@ -96,36 +94,62 @@ test('who sees the interactive matrix on /standard/matchups/, and what a failure
     assert.ok(warm, 'the page was not regenerated with the matrix');
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
-    const chunks = matrixChunks();
-    assert.ok(chunks.length > 0, 'the matrix chunk is not in the build');
+    const initial = await initialScripts(stack.origin);
+    assert.ok(initial.size > 0, 'the page names no scripts');
 
-    // The administrator's subscription grants nothing, and the matrix is theirs all the same.
-    const admin = await open(browser, stack, 'admin');
-    await admin.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'load' });
-    await admin.waitForSelector('.standard-matchups__ledger', { timeout: 20000 });
-    assert.equal(await admin.$('.standard-matchups-open__matrix'), null, 'the open view is gone for an administrator');
-    await admin.close();
+    // Chunks a page asks for beyond the ones its HTML names, as the network shows them.
+    const lazyChunks = page => {
+      const seen = new Set();
+      page.on('request', request => {
+        const { pathname } = new URL(request.url());
+        if (request.resourceType() === 'script' && pathname.startsWith('/_next/static/chunks/') && !initial.has(pathname)) seen.add(pathname);
+      });
+      return seen;
+    };
 
     // A signed-in viewer without a subscription keeps the open view and never asks the protected route.
     const before = stack.protectedReads;
     const plain = await open(browser, stack, 'plain');
+    const plainChunks = lazyChunks(plain);
     await plain.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'networkidle0' });
-    assert.ok(await plain.$('.standard-matchups-open__matrix'));
-    assert.equal(await plain.$('.standard-matchups__ledger'), null);
-    assert.equal(await plain.$('[data-matchups-swap-error]'), null, 'a refusal is not a failure');
+    assert.ok(await plain.$(OPEN_MATRIX));
+    assert.equal(await plain.$(MATRIX), null);
+    assert.equal(await plain.$(FAILURE), null, 'a refusal is not a failure');
     assert.equal(stack.protectedReads, before);
     await plain.close();
+
+    // The administrator's subscription grants nothing, and the matrix is theirs all the same.
+    const admin = await open(browser, stack, 'admin');
+    const adminChunks = lazyChunks(admin);
+    await admin.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'load' });
+    await admin.waitForSelector(MATRIX, { timeout: 20000 });
+    assert.equal(await admin.$(OPEN_MATRIX), null, 'the open view is gone for an administrator');
+    await admin.close();
+    // What only the matrix needs: the chunks it brings that a signed-in viewer without it never asks for.
+    const matrixOnly = new Set([...adminChunks].filter(chunk => !plainChunks.has(chunk)));
+    assert.ok(matrixOnly.size > 0, 'the matrix loaded no chunk of its own');
 
     // The subscriber's data fails: the open view says so, and «Повторить» brings the matrix.
     stack.protectedFailures = 1;
     const broken = await open(browser, stack, 'reader');
     await broken.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'load' });
-    await broken.waitForSelector('[data-matchups-swap-error]', { timeout: 20000 });
-    assert.ok(await broken.$('.standard-matchups-open__matrix'), 'the open view stays under the message');
-    await broken.click('[data-matchups-swap-error] button');
-    await broken.waitForSelector('.standard-matchups__ledger', { timeout: 20000 });
-    assert.equal(await broken.$('[data-matchups-swap-error]'), null);
+    await broken.waitForSelector(FAILURE, { timeout: 20000 });
+    assert.ok(await broken.$(OPEN_MATRIX), 'the open view stays under the message');
+    await broken.click(RETRY);
+    await broken.waitForSelector(MATRIX, { timeout: 20000 });
+    assert.equal(await broken.$(FAILURE), null);
     await broken.close();
+
+    // The subscriber's request never gets a status: after the deadline the same message appears, and «Повторить» works.
+    stack.protectedHangs = 1;
+    const hung = await open(browser, stack, 'reader');
+    // The matrix the earlier pages cached would be shown at once: this reader has never seen one.
+    await hung.evaluateOnNewDocument(() => { try { localStorage.clear(); } catch { /* none */ } });
+    await hung.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'load' });
+    await hung.waitForSelector(FAILURE, { timeout: 45000 });
+    await hung.click(RETRY);
+    await hung.waitForSelector(MATRIX, { timeout: 20000 });
+    await hung.close();
 
     // The matrix chunk cannot load (every attempt fails): the message appears after the automatic retries, and
     // once the chunk is back «Повторить» brings the matrix. A reload is not what rescues it here: the stale-asset
@@ -136,15 +160,15 @@ test('who sees the interactive matrix on /standard/matchups/, and what a failure
     await stale.setRequestInterception(true);
     stale.on('request', request => {
       const { pathname } = new URL(request.url());
-      if (chunkDown && chunks.includes(pathname)) void request.abort('failed');
+      if (chunkDown && matrixOnly.has(pathname)) void request.abort('failed');
       else void request.continue();
     });
     await stale.goto(`${stack.origin}/standard/matchups/`, { waitUntil: 'load' });
-    await stale.waitForSelector('[data-matchups-swap-error]', { timeout: 30000 });
-    assert.equal(await stale.$('.standard-matchups__ledger'), null);
+    await stale.waitForSelector(FAILURE, { timeout: 30000 });
+    assert.equal(await stale.$(MATRIX), null);
     chunkDown = false;
-    await stale.click('[data-matchups-swap-error] button');
-    await stale.waitForSelector('.standard-matchups__ledger', { timeout: 20000 });
+    await stale.click(RETRY);
+    await stale.waitForSelector(MATRIX, { timeout: 20000 });
     await stale.close();
   } finally {
     if (browser) await browser.close();
