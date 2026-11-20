@@ -20,6 +20,7 @@ export default function CardPreviewSheet({ card, onClose }: CardPreviewSheetProp
   const sources = cardPreviewSources(card.id, card.imageUrl);
   const sourcesKey = sources.join('|');
   const [sourceIndex, setSourceIndex] = useState(0);
+  const [loadedSource, setLoadedSource] = useState('');
   const imageFailed = sourceIndex >= sources.length;
   const source = sources[Math.min(sourceIndex, sources.length - 1)];
 
@@ -54,7 +55,7 @@ export default function CardPreviewSheet({ card, onClose }: CardPreviewSheetProp
         </button>
       </header>
 
-      <figure className="card-preview-sheet__media">
+      <figure className="card-preview-sheet__media" aria-busy={!imageFailed && loadedSource !== source}>
         {!imageFailed ? (
           // The sheet keeps one picture and its own error path (fallback render,
           // then a retry): it zooms once the picture was preloaded, else fades.
@@ -62,6 +63,7 @@ export default function CardPreviewSheet({ card, onClose }: CardPreviewSheetProp
             data-lightbox-media=""
             src={source}
             alt={card.name}
+            onLoad={() => setLoadedSource(source)}
             onError={() => setSourceIndex(index => index + 1)}
           />
         ) : (

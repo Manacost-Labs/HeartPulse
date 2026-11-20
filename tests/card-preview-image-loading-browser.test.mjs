@@ -100,18 +100,30 @@ try {
     await page.close();
   }
 
-  // 3. The phone sheet (the full-card lightbox on touch screens) shows the picture the same way.
+  // 3. The phone sheet (the full-card lightbox on touch screens) shows the picture the same way,
+  //    with a card-shaped placeholder while a slow picture is on its way.
   {
+    let release;
+    const released = new Promise(resolve => { release = resolve; });
     const { page } = await openWithImages(storybook.storyUrl('features-card-preview-image--sheet'),
-      async path => (path === RENDER_IMAGE ? image : missing), { width: 390, height: 844 });
+      async path => (path === RENDER_IMAGE ? released.then(() => image) : missing), { width: 390, height: 844 });
     await page.click('#storybook-root button');
     const dialog = await page.waitForSelector('[role="dialog"]');
+    await page.waitForFunction(() => document.querySelector('[role="dialog"] img[alt]')?.getAttribute('src')?.includes('/hsjson/'));
+    const waiting = await dialog.evaluate(element => {
+      const picture = element.querySelector('img[alt]');
+      const box = picture.getBoundingClientRect();
+      return { busy: picture.closest('[aria-busy]')?.getAttribute('aria-busy'), height: box.height > 100, filled: getComputedStyle(picture).backgroundImage !== 'none' };
+    });
+    assert.deepEqual(waiting, { busy: 'true', height: true, filled: true }, 'the sheet shows a card-shaped placeholder, not an empty frame');
+    release();
     await page.waitForFunction(() => {
       const picture = document.querySelector('[role="dialog"] img[alt]');
       return picture instanceof HTMLImageElement && picture.complete && picture.naturalWidth > 0;
     });
     assert.equal(await dialog.$eval('img[alt]', element => new URL(element.currentSrc).pathname), RENDER_IMAGE);
     assert.equal(await dialog.$('[role="alert"]'), null, 'no error text once a picture loaded');
+    assert.equal(await dialog.$eval('figure', element => element.getAttribute('aria-busy')), 'false');
     await page.close();
   }
 
