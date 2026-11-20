@@ -115,7 +115,8 @@ export function createHeroProfileLoader(options: {
     cache.set(dbfId, entry);
     if (cache.size > PROFILE_CACHE_SIZE) cache.delete(cache.keys().next().value as number);
   };
-  const read = async (dbfId: number): Promise<PublicBattlegroundHeroProfile | null> => {
+  // `previous` is the entry when the read started: it stays the fallback even if the LRU drops the hero meanwhile.
+  const read = async (dbfId: number, previous: Entry | undefined): Promise<PublicBattlegroundHeroProfile | null> => {
     try {
       const response = await fetchImpl(options.libraryUrl(dbfId), {
         signal: AbortSignal.timeout(options.timeoutMs ?? PROFILE_TIMEOUT_MS),
@@ -130,8 +131,7 @@ export function createHeroProfileLoader(options: {
       return profile;
     } catch (error) {
       try { options.onError?.(error); } catch { /* diagnostics are best-effort */ }
-      // Read at settle time: the entry this read replaces is the current one (one read per hero is in flight).
-      const kept = cache.get(dbfId);
+      const kept = cache.get(dbfId) ?? previous;
       keep(dbfId, { readAt: kept?.readAt ?? -Infinity, profile: kept?.profile ?? null, failedAt: now() });
       return kept?.profile ?? null;
     } finally {
@@ -148,7 +148,7 @@ export function createHeroProfileLoader(options: {
     if (pending) return pending;
     if (inFlight.size >= MAX_READS_IN_FLIGHT) return Promise.resolve(kept?.profile ?? null);
     // Started on the next tick, so the read is registered before it can settle.
-    const started = Promise.resolve().then(() => read(dbfId));
+    const started = Promise.resolve().then(() => read(dbfId, kept));
     inFlight.set(dbfId, started);
     return started;
   };

@@ -165,3 +165,36 @@ test('concurrent requests share one read, a malformed answer keeps the last good
   for (let dbfId = 2000; dbfId < 2016; dbfId += 1) respond(dbfId, { data: [{ ...row, dbf: dbfId }] });
   assert.equal((await Promise.all(many.slice(0, 16))).every(profile => profile?.artist === 'Alex Horley'), true);
 });
+
+test('a refresh keeps its starting profile when the hero is dropped meanwhile; a throwing or rejecting fetch is a failure', async () => {
+  let now = 0;
+  let mode: 'ok' | 'hold' | 'throw' | 'reject' = 'ok';
+  let held: ((response: Response) => void) | null = null;
+  const load = createHeroProfileLoader({
+    libraryUrl: dbfId => `https://library.example/heroes?dbf=${dbfId}`, imageUrl, now: () => now,
+    fetchImpl: url => {
+      const dbfId = Number(new URL(String(url)).searchParams.get('dbf'));
+      if (mode === 'throw') throw new Error('synchronous failure');
+      if (mode === 'reject') return Promise.reject(new Error('network'));
+      if (mode === 'hold' && dbfId === 59807) return new Promise<Response>(resolve => { held = resolve; });
+      return Promise.resolve(new Response(JSON.stringify({ data: [{ ...row, dbf: dbfId }] }), { status: 200 }));
+    },
+  });
+  assert.equal((await load(59807))?.artist, 'Alex Horley');
+  now = 11 * 60_000;
+  mode = 'hold';
+  const refresh = load(59807);
+  await new Promise(resolve => setImmediate(resolve));
+  for (let dbfId = 3000; dbfId < 3256; dbfId += 1) await load(dbfId); // drops 59807 from the cache
+  assert.ok(held);
+  (held as (response: Response) => void)(new Response('{"error":"x"}', { status: 200 }));
+  assert.equal((await refresh)?.artist, 'Alex Horley', 'the profile the refresh started from');
+
+  for (const failure of ['throw', 'reject'] as const) {
+    now += 11 * 60_000;
+    mode = failure;
+    assert.equal((await load(59807))?.artist, 'Alex Horley', `a ${failure} keeps the last good profile`);
+    mode = 'ok';
+    assert.equal((await load(59807))?.artist, 'Alex Horley', 'and the hero is not left in flight');
+  }
+});
