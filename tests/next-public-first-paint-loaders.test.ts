@@ -175,7 +175,14 @@ assert.equal(JSON.stringify(funPreview).includes('PRIVATE_'), false, 'a field ou
   const withCards = publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), cards: cards.map(card => ({ ...card, secret: 'PRIVATE_CARD' })) }] })?.decks[0];
   assert.deepEqual(withCards?.cards, cards);
   assert.equal(JSON.stringify(withCards).includes('PRIVATE_'), false);
-  assert.equal(publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), cards: [{ id: '../x', name: 'Карта', cost: 1, count: 1, hasPage: true }] }] })?.decks[0].cards, undefined);
+  // One line with an id the allowlist refuses (`/OG_211`, `../x`) keeps its name and count, without a link; the other lines stay.
+  const odd = publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), cards: [
+    { id: 'CARD_ONE', name: 'Карта', cost: 2, count: 2, hasPage: true },
+    { id: '/OG_211', name: 'Зов лесов', cost: 8, count: 2, hasPage: false },
+    { id: '../x', name: 'Чужая', cost: 1, count: 1, hasPage: true }] }] })?.decks[0].cards;
+  assert.deepEqual(odd, [{ id: 'CARD_ONE', name: 'Карта', cost: 2, count: 2, hasPage: true },
+    { id: null, name: 'Зов лесов', cost: 8, count: 2, hasPage: false }, { id: null, name: 'Чужая', cost: 1, count: 1, hasPage: false }]);
+  assert.equal(publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), cards: [{ id: 'CARD_ONE', name: 'Карта', cost: 1, count: 0, hasPage: true }] }] })?.decks[0].cards, undefined, 'a line without a count is not a list');
   assert.equal(publicFunDecksPreview({ ...funRaw, decks: [funDeck(2, '2026-10-02')] })?.decks[0].cards, undefined);
 }
 {

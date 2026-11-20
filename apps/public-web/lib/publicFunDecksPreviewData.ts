@@ -38,14 +38,15 @@ function count(value: unknown): number {
   return value;
 }
 
-/** The decoded card list the API sends; a malformed list is dropped (the deck stays with its code, its list does not). */
+/** The decoded card list the API sends; a line with an unusable id or name keeps its place and count, a line without a count drops the list (the deck stays with its code). */
 function openCards(value: unknown): FunDeckOpenCard[] | undefined {
   if (!Array.isArray(value) || !value.length || value.length > 60) return undefined;
   try {
     return value.map(raw => {
       const card = record(raw);
-      const id = optionalText(card.id, 80), name = optionalText(card.name, 120);
-      if (id !== null && !/^[A-Za-z0-9_]{2,80}$/.test(id)) throw new InvalidSelection();
+      // An id the allowlist refuses never costs the deck its list: the line is printed by name, without a link.
+      const id = typeof card.id === 'string' && /^[A-Za-z0-9_]{2,80}$/.test(card.id) ? card.id : null;
+      const name = typeof card.name === 'string' && card.name.length <= 120 ? card.name : null;
       const cost = card.cost === null || card.cost === undefined ? null : count(card.cost);
       const copies = count(card.count);
       if (copies < 1 || copies > 40) throw new InvalidSelection();

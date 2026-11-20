@@ -42,6 +42,9 @@ const cardsRu = {
 const byDbf = indexCardsRuByDbf(cardsRu);
 assert.equal(byDbf.get(120082)?.card_id, 'TIME_020t2');
 assert.equal(byDbf.get(120083)?.card_id, 'TIME_020t1');
+// The shipped `cards_ru.json` has keys with a leading slash: a card id never carries it, and a slashless twin wins in any order.
+const slashedIndex = indexCardsRuByDbf({ '/OG_211': { name: 'Зов лесов', mana: 8, dbf: 130677 }, '/OG_212': { name: 'Дубль', dbf: 130678 }, OG_212: { name: 'Дубль', dbf: 130678 }, 'OG_213': { name: 'Третья', dbf: 130679 }, '/OG_213': { name: 'Третья', dbf: 130679 } });
+assert.deepEqual([130677, 130678, 130679].map(dbf => slashedIndex.get(dbf)?.card_id), ['OG_211', 'OG_212', 'OG_213']);
 
 const resolved = resolveDeckFromCode({
   deckCode: userCode,

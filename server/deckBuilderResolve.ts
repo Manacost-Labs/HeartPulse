@@ -157,9 +157,17 @@ export function indexCardsByDbf(cards: DeckBuilderCardRecord[]): Map<number, Dec
 
 export function indexCardsRuByDbf(cardsRu: Record<string, any> | null | undefined): Map<number, DeckBuilderCardRecord> {
   const index = new Map<number, DeckBuilderCardRecord>();
-  for (const [cardId, row] of Object.entries(cardsRu ?? {})) {
+  const slashed = new Set<number>();
+  for (const [rawCardId, row] of Object.entries(cardsRu ?? {})) {
     const dbfId = finiteNumber(row?.dbf ?? row?.dbfId);
-    if (dbfId === null || !isValidDeckDbfId(dbfId) || index.has(dbfId)) continue;
+    if (dbfId === null || !isValidDeckDbfId(dbfId)) continue;
+    // The shipped `cards_ru.json` has keys with a leading slash (`/OG_211`): a card id is never one, and a
+    // slashless entry of the same card wins over a slashed one whatever their order.
+    const cardId = rawCardId.replace(/^\/+/, '');
+    if (!cardId) continue;
+    const isSlashed = cardId !== rawCardId;
+    if (index.has(dbfId) && !(slashed.has(dbfId) && !isSlashed)) continue;
+    if (isSlashed) slashed.add(dbfId); else slashed.delete(dbfId);
     index.set(dbfId, {
       card_id: cardId,
       dbf: dbfId,

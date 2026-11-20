@@ -57,12 +57,12 @@ const MAX_DECK_CARDS = 40;
 
 function openCard(value: unknown): OpenArchetypeCard {
   const row = record(value);
-  const id = nullableString(row.id), name = nullableString(row.name), copies = count(row.count);
+  // An id or name the page refuses leaves the card unlinked or unnamed; it never drops the build.
+  const copies = count(row.count);
+  const id = typeof row.id === 'string' && /^[A-Za-z0-9_]{2,80}$/.test(row.id) ? row.id : null;
+  const name = typeof row.name === 'string' && row.name && row.name.length <= 120 ? row.name : null;
   const cost = row.cost === null || row.cost === undefined ? null : count(row.cost);
-  if ((id !== null && !/^[A-Za-z0-9_]{2,80}$/.test(id)) || (name !== null && (!name || name.length > 120))
-    || !Number.isInteger(copies) || copies < 1 || copies > MAX_DECK_CARDS) {
-    throw new Error('Invalid public archetype teaser');
-  }
+  if (!Number.isInteger(copies) || copies < 1 || copies > MAX_DECK_CARDS) throw new Error('Invalid public archetype teaser');
   return { id, name, cost, count: copies, hasPage: row.hasPage === true && id !== null };
 }
 
