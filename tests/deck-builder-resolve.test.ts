@@ -5,6 +5,7 @@ import {
   extractMainDeckCardCounts,
   extractSideboardParts,
   indexCardsRuByDbf,
+  resolveDeckCard,
   isValidDeckDbfId,
   jaccardScore,
   matchArchetypeByDeckCode,
@@ -44,6 +45,12 @@ assert.equal(byDbf.get(120082)?.card_id, 'TIME_020t2');
 assert.equal(byDbf.get(120083)?.card_id, 'TIME_020t1');
 // The shipped `cards_ru.json` has keys with a leading slash: a card id never carries it, and a slashless twin wins in any order.
 const slashedIndex = indexCardsRuByDbf({ '/OG_211': { name: 'Зов лесов', mana: 8, dbf: 130677 }, '/OG_212': { name: 'Дубль', dbf: 130678 }, OG_212: { name: 'Дубль', dbf: 130678 }, 'OG_213': { name: 'Третья', dbf: 130679 }, '/OG_213': { name: 'Третья', dbf: 130679 } });
+// A token whose parent has a slashed key still links to it (`/FOO` + `/FOOt1`, and mixed keys).
+const slashedDictionary = { '/FOO': { name: 'Родитель', dbf: 900001 }, '/FOOt1': { name: 'Токен', dbf: 900002 }, BAR: { name: 'Родитель 2', dbf: 900003 }, '/BARt2': { name: 'Токен 2', dbf: 900004 } };
+const slashedByDbf = indexCardsRuByDbf(slashedDictionary);
+for (const [token, parent] of [[900002, 900001], [900004, 900003]]) {
+  assert.equal(resolveDeckCard(token, 1, new Map(), slashedByDbf, slashedDictionary)?.sideboardKeyDbfId, parent);
+}
 assert.deepEqual([130677, 130678, 130679].map(dbf => slashedIndex.get(dbf)?.card_id), ['OG_211', 'OG_212', 'OG_213']);
 
 const resolved = resolveDeckFromCode({

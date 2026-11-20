@@ -185,7 +185,8 @@ function sideboardKeyForCardId(
 ): number | null {
   const match = cardId.match(/^(.*?)t\d+[a-z]?$/i);
   if (!match) return null;
-  const parent = cardsRu?.[match[1]];
+  // The shipped dictionary stores some parents under a slashed key (`/FOO`); `cardId` is already without it.
+  const parent = cardsRu?.[match[1]] ?? cardsRu?.[`/${match[1]}`];
   const parentDbf = finiteNumber(parent?.dbf ?? parent?.dbfId);
   return parentDbf !== null && isValidDeckDbfId(parentDbf) ? parentDbf : null;
 }
