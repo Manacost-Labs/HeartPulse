@@ -39,6 +39,22 @@ function stalePublicCatalog(value: ConstructedCardCollection): ConstructedCardCo
 }
 
 /**
+ * The stored catalog is large (tens of MB for Wild) and read synchronously:
+ * read it once per format and generation every 30 s, not once per waiting request.
+ */
+function storedCatalogMemo(ports: Pick<Ports, 'lastKnown' | 'generation' | 'now'>) {
+  const stored = new Map<ConstructedCardFormat, { generation: number; until: number; value: { document: Catalog['document'] } | null }>();
+  return (format: ConstructedCardFormat) => {
+    const memo = stored.get(format);
+    if (memo && memo.generation === ports.generation() && memo.until > ports.now()) return memo.value;
+    let value: { document: Catalog['document'] } | null = null;
+    try { value = ports.lastKnown?.(format) ?? null; } catch { /* no stored catalog to fall back to */ }
+    stored.set(format, { generation: ports.generation(), until: ports.now() + 30_000, value });
+    return value;
+  };
+}
+
+/**
  * Anonymous identity may reuse a bounded, explicitly stale snapshot while one
  * refresh runs. Full statistics still await their read; the result caches stay isolated.
  */
@@ -49,6 +65,7 @@ export function createConstructedCardCatalogReaders(ports: Ports) {
   // Keys whose shared load already missed the response deadline: until it
   // settles (or the memo expires) callers get the last good version at once.
   const slow = new Map<string, number>();
+  const storedCatalog = storedCatalogMemo(ports);
   const keyOf = (withStatistics: boolean, format: ConstructedCardFormat, period: ConstructedCardPeriod,
     rank: ConstructedCardRank) => `${withStatistics ? '' : 'public:'}${format}:${rank}:${period}`;
 
@@ -76,11 +93,10 @@ export function createConstructedCardCatalogReaders(ports: Ports) {
     rank: ConstructedCardRank): ConstructedCardCollection | null => {
     const previous = ports.cache.get(keyOf(withStatistics, format, period, rank))?.value;
     if (previous) return stalePublicCatalog(previous);
-    let stored: { document: Catalog['document'] } | null = null;
-    try { stored = ports.lastKnown?.(format) ?? null; } catch { /* no stored catalog to fall back to */ }
-    if (!stored) return null;
+    const copy = storedCatalog(format);
+    if (!copy) return null;
     return stalePublicCatalog(compose(
-      { document: stored.document, cacheSource: 'LKG', dataStatus: 'stale', warning: null },
+      { document: copy.document, cacheSource: 'LKG', dataStatus: 'stale', warning: null },
       null, {}, [], withStatistics, withStatistics, period, rank,
     ));
   };
@@ -156,6 +172,8 @@ export function createConstructedCardCatalogReaders(ports: Ports) {
     loadPublicCards: (format: ConstructedCardFormat, period: ConstructedCardPeriod = '1d', rank: ConstructedCardRank = 'legend') => load(false, format, period, rank),
     /** Synchronous last good version of the full-statistics reader, for callers with their own deadline. */
     peekCards: (format: ConstructedCardFormat, period: ConstructedCardPeriod = '1d', rank: ConstructedCardRank = 'legend') => fallback(true, format, period, rank),
+    /** The same for public identity: the latest public result, else the stored catalog; never reads a source. */
+    peekPublicCards: (format: ConstructedCardFormat) => fallback(false, format, '1d', 'legend'),
   };
 }
 

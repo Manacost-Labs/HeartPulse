@@ -700,7 +700,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     return job;
   };
 
-  const { loadCards, loadPublicCards, peekCards } = createConstructedCardCatalogReaders({
+  const { loadCards, loadPublicCards, peekCards, peekPublicCards } = createConstructedCardCatalogReaders({
     catalog: loadCatalog, lastKnown: format => catalogStore.readUsable(format),
     responseDeadlineMs, loadDeadlineMs: Math.ceil(loadDeadlineMs * 1.5), onDeadline: dependencies.onDeadline,
     patch: () => loadPatches().then(result => currentConstructedPatchVersion(result.value)),
@@ -974,7 +974,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
     decksJob = null;
   };
 
-  return { loadCards, loadPublicCards, loadCardDetail, loadCardHistory, loadCardHistoryContext, getCatalogHealth, invalidate };
+  return { loadCards, loadPublicCards, peekPublicCards, loadCardDetail, loadCardHistory, loadCardHistoryContext, getCatalogHealth, invalidate };
 }
 
 export function createConstructedCardRouter(dependencies: ConstructedCardRouterDependencies): Router {

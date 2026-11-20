@@ -144,3 +144,27 @@ deadline, and with the long window guests saw «Показывается пос�
 Every missed deadline writes one `[deadline] <name> did not finish within N ms`
 line naming the load (`constructed-cards:catalog:standard`, `…:patches`,
 `…:decks`, `entity-sitemap:standard-cards`, and so on).
+
+### Public card after a restart
+
+Incident 2026-11-20 (#630): after every restart of `hs-arena` the source
+catalog load missed its 15 s deadline, and
+`GET /api/public/constructed-cards/:format/:cardId` waited the full 2 s
+response deadline before it fell back to the stored catalog. Next stops
+waiting after the same 2 s (`CATALOG_READ_DEADLINE_MS`), and its own last good
+copy is lost on restart, so card pages answered 503 for minutes.
+
+The public card read now looks at catalog identity already in memory or in
+the stored catalog first (`peekPublicCards`, no source read). A unique,
+indexable card found there is answered at once (marked stale when it comes
+from the stored copy) while the shared load refreshes in the background.
+Absence is still decided by the shared load: a missing card waits up to 2 s
+for a fresh catalog (a real 404) and otherwise gets 503 with
+`Retry-After: 30`, never a 404 from a stored copy.
+
+The stored catalog is tens of megabytes (Wild) and is read synchronously, so
+it is read at most once per format and invalidation generation every 30 s,
+not once per waiting request. The first card of each format after a restart
+pays that one read; later requests answer in milliseconds.
+Check: `tests/constructed-card-deadline-cases.ts` (restart with a stored
+catalog while the source hangs or fails).

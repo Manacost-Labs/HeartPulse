@@ -7,8 +7,10 @@ reading and the public card projection. Both the Express HTML renderer and
 A unique, indexable catalog record establishes membership. A missing record in
 a fresh authoritative catalog returns 404. Empty catalogs, ambiguous IDs, stale
 absence, identity mismatches, upstream failures and deadline expiry return 503.
-Existing records from the last known good catalog may still be served. The
-reader does not hold a database transaction or cache credentials.
+Existing records from the last known good catalog may still be served; the
+public API answers a card already known in memory or in the stored catalog at
+once, without waiting for the source ([after a restart](public-card-catalog-response-cache.md#public-card-after-a-restart)).
+The reader does not hold a database transaction or cache credentials.
 
 Warm anonymous membership remains available during bounded background
 revalidation of its result cache; the collection is marked stale and keeps

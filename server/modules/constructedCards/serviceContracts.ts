@@ -96,6 +96,8 @@ export type ConstructedCardDataService = {
     period?: ConstructedCardPeriod,
     rank?: ConstructedCardRank,
   ) => Promise<ConstructedCardCollection>;
+  /** Public identity already in memory or on disk, without any source read; null when there is none. */
+  peekPublicCards?: (format: ConstructedCardFormat) => ConstructedCardCollection | null;
   loadCards: (
     format: ConstructedCardFormat,
     period?: ConstructedCardPeriod,

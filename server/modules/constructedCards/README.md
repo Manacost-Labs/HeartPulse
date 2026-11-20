@@ -18,6 +18,11 @@ expiry. Invalidation generations protect both the cache and cooldown from late
 jobs. A refreshed catalog replaces the old membership, and the public card reader
 still rejects a missing identity in a stale snapshot instead of returning 404.
 Cold reads and full-statistics reads keep their existing awaited behavior.
+The one exception is the public card endpoint: `peekPublicCards` returns the
+latest public result or the stored catalog without a source read, and the
+public card reader answers a unique indexable card found there at once while
+`loadPublicCards` refreshes in the background (#630). The stored catalog is
+read synchronously, so the readers keep it per format and generation for 30 s.
 
 ## History context
 

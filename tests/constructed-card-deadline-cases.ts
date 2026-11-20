@@ -8,6 +8,7 @@ import { createConstructedCardDataService, createConstructedCardRouter } from '.
 import { createEntitySitemapRouter } from '../server/entitySitemapRoutes.js';
 import { createEntitySitemapLoaders } from '../server/entitySitemapSources.js';
 import { createSlowMemo } from '../server/modules/constructedCards/public.js';
+import { createConstructedCardSeoRouter } from '../server/constructedCardSeoRoutes.js';
 
 // Incident 2026-11-15: a source read that never settles stayed in the shared
 // load map forever, so the catalog, card pages and card sitemaps hung with it.
@@ -23,10 +24,11 @@ const LOAD_MS = 500;
 const directories: string[] = [];
 after(() => { for (const directory of directories) rmSync(directory, { recursive: true, force: true }); });
 
-function harness() {
-  const directory = mkdtempSync(join(tmpdir(), 'arena-card-deadline-'));
-  directories.push(directory);
-  const state = { hang: false, hangDetail: false, now: Date.parse('2026-11-15T12:00:00.000Z'), cards: [card('CARD_1', 1), card('CARD_2', 2)] };
+// Defaults are this file's short deadlines; a restart reuses the directory of an earlier service.
+function harness(options: { directory?: string; responseDeadlineMs?: number; loadDeadlineMs?: number } = {}) {
+  const directory = options.directory ?? mkdtempSync(join(tmpdir(), 'arena-card-deadline-'));
+  if (!options.directory) directories.push(directory);
+  const state = { hang: false, fail: false, hangDetail: false, now: Date.parse('2026-11-15T12:00:00.000Z'), cards: [card('CARD_1', 1), card('CARD_2', 2)] };
   const deadlines: string[] = [];
   const service = createConstructedCardDataService({
     stateDirectory: directory,
@@ -35,12 +37,15 @@ function harness() {
     detailCacheTtlMs: 1_000,
     maxCatalogStaleMs: 48 * 60 * 60_000,
     minimumCatalogCardsByFormat: { standard: 1, wild: 1 },
-    responseDeadlineMs: RESPONSE_MS,
-    loadDeadlineMs: LOAD_MS,
+    responseDeadlineMs: 'responseDeadlineMs' in options ? options.responseDeadlineMs : RESPONSE_MS,
+    loadDeadlineMs: options.loadDeadlineMs ?? LOAD_MS,
     onDeadline: operation => { deadlines.push(operation); },
     onCatalogError: () => {},
+    patchesUrl: 'https://db.example.test/api/v1/patches',
     fetchJson: url => {
       if (state.hang) return new Promise(() => {}); // never settles, never rejects
+      if (state.fail) return Promise.reject(new Error('connect ECONNREFUSED'));
+      if (url.endsWith('/patches')) return Promise.resolve({ patches: [] });
       const parsed = new URL(url);
       if (parsed.hostname === 'stats.example.test') {
         return Promise.resolve({
@@ -234,3 +239,43 @@ test('the slow memo stays bounded and gives up only its oldest mark, never the f
   now = 36_000;
   assert.deepEqual(['b', 'd', 'e'].map(key => memo.isSlow(key)), [false, false, false], 'marks still expire on time');
 });
+
+// Incident 2026-11-20 (#630): after every restart the public card read waited
+// the whole 2 s response deadline (and then read the stored catalog from disk),
+// while the Next page stops waiting after 2 s and shows a 503.
+// 'hang' runs last: its stuck loads end with a stored-catalog read after this file's tests.
+for (const outage of ['fail', 'hang'] as const) {
+  test(`after a restart a public card answers from the stored catalog within 1 s while the source ${outage}s`, async () => {
+    const before = harness();
+    // Production stores thousands of cards: reading that copy from disk on every request would queue them.
+    before.state.cards = [...before.state.cards, ...Array.from({ length: 6_000 }, (_, index) => card(`BULK_${index}`, 1_000 + index))];
+    await before.service.loadPublicCards('standard');
+    await before.service.loadPublicCards('wild');
+    // Production deadlines: a caller waits 2 s, a stuck source load is dropped after 3 s.
+    const h = harness({ directory: before.directory, responseDeadlineMs: undefined, loadDeadlineMs: 3_000 });
+    h.state[outage] = true;
+    const server = express();
+    server.use(createConstructedCardSeoRouter({ ...h.service }));
+    const router = await listen(server);
+    try {
+      const card = (format: string, id: string) => timed(`${router.origin}/api/public/constructed-cards/${format}/${id}`);
+      const wild = await card('wild', 'CARD_W');
+      assert.equal(wild.response.status, 200, wild.body);
+      assert.equal((JSON.parse(wild.body) as { card: { id: string } }).card.id, 'CARD_W');
+      assert.ok(wild.elapsed < 1_000, `wild card took ${wild.elapsed} ms`);
+      const standard = await card('standard', 'CARD_1');
+      assert.equal(standard.response.status, 200, standard.body);
+      assert.ok(standard.elapsed < 1_000, `standard card took ${standard.elapsed} ms`);
+      const burst = await Promise.all(Array.from({ length: 20 }, () => card('wild', 'CARD_2')));
+      assert.deepEqual([...new Set(burst.map(result => result.response.status))], [200]);
+      assert.ok(Math.max(...burst.map(result => result.elapsed)) < 1_000, 'a burst of cold reads must not queue');
+      // A stored copy cannot prove that a card is absent: not a false 404, a retryable 503
+      // (absence still waits up to 2 s for the source, which could answer a real 404).
+      const absent = await card('standard', 'CARD_W');
+      assert.equal(absent.response.status, 503, absent.body);
+      assert.equal(absent.response.headers.get('retry-after'), '30');
+    } finally {
+      await router.close();
+    }
+  });
+}
