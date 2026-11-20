@@ -16,7 +16,8 @@ type Listing = { segment: SitemapSegment; prefix?: string };
  */
 const STATIC_PAGE_LISTINGS: Record<string, Listing[]> = {
   '/standard/cards/': [{ segment: 'standard-cards' }],
-  '/standard/archetypes/': [{ segment: 'archetypes' }],
+  '/standard/archetypes/': [{ segment: 'archetypes', prefix: '/standard/archetypes/standard/' }],
+  '/standard/archetypes/wild/': [{ segment: 'archetypes', prefix: '/standard/archetypes/wild/' }],
   '/heroes/': [{ segment: 'battleground-heroes' }],
   '/library/': [{ segment: 'battleground-minions' }, { segment: 'battleground-spells' }],
   '/library/minions/': [{ segment: 'battleground-minions' }],

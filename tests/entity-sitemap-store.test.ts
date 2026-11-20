@@ -277,6 +277,9 @@ try {
     ['pure_paladin', '/standard/archetypes/standard/pure_paladin/'],
     ['pure-paladin', '/standard/meta/standard/pure-paladin/'],
     ['pure-paladin', '/standard/archetypes/wild/pure-paladin/'],
+    ['wild/pure-paladin', '/standard/archetypes/standard/pure-paladin/'],
+    ['wild/Pure-Paladin', '/standard/archetypes/wild/Pure-Paladin/'],
+    ['classic/pure-paladin', '/standard/archetypes/classic/pure-paladin/'],
     ['a'.repeat(91), `/standard/archetypes/standard/${'a'.repeat(91)}/`],
   ]) {
     assert.throws(
@@ -288,6 +291,16 @@ try {
       `${path} must never enter the archetype segment`,
     );
   }
+
+  // A Wild page (#637) is keyed `wild/<slug>` next to the Standard page of the same slug, which keeps its entry and day.
+  const withWild = archetypes.publish([
+    archetypeEntry('pure-paladin', '6', '2026-10-01'),
+    archetypeEntry('zoolock', '4', '2026-11-01'),
+    { key: 'wild/pure-paladin', location: 'https://hearthpulse.net/standard/archetypes/wild/pure-paladin/', semanticHash: '8'.repeat(64), dataDate: '2026-11-03' },
+  ]);
+  assert.deepEqual(withWild.entries.filter(entry => !entry.key.startsWith('wild/')), older.entries);
+  assert.deepEqual(withWild.entries.filter(entry => entry.key.startsWith('wild/')).map(entry => [entry.location, entry.lastmod]),
+    [['https://hearthpulse.net/standard/archetypes/wild/pure-paladin/', '2026-11-03']]);
 
   const cardLocation = (index: number) => `https://hearthpulse.net/standard/cards/standard/CARD_${index}/`;
   const cardEntry = (index: number, hash: string): SitemapSemanticEntry => ({

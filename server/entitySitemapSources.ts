@@ -5,13 +5,13 @@ import { libraryCardIndexingFacts } from './battlegroundLibraryOpenCard.js';
 import { createLibraryStatsStore } from './battlegroundLibraryOpenStats.js';
 import { StaleSitemapSourceError } from './entitySitemapDynamicLoader.js';
 import {
-  archetypeIndexingFacts,
-  archetypePageSlug,
-  type ArchetypeSitemapRow,
-} from './entitySitemapProjections.js';
-import { isIndexableArchetype } from '../shared/constructedArchetypeIndexing.js';
+  loadIndexableArchetypeRows,
+  type ArchetypeSitemapSource,
+} from './entitySitemapArchetypeSources.js';
 import { isIndexableBattlegroundHero } from '../shared/battlegroundHeroIndexing.js';
 import { projectBattlegroundHeroRanking, type PublicHeroRankingMode } from './battlegroundHeroRankingProjection.js';
+
+export { selectIndexableArchetypeRows, type ArchetypeSitemapCatalog } from './entitySitemapArchetypeSources.js';
 import { createBattlegroundHeroCatalogLoader } from './battlegroundHeroRankingSource.js';
 import { projectBattlegroundHeroStats } from './battlegroundHeroStatsProjection.js';
 import {
@@ -31,18 +31,6 @@ type SourceOptions = {
 type ConstructedCardLoader = (
   format: 'standard' | 'wild',
 ) => Promise<{ cards: unknown[]; dataStatus?: string }>;
-
-/** One window of the catalogs the archetype pages read (`loadArchetypeCatalogWindows`), as far as the sitemap reads it. */
-export type ArchetypeSitemapCatalog = {
-  format: string;
-  period: string | null;
-  updatedAt: string | null;
-  items: unknown[];
-};
-
-type ArchetypeSitemapSource = {
-  loadCatalogs: (format: 'standard') => Promise<ArchetypeSitemapCatalog[]>;
-};
 
 const BATTLEGROUNDS_ORIGIN = 'http://127.0.0.1:3108';
 
@@ -148,31 +136,6 @@ export async function loadBattlegroundHeroSitemapRows(
   });
 }
 
-/**
- * The archetype rows of the Standard sitemap: those the page answers as
- * indexable. The page reads a slug from the first window that lists it, and the
- * first row of that slug in it, so a slug is judged there only: a later window
- * or row with the same slug never enters the list, whatever its numbers.
- * Wild is not read at all.
- */
-export function selectIndexableArchetypeRows(catalogs: ArchetypeSitemapCatalog[]): ArchetypeSitemapRow[] {
-  if (!Array.isArray(catalogs) || catalogs.length === 0
-    || catalogs.some(catalog => catalog?.format !== 'standard' || !Array.isArray(catalog.items))) {
-    throw new Error('Entity sitemap archetype catalog is invalid');
-  }
-  const seen = new Set<string>();
-  return catalogs.flatMap(catalog => catalog.items.flatMap(item => {
-    const slug = archetypePageSlug(item);
-    if (slug === null || seen.has(slug)) return [];
-    seen.add(slug);
-    // The segment lists Standard URLs: a row of another format never enters it, even an indexable Wild one (#543).
-    const facts = archetypeIndexingFacts(item);
-    return facts.format === 'standard' && isIndexableArchetype(facts)
-      ? [{ item, updatedAt: catalog.updatedAt, period: catalog.period }]
-      : [];
-  }));
-}
-
 export function excludeStandardCardsFromWildCatalog(
   standardCards: unknown[],
   wildCards: unknown[],
@@ -227,7 +190,7 @@ export function createEntitySitemapRuntimeOptions(
   return {
     ...createEntitySitemapLoaders(loadConstructedCards),
     ...(archetypes ? {
-      loadArchetypes: async () => selectIndexableArchetypeRows(await archetypes.loadCatalogs('standard')),
+      loadArchetypes: () => loadIndexableArchetypeRows(archetypes),
       minimumArchetypeCount: minimumFromEnvironment(environment.SITEMAP_ARCHETYPES_MIN, 30),
     } : {}),
     ...(editorial ? {
