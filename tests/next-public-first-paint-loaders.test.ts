@@ -182,6 +182,8 @@ assert.equal(JSON.stringify(funPreview).includes('PRIVATE_'), false, 'a field ou
     { id: '../x', name: 'Чужая', cost: 1, count: 1, hasPage: true }] }] })?.decks[0].cards;
   assert.deepEqual(odd, [{ id: 'CARD_ONE', name: 'Карта', cost: 2, count: 2, hasPage: true },
     { id: null, name: 'Зов лесов', cost: 8, count: 2, hasPage: false }, { id: null, name: 'Чужая', cost: 1, count: 1, hasPage: false }]);
+  const unnamed = publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), cards: [{ id: 'CARD_ONE', name: 'x'.repeat(121), cost: 1, count: 1, hasPage: true }] }] })?.decks[0].cards;
+  assert.deepEqual(unnamed, [{ id: 'CARD_ONE', name: null, cost: 1, count: 1, hasPage: false }], 'a card without a usable name is not a link');
   assert.equal(publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), cards: [{ id: 'CARD_ONE', name: 'Карта', cost: 1, count: 0, hasPage: true }] }] })?.decks[0].cards, undefined, 'a line without a count is not a list');
   assert.equal(publicFunDecksPreview({ ...funRaw, decks: [funDeck(2, '2026-10-02')] })?.decks[0].cards, undefined);
 }

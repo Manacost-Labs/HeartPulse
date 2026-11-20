@@ -50,7 +50,7 @@ function openCards(value: unknown): FunDeckOpenCard[] | undefined {
       const cost = card.cost === null || card.cost === undefined ? null : count(card.cost);
       const copies = count(card.count);
       if (copies < 1 || copies > 40) throw new InvalidSelection();
-      return { id, name, cost, count: copies, hasPage: card.hasPage === true && id !== null };
+      return { id, name, cost, count: copies, hasPage: card.hasPage === true && id !== null && name !== null };
     });
   } catch (error) {
     if (error instanceof InvalidSelection) return undefined;

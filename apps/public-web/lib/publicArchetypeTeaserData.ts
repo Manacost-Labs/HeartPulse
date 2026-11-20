@@ -63,7 +63,7 @@ function openCard(value: unknown): OpenArchetypeCard {
   const name = typeof row.name === 'string' && row.name && row.name.length <= 120 ? row.name : null;
   const cost = row.cost === null || row.cost === undefined ? null : count(row.cost);
   if (!Number.isInteger(copies) || copies < 1 || copies > MAX_DECK_CARDS) throw new Error('Invalid public archetype teaser');
-  return { id, name, cost, count: copies, hasPage: row.hasPage === true && id !== null };
+  return { id, name, cost, count: copies, hasPage: row.hasPage === true && id !== null && name !== null };
 }
 
 /** A build the page cannot show as a whole (no code, a malformed card) is left out, never passed through. */
