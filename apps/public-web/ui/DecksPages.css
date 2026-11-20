@@ -1,0 +1,76 @@
+/* Deck pages of Standard (#309): the hub /standard/decks/ and the class pages. Server HTML on the parchment page;
+   the class builds reuse the open build cards of ArchetypeOpenBuilds.css. */
+.decks-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  color: var(--arena-ink, #30251c);
+  overflow-wrap: anywhere;
+}
+
+.decks-page a { color: var(--arena-red, #8d171d); font-weight: 600; text-underline-offset: 2px; }
+.decks-page a:focus-visible { outline: 2px solid var(--arena-gold, #d9ab49); outline-offset: 2px; }
+.decks-page__notice { margin: 0 0 16px; color: #8d171d; font-size: 0.875rem; font-weight: 700; }
+.decks-page__links { margin: 20px 0 0; }
+.decks-page__missing { margin: 0; padding: 0.7rem; border: 1px solid rgba(92, 54, 24, 0.3); font-size: 0.8125rem; }
+
+.decks-page__facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin: 0; border: 1px solid rgba(92, 54, 24, 0.2); }
+.decks-page__facts div { min-width: 0; padding: 0.4rem 0.5rem; border-right: 1px solid rgba(92, 54, 24, 0.16); }
+.decks-page__facts div:last-child { border-right: 0; }
+.decks-page__facts dt { color: var(--archetype-muted, #735e49); font-size: 0.6875rem; font-weight: 900; text-transform: uppercase; }
+.decks-page__facts dd { margin: 0.1rem 0 0; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+
+/* The copy button of the open builds; the archetype pages take the same look from ConstructedArchetypes.css. */
+.decks-page .archetype-copy-button {
+  display: inline-flex;
+  width: 100%;
+  gap: 0.42rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid #6f1a20;
+  color: #fff0c8;
+  background: #8d171d;
+  font-size: 0.75rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.decks-page .archetype-copy-button--copied { border-color: #41663e; background: #315b34; }
+
+.decks-hub__classes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.decks-hub__classes > li {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.75rem;
+  border: 1px solid rgba(92, 54, 24, 0.3);
+  border-radius: 6px;
+  background: rgba(255, 248, 219, 0.5);
+}
+
+.decks-hub__classes h2 { margin: 0; font-family: var(--font-display); font-size: 1.15rem; }
+.decks-hub__classes p { margin: 0; font-size: 0.8125rem; }
+.decks-hub__archetype { font-size: 1rem; }
+.decks-hub__code { display: grid; gap: 0.45rem; margin-top: auto; }
+.decks-hub__code code { color: #4a3323; font-size: 0.6875rem; line-height: 1.45; user-select: all; }
+.decks-hub__class-link { font-size: 0.875rem; }
+
+.decks-class__table { max-width: 100%; margin: 0 0 16px; overflow-x: auto; }
+.decks-class__table:focus-visible { outline: 2px solid var(--arena-gold, #d9ab49); }
+.decks-class__table table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+.decks-class__table caption { padding: 0 0 6px; font-weight: 700; text-align: left; }
+.decks-class__table th, .decks-class__table td { padding: 0.45rem 0.5rem; border-bottom: 1px solid rgba(92, 54, 24, 0.2); text-align: right; }
+.decks-class__table th[scope='row'], .decks-class__table thead th:first-child { text-align: left; }
+.decks-class__table thead th { color: var(--archetype-muted, #735e49); font-size: 0.6875rem; text-transform: uppercase; }
+.decks-class__table td { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.decks-class__builds-title { margin: 0; padding: 0.85rem 0.85rem 0; font-family: var(--font-display); font-size: 1.15rem; }
