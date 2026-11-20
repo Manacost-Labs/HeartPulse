@@ -1,6 +1,8 @@
 import { AnchoredImagePreview } from '../shared/ui/AnchoredImagePreview';
 import { publicResourceUrl } from '../publicResourceUrl';
-import { constructedCardRenderImage } from './constructedCardMedia';
+import { withCardImageRepairVersion } from '../../shared/cardImageRepairs';
+import { cardImageDeliveryUrl, cardImageOriginUrl } from '../config/publicAssetDelivery';
+import { CONSTRUCTED_CARD_IMAGE_VERSION } from './constructedCardImageVersion';
 import './CardPreviewTooltip.css';
 
 export type CardPreviewTarget = {
@@ -14,23 +16,33 @@ export function fallbackCardRender(id: string): string {
   return `/api/public-resource/hsjson/v1/render/latest/ruRU/512x/${encodeURIComponent(id)}.png`;
 }
 
-/**
- * The full card picture a hover preview starts with. The edge nodes keep
- * `/api/card-image/<id>/full.webp` on local disk (about 60 KB), while the
- * HearthstoneJSON render is a ~0.5 MB PNG that every edge fetches from the
- * origin on its first request, which takes longer than a hover lasts.
- */
-export function cardPreviewImage(id: string): string {
-  return constructedCardRenderImage(id) ?? fallbackCardRender(id);
+function cardImagePath(id: string): string | null {
+  if (!/^[A-Za-z0-9_]{1,80}$/.test(id)) return null;
+  return `/api/card-image/${encodeURIComponent(id)}/full.webp?v=${withCardImageRepairVersion(CONSTRUCTED_CARD_IMAGE_VERSION, id)}`;
 }
 
-/** Picture order for one card: the caller's own picture, then the edge copy, then the render. */
+/**
+ * The full card picture a hover preview starts with: the card image through
+ * the card CDN host, which the edge nodes answer from their own cache (about
+ * 60 KB). The HearthstoneJSON render is a ~0.5 MB PNG that every edge fetches
+ * from the origin on its first request, longer than a hover lasts.
+ */
+export function cardPreviewImage(id: string): string {
+  const path = cardImagePath(id);
+  return path ? cardImageDeliveryUrl(path) : fallbackCardRender(id);
+}
+
+/**
+ * Picture order for one card: the caller's own picture, the card image via the
+ * CDN, the same image from the site itself (the CDN is down), the render.
+ */
 export function cardPreviewSources(id: string, imageUrl?: string | null): string[] {
   const render = fallbackCardRender(id);
+  const path = cardImagePath(id);
   const own = publicResourceUrl(imageUrl);
-  // Callers that pass the default render of this very card get the light edge copy first.
+  // Callers that pass the default render of this very card get the light card image first.
   const preferred = own && own !== render ? own : cardPreviewImage(id);
-  return [...new Set([preferred, cardPreviewImage(id), render])];
+  return [...new Set([preferred, cardPreviewImage(id), ...(path ? [cardImageOriginUrl(path)] : []), render])];
 }
 
 /** `bare`: the card render alone, without the plate (the fun-decks page). */
