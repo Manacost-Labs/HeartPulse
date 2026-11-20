@@ -69,6 +69,8 @@ assert.deepEqual(
 
 const archetypeSource = [
   readFileSync(new URL('../src/features/ConstructedArchetypes.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('../src/features/ArchetypeDetailPage.tsx', import.meta.url), 'utf8'),
+  readFileSync(new URL('../src/features/ArchetypeBuildsSection.tsx', import.meta.url), 'utf8'),
   readFileSync(new URL('../src/features/ConstructedArchetypeAnalysis.tsx', import.meta.url), 'utf8'),
   readFileSync(new URL('../src/features/ArchetypeInsightSlots.tsx', import.meta.url), 'utf8'),
   readFileSync(new URL('../src/features/HsguruArchetypeStats.tsx', import.meta.url), 'utf8'),

@@ -100,7 +100,6 @@ export function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess,
   const { detail, core, history: historyRead, analysis: analysisRead, ranks: ranksRead, fullAccess, denied } = useArchetypeDetail({
     format, slug, hasFullAccess, accessPending, seed: initialDetail,
   });
-  // The analysis chunk loads beside the analysis request, so its placeholder and view are usually ready first.
   useEffect(() => {
     if (!fullAccess || accessPending) return;
     loadArchetypeAnalysis().catch(() => undefined);
@@ -128,8 +127,7 @@ export function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess,
   // The paid builds replace the open ones once they are there; a failed or empty paid answer keeps the open ones.
   const paidBuilds = openLayer && paidReady && !core.error && item.builds.length > 0 ? item.builds : null;
   const galleryBuilds = paidBuilds ?? (openBuilds?.builds ?? []).map(openBuildAsBuild);
-  // Locks stand until access is granted, also while it is checked (a remembered subscriber is granted at once, so
-  // he never sees them); a granted viewer sees the sections' own loading state while the paid answer is on its way.
+  // Locks stand until access is granted (a remembered subscriber is granted at once); a granted viewer sees the loading state.
   const locked = Boolean(openLayer && !fullAccess && paidLock);
   const pending = Boolean(openLayer && fullAccess && core.loading);
   const openRadar = openLayer ? <ArchetypeRadarSection item={item} viewerId={viewerId(paywall.authUser)}
@@ -142,7 +140,6 @@ export function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess,
           <ArrowLeft size={17} /> Архетипы
         </a>
         <span aria-hidden="true">/</span>
-        {/* Wild's catalog has its own address (#543); Standard's is the first step. */}
         {format === 'wild' ? <a href="/standard/archetypes/wild/">{detail.formatLabel}</a> : <span>{detail.formatLabel}</span>}
         <span aria-hidden="true">/</span>
         <strong>{item.archetypeLabel}</strong>
