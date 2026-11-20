@@ -9,9 +9,12 @@ import type {
   StandardMatchupsData, StandardMatchupsFormat, StandardMatchupsSlice,
 } from '../modules/standardMatchups/public';
 import { StandardMatchupsFilters } from './StandardMatchupsFilters';
+import { StandardMatchupsFilterLocks } from './StandardMatchupsFilterLocks';
 import { StandardMatchupsLeaders } from './StandardMatchupsLeaders';
 import { ViewSwitch } from '../components/transitions/ViewSwitch';
 import { MODE_ORDER } from '../components/transitions/transitionOrder';
+import { RecoverableSurfaceBoundary } from './recovery/RecoverableSurface';
+import './recovery/RecoverableSurface.css';
 
 // The matrix, the overview and their vendored kit load on demand: only a verified subscriber with data sees them.
 const loadStandardMatchupMatrix = () => import('./StandardMatchupMatrix');
@@ -22,10 +25,13 @@ type StandardMatchupsView = 'overview' | 'matrix';
 /** The order of the view buttons: Полная матрица, then Обзор архетипа. */
 const MATCHUP_VIEWS: readonly StandardMatchupsView[] = ['matrix', 'overview'];
 
+const MOSCOW_DATE = new Intl.DateTimeFormat('ru-RU', { timeZone: 'Europe/Moscow', day: '2-digit', month: '2-digit',
+  year: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' });
+
+/** Moscow time, as the other open pages print it: the server's HTML and the browser's say the same. */
 function formatDate(iso: string | null): string {
   if (!iso) return 'нет данных';
-  const d = new Date(iso);
-  return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return `${MOSCOW_DATE.format(new Date(iso)).replace(',', '')} МСК`;
 }
 
 function cacheGet<T>(key: string, maxAgeMs = 6 * 60 * 60 * 1000): T | null {
@@ -113,6 +119,8 @@ export type StandardMatchupsExternal = {
   loading: boolean;
   error: boolean;
   retry: () => void;
+  /** The open layer's stand-in for the HSGuru filters: locks for a guest, a neutral state while access is checked. */
+  locks?: 'locked' | 'pending';
 };
 
 function StandardMatchupsPage({ external }: { external?: StandardMatchupsExternal }) {
@@ -133,7 +141,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
   const externalMode = Boolean(external);
 
   // The matrix chunk downloads while the matchups load, not after them.
-  useEffect(() => { void loadStandardMatchupMatrix(); }, []);
+  useEffect(() => { loadStandardMatchupMatrix().catch(() => undefined); }, []);
 
   useEffect(() => {
     if (externalMode) return;
@@ -240,6 +248,13 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
       <header className="traditional-mode-banner">
         <div className="traditional-mode-banner__copy">
           <h1>Матчапы</h1>
+          <p className="standard-matchups__data-line">
+            {data.updatedAt ? <>Данные на <time dateTime={data.updatedAt}>{formatDate(data.updatedAt)}</time></> : 'Дата обновления неизвестна'}
+            {data.totalGames ? ` · выборка ${data.totalGames.toLocaleString('ru-RU')} игр` : ''}
+            {' · источник '}
+            {data.sourceUrl && /^https:\/\/(?:www\.)?hsguru\.com\//.test(data.sourceUrl)
+              ? <a href={data.sourceUrl} rel="noopener noreferrer">HSGuru</a> : 'HSGuru'}
+          </p>
         </div>
         <dl className="traditional-mode-banner__summary" aria-label="Сводка матчапов">
           <div><dt>Архетипов</dt><dd>{rows.length || '—'}</dd></div>
@@ -294,6 +309,9 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
           <StandardMatchupsFilters slice={external.slice} period={data.period ?? null}
             available={data.available} onChange={external.changeSlice} />
         )}
+        {external?.locks && !(external.slice && external.changeSlice)
+          ? <StandardMatchupsFilterLocks pending={external.locks === 'pending'} rankLabel={data.rankLabel}
+            period={data.period ?? null} minGames={data.minGames ?? 0} /> : null}
       </div>
 
       <div className="grid grid-cols-1 gap-5">
@@ -308,7 +326,7 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
         >
           <div className="standard-matchups__ledger-heading flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
             <div>
-              <h2 className="font-hs text-2xl" style={{ color: '#3d2208' }}>Матчапы · {formatLabel} · {data.rankLabel}</h2>
+              <h2 className="font-hs text-2xl" style={{ color: '#3d2208' }}>Матчапы · {formatLabel} · <span className="standard-matchups__heading-rank">{data.rankLabel}</span></h2>
               <p className="text-sm text-[#7a5a35]">Цвет показывает силу матчапа: зеленый - хороший, красный - плохой.</p>
             </div>
             <div className="standard-matchups__updated flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs"
@@ -361,19 +379,23 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
               <ViewSwitch viewKey={data.format} order={MODE_ORDER}><ViewSwitch viewKey={view} order={MATCHUP_VIEWS}>
               {view === 'overview' && activeRow && (
                 <section className="standard-matchups__picker scroll-mt-4 mb-4">
-                  <Suspense fallback={<MatchupsOverviewSkeleton />}>
-                    <StandardMatchupsOverview key={format} data={matrixData} labelOf={getStandardArchetypeLabel}
-                      selected={activeRow.archetype} onSelectedChange={setSelectedArchetype} />
-                  </Suspense>
+                  <RecoverableSurfaceBoundary scope="standard-matchups-overview" title="Обзор архетипа не загрузился">
+                    <Suspense fallback={<MatchupsOverviewSkeleton />}>
+                      <StandardMatchupsOverview key={format} data={matrixData} labelOf={getStandardArchetypeLabel}
+                        selected={activeRow.archetype} onSelectedChange={setSelectedArchetype} />
+                    </Suspense>
+                  </RecoverableSurfaceBoundary>
                 </section>
               )}
 
               {view === 'matrix' && activeRow && (
                 <div id="matchups-matrix" className="scroll-mt-4" data-tour-id="matchups-grid">
-                  <Suspense fallback={<MatchupsSkeleton />}>
-                    <StandardMatchupMatrix data={matrixData} labelOf={getStandardArchetypeLabel}
-                      selected={activeRow.archetype} onSelectedChange={setSelectedArchetype} />
-                  </Suspense>
+                  <RecoverableSurfaceBoundary scope="standard-matchups-matrix" title="Матрица не загрузилась">
+                    <Suspense fallback={<MatchupsSkeleton />}>
+                      <StandardMatchupMatrix data={matrixData} labelOf={getStandardArchetypeLabel}
+                        selected={activeRow.archetype} onSelectedChange={setSelectedArchetype} />
+                    </Suspense>
+                  </RecoverableSurfaceBoundary>
                 </div>
               )}
               </ViewSwitch></ViewSwitch>

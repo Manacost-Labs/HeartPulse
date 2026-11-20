@@ -11,7 +11,7 @@ export const PUBLIC_STANDARD_MATCHUPS_PATH = '/api/standard/matchups/public';
 /** The only rank the open slice may carry. */
 export const PUBLIC_STANDARD_MATCHUPS_RANK = 'all';
 /** The archetypes printed in the server HTML; the rest of the slice loads in the browser. */
-export const PUBLIC_STANDARD_MATCHUPS_HTML_LIMIT = 30;
+export const PUBLIC_STANDARD_MATCHUPS_HTML_LIMIT = 20;
 
 const CLASS_KEYS = new Set(['deathknight', 'demonhunter', 'druid', 'hunter', 'mage', 'paladin', 'priest', 'rogue',
   'shaman', 'warlock', 'warrior']);

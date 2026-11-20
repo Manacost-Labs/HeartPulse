@@ -27,11 +27,13 @@ test('Next traditional-mode pages ask guests for the Diamond tier', async () => 
       // The matrix page is open (the general slice); its locked filters bring the offer on a press.
       if (path === '/standard/matchups/') {
         // The press needs hydration: press again until the offer is up.
-        for (let attempt = 0; attempt < 20 && !(await page.$('#standard-matchups-paywall')); attempt += 1) {
-          await page.click('[data-locked-filter]');
+        const lock = '::-p-aria([name="Рейтинг (фильтр): по подписке. Узнать, как открыть"][role="button"])';
+        const offerUp = () => page.evaluate(() => document.body.innerText.includes('Уже подписаны? Войти'));
+        for (let attempt = 0; attempt < 20 && !(await offerUp()); attempt += 1) {
+          await (await page.waitForSelector(lock)).click().catch(() => undefined);
           await new Promise(resolve => setTimeout(resolve, 300));
         }
-        const offer = await page.$eval('#standard-matchups-paywall', node => node.textContent);
+        const offer = await page.evaluate(() => document.body.innerText);
         assert.match(offer, /Тариф «Алмаз»|ТАРИФ «АЛМАЗ»/i, 'the offer names the Diamond tier');
         assert.match(offer, /Войти/, 'the offer lets a guest sign in');
         await page.close();

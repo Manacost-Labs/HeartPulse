@@ -24,8 +24,8 @@ export function openAnswer({ noise = false, warning, format = 'standard' }: { no
   };
 }
 
-export function protectedAnswer() {
-  const open = openAnswer();
+export function protectedAnswer({ format = 'standard' }: { format?: string } = {}) {
+  const open = openAnswer({ format });
   return { ...open, rank: 'legend', rankLabel: 'Легенда', period: 'SENTINEL_PERIOD', available: {
     ranks: ['all', 'legend', 'SENTINEL_RANK'], periods: ['bans', 'SENTINEL_PERIOD'], currentPeriod: 'bans', defaultPeriod: 'bans',
     minGames: [25] },

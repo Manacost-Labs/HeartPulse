@@ -23,3 +23,5 @@ export {
   PUBLIC_STANDARD_MATCHUPS_PATH, type PublicStandardMatchups, type PublicStandardMatchupsArchetype,
   type PublicStandardMatchupsPair,
 } from './model/publicProjection';
+export { openStandardMatchupsData } from './model/openData';
+export { useOpenStandardMatchups } from './useOpenStandardMatchups';

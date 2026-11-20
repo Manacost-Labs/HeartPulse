@@ -41,7 +41,7 @@ button.paid-lock:focus-visible { outline: 2px solid #6d1117; outline-offset: 2px
   cursor: pointer;
 }
 .paid-filter-lock b { font-weight: 400; white-space: nowrap; }
-.paid-filter-lock > svg { order: 1; margin-left: auto; color: #8b5a1b; }
+.paid-filter-lock > svg { order: 1; flex: none; margin-left: auto; color: #8b5a1b; }
 .paid-filter-lock img { width: 24px; height: 24px; object-fit: contain; }
 .paid-filter-lock:focus-visible { outline: 2px solid #6d1117; outline-offset: 3px; }
 @media (max-width: 767px) {

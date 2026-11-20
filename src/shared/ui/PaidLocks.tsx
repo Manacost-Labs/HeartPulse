@@ -36,7 +36,7 @@ interface LockProps {
 
 const join = (...names: Array<string | undefined>) => names.filter(Boolean).join(' ');
 const DEFAULT_CLOSED = 'paywalled-tierlist';
-type Closed = 'paywalled-tierlist' | 'paywalled-classes' | 'paywalled-guides' | 'paywalled-archetype';
+type Closed = 'paywalled-tierlist' | 'paywalled-classes' | 'paywalled-guides' | 'paywalled-archetype' | 'paywalled-standard-matchups';
 
 /** A paid figure: «По подписке» with a lock in place of the value; `cell` for a table, `card` for a tile. */
 export function PaidMetricLock({ label, variant = 'cell', closed = DEFAULT_CLOSED, onOpen }: LockProps & { variant?: 'cell' | 'card' }) {

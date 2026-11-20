@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { loadStandardMatchupsSeed } from '../apps/public-web/lib/publicStandardMatchupsData.ts';
-import { loadPublicStandardMatchups, parsePublicStandardMatchups } from '../src/modules/standardMatchups/public.ts';
+import { loadPublicStandardMatchups, openStandardMatchupsData, parsePublicStandardMatchups } from '../src/modules/standardMatchups/public.ts';
 
 // What the page and the browser accept as the open general slice: the allowlist is re-applied on the
 // reading side, so a paid or unlisted field of an answer never reaches the server HTML, RSC or JSON-LD.
@@ -40,7 +40,7 @@ test('an answer that is not the open general slice of the format is refused', ()
   assert.equal(parsePublicStandardMatchups(answer({ columns: [], rows: [] }), 'standard'), null);
   assert.equal(parsePublicStandardMatchups(null, 'standard'), null);
   assert.equal(parsePublicStandardMatchups(answer({ updatedAt: 'tomorrow' }), 'standard')?.updatedAt, null);
-  assert.equal(loadStandardMatchupsSeed(answer())?.archetypes.length, 30);
+  assert.equal(loadStandardMatchupsSeed(answer())?.archetypes.length, 20);
 });
 
 test('the browser loader asks the open route anonymously and keeps null on any failure', async () => {
@@ -53,4 +53,18 @@ test('the browser loader asks the open route anonymously and keeps null on any f
   assert.equal(calls[0][1]?.credentials, 'omit');
   assert.equal(await loadPublicStandardMatchups('wild', { request: async () => new Response('', { status: 503 }) }), null);
   assert.equal(await loadPublicStandardMatchups('wild', { request: async () => { throw new Error('offline'); } }), null);
+});
+
+test('the guest gets the subscriber model on the open slice: only open fields, pairs without games stay empty', () => {
+  const open = parsePublicStandardMatchups(answer({ available: { ranks: ['legend'] } }), 'standard', 5);
+  assert.ok(open);
+  const data = openStandardMatchupsData(open);
+  assert.equal(data.rank, 'all');
+  assert.equal(data.rankLabel, 'Все ранги');
+  assert.deepEqual(data.columns.map(column => column.label), ['Арх 1', 'Арх 2', 'Арх 3', 'Арх 4', 'Арх 5']);
+  assert.equal(data.available, undefined, 'no list of ranks or periods is carried over');
+  assert.equal(data.rows[0].cells.length, 5);
+  assert.deepEqual(data.rows[0].cells[0], { opponent: 'Archetype 1', opponentLabel: 'Арх 1', winrate: 50, games: 120 });
+  assert.deepEqual(data.rows[0].cells[2], { opponent: 'Archetype 3', opponentLabel: 'Арх 3', winrate: null }, 'no games: an empty pair');
+  assert.doesNotMatch(JSON.stringify(data), /SENTINEL/);
 });
