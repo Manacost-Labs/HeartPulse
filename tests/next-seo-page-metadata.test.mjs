@@ -802,13 +802,14 @@ test('the datasets take their date from what the real backend serves: the fetch 
 // Real Next on a fake Express whose upstream answers carry deck codes, builds, history and
 // analysis, as the real one does for a subscriber: none of it may reach any HTML a guest gets.
 
-const PAID_MARKERS = ['AAEBAZSentinelPaidDeckCode0123456789', 'PRIVATE_HISTORY', 'PRIVATE_ANALYSIS', 'PRIVATE_ACCOUNT', 'PRIVATE_FEATURED_DECK'];
-const DECK_CODE = /AAE[A-Za-z0-9+/=]{12,}/;
+// Deck codes are open (owner decision 2026-11-18, #444); mulligan and card statistics, history and the rest stay paid.
+const OPEN_DECK_CODE = 'AAECAf0GAfKiBALxogTzogQAAA==';
+const PAID_MARKERS = ['7.1717', '6.2626', 'PRIVATE_HISTORY', 'PRIVATE_ANALYSIS', 'PRIVATE_ACCOUNT', 'PRIVATE_FEATURED_DECK'];
 
 const catalogRow = (format, slug, label, english, classKey, games, winrate, popularity, deckCount) => ({
   slug, format, classKey, archetype: english, archetypeLabel: label, translated: true, games, winrate, popularity,
   turns: 8, durationMinutes: 7, climbingSpeed: 1, deckCount, sourceUrl: `https://www.hsguru.com/archetype/${encodeURIComponent(english)}`,
-  builds: [{ deckCode: PAID_MARKERS[0], games: 100, winrate: 50 }],
+  builds: [{ deckCode: OPEN_DECK_CODE, games: 100, winrate: 50, mulliganImpact: 7.1717, keptImpact: 6.2626, cards: null }],
 });
 // Ten rows have a winrate over 1000 games (median 51,25); five of them are warlocks (median 52).
 const STANDARD_ROWS = [
@@ -1025,9 +1026,10 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
     assert.ok(fetched.length >= 12);
     for (const [path, html] of fetched) {
       for (const marker of PAID_MARKERS) assert.ok(!html.includes(marker), `${path} leaks ${marker}`);
-      assert.doesNotMatch(html, DECK_CODE, `${path} carries a deck code`);
       assert.ok(html.includes('self.__next_f'), `${path} includes the RSC payload the check covers`);
     }
+    assert.ok(fetched.some(([path, html]) => path === '/standard/archetypes/standard/zoolock/' && html.includes(OPEN_DECK_CODE)),
+      'the open deck code is on the archetype page');
   } finally {
     await next.close();
     express.closeAllConnections();

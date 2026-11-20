@@ -37,7 +37,8 @@ let hsjsonAllCardsCache: {
 } | null = null;
 let hsjsonAllCardsPromise: Promise<NonNullable<typeof hsjsonAllCardsCache>> | null = null;
 
-async function loadHsjsonAllCards(): Promise<NonNullable<typeof hsjsonAllCardsCache>> {
+/** Every Hearthstone card (tokens and Fabled companions included) from HearthstoneJSON, cached 6 hours; also names open archetype decks. */
+export async function loadHsjsonAllCards(): Promise<NonNullable<typeof hsjsonAllCardsCache>> {
   const now = Date.now();
   if (hsjsonAllCardsCache && hsjsonAllCardsCache.expiresAt > now) return hsjsonAllCardsCache;
   if (!hsjsonAllCardsPromise) {
