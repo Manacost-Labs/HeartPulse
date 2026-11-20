@@ -2,7 +2,7 @@
 .assemble-tool { display: grid; gap: 0.9rem; color: #30251c; font-family: var(--font-body); }
 .assemble-tool__bar { display: flex; gap: 0.5rem 1rem; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 .assemble-tool__formats { display: inline-flex; border: 1px solid #b78a51; background: rgba(255, 250, 232, 0.6); }
-.assemble-tool__formats a { display: inline-flex; min-height: 44px; padding: 0 1.2rem; align-items: center; color: #4a2d1b; font-size: 0.95rem; font-weight: 800; text-decoration: none; transition: background-color 0.18s ease; }
+.assemble-tool__formats a { display: inline-flex; min-height: 44px; padding: 0 1.2rem; align-items: center; color: #4a2d1b; font-size: 0.95rem; font-weight: 800; text-decoration: none; transition: background-color var(--motion-fast) var(--motion-ease); }
 .assemble-tool__formats a + a { border-left: 1px solid #b78a51; }
 .assemble-tool__formats a:hover { background: rgba(224, 191, 117, 0.3); }
 .assemble-tool__formats a[aria-current='true'] { color: #fff0c8; background: #8d171d; }
@@ -14,13 +14,13 @@
 /* The tiles: big art, name, class and the size of the pool. */
 .assemble-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(11.25rem, 1fr)); gap: 0.75rem; margin: 0; padding: 0; list-style: none; }
 .assemble-cards > li { display: flex; min-width: 0; }
-.assemble-card { position: relative; display: grid; width: 100%; min-height: 12.5rem; padding: 1rem 0.7rem 0.9rem; border: 1px solid #b78a51; border-radius: 6px; justify-items: center; align-content: start; gap: 0.25rem; color: #4a2d1b; text-align: center; text-decoration: none; background: linear-gradient(180deg, rgba(255, 250, 232, 0.78), rgba(244, 218, 163, 0.42)); box-shadow: inset 0 0 0 2px rgba(255, 252, 236, 0.5); transition: transform 0.18s ease, box-shadow 0.18s ease; }
-.assemble-card::after { content: ''; position: absolute; inset: -1px; border-radius: inherit; box-shadow: 0 0 0 2px #d9ab49, 0 0 22px rgba(239, 201, 111, 0.85); opacity: 0; pointer-events: none; transition: opacity 0.18s ease; }
+.assemble-card { position: relative; display: grid; width: 100%; min-height: 12.5rem; padding: 1rem 0.7rem 0.9rem; border: 1px solid #b78a51; border-radius: 6px; justify-items: center; align-content: start; gap: 0.25rem; color: #4a2d1b; text-align: center; text-decoration: none; background: linear-gradient(180deg, rgba(255, 250, 232, 0.78), rgba(244, 218, 163, 0.42)); box-shadow: inset 0 0 0 2px rgba(255, 252, 236, 0.5); transition: transform var(--motion-fast) var(--motion-ease), box-shadow var(--motion-fast) var(--motion-ease); }
+.assemble-card::after { content: ''; position: absolute; inset: -1px; border-radius: inherit; box-shadow: 0 0 0 2px #d9ab49, 0 0 22px rgba(239, 201, 111, 0.85); opacity: 0; pointer-events: none; transition: opacity var(--motion-fast) var(--motion-ease); }
 .assemble-card[aria-current='true'] { border-color: #c79a3e; background: linear-gradient(180deg, rgba(255, 246, 214, 0.98), rgba(246, 218, 140, 0.62)); }
 .assemble-card[aria-current='true']::after { opacity: 1; }
 .assemble-card:focus-visible { outline: 3px solid #7b151b; outline-offset: 2px; }
 .assemble-card:active { transform: scale(0.97); }
-.assemble-card__art { position: relative; display: block; width: 96px; height: 96px; margin-bottom: 0.3rem; border: 3px solid #b78a51; border-radius: 50%; background: #5f371d; box-shadow: 0 3px 8px rgba(67, 37, 15, 0.4), inset 0 0 0 1px rgba(255, 244, 200, 0.4); transition: transform 0.22s ease, box-shadow 0.22s ease; }
+.assemble-card__art { position: relative; display: block; width: 96px; height: 96px; margin-bottom: 0.3rem; border: 3px solid #b78a51; border-radius: 50%; background: #5f371d; box-shadow: 0 3px 8px rgba(67, 37, 15, 0.4), inset 0 0 0 1px rgba(255, 244, 200, 0.4); transition: transform var(--motion-base) var(--motion-ease), box-shadow var(--motion-base) var(--motion-ease); }
 .assemble-card__art img { display: block; width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
 .assemble-card[aria-current='true'] .assemble-card__art { border-color: #efc96f; }
 .assemble-card__mana { position: absolute; top: -6px; left: -6px; display: grid; width: 30px; height: 30px; border: 2px solid #cfe6ff; border-radius: 50%; place-items: center; color: #fff; font-size: 0.95rem; font-weight: 900; background: radial-gradient(circle at 35% 30%, #6fb7ff, #1a5fb4 70%); box-shadow: 0 2px 4px rgba(20, 40, 80, 0.5); text-shadow: 0 1px 2px rgba(0, 20, 60, 0.7); }
@@ -39,7 +39,7 @@
 }
 
 /* The section of the chosen card sits on the page's own plate; the page owns H1, so its heading is the card. */
-.assemble-tool .assemble { margin: 0; padding: 1rem 1.1rem; border: 1px solid #b78a51; border-radius: 6px; background: linear-gradient(180deg, rgba(255, 250, 232, 0.54), rgba(246, 224, 178, 0.3)); box-shadow: inset 0 0 0 2px rgba(255, 252, 236, 0.45); transition: opacity 0.2s ease; }
+.assemble-tool .assemble { margin: 0; padding: 1rem 1.1rem; border: 1px solid #b78a51; border-radius: 6px; background: linear-gradient(180deg, rgba(255, 250, 232, 0.54), rgba(246, 224, 178, 0.3)); box-shadow: inset 0 0 0 2px rgba(255, 252, 236, 0.45); transition: opacity var(--motion-base) var(--motion-ease); }
 .assemble-tool .assemble > .assemble-header h2 { margin: 0 0 0.4rem; font-family: var(--font-display); font-size: 1.6rem; }
 .assemble-tool[aria-busy='true'] .assemble { opacity: 0.5; }
 .assemble-tool__empty { margin: 0; padding: 1rem; border: 1px dashed #b78a51; }
