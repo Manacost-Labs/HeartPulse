@@ -122,7 +122,10 @@ export function createConstructedCardCatalogReaders(ports: Ports) {
           catch (error) { ports.onHistoryError?.(error); }
         }
         if (ports.generation() === generation) {
-          ports.cache.set(key, { value, expiresAt: ports.now() + ports.ttlMs });
+          // A collection built on a stale catalog (the last good copy after a failed refresh) is kept for at
+          // most 30 s, like that copy itself (#396), so a recovered source shows up without a five-minute wait.
+          const ttlMs = value.dataStatus === 'stale' ? Math.min(ports.ttlMs, 30_000) : ports.ttlMs;
+          ports.cache.set(key, { value, expiresAt: ports.now() + ttlMs });
           publicBackoff.delete(key);
         }
         return value;
