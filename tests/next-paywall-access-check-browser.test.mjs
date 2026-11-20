@@ -91,7 +91,8 @@ test('gated pages keep the gate height while the access check runs', async () =>
       headless: true, args: ['--no-sandbox'] });
     const viewports = [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true, hasTouch: true }];
     for (const viewport of viewports) {
-      for (const path of ['/standard/vicious-gold/']) {
+      // /standard/vicious-gold/ is open now (#656): the tier builder is the page that still gates.
+      for (const path of ['/battlegrounds/tier-builder/']) {
         const page = await browser.newPage();
         await page.setViewport(viewport);
         await page.evaluateOnNewDocument(() => {

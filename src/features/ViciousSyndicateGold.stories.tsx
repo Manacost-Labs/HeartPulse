@@ -7,6 +7,7 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
 
 const meta = {
   title: 'Meta/Vicious Gold Analytics', component: ViciousSyndicateGold,
+  args: { hasFullAccess: true },
   parameters: { layout: 'fullscreen', buildsAvailable: true },
   beforeEach: ({ parameters }) => {
     const original = globalThis.fetch;
@@ -49,5 +50,31 @@ export const Phone: Story = {
   play: async ({ canvas, canvasElement }) => {
     await canvas.findByRole('heading', { name: 'Power Tier List' });
     await expect(canvasElement.ownerDocument.documentElement.scrollWidth).toBeLessThanOrEqual(canvasElement.ownerDocument.documentElement.clientWidth + 1);
+  },
+};
+
+/** A guest (#656): the same report on the open frame, a lock in the place of every paid value, no paid request. */
+export const GuestFrame: Story = {
+  args: {
+    hasFullAccess: false,
+    open: {
+      title: 'Vicious Syndicate Gold', format: 'Standard', source: 'Vicious Syndicate Live',
+      sourceUrl: 'https://www.vicioussyndicate.com/data-reaper-live/', updatedAt: summary.updatedAt,
+      timeRanges: { distribution: 'lastDay', tierLadder: 'lastDay', tierMatchups: null },
+      classes: [
+        { class: 'Warrior', classLabel: 'Воин', classIcon: 'warrior' },
+        { class: 'Mage', classLabel: 'Маг', classIcon: 'mage' },
+      ],
+      archetypes: [
+        { class: 'Warrior', classLabel: 'Воин', classIcon: 'warrior', deck: 'Dragon Warrior', deckLabel: 'Драконий Воин', archetypeSlug: null },
+        { class: 'Mage', classLabel: 'Маг', classIcon: 'mage', deck: 'Protoss Mage', deckLabel: 'Протосс Маг', archetypeSlug: null },
+      ],
+      rankBrackets: [{ rankBracket: 'All ranks', rankLabel: 'Все ранги' }, { rankBracket: 'Legend', rankLabel: 'Легенда' }],
+    },
+  },
+  play: async ({ canvas }) => {
+    await expect(await canvas.findByRole('heading', { name: 'Power Tier List' })).toBeVisible();
+    await expect(canvas.getByRole('button', { name: 'Лидер Power Tier: по подписке. Узнать, как открыть' })).toBeVisible();
+    await expect(canvas.queryAllByRole('button', { name: /^Скопировать код колоды/ })).toHaveLength(0);
   },
 };

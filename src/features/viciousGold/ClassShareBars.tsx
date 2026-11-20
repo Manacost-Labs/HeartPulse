@@ -1,6 +1,7 @@
 import { useMemo, type CSSProperties } from 'react';
 import { useChartSize } from '../../vendor/varylo-ui/charts/useChartSize';
 import { createTextMeasure } from '../../vendor/varylo-ui/charts/utils';
+import { LockMark } from './LockMark';
 import {
   classIcon, classShareRows, percent, thresholdPercent,
   type ClassDistribution, type DeckDistribution,
@@ -17,13 +18,16 @@ const SHORT = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 1 });
  * written in when they fit (the share alone, or nothing, when they do not; the title and the
  * list below always have it). The bar is the class's own 100%, so small archetypes of a small
  * class stay readable. A class filters the deck list.
+ * `locked` (the open frame, #656): the classes in their neutral order, the share a lock and the bar an empty one;
+ * a class still filters the list.
  */
-export function ClassShareBars({ classes, decks, selectedClass, onSelectClass, minimumFrequency }: {
+export function ClassShareBars({ classes, decks, selectedClass, onSelectClass, minimumFrequency, locked = false }: {
   classes: ClassDistribution[];
   decks: DeckDistribution[];
   selectedClass: string;
   onSelectClass: (classKey: string) => void;
   minimumFrequency: number;
+  locked?: boolean;
 }) {
   const rows = useMemo(() => classShareRows(classes, decks), [classes, decks]);
   const { ref, width } = useChartSize<HTMLOListElement>();
@@ -42,10 +46,11 @@ export function ClassShareBars({ classes, decks, selectedClass, onSelectClass, m
               <span className="vsgold-classbars__class">
                 <img src={classIcon(row.classIcon)} alt="" width="32" height="32" loading="lazy" decoding="async" />
                 <span>{row.classLabel}</span>
-                <b>{percent(row.frequency)}</b>
+                {locked ? <LockMark label={`Доля класса ${row.classLabel}`} /> : <b>{percent(row.frequency)}</b>}
               </span>
               <span className="vsgold-classbars__bar">
-                {row.segments.map(segment => {
+                {locked ? <span className="vsgold-classbars__segment vsgold-classbars__segment--rest" style={{ flexGrow: 1 }} /> : null}
+                {locked ? null : row.segments.map(segment => {
                   const px = barWidth * segment.frequency / total;
                   const share = `${SHORT.format(segment.frequency)}%`;
                   const full = `${segment.label} ${share}`;
@@ -57,14 +62,14 @@ export function ClassShareBars({ classes, decks, selectedClass, onSelectClass, m
                     </span>
                   );
                 })}
-                {row.rest > 0 ? (
+                {!locked && row.rest > 0 ? (
                   <span className="vsgold-classbars__segment vsgold-classbars__segment--rest" style={{ flexGrow: row.rest }}
                     title={`Архетипы меньше ${thresholdPercent(minimumFrequency)}: ${percent(row.rest)}`} />
                 ) : null}
               </span>
               <span className="sr-only">
-                {row.segments.map(segment => `${segment.fullLabel} ${percent(segment.frequency)}`).join(', ')}
-                {row.rest > 0 ? `, остальные архетипы ${percent(row.rest)}` : ''}
+                {locked ? 'доли архетипов по подписке' : row.segments.map(segment => `${segment.fullLabel} ${percent(segment.frequency)}`).join(', ')}
+                {!locked && row.rest > 0 ? `, остальные архетипы ${percent(row.rest)}` : ''}
               </span>
             </button>
           </li>

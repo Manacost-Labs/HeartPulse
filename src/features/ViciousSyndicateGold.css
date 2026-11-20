@@ -314,6 +314,29 @@ a:is(.vsgold-power-row__name, .vsgold-deck-row__name):focus-visible { outline: 2
 .vsgold__state h2 { margin: 0; font-family: var(--font-display); }
 .vsgold__state button { display: inline-flex; gap: 0.4rem; align-items: center; min-height: 44px; padding: 0 1rem; border: 0; color: #fff0c8; background: var(--vs-wine); font: inherit; font-weight: 800; cursor: pointer; }
 
+/* The open frame (#656): the subscriber's report with a lock in the place of each closed value. */
+.vsgold-power__controls .vsgold-select .paid-filter-lock { width: 100%; height: 40px; } /* the select's height (44px on phones, below) */
+.vsgold-power-row--locked .vsgold-power-row__icon { width: 36px; height: 36px; border-radius: 50%; background: rgba(92, 54, 24, 0.1); }
+.vsgold-power-row--locked .vsgold-power-row__name { justify-items: start; }
+/* The lock takes the line of the deck name it replaces (the 24px target overflows it instead of growing the row). */
+.vsgold-power-row--locked .vsgold-power-row__name strong { display: flex; overflow: visible; }
+.vsgold-power-row--locked .vsgold-power-row__name .paid-lock { margin-block: -4px; }
+/* The copy button's box of a subscriber's row. */
+.vsgold-power-row--locked .vsgold-build__slot { display: block; width: 40px; height: 40px; }
+/* The tier badge's box of a subscriber's tier head. */
+.vsgold-tier__badge-slot { flex: 0 0 auto; width: 32px; height: 32px; border-radius: 8px; background: rgba(92, 54, 24, 0.1); }
+.vsgold-tier__head .vsgold-lock-mark { vertical-align: middle; }
+.vsgold-deck-row .vsgold-build .paid-lock { margin-left: auto; }
+.vsgold-lock-mark { justify-self: end; }
+/* The lock in a KPI value's place keeps the value line's height (the 24px target overflows a shorter line), and the
+   line and the banner's total that hold a lock do not clip it: its frame and focus ring stay whole. */
+.vsgold-report__kpis .ui-kpi-group__value .paid-lock { vertical-align: middle; margin-block: -4px; }
+.vsgold[data-locked] :is(.vsgold-report__kpis .ui-kpi-group__value, .traditional-mode-banner__summary dd):has(.paid-lock) { overflow: visible; }
+/* While a remembered viewer's access is checked, or a subscriber's report loads, the locks are hidden: a subscriber
+   does not see them flash. Server HTML has no `data-access-settled`, so they stay hidden until hydration too. */
+.vsgold[data-access-pending] :is(.paid-lock, .paid-filter-lock),
+html[data-hp-viewer='remembered'] .vsgold:not([data-access-settled]) :is(.paid-lock, .paid-filter-lock) { visibility: hidden; }
+
 @media (max-width: 1120px) {
   .vsgold-report__kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -355,6 +378,9 @@ a:is(.vsgold-power-row__name, .vsgold-deck-row__name):focus-visible { outline: 2
   }
   .vsgold-power-row__rank { grid-area: rank; }
   .vsgold-power-row > img { grid-area: icon; width: 32px; height: 32px; }
+  .vsgold-power-row--locked .vsgold-power-row__icon { grid-area: icon; width: 32px; height: 32px; }
+  .vsgold-power-row--locked .vsgold-build__slot { width: 44px; height: 44px; }
+  .vsgold-power__controls .vsgold-select .paid-filter-lock { height: 44px; }
   .vsgold-power-row__name { grid-area: name; }
   .vsgold-power-row .vsgold-build { grid-area: build; }
   .vsgold-power-row__bar { grid-area: bar; }

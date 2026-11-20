@@ -15,6 +15,7 @@ import {
 } from './standardMetaQuery.js';
 import { createTeaserHandler, createTrendsHandler } from './standardMetaSliceHandlers.js';
 import { createPublicStandardMetaHandler } from './standardMetaPublicSlice.js';
+import { createPublicViciousGoldHandler } from './viciousGoldPublic.js';
 
 export type { StandardMetaCoin, StandardMetaFormat, StandardMetaMinGames, StandardMetaPeriod, StandardMetaRank };
 
@@ -100,6 +101,8 @@ export function createStandardMetaRouter(dependencies: StandardMetaRouterDepende
 
   router.get('/standard-meta/teaser', createTeaserHandler(dependencies));
   router.get('/standard-meta/public', createPublicStandardMetaHandler(dependencies));
+  // The open frame of the report: registered before the access guard of `/vicious-syndicate-gold` below.
+  router.get('/vicious-syndicate-gold/public', createPublicViciousGoldHandler(dependencies));
 
   const protectAdminStats: RequestHandler = (_request, response, next) => {
     dependencies.setPrivateNoStore(response);
