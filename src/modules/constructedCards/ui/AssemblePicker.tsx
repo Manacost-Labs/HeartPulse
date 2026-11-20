@@ -1,10 +1,21 @@
-import { useState } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import type { AssembleCard, CardAssembleData } from '../model/cardAssemble';
 
 /** Portraits shown before «Показать всех»: three rows of eight on a desktop, two rows of three on a phone. */
 export const VISIBLE_PORTRAITS = { wide: 24, phone: 6 };
 const PHONE_QUERY = '(max-width: 640px)';
-const visiblePortraits = () => (typeof window !== 'undefined' && window.matchMedia(PHONE_QUERY).matches ? VISIBLE_PORTRAITS.phone : VISIBLE_PORTRAITS.wide);
+/** The server and the hydration render know no screen: they draw the wide count and a phone then folds the ribbon. */
+function usePhone(): boolean {
+  return useSyncExternalStore(
+    notify => {
+      const query = window.matchMedia(PHONE_QUERY);
+      query.addEventListener('change', notify);
+      return () => query.removeEventListener('change', notify);
+    },
+    () => window.matchMedia(PHONE_QUERY).matches,
+    () => false,
+  );
+}
 /** Above this many portraits the ribbon gets a search field. */
 const SEARCH_FROM = 20;
 
@@ -35,7 +46,7 @@ export function PortraitPicker({ items, selected, onPick, label, searchLabel, si
 }) {
   const [query, setQuery] = useState('');
   const [all, setAll] = useState(false);
-  const [limit] = useState(visiblePortraits);
+  const limit = usePhone() ? VISIBLE_PORTRAITS.phone : VISIBLE_PORTRAITS.wide;
   const needle = query.trim().toLocaleLowerCase('ru');
   const matches = needle ? items.filter(item => item.card.name.toLocaleLowerCase('ru').includes(needle)) : items;
   const shown = needle || all ? matches : matches.slice(0, limit);

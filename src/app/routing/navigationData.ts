@@ -42,6 +42,7 @@ export const NAVIGATION_DATA = [
   { id: 'standard-vicious-gold', label: 'VS Gold', path: '/standard/vicious-gold', group: 'standard', entitlement: 'standard' },
   { id: 'standard-cards', label: 'Карты', path: '/standard/cards', group: 'standard', entitlement: null },
   { id: 'deck-builder', label: 'Конструктор колод', path: '/standard/deck-builder', group: 'standard', entitlement: null },
+  { id: 'standard-assemble', label: 'Сборка', path: '/standard/assemble', group: 'standard', entitlement: null },
   { id: 'patch-notes', label: 'Патчноуты', path: '/standard/patches', group: 'standard', entitlement: null },
   { id: 'winrates', label: 'Классы', path: '/classes', group: 'arena', entitlement: 'arena' },
   { id: 'tierlist', label: 'Тир-лист', path: '/tierlist', group: 'arena', entitlement: 'arena' },
@@ -81,6 +82,7 @@ const WILD_ITEM_TABLE = [
   { id: 'wild-fun-decks', twin: 'fun-decks', path: '/standard/fun-decks?format=wild' },
   { id: 'wild-cards', twin: 'standard-cards', path: '/standard/cards/wild' },
   { id: 'wild-deck-builder', twin: 'deck-builder', path: '/standard/deck-builder?format=wild' },
+  { id: 'wild-assemble', twin: 'standard-assemble', path: '/standard/assemble?format=wild' },
   { id: 'wild-patch-notes', twin: 'patch-notes', path: '/standard/patches', shared: true },
 ] as const satisfies readonly WildNavigationItem[];
 
