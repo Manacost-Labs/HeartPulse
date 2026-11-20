@@ -32,21 +32,20 @@ the JSON-LD.
   throws, so ISR keeps the last good page; only the build, which has no API,
   prints the «temporarily unavailable» state.
 - The page is the subscriber's component (`src/features/StandardMatchups.tsx`:
-  banner, formats, sections, matrix, overview, leaders) on the open slice, for
-  a guest, a robot and a signed-in reader without a subscription; the server
-  renders it from the same projection
-  (`openStandardMatchupsData` turns it into the subscriber's model). Rank,
-  period and the games floor stand in their places as locks
-  (`StandardMatchupsFilterLocks` on the shared `PaidLocks`,
-  `.paywalled-standard-matchups`, named by the JSON-LD `hasPart`); a
-  press opens the subscription offer (`PaidOfferProvider`). While a
-  signed-in reader's access is checked the locks are neutral and inert.
-  A subscriber's slice replaces the open data inside the same component, with no remount; if it does not arrive, the open
-  data stays with the message and «Повторить». Until the browser has run the
-  content is `inert`, so the server markup has no dead control. Wild is read
-  from the open route in the browser after the format switch; the server HTML
-  is Standard. The subscriber's component has no history of a pair, so there
-  is no lock for it.
+  banner, formats, sections, matrix, overview, leaders) on the open slice, for a
+  guest, a robot and a signed-in reader without a subscription; the server
+  renders it from the same projection (`openStandardMatchupsData` turns it into
+  the subscriber's model). Rank, period and the games floor stand in their
+  places as locks (`StandardMatchupsFilterLocks` on the shared `PaidLocks`,
+  `.paywalled-standard-matchups`, named by the JSON-LD `hasPart`); a press opens
+  the subscription offer (`PaidOfferProvider`). While a signed-in reader's
+  access is checked the locks are neutral and inert. A subscriber's slice
+  replaces the open data inside the same component, with no remount; if it does
+  not arrive, the open data stays with the message and «Повторить». Until the
+  browser has run the content is `inert`, so the server markup has no dead
+  control. Wild is read from the open route in the browser after the format
+  switch; the server HTML is Standard. The subscriber's component has no history
+  of a pair, so there is no lock for it.
 - `tests/standard-matchups-public.test.ts` puts a label in every paid field
   (the Legend rank `63.3636`, the period list, history) and checks that none
   reaches a guest, with a mutation that turns it red;
