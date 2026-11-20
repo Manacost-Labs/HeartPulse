@@ -373,7 +373,7 @@ test('the post-deploy warm-up regenerates /legendaries/, /heroes/, /standard/mat
     const pages = [
       { path: '/legendaries/', data: 'legendary-group-card', copy: 'Данные временно недоступны' },
       { path: '/heroes/', data: 'battleground-hero-card', copy: 'Рейтинг героев временно недоступен' },
-      { path: '/standard/matchups/', data: 'ui-matchup-matrix__grid', copy: 'Загружаем матчапы' },
+      { path: '/standard/matchups/', data: 'ui-matchup-matrix__grid', copy: 'Сводка появится после загрузки' },
       { path: '/battlegrounds/tier-list/', data: 'bg-tierlist-strategy__cards', copy: 'Сборки временно недоступны' },
     ];
     for (const { path, data, copy } of pages) {
