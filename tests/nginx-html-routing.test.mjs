@@ -120,6 +120,7 @@ function substituteRouteParameters(route) {
   const defaults = {
     guideSlug: 'guide-1',
     streamerSlug: 'reqvam',
+    date: '2026-11-23',
     archetypeId: '123',
     cardId: 'CATA_785',
     dbfId: '76521',
@@ -608,7 +609,8 @@ for (const route of inventory.routes) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }
-  if (['guides-archive', 'guides-archive-detail', 'constructed-archetype-detail', 'standard-meta-legacy-detail', 'streamer-detail'].includes(route.id)) {
+  if (['guides-archive', 'guides-archive-detail', 'constructed-archetype-detail', 'standard-meta-legacy-detail', 'streamer-detail',
+    'meta-report-archive', 'meta-report-detail'].includes(route.id)) {
     expectRegexAction(`${path}/`, 'proxy_pass http://127.0.0.1:4321;', `${route.id} Next route`);
     continue;
   }
@@ -1004,6 +1006,16 @@ async function startCardSeoUpstream() {
       status: 200,
       headers: { 'Cache-Control': 'private, no-store' },
       body: '<!doctype html><title>Next meta</title>',
+    }],
+    ['/reports/meta/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-cache' },
+      body: '<!doctype html><title>Next meta reports</title>',
+    }],
+    ['/reports/meta/2026-11-23/', {
+      status: 200,
+      headers: { 'Cache-Control': 'private, no-cache' },
+      body: '<!doctype html><title>Next meta report</title>',
     }],
     ['/standard/', {
       status: 200,
@@ -1543,6 +1555,8 @@ http {
       ['/legendaries/', /Next legendaries/],
       ['/standard/matchups/', /Next matchups/],
       ['/standard/meta/', /Next meta/],
+      ['/reports/meta/', /Next meta reports/],
+      ['/reports/meta/2026-11-23/', /Next meta report/],
       ['/standard/', /Next Standard hub/],
       ['/arena/', /Next Arena hub/],
       ['/battlegrounds/', /Next Battlegrounds hub/],
@@ -1566,6 +1580,17 @@ http {
           `${path} must stay indexable on success`);
       }
     }
+    // Meta reports: one 301 adds the slash and keeps the query; only a date-shaped segment reaches Next.
+    for (const report of ['/reports/meta', '/reports/meta/2026-11-23']) {
+      const reportRedirect = await requestNginx(port, `${report}?utm_source=report`);
+      assert.equal(reportRedirect.status, 301, `${report} normalizes its slash`);
+      const target = new URL(reportRedirect.headers.location || '', 'http://arena.test');
+      assert.equal(`${target.pathname}${target.search}`, `${report}/?utm_source=report`, `${report} redirect target`);
+    }
+    for (const outside of ['/reports/', '/reports/meta/latest/', '/reports/meta/2026-11-23/extra/']) {
+      assert.equal((await requestNginx(port, outside)).status, 404, `${outside} is not a meta report`);
+    }
+
     const compressedNextAsset = await requestNginx(port, '/_next/static/test.js', 'GET', {
       'Accept-Encoding': 'gzip',
     });

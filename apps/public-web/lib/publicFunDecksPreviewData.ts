@@ -1,4 +1,4 @@
-import { funDecksGuestPreview, type FunDeckRow, type FunDecksPayload } from '@/src/features/funDecksPreview';
+import { funDecksOpenPreview, type FunDeckOpenCard, type FunDeckRow, type FunDecksPayload } from '@/src/features/funDecksPreview';
 
 type RecordValue = Record<string, unknown>;
 
@@ -38,8 +38,28 @@ function count(value: unknown): number {
   return value;
 }
 
+/** The decoded card list the API sends; a malformed list is dropped (the deck stays with its code, its list does not). */
+function openCards(value: unknown): FunDeckOpenCard[] | undefined {
+  if (!Array.isArray(value) || !value.length || value.length > 60) return undefined;
+  try {
+    return value.map(raw => {
+      const card = record(raw);
+      const id = optionalText(card.id, 80), name = optionalText(card.name, 120);
+      if (id !== null && !/^[A-Za-z0-9_]{2,80}$/.test(id)) throw new InvalidSelection();
+      const cost = card.cost === null || card.cost === undefined ? null : count(card.cost);
+      const copies = count(card.count);
+      if (copies < 1 || copies > 40) throw new InvalidSelection();
+      return { id, name, cost, count: copies, hasPage: card.hasPage === true && id !== null };
+    });
+  } catch (error) {
+    if (error instanceof InvalidSelection) return undefined;
+    throw error;
+  }
+}
+
 function deck(raw: unknown): FunDeckRow {
   const row = record(raw);
+  const cards = openCards(row.cards);
   const render = row.render === undefined || row.render === null ? undefined : record(row.render);
   return {
     title: text(row.title, 200), deckCode: text(row.deckCode, 400), format: text(row.format, 20),
@@ -52,14 +72,15 @@ function deck(raw: unknown): FunDeckRow {
     reasons: Array.isArray(row.reasons) ? row.reasons.filter((reason): reason is string => typeof reason === 'string') : [],
     why: strings(row.why), tags: strings(row.tags),
     url: httpsUrl(row.url), firstSeenAt: optionalText(row.firstSeenAt, 64), lastSeenAt: optionalText(row.lastSeenAt, 64),
+    ...(cards ? { cards } : {}),
     ...(render ? { render: { imageUrl: text(render.imageUrl, 500), previewImageUrl: text(render.previewImageUrl, 500) } } : {}),
   };
 }
 
 /**
- * The guest's first view of the fun-deck selection, from the anonymous API
- * response: its summary and newest free decks only (the complete selection
- * is paid), or `null` for a response that is not a selection.
+ * The first view of the fun-deck selection, from the anonymous API response:
+ * its summary and every deck with its card list (the selection is open), field
+ * by field, or `null` for a response that is not a selection.
  */
 export function publicFunDecksPreview(raw: unknown): FunDecksPayload | null {
   try {
@@ -67,7 +88,7 @@ export function publicFunDecksPreview(raw: unknown): FunDecksPayload | null {
     const stats = record(payload.stats);
     const methodology = record(payload.methodology);
     if (!Array.isArray(payload.decks) || payload.decks.length > 1000) return null;
-    return funDecksGuestPreview({
+    return funDecksOpenPreview({
       fetchedAt: optionalText(payload.fetchedAt, 64),
       stats: { total: count(stats.total), standard: count(stats.standard), wild: count(stats.wild) },
       methodology: {

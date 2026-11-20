@@ -8,6 +8,8 @@ export type PatchNotesRouterDependencies = {
   withCardVersions?: (snapshot: PatchNotesSnapshot, patches: PatchNotesDetail[]) => Promise<PatchNotesDetail[]>;
   /** True while the pictures or cards of an answer are still being read; the answer is then cached only briefly. */
   incomplete?: () => boolean;
+  /** True for a snapshot that is the stored copy of an earlier process: its answers, a 404 included, are cached only briefly. */
+  restored?: (snapshot: PatchNotesSnapshot) => boolean;
   onError?: (error: unknown) => void;
 };
 
@@ -19,6 +21,7 @@ const RECENT_PATCHES = 2;
 /** Anonymous patch notes: the archive of patches with card changes and one patch by version. */
 export function createPatchNotesRouter(dependencies: PatchNotesRouterDependencies): Router {
   const router = Router();
+  const cacheOf = (snapshot: PatchNotesSnapshot) => (dependencies.incomplete?.() || dependencies.restored?.(snapshot) ? INCOMPLETE_CACHE : PUBLIC_CACHE);
 
   const read = async (response: Response) => {
     try {
@@ -38,7 +41,7 @@ export function createPatchNotesRouter(dependencies: PatchNotesRouterDependencie
       patches: snapshot.patches.filter(patch => patch.changeCount > 0).map(patchNotesSummary),
       updatedAt: snapshot.updatedAt,
     };
-    response.set('Cache-Control', PUBLIC_CACHE);
+    response.set('Cache-Control', dependencies.restored?.(snapshot) ? INCOMPLETE_CACHE : PUBLIC_CACHE);
     response.json(body);
   });
 
@@ -57,7 +60,7 @@ export function createPatchNotesRouter(dependencies: PatchNotesRouterDependencie
     if (!snapshot) return;
     const patches = snapshot.patches.filter(patch => patch.changeCount > 0).slice(0, RECENT_PATCHES);
     const withCards = await withPictures(snapshot, patches);
-    response.set('Cache-Control', dependencies.incomplete?.() ? INCOMPLETE_CACHE : PUBLIC_CACHE);
+    response.set('Cache-Control', cacheOf(snapshot));
     response.json({ patches: withCards, updatedAt: snapshot.updatedAt });
   });
 
@@ -73,11 +76,12 @@ export function createPatchNotesRouter(dependencies: PatchNotesRouterDependencie
       ? snapshot.patches.find(item => item.changeCount > 0)
       : snapshot.patches.find(item => item.version === wanted);
     if (!patch) {
-      response.set('Cache-Control', 'public, max-age=300');
+      // A patch released after the stored copy was made is not known until the archive is rebuilt.
+      response.set('Cache-Control', dependencies.restored?.(snapshot) ? 'no-store' : 'public, max-age=300');
       return response.status(404).json({ error: 'Патч не найден' });
     }
     const [withCards] = await withPictures(snapshot, [patch]);
-    response.set('Cache-Control', dependencies.incomplete?.() ? INCOMPLETE_CACHE : PUBLIC_CACHE);
+    response.set('Cache-Control', cacheOf(snapshot));
     return response.json(withCards);
   });
 

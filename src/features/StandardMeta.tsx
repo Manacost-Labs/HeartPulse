@@ -40,7 +40,7 @@ import { MetaLockedRank, MetaLockedValue } from './StandardMetaLocks';
 import { useHydrated } from '../shared/ui/useHydrated';
 import { STANDARD_META_CLASS_COLORS, standardMetaClassIcon } from './standardMetaClassModel';
 import {
-  metaFilterSearch, metaRequestKey, readMetaFilterQuery, teaserSeedKey, TEASER_SEED_FILTERS, type StandardMetaTeaserSeed,
+  carriedMetaFilters, handOffMetaFilters, metaFilterSearch, metaRequestKey, teaserSeedKey, TEASER_SEED_FILTERS, type StandardMetaTeaserSeed,
 } from './standardMetaTeaser';
 import '../route-parchment.css';
 import './recovery/RecoverableSurface.css';
@@ -467,11 +467,21 @@ function StandardMetaContent({
   onPaidOffer,
   initialTeaser,
   format,
+<<<<<<< HEAD
 }: Required<Omit<StandardMetaPageProps, 'embedded' | 'accessPending'>>) {
   const [rank, setRank] = useState<MetaRank>(TEASER_SEED_FILTERS.rank);
   const [period, setPeriod] = useState<MetaPeriod | null>(initialTeaser?.period ?? null);
   const [coin, setCoin] = useState<MetaCoin>(TEASER_SEED_FILTERS.coin);
   const [minGames, setMinGames] = useState<MetaMinGames>(TEASER_SEED_FILTERS.minGames);
+=======
+}: Required<Omit<StandardMetaPageProps, 'embedded'>>) {
+  // A subscriber arrives from the other format with the filters in the address; a guest's filters are the page's own.
+  const [carried] = useState(() => (hasFullAccess && typeof window !== 'undefined' ? carriedMetaFilters(window.location.search) : {}));
+  const [rank, setRank] = useState<MetaRank>(carried.rank ?? TEASER_SEED_FILTERS.rank);
+  const [period, setPeriod] = useState<MetaPeriod | null>(carried.period ?? initialTeaser?.period ?? null);
+  const [coin, setCoin] = useState<MetaCoin>(carried.coin ?? TEASER_SEED_FILTERS.coin);
+  const [minGames, setMinGames] = useState<MetaMinGames>(carried.minGames ?? TEASER_SEED_FILTERS.minGames);
+>>>>>>> origin/agent/477-standard-meta-wild
   const [query, setQuery] = useState('');
   // A subscriber arrives from the other format with the filters in the address. The page is not remounted when access
   // arrives, so they are taken then, in the render that grants it (before any paid request); a guest's filters are the page's own.
@@ -602,7 +612,8 @@ function StandardMetaContent({
           <div className="standard-meta__segmented">
             {FORMATS.map(option => (
               // Each format has its own address (and its own prerendered open slice), so the switch is a link.
-              <a key={option.id} href={`${option.href}${hasFullAccess ? metaFilterSearch({ rank, coin, minGames, period }) : ''}`} aria-current={format === option.id ? 'page' : undefined}>
+              <a key={option.id} href={`${option.href}${hasFullAccess ? metaFilterSearch({ rank, coin, minGames, period }) : ''}`} aria-current={format === option.id ? 'page' : undefined}
+                onClick={hasFullAccess ? () => handOffMetaFilters({ rank, coin, minGames, period: period ?? undefined }) : undefined}>
                 <img src={option.asset} alt="" width="32" height="36" aria-hidden="true" />
                 <span><strong>{option.label}</strong><small>{option.description}</small></span>
               </a>

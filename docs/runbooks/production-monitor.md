@@ -25,6 +25,14 @@ profiles while it still owns the `hs-arena-production` concurrency lock:
   LKG remains visible as degraded evidence rather than a false green result.
 - `full` is the default scheduled profile and combines both sets of checks.
 
+Image delivery probes (`release` and `full`) fetch the pictures of stable
+cards through each path pages use: `/api/card-image/CS2_029/full.webp`
+(edge-local), the HearthstoneJSON proxy (`hsjson/…/256x/CS2_029.png`) and the
+data API proxy with a resize (`db/uploads/art/BG28_300.jpg?width=96`); each must
+be `200` with an image type. A card no source has
+(`MANACOST_MONITOR_ABSENT_CARD`) must answer `404`: a `5xx` there means every
+fallback chain of pictures waits for the source again (#574).
+
 Constructed-card probes accept canonical game IDs and temporary
 `blizzard:<dbf>` IDs used by announced cards. The selected list ID must
 resolve to a public detail page in the same format.

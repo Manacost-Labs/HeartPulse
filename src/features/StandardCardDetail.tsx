@@ -88,7 +88,7 @@ import {
   type StandardCardsProps,
 } from './constructedCardRecord';
 import {
-  CardStatsRows, LockedStatsPanel, PendingStatsRows, STATISTICS_FORMATS, StatisticsControls, StatisticsHead, statisticsPending,
+  CardStatsAbout, CardStatsRows, LockedStatsPanel, PendingStatsRows, STATISTICS_FORMATS, StatisticsControls, StatisticsHead, statisticsPending,
 } from './ConstructedCardStatistics';
 
 type ResolvedConstructedDeck = {
@@ -601,6 +601,8 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
   const sounds = flattenConstructedCardSounds(wiki.sounds);
   const soundGroups = [...new Set(sounds.map(item => item.group))].map(group => [group, sounds.filter(item => item.group === group)] as const);
   const externalLinks = Array.isArray(wiki.external_links) ? wiki.external_links : [];
+  const hasLinks = Boolean(card.wiki_page?.url) || externalLinks.length > 0;
+  const mediaSections = (galleryMedia.length > 0 ? 1 : 0) + (sounds.length > 0 ? 1 : 0) + (hasLinks ? 1 : 0);
   const decks = Array.isArray(card.decks) ? card.decks : [];
   const choiceKind = cardChoiceKindOf(card.mechanics);
   const hasAssemble = isAssembleCard(card);
@@ -676,6 +678,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
             onPeriodChange={value => changeStatistics({ period: value as ConstructedCardPeriod })} />
           {serverStatsAccess ? <><CardStatsRows stats={card.stats} />{!card.stats && <p className="constructed-card-detail__no-stats">Карта есть в библиотеке, но в выборке «{statsFormatLabel} · {rankLabel} · {periodLabel}» недостаточно данных.</p>}</> : statsPending ? <PendingStatsRows />
             : <LockedStatsPanel {...{ statsAccessLoading, statsAccessUnavailable, authUser, onRefreshSubscription }} />}
+          <CardStatsAbout />
         </div>
       </section>
 
@@ -698,10 +701,11 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
       {choiceKind && <React.Suspense fallback={null}><CardChoicesSection key={`card-choices:${format}:${card.card_id}`} format={format} cardId={card.card_id} kind={choiceKind} /></React.Suspense>}
       {hasAssemble && <React.Suspense fallback={null}><CardAssembleSection key={`card-assemble:${format}:${card.card_id}`} format={format} cardId={card.card_id} /></React.Suspense>}
 
-      <section className="constructed-card-detail__lower-grid">
-        <div className="constructed-card-detail__section"><h2>Механики и теги</h2><div className="constructed-card-detail__tags">{mechanics.length ? mechanics.map(item => <span key={item.key}>{item.label}</span>) : <p>Механики не указаны.</p>}</div></div>
-        <div className="constructed-card-detail__section constructed-card-detail__patches" data-tour-id="card-patches"><h2>Изменения по патчам</h2><CardPatchTimeline entries={patchEntries} /></div>
-      </section>
+      {/* A section without data is not printed: no «не указаны / не найдена» filler at the foot of the page. */}
+      {(mechanics.length > 0 || patchEntries.length > 0) && <section className={`constructed-card-detail__lower-grid${mechanics.length && patchEntries.length ? '' : ' constructed-card-detail__lower-grid--one'}`}>
+        {mechanics.length > 0 && <div className="constructed-card-detail__section"><h2>Механики и теги</h2><div className="constructed-card-detail__tags">{mechanics.map(item => <span key={item.key}>{item.label}</span>)}</div></div>}
+        {patchEntries.length > 0 && <div className="constructed-card-detail__section constructed-card-detail__patches" data-tour-id="card-patches"><h2>Изменения по патчам</h2><CardPatchTimeline entries={patchEntries} /></div>}
+      </section>}
 
       {relatedGroups.length > 0 && <RelatedCardGroups groups={relatedGroups} onOpen={openMedia} />}
 
@@ -709,11 +713,11 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
 
       {decks.length > 0 && <ConstructedCardDecks key={`${format}:${cardId}`} decks={decks} format={format} />}
 
-      <section className={`constructed-card-detail__media-grid${sounds.length ? '' : ' constructed-card-detail__media-grid--two'}`}>
-        <div className="constructed-card-detail__section"><h2>Галерея · {galleryMedia.length}</h2>{galleryMedia.length ? <div className="constructed-card-detail__gallery">{galleryMedia.map(item => <button className={item.presentation === 'contain' ? 'is-contain' : undefined} key={item.id} type="button" data-lightbox-src={item.url} onClick={() => openMedia(item.url)} aria-label={`Открыть ${item.label}`}><img src={item.thumbnailUrl} alt={item.label} loading="lazy" decoding="async" onError={fallbackCardImageToOrigin} /><span>{item.label}</span></button>)}</div> : <p>Дополнительные изображения отсутствуют.</p>}</div>
-        {sounds.length > 0 && <div className="constructed-card-detail__section"><h2><Volume2 size={19} /> Звуки карты · {sounds.length}</h2><div className="constructed-card-detail__sounds">{soundGroups.map(([group, clips], groupIndex) => <details key={group} open={groupIndex === 0}><summary>{constructedSoundGroupLabel(group)} · {clips?.length ?? 0}</summary>{clips?.map((item, clipIndex) => <article key={item.id}><span>{soundClipLabel(item.description, item.group, clipIndex)}</span><audio controls preload="none" src={item.url}>Ваш браузер не поддерживает воспроизведение аудио.</audio></article>)}</details>)}</div></div>}
-        <div className="constructed-card-detail__section"><h2>Дополнительная информация</h2><div className="constructed-card-detail__links">{card.wiki_page?.url && <a href={card.wiki_page.url} target="_blank" rel="noreferrer">Hearthstone Wiki <ExternalLink size={14} /></a>}{externalLinks.map((item: any, index: number) => <a key={`${item.url}-${index}`} href={item.url} target="_blank" rel="noreferrer">{item.label || item.url} <ExternalLink size={14} /></a>)}</div></div>
-      </section>
+      {mediaSections > 0 && <section className={`constructed-card-detail__media-grid${mediaSections === 3 ? '' : mediaSections === 2 ? ' constructed-card-detail__media-grid--two' : ' constructed-card-detail__media-grid--one'}`}>
+        {galleryMedia.length > 0 && <div className="constructed-card-detail__section"><h2>Галерея · {galleryMedia.length}</h2><div className="constructed-card-detail__gallery">{galleryMedia.map(item => <button className={item.presentation === 'contain' ? 'is-contain' : undefined} key={item.id} type="button" data-lightbox-src={item.url} onClick={() => openMedia(item.url)} aria-label={`Открыть ${item.label}`}><img src={item.thumbnailUrl} alt={item.label} loading="lazy" decoding="async" onError={fallbackCardImageToOrigin} /><span>{item.label}</span></button>)}</div></div>}
+        {sounds.length > 0 && <div className="constructed-card-detail__section"><h2><Volume2 size={19} /> Звуки карты · {sounds.length}</h2><div className="constructed-card-detail__sounds">{soundGroups.map(([group, clips], groupIndex) => <details key={group} open={groupIndex === 0}><summary>{constructedSoundGroupLabel(group)} · {clips?.length ?? 0}</summary>{clips?.map((item, clipIndex) => <article key={item.id}><span>{soundClipLabel(item.description, item.group, clipIndex)}</span><audio controls preload="none" src={item.url} /></article>)}</details>)}</div></div>}
+        {hasLinks && <div className="constructed-card-detail__section"><h2>Дополнительная информация</h2><div className="constructed-card-detail__links">{card.wiki_page?.url && <a href={card.wiki_page.url} target="_blank" rel="noreferrer">Hearthstone Wiki <ExternalLink size={14} /></a>}{externalLinks.map((item: any, index: number) => <a key={`${item.url}-${index}`} href={item.url} target="_blank" rel="noreferrer">{item.label || item.url} <ExternalLink size={14} /></a>)}</div></div>}
+      </section>}
       {lightboxIndex >= 0 && <ConstructedCardLightbox items={mediaItems} index={lightboxIndex} onClose={() => setLightboxIndex(-1)} onIndexChange={setLightboxIndex} />}
     </article>
   );

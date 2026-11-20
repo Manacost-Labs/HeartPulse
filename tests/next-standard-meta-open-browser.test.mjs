@@ -32,7 +32,11 @@ const slice = (format, paid) => ({
 });
 
 async function startStack() {
+<<<<<<< HEAD
   const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [], protectedDown: false };
+=======
+  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [], protectedQueries: [] };
+>>>>>>> origin/agent/477-standard-meta-wild
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://stack');
     const reader = /(?:^|;\s*)sm_session=reader/.test(request.headers.cookie ?? '');
@@ -49,8 +53,18 @@ async function startStack() {
     if (url.pathname === '/api/standard-meta') {
       if (!reader) return json(401, { error: 'subscription required' });
       state.protectedReads += 1;
+<<<<<<< HEAD
       if (state.protectedDown) return json(503, { error: 'paid source down' });
       return void setTimeout(() => json(200, slice(url.searchParams.get('format') === 'wild' ? 'wild' : 'standard', true)), PROTECTED_DELAY_MS);
+=======
+      state.protectedQueries.push(Object.fromEntries(url.searchParams));
+      // The answer carries the filters it was asked for, as the real route does.
+      const asked = {
+        rank: url.searchParams.get('rank') ?? 'diamond_legend', coin: url.searchParams.get('coin') ?? 'any_player',
+        minGames: Number(url.searchParams.get('min_games') ?? 100), period: url.searchParams.get('period') ?? 'patch_36.6.3',
+      };
+      return void setTimeout(() => json(200, { ...slice(url.searchParams.get('format') === 'wild' ? 'wild' : 'standard', true), ...asked }), PROTECTED_DELAY_MS);
+>>>>>>> origin/agent/477-standard-meta-wild
     }
     if (url.pathname.startsWith('/api/')) return json(401, { error: 'guest' });
     const upstream = http.request(new URL(state.next), { method: request.method, path: request.url, headers: request.headers },
@@ -229,6 +243,7 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     assert.ok(shift < 0.01, `the subscriber page shifted by ${shift.toFixed(4)}`);
     await reader.close();
 
+<<<<<<< HEAD
     // The paid source fails: the open slice stays, a visible message offers a retry, and the retry brings the paid data.
     stack.protectedDown = true;
     const failing = await browser.newPage();
@@ -245,12 +260,46 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     await failing.close();
 
     // A subscriber's filters go with the format switch, in the address of the link.
+=======
+    // A subscriber's filters go with the format switch, both ways: the address of the new page carries them, the paid
+    // request of the new format is sent with them and its answer is what is shown.
+>>>>>>> origin/agent/477-standard-meta-wild
     const filtered = await browser.newPage();
     await filtered.setViewport(DESKTOP);
     await filtered.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
-    await filtered.goto(`${stack.origin}/standard/meta/?rank=legend`, { waitUntil: 'load' });
+    await filtered.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
     await filtered.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
-    assert.equal(await filtered.$eval('.standard-meta__segmented a[href^="/standard/meta/wild/"]', link => link.getAttribute('href')), '/standard/meta/wild/?rank=legend&period=patch_36.6.3');
+    const choose = (label, value) => filtered.evaluate((name, wanted) => {
+      const select = [...document.querySelectorAll('label')].find(node => node.textContent.trim().startsWith(name))?.querySelector('select');
+      if (!select) throw new Error(`no select ${name}`);
+      select.value = wanted;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    }, label, value);
+    await filtered.evaluate(() => [...document.querySelectorAll('fieldset button')].find(button => button.textContent.trim() === 'Легенда').click());
+    await choose('Период', 'past_day');
+    await choose('Очерёдность хода', 'on_coin');
+    await choose('Минимум игр', '500');
+    const FILTERS = { rank: 'legend', coin: 'on_coin', min_games: '500', period: 'past_day' };
+    const lastQuery = () => stack.protectedQueries.at(-1);
+    await filtered.waitForFunction(() => document.body.textContent.includes('77,77'));
+    assert.deepEqual({ rank: lastQuery().rank, coin: lastQuery().coin, min_games: lastQuery().min_games, period: lastQuery().period }, FILTERS,
+      'the paid request of Standard carries the chosen filters');
+    const goTo = async (name, path, archetype) => {
+      const before = stack.protectedQueries.length;
+      await filtered.evaluate(text => [...document.querySelectorAll('a')].find(link => link.textContent.trim().startsWith(text)
+        && link.closest('[aria-label="Фильтры меты"]')).click(), name);
+      await filtered.waitForFunction(location => window.location.pathname === location, { timeout: 15000 }, path);
+      const search = new URLSearchParams(await filtered.evaluate(() => window.location.search));
+      assert.deepEqual(Object.fromEntries(search), FILTERS, `${path} keeps the filters in its address`);
+      await filtered.waitForFunction(text => document.body.textContent.includes(text) && document.body.textContent.includes('77,77'), { timeout: 15000 }, archetype);
+      assert.ok(stack.protectedQueries.length > before, 'the new format asks its own paid slice');
+      const asked = stack.protectedQueries.at(-1);
+      assert.equal(asked.format, path.includes('wild') ? 'wild' : 'standard');
+      assert.deepEqual({ rank: asked.rank, coin: asked.coin, min_games: asked.min_games, period: asked.period }, FILTERS, 'and asks it with the filters');
+      assert.equal(await filtered.$eval('fieldset button[aria-pressed="true"]', node => node.textContent.trim()), 'Легенда', 'the rank is still chosen');
+    };
+    await goTo('Вольный', '/standard/meta/wild/', 'Вольный архетип 1');
+    await goTo('Стандарт', '/standard/meta/', 'Стандартный архетип 1');
     await filtered.close();
   } finally {
     if (browser) await browser.close();

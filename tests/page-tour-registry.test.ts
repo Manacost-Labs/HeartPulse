@@ -88,15 +88,15 @@ const funDecksSource = ['FunDecksPage', 'FunDecksFilters', 'FunDeckFacts']
   .map(name => readFileSync(new URL(`../src/features/${name}.tsx`, import.meta.url), 'utf8')).join('\n');
 const funDecksTour = PAGE_TOURS.find(tour => tour.id === 'standard-fun-decks');
 assert.ok(funDecksTour, 'the fun decks page must have its own contextual tour');
-for (const step of funDecksTour.steps.filter(step => step.target !== 'subscription-paywall')) {
+for (const step of funDecksTour.steps) {
   assert.ok(
     funDecksSource.includes(`'${step.target}'`) || funDecksSource.includes(`"${step.target}"`),
     `standard-fun-decks/${step.id}: the fun decks page must render the stable ${step.target} anchor`,
   );
 }
 assert.ok(
-  funDecksTour.steps.some(step => step.target === 'subscription-paywall'),
-  'the free fun decks tour must explain how to unlock the complete gallery',
+  !funDecksTour.steps.some(step => step.target === 'subscription-paywall'),
+  'the fun decks are open: the tour has no unlock step',
 );
 assert.doesNotMatch(
   matchupTour.steps.find(step => step.id === 'matrix')?.description ?? '',

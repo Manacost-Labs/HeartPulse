@@ -131,7 +131,7 @@ test('an answer that claims statistics access is not used: the page is the seed'
     const response = await fetch(`${next.origin}/standard/cards/standard/CARD_QA_1/`);
     assert.equal(response.status, 200, next.output());
     const html = await response.text();
-    assert.ok(visibleText(html).includes('Механики не указаны'), 'the seed, without the detail');
+    assert.ok(!visibleText(html).includes('Похищение жизни'), 'the seed, without the detail');
     for (const paid of ['71.7171', '59.5959', 'QA_PRIVATE_SCORE', 'Проверочный Зоолок']) assert.ok(!html.includes(paid), `no ${paid}`);
   } finally {
     if (next) await next.close();
@@ -148,6 +148,9 @@ test('a card page without its open detail is still the card, from the seed', asy
     assert.equal(response.status, 200, next.output());
     const text = visibleText(await response.text());
     assert.ok(text.includes('Проверочная карта') && text.includes('Боевой клич: возьмите карту.'), 'the seed facts and rules text');
+    // A section without data is not printed (owner's rule 2026-11-20: no filler at the foot of the page).
+    for (const filler of ['Механики не указаны', 'История изменений не найдена', 'Дополнительные изображения отсутствуют',
+      'Дополнительная информация', 'Галерея · 0']) assert.ok(!text.includes(filler), `no «${filler}»`);
   } finally {
     if (next) await next.close();
     await closeLocal(api.server);
@@ -552,7 +555,7 @@ test('a page of the open layer is the same for a subscriber, whose answers never
   let next;
   try {
     stand.fixture.grant();
-    // A viewer's read of the fun-deck selection carries decks a guest must never see.
+    // A viewer's read of the fun-deck selection carries a deck the anonymous read does not have.
     stand.express.routes['/api/fun-decks'] = request => funDecksPayload(request.headers.cookie
       ? ['PAID_DECK_OLD', 'FREE_DECK_C', 'FREE_DECK_A', 'FREE_DECK_B', 'SUBSCRIBER_ONLY_DECK']
       : ['PAID_DECK_OLDEST', 'PAID_DECK_OLD', 'FREE_DECK_C', 'FREE_DECK_A', 'FREE_DECK_B']);
@@ -571,8 +574,9 @@ test('a page of the open layer is the same for a subscriber, whose answers never
     const guest = await timed(`${next.origin}/standard/fun-decks/`);
     const guestText = visibleText(guest.html);
     assert.equal(guest.response.status, 200);
-    for (const code of ['FREE_DECK_A', 'FREE_DECK_B', 'FREE_DECK_C']) assert.ok(guestText.includes(`Колода ${code}`), code);
-    for (const code of ['SUBSCRIBER_ONLY_DECK', 'PAID_DECK_OLD']) assert.ok(!guestText.includes(code), `${code} stays out of the guest page`);
+    // The selection is open: the guest page lists every deck of the anonymous read, and nothing of the viewer's.
+    for (const code of ['FREE_DECK_A', 'FREE_DECK_B', 'FREE_DECK_C', 'PAID_DECK_OLD', 'PAID_DECK_OLDEST']) assert.ok(guestText.includes(`Колода ${code}`), code);
+    assert.ok(!guestText.includes('SUBSCRIBER_ONLY_DECK'), 'the viewer\'s deck stays out of the guest page');
   } finally {
     await stand.close(next);
   }

@@ -264,7 +264,7 @@ async function inspectCardStatistics(page) {
       controlWidths: controls.map(element => Math.round(rect(element).width)),
       controlTops: controls.map(element => Math.round(rect(element).top)),
       labels: rows.map(row => row.querySelector('dt')?.textContent?.trim()),
-      hints: rows.map(row => row.querySelector('.constructed-cards__stat-hint')?.textContent?.trim() ?? ''),
+      hints: [...block.querySelectorAll('.constructed-card-detail__stats-about dd')].map(hint => hint.textContent?.trim() ?? ''),
       lastValue: rows.at(-1)?.querySelector('.constructed-cards__stat-value')?.textContent ?? '',
       valueFont: value ? getComputedStyle(value).fontFamily : '',
       valueNumerals: value ? getComputedStyle(value).fontVariantNumeric : '',
@@ -290,7 +290,7 @@ function cardStatisticsProblems(state, device) {
     problems.push(`switch and selects differ in height or row (${JSON.stringify({ heights: state.controlHeights, tops: state.controlTops })})`);
   }
   if (state.labels.join('|') !== CARD_STATISTICS_LABELS.join('|')) problems.push(`metric names changed (${state.labels.join('|')})`);
-  if (state.hints.length !== 9 || state.hints.some(hint => hint === '') || new Set(state.hints).size !== 9) problems.push('a metric lacks its own printed explanation');
+  if (state.hints.length !== 9 || state.hints.some(hint => hint === '') || new Set(state.hints).size !== 9) problems.push('a metric lacks its explanation in «Что значат цифры»');
   if (state.lastValue !== '12 400' || state.narrowSpaces) problems.push(`sample size is not set with a no-break space (${JSON.stringify(state.lastValue)})`);
   if (!state.valueFont.includes('Inter') || !state.valueNumerals.includes('tabular-nums')) {
     problems.push(`values are not set in the body face with tabular numerals (${state.valueFont}; ${state.valueNumerals})`);
@@ -715,7 +715,7 @@ function assertLayout(path, layout) {
     const routePath = path.split(' ')[0].replace(/\/$/, '');
     // /legendaries keeps a short banner on a phone (min-height 96px in LegendariesOpenLayer.css, ~98px with
     // its title) so the name, composition and winrate of the first group fit a 390×844 first screen.
-    // /tierlist and /classes do the same (TierListPage.css and ClassesPublicTeaser.css, #410): the open data is the first screen.
+    // /tierlist and /classes do the same (TierListPage.css and ClassesPage.css, #410): the open data is the first screen.
     const expectedHeight = routePath === '/faq' ? (layout.mobile ? 180 : 210)
       : (routePath === '/legendaries' || routePath === '/tierlist') && layout.mobile ? 98
         : routePath === '/classes' && layout.mobile ? 96 : (layout.mobile ? 360 : 320);

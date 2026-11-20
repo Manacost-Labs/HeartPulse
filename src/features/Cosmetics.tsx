@@ -724,9 +724,7 @@ function HeroDetailView({ detail }: { detail: HeroDetail }) {
                   preload="none"
                   src={cosmeticMediaSource(sound.url)}
                   aria-label={`${sound.type}: ${sound.transcript || `дорожка ${index + 1}`}`}
-                >
-                  Ваш браузер не поддерживает аудио.
-                </audio>
+                />
               </article>
             ))}
           </div>

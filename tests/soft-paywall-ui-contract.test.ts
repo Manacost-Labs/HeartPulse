@@ -8,12 +8,11 @@ import {
   DEFAULT_FUN_DECKS_VIEW,
   FUN_DECK_CLASSES,
   FUN_DECK_TAGS,
-  FUN_DECKS_FREE_PREVIEW_COUNT,
   FUN_DECKS_SORTS,
   funDeckHasFewGames,
   funDeckInterval,
   funDeckWhy,
-  funDecksGuestPreview,
+  funDecksOpenPreview,
   orderFunDecks,
   selectFunDecks,
   type FunDeckRow,
@@ -99,18 +98,18 @@ test('while access is checked the placeholder announces it and shows no paid dat
   assert.ok(elements(html).some(element => element.attrs['aria-busy'] === 'true' && element.text === 'Проверяем доступ…'));
 });
 
-test('a guest gets the three newest fun decks', () => {
+test('the open preview carries every deck, the newest first, and the whole summary', () => {
   const deck = (title: string, firstSeenAt: string, funScore: number): FunDeckRow => ({
     title, deckCode: `AAE${title}`, format: 'standard', className: 'MAGE', streamer: null, funScore, maxMetaSimilarity: null,
     nearestArchetype: null, winRate: null, games: null, reasons: [], url: null, firstSeenAt, lastSeenAt: firstSeenAt,
   });
-  const preview = funDecksGuestPreview({
+  const preview = funDecksOpenPreview({
     fetchedAt: null, stats: { total: 5, standard: 5, wild: 0 }, methodology: { detectorVersion: null, minFunScore: 0, maxMetaSimilarity: 1 },
     decks: [deck('Первая', '2026-10-01T00:00:00Z', 90), deck('Вторая', '2026-10-05T00:00:00Z', 10), deck('Третья', '2026-10-03T00:00:00Z', 30),
       deck('Четвёртая', '2026-10-04T00:00:00Z', 20), deck('Пятая', '2026-10-02T00:00:00Z', 80)],
   });
-  assert.deepEqual(preview.decks.map(row => row.title), ['Вторая', 'Четвёртая', 'Третья']);
-  assert.equal(preview.stats.total, 5, 'the summary still describes the whole selection');
+  assert.deepEqual(preview.decks.map(row => row.title), ['Вторая', 'Четвёртая', 'Третья', 'Пятая', 'Первая']);
+  assert.equal(preview.stats.total, 5);
 });
 
 const funDeck = (title: string, extra: Partial<FunDeckRow> = {}): FunDeckRow => ({
@@ -166,7 +165,7 @@ test('the Off-meta tag filters by the deck\'s tags, and a deck without a kind is
   assert.equal(tag?.label, 'Офф-мета');
   const offMeta = funDeck('Забытый', { kind: 'off_meta', why: ['Офф-мета'], tags: ['offmeta'] });
   const view = { ...DEFAULT_FUN_DECKS_VIEW, tags: ['offmeta' as const] };
-  assert.deepEqual(titles(selectFunDecks([...FUN_FIXTURE, offMeta], view, true)), ['Забытый']);
+  assert.deepEqual(titles(selectFunDecks([...FUN_FIXTURE, offMeta], view)), ['Забытый']);
   assert.deepEqual(funDeckWhy(offMeta, ['offmeta']), ['Офф-мета']);
   assert.equal(funDeck('Старый ответ').kind, undefined);
 });
@@ -199,7 +198,7 @@ test('the card prints the interval in whole percent, rounded to the nearest', ()
 });
 
 test('class and tag filters work together with format and search, and a sort still applies', () => {
-  const pick = (patch: Partial<FunDecksView>, access = true) => titles(selectFunDecks(FUN_FIXTURE, { ...DEFAULT_FUN_DECKS_VIEW, ...patch }, access));
+  const pick = (patch: Partial<FunDecksView>) => titles(selectFunDecks(FUN_FIXTURE, { ...DEFAULT_FUN_DECKS_VIEW, ...patch }));
   assert.deepEqual(pick({ classes: ['priest'], tags: ['highlander'], sort: 'reliable' }), ['Рено Жрец', 'Хайлендер Жрец']);
   assert.deepEqual(pick({ classes: ['priest'], tags: ['highlander'], sort: 'reliable', format: 'wild' }), ['Хайлендер Жрец']);
   assert.deepEqual(pick({ classes: ['priest'], tags: ['meme'] }), [], 'no priest is a meme: an empty result, not an error');
@@ -210,14 +209,10 @@ test('class and tag filters work together with format and search, and a sort sti
   assert.deepEqual(pick({ query: 'жрец', classes: ['priest'], format: 'standard' }), ['Рено Жрец']);
 });
 
-test('a guest\'s filters narrow the three open decks and never open another', () => {
-  const guest = (patch: Partial<FunDecksView>) => titles(selectFunDecks(FUN_FIXTURE, { ...DEFAULT_FUN_DECKS_VIEW, ...patch }, false));
-  assert.deepEqual(guest({}), ['Мем Маг', 'Сырный Разбойник', 'Рено Жрец']);
-  assert.deepEqual(guest({ classes: ['priest'] }), ['Рено Жрец'], 'the second priest deck stays behind the subscription');
-  assert.deepEqual(guest({ classes: ['priest'], tags: ['xl'] }), [], 'the xl priest deck is not among the open three');
-  assert.deepEqual(guest({ sort: 'reliable', classes: ['priest'] }), ['Рено Жрец', 'Хайлендер Жрец'],
-    'a sort chooses which three are open, as the fun sort always did: the three most reliable here');
-  assert.deepEqual(guest({ sort: 'reliable', classes: ['mage'] }), [], 'and a filter narrows only those three');
+test('a guest sees the whole selection: a filter only narrows it', () => {
+  const all = titles(selectFunDecks(FUN_FIXTURE, DEFAULT_FUN_DECKS_VIEW));
+  assert.equal(all.length, FUN_FIXTURE.length, 'no deck stays behind the subscription');
+  assert.deepEqual(titles(selectFunDecks(FUN_FIXTURE, { ...DEFAULT_FUN_DECKS_VIEW, classes: ['priest'] })), ['Рено Жрец', 'Хайлендер Жрец'].sort((x, y) => all.indexOf(x) - all.indexOf(y)));
 });
 
 test('the filters and the sort live in the address as a shareable link', () => {
@@ -280,17 +275,12 @@ test('property: each sort puts the larger (or, for distance, the smaller) key fi
   }));
 });
 
-test('property: a filter never adds a deck, and a guest never sees more than the free three', () => {
+test('property: a filter never adds a deck', () => {
   assertProperty(fc.property(uniqueDecks, viewArbitrary, (decks, view) => {
     const everything = { ...DEFAULT_FUN_DECKS_VIEW, format: view.format, sort: view.sort };
-    const subscriber = identities(selectFunDecks(decks, view, true));
-    const open = identities(selectFunDecks(decks, everything, true));
-    assert.ok(subscriber.every(identity => open.includes(identity)), 'class, tag and search only narrow the format\'s decks');
-
-    const guest = identities(selectFunDecks(decks, view, false));
-    const guestOpen = identities(selectFunDecks(decks, everything, false));
-    assert.ok(guest.length <= FUN_DECKS_FREE_PREVIEW_COUNT);
-    assert.ok(guest.every(identity => guestOpen.includes(identity)), 'no filter opens a deck beyond the guest\'s open three');
+    const narrowed = identities(selectFunDecks(decks, view));
+    const inFormat = identities(selectFunDecks(decks, everything));
+    assert.ok(narrowed.every(identity => inFormat.includes(identity)), 'class, tag and search only narrow the format\'s decks');
   }));
 });
 
@@ -336,11 +326,9 @@ test('pages pass the access decision to their gates and reserve the gate height'
   assert.doesNotMatch(catalogDataSource, /hasFullAccess|subscription/, 'public summaries do not depend on entitlements');
   assert.match(archetypesSource, /surface="archetype"/);
   assert.match(archetypesSource, /featuredBuild/);
-  assert.match(funDecksSource, /!hasFullAccess && !accessPending \? \(\s*<PaywallGate/);
-  assert.match(funDecksSource, /providerButtons/);
   assert.match(funDecksSource, /data-tour-id=\{tourAnchor \? 'fun-decks-deck-list'/);
 
-  for (const pageClient of ['StandardMetaPageClient', 'ConstructedArchetypesPageClient', 'FunDecksPageClient']) {
+  for (const pageClient of ['StandardMetaPageClient', 'ConstructedArchetypesPageClient']) {
     const source = read(`../apps/public-web/ui/${pageClient}.tsx`);
     assert.match(source, /hasFullAccess=\{allowed\}/, `${pageClient} must pass the access decision to its page`);
     assert.doesNotMatch(source, /PaywallGate/, `${pageClient} must not replace the page with a full paywall`);

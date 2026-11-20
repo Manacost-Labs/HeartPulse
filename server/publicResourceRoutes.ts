@@ -13,6 +13,13 @@ type PublicResourceSourceKey = keyof typeof PUBLIC_RESOURCE_SOURCES;
 
 const MAX_PUBLIC_RESOURCE_BYTES = 32 * 1024 * 1024;
 const PUBLIC_CACHE_HEADER = 'public, max-age=86400, stale-while-revalidate=604800';
+/**
+ * A resource the source does not have. Pages walk fallback chains of
+ * candidate pictures; a cacheable 404 lets the edge (it honours this header
+ * over its own 200-only rule) and the browser skip the dead candidate for an
+ * hour instead of asking the source again for every visitor.
+ */
+const NOT_FOUND_CACHE_HEADER = 'public, max-age=3600';
 const SOURCE_KEY_PATTERN = /^[a-z][a-z0-9-]{0,31}$/;
 const MAX_PUBLIC_RESOURCE_REDIRECTS = 3;
 
@@ -136,6 +143,11 @@ export function createPublicResourceRouter(options: PublicResourceRouterOptions 
         upstream = null;
       }
       if (!upstream) throw new Error('Public resource exceeded the redirect limit');
+      if (upstream.status === 404 || upstream.status === 410) {
+        await upstream.body?.cancel();
+        response.set('Cache-Control', NOT_FOUND_CACHE_HEADER);
+        return response.status(404).json({ error: 'Ресурс не найден' });
+      }
       const finalUrl = upstream.url || currentUrl.toString();
       const contentType = String(upstream.headers.get('content-type') ?? '').trim().toLowerCase();
       const contentLength = Number(upstream.headers.get('content-length'));

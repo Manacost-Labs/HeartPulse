@@ -38,6 +38,7 @@ export const PUBLIC_DOCUMENT_SOURCES = [
   '/:section(arena|articles|battlegrounds|classes|contests|gallery|leaderboards|legendaries|standard|tierlist|wild)/',
   '/battlegrounds/:tool(strategies|tier-builder|tier-list)/',
   '/:family(cosmetics|guides-archive|heroes|library|streamers)/:path*/',
+  '/reports/meta/:path*/',
   '/standard/:section(archetypes|assemble|cards|fun-decks|matchups|meta|patches|radar|vicious-gold)/:path*/',
 ];
 

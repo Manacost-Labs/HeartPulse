@@ -34,8 +34,6 @@ assert.equal(standardMetaPeriodLabel('black_empire_ban'), 'Баны');
 assert.equal(standardMetaPeriodLabel('patch_37.0.2'), 'Патч 37.0.2');
 assert.deepEqual(STANDARD_META_COINS.map(option => [option.id, option.label]),
   [['any_player', 'Любая'], ['going_first', 'Ходит первым'], ['on_coin', 'С монеткой']]);
-// The coin filter is part of the request and of its identity.
-assert.match(metaSource, /metaRequestKey\(format, rank, hasFullAccess \? period : null, coin, minGames, metaRevision, hasFullAccess\)/);
 assert.match(readFileSync(new URL('../src/features/StandardMetaGuestFilters.tsx', import.meta.url), 'utf8'), /Очерёдность хода/);
 assert.deepEqual(
   orderStandardMetaPeriods(

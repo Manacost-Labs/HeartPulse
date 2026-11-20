@@ -276,7 +276,11 @@ export function SoftPaywallFixture() {
             {page === 'meta' ? (
               <StandardMetaPage hasFullAccess={hasFullAccess} />
             ) : page === 'fun-decks' ? (
+<<<<<<< HEAD
               <FunDecksPage hasFullAccess={hasFullAccess} />
+=======
+              <FunDecksPage />
+>>>>>>> origin/agent/477-standard-meta-wild
             ) : (
               <ConstructedArchetypes
                 currentPath={path}

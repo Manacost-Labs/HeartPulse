@@ -1,18 +1,36 @@
 # Fun decks page
 
 `/standard/fun-decks/` presents selected Standard and Wild decks with format,
-class, type and search filters and four sorts. Its HTML title, description and
-canonical URL are public. The server reads `/api/fun-decks` anonymously
-(`apps/public-web/lib/publicFunDecksPreview.ts`) and renders only the guest
-preview: the summary and the three newest decks, ordered by the same
-`orderFunDecks()` the page uses. The complete selection never enters the
-HTML. The browser still loads `/api/fun-decks` after hydration, behind the
-preview and without a loader, because filters and subscribers need the
-whole list; if that read fails, a guest keeps the preview. The endpoint is
-public and returns the full normalized dataset. The page displays a
-three-deck preview until the `standard` entitlement or administrator role is
-verified, and shows the subscription prompt only after that check. That
-preview is a product presentation rule, not an API access boundary.
+class, type and search filters and four sorts. The whole selection is open to
+every viewer: a guest, a robot and a subscriber get the same HTML. The server
+reads `/api/fun-decks` anonymously
+(`apps/public-web/lib/publicFunDecksPreview.ts`, a field-by-field allowlist in
+`publicFunDecksPreviewData.ts`) and renders every deck, newest first
+(`orderFunDecks()`), as `FunDecksOpenList`: each deck is the archetypes' open
+build (`ArchetypeOpenBuild`: win rate, games, date, the card list, the deck
+code with «Скопировать код») plus the format, class, fun index, distance from
+the meta and reasons, all without scripts. Each card links to
+`/standard/cards/<format>/<id>/` of the deck's own format (Wild decks to
+`wild`). No deck is left out of the list: one whose card list is missing keeps
+its numbers, its code and the copy button. The browser then loads
+`/api/fun-decks` and, once it holds decks, the interactive page (filters,
+three layouts, deck pictures) replaces the list in one render; if that read
+fails the page keeps the decks it has. Nothing in
+the selection is paid, so the page has no subscription offer and no lock.
+
+The public endpoint adds `cards` to every deck: the main deck decoded from
+`deckCode` (`server/funDeckOpenCards.ts`), each line
+`{ id, name, cost, count, hasPage }`. The card catalog of the deck's format
+names the cards and gives `hasPage` (the card page
+`/standard/cards/<format>/<id>/` exists); a card the catalog lacks (a companion
+of a Fabled legendary) is named from the full card dictionary (`cards_ru.json`,
+then HearthstoneJSON) with `hasPage: false`, listed without a link; a card no
+dictionary knows is `id: null, name: null` and shows as «Неизвестная карта»,
+keeping its place and count. A failed catalog read serves the last good
+catalog of that format; with none, or for a code that does not decode, the
+deck has no `cards` but stays in the answer and on the page. The answer carries
+no `candidateSourceId` (an internal source id no page reads; the admin answer
+keeps it).
 
 The Next page uses the existing feature and public API. It remounts the feature
 when the account or entitlement changes so a previous account's expanded view
@@ -56,16 +74,14 @@ no tag matches.
   interval, then the win rate; a deck without it goes last), `distant` (least
   like the meta first). Each key breaks ties by the next; decks equal on all
   of them keep the API's order.
-- **Guests.** The format and the sort pick the decks open to a guest (the first
-  three); class, type and search only narrow those. No filter opens a deck
-  beyond the three, and an empty result says so under the same subscription
-  offer.
+- **Guests.** The same as subscribers: the whole selection. Class, type and
+  search narrow it.
 
 `src/features/funDecksQuery.ts` keeps the state in the address:
 `?format=wild&class=priest,mage&tag=highlander&sort=reliable`. Defaults and
 unknown values are left out, other parameters stay, the search text is not
 kept. The page reads the address after hydration (the server renders the
-defaults) and shows the loader instead of a guest preview while the complete
+defaults) and shows the loader instead of the server list while the complete
 list, which a filtered view needs, is on its way.
 
 ## Off-meta and moderation
@@ -132,10 +148,9 @@ its code is loaded on the first hover. On touch a tap opens the card page
 (`/standard/cards/{format}/{id}/`); tokens have no page and no link, but the
 hover preview works for them too.
 
-A subscriber sees every deck of the filter; there is no «Показать ещё». The
-guest still gets the three-deck preview and the paywall. Each card requests its
-deck (`/api/deck/resolve`) when it comes within about one screen of the
-viewport; the first card does it at once.
+Every viewer sees every deck of the filter; there is no «Показать ещё». Each
+card requests its deck (`/api/deck/resolve`) when it comes within about one
+screen of the viewport; the first card does it at once.
 
 The «Как читаются оценки» block follows the detector in the dataset. The
 numbers come from `methodology` (from the dataset's `filters`:

@@ -34,7 +34,7 @@
       {
         "id": "arena-classes-open-ranking",
         "path": "/classes",
-        "assertions": [{ "selector": ".classes-public-teaser tbody tr", "minCount": 5 }],
+        "assertions": [{ "selector": ".arena-classes-board .arena-class-meter-label", "minCount": 5 }],
         "forbiddenSelectors": [".arena-paywall"]
       },
       {

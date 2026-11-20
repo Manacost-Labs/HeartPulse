@@ -37,16 +37,17 @@ const catalog = {
   format: 'standard', formatLabel: 'Стандарт', patch: '36.6.3', minimumGames: 50,
   updatedAt: '2026-10-03T21:30:00.000Z', coverage: {}, items: [archetype('fixture-a', 9000), archetype('fixture-b', 4000)],
 };
-const funDeck = (code, firstSeenAt) => ({
-  title: `Колода ${code}`, deckCode: code, format: 'Standard', className: 'mage', streamer: null, funScore: 0.7,
+const funDeck = (code, firstSeenAt, format = 'Standard', cards = [{ id: 'FIX_CARD_1', name: 'Фикстурная карта', cost: 1, count: 2, hasPage: true }]) => ({
+  title: `Колода ${code}`, deckCode: code, format, className: 'mage', streamer: null, funScore: 0.7,
   maxMetaSimilarity: 0.3, nearestArchetype: null, winRate: 51, games: 120, reasons: [], url: null,
-  firstSeenAt, lastSeenAt: null,
+  firstSeenAt, lastSeenAt: null, ...(cards ? { cards } : {}),
 });
 const funDecks = {
-  fetchedAt: '2026-10-03T10:00:00.000Z', stats: { total: 5, standard: 5, wild: 0 },
+  fetchedAt: '2026-10-03T10:00:00.000Z', stats: { total: 7, standard: 6, wild: 1 },
   methodology: { detectorVersion: 'v3', minFunScore: 0.55, maxMetaSimilarity: 0.42 },
-  decks: [funDeck('FREE_DECK_C', '2026-09-20'), funDeck('PAID_DECK_OLD', '2026-08-01'), funDeck('FREE_DECK_A', '2026-10-02'),
-    funDeck('FREE_DECK_B', '2026-10-01'), funDeck('PAID_DECK_OLDEST', '2026-07-01')],
+  decks: [funDeck('TOKEN_DECK', '2026-06-01', 'Standard', [{ id: 'TIME_609t1', name: 'Рейнджер-капитан Алерия', cost: 3, count: 1, hasPage: false }, { id: null, name: null, cost: null, count: 1, hasPage: false }]),
+    funDeck('NO_LIST_DECK', '2026-05-01', 'Standard', null), funDeck('FREE_DECK_C', '2026-09-20'), funDeck('OLDER_DECK', '2026-08-01'), funDeck('FREE_DECK_A', '2026-10-02'),
+    funDeck('FREE_DECK_B', '2026-10-01'), funDeck('OLDEST_DECK', '2026-07-01', 'Wild')],
 };
 
 // A value of the meta banner's summary by its visible caption.
@@ -71,7 +72,8 @@ function startLegacy(state) {
       return;
     }
     const payload = path === '/api/auth/me' ? { user: null }
-      : path === '/api/standard-meta/public' ? metaTeaser('patch_36.6.3')
+      : path === '/api/standard-meta/public' ? (url.searchParams.get('format') === 'wild'
+        ? { ...metaTeaser('patch_36.6.3'), format: 'wild', formatLabel: 'Вольный' } : metaTeaser('patch_36.6.3'))
         : path === '/api/constructed-archetypes/teaser' ? catalog
           : path === '/api/fun-decks' ? funDecks
             : null;
@@ -85,6 +87,11 @@ function startLegacy(state) {
     // Latency and stalls apply to server reads only; the browser, through the gateway, is answered at once.
     const serverRead = !browser && /^\/api\/(standard-meta|constructed-archetypes|fun-decks)/.test(url.pathname);
     if (serverRead && state.stall) return;
+    // The source is down but Express still holds a last-good slice: it answers it to a browser and a plain read, and an error to a prerender read.
+    if (serverRead && state.down && url.pathname === '/api/standard-meta/public' && request.headers['x-hearthpulse-prerender']) {
+      response.setHeader('Retry-After', '60');
+      return response.writeHead(503, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end('{"error":"down"}');
+    }
     if (serverRead && state.delay) setTimeout(() => respond(url, response), state.delay);
     else respond(url, response);
   });
@@ -92,7 +99,7 @@ function startLegacy(state) {
 
 test('public previews render on the server and hydrate without a guest data request', async () => {
   assert.equal(existsSync('apps/public-web/.next/BUILD_ID'), true, 'run build:next before browser QA');
-  const state = { reads: [], stall: false, delay: 0 };
+  const state = { reads: [], stall: false, delay: 0, down: false };
   const legacy = startLegacy(state);
   const legacyOrigin = await listen(legacy);
   const next = await startNextServer({ legacyOrigin });
@@ -129,9 +136,19 @@ test('public previews render on the server and hydrate without a guest data requ
     assert.doesNotMatch(archetypesHtml, /PAID_BUILD_CODE/, 'builds are paid data');
 
     const funHtml = await (await fetch(`${origin}/standard/fun-decks/`)).text();
-    assert.equal(funHtml.match(/class="fun-deck-tiles"/g)?.length, 3, 'the default tile view renders the free preview on the server');
-    for (const code of ['FREE_DECK_A', 'FREE_DECK_B', 'FREE_DECK_C']) assert.match(funHtml, new RegExp(code));
-    assert.doesNotMatch(funHtml, /PAID_DECK_/, 'only the free preview of the selection reaches the HTML');
+    assert.equal(funHtml.match(/class="archetype-open-build"/g)?.length, 7, 'the open list holds every deck of the selection on the server');
+    for (const code of ['FREE_DECK_A', 'FREE_DECK_B', 'FREE_DECK_C', 'OLDER_DECK', 'OLDEST_DECK', 'TOKEN_DECK', 'NO_LIST_DECK']) assert.match(funHtml, new RegExp(`<code>${code}</code>`));
+    assert.match(funHtml, /<a href="\/standard\/cards\/standard\/FIX_CARD_1\/">Фикстурная карта<\/a> ×2/, 'with the cards of the deck, linked to the card page of the deck\'s format');
+    assert.match(funHtml, /<a href="\/standard\/cards\/wild\/FIX_CARD_1\/">/, 'a wild deck links to the card pages of Wild');
+    // A card outside the catalog is named without a link, one nobody knows keeps its place, a deck without a list keeps its code.
+    assert.match(funHtml, /<span>Рейнджер-капитан Алерия<\/span>/);
+    assert.doesNotMatch(funHtml, /<a [^>]*TIME_609t1/);
+    assert.match(funHtml, /Неизвестная карта/);
+    const robotHtml = await (await fetch(`${origin}/standard/fun-decks/`, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' } })).text();
+    // Resource hints follow the order the render finishes in, which varies between requests: they are not content.
+    const withoutHints = html => html.replace(/<link rel="preload"[^>]*\/>/g, '');
+    assert.equal(withoutHints(robotHtml), withoutHints(funHtml), 'a robot and a guest get the same HTML');
+    assert.ok(funHtml.indexOf('FREE_DECK_A') < funHtml.indexOf('FREE_DECK_B') && funHtml.indexOf('FREE_DECK_B') < funHtml.indexOf('FREE_DECK_C'), 'the newest first');
 
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
@@ -209,6 +226,23 @@ test('public previews render on the server and hydrate without a guest data requ
     state.stall = false;
     const restored = await (await fetch(`${origin}/standard/meta/`)).text();
     assert.equal(restored.match(/class="standard-meta-card"/g)?.length, 3, 'the earlier copy is served again, with its numbers');
+
+    // The source is down while Express still holds a last-good slice: the warm-up's probe reads it as a prerender read does,
+    // gets the error and skips both meta pages, which keep their earlier copy (no 500, no stale slice in the data cache).
+    await regenerate();
+    for (const path of ['/standard/meta/', '/standard/meta/wild/']) await fetch(`${origin}${path}`);
+    state.down = true;
+    const downAnswer = await (await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).json();
+    for (const path of ['/standard/meta', '/standard/meta/wild']) {
+      assert.ok(downAnswer.skipped.some(item => item.path === path && item.reason === 'source-unavailable'), `${path} is skipped`);
+      assert.ok(!downAnswer.revalidated.includes(path), `${path} is not marked stale`);
+    }
+    for (const path of ['/standard/meta/', '/standard/meta/wild/']) {
+      const response = await fetch(`${origin}${path}`);
+      assert.equal(response.status, 200, `${path} answers while the source is down`);
+      assert.equal((await response.text()).match(/class="standard-meta-card"/g)?.length, 3, `${path} keeps its copy`);
+    }
+    state.down = false;
   } finally {
     if (browser) await browser.close();
     gateway.closeAllConnections();

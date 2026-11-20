@@ -966,6 +966,39 @@
       }
     },
     {
+      "id": "meta-report-archive",
+      "pattern": "/reports/meta",
+      "kind": "listing",
+      "owner": "traditional-data",
+      "indexPolicy": "noindex-follow",
+      "canonicalPolicy": "none",
+      "sitemap": false,
+      "htmlStrategy": "server-ssr",
+      "expectedStatus": 200,
+      "criticality": "P2",
+      "mobileFixture": "meta-report-archive",
+      "entitlement": null
+    },
+    {
+      "id": "meta-report-detail",
+      "pattern": "/reports/meta/:date",
+      "kind": "detail",
+      "owner": "traditional-data",
+      "indexPolicy": "noindex-follow",
+      "canonicalPolicy": "none",
+      "sitemap": false,
+      "htmlStrategy": "server-ssr",
+      "expectedStatus": 200,
+      "criticality": "P2",
+      "mobileFixture": "meta-report-detail",
+      "entitlement": null,
+      "pathParameters": {
+        "date": {
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        }
+      }
+    },
+    {
       "id": "removed-decks",
       "pattern": "/decks/:path*",
       "kind": "legacy",

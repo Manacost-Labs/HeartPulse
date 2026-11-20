@@ -35,6 +35,12 @@
     "tests/next-tierlist-public.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
+    "tests/next-meta-report.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
+    "tests/next-meta-report-browser.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
     "tests/next-assemble-swr-ssr.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
@@ -433,7 +439,9 @@
         "tests/standard-matchups-slice.test.ts",
         "tests/standard-meta-routes.test.ts",
         "tests/patch-notes.test.ts",
+        "tests/patch-notes-last-good.test.ts",
         "tests/meta-report-snapshots.test.ts",
+        "tests/meta-report-api.test.ts",
         "tests/radar.test.ts",
         "tests/leaderboards.test.ts",
         "tests/streamers.test.ts",
@@ -611,6 +619,8 @@
         "tests/next-leaderboards-browser.test.mjs",
         "tests/next-leaderboards-states-browser.test.mjs",
         "tests/next-streamers-browser.test.mjs",
+        "tests/next-meta-report.test.mjs",
+        "tests/next-meta-report-browser.test.mjs",
         "tests/next-bg-tier-list-browser.test.mjs",
         "tests/next-mode-hubs-browser.test.mjs",
         "tests/next-paywall-access-check-browser.test.mjs",

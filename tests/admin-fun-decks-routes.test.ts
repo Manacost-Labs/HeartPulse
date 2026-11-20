@@ -14,6 +14,7 @@ import {
 import { listFunDeckModeration } from '../server/adminFunDeckModerationStore.js';
 import { funDeckWhy } from '../server/funDeckWhy.js';
 import { assertProperty } from './helpers/propertyRuns.js';
+import './fun-deck-open-cards.check.js';
 
 const normalized = normalizeFunDecksPayload({
   source_id: 'hsguru_fun_decks',
