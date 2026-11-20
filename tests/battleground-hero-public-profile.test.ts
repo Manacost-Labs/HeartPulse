@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createHeroProfileLoader, projectBattlegroundHeroProfile } from '../server/battlegroundHeroPublicProfile.ts';
+import { createHeroProfileLoader, heroLibraryUrl, projectBattlegroundHeroProfile } from '../server/battlegroundHeroPublicProfile.ts';
 
 // A library row as `/api/v1/heroes?dbf=` answers it, with a sentinel in every field the open profile must not copy:
 // statistics a library row could carry, and extra fields next to each copied one (a projection
@@ -30,6 +30,8 @@ const row = {
       { date: '2026-01-27', patch: 'Patch 34.4.2.234747', patch_url: 'https://hearthstone.wiki.gg/wiki/Patch_34.4.2.234747',
         items: ['Now has <b>15</b> armor (previously: 10).', 42], author: `${CLOSED}_entry_author` },
       { date: '2020-01-01', items: [], patch_url: 'https://evil.example/patch' },
+      { date: '2019-05-05', patch: 'Patch 14.4', items: ['Added.'], patch_url: 'https://evil.example/patch',
+        wiki_url: 'javascript:alert(1)' },
     ] }],
     gallery: [`${CLOSED}_gallery`],
     hero_skins: [{ cards: [
@@ -67,6 +69,9 @@ test('the open hero profile copies game content by name and nothing closed', () 
     patches: [{ heading: 'Balance changes', entries: [{
       date: '2026-01-27', patch: 'Patch 34.4.2.234747', patch_url: 'https://hearthstone.wiki.gg/wiki/Patch_34.4.2.234747',
       wiki_url: null, items: ['Now has 15 armor (previously: 10).'],
+    }, {
+      // A kept entry drops links to other hosts and other schemes.
+      date: '2019-05-05', patch: 'Patch 14.4', patch_url: null, wiki_url: null, items: ['Added.'],
     }] }],
   });
   assert.equal(JSON.stringify(profile).includes(CLOSED), false, 'no closed field reaches the open profile');
@@ -226,4 +231,19 @@ test('a picture the library names by its own path is resolved against its public
       buddy: { card: { ...row.buddy.card, image_gold: '/uploads/golden/buddy.png' } } }] }), { status: 200 }),
   });
   assert.equal((await load(59807))?.buddy?.imageGold, 'https://hearthpulse.net/api/public-resource/uploads/golden/buddy.png');
+});
+
+test('the hero library URL follows KOLODAHS_API_BASE_URL at call time, not HS_DATA_API_BASE_URL', () => {
+  const saved = { kolodahs: process.env.KOLODAHS_API_BASE_URL, hsData: process.env.HS_DATA_API_BASE_URL };
+  try {
+    process.env.HS_DATA_API_BASE_URL = 'http://127.0.0.1:9';
+    delete process.env.KOLODAHS_API_BASE_URL;
+    assert.equal(heroLibraryUrl(59807), 'https://api.kolodahearthstone.com/api/v1/heroes?dbf=59807');
+    process.env.KOLODAHS_API_BASE_URL = 'https://library.example/api/v1//';
+    assert.equal(heroLibraryUrl('107183'), 'https://library.example/api/v1/heroes?dbf=107183');
+  } finally {
+    for (const [key, value] of [['KOLODAHS_API_BASE_URL', saved.kolodahs], ['HS_DATA_API_BASE_URL', saved.hsData]] as const) {
+      if (value === undefined) delete process.env[key]; else process.env[key] = value;
+    }
+  }
 });
