@@ -901,7 +901,7 @@
       "kind": "detail",
       "owner": "traditional-data",
       "indexPolicy": "noindex-follow",
-      "canonicalPolicy": "self",
+      "canonicalPolicy": "none",
       "sitemap": false,
       "htmlStrategy": "server-ssr",
       "expectedStatus": 200,

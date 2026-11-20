@@ -45,8 +45,8 @@ test('a report prints the snapshot with the change to the previous week of the s
     assert.deepEqual(meta(html, 'description'), ['Мета Hearthstone на 30 ноября 2026: лидер по винрейту — Йогг Воин (60,2%), '
       + 'самый популярный — Зоо Чернокнижник (10,4%). Стандарт, матчапы, классы Арены и герои Полей сражений.']);
     assert.deepEqual(meta(html, 'robots'), ['noindex, follow'], 'reports stay out of the index until SEO-A indexes them');
-    assert.deepEqual([...html.matchAll(/<link rel="canonical" href="([^"]*)"/g)].map(match => match[1]),
-      ['https://hearthpulse.net/reports/meta/2026-11-30/']);
+    assert.deepEqual([...html.matchAll(/<link rel="canonical" href="([^"]*)"/g)].map(match => match[1]), [],
+      'no canonical while the report is noindex (the inventory says none)');
 
     // Under the H1 one line of data: the date of the snapshot and the sources; methodology only in «Об отчёте».
     assert.equal(lead(html), 'Срез 30 ноября 2026 · HSGuru, HSReplay');

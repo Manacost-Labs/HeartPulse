@@ -36,12 +36,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const pathname = reportPath(snapshot.date);
   const policy = await resolvePublicUrlPolicy(pathname, '');
   const title = `${reportTitle(snapshot.date)} | HearthPulse`;
-  const canonical = `https://hearthpulse.net${pathname}`;
+  const url = `https://hearthpulse.net${pathname}`;
   // Early data (a patch younger than 72 hours) keeps a report out of the index even once reports are indexed.
   const robots = policy.indexPolicy === 'index' && view.earlyData ? robotsContent('noindex-follow') : policy.robots;
   return {
-    title: { absolute: title }, description, alternates: { canonical }, robots,
-    openGraph: { type: 'article', url: canonical, siteName: 'HearthPulse', locale: 'ru_RU', title, description,
+    // The canonical comes from the route inventory: none while reports are noindex, self once SEO-A indexes them.
+    title: { absolute: title }, description, robots,
+    ...(policy.canonicalUrl ? { alternates: { canonical: policy.canonicalUrl } } : {}),
+    openGraph: { type: 'article', url, siteName: 'HearthPulse', locale: 'ru_RU', title, description,
       images: [{ url: shareImagePath(), alt: 'HearthPulse — мета-отчёт Hearthstone', width: SHARE_IMAGE_WIDTH, height: SHARE_IMAGE_HEIGHT }] },
   };
 }

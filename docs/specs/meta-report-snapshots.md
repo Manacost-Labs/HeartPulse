@@ -159,8 +159,9 @@ The page copies the snapshot field by field once more
 
 Indexing: both routes are `noindex-follow` and out of the sitemap in
 `src/shared/seo/publicRouteInventory.json`; SEO-A turns them to `index` and
-adds the sitemap segment in its own change. A report sets `canonical` to
-itself; the archive has none while it is noindex. Both build their title and
+adds the sitemap segment in its own change. Neither has a canonical while it
+is noindex (`canonicalPolicy: "none"`); a report gets one to itself when SEO-A
+indexes it. Both build their title and
 description themselves rather than from `config/public-seo-pages.json`: a
 registry page must answer 200 without data, and an empty archive is a 404.
 Once a report is indexable, a patch younger than 72 hours at the snapshot
