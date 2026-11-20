@@ -41,6 +41,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Page({ params }: Props) {
   const [classId, pool] = await Promise.all([classIdOf(params), loadPublicTierlist()]);
+  // Rendering without data throws, as on /tierlist/ (#631): a regeneration then keeps the earlier full copy, and a
+  // first request while the source is down answers an error (noindex) instead of caching a page without cards for
+  // five minutes. The build never renders these pages (`generateStaticParams` is empty); the check is kept for it.
+  if (!pool && process.env.NEXT_PHASE !== 'phase-production-build') {
+    throw new Error('Open Arena tier list unavailable: the class page keeps its earlier copy');
+  }
   const now = Date.now();
   return <>
     <PageJsonLd path={tierlistClassPath(classId)} nodes={tierlistClassStructuredNodes(classId, tierlistClassSeoText(pool, classId, now))}

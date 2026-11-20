@@ -365,6 +365,24 @@ test('/tierlist/ in a browser: cards without JS, the subscriber view with locks 
       assert.deepEqual(errors, [], `${viewport.width}px: no page errors`);
     await page.close();
     }
+
+    // A class page is its class: `?class=` in its address (an old link, a sign-in return) does not switch it after hydration.
+    const conflicting = await browser.newPage();
+    const conflictErrors = [];
+    conflicting.on('pageerror', error => conflictErrors.push(String(error)));
+    await conflicting.goto(`${origin}/tierlist/mage/?class=warrior`, { waitUntil: 'networkidle2' });
+    await conflicting.waitForFunction(() => {
+      const classes = document.querySelector('.arena-tier-classes');
+      return classes !== null && Object.keys(classes).some(key => key.startsWith('__reactFiber'));
+    });
+    await delay(500);
+    assert.equal(await conflicting.$eval('.arena-tier-classes a[aria-current="page"]', link => link.getAttribute('aria-label')), 'Класс mage');
+    assert.deepEqual(await conflicting.$$eval('.tierlist-card-grid .hs-tier-card', items => items.map(item => item.getAttribute('aria-label')).sort()),
+      ['Открыть карту Карта mage-0', 'Открыть карту Карта mage-1', 'Открыть карту Карта mage-2', 'Открыть карту Карта mage-3',
+        'Открыть карту Карта mage-4', 'Открыть карту Карта mage-5', 'Открыть карту Карта mage-6', 'Открыть карту Карта mage-7',
+        'Открыть карту Карта mage-s0', 'Открыть карту Карта mage-s1'], 'the mage cards stay after hydration');
+    assert.deepEqual(conflictErrors, []);
+    await conflicting.close();
   } finally {
     if (browser) await browser.close();
     if (front) { front.closeAllConnections(); await new Promise(done => front.close(done)); }

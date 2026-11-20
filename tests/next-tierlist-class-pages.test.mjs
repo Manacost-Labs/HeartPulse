@@ -19,18 +19,28 @@ const CLOCK_AT = '2027-03-10T09:00:00.000Z';
 // 15:00 in Moscow on 9 March: the day before the clock, so the month is in the title.
 const UPDATED_AT = '2027-03-09T12:00:00.000Z';
 
-function startLegacy() {
+// `state.down`: the open projection fails (Express without a copy). A new `state.generation` builds a new router,
+// so no answer of an earlier generation is cached in Express.
+function startLegacy(state = { down: false, generation: 0 }) {
   const app = express();
   app.get('/api/auth/me', (_request, response) => response.json({ user: null }));
-  app.use('/api', createTierlistRouter({
+  let router = null; let builtFor = -1;
+  const build = () => createTierlistRouter({
     accessGuard: (_request, response) => { response.status(403).json({ error: 'subscription required' }); },
     cache: new Map(),
     resolveSource: () => 'hsreplay',
-    getData: async () => ({ data: { ...buildTierlistFixture(), updatedAt: UPDATED_AT }, etag: '"fixture"', cacheSource: 'origin' }),
+    getData: async () => {
+      if (state.down) throw new Error('origin down');
+      return { data: { ...buildTierlistFixture(), updatedAt: UPDATED_AT }, etag: '"fixture"', cacheSource: 'origin' };
+    },
     present: data => ({ ...data, classPositions: {} }),
     loadFallback: () => null,
     onError: () => undefined,
-  }));
+  });
+  app.use('/api', (request, response, next) => {
+    if (builtFor !== state.generation) { router = build(); builtFor = state.generation; }
+    return router(request, response, next);
+  });
   return app.listen(0, '127.0.0.1');
 }
 
@@ -91,6 +101,61 @@ test('/tierlist/<class>/ renders its class whole on the server, with its own tit
       'rogue', 'shaman', 'warlock', 'warrior', 'neutral'], 'the class choice of /tierlist/ links each class page');
   } finally {
     await next.close();
+    legacy.closeAllConnections();
+    legacy.close();
+  }
+});
+
+// GPT review of #657: a class page never trades a full copy for one without cards. A regeneration while the source
+// is down keeps the earlier copy; a first request while it is down is an error (noindex), not a cached empty page,
+// and the page has its cards again once the source is back.
+test('a class page keeps its last full copy while the source is down, and a cold request recovers with the source', async () => {
+  assert.equal(existsSync('apps/public-web/.next/BUILD_ID'), true, 'run build:next before this test');
+  const state = { down: false, generation: 0 };
+  const legacy = startLegacy(state);
+  await once(legacy, 'listening');
+  const legacyOrigin = `http://127.0.0.1:${legacy.address().port}`;
+  const shiftable = { NODE_OPTIONS: `--require=${resolve('tests/helpers/shiftableClock.cjs')}` };
+  const warm = await startNextServer({ legacyOrigin, env: shiftable });
+  let cold = null;
+  try {
+    const full = await fetch(`${warm.origin}/tierlist/mage/`);
+    assert.equal(full.status, 200);
+    assert.ok((await full.text()).includes('Карта mage-s0'), 'the first copy has the mage cards');
+
+    state.down = true;
+    state.generation = 1;
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      // Every SIGUSR2 moves the server's clock an hour on: the copy is stale and the request regenerates it.
+      process.kill(warm.pid, 'SIGUSR2');
+      const kept = await fetch(`${warm.origin}/tierlist/mage/`);
+      assert.equal(kept.status, 200, `no error while a full copy exists: ${warm.output().slice(-300)}`);
+      assert.ok((await kept.text()).includes('Карта mage-s0'), 'the last full copy stays while the source is down');
+      await delay(300);
+    }
+
+    // A server that never had the page (a restart while the source is down).
+    cold = await startNextServer({ legacyOrigin, env: shiftable });
+    const failed = await fetch(`${cold.origin}/tierlist/warrior/`);
+    assert.equal(failed.status, 500, 'no page without cards is published');
+    const failedHtml = await failed.text();
+    assert.doesNotMatch(failedHtml, /Открыть карту/);
+    assert.match(failedHtml, /<meta name="robots" content="noindex/, 'the error is not indexed');
+
+    state.down = false;
+    state.generation = 2;
+    let recovered = null;
+    for (let attempt = 0; attempt < 40 && recovered?.status !== 200; attempt += 1) {
+      if (attempt > 0) await delay(250);
+      recovered = await fetch(`${cold.origin}/tierlist/warrior/`);
+      if (recovered.status !== 200) await recovered.text();
+    }
+    assert.equal(recovered.status, 200, 'the page renders once the source is back');
+    assert.ok((await recovered.text()).includes('Карта warrior-0'), 'with the warrior cards');
+  } finally {
+    if (cold) await cold.close();
+    await warm.close();
+    legacy.closeAllConnections();
     legacy.close();
   }
 });
