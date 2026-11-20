@@ -25,6 +25,14 @@ const open = async url => {
   await page.waitForNetworkIdle({ idleTime: 500, timeout: 3000 }).catch(() => {});
 };
 const go = query => open(fixture(query));
+// What a reader sees of a subscription offer: its actions by their text, a dialog, the list of what the subscription includes, and the deck titles.
+const visibleOffer = () => page.evaluate(() => ({
+  actions: [...document.querySelectorAll('a, button')].map(node => (node.textContent ?? '').replace(/\s+/g, ' ').trim())
+    .filter(text => /Открыть через (Boosty|Telegram)|Оформить|Открыть доступ|Открыть всю/.test(text)),
+  dialogs: document.querySelectorAll('[role="dialog"]').length,
+  included: document.querySelectorAll('[aria-label="Что входит в подписку"]').length,
+  deckTitles: document.querySelectorAll('#storybook-root article h2').length,
+}));
 
 let browser;
 try {
@@ -100,7 +108,7 @@ try {
   assert.equal(await page.$eval('.fun-decks-tools__sort select', node => node.value), 'newest');
   assert.equal(await page.$eval('.fun-deck-card__identity span strong', node => node.textContent), 'Новая');
   assert.equal(await page.$('.fun-decks-freshness'), null);
-  assert.equal(await page.$$eval('.arena-paywall__overlay, .arena-inline-paywall--meta', nodes => nodes.length), 0, 'the fun decks have no subscription offer');
+  assert.deepEqual(await visibleOffer(), { actions: [], dialogs: 0, included: 0, deckTitles: 6 }, 'a guest sees all six fun decks and no subscription offer');
   for (const anchor of [
     'fun-decks-method',
     'fun-decks-filters',
@@ -177,7 +185,7 @@ try {
   await page.waitForSelector('.fun-deck-card');
   const cards = await funCards();
   assert.equal(cards.length, 6, 'a subscriber sees the same full list as a guest');
-  assert.equal(await page.$$eval('.arena-inline-paywall, .arena-paywall__overlay', nodes => nodes.length), 0, 'and neither of them has a subscription offer');
+  assert.deepEqual(await visibleOffer(), { actions: [], dialogs: 0, included: 0, deckTitles: 6 }, 'and neither of them has a subscription offer');
   assert.deepEqual(cards.map(card => card.title), ['Фановая колода 6', 'Фановая колода 5', 'Фановая колода 4', 'Фановая колода 3', 'Фановая колода 2', 'Фановая колода 1']);
   assert.deepEqual(cards[4], {
     title: 'Фановая колода 2', why: ['Пакет: Рено', 'Хайлендер', 'Далеко от меты'], closest: 'Ближе всего к: Мета 2 · сходство 20%',
@@ -352,12 +360,10 @@ try {
     await page.waitForSelector('[data-tour-id="fun-decks-deck-list"] .deck-list-view');
     const layout = await page.evaluate(() => ({
       overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-      paywalls: document.querySelectorAll('.arena-inline-paywall').length,
-      cardCount: document.querySelectorAll('.fun-deck-card').length,
     }));
+    const offer = await visibleOffer();
     assert.ok(layout.overflow <= 1, `fun deck list overflowed by ${layout.overflow}px at ${width}px`);
-    assert.equal(layout.paywalls, 0, 'the open selection has no subscription offer');
-    assert.equal(layout.cardCount, 6);
+    assert.deepEqual(offer, { actions: [], dialogs: 0, included: 0, deckTitles: 6 }, 'the open selection has no subscription offer');
   }
   await page.screenshot({ path: `${screenshotPrefix}-fun-decks-mobile.png`, fullPage: true });
 
