@@ -12,6 +12,11 @@ third-party data source.
 
 - `/tierlist` owns `тир-лист Арены Hearthstone`, supported by card-tier and
   best-card intent. It does not target Battlegrounds tiers.
+- `/tierlist/<class>/` (11 classes and `/tierlist/neutral/`, #668) owns
+  `тир-лист Арены <класс>` («тир-лист арены маг», «карты Арены для
+  Чернокнижника», «нейтральные карты Арены»): the cards of one class. The hub
+  keeps the whole-pool query and links every class page; the old
+  `/tierlist/?class=<id>` is one 301 to the class page.
 - `/battlegrounds/tier-list` owns `тир-лист Полей сражений Hearthstone`,
   supported by composition, minion, spell and trinket tiers. It does not target
   the builder and does not use the word «герои» (that query belongs to
@@ -62,6 +67,10 @@ pages of the registry share a title, a description or an H1
 - «лучший класс Арены», «винрейт классов Арены»: `/classes`, H1 «Винрейт
   классов на Арене», title `Лучшие классы Арены Hearthstone, {month}`.
 - «тир-лист Арены»: `/tierlist`, H1 «Тир-лист карт Арены Hearthstone».
+- «тир-лист Арены <класс>»: `/tierlist/<class>/`, H1 «Тир-лист карт Арены
+  Hearthstone: <класс>», title `Тир-лист Арены Hearthstone (хс): <класс>,
+  {month}`; «нейтральные карты Арены»: `/tierlist/neutral/`, H1 «Нейтральные
+  карты Арены Hearthstone».
 - «легендарки Арены»: `/legendaries`, H1 «Легендарки Арены Hearthstone».
 - «тир-лист героев Полей сражений», «герои Полей сражений»: `/heroes`, H1
   «Герои Полей сражений», title `Тир-лист героев Полей сражений Hearthstone,
