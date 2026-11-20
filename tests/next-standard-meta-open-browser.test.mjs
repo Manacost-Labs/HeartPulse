@@ -33,14 +33,14 @@ const slice = (format, paid) => ({
 });
 
 async function startStack() {
-  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [], protectedQueries: [], protectedDown: false, protectedDelay: PROTECTED_DELAY_MS, protectedHang: false };
+  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [], protectedQueries: [], protectedDown: false, protectedDelay: PROTECTED_DELAY_MS, protectedHang: false, protectedDenied: 0, statusDelay: 0 };
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://stack');
     const reader = /(?:^|;\s*)sm_session=reader/.test(request.headers.cookie ?? '');
     const json = (status, payload) => response.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store' })
       .end(JSON.stringify(payload));
     if (url.pathname === '/api/auth/me') return json(200, { user: reader ? READER : null });
-    if (url.pathname === '/api/subscription/status') return reader ? json(200, SUBSCRIBED) : json(401, { error: 'guest' });
+    if (url.pathname === '/api/subscription/status') return reader ? void setTimeout(() => json(200, SUBSCRIBED), state.statusDelay) : json(401, { error: 'guest' });
     if (url.pathname === '/api/standard-meta/public') {
       state.publicReads.push(`${url.pathname}${url.search}`);
       state.publicHeaders.push(request.headers['x-hearthpulse-prerender'] ?? null);
@@ -52,6 +52,7 @@ async function startStack() {
       state.protectedReads += 1;
       state.protectedQueries.push(Object.fromEntries(url.searchParams));
       if (state.protectedDown) return json(503, { error: 'paid source down' });
+      if (state.protectedDenied) return json(state.protectedDenied, { error: 'subscription required' });
       // Like the real route: a period or rank it does not serve is refused.
       const askedPeriod = url.searchParams.get('period');
       const askedRank = url.searchParams.get('rank');
@@ -93,6 +94,9 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     assert.equal((bareHtml.match(/class="standard-meta-card"/g) ?? []).length, 8, 'all eight archetypes are in the HTML');
     assert.ok(bareHtml.includes('Стандартный архетип 8') && bareHtml.includes('50%'), 'names and winrates are printed');
     assert.deepEqual(SENTINELS.filter(value => bareHtml.includes(value)), [], 'no sentinel in the HTML a guest gets');
+    // The summary of the open slice is printed in the HTML itself (a value, never a placeholder).
+    assert.match(bareHtml, /Архетипов<\/dt><dd>8<\/dd>/, 'the archetype count is printed');
+    assert.match(bareHtml, /Игр в выборке<\/dt><dd>99(?:[\s\u00a0\u202f]|&nbsp;)000<\/dd>/, 'the games of the slice are printed');
     // The locks stand in their places in the HTML itself (the paid figures of every card, the paid filters), and the page
     // has no subscription block at its end.
     assert.equal((bareHtml.match(/aria-label="Ходы: по подписке/g) ?? []).length, 8, 'a lock for the turns of every card');
@@ -216,6 +220,13 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     await reader.waitForSelector('.standard-meta-card');
     const cardTop = () => reader.$eval('.standard-meta-card:nth-child(4)', card => card.getBoundingClientRect().top + scrollY);
     const before = await cardTop();
+    // The summary keeps the open slice's values while the paid slice loads (no placeholder in between).
+    await reader.evaluate(() => {
+      window.__placeholder = false;
+      const look = () => { if (document.querySelector('.traditional-mode-banner__summary .loading-value')) window.__placeholder = true; };
+      new MutationObserver(look).observe(document.body, { subtree: true, childList: true });
+      look();
+    });
     // The paid slice replaces the open one inside the same page: the same card element, no dimming, no lock on screen.
     await reader.evaluate(() => {
       window.__card = document.querySelector('.standard-meta-card');
@@ -234,6 +245,7 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     assert.equal(await reader.$('[data-locked-filter]'), null, 'no locks for a subscriber');
     assert.equal(await reader.$('[aria-label*="по подписке"]'), null, 'no lock anywhere for a subscriber');
     assert.equal(await reader.evaluate(() => window.__card.isConnected), true, 'the cards are not remounted by the paid data');
+    assert.equal(await reader.evaluate(() => window.__placeholder), false, 'the summary is never a placeholder for a subscriber');
     assert.equal(await reader.evaluate(() => window.__busy), false, 'the page is not dimmed while the paid data loads');
     assert.equal(await reader.evaluate(() => window.__lockSeen), false, 'no lock is visible to a subscriber while the paid data loads');
     assert.equal(await reader.$('[data-testid="arena-paid-offer"]'), null, 'no offer for a subscriber');
@@ -345,6 +357,44 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     assert.equal(await revoked.$$eval('[data-locked-filter]', nodes => nodes.length), 3, 'the paid filters are locks again');
     assert.equal(await revoked.$$eval('.standard-meta-card', cards => cards.length), 8, 'the open slice is what is left');
     await revoked.close();
+
+    // The paid route refuses a subscriber whose slice is loaded (401/403 on the next paid request, no pageshow): from
+    // the answer on, not one frame shows the paid slice, and the page is the guest's, with locks, until it reloads.
+    stack.statusDelay = 1_500; // the access check answers slowly: the page must not wait for it
+    for (const code of [401, 403]) {
+    const refused = await browser.newPage();
+    await refused.setViewport(DESKTOP);
+    await refused.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
+    await refused.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
+    await refused.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+    await refused.evaluate(code => {
+      window.__deniedFrames = 0; window.__denied = false;
+      const nativeFetch = window.fetch.bind(window);
+      window.fetch = async (...args) => {
+        const answer = await nativeFetch(...args);
+        if (answer.status === code && String(args[0]).startsWith('/api/standard-meta?')) window.__denied = true;
+        return answer;
+      };
+      const look = () => {
+        const pressed = document.querySelector('.standard-meta__rank-tabs button[aria-pressed="true"]')?.textContent.trim();
+        if (window.__denied && (/77,77|66,61|7,77 ★/.test(document.body.textContent) || pressed === 'Топ-5000')) window.__deniedFrames += 1;
+      };
+      new MutationObserver(look).observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true });
+      const loop = () => { look(); requestAnimationFrame(loop); };
+      loop();
+    }, code);
+    stack.protectedDenied = code;
+    await refused.evaluate(() => [...document.querySelectorAll('fieldset button')].find(button => button.textContent.trim() === 'Топ-5000').click());
+    await refused.waitForSelector('button[aria-label^="Ходы: по подписке"]', { timeout: 15000 });
+    await new Promise(resolve => setTimeout(resolve, 500));
+    assert.equal(await refused.evaluate(() => window.__denied), true, 'the paid route did refuse');
+    assert.equal(await refused.evaluate(() => window.__deniedFrames), 0, 'no frame shows the paid slice after the refusal');
+    assert.equal(await refused.$eval('.standard-meta__rank-tabs button[aria-pressed="true"]', node => node.textContent.trim()), 'Алмаз — Легенда');
+    assert.equal(await refused.$$eval('[data-locked-filter]', nodes => nodes.length), 3, 'the paid filters are locks');
+    stack.protectedDenied = 0;
+    await refused.close();
+    }
+    stack.statusDelay = 0;
 
     // A subscriber's filters go with the format switch, both ways: the address of the new page carries them, the paid
     // request of the new format is sent with them and its answer is what is shown.

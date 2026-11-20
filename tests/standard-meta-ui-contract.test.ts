@@ -92,9 +92,6 @@ assert.match(metaSource, /const selectedPeriod = \(hasFullAccess \? period : dat
 // period it was read for, otherwise the page resolves the current one itself.
 const teaserSource = readFileSync(new URL('../src/features/standardMetaTeaser.ts', import.meta.url), 'utf8');
 assert.match(teaserSource, /TEASER_SEED_FILTERS = \{ format: 'standard', rank: 'diamond_legend', coin: 'any_player', minGames: 100 \} as const/);
-// Until a payload resolves the summary shows a value placeholder, never a fake zero.
-assert.match(metaSource, /const summaryReady = hasPayload;/);
-assert.match(metaSource, /<MetaSummary data=\{summaryReady \? data : null\}/);
 assert.match(metaSource, /<dd>\{data \? data\.items\.length : <LoadingValue \/>\}<\/dd>/);
 assert.match(metaSource, /\{loading && !hasPayload && \(\s*<AsyncSurfaceState\s*variant="loading"/);
 // Without a server-rendered teaser only a browser holding a session waits for
