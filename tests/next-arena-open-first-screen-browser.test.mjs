@@ -10,7 +10,7 @@ import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 
 // /tierlist/ and /classes/ in a real browser against an Express stub (E21 R6, #410, #462): a guest gets the
 // subscriber's view on the open data (on /tierlist/ the same TierList), with locks in place of the paid values
-// and no gate over it; a lock opens the subscription offer and the class stays in the address; a subscriber's
+// and no gate over it; a class is a link to its page (#617), a lock opens the subscription offer; a subscriber's
 // view switches to the protected data only once it has arrived, without a duplicate and without a layout shift. The protected routes of
 // the stub carry the sentinels, so they appear on a page only for a subscriber.
 
@@ -171,19 +171,21 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
       assert.match(geometry.badge, /^\/tier-marks\/[sabcdefu]-80\.webp$/, 'tiers use the painted marks');
       assert.ok(await shift(page) < 0.01, `${viewport.width}px: the guest page shifted by ${await shift(page)}: ${await shiftSources(page)}`);
 
-      // Choosing a class writes it to the address; a lock opens the offer.
-      await page.click('.arena-tier-classes button[aria-label="Маг"]');
-      assert.match(await page.evaluate(() => location.search), /class=mage/);
+      // Choosing a class opens its page (#617), the class whole; a lock opens the offer there.
+      await Promise.all([page.waitForNavigation({ waitUntil: 'load' }), page.click('.arena-tier-classes a[aria-label="Маг"]')]);
+      assert.equal(await page.evaluate(() => location.pathname), '/tierlist/mage/');
+      await page.waitForSelector('.tierlist-card-grid .hs-tier-card');
+      assert.equal(await page.$eval('.arena-tier-classes a[aria-current="page"]', link => link.getAttribute('aria-label')), 'Маг');
       await page.click('.source-toggle-button[data-locked="true"]');
       await page.waitForSelector('[data-testid="arena-paid-offer"]');
       const login = await page.$eval('[data-testid="arena-paid-offer"] a[href^="/?login"]', link => link.getAttribute('href'));
-      assert.equal(new URLSearchParams(login.split('?')[1]).get('returnTo'), '/tierlist/?class=mage', 'sign-in returns to the class');
+      assert.equal(new URLSearchParams(login.split('?')[1]).get('returnTo'), '/tierlist/mage/', 'sign-in returns to the class page');
       assert.deepEqual(errors, []);
       await page.close();
 
       // A guest who opens the address with a class gets that class.
       const linked = await open(browser, stack.origin, '/tierlist/?class=druid', { viewport });
-      await linked.page.waitForFunction(() => document.querySelector('.arena-tier-classes button[aria-pressed="true"]')?.getAttribute('aria-label') === 'Друид', { timeout: 15000 });
+      await linked.page.waitForFunction(() => document.querySelector('.arena-tier-classes a[aria-current="page"]')?.getAttribute('aria-label') === 'Друид', { timeout: 15000 });
       await linked.page.close();
 
       // The classes.
@@ -215,7 +217,7 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
       await page.waitForFunction(() => !document.querySelector('[data-locked], .arena-tier-select--locked'), { timeout: 15000 });
       await page.waitForFunction(() => !document.querySelector('.card-modal-lightbox'), { timeout: 5000 });
       assert.equal(await page.$('.arena-paywall'), null);
-      assert.equal(await page.$eval('.arena-tier-classes button[aria-pressed="true"]', button => button.getAttribute('aria-label')), 'Маг',
+      assert.equal(await page.$eval('.arena-tier-classes a[aria-current="page"]', link => link.getAttribute('aria-label')), 'Маг',
         'the class stays when the protected data arrives');
       await delay(600);
       assert.ok(await shift(page) < 0.01, `${viewport.width}px: the subscriber's swap shifted the page by ${await shift(page)}: ${await shiftSources(page)}`);
@@ -254,7 +256,7 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
 
     // A subscriber who signed in with a class in the address gets that class once the protected data is in.
     const signedIn = await open(browser, stack.origin, '/tierlist/?class=mage', { session: 'reader', wait: '.arena-tier-classes' });
-    await signedIn.page.waitForFunction(() => document.querySelector('.arena-tier-classes button[aria-pressed="true"]')?.getAttribute('aria-label') === 'Маг',
+    await signedIn.page.waitForFunction(() => document.querySelector('.arena-tier-classes a[aria-current="page"]')?.getAttribute('aria-label') === 'Маг',
       { timeout: 15000 });
     assert.deepEqual(signedIn.errors, []);
     await signedIn.page.close();
