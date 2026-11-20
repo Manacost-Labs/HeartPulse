@@ -5,6 +5,7 @@ export {
   validateConstructedCardStatsDataset,
 } from './catalogStatistics.js';
 export { createConstructedCardCatalogReaders, constructedCatalogReaderForAccess } from './catalogReaders.js';
+export { BoundedCache } from './boundedCache.js';
 export type {
   ConstructedCardStatisticsSource,
   ConstructedCardWithStatistics,

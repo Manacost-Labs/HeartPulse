@@ -4,6 +4,8 @@ export function publicWebOwner(pathname, enabled = false, method = 'GET', pagesE
   if (pathname.startsWith('/_next/') || /^\/health\/next\/?$/.test(pathname)) return 'next';
   if (pagesEnabled && pathname === '/') return 'next';
   if (pagesEnabled && /^\/admin(?:\/.*)?$/.test(pathname)) return 'next';
+  // Mode hubs: the exact section roots only; the pages below them keep their own rules.
+  if (pagesEnabled && /^\/(?:standard|arena|battlegrounds|wild)\/?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/deck-builder(?:\/.*)?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/standard\/deck-builder(?:\/.*)?$/.test(pathname)) return 'next';
   if (pagesEnabled && /^\/archetypes(?:\/.*)?$/.test(pathname)) return 'next';
