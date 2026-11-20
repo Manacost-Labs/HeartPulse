@@ -22,8 +22,8 @@ base; the other bases carry `donors: null` and `donorsTotal`.
   with `Retry-After: 30` and `no-store`, unless a previous answer is cached,
   which is then served. Once the ten minutes pass, the expired answer is served
   at once and renewed in the background (one read per key at a time; a failed
-  renewal keeps the old answer). Until the API ships the route answers 404 or 503 and
-  the page does not depend on it.
+  renewal keeps the old answer). Until the API ships the route answers 404 or
+  503 and the page does not depend on it.
 - The upstream body is untrusted. Ids match `[A-Za-z0-9_]{2,80}` and dbf ids are
   safe integers (otherwise the row is dropped); percentages are finite numbers
   in 0–100 (otherwise `null`); `half` is `effect` or `trigger`; `source_url`
