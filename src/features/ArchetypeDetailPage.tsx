@@ -129,10 +129,9 @@ export function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess,
   // The paid builds replace the open ones once they are there; a failed or empty paid answer keeps the open ones.
   const paidBuilds = openLayer && paidReady && !core.error && item.builds.length > 0 ? item.builds : null;
   const galleryBuilds = paidBuilds ?? (openBuilds?.builds ?? []).map(openBuildAsBuild);
-  // Locks stand until access is granted (a remembered subscriber is granted at once); a granted viewer sees the loading state.
+  // Locks stand until access is granted (a remembered subscriber at once); while locked no matchups are read (no cached ones).
   const locked = Boolean(openLayer && !fullAccess);
   const pending = Boolean(openLayer && fullAccess && core.loading);
-  // While locked the comparison reads no matchups: a lapsed subscriber's own cached ones would show instead of the lock.
   const openRadar = openLayer ? <ArchetypeRadarSection item={item} viewerId={locked ? undefined : viewerId(paywall.authUser)}
     matchupLock={locked ? <PaidMetricLock label="Очный матчап" closed="paywalled-archetype" /> : undefined} /> : null;
 
