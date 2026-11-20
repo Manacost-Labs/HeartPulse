@@ -41,16 +41,18 @@ function adminShellAssets(assets) {
 
 // Guests on the Battlegrounds routes see only the gate: the paid views and
 // their stylesheet are lazy assets that load once access is confirmed.
-const PAID_BATTLEGROUNDS_MARKERS = { js: ['bg-heroes-page', 'bg-library-page'], css: ['.bg-hero-ledger'] };
+// The library's paid view is its card page (the class list of `DetailPage`; its skeleton has another one): the
+// listing view is shared with guests.
+const PAID_BATTLEGROUNDS_MARKERS = { js: ['bg-heroes-page', 'bg-library-detail-page space-y-6'], css: ['.bg-hero-ledger'] };
 // /heroes/ renders the subscriber's hero ranking for everyone (#575: the same view for a guest and a subscriber),
 // so its list and stylesheet belong to the page; the subscriber-only module with the live-data loaders (named by
-// its error text) and the library view must still load only once access is confirmed.
-const PAID_HEROES_MARKERS = { js: ['API героев временно недоступен', 'bg-library-page'], css: [] };
+// its error text) and the library's card page must still load only once access is confirmed.
+const PAID_HEROES_MARKERS = { js: ['API героев временно недоступен', 'bg-library-detail-page space-y-6'], css: [] };
 const PAID_BATTLEGROUNDS_ROUTES = ['/heroes/', '/library/', '/battlegrounds/tier-builder/',
   '/battlegrounds/strategies/', '/battlegrounds/tier-list/'];
-// The tier list's guest view is the subscriber's tier list (same component, open data): it shares the Battlegrounds
-// stylesheet with the paid views, so only the paid views' scripts are checked there.
-const SHARED_SKIN_ROUTES = new Set(['/battlegrounds/tier-list/']);
+// The guest views of the tier list and of the library are the subscriber's views (same component, open data): they
+// share the Battlegrounds stylesheet with the paid views, so only the paid views' scripts are checked there.
+const SHARED_SKIN_ROUTES = new Set(['/battlegrounds/tier-list/', '/library/']);
 function paidBattlegroundsAssets(assets, path) {
   const markers = path === '/heroes/' ? PAID_HEROES_MARKERS : PAID_BATTLEGROUNDS_MARKERS;
   return (SHARED_SKIN_ROUTES.has(path) ? ['js'] : ['js', 'css']).flatMap(kind => assets[kind].filter(file => {

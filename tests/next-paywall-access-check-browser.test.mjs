@@ -403,14 +403,14 @@ test('the library keeps its open layer until the paid view has loaded, without a
   legacy.use(createBattlegroundLibrarySeoRouter({ fetchImpl: libraryFixtureFetch, auxiliaryCatalogBaseUrl: 'https://api.example.test/api/v1', onError: () => undefined }));
   legacy.use((_request, response) => response.status(401).end());
   const legacyServer = legacy.listen(0, '127.0.0.1');
-  let next; let gateway; let browser;
+  let next; let gateway; let browser; let front;
   try {
     await new Promise(done => legacyServer.once('listening', done));
     next = await startNextServer({ legacyOrigin: `http://127.0.0.1:${legacyServer.address().port}`,
       env: { NODE_OPTIONS: `--require=${resolve('tests/helpers/shiftableClock.cjs')}` } });
     gateway = await startGateway(next.origin);
     gateway.server.removeAllListeners('request');
-    const front = http.createServer((request, response) => {
+    front = http.createServer((request, response) => {
       const subscriber = /(?:^|;\s*)pending_reader=1/.test(request.headers.cookie ?? '');
       const json = payload => response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(payload));
       if (request.url === '/api/auth/me') return void setTimeout(() => json({ user: subscriber ? SUBSCRIBER : null }), SESSION_DELAY_MS);
@@ -430,7 +430,7 @@ test('the library keeps its open layer until the paid view has loaded, without a
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
     const pages = [
-      ['/library/minions/', '.bg-library-public tbody tr', 4, '.bg-library-locks button'],
+      ['/library/minions/', '[data-library-card-tile]', 4, '.bg-library-control-locked'],
       [`/library/minions/${librarySlug('Первый зверь')}-1001/`, '#card-facts dt', 5, '.bg-library-locks button'],
     ];
     for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true, hasTouch: true }]) {
@@ -438,6 +438,7 @@ test('the library keeps its open layer until the paid view has loaded, without a
         for (const subscriber of [false, true]) {
           const page = await browser.newPage();
           await page.setViewport(viewport);
+          // The browser keeps the cookie between pages: a guest page must not inherit the previous subscriber's.
           if (subscriber) await page.setCookie({ name: 'pending_reader', value: '1', url: frontOrigin });
           else await page.deleteCookie({ name: 'pending_reader', url: frontOrigin });
           await page.evaluateOnNewDocument(() => {
@@ -446,19 +447,21 @@ test('the library keeps its open layer until the paid view has loaded, without a
               for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.__layoutShifts.push(entry.value);
             }).observe({ type: 'layout-shift', buffered: true });
           });
-          // The paid view's chunk arrives late: the script that holds the library view (found by a string only it has) waits.
+          // The paid view's chunk arrives late: the script that holds the library view (found by a string only it has: the
+          // class list of its card page; the listing view itself is in every visitor's page) waits.
           let held = 0;
           await page.setRequestInterception(true);
           page.on('request', request => {
             if (!subscriber || request.resourceType() !== 'script') return void request.continue().catch(() => {});
             void fetch(request.url()).then(async answer => {
               const body = await answer.text();
-              if (body.includes('Удаленные квесты из прошлых пулов Полей сражений')) { held += 1; await delay(4000); }
+              if (body.includes('bg-library-detail-page space-y-6')) { held += 1; await delay(4000); }
               await request.respond({ status: 200, contentType: 'application/javascript', body });
             }).catch(() => request.continue().catch(() => {}));
           });
           await page.goto(`${frontOrigin}${path}`, { waitUntil: 'domcontentloaded' });
-          const count = () => page.evaluate(selector => document.querySelectorAll(selector).length, openSelector);
+          // The open layer outside the paid view (the listing's paid view shows the same tiles, seeded with the open cards).
+          const count = () => page.evaluate(selector => [...document.querySelectorAll(selector)].filter(node => !node.closest('.arena-paid-view')).length, openSelector);
           assert.equal(await count(), openCount, `${path}: the open layer is in the first paint`);
           assert.equal(await page.$('.arena-paywall-pending'), null, 'no placeholder while access is checked');
           assert.equal(await page.$('.arena-paywall'), null, 'no gate for a visitor of an open page');
@@ -481,8 +484,9 @@ test('the library keeps its open layer until the paid view has loaded, without a
         }
       }
     }
-    await closeLocal(front);
   } finally {
+    // The proxy is closed even when an assertion fails, or the test file hangs until the CI timeout.
+    if (front) await closeLocal(front);
     if (browser) await browser.close();
     if (gateway) await closeLocal(gateway.server);
     if (next) await next.close();
@@ -544,6 +548,7 @@ test('the builds pages show the open list without a placeholder and keep it unti
         for (const subscriber of [false, true]) {
           const page = await browser.newPage();
           await page.setViewport(viewport);
+          // The browser keeps the cookie between pages: a guest page must not inherit the previous subscriber's.
           if (subscriber) await page.setCookie({ name: 'pending_reader', value: '1', url: frontOrigin });
           else await page.deleteCookie({ name: 'pending_reader', url: frontOrigin });
           await page.evaluateOnNewDocument(() => {

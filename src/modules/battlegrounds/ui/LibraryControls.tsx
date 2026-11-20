@@ -1,5 +1,5 @@
 import React from 'react';
-import { ChevronDown, Search, Users, X } from 'lucide-react';
+import { ChevronDown, LockKeyhole, Search, Users, X } from 'lucide-react';
 import { battlegroundMinionIconBySlug } from '../model/minionTypeIcons';
 
 type Option = { value: string; label: string; disabled?: boolean };
@@ -17,7 +17,21 @@ export type LibraryControlsProps = {
   duos: boolean; onDuos: () => void;
   selections: FilterSelection[]; onReset: () => void;
   resultCount: number; totalCount: number;
+  /**
+   * A viewer without access: the archive and the mechanic filters stay in place with a lock, a press calls `onOpen`
+   * (the host shows its offer, whose state is `offerOpen`); `className` marks them as the closed part of the page.
+   */
+  locked?: { onOpen: () => void; offerOpen: boolean; className: string };
 };
+
+const QUICK_MECHANIC_LABELS = [...QUICK_MECHANICS];
+
+function LockedField({ label, value, locked }: { label: string; value: string; locked: NonNullable<LibraryControlsProps['locked']> }) {
+  return <button type="button" className={`bg-library-control-select bg-library-control-locked ${locked.className}`}
+    aria-expanded={locked.offerOpen} onClick={locked.onOpen}>
+    <span>{label}</span><b>{value}<LockKeyhole size={15} aria-hidden="true" /></b><span className="sr-only"> — по подписке</span>
+  </button>;
+}
 
 function SelectionRow({ label, children }: { label: string; children: React.ReactNode }) {
   return <fieldset className="bg-library-control-row"><legend>{label}</legend><div>{children}</div></fieldset>;
@@ -45,7 +59,9 @@ export function LibraryControls(props: LibraryControlsProps) {
       <img className="bg-library-catalog-seal" src="/bg-library-catalog-seal-v1.svg" alt="" width={48} height={48} />
       <div className="bg-library-catalog-selects">
         <CatalogSelect label="Раздел" value={props.section} options={props.sections} onChange={props.onSection} />
-        <CatalogSelect label="Пул" value={props.pool} options={props.pools} onChange={props.onPool} />
+        {props.locked
+          ? <LockedField label="Пул" value="Актуальный пул · архив по подписке" locked={props.locked} />
+          : <CatalogSelect label="Пул" value={props.pool} options={props.pools} onChange={props.onPool} />}
       </div>
       <p role="status" aria-live="polite">{props.resultCount.toLocaleString('ru-RU')} найдено · {props.totalCount.toLocaleString('ru-RU')} загружено</p>
     </div>
@@ -75,11 +91,19 @@ export function LibraryControls(props: LibraryControlsProps) {
           aria-hidden={advancedCount === 0} aria-label={advancedCount > 0 ? `Активных дополнительных фильтров: ${advancedCount}` : undefined}>{advancedCount || ''}</span>
         <ChevronDown className="bg-library-advanced-chevron" size={16} aria-hidden="true" /></summary>
       <div className="bg-library-control-advanced-fields">
-        <CatalogSelect label="Механика" value={props.mechanic} options={[{ value: 'ALL', label: 'Все механики' }, ...props.mechanics.map(([value, label]) => ({ value, label }))]} onChange={props.onMechanic} />
+        {props.locked
+          ? <LockedField label="Механика" value="Все механики" locked={props.locked} />
+          : <CatalogSelect label="Механика" value={props.mechanic} options={[{ value: 'ALL', label: 'Все механики' }, ...props.mechanics.map(([value, label]) => ({ value, label }))]} onChange={props.onMechanic} />}
         {props.groups.length > 1 && <CatalogSelect label="Группа" value={props.group} options={[{ value: 'ALL', label: 'Все группы' }, ...props.groups.map(([value, label]) => ({ value, label }))]} onChange={props.onGroup} />}
         <label className="bg-library-control-duos"><input type="checkbox" checked={props.duos} onChange={props.onDuos} /><Users size={18} aria-hidden="true" /><span>Показывать карты Duo</span></label>
       </div>
-      {quickMechanics.length > 0 && <div className="bg-library-quick-mechanics" aria-label="Быстрый выбор механики">
+      {props.locked && props.section === 'minion' && <div className="bg-library-quick-mechanics" aria-label="Быстрый выбор механики">
+        {QUICK_MECHANIC_LABELS.map(label => <button key={label} type="button" className={`bg-library-choice bg-library-choice--locked ${props.locked?.className}`}
+          aria-pressed={false} aria-expanded={props.locked?.offerOpen} onClick={props.locked?.onOpen}>
+          <LockKeyhole size={13} aria-hidden="true" />{label}<span className="sr-only"> — по подписке</span>
+        </button>)}
+      </div>}
+      {!props.locked && quickMechanics.length > 0 && <div className="bg-library-quick-mechanics" aria-label="Быстрый выбор механики">
         {quickMechanics.map(([value, label]) =>
           <Choice key={value} active={props.mechanic === value} onClick={() => props.onMechanic(props.mechanic === value ? 'ALL' : value)}>{label}</Choice>)}
       </div>}

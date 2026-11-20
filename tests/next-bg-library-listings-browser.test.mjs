@@ -15,7 +15,8 @@ import { fetchImpl } from './helpers/battlegroundLibraryOpenFixture.ts';
 import './next-library-open.check.mjs';
 
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
-// Current-pool listings carry the open list; the archive keeps the gate (no open listing there).
+// Current-pool listings carry the subscriber's listing view on the open cards; the archive keeps the gate.
+const PIXEL = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
 const listings = [
   ['/library/', 'Библиотека Полей сражений', true],
   ['/library/minions/', 'Существа Полей сражений', true],
@@ -45,6 +46,8 @@ test('Next Battleground library listings preserve anonymous SEO without private 
     return next();
   });
   legacyApp.use(createBattlegroundLibrarySeoRouter({ fetchImpl, auxiliaryCatalogBaseUrl: 'https://api.example.test/api/v1', onError: () => undefined }));
+  // The card pictures of the tiles (the image proxy is not under test here).
+  legacyApp.use('/api/public-resource', (_request, response) => response.type('png').send(PIXEL));
   legacyApp.use('/api', (_request, response) => response.status(401).json({ error: 'guest' }));
   legacyApp.use((_request, response) => response.status(204).end());
   const legacy = http.createServer(legacyApp);
@@ -81,7 +84,7 @@ test('Next Battleground library listings preserve anonymous SEO without private 
           main: document.querySelectorAll('main').length,
           overflow: document.documentElement.scrollWidth > innerWidth,
           gate: document.body.textContent.includes('доступна подписчикам'),
-          openLinks: document.querySelectorAll('.bg-library-public a[href^="/library/"]').length,
+          openLinks: document.querySelectorAll('[data-library-card-tile][href^="/library/"], .bg-library-public a[href^="/library/"]').length,
           closedPart: Boolean(document.querySelector('.paywalled-library')),
           violations: (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } }))
             .violations.map(violation => violation.id),

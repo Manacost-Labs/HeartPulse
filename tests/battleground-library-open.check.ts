@@ -10,6 +10,7 @@ import { projectPublicBattlegroundLibraryCard } from '../server/battlegroundLibr
 import { countLibraryCardOwnFacts, isIndexableBattlegroundLibraryCard } from '../shared/battlegroundLibraryIndexing.js';
 import { libraryCardIndexingFacts as pageFacts, publicBattlegroundLibraryCard } from '../apps/public-web/lib/publicBattlegroundLibraryCardData.js';
 import { parsePublicLibraryListing } from '../apps/public-web/lib/publicBattlegroundLibraryListingData.js';
+import { openLibraryCards, openLibraryPayload, printedOpenLibraryItems } from '../apps/public-web/lib/openBattlegroundLibrary.js';
 import { encodePublicProjectionList } from '../apps/public-web/lib/publicProjectionHeader.js';
 import { catalogs, CLOSED, fetchImpl, leaks, slug, state, statsPayload } from './helpers/battlegroundLibraryOpenFixture.js';
 
@@ -62,6 +63,8 @@ try {
   assert.deepEqual(body.items.find((item: { dbfId: number }) => item.dbfId === 1001), {
     dbfId: 1001, name: 'Первый зверь', typeName: 'Существо', path: `/library/minions/${slug('Первый зверь')}-1001/`, tavernTier: 2, group: 'Зверь', attack: 3, health: 4,
     stats: { avgPlacementWith: 3.9, popularity: 7.5, gamesWith: 900 },
+    // The facts of the card's tile: the catalog id names its pictures; a golden picture, a rating and the Duos mark only when known.
+    cardId: 'BG_T1001', nameEn: 'Первый зверь EN',
   });
   assert.equal(body.items.find((item: { dbfId: number }) => item.dbfId === 1004).stats, undefined, 'below the sample: no figures');
   assert.deepEqual(body.slice, { mmr: 'TOP_50_PERCENT', source: 'HSReplay', updatedAt: '2026-11-19T02:45:13.000Z' });
@@ -188,7 +191,36 @@ try {
   assert.notDeepEqual(leaks(JSON.stringify(dirtyListing)), []);
   const parsedListing = parsePublicLibraryListing(dirtyListing, 'minions')!;
   assert.deepEqual(leaks(JSON.stringify(parsedListing)), []);
-  assert.deepEqual(Object.keys(parsedListing.items.find(item => item.stats)!).sort(), ['attack', 'dbfId', 'group', 'health', 'name', 'path', 'stats', 'tavernTier', 'typeName']);
+  assert.deepEqual(Object.keys(parsedListing.items.find(item => item.stats)!).sort(),
+    ['attack', 'cardId', 'dbfId', 'duosOnly', 'golden', 'group', 'health', 'name', 'nameEn', 'path', 'stats', 'tavernTier', 'tier', 'typeName']);
+  // The tile facts are checked too: an id or a picture path that could leave the catalog is dropped.
+  const hostile = parsePublicLibraryListing({ ...dirtyListing, items: [{ ...dirtyListing.items[0], cardId: 'X"><script>', golden: 'golden/../../x.png',
+    nameEn: 'A', tier: 'S', duosOnly: 'yes' }] }, 'minions')!;
+  assert.deepEqual([hostile.items[0].cardId, hostile.items[0].golden, hostile.items[0].tier, hostile.items[0].duosOnly], [null, null, 'S', false]);
+
+  // 6b. The open listing as the subscriber's listing view reads it: the client gets the tile facts only (no statistics,
+  // no paths), Duos-only cards are hidden like for a subscriber, and the JSON-LD names exactly the printed first page.
+  const tiles = (count: number, extra: (index: number) => object) => ({ kind: 'minions', slice: null, items: Array.from({ length: count }, (_value, index) => ({
+    dbfId: 500 + index, name: `Карта ${String(index).padStart(2, '0')}`, typeName: 'Существо', path: `/library/minions/karta-${500 + index}/`,
+    tavernTier: 1 + (index % 3), group: 'Зверь', attack: 1, health: 1, cardId: `BG_X${index}`, ...extra(index),
+  })) });
+  const fortyCards = parsePublicLibraryListing(tiles(40, index => index < 2 ? { duosOnly: true } : index === 2 ? { golden: 'golden/BG_X2-ab.png' } : {}), 'minions')!;
+  const payload = openLibraryPayload(fortyCards);
+  assert.deepEqual(Object.keys(payload.items[0]).sort(), ['cardId', 'dbfId', 'duosOnly', 'group', 'name', 'tavernTier']);
+  const cards = openLibraryCards(payload);
+  const golden = cards.find(card => card.dbf === 502)!;
+  assert.deepEqual(golden.images, { card: '/api/public-resource/db/uploads/cards/BG_X2.png', golden: '/api/public-resource/db/uploads/golden/BG_X2-ab.png' });
+  assert.deepEqual(golden.creature_type, { slug: 'beast', name_ru: 'Зверь' }, 'the tribe gets the slug of its icon');
+  const printed = printedOpenLibraryItems(fortyCards);
+  assert.equal(printed.length, 36, 'the first page of the listing');
+  assert.ok(printed.every(item => item.dbfId !== 500 && item.dbfId !== 501), 'Duos-only cards are hidden by default');
+  assert.deepEqual(printed.slice(0, 3).map(item => item.tavernTier), [1, 1, 1], 'by tavern tier first');
+  const prizes = parsePublicLibraryListing({ kind: 'darkmoon-prizes', items: [
+    { dbfId: 9001, name: 'Приз Б', typeName: 'Приз', path: '/library/darkmoon-prizes/priz-b-9001/', tier: '2', cardId: 'BGS_T1' },
+    { dbfId: 9002, name: 'Приз А', typeName: 'Приз', path: '/library/darkmoon-prizes/priz-a-9002/', tier: '1', cardId: 'BGS_T2' },
+  ] }, 'darkmoon-prizes')!;
+  assert.deepEqual(printedOpenLibraryItems(prizes).map(item => item.dbfId), [9002, 9001], 'prizes by their rating');
+  assert.equal(openLibraryCards(openLibraryPayload(prizes))[0].images.card, '/api/public-resource/hsjson/v1/bgs/latest/ruRU/512x/BGS_T1.png');
   assert.equal(parsePublicLibraryListing({ ...dirtyListing, items: [] }, 'minions'), null, 'an empty listing is not a page');
   assert.equal(parsePublicLibraryListing(dirtyListing, 'spells'), null, 'another kind is not this listing');
   assert.equal(parsePublicLibraryListing({ ...dirtyListing, items: [{ ...dirtyListing.items[0], path: '//evil.example/x-1001/' }] }, 'minions'), null);

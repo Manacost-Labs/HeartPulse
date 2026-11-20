@@ -11,7 +11,7 @@ export const LIBRARY_LISTING_KINDS = [
 ] as const;
 export type LibraryListingKind = typeof LIBRARY_LISTING_KINDS[number];
 
-/** One card of a listing: identity, tavern tier, type, tribe, attack/health and, for a minion, the open statistics. No picture: 300 thumbnails double the weight of the page. */
+/** One card of a listing: identity, tavern tier, type, tribe, attack/health, the facts of its tile and, for a minion, the open statistics. No picture URL: the tile builds it from `cardId`. */
 export type PublicLibraryListingItem = {
   dbfId: number;
   name: string;
@@ -23,6 +23,15 @@ export type PublicLibraryListingItem = {
   attack: number | null;
   health: number | null;
   stats?: { avgPlacementWith: number; popularity: number | null; gamesWith: number };
+  /**
+   * What the card tile of the listing shows, each only when known: the catalog id (it names the pictures), the English
+   * name, the golden picture under the catalog's `/uploads/`, a Darkmoon prize's rating and the Duos-only mark.
+   */
+  cardId?: string;
+  nameEn?: string;
+  golden?: string;
+  tier?: string;
+  duosOnly?: true;
 };
 
 export type PublicLibraryListing = {
@@ -63,6 +72,19 @@ const plain = (value: unknown, maximum: number): string | null => {
 const integer = (value: unknown): number | null =>
   typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= 100_000 ? value : null;
 
+const CARD_ID = /^[A-Za-z0-9_]{1,60}$/;
+const UPLOAD = /^https:\/\/api\.kolodahearthstone\.com\/uploads\/([A-Za-z0-9_./-]{1,200}\.(?:png|webp|jpg))(?:\?|$)/;
+/** The tile facts of a card, without the keys it does not have. */
+function tileFacts(cardId: unknown, nameEn: unknown, golden: unknown, tier: unknown, duosOnly: unknown): Partial<PublicLibraryListingItem> {
+  const english = plain(nameEn, 180);
+  const picture = typeof golden === 'string' ? UPLOAD.exec(golden)?.[1] : undefined;
+  const rating = typeof tier === 'number' || typeof tier === 'string' ? plain(String(tier), 12) : null;
+  return {
+    ...(typeof cardId === 'string' && CARD_ID.test(cardId) ? { cardId } : {}), ...(english ? { nameEn: english } : {}),
+    ...(picture && !picture.includes('..') ? { golden: picture } : {}), ...(rating ? { tier: rating } : {}), ...(duosOnly === true ? { duosOnly } : {}),
+  };
+}
+
 const compare = (left: PublicLibraryListingItem, right: PublicLibraryListingItem) =>
   (left.tavernTier ?? 99) - (right.tavernTier ?? 99)
   || left.name.localeCompare(right.name, 'ru') || left.dbfId - right.dbfId;
@@ -74,6 +96,7 @@ function baseItem(card: PublicBattlegroundLibraryCard, slice: PublicLibraryStats
     path: `/library/${card.kind === 'minion' ? 'minions' : 'spells'}/${canonicalBattlegroundCardSlug(card.nameRu)}-${card.dbfId}/`,
     tavernTier: card.tavernTier, group: card.tribe, attack: card.attack, health: card.health,
     ...(stats ? { stats: { avgPlacementWith: stats.avgPlacementWith, popularity: stats.popularity, gamesWith: stats.gamesWith } } : {}),
+    ...tileFacts(card.cardId, card.nameEn, card.images.golden, null, card.duosOnly),
   };
 }
 
@@ -88,6 +111,7 @@ function extraItem(raw: unknown, kind: Exclude<LibraryListingKind, 'minions' | '
     path: `/library/${kind}/${canonicalBattlegroundCardSlug(name)}-${dbfId}/`,
     tavernTier: integer(card.tavern_tier), group: plain(record(card.group).name_ru ?? card.minion_type, 120),
     attack: integer(card.attack), health: integer(card.health),
+    ...tileFacts(card.card_id, record(card.name).en, record(card.images).golden, record(card.tier).value ?? null, card.duos_only),
   };
 }
 

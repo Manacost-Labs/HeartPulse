@@ -219,7 +219,9 @@ assertConsumerImports('../src/features/BattlegroundHeroTierList.tsx', ['Battlegr
   ['useBattlegroundHeroTierData']);
 assertConsumerImports('../src/features/battlegroundHeroListState.ts', ['BattlegroundHeroMmr', 'BattlegroundHeroMode',
   'BattlegroundHeroSortDirection', 'BattlegroundHeroSortKey', 'BattlegroundHeroTierEntry', 'createBattlegroundHeroTierResource']);
-assertConsumerImports('../src/features/BgLibrary.tsx', ['BattlegroundMinionStats'], ['LibraryControls', 'battlegroundMinionIconBySlug', 'createBattlegroundLibraryResource', 'fetchBattlegroundMinionStats', 'useBattlegroundLibraryData']);
+assertConsumerImports('../src/features/BgLibrary.tsx', ['BattlegroundMinionStats'], ['battlegroundMinionIconBySlug', 'createBattlegroundLibraryResource', 'fetchBattlegroundMinionStats', 'useBattlegroundLibraryData']);
+// The listing view (the same for a subscriber and for the open listing of a guest) owns the library controls.
+assertConsumerImports('../src/features/BgLibraryListPage.tsx', [], ['LibraryControls']);
 const ledgerSource = assertConsumerImports(
   '../src/features/BattlegroundHeroLedger.tsx',
   CONTRACT_NAMES.filter(name => name !== 'BattlegroundHeroRelatedCard'),
@@ -274,6 +276,7 @@ assert.deepEqual(battlegroundPublicEdges, [
     target: 'src/modules/battlegrounds/public.ts',
     kind: 'runtime',
   },
+  { source: 'src/features/BgLibraryListPage.tsx', target: 'src/modules/battlegrounds/public.ts', kind: 'runtime' },
   ...['src/features/useBattlegroundTierListData.ts', 'src/features/useBattlegroundTierListView.ts']
     .map(source => ({ source, target: 'src/modules/battlegrounds/public.ts', kind: 'type' })),
 ], 'the canonical module graph must contain only the intended hero, tier-list, tier-builder, library and minion-statistics edges to the public entry');

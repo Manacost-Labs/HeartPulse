@@ -21,6 +21,13 @@ export type PublicLibraryListingItem = {
   attack: number | null;
   health: number | null;
   stats: { avgPlacementWith: number; popularity: number | null; gamesWith: number } | null;
+  /** The facts of the card's tile (added fields, `null`/`false` when the projection has none): catalog id, English
+   * name, golden picture under the catalog's `/uploads/`, a Darkmoon prize's rating, the Duos-only mark. */
+  cardId: string | null;
+  nameEn: string | null;
+  golden: string | null;
+  tier: string | null;
+  duosOnly: boolean;
 };
 
 export type PublicLibraryListing = {
@@ -40,6 +47,13 @@ const integer = (value: unknown, maximum: number): number | null =>
   typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 && value <= maximum ? value : null;
 const percent = (value: unknown): number | null =>
   typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100 ? Math.round(value * 100) / 100 : null;
+
+const CARD_ID = /^[A-Za-z0-9_]{1,60}$/;
+const UPLOAD_PATH = /^[A-Za-z0-9_-]+(?:\/[A-Za-z0-9_-]+)*\/[A-Za-z0-9_.-]+\.(?:png|webp|jpg)$/;
+const matching = (value: unknown, pattern: RegExp, maximum: number): string | null => {
+  const found = text(value, maximum);
+  return found && pattern.test(found) && !found.includes('..') ? found : null;
+};
 
 const ITEM_PATH = /^\/library\/(?:minions|spells|anomalies|dark-gifts|quests|rewards|darkmoon-prizes|trinkets|timewarped)\/[a-zа-я0-9-]{1,80}-[1-9][0-9]*\/$/u;
 
@@ -62,6 +76,8 @@ function item(value: unknown): PublicLibraryListingItem | null {
     stats: stats && Number.isFinite(placement) && placement >= 1 && placement <= 8 && Number.isSafeInteger(games) && games > 0
       ? { avgPlacementWith: Math.round(placement * 100) / 100, popularity: percent(stats.popularity), gamesWith: games }
       : null,
+    cardId: matching(card.cardId, CARD_ID, 60), nameEn: text(card.nameEn) || null,
+    golden: matching(card.golden, UPLOAD_PATH, 200), tier: text(card.tier, 12) || null, duosOnly: card.duosOnly === true,
   };
 }
 
