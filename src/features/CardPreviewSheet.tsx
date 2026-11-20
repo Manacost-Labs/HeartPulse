@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import ModalSurface from '../components/ModalSurface/ModalSurface';
-import { fallbackCardRender } from './CardPreviewTooltip';
+import { cardPreviewSources } from './CardPreviewTooltip';
 import './CardPreviewSheet.css';
 
 export type CardPreviewSheetCard = {
@@ -17,14 +17,16 @@ type CardPreviewSheetProps = {
 export default function CardPreviewSheet({ card, onClose }: CardPreviewSheetProps) {
   const titleId = useId();
   const closeRef = useRef<HTMLButtonElement | null>(null);
-  const fallback = fallbackCardRender(card.id);
-  const [source, setSource] = useState(card.imageUrl || fallback);
-  const [imageFailed, setImageFailed] = useState(false);
+  const sources = cardPreviewSources(card.id, card.imageUrl);
+  const sourcesKey = sources.join('|');
+  const [sourceIndex, setSourceIndex] = useState(0);
+  const [loadedSource, setLoadedSource] = useState('');
+  const imageFailed = sourceIndex >= sources.length;
+  const source = sources[Math.min(sourceIndex, sources.length - 1)];
 
   useEffect(() => {
-    setSource(card.imageUrl || fallback);
-    setImageFailed(false);
-  }, [card.id, card.imageUrl, fallback]);
+    setSourceIndex(0);
+  }, [sourcesKey]);
 
   return (
     <ModalSurface
@@ -53,7 +55,7 @@ export default function CardPreviewSheet({ card, onClose }: CardPreviewSheetProp
         </button>
       </header>
 
-      <figure className="card-preview-sheet__media">
+      <figure className="card-preview-sheet__media" aria-busy={!imageFailed && loadedSource !== source}>
         {!imageFailed ? (
           // The sheet keeps one picture and its own error path (fallback render,
           // then a retry): it zooms once the picture was preloaded, else fades.
@@ -61,10 +63,8 @@ export default function CardPreviewSheet({ card, onClose }: CardPreviewSheetProp
             data-lightbox-media=""
             src={source}
             alt={card.name}
-            onError={() => {
-              if (source !== fallback) setSource(fallback);
-              else setImageFailed(true);
-            }}
+            onLoad={() => setLoadedSource(source)}
+            onError={() => setSourceIndex(index => index + 1)}
           />
         ) : (
           <figcaption role="alert" data-card-preview-image-state="error">
@@ -72,10 +72,7 @@ export default function CardPreviewSheet({ card, onClose }: CardPreviewSheetProp
             <button
               type="button"
               data-card-preview-image-retry=""
-              onClick={() => {
-                setSource(card.imageUrl || fallback);
-                setImageFailed(false);
-              }}
+              onClick={() => setSourceIndex(0)}
             >
               Повторить загрузку
             </button>
