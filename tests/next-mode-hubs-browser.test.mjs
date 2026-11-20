@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
@@ -140,7 +140,13 @@ const CLOSED = [...new Set([...closedClassValues(), ...closedTierlistValues(), .
 // A closed value leaks only as a whole token: short figures also occur inside chunk hashes and ids.
 const escapeRegExp = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const CLOSED_TOKENS = CLOSED.map(value => [value, new RegExp(`(?<![\\p{L}\\p{N}_])${escapeRegExp(value)}`, 'u')]);
-const closedIn = text => CLOSED_TOKENS.filter(([value, token]) => text.includes(value) && token.test(text)).map(([value]) => value);
+// Next's build id and asset names are random and may spell a short closed value (#503): they are not page content.
+const scrubbed = text => text.replaceAll(readFileSync(new URL('../apps/public-web/.next/BUILD_ID', import.meta.url), 'utf8').trim(), '')
+  .replace(/\/_next\/static\/[^"'\s\\)]+/g, '');
+const closedIn = page => {
+  const text = scrubbed(page);
+  return CLOSED_TOKENS.filter(([value, token]) => text.includes(value) && token.test(text)).map(([value]) => value);
+};
 
 function startLegacy(state) {
   const app = express();

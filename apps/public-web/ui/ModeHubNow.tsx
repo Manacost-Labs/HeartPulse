@@ -19,10 +19,14 @@ const percent = (value: number | null) => value === null ? null : `${decimal(val
 const count = (value: number) => value.toLocaleString('ru-RU');
 const joined = (parts: (string | null)[]) => parts.filter(Boolean).join(', ');
 
+/** Rows are shown only with the real date of their data: an undated slice is left out, not labelled. */
+const dated = (updatedAt: string | null | undefined) => seoDataDate(updatedAt, Date.now()) !== null;
+
 function DataNote({ updatedAt, source }: { updatedAt: string | null | undefined; source: string }) {
   const date = seoDataDate(updatedAt, Date.now());
+  if (!date) return null;
   return <p className="mode-hub__note">
-    {date ? <>Данные на <time dateTime={date.iso}>{`${date.date}, ${date.time} МСК`}</time></> : 'Дата обновления неизвестна'}
+    Данные на <time dateTime={date.iso}>{`${date.date}, ${date.time} МСК`}</time>
     {source ? ` · источник ${source}` : ''}
   </p>;
 }
@@ -61,7 +65,7 @@ export function StandardNow({ seed }: { seed: StandardMetaTeaserSeed | null }) {
     <DataNote updatedAt={data.updatedAt} source={hsguruSourceUrl(data.sourceUrl) ? 'HSGuru' : ''} />
     <NowList caption={`Самые популярные архетипы: ${data.rankLabel}`}>
       {rows.map(row => <li key={row.slug}>
-        {row.slug && (row.games ?? 0) >= INDEXABLE_ARCHETYPE_MIN_GAMES
+        {row.slug && (row.games ?? 0) >= INDEXABLE_ARCHETYPE_MIN_GAMES && (row.popularity ?? 0) > 0
           ? <a href={`/standard/archetypes/standard/${row.slug}/`}>{row.label}</a> : row.label}
         {` — ${archetypeFacts(row)}`}
       </li>)}
@@ -97,9 +101,11 @@ function bestCards(tierlist: PublicTierlist) {
 }
 
 /** Arena: the order of the classes and the best cards of the open tier list. */
-export function ArenaNow({ classes, tierlist }: { classes: PublicClassesTeaser | null; tierlist: PublicTierlist | null }) {
-  const cards = tierlist ? bestCards(tierlist) : [];
-  if (!classes && cards.length === 0) return null;
+export function ArenaNow({ classes: openClasses, tierlist }: { classes: PublicClassesTeaser | null; tierlist: PublicTierlist | null }) {
+  let classes = openClasses;
+  if (!arenaHasRows(classes, tierlist)) return null;
+  const cards = tierlist && dated(tierlist.updatedAt) ? bestCards(tierlist) : [];
+  if (classes && !dated(classes.updatedAt)) classes = null;
   const unit = classes?.sampleUnit === 'drafts' ? 'забегов' : classes?.sampleUnit === 'games' ? 'игр' : null;
   return <>
     {classes ? <>
@@ -137,4 +143,23 @@ export function BattlegroundsNow({ solo, duos }: {
       </li>)}
     </NowList>
   </>;
+}
+
+/** Whether a hub has a dated open slice to show; without one the page prints no «Сейчас в …» block. */
+export function standardHasRows(seed: StandardMetaTeaserSeed | null): boolean {
+  return Boolean(seed && seed.data.items.length > 0 && dated(seed.data.updatedAt));
+}
+
+export function arenaHasRows(classes: PublicClassesTeaser | null, tierlist: PublicTierlist | null): boolean {
+  return Boolean((classes && classes.classes.length > 0 && dated(classes.updatedAt))
+    || (tierlist && dated(tierlist.updatedAt) && bestCards(tierlist).length > 0));
+}
+
+export function battlegroundsHasRows(solo: PublicBattlegroundHeroesRanking | null, duos: PublicBattlegroundHeroesRanking | null): boolean {
+  const ranking = solo ?? duos;
+  return Boolean(ranking && ranking.heroes.length > 0 && dated(ranking.updatedAt));
+}
+
+export function wildHasRows(catalog: ArchetypeCatalog | null): boolean {
+  return Boolean(catalog && catalog.items.length > 0 && dated(catalog.updatedAt));
 }

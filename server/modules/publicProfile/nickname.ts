@@ -40,7 +40,7 @@ export const RESERVED_NICKNAMES: readonly string[] = [
   'news', 'nobody', 'null', 'oembed', 'og', 'owner', 'privacy', 'profile', 'profiles', 'r',
   'register', 'replay', 'replays', 'root', 'security', 'settings', 'signin', 'signup', 'standard',
   'staff', 'static', 'stats', 'streamers', 'support', 'system', 'telegram', 'terms', 'tierlist',
-  'u', 'undefined', 'uploads', 'user', 'users', 'wallpaper', 'webmaster', 'www',
+  'u', 'undefined', 'uploads', 'user', 'users', 'wallpaper', 'webmaster', 'wild', 'www',
   'анонимус', 'гость', 'профиль', 'система',
 ];
 

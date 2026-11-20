@@ -8,6 +8,7 @@ import { CLASSES_TEASER_PATH } from './publicClassesTeaserData';
 import { standardMatchupsPublicPath } from './publicStandardMatchupsData';
 import { standardMetaPublicPath } from './publicStandardMetaTeaserData';
 import { PUBLIC_TIERLIST_PATH } from './publicTierlistData';
+import { archetypeTeaserPath } from './publicDataPaths';
 
 /**
  * The Express read each prerendered data page makes for its first paint, keyed by the page path of
@@ -25,6 +26,11 @@ export const DATA_PAGE_PROBES = {
   '/battlegrounds/tier-list': buildsPath('compositions'),
   '/library': LIBRARY_INDEX_PATH,
   ...Object.fromEntries(LIBRARY_LISTING_KINDS.map(kind => [`/library/${kind}`, libraryListingPath(kind)])),
+  // A mode hub reads several sources; its probe is the read behind its first rows.
+  '/standard': standardMetaPublicPath(),
+  '/arena': CLASSES_TEASER_PATH,
+  '/battlegrounds': heroesRankingPath('solo'),
+  '/wild': archetypeTeaserPath('wild', null),
 } as Record<string, string>;
 
 export type DataPageProbePath = string;

@@ -36,6 +36,11 @@ export const DATA_PAGES = [
   { path: '/library/darkmoon-prizes/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
   { path: '/library/trinkets/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
   { path: '/library/timewarped/', isr: true, marker: 'bg-library-public__scroll', copyWords: 0, dataWords: 0 },
+  // Mode hubs (#557): the block «Сейчас в …» exists only with data; words not measured.
+  { path: '/standard/', isr: true, marker: 'mode-hub__now', copyWords: 0, dataWords: 0 },
+  { path: '/arena/', isr: true, marker: 'mode-hub__now', copyWords: 0, dataWords: 0 },
+  { path: '/battlegrounds/', isr: true, marker: 'mode-hub__now', copyWords: 0, dataWords: 0 },
+  { path: '/wild/', isr: true, marker: 'mode-hub__now', copyWords: 0, dataWords: 0 },
   { path: '/leaderboards/', marker: 'leaderboards-table__rank', copyWords: 197, dataWords: 811 },
   { path: '/cosmetics/', marker: 'cosmetics-hero-card', copyWords: 192, dataWords: 314 },
   { path: '/cosmetics/heroes/', marker: 'cosmetics-hero-card', copyWords: 193, dataWords: 315 },
