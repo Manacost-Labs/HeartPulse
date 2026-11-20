@@ -8,6 +8,7 @@ const PROFILE_TTL_MS = 10 * 60_000;
 const FAILURE_PAUSE_MS = 60_000;
 const PROFILE_TIMEOUT_MS = 3_000;
 const PROFILE_CACHE_SIZE = 256;
+const MAX_READS_IN_FLIGHT = 16;
 
 const record = (value: unknown): JsonRecord =>
   value && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : {};
@@ -90,10 +91,11 @@ export function projectBattlegroundHeroProfile(
 
 /**
  * Reads the open profile of a hero. The route asks only for a hero of the catalog (an unknown id is a 404 before
- * this), and at most 256 heroes are kept (least recently read out first), so ids cannot grow memory or fan out reads.
- * A profile is fresh for ten minutes. A failing library (3 s deadline) answers the last good profile of the hero, or
- * `null` without one, and is not asked again for this hero for a minute: game content rarely changes, and a page
- * neither waits for a library that is down nor loses its blocks.
+ * this), at most 256 heroes are kept (least recently read out first), one read per hero is in flight (concurrent
+ * requests share it) and at most 16 overall, so ids and bursts cannot grow memory or fan out reads. A profile is
+ * fresh for ten minutes. A failing library (3 s deadline, an answer without a `data` list, or a list without the
+ * hero) answers the last good profile of the hero, or `null` without one, and is not asked again for this hero for a
+ * minute: game content rarely changes, and a page neither waits for a library that is down nor loses its blocks.
  */
 export function createHeroProfileLoader(options: {
   libraryUrl: (dbfId: number) => string;
@@ -105,31 +107,49 @@ export function createHeroProfileLoader(options: {
 }) {
   const fetchImpl = options.fetchImpl ?? fetch;
   const now = options.now ?? Date.now;
-  const cache = new Map<number, { readAt: number; profile: PublicBattlegroundHeroProfile | null; failedAt?: number }>();
-  const keep = (dbfId: number, entry: { readAt: number; profile: PublicBattlegroundHeroProfile | null; failedAt?: number }) => {
+  type Entry = { readAt: number; profile: PublicBattlegroundHeroProfile | null; failedAt?: number };
+  const cache = new Map<number, Entry>();
+  const inFlight = new Map<number, Promise<PublicBattlegroundHeroProfile | null>>();
+  const keep = (dbfId: number, entry: Entry) => {
     cache.delete(dbfId);
     cache.set(dbfId, entry);
     if (cache.size > PROFILE_CACHE_SIZE) cache.delete(cache.keys().next().value as number);
   };
-  return async (dbfId: number): Promise<PublicBattlegroundHeroProfile | null> => {
-    const kept = cache.get(dbfId);
-    if (kept && (now() - kept.readAt < PROFILE_TTL_MS || (kept.failedAt !== undefined && now() - kept.failedAt < FAILURE_PAUSE_MS))) {
-      keep(dbfId, kept);
-      return kept.profile;
-    }
+  const read = async (dbfId: number): Promise<PublicBattlegroundHeroProfile | null> => {
     try {
       const response = await fetchImpl(options.libraryUrl(dbfId), {
         signal: AbortSignal.timeout(options.timeoutMs ?? PROFILE_TIMEOUT_MS),
         headers: { Accept: 'application/json', 'User-Agent': 'HearthPulse/BattlegroundHeroProfile' },
       });
       if (!response.ok) throw new Error(`Battleground hero library HTTP ${response.status}`);
-      const profile = projectBattlegroundHeroProfile(await response.json(), dbfId, options.imageUrl);
+      const payload: unknown = await response.json();
+      if (!Array.isArray(record(payload).data)) throw new Error('Battleground hero library answered without data');
+      const profile = projectBattlegroundHeroProfile(payload, dbfId, options.imageUrl);
+      if (!profile) throw new Error(`Battleground hero library has no hero ${dbfId}`);
       keep(dbfId, { readAt: now(), profile });
       return profile;
     } catch (error) {
       try { options.onError?.(error); } catch { /* diagnostics are best-effort */ }
+      // Read at settle time: the entry this read replaces is the current one (one read per hero is in flight).
+      const kept = cache.get(dbfId);
       keep(dbfId, { readAt: kept?.readAt ?? -Infinity, profile: kept?.profile ?? null, failedAt: now() });
       return kept?.profile ?? null;
+    } finally {
+      inFlight.delete(dbfId);
     }
+  };
+  return (dbfId: number): Promise<PublicBattlegroundHeroProfile | null> => {
+    const kept = cache.get(dbfId);
+    if (kept && (now() - kept.readAt < PROFILE_TTL_MS || (kept.failedAt !== undefined && now() - kept.failedAt < FAILURE_PAUSE_MS))) {
+      keep(dbfId, kept);
+      return Promise.resolve(kept.profile);
+    }
+    const pending = inFlight.get(dbfId);
+    if (pending) return pending;
+    if (inFlight.size >= MAX_READS_IN_FLIGHT) return Promise.resolve(kept?.profile ?? null);
+    // Started on the next tick, so the read is registered before it can settle.
+    const started = Promise.resolve().then(() => read(dbfId));
+    inFlight.set(dbfId, started);
+    return started;
   };
 }

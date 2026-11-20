@@ -107,3 +107,61 @@ test('the profile loader keeps a hero, answers the last good profile when the li
   await load(59807);
   assert.equal(reads.length, before + 1, 'the least recently read hero was dropped');
 });
+
+test('concurrent requests share one read, a malformed answer keeps the last good profile, reads in flight are capped', async () => {
+  let now = 0;
+  const reads: number[] = [];
+  const pending = new Map<number, Array<(response: Response) => void>>();
+  const respond = (dbfId: number, body: unknown, status = 200) => {
+    for (const resolve of pending.get(dbfId) ?? []) resolve(new Response(JSON.stringify(body), { status }));
+    pending.delete(dbfId);
+  };
+  const load = createHeroProfileLoader({
+    libraryUrl: dbfId => `https://library.example/heroes?dbf=${dbfId}`, imageUrl, now: () => now,
+    fetchImpl: url => {
+      const dbfId = Number(new URL(String(url)).searchParams.get('dbf'));
+      reads.push(dbfId);
+      return new Promise(resolve => pending.set(dbfId, [...(pending.get(dbfId) ?? []), resolve]));
+    },
+  });
+  const tick = () => new Promise(resolve => setImmediate(resolve));
+
+  // A cold burst for one hero: one read, every request gets its answer.
+  const burst = [load(59807), load(59807), load(59807)];
+  await tick();
+  assert.deepEqual(reads, [59807]);
+  respond(59807, { data: [row] });
+  assert.deepEqual((await Promise.all(burst)).map(profile => profile?.artist), ['Alex Horley', 'Alex Horley', 'Alex Horley']);
+
+  // An expired hero whose library answers 200 without a `data` list, or a list without the hero: the last good profile
+  // stays (no fresh `null`), and the hero waits out the failure pause.
+  now = 11 * 60_000;
+  const malformed = load(59807);
+  await tick();
+  respond(59807, { error: 'unavailable' });
+  assert.equal((await malformed)?.artist, 'Alex Horley');
+  now += 61_000;
+  const missing = load(59807);
+  await tick();
+  respond(59807, { data: [] });
+  assert.equal((await missing)?.artist, 'Alex Horley');
+  const readsBefore = reads.length;
+  assert.equal((await load(59807))?.artist, 'Alex Horley', 'within the pause');
+  assert.equal(reads.length, readsBefore);
+
+  // A hero never read that fails: null, and not asked again within the pause.
+  const cold = load(7);
+  await tick();
+  respond(7, {}, 503);
+  assert.equal(await cold, null);
+  assert.equal(await load(7), null);
+  assert.equal(reads.filter(dbfId => dbfId === 7).length, 1);
+
+  // At most 16 reads in flight: a 17th hero is answered without a read until one settles.
+  const many = Array.from({ length: 17 }, (_, index) => load(2000 + index));
+  await tick();
+  assert.equal(reads.filter(dbfId => dbfId >= 2000 && dbfId < 2017).length, 16);
+  assert.equal(await many[16], null);
+  for (let dbfId = 2000; dbfId < 2016; dbfId += 1) respond(dbfId, { data: [{ ...row, dbf: dbfId }] });
+  assert.equal((await Promise.all(many.slice(0, 16))).every(profile => profile?.artist === 'Alex Horley'), true);
+});
