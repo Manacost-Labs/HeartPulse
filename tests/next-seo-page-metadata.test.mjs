@@ -379,7 +379,7 @@ test('every SEO registry page takes its title, description and share metadata fr
     // Two queries, two pages: the tier list of compositions never targets the hero query.
     const tierList = registryTexts.get('/battlegrounds/tier-list');
     assert.doesNotMatch(`${tierList.title} ${tierList.description} ${registryHeadings.get('/battlegrounds/tier-list')}`, /геро/i);
-    assert.ok(registryTexts.get('/heroes').title.startsWith('Герои Полей сражений'), 'the hero page owns the hero query');
+    assert.ok(registryTexts.get('/heroes').title.startsWith('Тир-лист героев Полей сражений'), 'the hero page owns the hero query');
 
     const shareAlt = async path => (await head(runtime.nextOrigin, path)).match(/<meta property="og:image:alt" content="([^"]*)"/)?.[1];
     assert.notEqual(await shareAlt('/cosmetics/'), await shareAlt('/cosmetics/heroes/'),
@@ -1029,7 +1029,7 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
 const FIGURE_OR_FREQUENCY = /\d|%|каждые\s+\S+\s+час|раз\s+в\s+(?:сутки|день|час|неделю)|ежедневн|ежечасн|несколько\s+раз/iu;
 const ARENA_PAGES = [
   { path: '/tierlist/', title: `Тир-лист Арены Hearthstone (хс), ${YEAR} | HearthPulse`, sources: ['HSReplay', 'HearthArena', 'Firestone'], dataset: true },
-  { path: '/classes/', title: `Винрейт классов Арены Hearthstone, ${YEAR} | HearthPulse`, sources: ['HSReplay', 'Firestone'], dataset: true },
+  { path: '/classes/', title: `Лучшие классы Арены Hearthstone, ${YEAR} | HearthPulse`, sources: ['HSReplay', 'Firestone'], dataset: true },
   { path: '/legendaries/', title: `Легендарки Арены Hearthstone, ${YEAR} | HearthPulse`, sources: ['HSReplay', 'Firestone'], dataset: true },
 ];
 

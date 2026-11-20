@@ -19,7 +19,8 @@ import { assertSeoDataTemplate, renderSeoDataTemplate } from '../src/seo/dataTem
 import { standardMetaPeriodLabel } from '../src/features/standardMetaFilterModel';
 import { seoDataDate } from '../apps/public-web/lib/seoDataDate';
 import {
-  archetypeCatalogSeoValues, archetypeDetailSeoText, standardMetaSeoValues,
+  archetypeCatalogSeoValues, archetypeDetailSeoText, arenaClassesSeoValues, arenaLegendariesSeoValues,
+  arenaTierlistSeoValues, battlegroundBuildsSeoValues, battlegroundHeroesSeoValues, standardMetaSeoValues,
 } from '../apps/public-web/lib/seoDataValues';
 import { publicArchetypeCatalog } from '../apps/public-web/lib/publicArchetypeCatalogTeaserData';
 import { publicArchetypeTeaser } from '../apps/public-web/lib/publicArchetypeTeaserData';
@@ -99,8 +100,18 @@ const intentContracts = [
   },
   {
     pathname: '/battlegrounds/tier-list',
-    title: /^Тир-лист Полей сражений Hearthstone, \d{4} \| HearthPulse$/,
-    description: /составов/i,
+    title: /^Сборки Полей сражений Hearthstone: тир-лист \d{4}$/,
+    description: /сборок/i,
+  },
+  {
+    pathname: '/heroes',
+    title: /^Тир-лист героев Полей сражений Hearthstone \d{4}$/,
+    description: /Соло и Дуо/,
+  },
+  {
+    pathname: '/classes',
+    title: /^Лучшие классы Арены Hearthstone, \d{4} \| HearthPulse$/,
+    description: /винрейты всех 11 классов/,
   },
   {
     pathname: '/battlegrounds/strategies',
@@ -596,6 +607,104 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
   assert.equal(brandedTitle('Гайд по колоде'), 'Гайд по колоде | HearthPulse');
   assert.equal(brandedTitle('Подробный гайд по колоде Охотника на демонов для начинающих игроков'),
     'Подробный гайд по колоде Охотника на демонов для начинающих игроков', 'a long title loses the brand');
+}
+
+// ── Arena and Battlegrounds tier lists: date and open figures of the page in the snippet (#539) ──
+{
+  const NOW = Date.parse('2026-11-20T09:00:00Z');
+  const FRESH = '2026-11-20T06:00:00.000Z';
+  const STALE = '2026-11-10T06:00:00.000Z';
+  const text = (path: string, values: ReturnType<typeof arenaTierlistSeoValues>) => seoPageText(seoPageForExactPath(path)!, values);
+  const staticText = (path: string) => {
+    const page = seoPageForExactPath(path)!;
+    return { title: page.title, description: page.description };
+  };
+  const card = (cardId: string) => ({ cardId, name: cardId, tier: 'A', cost: 1, rarity: null, type: null, winrate: 55, pickRate: 60 });
+  const tierlist = (updatedAt: string | null, source = 'hsreplay.net') => ({
+    updatedAt, source, sampleGamesAtLeast: 53000,
+    classes: [{ id: 'mage', name: 'Маг', cards: [card('A'), card('B')] }, { id: 'any', name: 'Нейтральные', cards: [card('C')] }],
+  });
+  assert.deepEqual(text('/tierlist', arenaTierlistSeoValues(tierlist(FRESH), NOW)), {
+    title: 'Тир-лист Арены Hearthstone (хс), ноябрь 2026 | HearthPulse',
+    description: 'Тир-лист карт Арены Hearthstone на 20 ноября 2026: тир, винрейт и частота выбора каждой карты по классам, более 53 000 игр. Данные HSReplay.',
+  });
+  assert.deepEqual(text('/tierlist', arenaTierlistSeoValues(tierlist(STALE), NOW)), {
+    title: staticText('/tierlist').title,
+    description: 'Тир-лист карт Арены Hearthstone, обновлено 10 ноября 2026: тир, винрейт и частота выбора каждой карты по классам, более 53 000 игр. Данные HSReplay.',
+  });
+  assert.deepEqual(text('/tierlist', arenaTierlistSeoValues(tierlist(FRESH, 'firestone'), NOW)), staticText('/tierlist'),
+    'another source than the template names keeps the static text');
+  assert.deepEqual(text('/tierlist', arenaTierlistSeoValues(null, NOW)), staticText('/tierlist'));
+
+  const classes = (updatedAt: string | null) => ({
+    updatedAt, source: 'HSReplay', sampleUnit: 'drafts' as const,
+    classes: [{ place: 1, id: 'death-knight', name: 'Рыцарь смерти', winrate: 52.3, sample: 1308 },
+      { place: 2, id: 'hunter', name: 'Охотник', winrate: 51.7, sample: 682 }],
+  });
+  assert.deepEqual(text('/classes', arenaClassesSeoValues(classes(FRESH), NOW)), {
+    title: 'Лучшие классы Арены Hearthstone, ноябрь 2026 | HearthPulse',
+    description: 'Лучший класс Арены Hearthstone (хс) на 20 ноября 2026 — Рыцарь смерти, 52,3% побед. Порядок и винрейты всех 11 классов по данным HSReplay.',
+  });
+  assert.deepEqual(text('/classes', arenaClassesSeoValues({ ...classes(FRESH), classes: [] }, NOW)), staticText('/classes'));
+  assert.deepEqual(text('/classes', arenaClassesSeoValues(classes(null), NOW)), staticText('/classes'));
+
+  const group = (name: string, winRate: number | null) => ({ keyCard: { cardId: name, name }, cards: [], winRate, classKey: 'mage' });
+  const legendaries = (groups: ReturnType<typeof group>[]) => ({ updatedAt: FRESH, source: 'HSReplay', sourceId: 'hsreplay' as const, groups });
+  assert.deepEqual(text('/legendaries', arenaLegendariesSeoValues(legendaries([group('Радж', 58.9), group('Г\'уун', 59.7), group('Пусто', null)]), NOW)), {
+    title: 'Легендарки Арены Hearthstone, ноябрь 2026 | HearthPulse',
+    description: 'Какую легендарку взять на Арене Hearthstone на 20 ноября 2026: 3 группы первого выбора, лучшая — Г\'уун, 59,7% побед. Винрейт и выбор, данные HSReplay.',
+  });
+  assert.equal(text('/legendaries', arenaLegendariesSeoValues(legendaries([group('Пусто', null)]), NOW)).description,
+    'Какую легендарку взять на Арене Hearthstone на 20 ноября 2026: 1 группа первого выбора. Винрейт и выбор, данные HSReplay.',
+    'without a winrate no group is called the best');
+  assert.deepEqual(text('/legendaries', arenaLegendariesSeoValues(legendaries([]), NOW)), staticText('/legendaries'));
+
+  const hero = (name: string, avgPlacement: number) => ({
+    dbfId: 1, name, image: null, tier: 'A', avgPlacement, top4Rate: 59.6, pickRate: 52.7, games: null,
+    heroPowerName: null, bestComposition: null, keyMinions: [],
+  });
+  const heroes = (count: number) => ({
+    mode: 'solo' as const, updatedAt: FRESH, source: 'HSReplay',
+    heroes: Array.from({ length: count }, (_, index) => hero(index === 0 ? 'Лорд Джараксус' : `Герой ${index}`, 4.04 + index / 100)),
+  });
+  assert.deepEqual(text('/heroes', battlegroundHeroesSeoValues(heroes(116), NOW)), {
+    title: 'Тир-лист героев Полей сражений Hearthstone, ноябрь 2026',
+    description: 'Рейтинг 116 героев Полей сражений Hearthstone (хс) в Соло на 20 ноября 2026: лучший — Лорд Джараксус, среднее место 4,04. Тир, топ-4 и выбор, данные HSReplay.',
+  });
+  assert.ok(text('/heroes', battlegroundHeroesSeoValues(heroes(121), NOW)).description.startsWith('Рейтинг 121 героя '));
+  assert.deepEqual(text('/heroes', battlegroundHeroesSeoValues(heroes(0), NOW)), staticText('/heroes'));
+
+  const build = (tier: 'S' | 'A', title: string) => ({
+    key: title, tier, title, description: null, difficulty: null, archetype: null, avgPlacement: null, popularity: null,
+    coreCards: [], additionalCards: [],
+  });
+  const builds = (rows: ReturnType<typeof build>[]) => ({ list: 'compositions' as const, updatedAt: FRESH, source: 'HSReplay', builds: rows });
+  assert.deepEqual(text('/battlegrounds/tier-list', battlegroundBuildsSeoValues(builds([
+    build('S', 'Нежить: APM-нежить'), build('S', 'Элементали: Живой азерит'), build('S', 'Нежить: Предсмертные хрипы'),
+    build('A', 'Механизмы: APM-магнетизм'),
+  ]), NOW)), {
+    title: 'Сборки Полей сражений Hearthstone: тир-лист, ноябрь 2026',
+    description: 'Лучшие сборки Полей сражений Hearthstone (хс) на 20 ноября 2026: тир S — Нежить, Элементали. Ключевые существа и как играть, данные HSReplay.',
+  });
+  assert.equal(text('/battlegrounds/tier-list', battlegroundBuildsSeoValues(builds([build('A', 'Механизмы: APM-магнетизм')]), NOW)).description,
+    'Лучшие сборки Полей сражений Hearthstone (хс) на 20 ноября 2026. Ключевые существа и как играть, данные HSReplay.');
+
+  // Limits: the longest month and real-size lists keep every text inside the meta limits.
+  const SEPTEMBER = '2026-09-15T06:00:00.000Z';
+  const september = Date.parse('2026-09-15T09:00:00Z');
+  for (const value of [
+    text('/tierlist', arenaTierlistSeoValues({ ...tierlist(SEPTEMBER), sampleGamesAtLeast: 1_200_000 }, september)),
+    text('/classes', arenaClassesSeoValues({ ...classes(SEPTEMBER), classes: [{ place: 1, id: 'dh', name: 'Охотник на демонов', winrate: 52.3, sample: 1 }] }, september)),
+    text('/legendaries', arenaLegendariesSeoValues({ ...legendaries([group('Командир следопытов Сильвана', 57.2)]), updatedAt: SEPTEMBER }, september)),
+    text('/heroes', battlegroundHeroesSeoValues({ ...heroes(116), updatedAt: SEPTEMBER, heroes: [hero('Трас\'тат, паразит душ', 4.09)] }, september)),
+    text('/battlegrounds/tier-list', battlegroundBuildsSeoValues({ ...builds([build('S', 'Свинобразы: x'), build('S', 'Элементали: y'), build('S', 'Мурлоки: z'), build('S', 'Нежить: w'), build('S', 'Звери: v')]), updatedAt: SEPTEMBER }, september)),
+  ]) {
+    assert.ok(value.title.length <= 60, `${value.title} (${value.title.length})`);
+    assert.ok(value.description.length <= 160, `${value.description} (${value.description.length})`);
+    assert.ok(value.title.includes('сентябрь 2026'), value.title);
+    assert.ok(value.description.includes('15 сентября 2026'), value.description);
+    assert.ok(value.description.split('(хс)').length <= 2, `one «(хс)» at most: ${value.description}`);
+  }
 }
 
 console.log(`SEO registry assertions passed (${pages.length} pages, ${sitemapPages.length} sitemap URLs)`);

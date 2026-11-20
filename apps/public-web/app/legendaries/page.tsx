@@ -2,6 +2,7 @@ import '@/src/route-parchment.css';
 import '@/src/features/TraditionalModeBanner.css';
 import { LegendariesPageClient } from '@/apps/public-web/ui/LegendariesPageClient';
 import { seoStaticPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
+import { arenaLegendariesSeoValues } from '@/apps/public-web/lib/seoDataValues';
 import { loadPublicLegendaries } from '@/apps/public-web/lib/publicLegendaries';
 import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 
@@ -12,7 +13,8 @@ import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 // subscriber only. nginx sends query robots as X-Robots-Tag. Regeneration
 // picks up runtime switches and a recovered Express.
 export const revalidate = 300;
-export const generateMetadata = seoStaticPageMetadata('/legendaries', 'HearthPulse — легендарки Арены');
+export const generateMetadata = seoStaticPageMetadata('/legendaries', 'HearthPulse — легендарки Арены',
+  async () => arenaLegendariesSeoValues(await loadPublicLegendaries(), Date.now()));
 
 export default async function Page() {
   const initial = await loadPublicLegendaries();

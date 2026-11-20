@@ -353,12 +353,30 @@ SEO cost is 250–400 words fewer on three indexed pages.
   frequency (`deploy/hs-arena-scraper.timer` is the scraper's schedule, not the
   refresh rate of the datasets). The `/classes` description no longer
   mentions a reading guide.
-- Titles stay static with the year: «Тир-лист Арены Hearthstone (хс), {year}»,
-  «Винрейт классов Арены Hearthstone, {year}», «Легендарки Арены Hearthstone,
-  {year}». The classes title starts with «Винрейт классов» and its description
-  keeps «винрейты всех 11 классов» because the client navigation check in
-  `scripts/e2e-qa.mjs` waits for both. The descriptions are at most 160
-  characters and say that access is by subscription.
+- Titles and descriptions come from the open data the page prints (#539,
+  `config/public-seo-pages.json` `dataTitle`/`dataDescription`, values in
+  `apps/public-web/lib/seoDataValues.ts`): the month of the data in the title,
+  the date and open figures in the description, each one printed on the page —
+  `/tierlist` the rounded sample («более 53 000 игр»), `/classes` the first
+  class of the open
+  order with its winrate, `/legendaries` the number of groups and the group with
+  the best winrate, `/heroes` the number of heroes of the solo ranking (numbered
+  rows) and its first hero with the average place, named «в Соло»,
+  `/battlegrounds/tier-list` the tribes of tier S (no count of builds: the page
+  prints none). The templates name HSReplay, so another
+  source, data older than a week (no month; «обновлено <дата>») or no data at
+  all fall back as `seoPageText` does: stale data keeps the date, missing data
+  gives the static text with the year. No paid figure (offer rate, ArenaSmith
+  score, narrow ranges) enters a snippet. The static descriptions name the
+  open data and say which part is for subscribers.
+- Static titles: «Тир-лист Арены Hearthstone (хс), {year}», «Лучшие классы
+  Арены Hearthstone, {year}», «Легендарки Арены Hearthstone, {year}», «Тир-лист
+  героев Полей сражений Hearthstone {year}», «Сборки Полей сражений
+  Hearthstone: тир-лист {year}» (the Russian word of the Battlegrounds cluster
+  is «сборки», research/seo-ru-demand-2026-10.md). The classes title starts
+  with «Лучшие классы» and both of its descriptions keep «винрейты всех 11
+  классов», which the client navigation check in `scripts/e2e-qa.mjs` waits
+  for.
 - «хс» appears only next to the game's name («Hearthstone (хс)»): alone it
   also means Honkai: Star Rail.
 - Tests: `tests/next-seo-page-metadata.test.mjs` (titles, descriptions, no

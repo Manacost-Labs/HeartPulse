@@ -3,6 +3,7 @@ import '@/src/features/TraditionalModeBanner.css';
 import { BattlegroundTierListPageClient } from '@/apps/public-web/ui/BattlegroundTierListPageClient';
 import { BattlegroundBuildsPublicList, buildAnchor } from '@/apps/public-web/ui/BattlegroundBuildsPublicList';
 import { seoStaticPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
+import { battlegroundBuildsSeoValues } from '@/apps/public-web/lib/seoDataValues';
 import { loadPublicBattlegroundBuilds } from '@/apps/public-web/lib/publicBattlegroundBuilds';
 import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 
@@ -12,7 +13,8 @@ import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 // nginx sends query robots as X-Robots-Tag. Regeneration picks up runtime switches; a failed read keeps
 // the last good copy instead of an empty page.
 export const revalidate = 300;
-export const generateMetadata = seoStaticPageMetadata('/battlegrounds/tier-list', 'HearthPulse — тир-лист Полей сражений');
+export const generateMetadata = seoStaticPageMetadata('/battlegrounds/tier-list', 'HearthPulse — тир-лист Полей сражений',
+  async () => battlegroundBuildsSeoValues(await loadPublicBattlegroundBuilds('compositions'), Date.now()));
 
 export default async function Page() {
   const data = await loadPublicBattlegroundBuilds('compositions');

@@ -3,6 +3,7 @@ import '@/src/features/TraditionalModeBanner.css';
 import { BattlegroundHeroesPageClient } from '@/apps/public-web/ui/BattlegroundHeroesPageClient';
 import { BattlegroundHeroesPublicRanking } from '@/apps/public-web/ui/BattlegroundHeroesPublicRanking';
 import { seoStaticPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
+import { battlegroundHeroesSeoValues } from '@/apps/public-web/lib/seoDataValues';
 import { loadPublicBattlegroundHeroes } from '@/apps/public-web/lib/publicBattlegroundHeroes';
 import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 
@@ -11,7 +12,8 @@ import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 // dynamics load in the browser for subscribers only. nginx sends query robots as
 // X-Robots-Tag. Regeneration picks up runtime switches.
 export const revalidate = 300;
-export const generateMetadata = seoStaticPageMetadata('/heroes', 'HearthPulse — герои Полей сражений');
+export const generateMetadata = seoStaticPageMetadata('/heroes', 'HearthPulse — герои Полей сражений',
+  async () => battlegroundHeroesSeoValues((await loadPublicBattlegroundHeroes()).solo, Date.now()));
 
 export default async function Page() {
   const { solo, duos } = await loadPublicBattlegroundHeroes();

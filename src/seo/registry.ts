@@ -7,11 +7,14 @@ import { assertSeoDataTemplate, renderSeoDataTemplate, type SeoDataValues } from
  * values come from the page's own anonymous teaser (apps/public-web/lib/seoDataValues.ts).
  * - `month`: «октябрь 2026», the month of the data (absent when the data is older than a week)
  * - `asOf`: « на 29 октября 2026» or «, обновлено 20 октября 2026» with its own leading separator
- * - `leader`: the leading archetype of the meta with its winrate
+ * - `leader`: the leading row of the page with its figure (archetype, Arena class, legendary group, hero,
+ *   the tribes of tier S)
  * - `archetypes`: «193 архетипа»
  * - `format`: the catalog's format in the genitive case, «Стандарта»
+ * - `items`: a counted list of the page, «1 218 карт», «116 героев», «33 сборки»
+ * - `games`: the sample the page prints, «более 53 000 игр»
  */
-export const SEO_DATA_TOKENS = ['month', 'asOf', 'leader', 'archetypes', 'format'] as const;
+export const SEO_DATA_TOKENS = ['month', 'asOf', 'leader', 'archetypes', 'format', 'items', 'games'] as const;
 
 export type PublicSeoPage = {
   pathname: string;
