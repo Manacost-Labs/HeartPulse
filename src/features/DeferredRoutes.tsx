@@ -639,7 +639,7 @@ export const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabl
       <button
         type="button"
         ref={cardRef}
-        className="hs-tier-card relative z-0 flex-shrink-0 group cursor-pointer hover:z-[9999] focus-within:z-[9999] appearance-none border-0 bg-transparent p-0 text-left"
+        className="hs-tier-card"
         data-rarity={String(card.rarity || 'common').toLowerCase()}
         data-card-frame={frame}
         onClick={handleClick}
@@ -665,7 +665,7 @@ export const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabl
     <button
       type="button"
       ref={cardRef}
-      className="hs-tier-card relative z-0 flex-shrink-0 group cursor-pointer hover:z-[9999] focus-within:z-[9999] appearance-none border-0 bg-transparent p-0 text-left"
+      className="hs-tier-card"
       data-rarity={String(card.rarity || 'common').toLowerCase()}
       onClick={handleClick}
       onMouseEnter={showPreview}
@@ -1579,10 +1579,8 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
                       key={`${card.cardId}-${idx}`}
                       className="anim-scale-in"
                       data-tour-id={tierIdx === 0 && idx === 0 ? 'arena-tier-results' : undefined}
-                      style={{
-                        // Cap animation delay: past 20 cards the stagger is imperceptible
-                        animationDelay: idx < 20 ? `calc(var(--motion-stagger) * ${tierIdx + idx / 4})` : '0s',
-                      }}
+                      // Cap animation delay: past 20 cards the stagger is imperceptible, and no style keeps their HTML short.
+                      style={idx < 20 ? { animationDelay: `calc(var(--motion-stagger) * ${tierIdx + idx / 4})` } : undefined}
                     >
                       <HSCard
                         card={card}
