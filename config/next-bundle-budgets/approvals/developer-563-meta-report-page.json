@@ -1,0 +1,8 @@
+{
+  "reason": "Мета-отчёт (#563): два маршрута `/reports/meta/` и `/reports/meta/:date` в `src/shared/seo/publicRouteInventory.json`, который входит в клиентский чанк `/cosmetics/` (политика публичных адресов). CI показал +14 B JS gzip сверх допуска; своего клиентского кода у страниц отчёта нет. Одобрено 256 B: превышение и запас на разброс сборок CI.",
+  "routes": {
+    "/cosmetics/": {
+      "jsGzipBytes": 256
+    }
+  }
+}

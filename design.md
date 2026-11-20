@@ -258,7 +258,7 @@ BG-specific styles live in `src/battlegrounds-parchment.css` and must stay scope
 
 - Section switcher, pool state and filters share parchment controls with violet active states.
 - The library directory and filters form one tavern catalogue: `main-page-rail-border.png` supplies the timber frame, `arena-rail-red.jpg` supplies the restrained red cloth, and parchment remains the reading surface. Avoid stacked white dashboard cards and repeated loose bottom rails.
-- Library mechanic labels are normalized before rendering: `BACON_REFRESH_TOOLTIP` → `В следующих обновлениях`, `BACON_BLOOD_GEM_TOOLTIP` → `Кровавые самоцветы`, and `IMMUNE` → `Неуязвимость`; `BACON_PASS_TOOLTIP` and `SECRET` are hidden from filters and card metadata.
+- Library mechanic labels are normalized before rendering: `BACON_REFRESH_TOOLTIP` → `В следующих обновлениях`, `BACON_BLOOD_GEM_TOOLTIP` → `Кровавые самоцветы`, `BACON_ACTIVATE_TOOLTIP` → `Активация`, and `IMMUNE` → `Неуязвимость`; `BACON_PASS_TOOLTIP` and `SECRET` are hidden from filters and card metadata. The open card page (`server/battlegroundLibrarySeoRoutes.ts`) follows the same labels; any other raw token is not shown.
 - Card names sit on small parchment captions; card images remain visually unboxed.
 - Golden card reveal is protected: base card moves left and golden layer appears to the right on pointer hover/focus.
 - Do not change golden image fallback order, `opacity`, `translate` or event behavior while restyling.

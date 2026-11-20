@@ -14,6 +14,7 @@ const runProductionMonitor = (options = {}) => runMonitor({ requestPauseMs: 0, .
 let livenessAttempts = 0;
 let dataFresh = true;
 let unknownCardStatus = 404;
+let missingImageStatus = 404;
 let standardCatalogLkg = false;
 let unknownCardHtml = 'absent';
 let partialKnownFormat = null;
@@ -222,6 +223,22 @@ const server = http.createServer((req, res) => {
       partial: partialKnownFormat === format,
       card: { card_id: cardId },
     }));
+    return;
+  }
+  const images = {
+    '/api/card-image/CS2_029/full.webp': 'image/webp',
+    '/api/public-resource/hsjson/v1/render/latest/ruRU/256x/CS2_029.png': 'image/png',
+    '/api/public-resource/db/uploads/art/BG28_300.jpg': 'image/jpeg',
+  };
+  if (images[requestUrl.pathname]) {
+    res.writeHead(200, { 'Content-Type': images[requestUrl.pathname] });
+    // Bytes that are not UTF-8, as in a real picture.
+    res.end(Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x80, 0x81]));
+    return;
+  }
+  if (requestUrl.pathname === '/api/public-resource/hsjson/v1/render/latest/ruRU/256x/MANACOST_MONITOR_ABSENT_CARD.png') {
+    res.writeHead(missingImageStatus, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: missingImageStatus === 404 ? 'Ресурс не найден' : 'Источник вернул некорректный ресурс' }));
     return;
   }
   if (requestUrl.pathname === '/api/constructed-cards/MANACOST_MONITOR_ABSENT_CARD') {
@@ -478,7 +495,10 @@ try {
   assert.equal(seoCheck.sampledDetails, 23,
     'six segments sample first, middle and last; archetypes sample five');
   assert.equal(report.checks[0].attempts, 2);
-  assert.deepEqual(report.checks.map(check => check.status), [200, 200, 200, 200, 200, 200, 404, 200, 200, 404, 200, 200, 200, 200]);
+  assert.deepEqual(report.checks.map(check => check.status), [200, 200, 200, 200, 200, 200, 404, 200, 200, 404, 200, 200, 200, 404, 200, 200, 200, 200]);
+  assert.deepEqual(report.checks.filter(check => check.label.startsWith('image')).map(check => check.label), [
+    'image card image', 'image HearthstoneJSON proxy', 'image data API proxy', 'image missing',
+  ]);
 
   compressedSitemapEtag = true;
   const compressedReport = await runProductionMonitor({
@@ -547,6 +567,14 @@ try {
     /constructed cards standard unknown: HTTP 500/,
   );
   unknownCardStatus = 404;
+
+  // A picture the source lacks answered 502 and broke every fallback chain (#574).
+  missingImageStatus = 502;
+  await assert.rejects(
+    runProductionMonitor({ baseUrl, profile: 'release', expectedRelease: 'abcdef1234567890', attempts: 1, retryDelayMs: 0, timeoutMs: 2_000 }),
+    /image missing: HTTP 502/,
+  );
+  missingImageStatus = 404;
 
   dataFresh = false;
   const staleReleaseReport = await runProductionMonitor({

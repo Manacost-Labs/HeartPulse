@@ -674,8 +674,8 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
 
   const classes = (updatedAt: string | null) => ({
     updatedAt, source: 'HSReplay', sampleUnit: 'drafts' as const,
-    classes: [{ place: 1, id: 'death-knight', name: 'Рыцарь смерти', winrate: 52.3, sample: 1308 },
-      { place: 2, id: 'hunter', name: 'Охотник', winrate: 51.7, sample: 682 }],
+    classes: [{ place: 1, id: 'death-knight', name: 'Рыцарь смерти', winrate: 52.3, sample: 1308, color: null },
+      { place: 2, id: 'hunter', name: 'Охотник', winrate: 51.7, sample: 682, color: null }],
   });
   assert.deepEqual(text('/classes', arenaClassesSeoValues(classes(FRESH), NOW)), {
     title: 'Лучшие классы Арены Hearthstone, ноябрь 2026 | HearthPulse',
@@ -697,7 +697,7 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
 
   const hero = (name: string, avgPlacement: number) => ({
     dbfId: 1, name, image: null, tier: 'A', avgPlacement, top4Rate: 59.6, pickRate: 52.7, games: null,
-    heroPowerName: null, bestComposition: null, keyMinions: [],
+    heroPowerName: null, heroPowerText: null, heroPowerImage: null, bestComposition: null, keyMinions: [],
   });
   const heroes = (count: number) => ({
     mode: 'solo' as const, updatedAt: FRESH, source: 'HSReplay',
@@ -730,7 +730,7 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
   const september = Date.parse('2026-09-15T09:00:00Z');
   for (const value of [
     text('/tierlist', arenaTierlistSeoValues({ ...tierlist(SEPTEMBER), sampleGamesAtLeast: 1_200_000 }, september)),
-    text('/classes', arenaClassesSeoValues({ ...classes(SEPTEMBER), classes: [{ place: 1, id: 'dh', name: 'Охотник на демонов', winrate: 52.3, sample: 1 }] }, september)),
+    text('/classes', arenaClassesSeoValues({ ...classes(SEPTEMBER), classes: [{ place: 1, id: 'dh', name: 'Охотник на демонов', winrate: 52.3, sample: 1, color: null }] }, september)),
     text('/legendaries', arenaLegendariesSeoValues({ ...legendaries([group('Командир следопытов Сильвана', 57.2)]), updatedAt: SEPTEMBER }, september)),
     text('/heroes', battlegroundHeroesSeoValues({ ...heroes(116), updatedAt: SEPTEMBER, heroes: [hero('Трас\'тат, паразит душ', 4.09)] }, september)),
     text('/battlegrounds/tier-list', battlegroundBuildsSeoValues({ ...builds([build('S', 'Свинобразы: x'), build('S', 'Элементали: y'), build('S', 'Мурлоки: z'), build('S', 'Нежить: w'), build('S', 'Звери: v')]), updatedAt: SEPTEMBER }, september)),

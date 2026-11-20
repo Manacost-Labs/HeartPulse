@@ -458,6 +458,12 @@
 
 .arena-app-battlegrounds .bg-heroes-tools__explanation { min-width: 0; }
 
+.arena-app-battlegrounds .bg-heroes-tools__source {
+  margin-top: 0.25rem;
+  color: #8b6c42;
+  font-size: 0.75rem;
+}
+
 .arena-app-battlegrounds .bg-heroes-tools__metrics {
   display: flex;
   flex-wrap: wrap;
@@ -630,6 +636,16 @@
 .arena-app-battlegrounds .bg-heroes-segmented button:focus-visible {
   outline: 2px solid #efc96f;
   outline-offset: 2px;
+}
+
+.arena-app-battlegrounds .bg-heroes-segmented button.bg-heroes-locked {
+  color: #bfae8d;
+}
+
+.arena-app-battlegrounds .bg-heroes-segmented button.bg-heroes-locked svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  color: #efc96f;
 }
 
 .arena-app-battlegrounds .bg-heroes-view-toggle button {
@@ -965,6 +981,31 @@
 .arena-app-battlegrounds .bg-hero-ledger__composition-value--empty {
   color: #806a54;
   font-size: 0.7rem;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__locked {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.6rem;
+  border: 1px dashed rgba(139, 108, 66, 0.55);
+  border-radius: 0.3rem;
+  color: #6b4c2a;
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: rgba(255, 243, 216, 0.6);
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__locked:hover {
+  border-color: #b8893d;
+  color: #3d2a1e;
+}
+
+.arena-app-battlegrounds .bg-hero-ledger__locked svg {
+  width: 0.85rem;
+  height: 0.85rem;
+  color: #b8893d;
 }
 
 .arena-app-battlegrounds .bg-hero-ledger__empty {
@@ -1800,6 +1841,17 @@
 
   .arena-app-battlegrounds .bg-heroes-segmented button {
     flex: 1 0 auto;
+  }
+  /* The lock takes no width here: four range buttons must fit a phone row like the subscriber's. */
+  .arena-app-battlegrounds .bg-heroes-segmented button.bg-heroes-locked {
+    position: relative;
+  }
+  .arena-app-battlegrounds .bg-heroes-segmented button.bg-heroes-locked svg {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 0.62rem;
+    height: 0.62rem;
   }
 
   .arena-app-battlegrounds .bg-hero-ledger {

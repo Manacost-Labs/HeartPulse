@@ -34,7 +34,7 @@ function kindDecks() {
 const meta = {
   title: 'Constructed/Fun deck layouts',
   component: FunDecksPage,
-  args: { hasFullAccess: true, initialPreview: null },
+  args: { initialPreview: null },
   parameters: { layout: 'fullscreen', fullPage: true },
   decorators: [Story => <div style={{ maxWidth: 1200, marginInline: 'auto', paddingInline: 'clamp(.8rem, 2vw, 1.5rem)' }}><Story /></div>],
   beforeEach: ({ args }) => {

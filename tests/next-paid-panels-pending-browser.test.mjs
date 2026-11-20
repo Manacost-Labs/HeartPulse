@@ -77,7 +77,7 @@ test('constructed card statistics stay in their loading state, never locked, for
     for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true, hasTouch: true }]) {
       for (const [path, settled] of [
         ['/standard/cards/standard/blizzard%3A12345/',
-          () => Boolean(document.querySelector('.constructed-card-detail__statistics dl:not([aria-busy])'))],
+          () => Boolean(document.querySelector('.constructed-card-detail__statistics dl.constructed-cards__stats:not([aria-busy])'))],
         ['/standard/cards/', () => performance.getEntriesByType('resource')
           .filter(entry => entry.name.includes('/api/constructed-cards')).length > 0
           && !document.querySelector('[data-loading]')
@@ -122,7 +122,7 @@ test('card statistics never lock when the subscription answer fails', { timeout:
     });
     await page.goto(`${runtime.origin}/standard/cards/standard/blizzard%3A12345/`, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => document.querySelector('.constructed-card-detail__statistics-unavailable button')
-      || document.querySelector('.constructed-card-detail__statistics dl:not([aria-busy])'), { timeout: 25_000 });
+      || document.querySelector('.constructed-card-detail__statistics dl.constructed-cards__stats:not([aria-busy])'), { timeout: 25_000 });
     // Past the check's deadline (10 s) the access state is final: still no lock.
     await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 11_000)));
     assert.deepEqual(await page.evaluate(() => window.__locks.slice(0, 3)), [], 'no frame shows a lock');
@@ -170,12 +170,12 @@ test('a restored card page hides its paid statistics until access is confirmed a
       await page.setCookie({ name, value, url: origin });
       proxy.mode = 'pass';
       await page.goto(`${origin}/standard/cards/standard/blizzard%3A12345/`, { waitUntil: 'load' });
-      await page.waitForSelector('.constructed-card-detail__statistics dl:not([aria-busy])', { timeout: 20_000 });
+      await page.waitForSelector('.constructed-card-detail__statistics dl.constructed-cards__stats:not([aria-busy])', { timeout: 20_000 });
       await page.evaluate(() => {
         window.__restoreMarker = true;
         addEventListener('pageshow', event => {
           if (!event.persisted) return;
-          const paid = () => Boolean(document.querySelector('.constructed-card-detail__statistics dl:not([aria-busy])')
+          const paid = () => Boolean(document.querySelector('.constructed-card-detail__statistics dl.constructed-cards__stats:not([aria-busy])')
             || document.querySelector('.constructed-card-detail__history, [class*="history-chart"]'));
           window.__restored = { event: paid(), later: [] };
           requestAnimationFrame(() => { window.__restored.frame = paid(); });
@@ -191,7 +191,7 @@ test('a restored card page hides its paid statistics until access is confirmed a
       assert.deepEqual({ event: restored.event, frame: restored.frame, later: restored.later }, { event: false, frame: false,
         later: [false, false, false] }, `${mode}: no paid statistics before the access is confirmed again`);
       if (mode === 'late') {
-        await page.waitForSelector('.constructed-card-detail__statistics dl:not([aria-busy])', { timeout: 20_000 });
+        await page.waitForSelector('.constructed-card-detail__statistics dl.constructed-cards__stats:not([aria-busy])', { timeout: 20_000 });
       } else {
         await page.waitForSelector('.constructed-card-detail__statistics-unavailable button', { timeout: 25_000 });
       }

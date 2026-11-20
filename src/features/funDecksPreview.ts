@@ -1,5 +1,8 @@
 import { DECK_CLASSES as FUN_DECK_CLASSES } from './deckViews/deckClass';
 
+/** One line of a deck's card list as the public API sends it. `hasPage`: `/standard/cards/<format>/<id>/` exists; `name: null` is a card no dictionary knows. */
+export type FunDeckOpenCard = { id: string | null; name: string | null; cost: number | null; count: number; hasPage: boolean };
+
 export type FunDeckRow = {
   title: string;
   deckCode: string;
@@ -35,6 +38,8 @@ export type FunDeckRow = {
     imageUrl: string;
     previewImageUrl: string;
   };
+  /** The main-deck list decoded from `deckCode` by the API, as the server HTML prints it. Absent when the catalog could not name every card. */
+  cards?: FunDeckOpenCard[];
 };
 
 export type FunDecksPayload = {
@@ -78,8 +83,6 @@ export const FUN_DECK_TAGS: ReadonlyArray<{ id: FunDeckTagId; label: string; sho
 /** Hero classes by the lower-case Latin key of `className` (deckViews/deckClass). */
 export { FUN_DECK_CLASSES };
 
-/** Decks a guest sees; the rest of the selection is for Diamond subscribers. */
-export const FUN_DECKS_FREE_PREVIEW_COUNT = 3;
 /** Below this many games a win rate is a rough guess, and the card says so. */
 export const FUN_DECKS_FEW_GAMES = 100;
 const WHY_TAGS_SHOWN = 3;
@@ -162,17 +165,14 @@ function classLabel(deck: FunDeckRow): string {
 }
 
 /**
- * The decks the page shows. The format and the order pick what is open to the
- * reader: all of it for a subscriber, the first three for a guest. Class,
- * tags and search only narrow that, so no filter opens a deck the guest's
- * view of the format does not.
+ * The decks the page shows: the whole selection for everyone, narrowed by the
+ * format, the class, the tags and the search, in the order of the sort.
  */
-export function selectFunDecks(decks: FunDeckRow[], view: FunDecksView, hasFullAccess: boolean): FunDeckRow[] {
+export function selectFunDecks(decks: FunDeckRow[], view: FunDecksView): FunDeckRow[] {
   const inFormat = decks.filter(deck => view.format === 'all' || (deck.format.toLowerCase() === 'wild' ? 'wild' : 'standard') === view.format);
   const ordered = orderFunDecks(inFormat, view.sort);
-  const open = hasFullAccess ? ordered : ordered.slice(0, FUN_DECKS_FREE_PREVIEW_COUNT);
   const needle = view.query.trim().toLocaleLowerCase('ru-RU');
-  return open.filter(deck => {
+  return ordered.filter(deck => {
     if (view.classes.length && !view.classes.includes(funDeckClassId(deck))) return false;
     if (view.tags.length && !deck.tags?.some(tag => view.tags.includes(tag as FunDeckTagId))) return false;
     if (!needle) return true;
@@ -182,10 +182,10 @@ export function selectFunDecks(decks: FunDeckRow[], view: FunDecksView, hasFullA
 }
 
 /**
- * What a guest's first view shows: the selection's summary and its newest
- * free decks. This is all that may enter server-rendered HTML; the complete
- * selection is paid and stays a browser request.
+ * What the server renders for everyone: the selection's summary and every
+ * deck, the newest first. The selection is open (its answer is public), so
+ * the page has no guest cut.
  */
-export function funDecksGuestPreview(payload: FunDecksPayload): FunDecksPayload {
-  return { ...payload, decks: orderFunDecks(payload.decks, 'newest').slice(0, FUN_DECKS_FREE_PREVIEW_COUNT) };
+export function funDecksOpenPreview(payload: FunDecksPayload): FunDecksPayload {
+  return { ...payload, decks: orderFunDecks(payload.decks, 'newest') };
 }
