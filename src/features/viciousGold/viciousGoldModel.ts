@@ -1,4 +1,5 @@
 import type { StandardMetaClass } from '../../../shared/standardMetaContract';
+import type { PublicViciousGold } from '../../../shared/viciousGoldPublicContract';
 import type { HsReplayDeckCard } from '../HsReplayDeckList';
 import {
   STANDARD_META_CLASS_COLORS, STANDARD_META_NEUTRAL_COLOR, STANDARD_META_TIER_FLOORS, type StandardMetaTier,
@@ -242,4 +243,26 @@ export function classShareRows(classes: readonly ClassDistribution[], decks: rea
     const listed = own.reduce((sum, deck) => sum + deck.frequency, 0);
     return { ...item, color, segments, rest: Math.max(0, Math.round((item.frequency - listed) * 100) / 100) };
   });
+}
+
+/**
+ * The open frame (#656) in the report's shape, for the same components: its classes and archetypes in their neutral
+ * order with no share, the rank brackets with no rows, no games, threshold or builds. A view given it with `locked`
+ * shows a lock in the place of every closed value.
+ */
+export function lockedPayload(open: PublicViciousGold): ViciousGoldPayload {
+  return {
+    title: open.title,
+    format: open.format,
+    games: 0,
+    source: open.source,
+    sourceUrl: open.sourceUrl,
+    updatedAt: open.updatedAt,
+    timeRanges: open.timeRanges,
+    minimumDeckFrequency: 0,
+    classDistribution: open.classes.map(item => ({ ...item, frequency: 0 })),
+    deckDistribution: open.archetypes.map(item => ({ ...item, frequency: 0, build: null })),
+    tierList: open.rankBrackets.map(section => ({ ...section, decks: [] })),
+    buildCoverage: { found: 0, total: 0 },
+  };
 }

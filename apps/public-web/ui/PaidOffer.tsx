@@ -28,7 +28,8 @@ export function PaidOfferProvider({ title, text, entitlement = 'arena', children
     {children}
     {shown && !allowed && <Suspense fallback={null}>
       <ArenaPaidOffer title={title} text={text} returnTo={returnTo} signedIn={Boolean(access.user)}
-        checking={access.checking} onRefresh={access.refresh} onClose={() => setShown(false)} />
+        checking={access.checking} onRefresh={access.refresh} onClose={() => setShown(false)}
+        tier={entitlement === 'standard' ? 'standard' : 'default'} />
     </Suspense>}
   </OfferContext.Provider>;
 }

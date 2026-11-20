@@ -28,7 +28,7 @@ is a separate administrator workspace and retains its permission gate.
 | `ui/PublicSupportPage.tsx`, `ui/PublicSupportShell.tsx` | `/faq/`, `/privacy/`, `/terms/`: content rendered on the server, passed as children to the client shell |
 | `ui/usePublicAccess.ts` | Shared browser session, subscription and admin state in the persistent layout; shows the remembered viewer of this session at once (`ui/viewerHint.ts`), quietly re-checks on route changes and on a page restored from the back/forward cache (`ui/restoredPageAccess.ts`) |
 | `ui/lazyBattlegrounds.tsx` | The paid Battlegrounds views, loaded only for a viewer who may open them |
-| `ui/lazyPaidView.ts` | On-demand loading of a paid view (`moduleLoader`, `useLoadedModule`, `usePaidViewPrefetch`); Battlegrounds and the Vicious Syndicate Gold report use it |
+| `ui/lazyPaidView.ts` | On-demand loading of a paid view (`moduleLoader`, `useLoadedModule`, `usePaidViewPrefetch`); Battlegrounds use it |
 | `ui/PageBannerPreload.tsx` | Head preload of the page-banner art, for pages whose LCP is that banner |
 | `ui/HomePageContent.tsx`, `ui/useHomeFirstPaint.ts`, `ui/homeFeedRequests.ts` | Home feed recovery: only missing anonymous feeds load in the browser, with cancelled lifetimes and soft settlement through the home module's DOM ports; request code loads only when recovery is needed |
 | `ui/PublicNavigationLayout.tsx` | Persistent menu and viewer access; composes the route-owned content without moving data loaders into the layout. The menu's compact rail is applied before first paint by the head script from `src/app/shell/navigationPreference.ts`; its styles are `src/app/shell/PublicNavigation.css`, imported by `app/layout.tsx` after the parchment theme |
@@ -256,11 +256,10 @@ is a separate administrator workspace and retains its permission gate.
   inside `.arena-paid-view`, which keeps the gate's height around the view's
   first render before its own data arrives.
   `tests/next-bundle-budgets.test.mjs` checks that the Battlegrounds routes do
-  not load those views up front; `/standard/vicious-gold/` loads its report
-  the same way, with the banner and loader it shows while its data loads.
-  While that chunk downloads, the page already starts the report's two reads
-  (`viciousGoldRequests.ts`, taken once by the report), and the summary and
-  builds requests run in parallel instead of chunk → summary → builds.
+  not load those views up front. `/standard/vicious-gold/` has no gate: a
+  guest gets the report itself on its open frame, with locks
+  (`docs/specs/vicious-gold-open-frame.md`); only its deck block loads on
+  demand.
   A locked preview behind the gate keeps its loaders still
   (`PaywallGate.css`): give a loader a class, not an inline `animation`
   style, or it loops for the whole visit.

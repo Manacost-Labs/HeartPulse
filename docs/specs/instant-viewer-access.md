@@ -105,7 +105,9 @@ shows a previous viewer.
   the check failed and offers «Повторить проверку», which runs the check
   again. Nothing polls after that.
 - Full-page gates show `PaywallPending`, never the locked preview, while the
-  check runs (`/standard/matchups/` and `/standard/vicious-gold/` included).
+  check runs (`/battlegrounds/tier-builder/`). `/standard/matchups/` and
+  `/standard/vicious-gold/` have no gate: their open view keeps its locks
+  hidden while a remembered viewer is checked.
   The Standard meta loads its public teaser during the check, whatever the
   browser remembers; full access replaces it. A remembered subscriber, who has
   access from the first client paint, reads the full slice only.
@@ -167,7 +169,7 @@ stays), a subscription body that arrives after another sign-in (session
 check and sign-in: dropped), and header search with a remembered refusal and
 a late subscription answer (no lock).
 `tests/next-paywall-access-check-browser.test.mjs` checks the
-guest placeholder, including matchups and Vicious Gold. The same browser test
+guest placeholder on the tier builder. The same browser test
 file checks a remembered refusal and a sign-in with a late subscription answer
 (no lock) and a sign-in whose subscription answer is 401 (a guest).
 `tests/auth-persistence-integration.test.mjs` checks on the real server that

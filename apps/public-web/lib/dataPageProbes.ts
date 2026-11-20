@@ -10,6 +10,7 @@ import { standardMetaPublicPath } from './publicStandardMetaTeaserData';
 import { PUBLIC_TIERLIST_PATH } from './publicTierlistData';
 import { archetypeTeaserPath } from './publicDataPaths';
 import { GUIDES_LIST_PATH } from './publicGuidesListData';
+import { VICIOUS_GOLD_PUBLIC_PATH } from '@/shared/viciousGoldPublicContract';
 
 /**
  * The Express read each prerendered data page makes for its first paint, keyed by the page path of
@@ -25,6 +26,7 @@ export const DATA_PAGE_PROBES = {
   '/legendaries': `${PUBLIC_LEGENDARIES_PATH}?source=hsreplay`,
   '/heroes': heroesRankingPath('solo'),
   '/standard/matchups': standardMatchupsPublicPath,
+  '/standard/vicious-gold': VICIOUS_GOLD_PUBLIC_PATH,
   '/battlegrounds/tier-list': buildsPath('compositions'),
   '/library': LIBRARY_INDEX_PATH,
   ...Object.fromEntries(LIBRARY_LISTING_KINDS.map(kind => [`/library/${kind}`, libraryListingPath(kind)])),

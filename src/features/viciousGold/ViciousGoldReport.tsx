@@ -1,5 +1,6 @@
 import { KpiGroup, type KpiItem } from '../../vendor/varylo-ui/data-display/KpiGroup';
 import { archetypeClassBackdrop } from '../archetypeDetailModel';
+import { PaidMetricLock } from '../../shared/ui/PaidLocks';
 import {
   classKey, isAggregateDeck, reportHighlights, reportWindowLabel, thresholdPercent,
   type ViciousGoldPayload,
@@ -10,6 +11,7 @@ const UPDATED = new Intl.DateTimeFormat('ru-RU', {
 });
 const PERCENT: Intl.NumberFormatOptions = { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 };
 const KPI_LABELS = { noData: 'Нет данных', loading: 'Загружаем отчёт' };
+const LOCKED_KPI_LABELS = { noData: 'По подписке', loading: 'Загружаем отчёт' };
 
 function updatedLabel(value: string | null): string | null {
   const date = value ? new Date(value) : null;
@@ -20,18 +22,22 @@ function updatedLabel(value: string | null): string | null {
  * The report plate under the page banner: what the vS snapshot covers (window, update time,
  * sections) and its leaders as a KPI strip. The leader's class art stays a narrow strip on the
  * right and is hidden on phones, so it never outgrows the preloaded banner as the LCP element.
+ * `locked` (the open frame, #656): the leaders, the games and the share threshold are locks, and the art, which
+ * would name the leader's class, is not shown.
  */
-export function ViciousGoldReport({ data }: { data: ViciousGoldPayload }) {
-  const { leader, popular, topClass } = reportHighlights(data);
+export function ViciousGoldReport({ data, locked = false }: { data: ViciousGoldPayload; locked?: boolean }) {
+  const { leader, popular, topClass } = locked ? { leader: null, popular: null, topClass: null } : reportHighlights(data);
   const reportWindow = reportWindowLabel(data.timeRanges?.tierLadder ?? data.timeRanges?.distribution);
   const updated = updatedLabel(data.updatedAt);
   const backdrop = leader ? archetypeClassBackdrop(classKey(leader.class)) : null;
   const archetypes = data.deckDistribution.filter(deck => !isAggregateDeck(deck.deck)).length;
+  const lock = (label: string) => (locked ? <PaidMetricLock variant="card" label={label} /> : undefined);
   const items: KpiItem[] = [
-    { id: 'leader', label: 'Лидер Power Tier', value: leader ? leader.winrate / 100 : null, format: PERCENT, caption: leader?.deckLabel },
-    { id: 'popular', label: 'Самая популярная', value: popular ? popular.frequency / 100 : null, format: PERCENT, caption: popular?.deckLabel },
-    { id: 'class', label: 'Самый частый класс', value: topClass ? topClass.frequency / 100 : null, format: PERCENT, caption: topClass?.classLabel },
-    { id: 'archetypes', label: 'Архетипов', value: archetypes, format: { maximumFractionDigits: 0 }, caption: `от ${thresholdPercent(data.minimumDeckFrequency)} партий` },
+    { id: 'leader', label: 'Лидер Power Tier', value: leader ? leader.winrate / 100 : null, format: PERCENT, caption: leader?.deckLabel ?? lock('Лидер Power Tier') },
+    { id: 'popular', label: 'Самая популярная', value: popular ? popular.frequency / 100 : null, format: PERCENT, caption: popular?.deckLabel ?? lock('Самая популярная колода') },
+    { id: 'class', label: 'Самый частый класс', value: topClass ? topClass.frequency / 100 : null, format: PERCENT, caption: topClass?.classLabel ?? lock('Самый частый класс') },
+    { id: 'archetypes', label: 'Архетипов', value: archetypes, format: { maximumFractionDigits: 0 },
+      caption: locked ? 'в отчёте' : `от ${thresholdPercent(data.minimumDeckFrequency)} партий` },
   ];
 
   return (
@@ -47,7 +53,7 @@ export function ViciousGoldReport({ data }: { data: ViciousGoldPayload }) {
         <p className="vsgold-report__meta">
           {updated ? <span>Обновлено {updated}</span> : null}
           <span>
-            {data.games.toLocaleString('ru-RU')} партий ·{' '}
+            {locked ? <>Партий: <PaidMetricLock label="Партий в отчёте" /></> : `${data.games.toLocaleString('ru-RU')} партий`} ·{' '}
             {data.sourceUrl ? <a href={data.sourceUrl} target="_blank" rel="noreferrer">Vicious Syndicate</a> : data.source}
           </span>
         </p>
@@ -58,7 +64,7 @@ export function ViciousGoldReport({ data }: { data: ViciousGoldPayload }) {
         </ul>
       </div>
       <KpiGroup className="vsgold-report__kpis hp-varylo hp-varylo--plate" items={items} minTileWidth={120}
-        locale="ru-RU" labels={KPI_LABELS} aria-label="Главное в отчёте" />
+        locale="ru-RU" labels={locked ? LOCKED_KPI_LABELS : KPI_LABELS} aria-label="Главное в отчёте" />
     </section>
   );
 }

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { TierBadge } from '../../modules/arenaTierList/public';
 import { TrendValue } from '../../vendor/varylo-ui/widgets/TrendValue';
+import { PaidFilterLock, PaidMetricLock } from '../../shared/ui/PaidLocks';
 import { BuildActions } from './BuildActions';
 import { DeckName } from './DeckName';
 import {
@@ -16,11 +17,20 @@ function barStyle(winrate: number) {
   return { left: `${offset >= 0 ? 50 : 50 + offset}%`, width: `${Math.abs(offset)}%` };
 }
 
-export function PowerTierBoard({ tierList, classes, copiedDeck, onCopy }: {
+/** The Power Tier of the open frame: this many rows, each a lock with no name, whatever the report holds. */
+const LOCKED_ROWS = 8;
+const LOCKED_SLOTS = Array.from({ length: LOCKED_ROWS }, (_, index) => index + 1);
+
+/**
+ * `locked` (the open frame, #656): the rank tabs stay, the class filter is a lock, and the rows are slots with a lock
+ * and no name: the composition and order of the Power Tier, its tiers and win rates are closed.
+ */
+export function PowerTierBoard({ tierList, classes, copiedDeck, onCopy, locked = false }: {
   tierList: TierSection[];
   classes: ClassDistribution[];
   copiedDeck: string;
   onCopy: (deck: string, code: string) => void;
+  locked?: boolean;
 }) {
   const [rankBracket, setRankBracket] = useState(() => tierList[0]?.rankBracket ?? 'All ranks');
   const [powerClass, setPowerClass] = useState('all');
@@ -46,20 +56,42 @@ export function PowerTierBoard({ tierList, classes, copiedDeck, onCopy }: {
               onClick={() => setRankBracket(section.rankBracket)}>{section.rankLabel}</button>
           ))}
         </div>
-        <label className="vsgold-select">
-          <span className="sr-only">Класс</span>
-          <select value={powerClass} onChange={event => setPowerClass(event.target.value)} aria-label="Класс для Power Tier">
-            <option value="all">Все классы</option>
-            {classes.map(item => <option key={item.class} value={item.class}>{item.classLabel}</option>)}
-          </select>
-        </label>
+        {locked ? <span className="vsgold-select"><PaidFilterLock label="Класс" value="Все классы" /></span> : (
+          <label className="vsgold-select">
+            <span className="sr-only">Класс</span>
+            <select value={powerClass} onChange={event => setPowerClass(event.target.value)} aria-label="Класс для Power Tier">
+              <option value="all">Все классы</option>
+              {classes.map(item => <option key={item.class} value={item.class}>{item.classLabel}</option>)}
+            </select>
+          </label>
+        )}
       </div>
 
       <div className="vsgold-power__legend" aria-hidden="true">
         <span>Колода</span><span title="Ожидаемый винрейт колоды против меты выбранного диапазона рангов (расчёт Vicious Syndicate)">Винрейт: 40% · 50% · 60%</span>{baseline ? <span>п. п. к «{baseline}»</span> : <span />}
       </div>
 
-      {groups.map(group => (
+      {locked ? (
+        <section className="vsgold-tier" data-locked="" aria-labelledby="vsgold-tier-locked">
+          <header className="vsgold-tier__head">
+            <h3 id="vsgold-tier-locked">Тиры S–D</h3>
+            <small>колоды, их порядок и винрейт — по подписке</small>
+          </header>
+          <ol className="vsgold-tier__rows">
+            {LOCKED_SLOTS.map(slot => (
+              <li key={slot} className="vsgold-power-row vsgold-power-row--locked">
+                <span className="vsgold-power-row__rank" />
+                <span className="vsgold-power-row__icon" aria-hidden="true" />
+                <span className="vsgold-power-row__name"><PaidMetricLock label={`Колода Power Tier, строка ${slot}`} /></span>
+                <span className="vsgold-power-row__bar" aria-hidden="true" />
+                <b className="vsgold-power-row__winrate" />
+                <span className="vsgold-power-row__delta" />
+                <span className="vsgold-build vsgold-build--none" />
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : groups.map(group => (
         <section key={group.tier} className="vsgold-tier" data-tier={group.tier} aria-labelledby={`vsgold-tier-${group.tier}`}>
           <header className="vsgold-tier__head">
             <TierBadge tier={group.tier} small />
@@ -75,7 +107,7 @@ export function PowerTierBoard({ tierList, classes, copiedDeck, onCopy }: {
           </ol>
         </section>
       ))}
-      {!groups.length && <p className="vsgold-empty">Для этого класса в выбранном диапазоне рангов колод в Power Tier нет.</p>}
+      {!locked && !groups.length && <p className="vsgold-empty">Для этого класса в выбранном диапазоне рангов колод в Power Tier нет.</p>}
     </section>
   );
 }

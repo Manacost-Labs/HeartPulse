@@ -669,6 +669,21 @@ export const adminFixtures = {
       }],
     }],
   },
+  // The open frame of the report (#656): what `/api/vicious-syndicate-gold/public` makes of the report above.
+  '/api/vicious-syndicate-gold/public': {
+    title: 'Vicious Syndicate Gold',
+    format: 'Standard',
+    source: 'Vicious Syndicate Live',
+    sourceUrl: 'https://www.vicioussyndicate.com/',
+    updatedAt: '2026-07-13T00:00:00.000Z',
+    timeRanges: { distribution: null, tierLadder: null, tierMatchups: null },
+    classes: [
+      { class: 'warlock', classLabel: 'Чернокнижник', classIcon: 'warlock' },
+      { class: 'shaman', classLabel: 'Шаман', classIcon: 'shaman' },
+    ],
+    archetypes: [{ class: 'warlock', classLabel: 'Чернокнижник', classIcon: 'warlock', deck: 'Painlock', deckLabel: 'Пейнлок', archetypeSlug: null }],
+    rankBrackets: [{ rankBracket: 'All ranks', rankLabel: 'Все ранги' }],
+  },
   '/api/admin/vicious-syndicate-gold/builds': {
     builds: [{
       deck: 'Painlock',
@@ -1227,4 +1242,5 @@ export const publicStandardFixtureAliases = {
   '/api/standard-meta/trends': '/api/admin/standard-meta/trends',
   '/api/vicious-syndicate-gold': '/api/admin/vicious-syndicate-gold',
   '/api/vicious-syndicate-gold/builds': '/api/admin/vicious-syndicate-gold/builds',
+  '/api/vicious-syndicate-gold/public': '/api/vicious-syndicate-gold/public',
 };
