@@ -1,37 +1,125 @@
-/* The server-rendered text under an archetype page: what its public numbers say and where they come from. */
+/* The block under an archetype page (`ArchetypeSeoSummary`): plates of its place among the others and links to its class. */
 .archetype-seo-summary {
-  max-inline-size: 72rem;
-  margin: 1.25rem auto 0;
-  padding-top: 0.85rem;
-  border-top: 1px solid var(--arena-paper-line);
-  color: var(--arena-ink);
-  font-size: 0.9375rem;
-  line-height: 1.6;
-}
-
-.archetype-seo-summary h2 {
-  margin: 0 0 0.6rem;
-  font-family: var(--font-display);
-  font-size: clamp(1.15rem, 2.2vw, 1.5rem);
-  line-height: 1.25;
-}
-
-.archetype-seo-summary p {
-  margin: 0 0 0.7rem;
-}
-
-.archetype-seo-summary a {
-  color: inherit;
-  text-decoration: underline;
-}
-
-.archetype-seo-summary__links {
   display: grid;
-  gap: 0.2rem 1.5rem;
-  margin: 0 0 0.7rem;
-  padding-left: 1.2rem;
+  gap: 0.75rem;
+  container-type: inline-size;
+  margin-top: 1rem;
+  padding: 0.85rem;
+  border: 8px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
+  color: #2f1f14;
+  background:
+    linear-gradient(rgba(250, 235, 197, 0.9), rgba(229, 199, 144, 0.8)),
+    var(--arena-parchment-texture) center / cover;
+  font-size: 0.875rem;
+  line-height: 1.4;
 }
 
-@media (min-width: 640px) {
-  .archetype-seo-summary__links { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.archetype-seo-summary h2,
+.archetype-seo-summary h3 {
+  margin: 0;
+  font-family: var(--font-display);
+  line-height: 1.2;
+}
+
+.archetype-seo-summary h2 { font-size: clamp(1.1rem, 2vw, 1.35rem); }
+.archetype-seo-summary h3 { font-size: 1.05rem; }
+.archetype-seo-summary p { margin: 0; }
+
+.archetype-seo-summary__plates {
+  display: grid;
+  margin: 0;
+  border: 1px solid rgba(92, 54, 24, 0.24);
+  background: rgba(255, 248, 219, 0.5);
+}
+
+.archetype-seo-summary__plates > div {
+  min-width: 0;
+  padding: 0.6rem 0.75rem;
+  border-bottom: 1px solid rgba(92, 54, 24, 0.16);
+}
+
+.archetype-seo-summary__plates > div:last-child { border-bottom: 0; }
+
+.archetype-seo-summary dt {
+  color: #735e49;
+  font-size: 0.6875rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.archetype-seo-summary dd { margin: 0.15rem 0 0; font-variant-numeric: tabular-nums; }
+
+.archetype-seo-summary__value {
+  font-size: 1.35rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.archetype-seo-summary__delta { color: #735e49; font-weight: 700; white-space: nowrap; }
+.archetype-seo-summary__delta[data-trend='up'] { color: #2f7a3e; }
+.archetype-seo-summary__delta[data-trend='down'] { color: #a33a3a; }
+.archetype-seo-summary .archetype-seo-summary__note { color: #735e49; font-size: 0.75rem; }
+
+.archetype-seo-summary__hint { color: #8d171d; font-size: 0.8125rem; font-weight: 700; }
+
+.archetype-seo-summary__source {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 0;
+  color: #735e49;
+  font-size: 0.75rem;
+}
+
+/* The dot ends a line that wraps, it never starts the next one. */
+.archetype-seo-summary__source > :not(:last-child)::after { content: '·'; margin: 0 0.45rem; }
+.archetype-seo-summary__source a { color: inherit; text-decoration: underline; }
+
+.archetype-seo-summary__class { display: grid; gap: 0.5rem; }
+
+.archetype-seo-summary__class ul {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 16rem), 1fr));
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.archetype-seo-summary__class a {
+  display: flex;
+  min-height: 44px;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgba(92, 54, 24, 0.24);
+  color: inherit;
+  background: rgba(255, 248, 219, 0.55);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.archetype-seo-summary__class a > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+
+.archetype-seo-summary__class a:hover,
+.archetype-seo-summary__class a:focus-visible {
+  border-color: rgba(141, 23, 29, 0.55);
+  color: #8d171d;
+  background: rgba(255, 248, 219, 0.85);
+}
+
+.archetype-seo-summary__winrate { flex: 0 0 auto; font-variant-numeric: tabular-nums; }
+
+.archetype-seo-summary__all a {
+  color: #8d171d;
+  font-weight: 700;
+}
+
+/* Side by side once each plate has room for its number and its note. */
+@container (min-width: 36rem) {
+  .archetype-seo-summary__plates { grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; }
+  .archetype-seo-summary__plates > div { border-right: 1px solid rgba(92, 54, 24, 0.16); border-bottom: 0; }
+  .archetype-seo-summary__plates > div:last-child { border-right: 0; }
 }

@@ -863,10 +863,27 @@ function startArchetypeExpress(state) {
 }
 
 const countWords = text => text.split(/\s+/).filter(token => /[\p{L}\p{N}]/u.test(token)).length;
-/** A page of the summary reads 150–250 words without JavaScript, whatever the catalog said. */
-const assertLength = ({ text }, name) => {
-  const words = countWords(text);
-  assert.ok(words >= 150 && words <= 250, `${name}: the summary has ${words} words`);
+// Owner rule (#570): the block under the page is plates and links, never a paragraph written for a robot.
+const PROSE = ['Насколько силён', 'Как читать эти цифры', 'в этом тексте их нет', 'В каталог входят', 'Что такое архетип', 'доступны по подписке', 'Медианный винрейт'];
+/** No paragraph of prose: every line of the block is short, and none of the old paragraphs is back. */
+const assertNoProse = ({ summary, text }, name) => {
+  for (const phrase of PROSE) assert.ok(!text.includes(phrase), `${name} says «${phrase}»`);
+  for (const [, line] of summary.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/g)) {
+    assert.ok(countWords(visibleText(line)) <= 12, `${name}: a line of prose «${visibleText(line)}»`);
+  }
+  assert.ok(text.includes('Источник: HSGuru'), `${name} names the source`);
+};
+/**
+ * The facts a page states about its archetype, as a reader sees them without JavaScript: every signed value of
+ * `<main>` — a metric tile (label and value) or a term of a description list with its first value. Counted for
+ * the content threshold of shared/seoIndexThreshold.ts (10 own facts), never by digits in the text.
+ */
+const signedFacts = html => {
+  const main = html.match(/<main[\s\S]*?<\/main>/)?.[0] ?? '';
+  const clean = part => visibleText(part).replace(/\s+/g, ' ').trim();
+  const tiles = [...main.matchAll(/ui-kpi-group__label">([^<]*)<\/span>[\s\S]*?<bdi>([\s\S]*?)<\/bdi>/g)].map(match => [clean(match[1]), clean(match[2])]);
+  const terms = [...main.matchAll(/<dt>([\s\S]*?)<\/dt><dd[^>]*>([\s\S]*?)<\/dd>/g)].map(match => [clean(match[1]), clean(match[2])]);
+  return [...tiles, ...terms];
 };
 const numbersIn = (value, found = []) => {
   if (typeof value === 'number') found.push(value);
@@ -877,7 +894,7 @@ const numbersIn = (value, found = []) => {
   return found;
 };
 
-test('archetype pages: only a strong Standard archetype is indexable; every page carries the summary and nothing paid', { timeout: 180_000 }, async () => {
+test('archetype pages: only a strong Standard archetype is indexable; every page carries the plates and nothing paid', { timeout: 180_000 }, async () => {
   assert.equal(existsSync('apps/public-web/.next/BUILD_ID'), true, 'run build:next before browser QA');
   const state = { catalogOk: true, updatedAt: new Date(Date.now() - 3 * HOUR).toISOString() };
   const express = startArchetypeExpress(state);
@@ -893,7 +910,7 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
     fetched.push([path, html]);
     const summary = html.match(/<section class="archetype-seo-summary"[\s\S]*?<\/section>/)?.[0] ?? '';
     return {
-      html, summary, text: visibleText(summary.replace(/<\/(?:h2|p|li)>/g, '$& ')).replaceAll('\u00a0', ' '),
+      html, summary, text: visibleText(summary.replace(/<\/(?:h2|h3|p|li|dt|dd|span|time)>/g, '$& ')).replace(/\s+/g, ' '),
       robots: html.match(/<meta name="robots" content="([^"]*)"/)?.[1],
       canonical: html.match(/<link rel="canonical" href="([^"]*)"/)?.[1],
       title: decoded(html.match(/<title>([^<]*)<\/title>/)?.[1] ?? ''),
@@ -903,37 +920,39 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
     };
   };
   try {
-    // The strong archetype: indexable, self-canonical, a graph and a summary with the numbers of its teaser.
+    // The strong archetype: indexable, self-canonical, a graph and plates with its place and the two medians.
     const strong = await page('/standard/archetypes/standard/zoolock/');
     assert.equal(strong.robots, 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1');
     assert.equal(strong.canonical, 'https://hearthpulse.net/standard/archetypes/standard/zoolock/');
     assert.match(strong.title, new RegExp(`^Зоолок — колода Hearthstone, (${MONTH_NAMES}) \\d{4} \\| HearthPulse$`));
     assert.equal((strong.html.match(/<h1[\s>]/g) ?? []).length, 1);
     assert.equal((strong.html.match(/<main[\s>]/g) ?? []).length, 1);
-    assert.ok(strong.summary.includes('<h2 id="archetype-seo-summary-title">'), 'a question heading, labelling the section');
-    assert.ok(strong.text.trim().startsWith('Насколько силён Зоолок в Стандарте сейчас'));
-    const words = countWords(strong.text);
-    assert.ok(words >= 150 && words <= 250, `the summary has ${words} words`);
-    const lead = strong.text.split('Как читать')[0];
-    for (const expected of ['Зоолок — архетип класса Чернокнижник в Стандарте Hearthstone', 'По данным HSGuru на ',
-      ' МСК за период «Баны»', 'винрейт — 61,2%', 'популярность — 20,4%', 'в выборке 14 800 игр', 'известно 3 сборки']) {
-      assert.ok(lead.includes(expected), `the answer says «${expected}»`);
+    assert.ok(strong.summary.includes('<h2 id="archetype-seo-summary-title">Среди архетипов Стандарта</h2>'), 'a heading labels the block');
+    for (const expected of ['Место по играм 2 из 14 архетипов Стандарта',
+      'Медиана формата 51,3% +10 п. п. среди 10 архетипов Стандарта от 1 000 игр',
+      'Медиана класса 52% +9,2 п. п. среди 5 архетипов Чернокнижника от 1 000 игр',
+      ' МСК Баны Источник: HSGuru', 'Другие архетипы Чернокнижника', 'Куб Чернокнижник 55,5%', 'Все архетипы Стандарта']) {
+      assert.ok(strong.text.includes(expected), `the block says «${expected}»: ${strong.text}`);
     }
-    assert.ok(countWords(lead.split('Медианный')[0]) <= 60, 'the answer comes in the first 60 words');
-    for (const expected of ['Медианный винрейт 10 архетипов Стандарта с выборкой от 1 000 игр — 51,3%, а Зоолок выше медианы на 10 п. п.',
-      'Среди 5 архетипов класса Чернокнижник с выборкой от 1 000 игр медиана — 52%, а он выше медианы на 9,2 п. п.',
-      'По числу игр он на 2-м месте из 14 архетипов Стандарта.', 'В каталог входят архетипы с выборкой от 50 игр',
-      'доступны по подписке HearthPulse']) {
-      assert.ok(strong.text.includes(expected), `the text says «${expected}»`);
-    }
+    assertNoProse(strong, 'strong');
+    // Own facts of the indexable page (shared/seoIndexThreshold.ts): the hero's tiles, the open build, the plates.
+    assert.deepEqual(signedFacts(strong.html), [['Винрейт', '61,2 %'], ['Популярность', '20,4 %'], ['Игры', '14 800'], ['Сборки', '3'],
+      ['Средний матч', '7 мин'], ['Средний ход', '8'], ['Винрейт', '50%'], ['Игры', '100'], ['Данные на', '—'],
+      ['Место по играм', '2 из 14'], ['Медиана формата', '51,3% +10 п. п.'], ['Медиана класса', '52% +9,2 п. п.']]);
+    // «+10 п. п.» beside the median says whose difference it is on hover.
+    assert.deepEqual([...strong.summary.matchAll(/<span class="archetype-seo-summary__delta"[^>]* title="([^"]+)"/g)].map(match => match[1]),
+      ['выше медианы на 10 п. п.', 'выше медианы на 9,2 п. п.']);
+    assert.ok(!strong.html.includes('Как читать данные'), 'no «how to read the data» block');
+    assert.ok(visibleText(strong.html).includes('Выборка сборок своя — цифры могут отличаться от архетипа.'), 'one hint line at the builds');
+    assert.ok(!strong.text.includes('Выборка меньше'), 'a full sample has no warning');
     assert.doesNotMatch(strong.text, /лидер/i, '«лидер» needs its own sample threshold');
     assert.match(strong.summary, new RegExp(`<time datetime="${state.updatedAt}">`, 'i'), 'the date is machine-readable');
     assert.ok(strong.summary.includes('<a href="https://www.hsguru.com/archetype/Zoolock" rel="noopener noreferrer">HSGuru</a>'));
-    // Four to six links to the class: pages that can be indexed first, then the rest by games; then the catalog.
+    // Six links to the class: pages that can be indexed first, then the rest by games; then the catalog.
     assert.deepEqual(strong.links.filter(href => href.startsWith('/standard/archetypes/standard/')).map(href => href.split('/')[4]), [
       'cube-warlock', 'handlock', 'wincon-warlock', 'anyfin-warlock', 'weak-warlock', 'nzoth-warlock']);
     assert.equal(strong.links.at(-1), '/standard/archetypes/');
-    assert.ok(strong.text.includes('Куб Чернокнижник — 55,5%'));
+    assert.match(strong.summary, /<nav class="archetype-seo-summary__class" aria-labelledby="archetype-seo-summary-class">/, 'the class links are a navigation block');
 
     // The graph: the site, the path, the page and the dataset, with the teaser's numbers as they are.
     assert.equal(strong.graphs.length, 1, 'one JSON-LD script');
@@ -946,7 +965,7 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
     const dataset = nodeOfType(graph, 'Dataset');
     assert.deepEqual(dataset.variableMeasured.map(({ name, value }) => [name, value]),
       [['Винрейт', 61.24], ['Популярность', 20.4], ['Число игр', 14800]]);
-    assert.equal(dataset.dateModified, state.updatedAt, 'dated by the teaser, like the <time> of the text');
+    assert.equal(dataset.dateModified, state.updatedAt, 'dated by the teaser, like the <time> of the block');
     assert.equal(nodeOfType(graph, 'ItemPage').dateModified, state.updatedAt);
     assert.deepEqual(dataset.isBasedOn, { '@type': 'Dataset', name: 'HSGuru: Zoolock', url: 'https://www.hsguru.com/archetype/Zoolock' });
     const teaserItem = STANDARD_ROWS[0];
@@ -955,20 +974,23 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
       assert.ok(JSON.stringify(teaserItem).includes(JSON.stringify(value)), `${value} is written as the teaser writes it`);
     }
 
-    // Not strong enough, Wild and the old family: noindex, follow, no graph, the same summary.
+    // Not strong enough, Wild and the old family: noindex, follow, no graph, the same block.
     const weak = await page('/standard/archetypes/standard/weak-warlock/');
     const wild = await page('/standard/archetypes/wild/zoolock/');
     const legacy = await page('/standard/meta/standard/zoolock/');
     for (const [name, other] of [['weak', weak], ['wild', wild], ['legacy', legacy]]) {
       assert.equal(other.robots, 'noindex, follow', `${name} robots`);
       assert.deepEqual(other.graphs, [], `${name} has no JSON-LD`);
-      assertLength(other, name);
+      assertNoProse(other, name);
     }
     assert.equal(weak.canonical, 'https://hearthpulse.net/standard/archetypes/standard/weak-warlock/');
     assert.equal(legacy.canonical, 'https://hearthpulse.net/standard/archetypes/standard/zoolock/',
       'the old family names the archetype URL, the one real address (nginx redirects it there)');
-    assert.ok(weak.text.includes('Выборка архетипа меньше 1 000 игр, поэтому его винрейт ненадёжен'));
-    assert.ok(wild.text.includes('в Вольном формате') && wild.links.at(-1) === '/standard/archetypes/?format=wild');
+    assert.ok(weak.text.includes('Выборка меньше 1 000 игр: винрейт ненадёжен.'), weak.text);
+    assert.ok(weak.text.includes('Медиана формата 51,3% −1,3 п. п.'), weak.text);
+    assert.match(weak.summary, /title="ниже медианы на 1,3 п\. п\."/);
+    assert.ok(wild.text.includes('Среди архетипов Вольного формата') && wild.text.includes('Другие архетипы Чернокнижника'), wild.text);
+    assert.equal(wild.links.at(-1), '/standard/archetypes/?format=wild');
     for (const [name, other] of [['weak', weak], ['wild', wild], ['legacy', legacy], ['strong', strong]]) {
       assert.equal((other.html.match(/<h1[\s>]/g) ?? []).length, 1, `${name} has one H1`);
     }
@@ -982,42 +1004,47 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
     assert.ok(pure.title.length <= 65 && archmage.title.length <= 65);
     assert.equal(archmage.robots, 'noindex, follow');
     assert.equal(pure.robots, strong.robots);
-    // The same name twice: the English one tells the texts apart as it does the titles; a name nobody shares stays plain.
-    assert.ok(pure.text.trim().startsWith('Насколько силён Чистый Паладин (Pure Paladin) в Стандарте сейчас Чистый Паладин (Pure Paladin) — архетип класса Паладин'), pure.text.slice(0, 160));
-    assert.ok(archmage.text.trim().startsWith('Насколько силён Чистый Паладин (Archmage Paladin) в Стандарте сейчас Чистый Паладин (Archmage Paladin) — архетип класса Паладин'));
-    assert.ok(pure.text.includes('Чистый Паладин (Archmage Paladin) — 49%'), 'the twin is named in the class links by the same rule');
-    assert.notEqual(pure.text, archmage.text);
-    assert.ok(!strong.text.includes('Зоолок ('), 'a name nobody shares has no brackets');
-    for (const [name, other] of [['pure', pure], ['archmage', archmage]]) assertLength(other, name);
+    // The twin is named in the class links by the same rule as the titles; a name nobody shares stays plain.
+    assert.ok(pure.text.includes('Чистый Паладин (Archmage Paladin) 49%'), pure.text);
+    assert.ok(archmage.text.includes('Чистый Паладин (Pure Paladin) 51%'), archmage.text);
+    assert.ok(!strong.text.includes('('), 'names nobody shares have no brackets');
 
-    // A class with nobody to link to, and a share that rounds to zero.
+    // A class with nobody to link to: plates without the class block, and no paragraph in its place.
     const alonePriest = await page('/standard/archetypes/standard/rare-priest/');
-    assert.ok(alonePriest.text.includes('популярность — менее 0,1%') && !alonePriest.text.includes('популярность — 0%'));
-    assert.ok(alonePriest.text.includes('Что такое архетип') && !alonePriest.text.includes('Другие архетипы'));
     const alone1 = await page('/standard/archetypes/standard/rogue-a/');
-    assert.ok(alone1.text.includes('Что такое архетип'), 'the primer takes the place of the class links');
-    for (const [name, other] of [['rare priest', alonePriest], ['class of one', alone1], ['strong', strong]]) assertLength(other, name);
-    assert.ok(!strong.text.includes('Что такое архетип'), 'a page with its class links has no primer');
+    for (const [name, other] of [['rare priest', alonePriest], ['class of one', alone1]]) {
+      assert.ok(other.text.includes('Медиана формата') && !other.text.includes('Другие архетипы'), `${name}: ${other.text}`);
+      assertNoProse(other, name);
+    }
 
-    // Without the catalog the page keeps its own numbers, its robots and its graph; the extras go.
-    // The server keeps the last good catalog and would serve it; a restarted one has none.
+    // The catalog fails: the server answers with its last good copy, so the indexable page keeps its plates and links.
     state.catalogOk = false;
+    await delay(2_100);
+    const kept = await page('/standard/archetypes/standard/zoolock/');
+    assert.deepEqual(signedFacts(kept.html).slice(-3), [['Место по играм', '2 из 14'], ['Медиана формата', '51,3% +10 п. п.'], ['Медиана класса', '52% +9,2 п. п.']],
+      'the last good catalog keeps the plates');
+    assert.ok(kept.text.includes('Другие архетипы Чернокнижника'), 'and the class links');
+
+    // Without any copy of the catalog the page keeps its robots, its graph, the date and the source; the plates and the links go.
+    // The server keeps the last good catalog and would serve it; a restarted one has none.
     await next.close();
     next = await startNextServer({ legacyOrigin });
     const alone = await page('/standard/archetypes/standard/pure-paladin/');
+    // A server without any copy of the catalog (restarted during the outage) loses the plates: the hero's tiles and the
+    // open builds remain. With real builds (eight per page, each with its card list) that is far above the threshold;
+    // a page with no open build in this state is the case left open in #584.
+    assert.deepEqual(signedFacts(alone.html), [['Винрейт', '51 %'], ['Популярность', '1,7 %'], ['Игры', '53 208'], ['Сборки', '86'],
+      ['Средний матч', '7 мин'], ['Средний ход', '8'], ['Винрейт', '50%'], ['Игры', '100'], ['Данные на', '—']]);
     assert.equal(alone.robots, strong.robots);
     assert.equal(alone.graphs.length, 1);
     assert.match(alone.title, /^Чистый Паладин — колода Hearthstone/);
-    assert.ok(alone.text.includes('в выборке 53 208 игр'));
-    assert.ok(!alone.text.includes('Медианный') && !alone.text.includes('Другие архетипы'));
     assert.deepEqual(alone.links.slice(-1), ['/standard/archetypes/'], 'the catalog link stays');
-    // The text keeps its length without a word of the catalog: no median, no place, no neighbour, no twin's name.
     const noCatalog = [alone, await page('/standard/archetypes/standard/archmage-paladin/'),
       await page('/standard/archetypes/standard/weak-warlock/'), await page('/standard/archetypes/wild/zoolock/')];
     for (const [index, other] of noCatalog.entries()) {
-      assertLength(other, `without the catalog, page ${index}`);
-      assert.ok(other.text.includes('Что такое архетип'), `without the catalog, page ${index} has the primer`);
-      assert.doesNotMatch(other.text, /Медианный|Среди|месте из|Другие архетипы|\(Pure Paladin\)|\(Archmage Paladin\)|51,3|52%/, `without the catalog, page ${index}`);
+      assertNoProse(other, `without the catalog, page ${index}`);
+      assert.match(other.summary, /<time datetime="/i, `without the catalog, page ${index} keeps the date`);
+      assert.doesNotMatch(other.text, /Медиана|Место по играм|Другие архетипы|\(Pure Paladin\)|\(Archmage Paladin\)|51,3|52%/, `without the catalog, page ${index}`);
       assert.deepEqual(other.links.filter(href => /^\/standard\/archetypes\/(?:standard|wild)\//.test(href)), [], `without the catalog, page ${index} links no archetype`);
     }
     state.catalogOk = true;
