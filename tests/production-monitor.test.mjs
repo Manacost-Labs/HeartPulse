@@ -669,6 +669,10 @@ try {
   assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD, '/standard/cards/standard/BE_000/'), null);
   assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD, '/standard/matchups/'), 'deckCode');
   assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD, '/standard/fun-decks/extra/'), 'deckCode');
+  assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD, '/standard/archetypes/'), 'deckCode');
+  assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD, '/standard/archetypes/standard/'), 'deckCode');
+  assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD, '/standard/archetypes/standard/slug/extra/'), 'deckCode');
+  assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD, '/standard/cards/standard/BE_000/decks/'), 'deckCode');
   assert.equal(privatePayloadMarker(OPEN_DECK_PAYLOAD), 'deckCode');
   assert.equal(privatePayloadMarker('{"statsAccess":false}', '/standard/fun-decks/'), 'statsAccess');
   assert.equal(privatePayloadMarker('{"subscriptionPayload":{}}', '/standard/cards/wild/BE_000/'), 'subscriptionPayload');
