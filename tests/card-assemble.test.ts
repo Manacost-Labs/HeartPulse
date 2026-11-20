@@ -265,6 +265,15 @@ for (const plain of ['Боевой клич: собирает существо �
   assert.equal(isAssembleCard({ text: { ru: plain, en: null } }), true, plain);
 }
 assert.equal(isAssembleCard({ text: { ru: null, en: 'Battlecry: Assemble a minion.' } }), true);
+// The guard of the plain-text keyword: a word inside another word, a missing object or a disassembly is not the keyword.
+for (const plain of ['Собирает всё, что плохо лежит.', 'Пересобирает существо из запчастей.', 'Не собирает ничего. Существо уходит.',
+  'Собирает команду для боя.', 'Берёт существо, а не собирает.']) {
+  assert.equal(isAssembleCard({ text: { ru: plain, en: null } }), false, plain);
+}
+for (const plain of ['Disassemble a minion.', 'Reassemble a minion.', 'Assemble your team.', 'Gather a minion.']) {
+  assert.equal(isAssembleCard({ text: { ru: null, en: plain } }), false, plain);
+}
+assert.equal(isAssembleCard({ text: { ru: '<b>Боевой клич:</b> собирает существо.', en: null } }), true, 'markup before the word does not hide it');
 assert.equal(isAssembleCard({ text: { ru: '<b>Собирательство</b> 2', en: null } }), false);
 assert.equal(isAssembleCard({ text: { ru: '<b>Боевой клич:</b> наносит 2 ед. урона.', en: null }, mechanics: ['BATTLECRY'] }), false);
 assert.equal(isAssembleCard(null), false);

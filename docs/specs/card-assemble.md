@@ -50,8 +50,13 @@ base; the other bases carry `donors: null` and `donorsTotal`.
 missing | ready | error`; ordinary cards send no request).
 
 - `isAssembleCard(card)`: a bold «Собирает»/«собираете»/«Assemble» in the
-  Russian or English text, or the `ASSEMBLE` mechanic. HSJ marks none of the
-  13 cards with it.
+  Russian or English text, or the `ASSEMBLE` mechanic. The server's card seed
+  has the rules text without markup, so the keyword is also found in plain
+  text, but only when it stands at the start of a sentence (or after `:`, `.`,
+  `>` or a space) and names what it assembles («существо», «механизм»,
+  «зверя», «дракона»…; «Assemble a minion/mech/beast…»): «Собирает всё, что
+  плохо лежит», «Пересобирает существо» and «Disassemble a minion» are not the
+  keyword. HSJ marks none of the 13 cards with the mechanic.
 - `assembleOptionsOfBase(base)`: «Лучшие сборки», every donor option by pick rate
   descending, small samples last.
 - `assembleMeanWinrate(base)` / `assembleWinrateTone(value, base)`: winrate
@@ -96,7 +101,8 @@ tool page `/standard/assemble/`. Answer, typed as `CardAssembleListData`:
 ## Card page: the «Сборка» block (HeartPulse#535)
 
 The page of each of the 13 cards (`isAssembleCard(card)`) shows
-`CardAssembleTeaser` (`src/modules/constructedCards/ui/`), not the full section:
+`CardAssembleTeaser` (`src/features/CardAssembleTeaser.tsx`), not the full
+section:
 an emblem (the menu icon), the heading «Сборка», one line «Пул N существ ·
 лучшая база — <имя> <винрейт>» and a big button «Открыть инструмент сборки».
 
