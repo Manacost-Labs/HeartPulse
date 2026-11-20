@@ -67,7 +67,12 @@ function writeFile(key: string, raw: unknown, storedAt: number) {
     renameSync(temporary, join(target, `${key}.json`));
   } catch (error) {
     // A read-only or full disk only loses persistence across restarts; the memory copy still serves.
-    rmSync(temporary, { force: true });
+    // The cleanup itself may fail the same way (an unreadable directory): it must not reach the render.
+    try {
+      rmSync(temporary, { force: true });
+    } catch {
+      // Nothing was written that could be left behind, or it cannot be removed; either way the page renders.
+    }
     if (!warned) {
       warned = true;
       console.warn(`[page-last-good] cannot write ${target}: ${error instanceof Error ? error.message : String(error)}; the copy is kept in memory only`);
