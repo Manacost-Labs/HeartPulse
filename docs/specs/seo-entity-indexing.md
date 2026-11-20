@@ -341,8 +341,8 @@ archetypes that pass the same rule with the Wild threshold of 5000 games
   catalog cache (5 minutes).
 - **Monitor** (`scripts/production-monitor.mjs`, `docs/runbooks/production-monitor.md`):
   the exact index, at least 30 unique URLs of the `archetypes` pattern
-  (`/standard/archetypes/standard|wild/<slug>/`) with no query, SHA-256 `ETag`, `X-Sitemap-Source`, then five URLs spread over the
-  list: `200`, no `noindex` in `X-Robots-Tag`, one H1, meta `index`, canonical
+  (`/standard/archetypes/standard|wild/<slug>/`) with no query, SHA-256
+  `ETag`, `X-Sitemap-Source`, then five URLs spread over the list: `200`, no `noindex` in `X-Robots-Tag`, one H1, meta `index`, canonical
   equal to the `loc`, and a JSON-LD block that describes that URL.
 - nginx needs no change: `location ^~ /sitemaps/` already proxies every
   segment to Express.
