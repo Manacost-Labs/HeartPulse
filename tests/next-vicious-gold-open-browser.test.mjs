@@ -365,21 +365,27 @@ const clippedLocks = page => page.evaluate(() => [...document.querySelectorAll('
   .filter(lock => lock.getBoundingClientRect().width > 0)
   .flatMap(lock => {
     lock.focus({ focusVisible: true });
+    const label = lock.getAttribute('aria-label').split(':')[0];
+    // The ring is only checked when there is one: a lock that is not focused or draws no ring is itself a failure.
+    if (document.activeElement !== lock) return [`${label}: not focused`];
     const style = getComputedStyle(lock);
     const ring = style.outlineStyle === 'none' ? 0 : parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset);
+    if (!(ring > 0)) { lock.blur(); return [`${label}: no focus ring`]; }
     const box = lock.getBoundingClientRect();
     const cuts = [];
-    for (let node = lock.parentElement; node && node !== document.body; node = node.parentElement) {
+    // Every ancestor up to <html>: <body> and <html> clip by their border box (their client box is the viewport's).
+    for (let node = lock.parentElement; node; node = node.parentElement) {
       const clip = getComputedStyle(node);
       if (clip.overflowX === 'visible' && clip.overflowY === 'visible') continue;
       const outer = node.getBoundingClientRect();
-      const inner = { left: outer.left + node.clientLeft, top: outer.top + node.clientTop };
-      inner.right = inner.left + node.clientWidth;
-      inner.bottom = inner.top + node.clientHeight;
+      const root = node === document.body || node === document.documentElement;
+      const inner = root ? { left: outer.left, top: outer.top } : { left: outer.left + node.clientLeft, top: outer.top + node.clientTop };
+      inner.right = root ? outer.right : inner.left + node.clientWidth;
+      inner.bottom = root ? outer.bottom : inner.top + node.clientHeight;
       for (const [what, grow] of [['box', 0], ['focus ring', ring]]) {
         if (box.left - grow < inner.left - 0.5 || box.top - grow < inner.top - 0.5
           || box.right + grow > inner.right + 0.5 || box.bottom + grow > inner.bottom + 0.5) {
-          cuts.push(`${lock.getAttribute('aria-label').split(':')[0]}: ${what} cut by ${node.className || node.tagName}`);
+          cuts.push(`${label}: ${what} cut by ${node.className || node.tagName}`);
         }
       }
     }
