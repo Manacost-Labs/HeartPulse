@@ -377,7 +377,7 @@ test('/heroes/<id>/ shows the open statistics without a placeholder and keeps th
           await page.waitForSelector('.arena-paid-view', { timeout: 15_000 });
           assert.equal(await rows(), 0, 'the statistics are replaced, not doubled');
         } else {
-          await page.waitForSelector('.paywalled-hero button', { timeout: 10_000 });
+          await page.waitForSelector('button.paywalled-hero', { timeout: 10_000 });
         }
         await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         const shifts = await page.evaluate(() => window.__layoutShifts);

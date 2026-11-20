@@ -40,7 +40,7 @@ profile: {
   buddy: { name: 'Компаньон QA', text: 'Провокация.', image: 'https://hearthpulse.net/assets/og-preview.png', imageGold: null,
     winrate: 'SENTINEL_BUDDY_WINRATE',
     golden: { name: 'Компаньон QA', text: 'Провокация, дважды.', image: 'https://hearthpulse.net/assets/og-preview.png', imageGold: null } },
-  skins: [{ cardId: 'TB_BaconShop_HERO_16_SKIN_A', title: 'Скин QA', image: 'https://hearthpulse.net/assets/og-preview.png',
+  skins: [{ cardId: 'TB_BaconShop_HERO_16_SKIN_A', title: 'Battlegrounds/Скин QA', image: 'https://hearthpulse.net/assets/og-preview.png',
     url: 'https://hearthstone.wiki.gg/wiki/Skin_QA', popularity: 'SENTINEL_SKIN_POPULARITY' }],
   links: [{ label: 'Hearthstone Wiki', url: 'https://hearthstone.wiki.gg/wiki/Battlegrounds/A._F._Kay' }],
   patches: [{ heading: 'Balance changes', entries: [{ date: '2025-01-01', patch: 'Patch 31.2.0.1', patch_url: null, wiki_url: null,
@@ -164,9 +164,10 @@ test('Next hero detail renders a safe teaser and real 404 without guest statisti
     // The raw server HTML (what a robot reads): data, one JSON-LD with the closed part named, no closed value anywhere.
     const raw = await (await fetch(`${origin}/heroes/57944/`)).text();
     for (const text of ['Тир', 'Среднее место', '3,57', '61,4%', 'Нежить', 'Падальщик, Скелет', '2 из 110', 'HSReplay', 'Прокрастинация',
-      'Компаньон QA', 'Скин QA', 'Художник QA', 'Изменения по патчам']) {
+      'Компаньон QA', '>Скин QA<', 'А. Ф. Ка — Скин QA', 'Художник QA', 'Изменения по патчам']) {
       assert.ok(raw.includes(text), `the server HTML has «${text}»`);
     }
+    assert.equal(raw.includes('Battlegrounds/Скин QA'), false, 'a skin is named as the subscriber sees it, without the wiki prefix');
     assert.match(raw, /content="index, follow/);
     for (const mark of CLOSED_MARKS) assert.equal(raw.includes(mark), false, `${mark} is not in the server HTML`);
     const rawGraph = JSON.parse([...raw.matchAll(/<script\b(?=[^>]*type="application\/ld\+json")(?=[^>]*data-server-entity-jsonld)[^>]*>([\s\S]*?)<\/script>/g)][0][1])['@graph'];

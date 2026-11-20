@@ -7,6 +7,8 @@ import type { PublicBattlegroundHeroProfile } from './publicBattlegroundHeroProf
 import { formatHeroFigure, type PublicBattlegroundHeroStats } from './publicBattlegroundHeroStats';
 
 const WIKI_LABEL = 'Hearthstone Wiki';
+/** The library names a skin by its wiki page («Battlegrounds/Shado-pan Jaraxxus»); the subscriber's view by the skin. */
+const skinTitle = (title: string) => title.replace(/^Battlegrounds\//, '');
 
 /**
  * The open data of a hero in the shapes the subscriber's hero page reads (`BattlegroundHeroDetailView`): the hero row
@@ -39,7 +41,7 @@ export function openHeroDetail(hero: PublicBattlegroundHero, stats: PublicBattle
       images: { hero: hero.image, full_art: profile?.fullArt ?? null },
       hero_power: hero.heroPower ? { card: card({ ...hero.heroPower }) } : null,
       buddy: profile?.buddy ? { card: card(profile.buddy), golden: card(profile.buddy.golden) } : null,
-      skins: profile?.skins.map(skin => ({ card_id: skin.cardId, title: skin.title, image: skin.image, url: skin.url })) ?? [],
+      skins: profile?.skins.map(skin => ({ card_id: skin.cardId, title: skinTitle(skin.title), image: skin.image, url: skin.url })) ?? [],
       artist: profile?.artist ?? null,
       race: profile?.race ?? null,
       armor: profile?.armor ?? null,
