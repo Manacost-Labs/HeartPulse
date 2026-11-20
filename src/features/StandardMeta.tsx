@@ -40,7 +40,7 @@ import StandardMetaChart from './StandardMetaChart';
 import { PaidValue, PeriodCoinFloorFilters } from './StandardMetaGuestFilters';
 import { STANDARD_META_CLASS_COLORS, standardMetaClassIcon } from './standardMetaClassModel';
 import {
-  metaFilterSearch, metaRequestKey, readMetaFilterQuery, teaserSeedKey, TEASER_SEED_FILTERS, type StandardMetaTeaserSeed,
+  carriedMetaFilters, handOffMetaFilters, metaFilterSearch, metaRequestKey, teaserSeedKey, TEASER_SEED_FILTERS, type StandardMetaTeaserSeed,
 } from './standardMetaTeaser';
 import '../route-parchment.css';
 import './recovery/RecoverableSurface.css';
@@ -475,7 +475,7 @@ function StandardMetaContent({
   format,
 }: Required<Omit<StandardMetaPageProps, 'embedded'>>) {
   // A subscriber arrives from the other format with the filters in the address; a guest's filters are the page's own.
-  const [carried] = useState(() => (hasFullAccess && typeof window !== 'undefined' ? readMetaFilterQuery(window.location.search) : {}));
+  const [carried] = useState(() => (hasFullAccess && typeof window !== 'undefined' ? carriedMetaFilters(window.location.search) : {}));
   const [rank, setRank] = useState<MetaRank>(carried.rank ?? TEASER_SEED_FILTERS.rank);
   const [period, setPeriod] = useState<MetaPeriod | null>(carried.period ?? initialTeaser?.period ?? null);
   const [coin, setCoin] = useState<MetaCoin>(carried.coin ?? TEASER_SEED_FILTERS.coin);
@@ -599,7 +599,8 @@ function StandardMetaContent({
           <div className="standard-meta__segmented">
             {FORMATS.map(option => (
               // Each format has its own address (and its own prerendered open slice), so the switch is a link.
-              <a key={option.id} href={`${option.href}${hasFullAccess ? metaFilterSearch({ rank, coin, minGames, period }) : ''}`} aria-current={format === option.id ? 'page' : undefined}>
+              <a key={option.id} href={`${option.href}${hasFullAccess ? metaFilterSearch({ rank, coin, minGames, period }) : ''}`} aria-current={format === option.id ? 'page' : undefined}
+                onClick={hasFullAccess ? () => handOffMetaFilters({ rank, coin, minGames, period: period ?? undefined }) : undefined}>
                 <img src={option.asset} alt="" width="32" height="36" aria-hidden="true" />
                 <span><strong>{option.label}</strong><small>{option.description}</small></span>
               </a>

@@ -65,3 +65,17 @@ export function metaFilterSearch(filters: Required<Omit<StandardMetaFilterQuery,
   const query = params.toString();
   return query ? `?${query}` : '';
 }
+
+// The page of the other format mounts before the browser's address has changed, so the filters of a format switch also
+// travel here for a moment (and stay in the link's address for a reload or a shared link).
+let handoff: { filters: StandardMetaFilterQuery; at: number } | null = null;
+const HANDOFF_MS = 5_000;
+
+export function handOffMetaFilters(filters: StandardMetaFilterQuery): void {
+  handoff = { filters, at: Date.now() };
+}
+
+/** The filters handed off by the format link just pressed, else those of the address. */
+export function carriedMetaFilters(search: string): StandardMetaFilterQuery {
+  return handoff && Date.now() - handoff.at < HANDOFF_MS ? handoff.filters : readMetaFilterQuery(search);
+}
