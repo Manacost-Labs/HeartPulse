@@ -468,7 +468,8 @@ list on the open pool with every card of one class in the server HTML.
   would pass 60 characters; without data of the class there is no date.
 - Size: on the production pool of 2026-11-20 the largest class page
   (Рыцарь смерти, 102 cards) is 189 KB of HTML and `/tierlist/neutral/`
-  (279 cards) is 333 KB, over the 300 KB budget of a page.
+  (279 cards) is 333 KB, over the 300 KB budget of a page; with the lighter
+  card markup of #622 it is 290 KB (Рыцарь смерти 174 KB).
 - Tests: `tests/next-tierlist-class-pages.test.mjs`,
   `tests/tierlist-class-pages.test.ts`, `tests/nginx-html-routing.test.mjs`.
 
