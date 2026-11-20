@@ -39,6 +39,7 @@ export const PUBLIC_DOCUMENT_SOURCES = [
   '/battlegrounds/:tool(strategies|tier-builder|tier-list)/',
   '/:family(cosmetics|guides-archive|heroes|library|streamers)/:path*/',
   '/reports/meta/:path*/',
+  '/tierlist/:class/',
   '/standard/:section(archetypes|assemble|cards|decks|fun-decks|matchups|meta|patches|radar|vicious-gold)/:path*/',
 ];
 
