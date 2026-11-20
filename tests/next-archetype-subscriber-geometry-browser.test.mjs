@@ -158,15 +158,18 @@ async function startStand() {
 const settle = page => page.evaluate(() => new Promise(resolve => setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(resolve)), 400)));
 const cls = page => page.evaluate(() => Math.round(window.__cls * 10_000) / 10_000);
 const height = (page, selector) => page.$eval(selector, node => Math.round(node.getBoundingClientRect().height * 10) / 10);
-// The paid parts below the builds in page order, as [top, bottom] of the page: the guest's locked frames (matchups
-// and mulligan together stand for the subscriber's one analysis section) and the subscriber's loading skeletons.
+// The paid parts below the builds in page order, as [top, bottom] of the page: the guest's locked frames and the
+// subscriber's loading skeletons. The analysis skeleton is one section of three blocks: the matchups frame stands for
+// its slice filters and matchups panel, the mulligan frame for its mulligan panel, each with its own top and bottom.
 const paidParts = (page, groups) => page.evaluate(selectors => selectors.map(([first, last = first]) => {
   const [top, bottom] = [document.querySelector(first), document.querySelector(last)];
   return top && bottom ? [top.getBoundingClientRect().top + scrollY, bottom.getBoundingClientRect().bottom + scrollY].map(value => Math.round(value)) : null;
 }), groups);
-const LOCKED = [['[data-paid-frame="matchups"]', '[data-paid-frame="mulligan"]'], ['[data-paid-frame="ranks"]'], ['[data-paid-frame="history"]']];
-const LOADING = [['section[aria-label="Матчапы и муллиган"]'], ['section[aria-label="Винрейт по рангам"] .archetype-ranks'],
-  ['section[aria-label="История архетипа"] .archetype-history']];
+const ANALYSIS = 'section[aria-label="Матчапы и муллиган"] .constructed-analysis-stack';
+const PART_NAMES = ['matchups', 'mulligan', 'ranks', 'history'];
+const LOCKED = [['[data-paid-frame="matchups"]'], ['[data-paid-frame="mulligan"]'], ['[data-paid-frame="ranks"]'], ['[data-paid-frame="history"]']];
+const LOADING = [[`${ANALYSIS} > :nth-child(1)`, `${ANALYSIS} > :nth-child(2)`], [`${ANALYSIS} > :nth-child(3)`],
+  ['section[aria-label="Винрейт по рангам"] .archetype-ranks'], ['section[aria-label="История архетипа"] .archetype-history']];
 /** What of a locked frame does not fit in it (heading, lock area, lock), and whether the page scrolls sideways. */
 const overflow = page => page.evaluate(() => [
   ...[...document.querySelectorAll('[data-paid-frame]')].flatMap(frame => {
@@ -201,7 +204,7 @@ function assertSameParts(width, locked, loading) {
   for (const [index, part] of locked.parts.entries()) {
     const skeleton = loading.parts[index];
     assert.ok(part && skeleton && Math.abs(part[0] - skeleton[0]) <= 2 && Math.abs(part[1] - skeleton[1]) <= 2,
-      `${width}px: locked part ${index} spans ${part}, its loading skeleton ${skeleton}`);
+      `${width}px: the locked ${PART_NAMES[index]} spans ${part}, its loading skeleton ${skeleton}`);
   }
 }
 
