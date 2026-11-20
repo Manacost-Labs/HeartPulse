@@ -92,6 +92,11 @@ test('the footer links visitors to the developer documentation', () => {
   const footerLinks = links(html);
   assert.ok(footerLinks.some(link => link.name === 'API для разработчиков' && link.href === '/developers/api/'));
   assert.ok(footerLinks.some(link => link.name === 'OpenAPI JSON' && link.href === '/api/v1/openapi.json'));
+  // Every page links the four mode hubs (#557), so each mode landing is reached from the whole site.
+  assert.ok(footerText.includes('Режимы'), 'column Режимы is shown');
+  for (const [name, href] of [['Стандарт', '/standard/'], ['Вольный формат', '/wild/'], ['Арена', '/arena/'], ['Поля сражений', '/battlegrounds/']]) {
+    assert.ok(footerLinks.some(link => link.name === name && link.href === href), `footer links ${href}`);
+  }
 });
 
 test('the admin key screen warns the secret is shown once and offers every scope', () => {

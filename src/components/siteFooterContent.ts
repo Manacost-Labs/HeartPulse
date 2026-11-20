@@ -17,7 +17,19 @@ const navigationLink = (id: NavigationId, label?: string): FooterLink => {
   return { label: label ?? route.label, href: canonicalPagePath(route.path) };
 };
 
+/**
+ * The mode hubs (`apps/public-web/lib/modeHubs.ts`, #557): every page links to
+ * them, so each mode landing gets its links from the whole site.
+ */
+const MODE_HUB_LINKS: readonly FooterLink[] = [
+  { label: 'Стандарт', href: '/standard/' },
+  { label: 'Вольный формат', href: '/wild/' },
+  { label: 'Арена', href: '/arena/' },
+  { label: 'Поля сражений', href: '/battlegrounds/' },
+];
+
 export const FOOTER_COLUMNS: readonly FooterColumn[] = [
+  { title: 'Режимы', navLabel: 'Режимы игры', links: MODE_HUB_LINKS },
   { title: 'Разделы', navLabel: 'Навигация по сайту', links: (['home', 'winrates', 'tierlist', 'legendaries', 'articles', 'gallery'] as const).map(id => navigationLink(id)) },
   { title: 'Сообщество', links: [
     { label: 'Telegram', href: 'https://t.me/manacost_ru', external: true },
