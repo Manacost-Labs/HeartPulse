@@ -49,10 +49,13 @@ try {
   const failing = await service(async () => { throw new Error('HTTP 500'); }).loadCatalog('heroes', query);
   assert.deepEqual(heroNames(failing), ['Керриган-арахнид']);
 
-  // A search is not kept: it would grow the copies without bound.
-  await service(async () => ({ data: [], pagination: { total_pages: 1 } })).loadCatalog('coins', { ...query, q: 'золото' });
+  // A search, a far page and an empty list are not kept: the copies stay bounded.
+  const coins = { data: [{ card_id: 'COIN_1', name: { en: 'Coin' }, updated_at: '2026-07-26 18:05:44' }], pagination: { total_pages: 60 } };
+  await service(async () => coins).loadCatalog('coins', { ...query, q: 'золото' });
+  await service(async () => coins).loadCatalog('coins', { ...query, page: 51 });
+  await service(async () => ({ data: [], pagination: { total_pages: 1 } })).loadCatalog('pets', query);
   const kept = readdirSync(join(directory, 'cosmetics-last-good-v1')).filter(name => name.endsWith('.json'));
-  assert.equal(kept.length, 2, 'the hero list page and the card names, not the search');
+  assert.equal(kept.length, 2, 'the hero list page and the card names only');
 
   // A damaged copy is not served: without the source the read still fails as before.
   for (const name of kept) writeFileSync(join(directory, 'cosmetics-last-good-v1', name), '{"format":1,');

@@ -1001,6 +1001,17 @@
       ]
     },
     {
+      "id": "server.cosmetics",
+      "runtime": "server",
+      "root": "server/modules/cosmetics",
+      "purpose": "Keeps the last good answer of the cosmetics catalog sources on disk, so a restarted server answers the public catalog at once.",
+      "owner": "cosmetics-data",
+      "publicEntry": "server/modules/cosmetics/public.ts",
+      "dependencies": [],
+      "focusedTests": ["npm run test:cosmetics"],
+      "docs": ["docs/architecture/module-boundaries.md", "docs/specs/cosmetics-library.md"]
+    },
+    {
       "id": "server.patchNotes",
       "runtime": "server",
       "root": "server/modules/patchNotes",

@@ -2013,6 +2013,24 @@
       ]
     },
     {
+      "name": "backend-cosmetics-last-good",
+      "status": "modular",
+      "owner": "cosmetics-data",
+      "purpose": "Keep the last good answer of the cosmetics catalog sources on disk so a restarted server answers the public catalog at once.",
+      "paths": ["server/modules/cosmetics"],
+      "publicEntrypoints": ["server/modules/cosmetics/public.ts"],
+      "frontendRoutes": [],
+      "backendRoutes": [],
+      "contracts": ["docs/specs/cosmetics-library.md"],
+      "jobs": [],
+      "cacheNamespaces": [],
+      "dataStores": ["json:last_good_lists (DATA_DIR/cosmetics-last-good-v1/<sha256 URL>.json)"],
+      "externalServices": ["api.kolodahearthstone.com cosmetics lists (/api/v1 hero-skins, coins, pets)", "api.hearthstonejson.com ruRU cards"],
+      "tests": ["tests/cosmetics-last-good.test.ts"],
+      "allowedDependencies": ["node:fs at the storage boundary"],
+      "forbiddenImports": ["src/**", "other server module internals"]
+    },
+    {
       "name": "backend-patch-notes",
       "status": "modular",
       "owner": "traditional-data",
