@@ -60,7 +60,7 @@ export function PowerTierBoard({ tierList, classes, copiedDeck, onCopy, locked =
               onClick={() => setRankBracket(section.rankBracket)}>{section.rankLabel}</button>
           ))}
         </div>
-        {locked ? <span className="vsgold-select"><PaidFilterLock label="Класс" value="Все классы" /></span> : (
+        {locked ? <span className="vsgold-select"><PaidFilterLock label="Класс" value="Все классы" closed="paywalled-vicious-gold" /></span> : (
           <label className="vsgold-select">
             <span className="sr-only">Класс</span>
             <select value={powerClass} onChange={event => setPowerClass(event.target.value)} aria-label="Класс для Power Tier">
@@ -90,7 +90,7 @@ export function PowerTierBoard({ tierList, classes, copiedDeck, onCopy, locked =
                 <span className="vsgold-power-row__rank" />
                 <span className="vsgold-power-row__icon" aria-hidden="true" />
                 <span className="vsgold-power-row__name">
-                  <strong><PaidMetricLock label={`Колода Power Tier, строка ${slot}`} /></strong>
+                  <strong><PaidMetricLock label={`Колода Power Tier, строка ${slot}`} closed="paywalled-vicious-gold" /></strong>
                   <small aria-hidden="true">{'\u00a0'}</small>
                 </span>
                 <span className="vsgold-power-row__bar" aria-hidden="true" />

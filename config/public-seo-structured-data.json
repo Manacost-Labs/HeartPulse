@@ -922,6 +922,81 @@
         "inLanguage": "ru"
       }
     ],
+    "/standard/vicious-gold": [
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Главная",
+            "item": "https://hearthpulse.net"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Стандарт",
+            "item": "https://hearthpulse.net/standard/meta/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 3,
+            "name": "Vicious Syndicate Gold",
+            "item": "https://hearthpulse.net/standard/vicious-gold/"
+          }
+        ]
+      },
+      {
+        "@type": "Dataset",
+        "@id": "https://hearthpulse.net/standard/vicious-gold/#dataset",
+        "name": "Vicious Syndicate Gold — мета Стандарта Hearthstone",
+        "description": "Мета Стандарта Hearthstone по отчёту Vicious Syndicate Data Reaper Live. На открытой странице — архетипы отчёта по классам со ссылками на страницы архетипов, дата обновления отчёта и диапазоны рангов Power Tier. Доли классов и колод, Power Tier, число партий и готовые сборки с кодами колод доступны по подписке.",
+        "url": "https://hearthpulse.net/standard/vicious-gold/",
+        "isAccessibleForFree": false,
+        "hasPart": {
+          "@type": "WebPageElement",
+          "isAccessibleForFree": false,
+          "cssSelector": ".paywalled-vicious-gold"
+        },
+        "isBasedOn": {
+          "@type": "Dataset",
+          "name": "Vicious Syndicate: Data Reaper Live",
+          "url": "https://www.vicioussyndicate.com/data-reaper-live/"
+        },
+        "variableMeasured": [
+          {
+            "@type": "PropertyValue",
+            "name": "Винрейт колоды",
+            "unitText": "%"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Частота колоды",
+            "unitText": "%"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Частота класса",
+            "unitText": "%"
+          },
+          {
+            "@type": "PropertyValue",
+            "name": "Power Tier"
+          }
+        ],
+        "keywords": [
+          "Hearthstone",
+          "Стандарт",
+          "Vicious Syndicate",
+          "Power Tier",
+          "мета"
+        ],
+        "about": {
+          "@type": "VideoGame",
+          "name": "Hearthstone"
+        }
+      }
+    ],
     "/standard/patches": [
       {
         "@type": "BreadcrumbList",

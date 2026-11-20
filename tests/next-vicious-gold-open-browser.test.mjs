@@ -197,6 +197,21 @@ test('a guest, a robot, an Arena-only viewer and a subscriber on /standard/vicio
     assert.ok(text.includes('aria-label="Партий: по подписке'), 'the games are a lock');
     assert.equal(stack.paidReads, 0, 'the server never reads the paid report');
 
+    // In the index (#655): self canonical, no noindex, and the JSON-LD names the closed part the locks carry.
+    assert.match(text, /rel="canonical" href="https:\/\/hearthpulse.net\/standard\/vicious-gold\/"/);
+    assert.doesNotMatch(text, /<meta name="robots" content="noindex/);
+    const graphs = [...text.matchAll(/<script type="application\/ld\+json">(.*?)<\/script>/gs)].map(match => JSON.parse(match[1]));
+    const dataset = graphs.flatMap(data => data['@graph'] ?? []).find(node => node['@type'] === 'Dataset');
+    assert.equal(dataset.isAccessibleForFree, false);
+    assert.deepEqual(dataset.hasPart, { '@type': 'WebPageElement', isAccessibleForFree: false, cssSelector: '.paywalled-vicious-gold' });
+    assert.deepEqual(dataset.isBasedOn, { '@type': 'Dataset', name: 'Vicious Syndicate: Data Reaper Live',
+      url: 'https://www.vicioussyndicate.com/data-reaper-live/' });
+    // Every lock of the server HTML is the closed part the JSON-LD names: the shares, the leader, the Power Tier rows.
+    const locks = [...text.matchAll(/<(?:button|span) [^>]*class="(paid-(?:lock|filter-lock)[^"]*)"[^>]*aria-label="([^"]+)"/g)];
+    assert.ok(locks.length >= 16, `the server HTML has the locks (${locks.length})`);
+    assert.deepEqual(locks.filter(([, names]) => !names.split(' ').includes('paywalled-vicious-gold')).map(([, , label]) => label), [],
+      'every lock carries .paywalled-vicious-gold');
+
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox'] });
 

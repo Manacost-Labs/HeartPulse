@@ -105,7 +105,7 @@
       "navigationRouteId": "standard-vicious-gold",
       "title": "Vicious Syndicate Gold — мета Стандарта {year} | HearthPulse",
       "description": "Распределение классов и колод, готовые сборки и Power Tier по всем доступным рангам Vicious Syndicate Live.",
-      "sitemap": false
+      "sitemap": true
     },
     "/standard/deck-builder": {
       "policyRouteId": "deck-builder",

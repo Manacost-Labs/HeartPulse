@@ -216,7 +216,7 @@ export default function ViciousSyndicateGold({ open: initialOpen = null, hasFull
         data-access-settled={hydrated && !locksHidden ? '' : undefined}>
         <ViciousGoldBanner>
           <dl className="traditional-mode-banner__summary" aria-label="Сводка Vicious Syndicate Gold">
-            <div><dt>Партий</dt><dd><PaidMetricLock label="Партий" /></dd></div>
+            <div><dt>Партий</dt><dd><PaidMetricLock label="Партий" closed="paywalled-vicious-gold" /></dd></div>
             <div><dt>Окно данных</dt><dd>{frameWindow?.replace(/^последние /, '') ?? '—'}</dd></div>
           </dl>
         </ViciousGoldBanner>

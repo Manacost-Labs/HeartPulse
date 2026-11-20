@@ -341,6 +341,7 @@ test('every dataset names where its data comes from and which metrics it measure
     '/standard/meta': ['https://www.hsguru.com/meta'],
     '/standard/archetypes': ['https://www.hsguru.com/meta'],
     '/standard/archetypes/wild': ['https://www.hsguru.com/meta'],
+    '/standard/vicious-gold': ['https://www.vicioussyndicate.com/data-reaper-live/'],
     '/classes': ['https://hsreplay.net/arena/', 'https://www.firestoneapp.com/'],
     '/tierlist': ['https://www.heartharena.com/ru/tierlist', 'https://hsreplay.net/arena/cards/', 'https://www.firestoneapp.com/'],
   };
@@ -349,6 +350,7 @@ test('every dataset names where its data comes from and which metrics it measure
     '/standard/meta': ['Винрейт', 'Популярность', 'Число игр'],
     '/standard/archetypes': ['Винрейт', 'Популярность', 'Число игр'],
     '/standard/archetypes/wild': ['Винрейт', 'Популярность', 'Число игр'],
+    '/standard/vicious-gold': ['Винрейт колоды', 'Частота колоды', 'Частота класса', 'Power Tier'],
     '/classes': ['Винрейт класса'],
     '/tierlist': ['Оценка карты', 'Винрейт карты', 'Частота выбора карты'],
   };

@@ -525,17 +525,29 @@ list on the open pool with every card of one class in the server HTML.
   недопустим, загрузчик не регистрируется). Подробности:
   `docs/specs/battleground-library-open-layer.md`.
 - Статические страницы без открытого слоя (E25 #538, замер прода
-  2026-11-20): `/standard/vicious-gold/`, `/battlegrounds/tier-builder/`,
-  `/contests/`, `/library/archive/` и `/library/archive/<kind>/` отдают гостю
-  только «Проверяем доступ…» или пустой список, 0–28 собственных слов. Они —
+  2026-11-20): `/battlegrounds/tier-builder/`, `/contests/`,
+  `/library/archive/` и `/library/archive/<kind>/` отдают гостю только
+  «Проверяем доступ…» или пустой список, 0–28 собственных слов. Они —
   `noindex, follow`, `canonicalPolicy: none`, без JSON-LD реестра, без
-  `og:url` и вне `static.xml` (#553). `/contests/` и `/standard/vicious-gold/`
-  идут через `seoRegistryMetadata`, который у страниц вне карты сайта не
-  отдаёт `og:*`/`twitter:*`, так что их превью в мессенджерах — без картинки
-  (принято: страницы не индексируются). Крошки JSON-LD деталей архива
+  `og:url` и вне `static.xml` (#553). `/contests/` идёт через
+  `seoRegistryMetadata`, который у страниц вне карты сайта не отдаёт
+  `og:*`/`twitter:*`, так что её превью в мессенджерах — без картинки
+  (принято: страница не индексируется). Крошки JSON-LD деталей архива
   по-прежнему ведут на noindex-списки архива — допустимо до решения по
   деталям архива. Вернуть `index` можно только вместе с открытым слоем,
   который проходит порог выше.
+- `/standard/vicious-gold/` вернулась в индекс (#655) после гостевого вида
+  (#656, `docs/specs/vicious-gold-open-frame.md`): гость и робот получают в
+  первом HTML отчёт подписчика на открытом каркасе — архетипы отчёта по
+  классам со ссылками на страницы архетипов, дату обновления, окна данных и
+  названия диапазонов рангов Power Tier; доли, число партий, Power Tier и
+  сборки стоят под замками. Страница — `index, follow`, canonical на себя, в
+  `static.xml`, JSON-LD реестра (крошки и Dataset Vicious Syndicate) с
+  `isAccessibleForFree: false` и `hasPart.cssSelector:
+  ".paywalled-vicious-gold"` — этот класс несёт каждый замок страницы
+  (`closed` у `src/shared/ui/PaidLocks` и `LockMark`). Описание Dataset
+  называет открытую часть без чисел. Закрытых значений нет ни в HTML, ни в
+  RSC, ни в JSON-LD (`tests/next-vicious-gold-open-browser.test.mjs`).
 
 ## Колоды Стандарта: хаб и страницы классов (#309)
 

@@ -32,7 +32,7 @@ export function ViciousGoldReport({ data, locked = false }: { data: ViciousGoldP
   const archetypes = data.deckDistribution.filter(deck => !isAggregateDeck(deck.deck)).length;
   // The open frame (#656): a lock in the value's place, and a blank caption line where the subscriber reads a name,
   // so the tile is as tall as the subscriber's at every width.
-  const lock = (label: string) => (locked ? { display: <PaidMetricLock label={label} />, caption: '\u00a0' } : {});
+  const lock = (label: string) => (locked ? { display: <PaidMetricLock label={label} closed="paywalled-vicious-gold" />, caption: '\u00a0' } : {});
   const items: KpiItem[] = [
     { id: 'leader', label: 'Лидер Power Tier', value: leader ? leader.winrate / 100 : null, format: PERCENT, caption: leader?.deckLabel, ...lock('Лидер Power Tier') },
     { id: 'popular', label: 'Самая популярная', value: popular ? popular.frequency / 100 : null, format: PERCENT, caption: popular?.deckLabel, ...lock('Самая популярная колода') },
@@ -54,7 +54,7 @@ export function ViciousGoldReport({ data, locked = false }: { data: ViciousGoldP
         <p className="vsgold-report__meta">
           {updated ? <span>Обновлено {updated}</span> : null}
           <span>
-            {locked ? <>Партий: <PaidMetricLock label="Партий в отчёте" /></> : `${data.games.toLocaleString('ru-RU')} партий`} ·{' '}
+            {locked ? <>Партий: <PaidMetricLock label="Партий в отчёте" closed="paywalled-vicious-gold" /></> : `${data.games.toLocaleString('ru-RU')} партий`} ·{' '}
             {data.sourceUrl ? <a href={data.sourceUrl} target="_blank" rel="noreferrer">Vicious Syndicate</a> : data.source}
           </span>
         </p>
