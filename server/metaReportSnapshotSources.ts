@@ -22,6 +22,11 @@ export function startMetaReportSnapshots(dependencies: {
   getTranslations: (now: number) => Promise<unknown>;
   /** The HSReplay class winrate dataset, as `/api/winrates` reads it from its origin. */
   loadArenaWinrates: () => Promise<unknown>;
+  /**
+   * The local class winrate snapshot (`winrates.json`) the guest teaser falls back to: used when it is
+   * fresher than the origin's answer or the origin fails, as `/api/winrates/public-teaser` does.
+   */
+  loadArenaSnapshot?: () => { data: unknown } | null;
   loadHeroCatalog?: ReturnType<typeof createBattlegroundHeroCatalogLoader>;
   fetchJson: (url: string) => Promise<unknown>;
   patchesUrl: string;
@@ -38,9 +43,32 @@ export function startMetaReportSnapshots(dependencies: {
     sources: {
       standard: () => loadPublicStandardMeta(dependencies.loadMeta, 'standard'),
       matchups: () => loadPublicStandardMatchups(matchups, 'standard', now()),
-      arena: async () => projectWinratesPublicTeaser(await dependencies.loadArenaWinrates()),
+      arena: async () => projectWinratesPublicTeaser(await freshestArena(dependencies)),
       battlegrounds: async () => projectBattlegroundHeroRanking(await loadHeroCatalog('solo'), 'solo'),
       patches: () => dependencies.fetchJson(dependencies.patchesUrl),
     },
   });
+}
+
+const arenaClasses = (data: unknown) => Array.isArray((data as { classes?: unknown } | null)?.classes)
+  && ((data as { classes: unknown[] }).classes.length > 0);
+const arenaUpdated = (data: unknown) => {
+  const parsed = Date.parse(String((data as { updatedAt?: unknown } | null)?.updatedAt ?? ''));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+/** The dataset the guest teaser would show: the origin's, unless the local snapshot is fresher or the origin fails. */
+async function freshestArena(dependencies: {
+  loadArenaWinrates: () => Promise<unknown>; loadArenaSnapshot?: () => { data: unknown } | null;
+}): Promise<unknown> {
+  const local = dependencies.loadArenaSnapshot?.()?.data;
+  const snapshot = arenaClasses(local) ? local : null;
+  try {
+    const origin = await dependencies.loadArenaWinrates();
+    if (!arenaClasses(origin)) throw new Error('Empty class winrate dataset');
+    return snapshot && arenaUpdated(snapshot) > arenaUpdated(origin) ? snapshot : origin;
+  } catch (error) {
+    if (snapshot) return snapshot;
+    throw error;
+  }
 }

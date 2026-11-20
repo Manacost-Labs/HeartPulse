@@ -53,6 +53,8 @@ export function createMetaReportSnapshots(options: {
     if (store().has(date)) return 'exists';
     const sections = await readMetaReportSections(options.sources, now());
     if (!hasReportableStandard(sections)) return 'standard-unavailable';
+    // The sources may take long enough to cross midnight: a snapshot is written only on the day it is dated.
+    if (dueDate(now()) !== date) return 'not-due';
     const snapshot: MetaReportSnapshot = { schemaVersion: 1, date, recordedAt: new Date(now()).toISOString(), sections };
     return store().insert(snapshot) ? 'recorded' : 'exists';
   };

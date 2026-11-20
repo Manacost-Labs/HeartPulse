@@ -23,8 +23,16 @@ snapshot only when all of these hold:
 
 The date of a snapshot is the Monday it is taken. A Monday that ends without
 a snapshot (process down, Standard stale all day) stays empty: nothing is
-written for it on Tuesday or later. A run of a day that already has its
-snapshot changes nothing.
+written for it on Tuesday or later. A run whose sources answer after
+midnight writes nothing either: the date is checked again before the insert.
+A run of a day that already has its snapshot changes nothing.
+
+The store is opened on the first run, not at startup: an unwritable
+`DATA_DIR` makes a run `failed` (logged), never the server's boot.
+
+The Arena section reads what `/api/winrates/public-teaser` shows a guest:
+the origin's class winrates, or the local `winrates.json` when it is fresher
+or the origin fails.
 
 ## Format
 

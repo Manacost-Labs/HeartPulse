@@ -23,6 +23,10 @@ const MONDAY_0630 = Date.parse('2026-11-23T06:30:00Z');
 
 type World = {
   metaUpdatedAt: string; archetypes: number; arenaUpdatedAt: string; heroesFail: boolean; arenaWinrate: number;
+  /** The Arena origin fails; `arenaSnapshotUpdatedAt` is the local `winrates.json` (none when null). */
+  arenaFails?: boolean; arenaSnapshotUpdatedAt?: string | null;
+  /** Runs while the Standard source is read (to move the clock during a run). */
+  onMetaRead?: () => void;
 };
 
 const metaPayload = (world: World, rank: string, period: string) => ({
@@ -86,10 +90,18 @@ function harness(t: TestContext, overrides: Partial<World> = {}, now = MONDAY_06
     stateDirectory: directory,
     hourly: false,
     now: () => Date.now(),
-    loadMeta: async (_format, rank, period) => metaPayload(world, rank, period),
+    loadMeta: async (_format, rank, period) => {
+      world.onMetaRead?.();
+      return metaPayload(world, rank, period);
+    },
     matchups: { origin: 'https://api.test', fetchJson: async () => matchupPayload(), formatLabel: () => 'Стандарт', translate: name => name },
     getTranslations: async () => ({ source: 'database', map: {} }),
-    loadArenaWinrates: async () => arenaDataset(world),
+    loadArenaWinrates: async () => {
+      if (world.arenaFails) throw new Error('Arena origin HTTP 502');
+      return arenaDataset(world);
+    },
+    loadArenaSnapshot: () => (world.arenaSnapshotUpdatedAt
+      ? { data: { ...arenaDataset(world), source: 'cached', updatedAt: world.arenaSnapshotUpdatedAt } } : null),
     loadHeroCatalog: async () => {
       if (world.heroesFail) throw new Error('Battleground hero catalog HTTP 502');
       return heroCatalog();
@@ -276,5 +288,46 @@ test('an unwritable state directory fails the run and reports it, without throwi
   } finally {
     snapshots.close();
     rmSync(directory, { recursive: true, force: true });
+  }
+});
+
+test('a run that crosses midnight writes nothing: a snapshot is dated by the day it is taken', async t => {
+  const late = harness(t, {}, Date.parse('2026-11-23T23:59:30Z'));
+  try {
+    late.world.onMetaRead = () => late.setNow('2026-11-24T00:00:05Z');
+    assert.equal(await late.snapshots.run(), 'not-due');
+    assert.deepEqual(late.snapshots.list(), []);
+  } finally {
+    late.cleanup();
+  }
+});
+
+test('Arena falls back to the local snapshot as the guest teaser does: when it is fresher or the origin fails', async t => {
+  const fresher = harness(t, { arenaUpdatedAt: '2026-11-23T03:00:00Z', arenaSnapshotUpdatedAt: '2026-11-23T06:00:00Z' });
+  try {
+    assert.equal(await fresher.snapshots.run(), 'recorded');
+    const { arena } = fresher.snapshots.get('2026-11-23')!.sections;
+    assert.equal(arena.status, 'fresh');
+    assert.equal(arena.updatedAt, '2026-11-23T06:00:00.000Z');
+  } finally {
+    fresher.cleanup();
+  }
+
+  const down = harness(t, { arenaFails: true, arenaSnapshotUpdatedAt: '2026-11-23T05:00:00Z' });
+  try {
+    assert.equal(await down.snapshots.run(), 'recorded');
+    const { arena } = down.snapshots.get('2026-11-23')!.sections;
+    assert.equal(arena.status, 'fresh');
+    assert.equal(arena.updatedAt, '2026-11-23T05:00:00.000Z');
+  } finally {
+    down.cleanup();
+  }
+
+  const none = harness(t, { arenaFails: true });
+  try {
+    assert.equal(await none.snapshots.run(), 'recorded');
+    assert.equal(none.snapshots.get('2026-11-23')!.sections.arena.status, 'missing');
+  } finally {
+    none.cleanup();
   }
 });
