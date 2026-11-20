@@ -189,7 +189,7 @@ test('Next archetype details isolate access and load builds before independent o
       const hasBuilds = !path.includes('weak-warlock');
       if (path.includes('/standard/archetypes/standard/zoolock/')) {
         const bytes = Buffer.byteLength(await response.text());
-        assert.ok(bytes < 200_000, `${path} weighs ${bytes} bytes with twelve full builds (HTML and RSC payload; the budget of a data page is 300 KB)`);
+        assert.ok(bytes < 300_000, `${path} weighs ${bytes} bytes with twelve full builds (HTML and RSC payload; the budget of a data page is 300 KB)`);
       }
       assert.equal(document.html.includes(path.includes('zoolock') ? fullBuilds[0].deckCode : OPEN_CODE), hasBuilds, `${path} carries the open deck code`);
       assert.equal(document.html.includes('Гость из Бездны'), hasBuilds, `${path} lists the cards of the build`);
