@@ -8,7 +8,10 @@ import { compactTierlistClass } from '@/apps/public-web/lib/openTierlistView';
 import { tierlistClassIdFromSlug, tierlistClassPath } from '@/apps/public-web/lib/tierlistClassPages';
 import { tierlistClassSeoText } from '@/apps/public-web/lib/tierlistClassSeo';
 import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
-import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
+import { tierlistClassStructuredNodes } from '@/apps/public-web/lib/tierlistClassStructuredData';
+import { seoDataDate } from '@/apps/public-web/lib/seoDataDate';
+// The generic «nodes → graph» JSON-LD script (named for the page that introduced it).
+import { MetaReportJsonLd as PageJsonLd } from '@/apps/public-web/ui/MetaReportJsonLd';
 
 type Props = { params: Promise<{ class: string }> };
 
@@ -38,8 +41,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Page({ params }: Props) {
   const [classId, pool] = await Promise.all([classIdOf(params), loadPublicTierlist()]);
+  const now = Date.now();
   return <>
-    <SeoStructuredData path={tierlistClassPath(classId)} data={pool} />
+    <PageJsonLd path={tierlistClassPath(classId)} nodes={tierlistClassStructuredNodes(classId, tierlistClassSeoText(pool, classId, now))}
+      facts={{ dateModified: seoDataDate(pool?.updatedAt, now)?.iso }} />
     <TierListPageClient pool={pool ? compactTierlistClass(pool, classId) : null} classId={classId} />
   </>;
 }

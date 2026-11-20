@@ -1,4 +1,3 @@
-import { ARENA_CLASS_LABELS, type ArenaClassId } from '@/shared/arenaSynergyContract';
 import { renderSeoDataTemplate, type SeoDataValues } from '@/src/seo/dataTemplate';
 import { META_DESCRIPTION_MAX, META_TITLE_MAX } from '@/src/shared/seo/metaDescription';
 import type { PublicTierlist } from './publicTierlistData';
@@ -20,10 +19,20 @@ const NEUTRAL_DESCRIPTION = 'Нейтральные карты Арены Hearth
 
 const NEUTRAL_ID = 'any';
 
+/**
+ * The Russian name of each section of a class page, by section id (`any` is the neutral cards): the title and the
+ * breadcrumb name the class from here, not from the loaded pool, so a page without data is still about its class.
+ * The names are the pool's own (`/api/tierlist/public` `classes[].name`).
+ */
+const CLASS_NAMES: Readonly<Record<string, string>> = {
+  'death-knight': 'Рыцарь смерти', 'demon-hunter': 'Охотник на демонов', druid: 'Друид', hunter: 'Охотник', mage: 'Маг',
+  paladin: 'Паладин', priest: 'Жрец', rogue: 'Разбойник', shaman: 'Шаман', warlock: 'Чернокнижник', warrior: 'Воин',
+  [NEUTRAL_ID]: 'Нейтральные',
+};
+
 /** The class's name in the nominative («Охотник на демонов»), from its section id (`demon-hunter`). */
-function className(classId: string): string {
-  const key = classId.replace(/-/g, '').toUpperCase();
-  return Object.hasOwn(ARENA_CLASS_LABELS, key) ? ARENA_CLASS_LABELS[key as ArenaClassId] : classId;
+export function tierlistClassName(classId: string): string {
+  return Object.hasOwn(CLASS_NAMES, classId) ? CLASS_NAMES[classId] : classId;
 }
 
 function render(template: string, values: SeoDataValues, maxLength: number): string {
@@ -34,7 +43,7 @@ function render(template: string, values: SeoDataValues, maxLength: number): str
 /** Title and description of the class page of `classId` (`any` is the neutral cards' page). */
 export function tierlistClassSeoText(pool: PublicTierlist | null, classId: string, now: number): { title: string; description: string } {
   const hasCards = pool?.classes.some(entry => entry.id === classId && entry.cards.length > 0) ?? false;
-  const values: SeoDataValues = { ...(hasCards ? arenaTierlistSeoValues(pool, now) : null), label: className(classId) };
+  const values: SeoDataValues = { ...(hasCards ? arenaTierlistSeoValues(pool, now) : null), label: tierlistClassName(classId) };
   const neutral = classId === NEUTRAL_ID;
   return {
     title: render(neutral ? NEUTRAL_TITLE : CLASS_TITLE, values, META_TITLE_MAX),

@@ -454,9 +454,13 @@ list on the open pool with every card of one class in the server HTML.
   `canonicalPolicy: "none"`, `sitemap: false`; the page takes robots and
   canonical from the inventory, so SEO-A switches them on in one place
   (index, canonical self, registry and `static.xml` entries) after deploy.
-  `SeoStructuredData` prints no JSON-LD until the page has registry nodes.
+  JSON-LD nodes come from `apps/public-web/lib/tierlistClassStructuredData.ts`
+  (the visible breadcrumb «Главная › Тир-лист › <класс>» and a
+  `CollectionPage`) through `seoStructuredDataGraphOf`, which writes nothing
+  while the route is noindex.
 - Title and description are built in `generateMetadata`
-  (`apps/public-web/lib/tierlistClassSeo.ts`), not in the registry:
+  (`apps/public-web/lib/tierlistClassSeo.ts`, which also holds the class
+  names, so a page without data keeps its class title), not in the registry:
   «Тир-лист Арены Hearthstone: <класс>, {month}» and «Нейтральные карты Арены
   Hearthstone: тир-лист, {month}», no brand; the description has the date and
   the sample the page prints («более 53 000 игр»), no count of cards (the page
