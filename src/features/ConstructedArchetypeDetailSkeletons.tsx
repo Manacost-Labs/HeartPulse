@@ -84,6 +84,8 @@ const HISTORY_CHARTS = [
 /** The width of a short slice date («24 июл») in figure spaces: the scrubber labels wrap where real dates wrap. */
 const CHART_DATE = '\u2007\u2007 июл';
 
+export const HISTORY_TEXT = 'Срез добавляется каждые 12 часов. HSGuru считает статистику внутри периода — патча или дополнения — и с новым периодом начинает счёт заново, поэтому граница отмечена пунктиром.';
+
 /** The history section: real heading frame and three chart frames with a 240 px plot and selection controls. */
 export function ArchetypeHistorySkeleton() {
   return <LoadingSurface label="Загружаем историю архетипа" quiet layout="rows" className="archetype-detail-skeleton">
@@ -92,7 +94,7 @@ export function ArchetypeHistorySkeleton() {
         <div>
           <span className="archetypes-eyebrow"><TrendingUp size={15} /><Words>Накопительная статистика</Words></span>
           <Title>История архетипа</Title>
-          <p><Words>Срез добавляется каждые 12 часов. HSGuru считает статистику внутри периода — патча или дополнения — и с новым периодом начинает счёт заново, поэтому граница отмечена пунктиром.</Words></p>
+          <p><Words>{HISTORY_TEXT}</Words></p>
         </div>
         <span className="archetype-section-heading__count"><Value /></span>
       </div>

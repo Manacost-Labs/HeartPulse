@@ -13,7 +13,7 @@ import { LockedPaidSections, PendingPaidSections } from './ArchetypePaidFrames';
 import { PaidMetricLock } from '../shared/ui/PaidLocks';
 import type { ArchetypeDetail } from './archetypeDetailTypes';
 import {
-  ArchetypeAnalysisLoading, ArchetypeAnalysisReserve, ArchetypeBuildsSkeleton, ArchetypeHistorySkeleton, loadArchetypeAnalysis,
+  ArchetypeAnalysisLoading, ArchetypeAnalysisReserve, ArchetypeBuildsSkeleton, ArchetypeHistorySkeleton, HISTORY_TEXT, loadArchetypeAnalysis,
 } from './ConstructedArchetypeDetailSkeletons';
 import type { ArchetypeFormat } from './constructedArchetypeCatalogUrl';
 import { RecoverableSurfaceBoundary } from './recovery/RecoverableSurface';
@@ -47,7 +47,7 @@ function History({ detail, read }: { detail: ArchetypeDetail; read: { loading: b
           <div>
             <span className="archetypes-eyebrow"><TrendingUp size={15} /> Накопительная статистика</span>
             <h2 id="archetype-history-title">История архетипа</h2>
-            <p>Срез добавляется каждые 12 часов. HSGuru считает статистику внутри периода — патча или дополнения — и с новым периодом начинает счёт заново, поэтому граница отмечена пунктиром.</p>
+            <p>{HISTORY_TEXT}</p>
           </div>
           <span className="archetype-section-heading__count">{detail.history.length} срезов</span>
         </header>
@@ -57,7 +57,9 @@ function History({ detail, read }: { detail: ArchetypeDetail; read: { loading: b
   );
 }
 
-function ArchetypeDossier({ item, history, analysis }: { item: ArchetypeDetail['item']; history: ArchetypeDetail['history']; analysis: ArchetypeDetail['analysis'] }) {
+function ArchetypeDossier({ item, history, analysis, trendLocked }: {
+  item: ArchetypeDetail['item']; history: ArchetypeDetail['history']; analysis: ArchetypeDetail['analysis']; trendLocked: boolean;
+}) {
   const heroArt = archetypeHeroArt(item.slug, analysis?.cardStats ?? []);
   const backdrop = archetypeClassBackdrop(item.classKey);
   return (
@@ -89,7 +91,7 @@ function ArchetypeDossier({ item, history, analysis }: { item: ArchetypeDetail['
       <img src={classIcon(item.classKey)} alt="" width="92" height="92" />
       <h1>{item.archetypeLabel}</h1>
     </div>
-    <ArchetypeDossierKpis item={item} history={history} />
+    <ArchetypeDossierKpis item={item} history={history} trendLocked={trendLocked} />
   </section>
   );
 }
@@ -131,7 +133,7 @@ export function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess,
   const locked = Boolean(openLayer && !fullAccess);
   const pending = Boolean(openLayer && fullAccess && core.loading);
   const openRadar = openLayer ? <ArchetypeRadarSection item={item} viewerId={viewerId(paywall.authUser)}
-    matchupLock={locked ? <PaidMetricLock variant="card" label="Очный матчап" closed="paywalled-archetype" /> : undefined} /> : null;
+    matchupLock={locked ? <PaidMetricLock label="Очный матчап" closed="paywalled-archetype" /> : undefined} /> : null;
 
   return (
     <Root {...rootProps}>
@@ -144,7 +146,7 @@ export function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess,
         <span aria-hidden="true">/</span>
         <strong>{item.archetypeLabel}</strong>
       </nav>
-      <ArchetypeDossier item={item} history={history} analysis={detail.analysis} />
+      <ArchetypeDossier item={item} history={history} analysis={detail.analysis} trendLocked={locked} />
 
       {/* One visible line when the subscriber's data failed: whatever the page has of the open data stays under it. */}
       {openLayer && fullAccess && core.error && !core.loading ? <p role="status" className="archetype-open-builds__retry">

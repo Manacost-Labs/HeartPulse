@@ -3,7 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import { pluralRu } from '../shared/text/pluralRu';
 import type { ArchetypeBuild, ArchetypeFormat } from './archetypeBuildViews';
 import { buildsWindowNote } from './archetypeBuildsModel';
-import { openBuildAsBuild, openBuildCards, type OpenBuild, type OpenBuilds } from './archetypeOpenBuilds';
+import { openBuildAsBuild, openBuildCards, placePaidBuilds, type OpenBuild, type OpenBuilds } from './archetypeOpenBuilds';
 import ConstructedArchetypeDeckGallery from './ConstructedArchetypeDeckGallery';
 
 /** Builds the gallery shows at first and adds with each «Загрузить ещё». */
@@ -48,13 +48,16 @@ function MoreButton({ label, disabled, onClick }: { label: string; disabled: boo
 export function ArchetypeBuildsSection({ item, open, paid, pagePeriod }: {
   item: Item; open: OpenBuilds | undefined; paid: ArchetypeBuild[] | null; pagePeriod: string | null;
 }) {
-  const [visible, setVisible] = useState(BUILDS_PAGE);
   const list = useOpenBuildList(open);
+  // A subscriber's page shows as many builds as it showed before the paid answer (a page of eight without open ones);
+  // «Загрузить ещё» adds a page.
+  const [more, setMore] = useState(0);
   const seeds = useMemo(() => new Map(list.builds.flatMap(build => {
     const cards = openBuildCards(build, item.format);
     return cards ? [[build.deckCode, cards] as const] : [];
   })), [list.builds, item.format]);
-  const builds = paid ?? list.builds.map(openBuildAsBuild);
+  const placed = useMemo(() => (paid ? placePaidBuilds(list.builds, paid) : null), [list.builds, paid]);
+  const builds = placed ?? list.builds.map(openBuildAsBuild);
   // Without builds the page's own «Колоды появятся…» note stands; builds the allowlist refused leave one short line,
   // and the next page may still have some.
   if (!builds.length) {
@@ -70,10 +73,10 @@ export function ArchetypeBuildsSection({ item, open, paid, pagePeriod }: {
       </section>
     );
   }
-  const shown = paid ? builds.slice(0, visible) : builds;
-  const total = paid ? builds.length : Math.max(open?.total ?? 0, builds.length);
+  const shown = placed ? placed.slice(0, (list.builds.length || BUILDS_PAGE) + more) : builds;
+  const total = placed ? placed.length : Math.max(open?.total ?? 0, builds.length);
   const note = buildsWindowNote(builds, pagePeriod);
-  const remaining = paid ? builds.length - visible : list.next === null ? 0 : Math.max(1, total - list.next);
+  const remaining = placed ? placed.length - shown.length : list.next === null ? 0 : Math.max(1, total - list.next);
   return (
     <section className="archetype-builds" aria-labelledby="archetype-builds-title" data-tour-id="archetype-builds">
       <header className="archetype-section-heading">
@@ -85,12 +88,12 @@ export function ArchetypeBuildsSection({ item, open, paid, pagePeriod }: {
         <span className="archetype-section-heading__count">{total} {pluralRu(total, 'сборка', 'сборки', 'сборок')}</span>
       </header>
       <ConstructedArchetypeDeckGallery builds={shown} format={item.format} archetype={item.archetype}
-        archetypeLabel={item.archetypeLabel} classKey={item.classKey} seeds={seeds} full={Boolean(paid)} />
+        archetypeLabel={item.archetypeLabel} classKey={item.classKey} seeds={seeds} full={Boolean(placed)} />
       {remaining > 0 ? (
-        <MoreButton label={!paid && list.state === 'loading' ? 'Загружаем сборки…' : `Загрузить ещё ${Math.min(BUILDS_PAGE, remaining)}`}
-          disabled={!paid && list.state === 'loading'} onClick={() => (paid ? setVisible(value => value + BUILDS_PAGE) : void list.load())} />
+        <MoreButton label={!placed && list.state === 'loading' ? 'Загружаем сборки…' : `Загрузить ещё ${Math.min(BUILDS_PAGE, remaining)}`}
+          disabled={!placed && list.state === 'loading'} onClick={() => (placed ? setMore(value => value + BUILDS_PAGE) : void list.load())} />
       ) : null}
-      {!paid && list.state === 'error' ? <p role="alert" className="archetype-builds__error">Сборки не загрузились. Попробуйте ещё раз.</p> : null}
+      {!placed && list.state === 'error' ? <p role="alert" className="archetype-builds__error">Сборки не загрузились. Попробуйте ещё раз.</p> : null}
     </section>
   );
 }

@@ -368,9 +368,11 @@ test('Next archetype details isolate access and load builds before independent o
     await page.reload({ waitUntil: 'networkidle2' });
     assert.equal(await page.$eval('h1', node => node.textContent), 'Воровской Жрец', 'public identity survives a core failure');
     const paidBuild = () => page.$('button[data-deck-code="AAEBAa0GValidDeckCode"]');
+    // The paid answer has two builds, the open page one: the count says which list the gallery holds.
+    const paidList = () => page.$eval('.archetype-builds .archetype-section-heading__count', node => node.textContent === '2 сборки').catch(() => false);
     const openBuild = () => page.$(`button[data-deck-code="${OPEN_DECK}"]`);
     assert.ok(await openBuild(), 'a failed paid answer keeps the open builds for a subscriber');
-    assert.equal(await paidBuild(), null);
+    assert.equal(await paidList(), false);
     // One «Сборки архетипа» on the page: the failed gallery is a line with its retry, not a second section that says builds are unavailable.
     const coreFailed = await page.evaluate(() => ({
       headings: [...document.querySelectorAll('h2')].filter(node => node.textContent === 'Сборки архетипа').length,
@@ -385,20 +387,26 @@ test('Next archetype details isolate access and load builds before independent o
     const optionalCalls = sectionCalls.filter(section => section !== 'core').length;
     coreFails = false;
     await page.click('[role="status"] button');
-    await page.waitForSelector('button[data-deck-code="AAEBAa0GValidDeckCode"]');
+    // The paid answer ranks first a build the open page lacked: the open build keeps its tile and place, the new one
+    // comes after it, behind «Загрузить ещё», so nothing on screen moves.
+    await page.waitForFunction(() => [...document.querySelectorAll('.archetype-builds button')].some(node => node.textContent.trim() === 'Загрузить ещё 1'));
     assert.equal(sectionCalls.filter(section => section !== 'core').length, optionalCalls);
-    assert.ok(await openBuild(), 'a build with the same code keeps its tile');
+    assert.equal(await page.$eval('.archetype-builds button[data-deck-code]', node => node.getAttribute('data-deck-code')), OPEN_DECK,
+      'a build with the same code keeps its tile');
+    assert.ok(await paidList());
+    assert.ok(await pressButton('Загрузить ещё 1'));
+    await page.waitForSelector('button[data-deck-code="AAEBAa0GValidDeckCode"]');
     coreEmpty = true;
     await page.reload({ waitUntil: 'networkidle2' });
     await page.waitForSelector('.archetype-history');
     assert.ok(await openBuild(), 'an empty paid answer keeps the open builds');
-    assert.equal(await paidBuild(), null);
+    assert.equal(await paidList(), false);
     coreEmpty = false;
     optionalGate = new Promise(resolve => { releaseOptional = resolve; });
     optionalMode = 'denied';
     await page.reload({ waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => document.body.textContent.includes('Доступ изменился'));
-    assert.equal(await paidBuild(), null, 'a rejected section immediately removes all protected data');
+    assert.equal(await paidList(), false, 'a rejected section immediately removes all protected data');
     releaseOptional();
     await delay(300);
     assert.equal(await page.$('.archetype-history'), null, 'a late cancelled history reply must not restore paid data');
@@ -424,13 +432,13 @@ test('Next archetype details isolate access and load builds before independent o
     await chunkPage.close();
     member = false;
     await page.reload({ waitUntil: 'networkidle2' });
-    assert.equal(await paidBuild(), null, 'logout removes protected builds');
+    assert.equal(await paidList(), false, 'logout removes protected builds');
     assert.equal((await page.$$('[data-paid-frame]')).length, 4, 'logout puts the locks back in the same places');
     assert.equal(await page.$('.archetype-history'), null, 'logout removes protected history');
     member = 'admin';
     await page.reload({ waitUntil: 'networkidle2' });
     await page.waitForSelector('.archetype-history');
-    assert.ok(await paidBuild(), 'administrator access remains independent of a subscription');
+    assert.ok(await paidList(), 'administrator access remains independent of a subscription');
     await page.close();
   } finally {
     releaseOptional();

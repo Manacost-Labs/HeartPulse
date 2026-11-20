@@ -654,6 +654,7 @@
         "tests/next-public-profiles-browser.test.mjs",
         "tests/next-bg-library-details-browser.test.mjs",
         "tests/next-archetype-details-browser.test.mjs",
+        "tests/next-archetype-subscriber-geometry-browser.test.mjs",
         "tests/next-guide-detail-browser.test.mjs",
         "tests/page-headers-browser.test.mjs",
         "tests/production-observer-browser.test.mjs",

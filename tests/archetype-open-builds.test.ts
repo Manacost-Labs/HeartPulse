@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { openBuildAsBuild, openBuildCards, type OpenBuild } from '../src/features/archetypeOpenBuilds';
+import { openBuildAsBuild, openBuildCards, placePaidBuilds, type OpenBuild } from '../src/features/archetypeOpenBuilds';
 import { seededDeck } from '../src/features/deckViews/seededDeck';
 
 const build: OpenBuild = {
@@ -37,4 +37,13 @@ test('an open build is a gallery build without a source link', () => {
     deckCode: build.deckCode, games: 2216, winrate: 57.1, updatedAt: '2026-07-22T21:05:32.877Z',
     sampleRank: 'all', samplePeriod: 'past_30_days', sourceUrl: '',
   });
+});
+
+test('the paid builds take the open builds\' places; builds the open page lacked come after them', () => {
+  const open = (deckCode: string, games: number): OpenBuild => ({ ...build, deckCode, games, cards: null });
+  const paid = (deckCode: string, games: number) => ({ deckCode, games, winrate: 55, updatedAt: null, sampleRank: 'all', samplePeriod: 'past_week', sourceUrl: '' });
+  const placed = placePaidBuilds([open('A', 300), open('B', 200), open('C', 100)],
+    [paid('NEW', 400), paid('A', 310), paid('C', 110), paid('LATER', 50)]);
+  assert.deepEqual(placed.map(item => [item.deckCode, item.games]), [['A', 310], ['B', 200], ['C', 110], ['NEW', 400], ['LATER', 50]]);
+  assert.deepEqual(placePaidBuilds([], [paid('NEW', 400), paid('A', 310)]).map(item => item.deckCode), ['NEW', 'A'], 'without open builds, the paid order');
 });

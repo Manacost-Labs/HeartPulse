@@ -2,8 +2,8 @@ import React from 'react';
 import { Grid3x3, Swords, Sparkles, TrendingUp } from 'lucide-react';
 import { ArchetypeDetailSection } from '../modules/constructedArchetypes/public';
 import { PaidMetricLock } from '../shared/ui/PaidLocks';
-import { RankHeatmapSection } from './ArchetypeInsightSlots';
-import { ArchetypeAnalysisLoading, ArchetypeHistorySkeleton } from './ConstructedArchetypeDetailSkeletons';
+import { RankHeatmapSection, RANKS_TEXT } from './ArchetypeInsightSlots';
+import { ArchetypeAnalysisLoading, ArchetypeHistorySkeleton, HISTORY_TEXT } from './ConstructedArchetypeDetailSkeletons';
 import './ArchetypePaidFrames.css';
 
 /** `tour`: the anchor the page tour points at in the subscriber's view; the locked frame carries it too. */
@@ -20,18 +20,23 @@ const FRAMES: Record<'matchups' | 'mulligan' | 'ranks' | 'history', FrameCopy> =
   },
   ranks: {
     id: 'ranks', tour: 'archetype-ranks', icon: <Grid3x3 size={15} aria-hidden="true" />, eyebrow: 'Ранги и периоды', title: 'Винрейт по рангам',
-    text: 'Винрейт архетипа в каждом ранге за разные периоды HSGuru.',
+    text: RANKS_TEXT,
   },
   history: {
     id: 'history', tour: 'archetype-history', icon: <TrendingUp size={15} aria-hidden="true" />, eyebrow: 'Накопительная статистика', title: 'История архетипа',
-    text: 'Срез добавляется каждые 12 часов: как менялись винрейт, популярность и число игр.',
+    text: HISTORY_TEXT,
   },
 };
 
-/** A paid section for a guest: its place, heading and one line of what it holds, closed behind the lock. */
+/**
+ * A paid section for a guest: its place, heading and what it holds, closed behind the lock. Each frame is as tall as
+ * the subscriber's loading skeleton of that section (ArchetypePaidFrames.css), so access arriving swaps a lock for a
+ * skeleton the way a subscriber's skeleton gives way to the data.
+ */
 function LockedFrame({ frame }: { frame: keyof typeof FRAMES }) {
   const copy = FRAMES[frame];
-  return <section className="archetype-insight archetype-paid-frame" aria-labelledby={`archetype-paid-${copy.id}`} data-paid-frame={copy.id} data-tour-id={copy.tour}>
+  return <section className={`archetype-insight archetype-paid-frame archetype-paid-frame--${copy.id}`} aria-labelledby={`archetype-paid-${copy.id}`}
+    data-paid-frame={copy.id} data-tour-id={copy.tour}>
     <header className="archetype-section-heading"><div>
       <span className="archetypes-eyebrow">{copy.icon} {copy.eyebrow}</span>
       <h2 id={`archetype-paid-${copy.id}`}>{copy.title}</h2>

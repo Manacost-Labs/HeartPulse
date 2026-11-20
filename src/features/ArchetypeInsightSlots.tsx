@@ -27,7 +27,7 @@ function InsightHeading({ icon, eyebrow, title, text }: { icon: React.ReactNode;
   </header>;
 }
 
-const RANKS_TEXT = 'Винрейт архетипа в каждом ранге за разные периоды HSGuru, ниже — первым ходом и с монеткой в окне банов. Пустая клетка — в срезе меньше 100 игр.';
+export const RANKS_TEXT = 'Винрейт архетипа в каждом ранге за разные периоды HSGuru, ниже — первым ходом и с монеткой в окне банов. Пустая клетка — в срезе меньше 100 игр.';
 
 function RankHeatmapSkeleton() {
   return <LoadingSurface label="Загружаем винрейт по рангам" quiet layout="rows" className="archetype-detail-skeleton">

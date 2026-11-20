@@ -29,6 +29,17 @@ export function openBuildAsBuild(build: OpenBuild): ArchetypeBuild {
 }
 
 /**
+ * The subscriber's builds in the gallery a page already shows: each open build keeps its place and takes its paid
+ * numbers, the paid builds the open page did not have (refused by the allowlist, or newer than the page's open copy)
+ * follow them. An open build the paid answer lacks stays as it was. Nothing on screen moves or remounts.
+ */
+export function placePaidBuilds(open: readonly OpenBuild[], paid: readonly ArchetypeBuild[]): ArchetypeBuild[] {
+  const byCode = new Map(paid.map(build => [build.deckCode, build]));
+  const shown = new Set(open.map(build => build.deckCode));
+  return [...open.map(build => byCode.get(build.deckCode) ?? openBuildAsBuild(build)), ...paid.filter(build => !shown.has(build.deckCode))];
+}
+
+/**
  * The card list of an open build in the shape of the deck views, so a guest's gallery draws the same tiles as a
  * subscriber's without asking the server to resolve the code again. A card no dictionary names is left out.
  */
