@@ -112,6 +112,18 @@ test('the guest HTML of /legendaries/ carries the open groups and no paid value'
     const stale = (await regenerated(page => page.includes('последний сохранённый снимок'), 'stale snapshot notice')).replaceAll('<!-- -->', '');
     assert.match(stale, /последний сохранённый снимок от 18\.11\.2026 12:30 МСК/);
     assert.ok(hasGroups(stale));
+
+    // Express is down again: a failed regeneration keeps the last good page, never the «temporarily unavailable» stub.
+    state.down = true;
+    const readsBefore = state.reads.filter(read => read.path.includes('/public')).length;
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      process.kill(next.pid, 'SIGUSR2');
+      const kept = await guestHtml(next.origin, { 'User-Agent': GOOGLEBOT_UA });
+      assert.ok(hasGroups(kept), 'the last good groups stay while Express is down');
+      assert.equal(kept.includes('Данные временно недоступны'), false, 'the stub does not replace the good copy');
+      await delay(300);
+    }
+    assert.ok(state.reads.filter(read => read.path.includes('/public')).length > readsBefore, 'the regeneration really tried the origin');
   } finally {
     await next.close();
     legacyServer.closeAllConnections();
