@@ -21,29 +21,44 @@ export type CardAssembleRouterDependencies = {
 
 const MAX_CACHE_ENTRIES = 2_000;
 
-/** `GET /api/card-assemble/:format[/:cardId?base=<dbf|top>]` — public, cached for ten minutes. */
+/** `GET /api/card-assemble/:format[/:cardId?base=<dbf|top>]` — public, cached for ten minutes, renewed in the background once expired. */
 export function createCardAssembleRouter(dependencies: CardAssembleRouterDependencies): Router {
   const cache = new Map<string, CacheEntry>();
   const cacheMs = dependencies.cacheMs ?? 10 * 60_000;
   const now = dependencies.now ?? Date.now;
   const router = Router({ caseSensitive: true });
-  /** Serves one cached upstream read; a failed refresh keeps the last answer, none at all is a 503. */
+  /** The one upstream read per key that is in flight, shared by everyone who needs that key meanwhile. */
+  const inflight = new Map<string, Promise<CacheEntry>>();
+  function refresh(key: string, load: () => Promise<CacheEntry>): Promise<CacheEntry> {
+    const running = inflight.get(key);
+    if (running) return running;
+    const started = load().then(entry => {
+      if (!cache.has(key) && cache.size >= MAX_CACHE_ENTRIES) cache.delete(cache.keys().next().value as string);
+      cache.set(key, entry);
+      return entry;
+    }).finally(() => inflight.delete(key));
+    inflight.set(key, started);
+    // Reported here, once for the read that was started, however many readers wait for it.
+    started.catch(error => dependencies.onError?.(error));
+    return started;
+  }
+  /**
+   * Serves one cached upstream read. An expired answer is sent at once and renewed in the background (stale-while-revalidate),
+   * so a reader never waits for the upstream once the key is warm; a failed renewal keeps the last answer, a cold failure is a 503.
+   */
   async function serve(response: Response, key: string, load: () => Promise<CacheEntry>) {
     const cached = cache.get(key);
-    let entry = cached && now() - cached.at < cacheMs ? cached : null;
-    if (!entry) {
+    let entry: CacheEntry;
+    if (cached) {
+      entry = cached;
+      if (now() - cached.at >= cacheMs) refresh(key, load).catch(() => undefined);
+    } else {
       try {
-        entry = await load();
-        if (!cache.has(key) && cache.size >= MAX_CACHE_ENTRIES) cache.delete(cache.keys().next().value as string);
-        cache.set(key, entry);
-      } catch (error) {
-        dependencies.onError?.(error);
-        if (!cached) {
-          response.set('Cache-Control', 'no-store');
-          response.set('Retry-After', '30');
-          return response.status(503).json({ error: 'Assemble statistics temporarily unavailable' });
-        }
-        entry = cached;
+        entry = await refresh(key, load);
+      } catch {
+        response.set('Cache-Control', 'no-store');
+        response.set('Retry-After', '30');
+        return response.status(503).json({ error: 'Assemble statistics temporarily unavailable' });
       }
     }
     response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=600');

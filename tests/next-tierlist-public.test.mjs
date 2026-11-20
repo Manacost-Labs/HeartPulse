@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createServer, request as httpRequest } from 'node:http';
 import { existsSync } from 'node:fs';
-import { DATA_PAGES } from '../scripts/lib/post-deploy-data-pages.mjs';
+import { DATA_PAGES, hasMarker } from '../scripts/lib/post-deploy-data-pages.mjs';
 import { resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
@@ -413,4 +413,16 @@ test('DATA_PAGES marked isr are the 22 pages of the revalidate route', () => {
   assert.equal(expected.length, 22);
   assert.deepEqual(DATA_PAGES.filter(page => page.isr).map(page => page.path.replace(/\/$/, '')).sort(), [...expected].sort());
   assert.equal(DATA_PAGES.find(page => page.path === '/library/').marker, 'bg-library-public__size', 'the hub marker is not on the copy without sizes');
+});
+
+// The tool page «Сборка» reads two Express answers in its first-paint budget, so the deploy warm-up primes both formats of it
+// (dynamic pages, requested on the local Next origin) and waits for the block only the HTML with the data has.
+test('the post-deploy warm-up covers /standard/assemble/ in both formats and tells the page with the data from the one without', () => {
+  const pages = DATA_PAGES.filter(page => page.path.startsWith('/standard/assemble/'));
+  assert.deepEqual(pages.map(page => page.path), ['/standard/assemble/', '/standard/assemble/?format=wild']);
+  for (const page of pages) assert.equal(page.isr, undefined, 'dynamic: it is not part of the revalidate route');
+  const marker = pages[0].marker;
+  const picker = '<div class="assemble-tool"><h2 class="assemble-tool__title">Выберите карту</h2><div class="card-choices"></div></div>';
+  assert.equal(hasMarker(picker, marker), false, 'the picker alone is the page without the data');
+  assert.equal(hasMarker(`${picker}<h3 class="assemble-title">Что выпало?</h3>`, marker), true);
 });
