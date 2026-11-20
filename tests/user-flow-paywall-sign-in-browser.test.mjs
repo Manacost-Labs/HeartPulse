@@ -8,7 +8,7 @@ import {
 
 const EMAIL = 'diamond@example.test';
 const PASSWORD = 'qa-password-123';
-const PAYWALL = 'Ранги, периоды и история матчапов — в подписке';
+const PAYWALL = 'Ранги, периоды и порог игр — в подписке';
 
 test('a guest meets the Standard paywall, signs in with a password and a mailed code, and the matchups open', { timeout: 180_000 }, async () => {
   const runtime = await startPublicCardPilot({ pagesEnabled: true });
@@ -29,9 +29,14 @@ test('a guest meets the Standard paywall, signs in with a password and a mailed 
     await page.goto(`${runtime.origin}/standard/matchups/`, { waitUntil: 'domcontentloaded' });
     // Гость видит открытую матрицу общего среза; платные фильтры предлагают подписку на месте.
     await findByRole(page, 'heading', 'Матчапы');
-    await clickByRole(page, 'button', 'Ранг');
-    const paywall = await findByRole(page, 'region', PAYWALL);
-    assert.match(await paywall.evaluate(node => node.innerText), /тариф «алмаз»/i);
+    // The press needs hydration: press again until the offer is up.
+    let offer = null;
+    for (let attempt = 0; attempt < 20 && !offer; attempt += 1) {
+      await clickByRole(page, 'button', 'Рейтинг (фильтр): по подписке. Узнать, как открыть');
+      offer = await findByRole(page, 'heading', PAYWALL, 1_500).catch(() => null);
+    }
+    assert.ok(offer, 'the lock opens the subscription offer');
+    assert.match(await page.evaluate(() => document.body.innerText), /тариф «алмаз»/i);
 
     await page.goto(`${runtime.origin}/?login`, { waitUntil: 'domcontentloaded' });
     await findByRole(page, 'heading', 'Вход в HearthPulse');
@@ -49,7 +54,7 @@ test('a guest meets the Standard paywall, signs in with a password and a mailed 
     await page.goto(`${runtime.origin}/standard/matchups/`, { waitUntil: 'domcontentloaded' });
     // Кнопки формата есть только у открытых матчапов, не у проверки доступа и не у пейволла.
     await findByRole(page, 'button', 'Показать матчапы: Стандарт');
-    assert.equal(await page.$(role('region', PAYWALL)), null, 'a subscriber sees no paywall');
+    assert.equal(await page.$(role('heading', PAYWALL)), null, 'a subscriber sees no paywall');
     assert.equal(await page.$(role('link', 'Войти в профиль')), null);
     assert.deepEqual(errors, []);
   } finally {
