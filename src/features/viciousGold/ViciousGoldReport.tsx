@@ -11,7 +11,6 @@ const UPDATED = new Intl.DateTimeFormat('ru-RU', {
 });
 const PERCENT: Intl.NumberFormatOptions = { style: 'percent', minimumFractionDigits: 1, maximumFractionDigits: 1 };
 const KPI_LABELS = { noData: 'Нет данных', loading: 'Загружаем отчёт' };
-const LOCKED_KPI_LABELS = { noData: 'По подписке', loading: 'Загружаем отчёт' };
 
 function updatedLabel(value: string | null): string | null {
   const date = value ? new Date(value) : null;
@@ -31,11 +30,13 @@ export function ViciousGoldReport({ data, locked = false }: { data: ViciousGoldP
   const updated = updatedLabel(data.updatedAt);
   const backdrop = leader ? archetypeClassBackdrop(classKey(leader.class)) : null;
   const archetypes = data.deckDistribution.filter(deck => !isAggregateDeck(deck.deck)).length;
-  const lock = (label: string) => (locked ? <PaidMetricLock variant="card" label={label} /> : undefined);
+  // The open frame (#656): a lock in the value's place, and a blank caption line where the subscriber reads a name,
+  // so the tile is as tall as the subscriber's at every width.
+  const lock = (label: string) => (locked ? { display: <PaidMetricLock label={label} />, caption: '\u00a0' } : {});
   const items: KpiItem[] = [
-    { id: 'leader', label: 'Лидер Power Tier', value: leader ? leader.winrate / 100 : null, format: PERCENT, caption: leader?.deckLabel ?? lock('Лидер Power Tier') },
-    { id: 'popular', label: 'Самая популярная', value: popular ? popular.frequency / 100 : null, format: PERCENT, caption: popular?.deckLabel ?? lock('Самая популярная колода') },
-    { id: 'class', label: 'Самый частый класс', value: topClass ? topClass.frequency / 100 : null, format: PERCENT, caption: topClass?.classLabel ?? lock('Самый частый класс') },
+    { id: 'leader', label: 'Лидер Power Tier', value: leader ? leader.winrate / 100 : null, format: PERCENT, caption: leader?.deckLabel, ...lock('Лидер Power Tier') },
+    { id: 'popular', label: 'Самая популярная', value: popular ? popular.frequency / 100 : null, format: PERCENT, caption: popular?.deckLabel, ...lock('Самая популярная колода') },
+    { id: 'class', label: 'Самый частый класс', value: topClass ? topClass.frequency / 100 : null, format: PERCENT, caption: topClass?.classLabel, ...lock('Самый частый класс') },
     { id: 'archetypes', label: 'Архетипов', value: archetypes, format: { maximumFractionDigits: 0 },
       caption: locked ? 'в отчёте' : `от ${thresholdPercent(data.minimumDeckFrequency)} партий` },
   ];
@@ -64,7 +65,7 @@ export function ViciousGoldReport({ data, locked = false }: { data: ViciousGoldP
         </ul>
       </div>
       <KpiGroup className="vsgold-report__kpis hp-varylo hp-varylo--plate" items={items} minTileWidth={120}
-        locale="ru-RU" labels={locked ? LOCKED_KPI_LABELS : KPI_LABELS} aria-label="Главное в отчёте" />
+        locale="ru-RU" labels={KPI_LABELS} aria-label="Главное в отчёте" />
     </section>
   );
 }

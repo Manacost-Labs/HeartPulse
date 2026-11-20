@@ -14,6 +14,8 @@ export interface KpiItem {
   label: ReactNode;
   /** Current value; `null` shows a dash (no data yet). */
   value: number | null;
+  /** Shown in the value's place instead of the number or the dash (a lock of a closed value); it names itself. */
+  display?: ReactNode;
   /** Number formatting, e.g. `{ style: 'currency', currency: 'USD', notation: 'compact' }`. */
   format?: Intl.NumberFormatOptions;
   /** Value of the comparison period; the change in percent is computed from it. */
@@ -145,7 +147,7 @@ export function KpiGroup({
               )}
             </div>
             <div className="ui-kpi-group__value">
-              {item.value === null || !Number.isFinite(item.value) ? (
+              {item.display !== undefined ? item.display : item.value === null || !Number.isFinite(item.value) ? (
                 <>
                   <span aria-hidden="true">—</span>
                   <span className="ui-sr-only">{labels.noData}</span>

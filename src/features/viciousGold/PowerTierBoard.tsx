@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { TierBadge } from '../../modules/arenaTierList/public';
 import { TrendValue } from '../../vendor/varylo-ui/widgets/TrendValue';
 import { PaidFilterLock, PaidMetricLock } from '../../shared/ui/PaidLocks';
+import { LockMark } from './LockMark';
 import { BuildActions } from './BuildActions';
 import { DeckName } from './DeckName';
 import {
@@ -17,10 +18,12 @@ function barStyle(winrate: number) {
   return { left: `${offset >= 0 ? 50 : 50 + offset}%`, width: `${Math.abs(offset)}%` };
 }
 
-/** The Power Tier of the open frame: as many rows as a vS bracket holds (16), each a lock with no name, whatever the
- * report holds, so the paid rows replace the slots without a shift. */
-const LOCKED_ROWS = 16;
-const LOCKED_SLOTS = Array.from({ length: LOCKED_ROWS }, (_, index) => index + 1);
+/**
+ * The Power Tier of the open frame: as many rows as a vS bracket holds (16) in three tier groups (the usual count of
+ * non-empty tiers), split by a fixed scheme, never by the report: the paid rows and tier heads replace the slots
+ * without a shift, and the slots say nothing of the tiers, their decks or their order.
+ */
+const LOCKED_GROUPS = [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11], [12, 13, 14, 15, 16]];
 
 /**
  * `locked` (the open frame, #656): the rank tabs stay, the class filter is a lock, and the rows are slots with a lock
@@ -72,27 +75,33 @@ export function PowerTierBoard({ tierList, classes, copiedDeck, onCopy, locked =
         <span>Колода</span><span title="Ожидаемый винрейт колоды против меты выбранного диапазона рангов (расчёт Vicious Syndicate)">Винрейт: 40% · 50% · 60%</span>{baseline ? <span>п. п. к «{baseline}»</span> : <span />}
       </div>
 
-      {locked ? (
-        <section className="vsgold-tier" data-locked="" aria-labelledby="vsgold-tier-locked">
+      {locked ? LOCKED_GROUPS.map((slots, index) => (
+        <section key={slots[0]} className="vsgold-tier" data-locked="" aria-labelledby={`vsgold-tier-locked-${index + 1}`}>
+          {/* The head of a subscriber's tier group, its letter and range closed. */}
           <header className="vsgold-tier__head">
-            <h3 id="vsgold-tier-locked">Тиры S–D</h3>
-            <small>колоды, их порядок и винрейт — по подписке</small>
+            <span className="vsgold-tier__badge-slot" aria-hidden="true" />
+            <h3 id={`vsgold-tier-locked-${index + 1}`}>Тир <LockMark label="Тир и его колоды" /></h3>
+            <small>по подписке</small>
           </header>
           <ol className="vsgold-tier__rows">
-            {LOCKED_SLOTS.map(slot => (
+            {slots.map(slot => (
+              // A subscriber's row with a deck: name and source name, bar, win rate and the copy button, each closed.
               <li key={slot} className="vsgold-power-row vsgold-power-row--locked">
                 <span className="vsgold-power-row__rank" />
                 <span className="vsgold-power-row__icon" aria-hidden="true" />
-                <span className="vsgold-power-row__name"><PaidMetricLock label={`Колода Power Tier, строка ${slot}`} /></span>
+                <span className="vsgold-power-row__name">
+                  <strong><PaidMetricLock label={`Колода Power Tier, строка ${slot}`} /></strong>
+                  <small aria-hidden="true">{'\u00a0'}</small>
+                </span>
                 <span className="vsgold-power-row__bar" aria-hidden="true" />
-                <b className="vsgold-power-row__winrate" />
+                <b className="vsgold-power-row__winrate" aria-hidden="true">{'\u00a0'}</b>
                 <span className="vsgold-power-row__delta" />
-                <span className="vsgold-build vsgold-build--none" />
+                <span className="vsgold-build" aria-hidden="true"><span className="vsgold-build__slot" /></span>
               </li>
             ))}
           </ol>
         </section>
-      ) : groups.map(group => (
+      )) : groups.map(group => (
         <section key={group.tier} className="vsgold-tier" data-tier={group.tier} aria-labelledby={`vsgold-tier-${group.tier}`}>
           <header className="vsgold-tier__head">
             <TierBadge tier={group.tier} small />

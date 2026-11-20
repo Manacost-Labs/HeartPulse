@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import http from 'node:http';
 import test from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -65,7 +66,7 @@ const PAID_RAW = ['41.37', '33.29', '17.73', '54.91', '917331', '917 331', 'SENT
 
 async function startStack() {
   // `buildsRefusal`: the builds route refuses (401/403) after `buildsDelay` and the subscription lapses with it (`lapsed`).
-  const state = { next: null, publicReads: 0, paidReads: 0, paidRefusal: 0, buildsRefusal: 0, buildsDelay: 0, summaryDelay: 500, lapsed: false };
+  const state = { next: null, publicReads: 0, paidReads: 0, paidRefusal: 0, buildsRefusal: 0, buildsDelay: 0, summaryDelay: 500, lapsed: false, report: PAID, builds: { builds: [], buildCoverage: PAID.buildCoverage } };
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://stack');
     const cookie = request.headers.cookie ?? '';
@@ -86,14 +87,20 @@ async function startStack() {
       if (!reader || plan !== 'standard') return json(401, { error: 'subscription required' });
       if (url.pathname.endsWith('/builds')) {
         const refusal = state.buildsRefusal;
-        if (!refusal) return json(200, { builds: [], buildCoverage: PAID.buildCoverage });
+        if (!refusal) return json(200, state.builds);
         return void setTimeout(() => { state.lapsed = true; json(refusal, { error: 'subscription required' }); }, state.buildsDelay);
       }
       state.paidReads += 1;
       if (state.paidRefusal) return json(state.paidRefusal, { error: 'subscription required' });
-      return void setTimeout(() => json(200, PAID), state.summaryDelay);
+      return void setTimeout(() => json(200, state.report), state.summaryDelay);
     }
     if (url.pathname.startsWith('/api/')) return json(401, { error: 'guest' });
+    // Tier marks are release files (nginx serves them in production): a missing one would draw its alt text.
+    const mark = /^\/tier-marks\/([a-z]-\d+\.webp)$/.exec(url.pathname);
+    if (mark) {
+      return void readFile(new URL(`../public/tier-marks/${mark[1]}`, import.meta.url)).then(
+        body => response.writeHead(200, { 'Content-Type': 'image/webp' }).end(body), () => response.writeHead(404).end());
+    }
     const upstream = http.request(new URL(state.next), { method: request.method, path: request.url, headers: request.headers },
       answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
     request.pipe(upstream);
@@ -317,6 +324,104 @@ test('a guest, a robot, an Arena-only viewer and a subscriber on /standard/vicio
     assert.equal(await revoked.evaluate(() => window.__paidFrames), 0, 'no paid value after access is withdrawn');
     assert.doesNotMatch(await revoked.evaluate(() => document.body.textContent), PAID_TEXT);
     await revoked.close();
+  } finally {
+    if (browser) await browser.close();
+    await next.close();
+    await closeLocal(stack.server);
+  }
+});
+
+// A typical vS report (#660 QA): 16 decks in the bracket in three tiers (S, A, B) and a build for every deck. The open
+// frame reserves exactly this: 16 rows in three tier groups, the KPI tiles and banner of a report with data.
+const TYPICAL_CLASSES = [['Warrior', 'Воин', 'warrior'], ['Mage', 'Маг', 'mage'], ['Priest', 'Жрец', 'priest'], ['Rogue', 'Разбойник', 'rogue']];
+const TYPICAL_WINRATES = [56.1, 55.2, 54.6, 54.1, 53.7, 53.2, 52.8, 52.4, 51.9, 51.5, 51.1, 50.7, 50.3, 49.9, 49.5, 49.1];
+const typicalDeck = index => {
+  const [className, classLabel, classIcon] = TYPICAL_CLASSES[index % TYPICAL_CLASSES.length];
+  return { deck: `Typical Deck ${index + 1}`, deckLabel: `Типичная колода ${index + 1}`, class: className, classLabel, classIcon, archetypeSlug: null, build: null };
+};
+const TYPICAL_DECKS = TYPICAL_WINRATES.map((_, index) => typicalDeck(index));
+const TYPICAL = {
+  ...PAID,
+  classDistribution: TYPICAL_CLASSES.map(([className, classLabel, classIcon], index) => ({ class: className, classLabel, classIcon, frequency: 30 - index * 5 })),
+  deckDistribution: TYPICAL_DECKS.map((item, index) => ({ ...item, frequency: 12 - index * 0.5 })),
+  tierList: [
+    { rankBracket: 'All ranks', rankLabel: 'Все ранги', decks: TYPICAL_DECKS.map((item, index) => ({ ...item, rank: index + 1, winrate: TYPICAL_WINRATES[index] })) },
+    { rankBracket: 'Legend', rankLabel: 'Легенда', decks: [] },
+  ],
+};
+const TYPICAL_BUILDS = {
+  builds: TYPICAL_DECKS.map(item => ({ deck: item.deck, build: { deckCode: 'AAECAQcAAA==', source: 'vicious_syndicate_decks', sourceLabel: 'Vicious Syndicate',
+    sourceUrl: 'https://www.vicioussyndicate.com/', matchedArchetype: item.deck, matchMethod: 'exact', updatedAt: null, winrate: 52, sampleGames: 900, deckCards: [] } })),
+  buildCoverage: { found: 16, total: 16 },
+};
+
+const box = (page, selector) => page.$eval(selector, node => Math.round(node.getBoundingClientRect().height * 10) / 10);
+const geometry = async page => ({
+  banner: await box(page, '.vsgold .traditional-mode-banner'),
+  plate: await box(page, '.vsgold-report'),
+  kpis: await box(page, '.vsgold-report__kpis'),
+  power: await box(page, '.vsgold-power'),
+  controls: await box(page, '.vsgold-power__controls'),
+  firstRow: await box(page, '.vsgold-power-row'),
+  tierHead: await box(page, '.vsgold-tier__head'),
+});
+
+test('the open frame keeps the report\'s geometry: no shift when the paid report replaces it', { timeout: 300_000 }, async () => {
+  const stack = await startStack();
+  Object.assign(stack, { report: TYPICAL, builds: TYPICAL_BUILDS, summaryDelay: 1_500 });
+  const next = await startNextServer({ legacyOrigin: stack.origin });
+  stack.next = next.origin;
+  let browser;
+  try {
+    assert.equal((await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).status, 200);
+    for (let attempt = 0; attempt < 40 && !(await html(stack.origin, BROWSER_UA)).includes('vsgold-deck-row'); attempt += 1) await delay(250);
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+      headless: true, args: ['--no-sandbox'] });
+    const failures = [];
+    for (const viewport of [{ width: 1440, height: 1400 }, { width: 1440, height: 900 }, PHONE]) {
+      const size = `${viewport.width}x${viewport.height}`;
+      // The guest's page, settled.
+      const guestContext = await browser.createBrowserContext();
+      const guest = await guestContext.newPage();
+      await guest.setViewport(viewport);
+      await guest.goto(`${stack.origin}/standard/vicious-gold/`, { waitUntil: 'networkidle0' });
+      await guest.waitForSelector('.vsgold[data-access-settled] .vsgold-power-row--locked');
+      // Measured once the page's stylesheets apply (the rows are a grid) and its fonts are in.
+      await guest.waitForFunction(() => getComputedStyle(document.querySelector('.vsgold-power-row')).display === 'grid');
+      await guest.evaluate(() => document.fonts.ready.then(() => undefined));
+      const guestBoxes = await geometry(guest);
+      await guestContext.close();
+
+      // A remembered subscriber: the first visit stores the viewer, the second is measured from its first frame while
+      // the paid report answers in 1.5 s and replaces the frame.
+      const context = await browser.createBrowserContext();
+      const reader = await context.newPage();
+      await reader.setViewport(viewport);
+      await reader.setCookie({ name: 'vg_session', value: 'reader', url: stack.origin },
+        { name: 'hp_viewer', value: 'AAAAAAAAAAAAAAAAAAAAAA', url: stack.origin });
+      await reader.goto(`${stack.origin}/standard/vicious-gold/`, { waitUntil: 'load' });
+      await reader.waitForFunction(() => localStorage.getItem('hs_arena_viewer_hint') !== null && document.querySelector('.vsgold-build__icon'), { timeout: 20_000 });
+      await reader.evaluateOnNewDocument(() => {
+        window.__cls = 0;
+        new PerformanceObserver(list => {
+          for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.__cls += entry.value;
+        }).observe({ type: 'layout-shift', buffered: true });
+      });
+      await reader.reload({ waitUntil: 'load' });
+      await reader.waitForFunction(() => document.querySelectorAll('.vsgold-build__icon').length === 16, { timeout: 20_000 });
+      await reader.evaluate(() => new Promise(resolve => setTimeout(resolve, 1_000)));
+      const cls = await reader.evaluate(() => window.__cls);
+      const readerBoxes = await geometry(reader);
+      await context.close();
+
+      if (!(cls < 0.01)) failures.push(`${size}: CLS ${cls.toFixed(4)} when the paid report replaced the frame`);
+      if (viewport.height !== 900) {
+        for (const part of Object.keys(guestBoxes)) {
+          if (Math.abs(guestBoxes[part] - readerBoxes[part]) > 2) failures.push(`${size} ${part}: guest ${guestBoxes[part]}, subscriber ${readerBoxes[part]}`);
+        }
+      }
+    }
+    assert.deepEqual(failures, [], 'the guest frame has the subscriber report\'s geometry and the swap does not shift the page');
   } finally {
     if (browser) await browser.close();
     await next.close();
