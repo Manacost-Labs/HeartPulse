@@ -444,10 +444,10 @@ assert.equal(assembleBasesForClass(bases, null).length, 3);
     // A failed renewal keeps the cache; the next expired request tries again.
     upstreamFails = true;
     clock = 10_000;
-    assert.equal(await cardsOf(), 2);
+    assert.deepEqual(await Promise.all([cardsOf(), cardsOf(), cardsOf()]), [2, 2, 2]);
     (release as (() => void) | null)?.();
     await settle();
-    assert.equal(errors.length, 1);
+    assert.equal(errors.length, 1, 'one failed read is reported once, not once per waiting reader');
     assert.equal(calls, 3);
     assert.equal(await cardsOf(), 2, 'a failed renewal does not spoil the cache');
     (release as (() => void) | null)?.();

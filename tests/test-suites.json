@@ -35,6 +35,9 @@
     "tests/next-tierlist-public.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
+    "tests/next-assemble-swr-ssr.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
     "tests/next-bg-library-listings-browser.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
@@ -598,6 +601,7 @@
         "tests/bg-library-controls-browser.test.mjs",
         "tests/next-bg-builders-browser.test.mjs",
         "tests/next-assemble-tool-browser.test.mjs",
+        "tests/next-assemble-swr-ssr.test.mjs",
         "tests/next-patch-notes-browser.test.mjs",
         "tests/next-radar-browser.test.mjs",
         "tests/next-leaderboards-browser.test.mjs",

@@ -38,6 +38,8 @@ export function createCardAssembleRouter(dependencies: CardAssembleRouterDepende
       return entry;
     }).finally(() => inflight.delete(key));
     inflight.set(key, started);
+    // Reported here, once for the read that was started, however many readers wait for it.
+    started.catch(error => dependencies.onError?.(error));
     return started;
   }
   /**
@@ -49,12 +51,11 @@ export function createCardAssembleRouter(dependencies: CardAssembleRouterDepende
     let entry: CacheEntry;
     if (cached) {
       entry = cached;
-      if (now() - cached.at >= cacheMs) refresh(key, load).catch(error => dependencies.onError?.(error));
+      if (now() - cached.at >= cacheMs) refresh(key, load).catch(() => undefined);
     } else {
       try {
         entry = await refresh(key, load);
-      } catch (error) {
-        dependencies.onError?.(error);
+      } catch {
         response.set('Cache-Control', 'no-store');
         response.set('Retry-After', '30');
         return response.status(503).json({ error: 'Assemble statistics temporarily unavailable' });
