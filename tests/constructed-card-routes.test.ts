@@ -445,7 +445,15 @@ try {
   const publicDetailPayload = await publicDetail.json() as any;
   assert.equal(publicDetailPayload.period.id, '1d');
   assert.equal(publicDetailPayload.statsAccess, false);
-  assert.equal(publicDetailPayload.card.stats, null);
+  // The open slice (#447): the three base numbers of the default slice, nothing else (no mulligan, no draws).
+  assert.deepEqual(publicDetailPayload.card.stats, { deckPopularity: 12.5, deckWinrate: 54.3, averageCopies: null });
+  for (const paid of ['57.2', '55.1', '43.2', '52.4']) {
+    assert.equal(JSON.stringify(publicDetailPayload).includes(paid), false, `no paid number ${paid} for a guest`);
+  }
+  for (const query of ['rank=platinum', 'period=7d', 'period=patch']) {
+    const narrow = await (await fetch(`${publicOrigin}/CARD_1?format=standard&${query}`)).json() as any;
+    assert.equal(narrow.card.stats, null, `${query}: a narrow slice stays paid`);
+  }
   assert.equal(publicDetailPayload.card.decks[0].winrate, null);
   assert.equal(publicDetailPayload.card.decks[0].score, null);
 

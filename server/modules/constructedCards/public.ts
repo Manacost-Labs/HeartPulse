@@ -6,6 +6,7 @@ export {
 } from './catalogStatistics.js';
 export { createConstructedCardCatalogReaders, constructedCatalogReaderForAccess } from './catalogReaders.js';
 export { BoundedCache } from './boundedCache.js';
+export { guestConstructedCard, isOpenStatisticsSlice, OPEN_CARD_STATISTICS } from './openStatistics.js';
 export type {
   ConstructedCardStatisticsSource,
   ConstructedCardWithStatistics,
