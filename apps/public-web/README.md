@@ -334,6 +334,19 @@ is a separate administrator workspace and retains its permission gate.
   `dateModified` from its `updatedAt`, and a page without a public date has
   none. Entity pages (card, hero, library card, cosmetic) build their own.
 
+## Mode hubs
+
+`/standard/`, `/arena/`, `/battlegrounds/` and `/wild/` are prerendered
+server pages (`revalidate = 300`) built by `ui/ModeHubPage.tsx` inside the
+shared `ui/SharedPageShell.tsx`, so they add no client code of their own.
+The text and the links of each hub live in `lib/modeHubs.ts`; a link goes
+only to an indexable page of the route inventory, at its canonical address.
+The «Сейчас в режиме» block (`ui/ModeHubNow.tsx`) prints a few rows of the
+open layer the source page already gives a guest, with its date; without
+data it is not rendered. Nginx routes each hub by an exact location
+(`= /standard/`), so the pages below a hub keep their own rules. Query
+ownership: `docs/specs/seo-query-clusters.md`, «Mode hubs».
+
 ## Add a public page
 
 1. Register the URL policy in `src/shared/seo/publicRouteInventory.json` and

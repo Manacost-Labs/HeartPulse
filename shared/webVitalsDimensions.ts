@@ -18,7 +18,9 @@ export const WEB_VITAL_ROUTE_TEMPLATES = [
   '/archetypes/',
   '/archetypes/[archetypeId]/',
   '/archetypes/wild/',
+  '/arena/',
   '/articles/',
+  '/battlegrounds/',
   '/battlegrounds/strategies/',
   '/battlegrounds/tier-builder/',
   '/battlegrounds/tier-list/',
@@ -49,6 +51,7 @@ export const WEB_VITAL_ROUTE_TEMPLATES = [
   '/library/archive/[kind]/[slugAndDbfId]/',
   '/privacy/',
   '/replay/[id]/',
+  '/standard/',
   '/standard/archetypes/',
   '/standard/assemble/',
   '/standard/archetypes/[format]/[archetypeSlug]/',
@@ -67,6 +70,7 @@ export const WEB_VITAL_ROUTE_TEMPLATES = [
   '/terms/',
   '/u/[nickname]/',
   '/tierlist/',
+  '/wild/',
 ] as const;
 
 export type WebVitalRoute = typeof WEB_VITAL_ROUTE_TEMPLATES[number] | 'other';
