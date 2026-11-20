@@ -467,28 +467,18 @@ function StandardMetaContent({
   onPaidOffer,
   initialTeaser,
   format,
-<<<<<<< HEAD
 }: Required<Omit<StandardMetaPageProps, 'embedded' | 'accessPending'>>) {
   const [rank, setRank] = useState<MetaRank>(TEASER_SEED_FILTERS.rank);
   const [period, setPeriod] = useState<MetaPeriod | null>(initialTeaser?.period ?? null);
   const [coin, setCoin] = useState<MetaCoin>(TEASER_SEED_FILTERS.coin);
   const [minGames, setMinGames] = useState<MetaMinGames>(TEASER_SEED_FILTERS.minGames);
-=======
-}: Required<Omit<StandardMetaPageProps, 'embedded'>>) {
-  // A subscriber arrives from the other format with the filters in the address; a guest's filters are the page's own.
-  const [carried] = useState(() => (hasFullAccess && typeof window !== 'undefined' ? carriedMetaFilters(window.location.search) : {}));
-  const [rank, setRank] = useState<MetaRank>(carried.rank ?? TEASER_SEED_FILTERS.rank);
-  const [period, setPeriod] = useState<MetaPeriod | null>(carried.period ?? initialTeaser?.period ?? null);
-  const [coin, setCoin] = useState<MetaCoin>(carried.coin ?? TEASER_SEED_FILTERS.coin);
-  const [minGames, setMinGames] = useState<MetaMinGames>(carried.minGames ?? TEASER_SEED_FILTERS.minGames);
->>>>>>> origin/agent/477-standard-meta-wild
   const [query, setQuery] = useState('');
   // A subscriber arrives from the other format with the filters in the address. The page is not remounted when access
   // arrives, so they are taken then, in the render that grants it (before any paid request); a guest's filters are the page's own.
   const [carriedTaken, setCarriedTaken] = useState(false);
   if (hasFullAccess && !carriedTaken && typeof window !== 'undefined') {
     setCarriedTaken(true);
-    const carried = readMetaFilterQuery(window.location.search);
+    const carried = carriedMetaFilters(window.location.search);
     if (carried.rank) setRank(carried.rank);
     if (carried.period) setPeriod(carried.period);
     if (carried.coin) setCoin(carried.coin);

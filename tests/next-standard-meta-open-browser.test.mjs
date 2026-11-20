@@ -32,11 +32,7 @@ const slice = (format, paid) => ({
 });
 
 async function startStack() {
-<<<<<<< HEAD
-  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [], protectedDown: false };
-=======
-  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [], protectedQueries: [] };
->>>>>>> origin/agent/477-standard-meta-wild
+  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [], protectedQueries: [], protectedDown: false };
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://stack');
     const reader = /(?:^|;\s*)sm_session=reader/.test(request.headers.cookie ?? '');
@@ -53,18 +49,14 @@ async function startStack() {
     if (url.pathname === '/api/standard-meta') {
       if (!reader) return json(401, { error: 'subscription required' });
       state.protectedReads += 1;
-<<<<<<< HEAD
-      if (state.protectedDown) return json(503, { error: 'paid source down' });
-      return void setTimeout(() => json(200, slice(url.searchParams.get('format') === 'wild' ? 'wild' : 'standard', true)), PROTECTED_DELAY_MS);
-=======
       state.protectedQueries.push(Object.fromEntries(url.searchParams));
+      if (state.protectedDown) return json(503, { error: 'paid source down' });
       // The answer carries the filters it was asked for, as the real route does.
       const asked = {
         rank: url.searchParams.get('rank') ?? 'diamond_legend', coin: url.searchParams.get('coin') ?? 'any_player',
         minGames: Number(url.searchParams.get('min_games') ?? 100), period: url.searchParams.get('period') ?? 'patch_36.6.3',
       };
       return void setTimeout(() => json(200, { ...slice(url.searchParams.get('format') === 'wild' ? 'wild' : 'standard', true), ...asked }), PROTECTED_DELAY_MS);
->>>>>>> origin/agent/477-standard-meta-wild
     }
     if (url.pathname.startsWith('/api/')) return json(401, { error: 'guest' });
     const upstream = http.request(new URL(state.next), { method: request.method, path: request.url, headers: request.headers },
@@ -243,7 +235,6 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     assert.ok(shift < 0.01, `the subscriber page shifted by ${shift.toFixed(4)}`);
     await reader.close();
 
-<<<<<<< HEAD
     // The paid source fails: the open slice stays, a visible message offers a retry, and the retry brings the paid data.
     stack.protectedDown = true;
     const failing = await browser.newPage();
@@ -259,11 +250,8 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     assert.ok(!(await failing.evaluate(() => document.body.textContent)).includes('Подписочные данные не загрузились'), 'the message goes with the retry');
     await failing.close();
 
-    // A subscriber's filters go with the format switch, in the address of the link.
-=======
     // A subscriber's filters go with the format switch, both ways: the address of the new page carries them, the paid
     // request of the new format is sent with them and its answer is what is shown.
->>>>>>> origin/agent/477-standard-meta-wild
     const filtered = await browser.newPage();
     await filtered.setViewport(DESKTOP);
     await filtered.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
