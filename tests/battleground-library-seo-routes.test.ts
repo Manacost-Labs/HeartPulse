@@ -25,6 +25,8 @@ const minion = {
     { slug: 'MAGNETIC', name_ru: 'Магнетизм' },
     { slug: 'MAGNETIC', name_ru: 'Магнетизм' },
     { slug: 'END_OF_TURN_TRIGGER', name_ru: 'В конце хода' },
+    'BACON_BLOOD_GEM_TOOLTIP',
+    'BACON_UNKNOWN_TOOLTIP',
   ],
   text: {
     ru: 'Магнетизм. <b>В конце хода</b> получает +1 к здоровью.',
@@ -233,6 +235,8 @@ try {
   assert.match(html, /href="\/heroes\/">Герои Полей сражений<\/a>/);
   assert.match(html, /Магнетизм/);
   assert.equal(occurrences(html, />Магнетизм</g), 1, 'duplicate mechanics must collapse');
+  assert.equal(occurrences(html, />Кровавые самоцветы</g), 1, 'a known game token is translated');
+  assert.equal(html.includes('BACON_'), false, 'no raw game token reaches the page');
   assert.match(html, /Магнетизм\. В конце хода получает \+1 к здоровью\./);
   assert.match(html, /Magnetic\. At the end of your turn, gain \+1 Health\./);
   assert.match(html, /Крис Ран &lt;img src=x onerror=alert\(1\)&gt;/);
