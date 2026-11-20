@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -253,5 +253,28 @@ test('a stale or small Standard section means no snapshot; stale Arena and faile
     assert.deepEqual(battlegrounds, { status: 'missing', source: null, updatedAt: null, fetchedAt: '2026-11-23T06:30:00.000Z', data: null });
   } finally {
     partial.cleanup();
+  }
+});
+
+test('an unwritable state directory fails the run and reports it, without throwing at startup', async t => {
+  t.mock.timers.enable({ apis: ['Date'], now: MONDAY_0630 });
+  const directory = mkdtempSync(join(tmpdir(), 'meta-report-snapshots-'));
+  const notADirectory = join(directory, 'file');
+  writeFileSync(notADirectory, 'x');
+  const errors: unknown[] = [];
+  const snapshots = startMetaReportSnapshots({
+    stateDirectory: notADirectory, hourly: false, now: () => Date.now(),
+    loadMeta: async () => { throw new Error('not read'); },
+    matchups: { origin: 'https://api.test', fetchJson: async () => ({}), formatLabel: () => 'Стандарт', translate: name => name },
+    getTranslations: async () => ({}), loadArenaWinrates: async () => ({}), loadHeroCatalog: async () => ({}) as never,
+    fetchJson: async () => ({}), patchesUrl: 'https://api.test/api/patches?limit=20',
+    onError: error => { errors.push(error); },
+  });
+  try {
+    assert.equal(await snapshots.run(), 'failed');
+    assert.equal(errors.length, 1);
+  } finally {
+    snapshots.close();
+    rmSync(directory, { recursive: true, force: true });
   }
 });

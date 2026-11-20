@@ -41,17 +41,20 @@ export function createMetaReportSnapshots(options: {
   onError?: (error: unknown) => void;
 }): MetaReportSnapshots {
   const now = options.now ?? Date.now;
-  const store = new MetaReportSnapshotStore({ stateDirectory: options.stateDirectory });
+  // Opened on first use, not at startup: an unwritable state directory makes a run fail and be
+  // reported, never the server's boot.
+  let opened: MetaReportSnapshotStore | null = null;
+  const store = () => (opened ??= new MetaReportSnapshotStore({ stateDirectory: options.stateDirectory }));
   let running: Promise<MetaReportRunResult> | null = null;
 
   const take = async (): Promise<MetaReportRunResult> => {
     const date = dueDate(now());
     if (!date) return 'not-due';
-    if (store.has(date)) return 'exists';
+    if (store().has(date)) return 'exists';
     const sections = await readMetaReportSections(options.sources, now());
     if (!hasReportableStandard(sections)) return 'standard-unavailable';
     const snapshot: MetaReportSnapshot = { schemaVersion: 1, date, recordedAt: new Date(now()).toISOString(), sections };
-    return store.insert(snapshot) ? 'recorded' : 'exists';
+    return store().insert(snapshot) ? 'recorded' : 'exists';
   };
 
   const run = (): Promise<MetaReportRunResult> => {
@@ -72,5 +75,5 @@ export function createMetaReportSnapshots(options: {
     setTimeout(tick, 3 * 60_000).unref();
     setInterval(tick, HOUR_MS).unref();
   }
-  return { run, list: () => store.list(), get: date => store.get(date), close: () => store.close() };
+  return { run, list: () => store().list(), get: date => store().get(date), close: () => opened?.close() };
 }
