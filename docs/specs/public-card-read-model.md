@@ -37,8 +37,27 @@ existing same-origin APIs. Query filters are seeded from the initial request so
 server and browser markup agree. SSR errors are retryable; a provider failure
 must never be misreported as a missing card.
 
+## Open detail in the server HTML
+
+The card page also reads the anonymous card API
+(`GET /api/constructed-cards/:cardId` with the default statistics context:
+`format`, `statsFormat` = the page format, `period=1d`, `rank=legend`) through
+`fetchPublicExpress` (no cookies, no Authorization) and adds its open part to
+the seed (`apps/public-web/lib/publicCardDetail.ts`): formats, mechanics and
+their translations, minion type, spell school, the wiki record (patch history,
+related cards, generated pools, gallery, sounds, links), localized related
+cards and the decks with the card. A deck keeps only its identity, archetype,
+class and deck code (deck codes are open since 2026-11-18); winrate and score
+are null. The answer is dropped when it is another card, does not say
+`statsAccess: false`, or is larger than 192 KB. The page waits 800 ms for it,
+then renders the seed alone; Express still finishes and caches an abandoned
+read for the next visit. So the server HTML shows the same mechanics, patch
+history, related cards and decks a guest sees after the page loads, and never
+says «История изменений не найдена» for a card that has a history.
+
 Checks: `test:public-card-read-model`, `test:constructed-card-seo-routes`,
 `test:constructed-card-urls`, `test:next-public-card-seed`, `test:next-pilot`,
+`tests/next-card-detail-proxy.test.mjs` (open detail, paid sentinels),
 Storybook public identity/profile states and browser QA.
 
 ## Catalog server seed

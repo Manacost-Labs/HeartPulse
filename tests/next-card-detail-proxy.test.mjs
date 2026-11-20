@@ -14,11 +14,15 @@ const publicCard = id => ({
   classCode: 'MAGE', dbf: 12345,
 });
 
-// The only card Express knows is CARD_QA_1; every card read is recorded.
-async function startCardApi() {
+// The only card Express knows is CARD_QA_1; every card read is recorded. `detail` answers the anonymous card API.
+async function startCardApi({ detail = null } = {}) {
   const cardReads = [];
   const server = http.createServer((request, response) => {
     response.setHeader('Content-Type', 'application/json');
+    if (detail && request.url.startsWith('/api/constructed-cards/CARD_QA_1?')) {
+      response.writeHead(200).end(JSON.stringify(detail));
+      return;
+    }
     if (request.url.startsWith('/api/public/constructed-cards/')) {
       cardReads.push(request.url);
       const known = request.url === CARD_PATH;
@@ -48,6 +52,55 @@ test('a card page is rendered from the single Express read of the proxy', async 
     assert.equal(absent.status, 404);
     assert.doesNotMatch(await absent.text(), /Проверочная карта/);
     assert.equal(api.cardReads.length, 2, 'an absent card is read once as well');
+  } finally {
+    if (next) await next.close();
+    await closeLocal(api.server);
+  }
+});
+
+// What the anonymous card API answers a guest, with paid sentinels where a subscriber would see numbers.
+const guestDetail = {
+  statsAccess: false,
+  mechanicTranslations: { LIFESTEAL: 'Похищение жизни' },
+  card: {
+    card_id: 'CARD_QA_1', formats: [{ slug: 'standard', name_ru: 'Стандартный' }], mechanics: ['LIFESTEAL'],
+    stats: { keepPercentage: 71.7171, openingHandWinrate: 59.5959 },
+    wiki: { patch_changes: [{ entries: [{ date: '2026-11-03', patch: 'Patch 37.0.2.256589', items: ['Now costs 4 (Up from 3).'] }] }] },
+    related_cards_localized: [{ heading: { ru: 'Награды за задание' }, cards: [{ card_id: 'CARD_QA_1t', name: { ru: 'Проверочный жетон' }, text: { ru: 'Провокация.' } }] }],
+    decks: [{ id: 'deck-1', title: 'Zoo', archetype: 'Zoo Warlock', archetypeLabel: 'Проверочный Зоолок', className: 'Warlock',
+      deckCode: 'AAECAQcAAA==', winrate: 71.7171, score: 'QA_PRIVATE_SCORE' }],
+  },
+};
+
+test('a card page shows its open detail without script, and nothing paid', async () => {
+  const api = await startCardApi({ detail: guestDetail });
+  let next;
+  try {
+    next = await startNextServer({ legacyOrigin: api.origin });
+    const response = await fetch(`${next.origin}/standard/cards/standard/CARD_QA_1/`);
+    assert.equal(response.status, 200, next.output());
+    const html = await response.text();
+    const text = visibleText(html);
+    for (const shown of ['Похищение жизни', 'Стоимость: 3 → 4', 'Проверочный жетон', 'Проверочный Зоолок']) {
+      assert.ok(text.includes(shown), `the server HTML shows «${shown}»`);
+    }
+    assert.ok(!text.includes('История изменений не найдена') && !text.includes('Механики не указаны'), 'no false «nothing» where there is data');
+    for (const paid of ['71.7171', '59.5959', 'QA_PRIVATE_SCORE']) assert.ok(!html.includes(paid), `no ${paid} in the HTML or its RSC payload`);
+  } finally {
+    if (next) await next.close();
+    await closeLocal(api.server);
+  }
+});
+
+test('a card page without its open detail is still the card, from the seed', async () => {
+  const api = await startCardApi();
+  let next;
+  try {
+    next = await startNextServer({ legacyOrigin: api.origin });
+    const response = await fetch(`${next.origin}/standard/cards/standard/CARD_QA_1/`);
+    assert.equal(response.status, 200, next.output());
+    const text = visibleText(await response.text());
+    assert.ok(text.includes('Проверочная карта') && text.includes('Боевой клич: возьмите карту.'), 'the seed facts and rules text');
   } finally {
     if (next) await next.close();
     await closeLocal(api.server);
