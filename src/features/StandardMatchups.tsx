@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Grid3X3, ListFilter, RefreshCw } from 'lucide-react';
 import '../route-parchment.css';
 import '../shared/ui/LoadingSurface.css';
@@ -9,6 +9,7 @@ import type {
   StandardMatchupsData, StandardMatchupsFormat, StandardMatchupsSlice,
 } from '../modules/standardMatchups/public';
 import { StandardMatchupsFilters } from './StandardMatchupsFilters';
+import { StandardMatchupsFilterLocks } from './StandardMatchupsFilterLocks';
 import { StandardMatchupsLeaders } from './StandardMatchupsLeaders';
 import { ViewSwitch } from '../components/transitions/ViewSwitch';
 import { MODE_ORDER } from '../components/transitions/transitionOrder';
@@ -117,8 +118,8 @@ export type StandardMatchupsExternal = {
   loading: boolean;
   error: boolean;
   retry: () => void;
-  /** The open layer's stand-in for the HSGuru filters (locks for a guest, a loading state while access is checked). */
-  filterLocks?: ReactNode;
+  /** The open layer's stand-in for the HSGuru filters: locks for a guest, a neutral state while access is checked. */
+  locks?: 'locked' | 'pending';
 };
 
 function StandardMatchupsPage({ external }: { external?: StandardMatchupsExternal }) {
@@ -300,7 +301,9 @@ function StandardMatchupsPage({ external }: { external?: StandardMatchupsExterna
           <StandardMatchupsFilters slice={external.slice} period={data.period ?? null}
             available={data.available} onChange={external.changeSlice} />
         )}
-        {external && !(external.slice && external.changeSlice) ? external.filterLocks : null}
+        {external?.locks && !(external.slice && external.changeSlice)
+          ? <StandardMatchupsFilterLocks pending={external.locks === 'pending'} rankLabel={data.rankLabel}
+            period={data.period ?? null} minGames={data.minGames ?? 0} /> : null}
       </div>
 
       <div className="grid grid-cols-1 gap-5">

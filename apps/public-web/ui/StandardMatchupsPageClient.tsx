@@ -10,7 +10,6 @@ import {
 } from '@/src/modules/standardMatchups/public';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { PaidOfferProvider } from './PaidOffer';
-import { StandardMatchupsFilterLocks } from './StandardMatchupsFilterLocks';
 import { navigate } from './navigation';
 
 const OFFER_TITLE = 'Ранги, периоды и порог игр — в подписке';
@@ -56,8 +55,7 @@ export function StandardMatchupsPageClient({ initial }: { initial: PublicStandar
     // A subscriber whose own data failed keeps the open slice on screen with the message and its retry.
     error: allowed ? matchups.error && !paidUsable : open.failed,
     retry: allowed ? () => { matchups.retry(); open.retry(); } : open.retry,
-    filterLocks: <StandardMatchupsFilterLocks pending={Boolean(access.user) && (pending || access.checking)}
-      rankLabel={data?.rankLabel ?? ''} period={data?.period ?? null} minGames={data?.minGames ?? 0} />,
+    locks: access.user && (pending || access.checking) ? 'pending' as const : 'locked' as const,
   };
   return <PublicPageShell activeTab="standard-matchups" pathname="/standard/matchups/" parchmentPreload="tablet-up"
     access={access} navigate={navigate} updatedAtLabel={updatedAtLabel} wide>
