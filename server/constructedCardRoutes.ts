@@ -135,6 +135,8 @@ type DataServiceDependencies = {
   loadDeadlineMs?: number; // then the shared load leaves deduplication and the next caller retries (15 s)
   onDeadline?: (operation: string, deadlineMs: number) => void;
   negativeDetailCacheMaxEntries?: number;
+  /** Enriched details kept at once (least recently used go first); one is ~200 KB. */
+  detailCacheMaxEntries?: number;
   catalogPageConcurrency?: number;
   cacheTtlMs?: number;
   detailCacheTtlMs?: number;
@@ -515,7 +517,19 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
   const catalogJobs = new Map<ConstructedCardFormat, Promise<CatalogLoad>>();
   const cache = new Map<string, { value: ConstructedCardCollection; expiresAt: number }>();
   const jobs = new Map<string, Promise<ConstructedCardCollection>>();
+  // Bounded: server-rendered card pages read every card's detail, so one crawl of the
+  // catalog would otherwise keep all of them (~200 KB each, 1.4 GB seen 2026-11-20).
   const detailCache = new Map<string, { value: JsonRecord; expiresAt: number }>();
+  const detailCacheMaxEntries = Math.max(1, Math.min(20_000, Math.floor(dependencies.detailCacheMaxEntries ?? 2_000)));
+  const rememberDetail = (key: string, entry: { value: JsonRecord; expiresAt: number }) => {
+    detailCache.delete(key);
+    detailCache.set(key, entry);
+    while (detailCache.size > detailCacheMaxEntries) {
+      const oldest = detailCache.keys().next().value as string | undefined;
+      if (oldest === undefined) break;
+      detailCache.delete(oldest);
+    }
+  };
   const negativeDetailCache = new Map<string, number>();
   const negativeDetailCacheMaxEntries = Math.max(1, Math.min(
     10_000,
@@ -848,6 +862,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
       );
       const cached = detailCache.get(key);
       if (cached && cached.expiresAt > now()) {
+        rememberDetail(key, cached);
         return composeDetailResult(
           cached.value,
           catalogCollection,
@@ -874,7 +889,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
           });
         }
         if (generation === jobGeneration) {
-          detailCache.set(key, { value: enriched.value, expiresAt: now() + detailCacheTtlMs });
+          rememberDetail(key, { value: enriched.value, expiresAt: now() + detailCacheTtlMs });
         }
         return composeDetailResult(
           enriched.value,

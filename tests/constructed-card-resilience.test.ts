@@ -45,6 +45,7 @@ type HarnessOptions = {
   cacheTtlMs?: number;
   detailCacheTtlMs?: number;
   negativeDetailCacheMaxEntries?: number;
+  detailCacheMaxEntries?: number;
   catalogPageConcurrency?: number;
   catalogStore?: ConstructedCardCatalogStore;
 };
@@ -57,6 +58,7 @@ function serviceHarness(options: HarnessOptions) {
     cacheTtlMs: options.cacheTtlMs ?? 1_000,
     detailCacheTtlMs: options.detailCacheTtlMs ?? options.cacheTtlMs ?? 1_000,
     negativeDetailCacheMaxEntries: options.negativeDetailCacheMaxEntries,
+    detailCacheMaxEntries: options.detailCacheMaxEntries,
     catalogPageConcurrency: options.catalogPageConcurrency,
     catalogStore: options.catalogStore,
     maxCatalogStaleMs: 48 * 60 * 60_000,
@@ -389,6 +391,25 @@ try {
       'detail enrichment must not be re-fetched when only the statistics cache expires');
   } finally {
     rmSync(detailTtlDirectory, { recursive: true, force: true });
+  }
+
+  const boundedDetailDirectory = mkdtempSync(join(tmpdir(), 'arena-constructed-card-detail-cache-'));
+  try {
+    const boundedDetail = serviceHarness({
+      directory: boundedDetailDirectory,
+      now: () => now,
+      detailCacheTtlMs: 60_000,
+      detailCacheMaxEntries: 1,
+      detail: cardId => ({ data: { ...baseCards.find(card => card.card_id === cardId), wiki: {} } }),
+    });
+    await boundedDetail.service.loadCardDetail('standard', 'CARD_1');
+    await boundedDetail.service.loadCardDetail('standard', 'CARD_1');
+    assert.equal(boundedDetail.calls.detail, 1, 'a cached detail inside the bound is not read again');
+    await boundedDetail.service.loadCardDetail('standard', 'CARD_2');
+    await boundedDetail.service.loadCardDetail('standard', 'CARD_1');
+    assert.equal(boundedDetail.calls.detail, 3, 'a crawl of every card does not keep every detail: the oldest goes');
+  } finally {
+    rmSync(boundedDetailDirectory, { recursive: true, force: true });
   }
 
   const boundedNegativeDirectory = mkdtempSync(join(tmpdir(), 'arena-constructed-card-negative-cache-'));
