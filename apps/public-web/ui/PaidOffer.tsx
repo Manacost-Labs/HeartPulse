@@ -1,6 +1,6 @@
 'use client';
 
-import { lazy, Suspense, useCallback, useMemo, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { LockKeyhole } from 'lucide-react';
 import { OfferContext, usePaidOffer } from '@/src/shared/ui/paidOfferContext';
 import type { SubscriptionEntitlementKey } from '@/src/modules/subscriptions/public';
@@ -13,7 +13,7 @@ export { usePaidOffer };
 /**
  * Owns the subscription offer of a page whose open data carries locks
  * (`PaidLockButton`). The offer's code loads on the first tap. It closes by
- * itself once the viewer turns out to have access (it is shown only while they have none).
+ * itself once the viewer turns out to have access.
  */
 export function PaidOfferProvider({ title, text, entitlement = 'arena', children }: {
   title: string; text: string; entitlement?: SubscriptionEntitlementKey; children: ReactNode;
@@ -22,6 +22,7 @@ export function PaidOfferProvider({ title, text, entitlement = 'arena', children
   const { allowed } = paidAccess(access, entitlement);
   const [shown, setShown] = useState(false);
   const open = useCallback(() => setShown(true), []);
+  useEffect(() => { if (allowed) setShown(false); }, [allowed]);
   const returnTo = shown ? `${window.location.pathname}${window.location.search}` : '/';
   return <OfferContext.Provider value={useMemo(() => open, [open])}>
     {children}
@@ -42,7 +43,7 @@ export function PaidLockButton({ className, label, closed, children }: {
   className: string;
   /** What the lock closes, for a screen reader: «Остальные показатели». */
   label: string;
-  closed: 'paywalled-tierlist' | 'paywalled-classes' | 'paywalled-standard-matchups';
+  closed: 'paywalled-tierlist' | 'paywalled-classes' | 'paywalled-guides';
   children?: ReactNode;
 }) {
   const open = usePaidOffer();

@@ -24,3 +24,13 @@ export function tierlistClassIdFromSlug(slug: string): string | null {
   if (!(TIERLIST_CLASS_SLUGS as readonly string[]).includes(slug)) return null;
   return slug === 'neutral' ? NEUTRAL_ID : slug;
 }
+
+/**
+ * The H1 and breadcrumb of a class page: its own heading (it matches the page's title, not the tier list's), the
+ * neutral cards named as such. `name` is the section's name in the pool («Маг»).
+ */
+export function tierlistClassPageHeading(id: string, name: string): { title: string; name: string; href: string } {
+  return id === NEUTRAL_ID
+    ? { title: 'Нейтральные карты Арены Hearthstone', name: 'Нейтральные', href: tierlistClassPath(id) }
+    : { title: `Тир-лист карт Арены Hearthstone: ${name}`, name, href: tierlistClassPath(id) };
+}
