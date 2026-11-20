@@ -77,7 +77,7 @@ const get = async (next, page, headers = {}) => {
   return { status: response.status, body: await response.text() };
 };
 // An HTML page carries the marker of its data block and a row of the open slice; a router payload (`?_rsc=`) carries the row's text.
-const hasData = (page, { body }, rsc = false) => (rsc ? body.includes(page.text.replace('<', ''))
+const hasData = (page, { body }, rsc = false) => (rsc ? body.includes(page.text.replaceAll('<', ''))
   : body.includes(page.marker) && body.replaceAll('<!-- -->', '').includes(page.text));
 
 /** Moves the server's clock past the five-minute window and requests until `ready(answer)`; every answer on the way must not be a 500. */
