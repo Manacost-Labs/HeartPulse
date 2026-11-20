@@ -76,6 +76,7 @@ export const WEB_VITAL_ROUTE_TEMPLATES = [
   '/terms/',
   '/u/[nickname]/',
   '/tierlist/',
+  '/tierlist/[class]/',
   '/wild/',
 ] as const;
 

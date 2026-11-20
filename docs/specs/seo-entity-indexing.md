@@ -436,6 +436,38 @@ SEO cost is 250–400 words fewer on three indexed pages.
   explanation block, no FAQ markup, paywall present, dataset claims) and
   `tests/seo-structured-data.test.ts` (dataset).
 
+### Tier-list class pages (#617)
+
+`/tierlist/<class>/` (11 class slugs and `neutral` for the neutral cards,
+`apps/public-web/lib/tierlistClassPages.ts`) shows the subscriber's tier
+list on the open pool with every card of one class in the server HTML.
+`/tierlist/` stays the hub of the pool: its class choice is a list of
+`<a href>` links to these pages, and «Все карты» links back.
+
+- Route: `apps/public-web/app/tierlist/[class]/page.tsx`, ISR like
+  `/tierlist/` (`revalidate = 300`, the same cached loader), but with no build
+  copy (`generateStaticParams` returns none): the build has no Express, so
+  each page renders on its first request with the data. An unknown slug is a
+  404 in Nginx (only the 12 slugs reach Next, the slash-less form gets one
+  301) and in Next (`notFound()`).
+- Indexing: inventory route `tierlist-class` is `noindex-follow`,
+  `canonicalPolicy: "none"`, `sitemap: false`; the page takes robots and
+  canonical from the inventory, so SEO-A switches them on in one place
+  (index, canonical self, registry and `static.xml` entries) after deploy.
+  `SeoStructuredData` prints no JSON-LD until the page has registry nodes.
+- Title and description are built in `generateMetadata`
+  (`apps/public-web/lib/tierlistClassSeo.ts`), not in the registry:
+  «Тир-лист Арены Hearthstone: <класс>, {month}» and «Нейтральные карты Арены
+  Hearthstone: тир-лист, {month}», no brand; the description has the date and
+  the sample the page prints («более 53 000 игр»), no count of cards (the page
+  prints none). The month drops for data older than a week or when the title
+  would pass 60 characters; without data of the class there is no date.
+- Size: on the production pool of 2026-11-20 the largest class page
+  (Рыцарь смерти, 102 cards) is 189 KB of HTML and `/tierlist/neutral/`
+  (279 cards) is 333 KB, over the 300 KB budget of a page.
+- Tests: `tests/next-tierlist-class-pages.test.mjs`,
+  `tests/tierlist-class-pages.test.ts`, `tests/nginx-html-routing.test.mjs`.
+
 ## Порог индексации (E21 S5)
 
 Одно правило на сайте: страница либо `index` + в карте сайта + canonical на

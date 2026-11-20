@@ -20,7 +20,7 @@ test('anonymous public route families may be restored from the back/forward cach
   // The edge (deploy/nginx/hearthpulse-shadow-app.conf) matches this exact value.
   assert.deepEqual(PUBLIC_DOCUMENT_RESPONSE_HEADERS, { 'Cache-Control': 'private, no-cache',
     'X-HearthPulse-Edge-Cache': 'anonymous' });
-  for (const path of ['/tierlist/', '/classes/', '/legendaries/', '/articles/', '/contests/', '/leaderboards/', '/gallery/',
+  for (const path of ['/tierlist/', '/tierlist/mage/', '/tierlist/neutral/', '/classes/', '/legendaries/', '/articles/', '/contests/', '/leaderboards/', '/gallery/',
     '/reports/meta/', '/reports/meta/2026-11-23/',
     '/standard/', '/arena/', '/battlegrounds/', '/wild/',
     '/standard/meta/', '/standard/meta/standard/aggro-paladin/', '/standard/matchups/', '/standard/archetypes/',
@@ -38,7 +38,7 @@ test('cookie-dependent, account, API and prerendered documents keep their own ca
   for (const path of ['/', '/admin/', '/deck-builder/', '/archetypes/', '/archetypes/wild/', '/archetypes/12/',
     '/connect/', '/id/abc/', '/profiles/abc/', '/identity/telegram/', '/api/auth/me', '/api/bg/tier-lists/',
     '/_next/static/chunks/main.js', '/faq/', '/privacy/', '/terms/', '/developers/api/', '/health/next/',
-    '/tierlist', '/reports/', '/reports/meta', '/standard', '/arena/other/', '/battlegrounds/other/', '/standard/other/', '/wild/other/', '/no-such-page/']) {
+    '/tierlist', '/tierlist/mage', '/tierlist/mage/extra/', '/reports/', '/reports/meta', '/standard', '/arena/other/', '/battlegrounds/other/', '/standard/other/', '/wild/other/', '/no-such-page/']) {
     assert.equal(cached(path), false, `${path} must keep the header Next or Nginx chooses`);
   }
 });

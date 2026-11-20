@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { compactTierlistClass, openTierlistView } from '../apps/public-web/lib/openTierlistView.js';
 import { TIERLIST_CLASS_SLUGS, tierlistClassIdFromSlug, tierlistClassPageHeading, tierlistClassPath } from '../apps/public-web/lib/tierlistClassPages.js';
+import { tierlistClassSeoText } from '../apps/public-web/lib/tierlistClassSeo.js';
 import type { PublicTierlist } from '../apps/public-web/lib/publicTierlistData.js';
 
 // The class pages of the Arena tier list (#617): every class of the open pool and the neutral cards have a page,
@@ -37,3 +38,35 @@ assert.deepEqual(neutral.sections.map(section => section.totalCards), [0, 0, 1])
 // A class page has its own H1 and breadcrumb: not a duplicate of the tier list's heading.
 assert.deepEqual(tierlistClassPageHeading('mage', 'Маг'), { title: 'Тир-лист карт Арены Hearthstone: Маг', name: 'Маг', href: '/tierlist/mage/' });
 assert.deepEqual(tierlistClassPageHeading('any', 'Нейтральные'), { title: 'Нейтральные карты Арены Hearthstone', name: 'Нейтральные', href: '/tierlist/neutral/' });
+// Title and description of a class page: the data date and the sample the page prints; data a week old has no
+// month, a title that would pass 60 characters drops it too, and a page without data of its class has neither.
+const dated: PublicTierlist = { ...pool, updatedAt: '2026-09-20T09:00:00.000Z',
+  classes: [...pool.classes, { id: 'demon-hunter', name: 'Охотник на демонов', cards: [card('D1', 'A')] }] };
+const fresh = Date.parse('2026-09-21T00:00:00.000Z');
+const stale = Date.parse('2026-10-21T00:00:00.000Z');
+assert.deepEqual(tierlistClassSeoText(dated, 'mage', fresh), {
+  title: 'Тир-лист Арены Hearthstone: Маг, сентябрь 2026',
+  description: 'Маг: тир-лист карт Арены Hearthstone на 20 сентября 2026. Тир, винрейт и частота выбора каждой карты, более 53 000 игр. Данные HSReplay.',
+});
+assert.deepEqual(tierlistClassSeoText(dated, 'demon-hunter', fresh), {
+  title: 'Тир-лист Арены Hearthstone: Охотник на демонов',
+  description: 'Охотник на демонов: тир-лист карт Арены Hearthstone на 20 сентября 2026. Тир, винрейт и частота выбора каждой карты, более 53 000 игр. Данные HSReplay.',
+}, '«…, сентябрь 2026» would make a 61-character title');
+assert.deepEqual(tierlistClassSeoText(dated, 'demon-hunter', stale), {
+  title: 'Тир-лист Арены Hearthstone: Охотник на демонов',
+  description: 'Охотник на демонов: тир-лист карт Арены Hearthstone, обновлено 20 сентября 2026. Тир, винрейт и частота выбора каждой карты, более 53 000 игр. Данные HSReplay.',
+});
+assert.deepEqual(tierlistClassSeoText(dated, 'any', fresh), {
+  title: 'Нейтральные карты Арены Hearthstone: тир-лист, сентябрь 2026',
+  description: 'Нейтральные карты Арены Hearthstone на 20 сентября 2026: тир, винрейт и частота выбора каждой карты, более 53 000 игр. Данные HSReplay.',
+});
+assert.deepEqual(tierlistClassSeoText(dated, 'any', stale), {
+  title: 'Нейтральные карты Арены Hearthstone: тир-лист',
+  description: 'Нейтральные карты Арены Hearthstone, обновлено 20 сентября 2026: тир, винрейт и частота выбора каждой карты, более 53 000 игр. Данные HSReplay.',
+});
+const undated = {
+  title: 'Тир-лист Арены Hearthstone: Жрец',
+  description: 'Жрец: тир-лист карт Арены Hearthstone. Тир, винрейт и частота выбора каждой карты. Данные HSReplay.',
+};
+assert.deepEqual(tierlistClassSeoText(dated, 'priest', fresh), undated, 'a class without cards in the pool has no date');
+assert.deepEqual(tierlistClassSeoText(null, 'priest', fresh), undated, 'no pool, no date');

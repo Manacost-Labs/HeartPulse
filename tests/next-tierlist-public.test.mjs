@@ -348,10 +348,12 @@ test('/tierlist/ in a browser: cards without JS, the subscriber view with locks 
       const cards = () => page.evaluate(() => document.querySelectorAll('.tierlist-card-grid .hs-tier-card').length);
       const shift = await page.evaluate(() => window.__layoutShifts.reduce((sum, value) => sum + value, 0));
       assert.ok(shift < 0.02, `${viewport.width}px: the page shifted by ${shift.toFixed(4)} while it hydrated`);
-      await page.click('button[aria-label="Класс mage"]');
+      // A class is a link to its page (#617), which shows the class whole; «Все карты» leads back.
+      await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle2' }), page.click('a[aria-label="Класс mage"]')]);
+      assert.equal(new URL(page.url()).pathname, '/tierlist/mage/');
       await page.waitForFunction(count => document.querySelectorAll('.tierlist-card-grid .hs-tier-card').length === count, {},
         CARDS.filter(card => card.classId === 'mage').length);
-      await page.click('button[aria-label="Все карты"]');
+      await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle2' }), page.click('a[aria-label="Все карты"]')]);
       await page.waitForFunction(count => document.querySelectorAll('.tierlist-card-grid .hs-tier-card').length === count, {}, Math.min(48, CARDS.length));
       // The card details show the open figures and the paid ones as locks; a lock opens the offer in place.
       await page.click('.tierlist-card-grid .hs-tier-card');
