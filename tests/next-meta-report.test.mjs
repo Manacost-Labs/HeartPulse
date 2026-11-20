@@ -98,6 +98,7 @@ test('no change across a new HSGuru period, none for the first report; nothing p
 
     const archive = await (await fetch(`${stand.origin}/reports/meta/`)).text();
     assert.deepEqual(meta(archive, 'robots'), ['noindex, follow']);
+    assert.match(archive, /<title>Мета-отчёты Hearthstone по неделям \| HearthPulse<\/title>/);
     assert.deepEqual(links(archive).filter(href => href.startsWith('/reports/meta/2')),
       ['/reports/meta/2026-12-07/', '/reports/meta/2026-11-30/', '/reports/meta/2026-11-23/']);
 

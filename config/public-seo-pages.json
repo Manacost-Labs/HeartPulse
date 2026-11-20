@@ -97,12 +97,6 @@
       "description": "Библиотека карт Hearthstone для Стандарта и Вольного формата: фильтры, изображения и отдельная индексируемая страница каждой карты.",
       "sitemap": true
     },
-    "/reports/meta": {
-      "policyRouteId": "meta-report-archive",
-      "title": "Мета-отчёты Hearthstone по неделям | HearthPulse",
-      "description": "Еженедельные отчёты о мете Hearthstone: лучшие и популярные архетипы Стандарта, матчапы, классы Арены и герои Полей сражений на каждый понедельник.",
-      "sitemap": false
-    },
     "/standard/patches": {
       "policyRouteId": "patch-notes",
       "navigationRouteId": "patch-notes",
