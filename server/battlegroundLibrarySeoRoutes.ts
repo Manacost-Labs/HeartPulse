@@ -152,14 +152,17 @@ function publicRulesText(card: JsonRecord): { ru: string | null; en: string | nu
 }
 
 /**
- * Game tokens the source leaves untranslated (the whole catalog checked 2026-11-20): the Battlegrounds tooltips
- * here, the card keywords (IMMUNE, SECRET…) from the shared ruRU dictionary. Another untranslated token is not shown.
+ * Game tokens the source leaves untranslated (the whole catalog checked 2026-11-20), named and hidden as the
+ * library does for subscribers (design.md, «Library mechanic labels»; `BgLibrary.tsx`): the Battlegrounds
+ * tooltips here, the card keywords (IMMUNE…) from the shared ruRU dictionary. A hidden or unknown token is not shown.
  */
 const BATTLEGROUND_TOKEN_LABELS: Record<string, string> = {
-  BACON_BLOOD_GEM_TOOLTIP: 'Кровавые самоцветы', BACON_REFRESH_TOOLTIP: 'Обновление таверны',
-  BACON_ACTIVATE_TOOLTIP: 'Активация', BACON_PASS_TOOLTIP: 'Передача',
+  BACON_BLOOD_GEM_TOOLTIP: 'Кровавые самоцветы', BACON_REFRESH_TOOLTIP: 'В следующих обновлениях',
+  BACON_FRESH_TOOLTIP: 'В следующих обновлениях', BACON_ACTIVATE_TOOLTIP: 'Активация',
 };
-const tokenLabel = (token: string): string | null => BATTLEGROUND_TOKEN_LABELS[token] ?? CONSTRUCTED_MECHANIC_TRANSLATIONS[token] ?? null;
+const HIDDEN_TOKENS = new Set(['BACON_PASS_TOOLTIP', 'SECRET']);
+const tokenLabel = (token: string): string | null => HIDDEN_TOKENS.has(token) ? null
+  : BATTLEGROUND_TOKEN_LABELS[token] ?? CONSTRUCTED_MECHANIC_TRANSLATIONS[token] ?? null;
 
 function publicMechanics(value: unknown): string[] {
   if (!Array.isArray(value)) return [];

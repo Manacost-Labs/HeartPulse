@@ -196,26 +196,29 @@ test('a grouped number never holds a narrow or breaking space', () => {
 
 const { StatsRows } = await importWithoutStyles<typeof import('../src/features/ConstructedCardStats')>(
   new URL('../src/features/ConstructedCardStats', import.meta.url));
-const { CardStatsRows, StatisticsControls } = await importWithoutStyles<typeof import('../src/features/ConstructedCardStatistics')>(
+const { CardStatsAbout, CardStatsRows, StatisticsControls } = await importWithoutStyles<typeof import('../src/features/ConstructedCardStatistics')>(
   new URL('../src/features/ConstructedCardStatistics', import.meta.url));
 const cardStats = {
   deckPopularity: 1.88, deckWinrate: 39.12, averageCopies: 1.95, timesPlayed: 2697, winrateWhenPlayed: 43.86,
   winrateWhenDrawn: 43.95, keepPercentage: 92.84, openingHandWinrate: 42.65, averageTurnsInHand: 2.2, averageTurnPlayed: 5.45,
 };
 
-test('the card page names each metric in plain Russian and explains it under the value', () => {
+test('the card page names each metric in plain Russian; what it counts is told once, folded', () => {
   const html = renderToStaticMarkup(React.createElement(CardStatsRows, { stats: cardStats }));
   assert.deepEqual(elements(html).filter(element => element.tag === 'dt').map(element => element.text), [
     'Популярность', 'Винрейт колод с картой', 'Винрейт, если сыграна', 'Винрейт, если взята', 'Оставляют в муллигане',
     'Винрейт из стартовой руки', 'Обычно разыгрывают на ходу', 'Копий в колоде', 'Партий в выборке',
   ]);
-  assert.ok(visibleText(html).startsWith('Популярность 1,88% В скольких колодах выборки есть карта '
-    + 'Винрейт колод с картой 39,12% Доля побед колод, в которых есть карта'));
+  // The rows are name and value only: no explanation sheet under the numbers (owner's rule 2026-11-20).
+  assert.ok(visibleText(html).startsWith('Популярность 1,88% Винрейт колод с картой 39,12% Винрейт, если сыграна 43,86%'));
   // `visibleText` folds the no-break space into a plain one; the markup below keeps it.
-  assert.ok(visibleText(html).endsWith('Партий в выборке 2 697 Объём выборки'));
+  assert.ok(visibleText(html).endsWith('Партий в выборке 2 697'));
   assert.ok(html.includes('2\u00a0697'), 'the sample size keeps its digits together');
-  assert.equal(elements(html).filter(element => element.attrs.title !== undefined).length, 0,
-    'the explanations are printed, not hidden in a tooltip');
+  const about = renderToStaticMarkup(React.createElement(CardStatsAbout));
+  assert.ok(visibleText(about).startsWith('Что значат цифры Популярность В скольких колодах выборки есть карта'));
+  assert.ok(visibleText(about).endsWith('Партий в выборке Объём выборки'));
+  assert.equal(elements(about).filter(element => element.tag === 'details' && element.attrs.open !== undefined).length, 0,
+    'closed until the reader opens it, and still in the server HTML');
 });
 
 test('the hover summary in the card list keeps the same names without the explanations', () => {

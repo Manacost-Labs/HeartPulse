@@ -94,7 +94,7 @@
       "policyRouteId": "standard-cards",
       "navigationRouteId": "standard-cards",
       "title": "Карты Hearthstone {year}: Стандарт и Вольный | HearthPulse",
-      "description": "Библиотека карт Hearthstone для Стандарта и Вольного формата: фильтры, изображения и отдельная индексируемая страница каждой карты.",
+      "description": "Все карты Hearthstone Стандарта и Вольного формата: поиск, фильтры по классу и дополнению, характеристики, история изменений и колоды с каждой картой.",
       "sitemap": true
     },
     "/standard/assemble": {
@@ -251,19 +251,19 @@
       "policyRouteId": "bg-library",
       "navigationRouteId": "bg-library",
       "title": "Библиотека Полей сражений: все карты | HearthPulse",
-      "description": "Библиотека карт Hearthstone Battlegrounds: существа, заклинания, актуальный пул, архив, фильтры и отдельная индексируемая страница каждой карты.",
+      "description": "Все карты Полей сражений Hearthstone: существа по уровням таверны, заклинания, аксессуары, аномалии, Тёмные дары, квесты, награды и архив.",
       "sitemap": true
     },
     "/library/minions": {
       "policyRouteId": "bg-library-kind",
       "title": "Существа Полей сражений: библиотека | HearthPulse",
-      "description": "Существа Hearthstone Battlegrounds: уровни таверны, типы, механики, статистика и отдельная индексируемая страница каждой карты.",
+      "description": "Существа Полей сражений Hearthstone по уровням таверны и типам: атака и здоровье, механики, среднее место и популярность в рейтинге «Топ 50%».",
       "sitemap": true
     },
     "/library/spells": {
       "policyRouteId": "bg-library-kind",
       "title": "Заклинания Полей сражений: библиотека | HearthPulse",
-      "description": "Заклинания Hearthstone Battlegrounds: актуальный пул, изображения, фильтры, статистика и отдельная индексируемая страница каждой карты.",
+      "description": "Заклинания таверны Полей сражений Hearthstone: актуальный пул по уровням таверны, текст и изображение каждого заклинания.",
       "sitemap": true
     },
     "/library/archive": {
