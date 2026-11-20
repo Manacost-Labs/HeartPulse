@@ -1020,7 +1020,7 @@
       "id": "server.metaReport",
       "runtime": "server",
       "root": "server/modules/metaReport",
-      "purpose": "Owns the weekly append-only snapshots of the open meta layer for the meta report.",
+      "purpose": "Owns the weekly append-only snapshots of the open meta layer for the meta report and their anonymous read API.",
       "owner": "traditional-data",
       "publicEntry": "server/modules/metaReport/public.ts",
       "dependencies": [],

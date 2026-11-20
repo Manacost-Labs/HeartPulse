@@ -5,10 +5,10 @@ said on a Monday and how it changed since the previous report. The live pages
 overwrite their data, so the server keeps its own weekly snapshots from the
 first Monday on. A week that was not recorded cannot be reported later.
 
-Module: `server/modules/metaReport` (`createMetaReportSnapshots`). Wiring:
-`server/metaReportSnapshotSources.ts`, called once from `server/index.ts`.
-There is no HTTP route or page yet; the future report page reads
-`list()` (dates, newest first) and `get(date)`.
+Module: `server/modules/metaReport` (`createMetaReportSnapshots`,
+`createMetaReportRouter`). Wiring: `server/metaReportSnapshotSources.ts`
+(`createMetaReportApi`), mounted once under `/api` in `server/index.ts`. The
+report pages read the snapshots over HTTP (see «HTTP» and «Report pages»).
 
 ## Schedule
 
@@ -103,3 +103,68 @@ sqlite3 meta-report-snapshots-v1/snapshots.sqlite \
 A Monday without a row after 23:59 UTC: look for
 `[meta-report-snapshots]` in the `hs-arena` journal (Standard stale or a
 failed write).
+
+## HTTP
+
+Both routes are anonymous: every field of a snapshot is already open to a
+guest.
+
+- `GET /api/meta-reports` — `{ "dates": ["2026-11-30", "2026-11-23"] }`,
+  newest first, `Cache-Control: public, max-age=300`. An empty archive is
+  `{ "dates": [] }`.
+- `GET /api/meta-reports/:date` — the stored snapshot as recorded (the format
+  above), `Cache-Control: public, max-age=3600`. A date that is not a real
+  `YYYY-MM-DD` calendar date or has no snapshot answers `404`
+  `{ "error": "Meta report not found" }` with `no-store`.
+- A store that cannot be opened answers `503` with `no-store` (logged as
+  `[meta-report-snapshots] read failed`), never an empty archive.
+
+## Report pages
+
+`/reports/meta/` (archive) and `/reports/meta/<date>/` (one report) are
+server components rendered by Next.js on every request
+(`apps/public-web/app/reports/meta/`); only the shared site shell hydrates.
+The page copies the snapshot field by field once more
+(`apps/public-web/lib/publicMetaReportData.ts`) and computes the report in
+`lib/metaReportView.ts`:
+
+- Standard, Diamond–Legend: top 10 by winrate among archetypes with at least
+  0.5 % of games, top 10 by popularity; winrate, popularity, games.
+- Change to the previous snapshot only when both Standard sections have the
+  same HSGuru `period`: winrate and popularity in percentage points, games of
+  the week (the difference of the accumulated games), «новый в топе» and the
+  archetypes that left a top. The first report and a report after a period
+  change print no difference and say why.
+- Matchups: the 5 rows with most games, best and worst opponent among pairs
+  of at least 25 games (the mirror left out).
+- Arena: classes of at least 100 runs by winrate; the others are listed as
+  «мало данных» without a place.
+- Battlegrounds Solo: top 10 heroes by average place, linked to
+  `/heroes/<dbfId>/`.
+- Patch of the week: the newest patch of the snapshot, «вышел на этой
+  неделе» when it is younger than 7 days at the snapshot.
+- Every section prints its own «Данные на …» and source and links its live
+  page. A section without data says so, with no figures.
+- Archetype names link to `/standard/archetypes/standard/<slug>/` only when
+  the open catalog of now says the page is indexable
+  (`isIndexableArchetype`).
+
+Indexing: both routes are `noindex-follow` and out of the sitemap in
+`src/shared/seo/publicRouteInventory.json`; SEO-A turns them to `index` and
+adds the sitemap segment in its own change. A report sets `canonical` to
+itself; the archive has none while it is noindex. Once a report is
+indexable, a patch younger than 72 hours at the snapshot still keeps it
+`noindex, follow` (early data), and its JSON-LD (`WebPage`, `BreadcrumbList`,
+`Dataset` with `temporalCoverage` = the report date and `dateModified` = the
+time of the snapshot) appears; while noindex the page has no JSON-LD. The
+archive gets a `CollectionPage` with an `ItemList` of the reports.
+
+An unknown or impossible date, and the archive without any report, answer
+`404` with `noindex`. Express failing answers the generic error page.
+
+Routing: `deploy/nginx/arena-html-routing.conf` sends
+`/reports/meta/` and `/reports/meta/<YYYY-MM-DD>/` to Next and adds the slash
+with one `301`; anything else under `/reports/` is the site 404. Removing the
+feature: revert the change and install the Nginx snippet of the revert
+commit (`docs/runbooks/nextjs-production-cutover.md`); the snapshot file
+stays.

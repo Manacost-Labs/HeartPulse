@@ -21,6 +21,7 @@ test('anonymous public route families may be restored from the back/forward cach
   assert.deepEqual(PUBLIC_DOCUMENT_RESPONSE_HEADERS, { 'Cache-Control': 'private, no-cache',
     'X-HearthPulse-Edge-Cache': 'anonymous' });
   for (const path of ['/tierlist/', '/classes/', '/legendaries/', '/articles/', '/contests/', '/leaderboards/', '/gallery/',
+    '/reports/meta/', '/reports/meta/2026-11-23/',
     '/standard/meta/', '/standard/meta/standard/aggro-paladin/', '/standard/matchups/', '/standard/archetypes/',
     '/standard/archetypes/standard/aggro-paladin/', '/standard/cards/', '/standard/cards/standard/',
     '/standard/cards/standard/blizzard:12345/', '/standard/fun-decks/', '/standard/vicious-gold/',
@@ -36,7 +37,7 @@ test('cookie-dependent, account, API and prerendered documents keep their own ca
   for (const path of ['/', '/admin/', '/deck-builder/', '/archetypes/', '/archetypes/wild/', '/archetypes/12/',
     '/connect/', '/id/abc/', '/profiles/abc/', '/identity/telegram/', '/api/auth/me', '/api/bg/tier-lists/',
     '/_next/static/chunks/main.js', '/faq/', '/privacy/', '/terms/', '/developers/api/', '/health/next/',
-    '/tierlist', '/standard/', '/battlegrounds/', '/battlegrounds/other/', '/standard/other/', '/no-such-page/']) {
+    '/tierlist', '/reports/', '/reports/meta', '/standard/', '/battlegrounds/', '/battlegrounds/other/', '/standard/other/', '/no-such-page/']) {
     assert.equal(cached(path), false, `${path} must keep the header Next or Nginx chooses`);
   }
 });
@@ -58,7 +59,7 @@ const app = join(root, 'apps/public-web/app');
 const FAMILY_DIRECTORIES = ['articles', 'classes', 'contests', 'gallery', 'leaderboards', 'legendaries', 'tierlist',
   'battlegrounds/strategies', 'battlegrounds/tier-builder', 'battlegrounds/tier-list', 'cosmetics',
   'guides-archive', 'heroes', 'library', 'standard/archetypes', 'standard/cards', 'standard/fun-decks',
-  'standard/matchups', 'standard/meta', 'standard/vicious-gold'];
+  'standard/matchups', 'standard/meta', 'standard/vicious-gold', 'reports/meta'];
 const COOKIE_READ = [/\bcookies\s*\(/, /adminAccess/, /get\(\s*['"]cookie['"]\s*\)/, /\bheaders\.cookie\b/, /\bdraftMode\s*\(/];
 
 function files(directory) {
