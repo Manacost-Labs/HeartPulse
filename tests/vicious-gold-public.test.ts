@@ -4,7 +4,9 @@ import express from 'express';
 import { createStandardMetaRouter, type StandardMetaRouterDependencies } from '../server/standardMetaRoutes.ts';
 import { createPublicViciousGoldHandler, projectPublicViciousGold } from '../server/viciousGoldPublic.ts';
 import { isPublicDataApiRequest } from '../server/apiRateLimitPolicy.ts';
-import { CLOSED_KEYS, CLOSED_VALUES, OPEN_FRAME, PERMUTED_REPORTS, REPORT } from './fixtures/viciousGoldSentinels.mjs';
+import {
+  CLOSED_INTEGER_PATTERN, CLOSED_KEYS, CLOSED_VALUES, closedKeyPattern, OPEN_FRAME, PERMUTED_REPORTS, REPORT,
+} from './fixtures/viciousGoldSentinels.mjs';
 
 // The paid report (`loadViciousGold`) carries a unique sentinel in every closed field of #656 (shares, games, win
 // rates, ranks, the threshold, the coverage, builds and every field of a build, deck lists, Power Tier rows with names
@@ -78,7 +80,7 @@ test('the open route answers a guest without the access guard, keeps the paid ro
     assert.equal((await fetch(`${server.origin}/api/vicious-syndicate-gold/builds`)).status, 401, 'the builds stay behind the guard');
     const paid = await fetch(`${server.origin}/api/vicious-syndicate-gold`, { headers: { 'x-test-access': 'allowed' } });
     assert.equal(paid.status, 200);
-    assert.equal((await paid.json()).games, 917_331);
+    assert.equal((await paid.json()).games, 9_173_317);
 
     // The source fails: the last good frame, marked stale and kept by no shared cache; a prerender gets a 503.
     failing = true;
@@ -114,4 +116,16 @@ test('a source without archetypes and no earlier frame answers 503, never an emp
   } finally {
     await server.close();
   }
+});
+
+test('the closed-integer check finds a closed value in any form and only as a whole value', () => {
+  const found = (text: string) => [...text.matchAll(CLOSED_INTEGER_PATTERN)].length > 0;
+  for (const leak of ['{"value":"7771937"}', '{"rank":7771937,"x":1}', String.raw`{\"rank\":7771937}`, '>9 173 317<',
+    '>9 173 317<', '>9 173 317<', '9,173,317', '["9999137"]', '<td>3331937</td>']) {
+    assert.ok(found(leak), `a leak is found: ${leak}`);
+  }
+  for (const other of ['>7771937abc<', 'a7771937', '77719370', '7771937.5', '1.7771937', '9,173,3170']) {
+    assert.ok(!found(other), `not a closed value: ${other}`);
+  }
+  assert.ok(closedKeyPattern('rank').test(String.raw`{\"rank\":1}`) && !closedKeyPattern('rank').test('{"rankBracket":1}'));
 });

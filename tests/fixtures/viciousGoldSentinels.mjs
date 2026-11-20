@@ -4,14 +4,14 @@
 const build = {
   deckCode: 'SENTINEL_DECK_CODE', source: 'SENTINEL_BUILD_SOURCE', sourceLabel: 'SENTINEL_BUILD_LABEL',
   sourceUrl: 'https://sentinel.example/build', matchedArchetype: 'SENTINEL_MATCHED_ARCHETYPE', matchMethod: 'SENTINEL_MATCH_METHOD',
-  updatedAt: 'SENTINEL_BUILD_UPDATED', winrate: 58.8001, sampleGames: 4441,
-  deckCards: [{ name: 'SENTINEL_CARD_NAME', dbfId: 99991, count: 2 }],
+  updatedAt: 'SENTINEL_BUILD_UPDATED', winrate: 58.8001, sampleGames: 4_441_937,
+  deckCards: [{ name: 'SENTINEL_CARD_NAME', dbfId: 9_999_137, count: 2 }],
 };
-const closedDeck = { rank: 7771, winrate: 59.9001, sampleGames: 6661, deckCode: 'SENTINEL_ROW_DECK_CODE', deckCards: ['SENTINEL_ROW_DECK_CARDS'] };
+const closedDeck = { rank: 7_771_937, winrate: 59.9001, sampleGames: 6_661_937, deckCode: 'SENTINEL_ROW_DECK_CODE', deckCards: ['SENTINEL_ROW_DECK_CARDS'] };
 
 /** The paid report as `loadViciousGold` answers it, in the source's order (by share). */
 export const REPORT = {
-  title: 'Vicious Syndicate Gold', format: 'Standard', games: 917_331, source: 'Vicious Syndicate Live',
+  title: 'Vicious Syndicate Gold', format: 'Standard', games: 9_173_317, source: 'Vicious Syndicate Live',
   sourceUrl: 'https://www.vicioussyndicate.com/data-reaper-live/', sourceId: 'SENTINEL_SOURCE_ID',
   updatedAt: '2026-11-20T08:15:00.000Z', minimumDeckFrequency: 0.4917, extra: 'SENTINEL_TOP_EXTRA',
   timeRanges: { distribution: 'lastDay', tierLadder: 'lastWeek', tierMatchups: 'last2Weeks', extra: 'SENTINEL_RANGE_EXTRA' },
@@ -60,7 +60,7 @@ export const REPORT = {
     { rankBracket: 'Platinum', rankLabel: 'Платина', decks: [] },
     { rankBracket: 'Legend', rankLabel: 'Легенда', decks: [] },
   ],
-  buildCoverage: { found: 3_331, total: 3_332 },
+  buildCoverage: { found: 3_331_937, total: 3_332_937 },
 };
 
 /** The open answer of `REPORT`, byte for byte (key order included). */
@@ -96,9 +96,9 @@ export const OPEN_FRAME = {
 
 /** Every closed value of `REPORT` as it would be printed raw or in ru-RU. */
 export const CLOSED_VALUES = [
-  'SENTINEL', '917331', '917 331', '917 331', '0.4917', '0,4917', '3331', '3332',
+  'SENTINEL', '9173317', '0.4917', '0,4917', '3331937', '3332937',
   '31.4159', '27.1828', '21.0001', '19.0002', '16.1803', '1.2345', '12.3457', '9.8765', '8.7654', '7.6543', '7.0001',
-  '5.4321', '4.4444', '3.3333', '2.2222', '58.8001', '59.9001', '56.7891', '54.3219', '52.1098', '4441', '6661', '7771', '99991',
+  '5.4321', '4.4444', '3.3333', '2.2222', '58.8001', '59.9001', '56.7891', '54.3219', '52.1098', '4441937', '6661937', '7771937', '9999137',
   '31,41', '27,18', '12,34', '58,80', '59,90', '56,78', '54,32', '52,10', 'sentinel.example', 'Яркий Воин', 'Маги', 'Легенда-2',
 ];
 /** Closed field names; an open answer that has one carries a closed value. */
@@ -133,18 +133,19 @@ export const MISTAKEN_OPEN_ANSWER = {
  * without the bare integers, which a chunk hash in the HTML may contain by chance.
  */
 export const CLOSED_HTML_VALUES = [
-  'SENTINEL', 'sentinel.example', 'Яркий Воин', 'Легенда-2', '917 331', '917 331', '0.4917', '0,4917',
+  'SENTINEL', 'sentinel.example', 'Яркий Воин', 'Легенда-2', '0.4917', '0,4917',
   '31.4159', '27.1828', '21.0001', '19.0002', '16.1803', '1.2345', '12.3457', '9.8765', '8.7654', '7.6543', '7.0001',
   '5.4321', '4.4444', '3.3333', '2.2222', '58.8001', '59.9001', '56.7891', '54.3219', '52.1098',
   '31,42', '27,18', '16,18', '12,35', '9,88', '8,77', '7,65', '5,43', '4,44', '3,33', '2,22', '58,80', '59,90', '56,79', '54,32', '52,11',
 ];
 
 /**
- * The closed integers (rank, games, sample games, build coverage, a card's dbfId). Bare, they could match a chunk id or
- * hash by chance, so a page is checked for them where a value sits: after a JSON key (`:7771`, also escaped in the RSC
- * payload) or as a cell's text (`>7771<`).
+ * The closed integers (games, rank, sample games, build coverage, a card's dbfId): seven digits that no chunk id has,
+ * found anywhere in a page (a JSON number or string, escaped RSC, a cell's text), bare or with thousands separators
+ * (space, no-break or narrow no-break space, comma, dot), and only as a whole value: not inside a longer word or number.
  */
-export const CLOSED_INTEGERS = [917_331, 3_331, 3_332, 7_771, 6_661, 4_441, 99_991];
-export const CLOSED_INTEGER_PATTERN = new RegExp(`(?::\\s*|>\\s*)(?:${CLOSED_INTEGERS.join('|')})(?!\\d|[.,]\\d)`, 'g');
+export const CLOSED_INTEGERS = [9_173_317, 3_331_937, 3_332_937, 7_771_937, 6_661_937, 4_441_937, 9_999_137];
+const grouped = value => String(value).replace(/\B(?=(\d{3})+(?!\d))/g, '[\\s\\u00a0\\u202f,.]?');
+export const CLOSED_INTEGER_PATTERN = new RegExp(`(?<![\\w.,])(?:${CLOSED_INTEGERS.map(grouped).join('|')})(?![\\w]|[.,]\\d)`, 'gu');
 /** A closed field name as a JSON key, plain or escaped inside the RSC payload's strings. */
 export const closedKeyPattern = key => new RegExp(`\\\\?"${key}\\\\?"\\s*:`);
