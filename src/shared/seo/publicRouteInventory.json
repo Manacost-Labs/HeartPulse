@@ -377,7 +377,7 @@
       "sitemap": true,
       "htmlStrategy": "prerender-teaser",
       "expectedStatus": 200,
-      "criticality": "P0",
+      "criticality": "P1",
       "mobileFixture": "standard-meta-anonymous",
       "entitlement": "standard"
     },
