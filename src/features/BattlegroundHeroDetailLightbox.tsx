@@ -91,7 +91,7 @@ function BattlegroundHeroMediaLightboxCopy({
   );
 }
 
-/** Loaded on the first click on a hero card or art: the detail page renders without it. */
+/** The media viewer of a hero detail page: opened by a click on a hero card, art or skin. */
 export function BattlegroundHeroMediaLightbox({
   items,
   index,
