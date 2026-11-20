@@ -50,7 +50,7 @@ test('a guest sees the meta teaser with what the subscription adds and where to 
 test('the archetype teaser sells archetype statistics', () => {
   const html = gate({ presentation: 'inline', surface: 'archetype', title: 'Пират-воин' });
   assert.equal(labelled(html, 'Что входит в подписку')?.text,
-    'Все сборки и коды колод Матчапы на ранге Легенда Муллиган и история показателей');
+    'Матчапы на ранге Легенда Муллиган и влияние карт История и ранги архетипа');
   assert.equal(links(html)[0].name, 'Открыть статистику архетипа');
 });
 

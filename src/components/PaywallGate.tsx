@@ -218,8 +218,9 @@ function InlineSubscriptionPaywall({
       actionLabel: 'Открыть всю мету',
     }
     : {
-      description: 'Откройте все сборки архетипа, статистику против классов и влияние карт на винрейт.',
-      benefits: ['Все сборки и коды колод', 'Матчапы на ранге Легенда', 'Муллиган и история показателей'],
+      // Builds and deck codes are open to everyone (owner decision 2026-11-18): the subscription sells the analysis.
+      description: 'Откройте статистику против классов, влияние карт на винрейт и историю показателей.',
+      benefits: ['Матчапы на ранге Легенда', 'Муллиган и влияние карт', 'История и ранги архетипа'],
       actionLabel: 'Открыть статистику архетипа',
     };
   return (

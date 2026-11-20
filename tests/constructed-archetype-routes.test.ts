@@ -203,9 +203,9 @@ try {
     deckCode: 'AAECAf0GAfKiBALxogTzogQAAA==', games: 2_216, winrate: 57.1, updatedAt: '2026-07-22T21:05:32.877Z',
     sampleRank: 'all', samplePeriod: 'past_30_days',
     cards: [
-      { id: 'TST_001', name: 'Тестовый удар', cost: 1, count: 2 },
-      { id: 'TST_003', name: 'Тестовая буря', cost: 2, count: 2 },
-      { id: 'TST_002', name: 'Тестовый страж', cost: 4, count: 1 },
+      { id: 'TST_001', name: 'Тестовый удар', cost: 1, count: 2, hasPage: true },
+      { id: 'TST_003', name: 'Тестовая буря', cost: 2, count: 2, hasPage: true },
+      { id: 'TST_002', name: 'Тестовый страж', cost: 4, count: 1, hasPage: true },
     ],
   }]);
   // Sentinel: the paid layer (mulligan and card statistics, class matchups, history, ranks) is never read for the open answer.
@@ -392,5 +392,131 @@ try {
     assert.deepEqual([answer.status, answer.body.period], [200, 'black_empire']);
   } finally {
     await new Promise<void>((resolve, reject) => chainServer.close(error => (error ? reject(error) : resolve())));
+  }
+}
+
+{
+  // Open builds (#444): every build is open, a page of 8 at a time; a stalled or failed card catalog never holds the
+  // answer, which then carries the codes without card lists and a short cache, so the lists come back with the catalog.
+  const nine = { ...catalog.items[0], slug: 'nine', deckCount: 9,
+    builds: Array.from({ length: 9 }, () => catalog.items[0].builds[0]) };
+  let cardsMode: 'ok' | 'fail' | 'hang' = 'ok';
+  const cardCatalog = { cards: [{ card_id: 'TST_001', dbf: 70_001, name: { ru: 'Тестовый удар' }, mana_cost: 1 },
+    { card_id: 'TST_002', dbf: 70_002, name: { ru: 'Тестовый страж' }, mana_cost: 4 },
+    { card_id: 'TST_003', dbf: 70_003, name: { ru: 'Тестовая буря' }, mana_cost: 2 }] };
+  const openApp = express();
+  openApp.use('/api', createConstructedArchetypeRouter({
+    ...dependencies, cardCatalogDeadlineMs: 200,
+    loadCatalog: async () => ({ ...catalog, items: [nine] }),
+    loadCardCatalog: () => (cardsMode === 'hang' ? new Promise(() => {})
+      : cardsMode === 'fail' ? Promise.reject(new Error('Catalog unavailable')) : Promise.resolve(cardCatalog)),
+  }));
+  const openServer = openApp.listen(0, '127.0.0.1');
+  await new Promise<void>(resolve => openServer.once('listening', resolve));
+  const openAddress = openServer.address();
+  assert.ok(openAddress && typeof openAddress === 'object');
+  const read = async (query = '') => {
+    const response = await fetch(`http://127.0.0.1:${openAddress.port}/api/constructed-archetypes/teaser/wild/nine${query}`,
+      { signal: AbortSignal.timeout(2_000) });
+    return { status: response.status, cache: response.headers.get('cache-control'), body: await response.json() as any };
+  };
+  try {
+    let answer = await read();
+    assert.deepEqual([answer.body.item.builds.length, answer.body.buildsTotal, answer.body.buildsOffset], [8, 9, 0]);
+    assert.equal(answer.cache, 'public, max-age=300, stale-while-revalidate=900');
+    answer = await read('?buildsOffset=8');
+    assert.deepEqual([answer.body.item.builds.length, answer.body.buildsTotal, answer.body.buildsOffset], [1, 9, 8]);
+    assert.equal(answer.body.item.builds[0].cards.length, 3, 'the ninth build is open with its card list');
+    assert.equal((await read('?buildsOffset=-1')).status, 400);
+    assert.equal((await read('?buildsOffset=abc')).status, 400);
+    cardsMode = 'hang';
+    answer = await read();
+    assert.equal(answer.status, 200, 'a stalled card catalog does not hold the answer');
+    assert.deepEqual(answer.body.item.builds.map((build: any) => build.cards), Array(8).fill(null));
+    assert.equal(answer.body.item.builds[0].deckCode, 'AAECAf0GAfKiBALxogTzogQAAA==');
+    assert.equal(answer.cache, 'public, max-age=30, stale-while-revalidate=30');
+    cardsMode = 'fail';
+    answer = await read();
+    assert.deepEqual([answer.body.item.builds[0].cards, answer.cache], [null, 'public, max-age=30, stale-while-revalidate=30']);
+    cardsMode = 'ok';
+    answer = await read();
+    assert.deepEqual([answer.body.item.builds[0].cards.length, answer.cache], [3, 'public, max-age=300, stale-while-revalidate=900'],
+      'the lists are back once the catalog answers');
+  } finally {
+    openServer.closeAllConnections();
+    await new Promise<void>(resolve => openServer.close(() => resolve()));
+  }
+}
+
+{
+  // Regression (QA on PR 552): a real «Айяйя Разбойник» deck with Гарона Полуорчиха. Its two companion cards are in the
+  // deck code but not in the format's catalog; they must not drop the list. They are named from the deck builder's
+  // dictionaries and listed without a page link; a card no dictionary knows keeps its place and count.
+  const GARONA_DECK = 'AAECAaIHCs7+BsODB4aoB4eoB4ioB+WvB5qzB6XYB4jZB8OLCAqRnwT3nwTZogbBlwe0wQfFwQfVxQek2AeR2QeN2gcAAA==';
+  const garonaCatalog = { cards: [
+    { card_id: 'CORE_CS2_072', dbf: 69521, name: { ru: 'Удар в спину' }, mana_cost: 0 },
+    { card_id: 'CORE_EX1_145', dbf: 69623, name: { ru: 'Подготовка' }, mana_cost: 0 },
+    { card_id: 'CORE_EX1_129', dbf: 102745, name: { ru: 'Веер клинков' }, mana_cost: 2 },
+    { card_id: 'EDR_523', dbf: 114510, name: { ru: 'Паутина обмана' }, mana_cost: 2 },
+    { card_id: 'EDR_856', dbf: 115139, name: { ru: 'Повелитель кошмаров Ксавий' }, mana_cost: 4 },
+    { card_id: 'TLC_515', dbf: 117697, name: { ru: 'Карта сектантов' }, mana_cost: 2 },
+    { card_id: 'TIME_875', dbf: 119814, name: { ru: 'Гарона Полуорчиха' }, mana_cost: 4 },
+    { card_id: 'TIME_713', dbf: 120805, name: { ru: 'Хроноадмирал Крюкохвост' }, mana_cost: 5 },
+    { card_id: 'END_000', dbf: 121242, name: { ru: 'Бесчисленные возможности' }, mana_cost: 2 },
+    { card_id: 'CATA_200', dbf: 123060, name: { ru: 'Агент Древних' }, mana_cost: 1 },
+    { card_id: 'CATA_203', dbf: 123077, name: { ru: 'Последний бой Гароны' }, mana_cost: 2 },
+    { card_id: 'CATA_785', dbf: 123605, name: { ru: 'Сумеречный обряд' }, mana_cost: 2 },
+    { card_id: 'JAIL_503', dbf: 125988, name: { ru: 'Кнут Черной Лапы' }, mana_cost: 3 },
+    { card_id: 'JAIL_504', dbf: 125989, name: { ru: 'Айя, главарь «Лотоса»' }, mana_cost: 6 },
+    { card_id: 'CORE_RLK_567', dbf: 126088, name: { ru: 'Гибельная тень' }, mana_cost: 0 },
+    { card_id: 'CATA_EVENT_402', dbf: 126097, name: { ru: 'Смертельная взятка' }, mana_cost: 3 },
+    { card_id: 'JAIL_720', dbf: 126221, name: { ru: 'Букмекер из «Лотоса»' }, mana_cost: 2 },
+    { card_id: 'BE_009', dbf: 132547, name: { ru: 'Манипулятор Йогг-Сарон' }, mana_cost: 9 },
+  ] };
+  // `cards_ru.json` names the companions as «<legendary> (<n> - <name>)».
+  const cardsRu = {
+    TIME_875t: { name: 'Гарона Полуорчиха (1 - Король Ллейн)', mana: 3, rarity: '', dbf: 119815 },
+    TIME_875t1: { name: 'Гарона Полуорчиха (2 - Убийцы Королей)', mana: 2, rarity: '', dbf: 119816 },
+  };
+  let dictionariesFail = false;
+  const ayaya = { ...catalog.items[0], slug: 'ayaya-rogue', classKey: 'rogue' as const, format: 'standard' as const,
+    builds: [{ ...catalog.items[0].builds[0], deckCode: GARONA_DECK }] };
+  const garonaApp = express();
+  garonaApp.use('/api', createConstructedArchetypeRouter({
+    ...dependencies, cardCatalogDeadlineMs: 200,
+    loadCatalog: async () => ({ ...catalog, format: 'standard', items: [ayaya] }),
+    loadCardCatalog: async () => garonaCatalog,
+    loadCardDictionaries: async () => { if (dictionariesFail) throw new Error('HearthstoneJSON unavailable'); return [cardsRu]; },
+  }));
+  const garonaServer = garonaApp.listen(0, '127.0.0.1');
+  await new Promise<void>(resolve => garonaServer.once('listening', resolve));
+  const garonaAddress = garonaServer.address();
+  assert.ok(garonaAddress && typeof garonaAddress === 'object');
+  const readAyaya = async () => {
+    const response = await fetch(`http://127.0.0.1:${garonaAddress.port}/api/constructed-archetypes/teaser/standard/ayaya-rogue`);
+    return { cache: response.headers.get('cache-control'), cards: (await response.json() as any).item.builds[0].cards };
+  };
+  try {
+    let answer = await readAyaya();
+    assert.equal(answer.cards.length, 20, 'the whole main deck is listed');
+    assert.equal(answer.cards.reduce((sum: number, card: any) => sum + card.count, 0), 30);
+    assert.deepEqual(answer.cards.filter((card: any) => card.id?.startsWith('TIME_875')), [
+      { id: 'TIME_875t1', name: 'Убийцы Королей', cost: 2, count: 1, hasPage: false },
+      { id: 'TIME_875t', name: 'Король Ллейн', cost: 3, count: 1, hasPage: false },
+      { id: 'TIME_875', name: 'Гарона Полуорчиха', cost: 4, count: 1, hasPage: true },
+    ]);
+    assert.equal(answer.cards.filter((card: any) => card.hasPage).length, 18, 'every card of the catalog links to its page');
+    assert.equal(answer.cache, 'public, max-age=300, stale-while-revalidate=900');
+    dictionariesFail = true;
+    answer = await readAyaya();
+    assert.equal(answer.cards.length, 20, 'without the dictionaries the list stays whole');
+    assert.deepEqual(answer.cards.slice(-2), [
+      { id: null, name: null, cost: null, count: 1, hasPage: false },
+      { id: null, name: null, cost: null, count: 1, hasPage: false },
+    ]);
+    assert.equal(answer.cache, 'public, max-age=30, stale-while-revalidate=30', 'an unnamed card is back soon');
+  } finally {
+    garonaServer.closeAllConnections();
+    await new Promise<void>(resolve => garonaServer.close(() => resolve()));
   }
 }

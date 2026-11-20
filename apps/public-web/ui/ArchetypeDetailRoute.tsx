@@ -10,11 +10,11 @@ export async function ArchetypeDetailRoute({ params, family }: { params: Archety
   const { format, slug, detail } = await resolveArchetypeRoute(params);
   const catalog = await loadArchetypeFormatCatalog(format, detail);
   // The open builds render once, on the server: the client copy of the detail does not repeat them in the RSC payload.
-  const { openBuilds, ...clientDetail } = detail;
+  const { openBuilds, openBuildsTotal, ...clientDetail } = detail;
   return <>
     <ArchetypeStructuredData detail={detail} catalog={catalog} family={family} />
-    <ArchetypeDetailPageClient pathname={`/standard/${family}/${format}/${slug}/`} detail={clientDetail}
-      openBuilds={openBuilds.length ? <ArchetypeOpenBuilds item={detail.item} builds={openBuilds} /> : undefined}>
+    <ArchetypeDetailPageClient pathname={`/standard/${family}/${format}/${slug}/`} detail={clientDetail} openLayer
+      openBuilds={<ArchetypeOpenBuilds item={detail.item} builds={openBuilds} total={openBuildsTotal} />}>
       <ArchetypeSeoSummary detail={detail} catalog={catalog} />
     </ArchetypeDetailPageClient>
   </>;

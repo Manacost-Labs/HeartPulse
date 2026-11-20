@@ -42,3 +42,7 @@
 
 .archetype-open-build code { margin-top: auto; overflow-wrap: anywhere; color: #4a3323; font-size: 0.69rem; line-height: 1.45; user-select: all; }
 .archetype-open-build .archetype-copy-button { width: 100%; }
+.archetype-open-builds__more { display: grid; grid-column: 1 / -1; gap: 0.4rem; justify-items: center; }
+.archetype-open-builds__more p { margin: 0; color: #8d171d; font-size: 0.75rem; font-weight: 700; }
+.archetype-open-builds__more .archetype-builds__more { width: 100%; margin: 0; }
+.archetype-open-builds__empty { margin: 0; padding: 0.85rem 1rem; color: var(--archetype-muted, #735e49); font-size: 0.8rem; }

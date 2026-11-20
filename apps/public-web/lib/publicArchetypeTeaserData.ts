@@ -35,24 +35,31 @@ function safeSourceUrl(value: unknown): string {
   try { return new URL(source).protocol === 'https:' ? source : ''; } catch { return ''; }
 }
 
-/** One line of an open build's card list; `id` names the card's page in the archetype's format. */
-export type OpenArchetypeCard = { id: string; name: string; cost: number; count: number };
+/**
+ * One line of an open build's card list. `hasPage`: `/standard/cards/<format>/<id>/` exists (the card is in the
+ * format's catalog); a companion card of a Fabled legendary is named without a link; `name: null` is a card no
+ * dictionary knows, kept for its count.
+ */
+export type OpenArchetypeCard = { id: string | null; name: string | null; cost: number | null; count: number; hasPage: boolean };
 /** A build of the open layer: its deck code, numbers and card list (`null` when the source could not name every card). */
 export type OpenArchetypeBuild = {
   deckCode: string; games: number | null; winrate: number | null; updatedAt: string | null; cards: OpenArchetypeCard[] | null;
 };
-export type PublicArchetypeDetail = ArchetypeDetail & { openBuilds: OpenArchetypeBuild[] };
+/** `openBuilds` is one page of the open builds (from `buildsOffset`); `openBuildsTotal` counts them all. */
+export type PublicArchetypeDetail = ArchetypeDetail & { openBuilds: OpenArchetypeBuild[]; openBuildsTotal: number };
 
 const OPEN_BUILDS = 8;
 const MAX_DECK_CARDS = 40;
 
 function openCard(value: unknown): OpenArchetypeCard {
   const row = record(value);
-  const id = string(row.id), name = string(row.name), cost = count(row.cost), copies = count(row.count);
-  if (!/^[A-Za-z0-9_]{2,80}$/.test(id) || !name || name.length > 120 || !Number.isInteger(copies) || copies < 1 || copies > MAX_DECK_CARDS) {
+  const id = nullableString(row.id), name = nullableString(row.name), copies = count(row.count);
+  const cost = row.cost === null || row.cost === undefined ? null : count(row.cost);
+  if ((id !== null && !/^[A-Za-z0-9_]{2,80}$/.test(id)) || (name !== null && (!name || name.length > 120))
+    || !Number.isInteger(copies) || copies < 1 || copies > MAX_DECK_CARDS) {
     throw new Error('Invalid public archetype teaser');
   }
-  return { id, name, cost, count: copies };
+  return { id, name, cost, count: copies, hasPage: row.hasPage === true && id !== null };
 }
 
 /** A build the page cannot show as a whole (no code, a malformed card) is left out, never passed through. */
@@ -81,6 +88,8 @@ export function publicArchetypeTeaser(raw: unknown, format: 'standard' | 'wild',
     || !/^[a-z0-9-]{1,90}$/.test(slug)) throw new Error('Invalid public archetype teaser');
   const rawClass = nullableString(item.classKey);
   const classKey = rawClass && CLASSES.has(rawClass) ? rawClass as ArchetypeDetail['item']['classKey'] : null;
+  const openBuilds = Array.isArray(item.builds)
+    ? item.builds.slice(0, OPEN_BUILDS).map(openBuild).filter((build): build is OpenArchetypeBuild => build !== null) : [];
   const rawBuild = payload.featuredBuild === null || payload.featuredBuild === undefined
     ? null : record(payload.featuredBuild);
   return {
@@ -100,7 +109,6 @@ export function publicArchetypeTeaser(raw: unknown, format: 'standard' | 'wild',
       samplePeriod: string(rawBuild.samplePeriod),
     } : null,
     history: [], analysis: null,
-    openBuilds: Array.isArray(item.builds)
-      ? item.builds.slice(0, OPEN_BUILDS).map(openBuild).filter((build): build is OpenArchetypeBuild => build !== null) : [],
+    openBuilds, openBuildsTotal: payload.buildsTotal === undefined ? openBuilds.length : Math.max(openBuilds.length, count(payload.buildsTotal)),
   };
 }

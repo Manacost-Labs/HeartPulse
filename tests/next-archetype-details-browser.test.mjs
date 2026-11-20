@@ -16,7 +16,8 @@ import { isMenuBackgroundRead, MENU_PATCH_ARCHIVE } from './helpers/menuBackgrou
 const OPEN_DECK = 'AAECAf0GAfKiBALxogTzogQAAA==';
 const openBuild = { deckCode: OPEN_DECK, games: 2216, winrate: 57.1, updatedAt: '2026-07-22T21:05:32.877Z',
   sampleRank: 'all', samplePeriod: 'past_30_days', mulliganImpact: 7.1717, keptImpact: 6.2626,
-  cards: [{ id: 'TST_001', name: 'Тестовый удар', cost: 1, count: 2 }, { id: 'TST_002', name: 'Тестовый страж', cost: 4, count: 1 }] };
+  cards: [{ id: 'TST_001', name: 'Тестовый удар', cost: 1, count: 2, hasPage: true }, { id: 'TST_002', name: 'Тестовый страж', cost: 4, count: 1, hasPage: true },
+    { id: 'TIME_875t', name: 'Король Ллейн', cost: 3, count: 1, hasPage: false }] };
 const PAID_SENTINELS = ['7.1717', '6.2626', '41.4141'];
 const teaser = {
   format: 'wild', formatLabel: 'Вольный', patch: '36.0.3', minimumGames: 50,
@@ -39,15 +40,18 @@ const catalogRow = (format, slug, label, english, classKey, games, winrate, popu
   durationMinutes: 8, climbingSpeed: 1.24, deckCount, sourceUrl: 'https://www.hsguru.com/meta', builds: [{ deckCode: 'PRIVATE_DECK' }],
 });
 const STANDARD_ROWS = [
-  catalogRow('standard', 'zoolock', 'Зоолок', 'Zoolock', 'warlock', 14800, 61.2, 20.4, 3),
+  catalogRow('standard', 'zoolock', 'Зоолок', 'Zoolock', 'warlock', 14800, 61.2, 20.4, 9),
   catalogRow('standard', 'cube-warlock', 'Куб Чернокнижник', 'Cube Warlock', 'warlock', 9000, 55.5, 8, 2),
   catalogRow('standard', 'handlock', 'Ханделок', 'Handlock', 'warlock', 5000, 52, 5, 2),
   catalogRow('standard', 'wincon-warlock', 'Вин-кон Чернокнижник', 'Wincon Warlock', 'warlock', 2000, 49, 2, 1),
   catalogRow('standard', 'weak-warlock', 'Слабый Чернокнижник', 'Weak Warlock', 'warlock', 500, 50, 0.2, 0),
 ];
 const WILD_ROWS = [catalogRow('wild', 'thief-priest', 'Воровской Жрец', 'Thief Priest', 'priest', 31959, 58.3, 13.5, 1)];
-const teaserOf = item => ({ ...teaser, format: item.format, formatLabel: item.format === 'wild' ? 'Вольный' : 'Стандарт',
-  item: { ...item, builds: item.deckCount ? [openBuild] : [] } });
+// Zoolock lists nine builds (a page of eight and «Загрузить ещё»); Cube Warlock's builds are all refused by the allowlist.
+const buildsOf = item => (item.slug === 'cube-warlock' ? [{ deckCode: 'PRIVATE_DECK' }, { deckCode: 'PRIVATE_DECK_2' }]
+  : Array.from({ length: item.deckCount }, (_, index) => ({ ...openBuild, games: 2216 - index })));
+const teaserOf = (item, offset = 0) => ({ ...teaser, format: item.format, formatLabel: item.format === 'wild' ? 'Вольный' : 'Стандарт',
+  item: { ...item, builds: buildsOf(item).slice(offset, offset + 8) }, buildsTotal: buildsOf(item).length, buildsOffset: offset });
 const catalogOf = format => ({
   format, formatLabel: format === 'wild' ? 'Вольный' : 'Стандарт', patch: '36.0.3', minimumGames: 50, updatedAt: teaser.updatedAt,
   coverage: {}, items: format === 'wild' ? WILD_ROWS : STANDARD_ROWS,
@@ -68,7 +72,9 @@ test('Next archetype details isolate access and load builds before independent o
       response.end(JSON.stringify(teaser)); return;
     }
     const standardRow = STANDARD_ROWS.find(row => pathname === `/api/constructed-archetypes/teaser/standard/${row.slug}`);
-    if (standardRow) { response.end(JSON.stringify(teaserOf(standardRow))); return; }
+    if (standardRow) {
+      response.end(JSON.stringify(teaserOf(standardRow, Number(new URL(request.url, 'http://fixture').searchParams.get('buildsOffset') ?? 0)))); return;
+    }
     if (pathname === '/api/constructed-archetypes/teaser') {
       response.end(JSON.stringify(catalogOf(new URL(request.url, 'http://fixture').searchParams.get('format') === 'wild' ? 'wild' : 'standard'))); return;
     }
@@ -200,19 +206,43 @@ test('Next archetype details isolate access and load builds before independent o
     await page.click('button[aria-label="Скопировать код колоды: Зоолок, сборка 1"]');
     await page.waitForSelector('button[aria-label="Код скопирован: Зоолок, сборка 1"]');
     assert.equal(await page.evaluate(() => navigator.clipboard.readText()), OPEN_DECK);
+    // Every build is open: the first eight in the page, the ninth behind «Загрузить ещё», for a guest too.
+    const buildTitles = () => page.$$eval('section[aria-labelledby="archetype-open-builds-title"] h3', nodes => nodes.map(node => node.textContent));
+    assert.equal((await buildTitles()).length, 8);
+    await page.click('button ::-p-text(Загрузить ещё 1)');
+    await page.waitForFunction(() => document.body.textContent.includes('Зоолок, сборка 9'));
+    assert.equal((await buildTitles()).at(-1), 'Зоолок, сборка 9');
+    assert.equal(await page.$('button ::-p-text(Загрузить ещё)'), null, 'nothing more to load');
+    assert.ok(await page.$('ol[aria-label="Карты: Зоолок, сборка 9"] a[href="/standard/cards/standard/TST_002/"]'));
+    // Without open builds (none, or all refused) the paywall sells only what is paid and nothing says decks are paid.
+    for (const [path, state] of [['/standard/archetypes/standard/weak-warlock/', 'Колоды появятся, когда наберётся выборка'],
+      ['/standard/archetypes/standard/cube-warlock/', 'Сборок пока нет.']]) {
+      const html = await (await fetch(`${origin}${path}`)).text();
+      assert.ok(html.includes(state) && !html.includes('Загружаем сборки архетипа'), `${path}: a short state, not a skeleton, without builds`);
+      await page.goto(`${origin}${path}`, { waitUntil: 'networkidle2' });
+      await page.waitForSelector('.arena-inline-paywall--archetype');
+      assert.equal(await page.$eval('.arena-inline-paywall--archetype h2', node => node.textContent), 'Матчапы, муллиган и история', path);
+      const text = await page.evaluate(() => document.body.textContent);
+      assert.ok(!/Колоды, матчапы|коды колод|Состав и код колоды/i.test(text), `${path} sells decks as paid`);
+    }
     // Without JavaScript the strong page still reads: the question, the date, the source and the class links.
     const plain = await browser.newPage();
     await plain.setJavaScriptEnabled(false);
     await plain.goto(`${origin}/standard/archetypes/standard/zoolock/`, { waitUntil: 'domcontentloaded' });
     const bare = await plain.evaluate(() => {
       const summary = document.querySelector('.archetype-seo-summary');
-      const builds = document.querySelector('.archetype-dossier')?.nextElementSibling;
+      const heading = [...document.querySelectorAll('h2')].find(node => node.textContent === 'Сборки архетипа');
+      const builds = heading?.closest('section');
       return { text: (summary?.innerText ?? '').replaceAll('\u00a0', ' '), time: summary?.querySelector('time')?.getAttribute('datetime'),
         links: [...(summary?.querySelectorAll('a[href^="/standard/archetypes/standard/"]') ?? [])].length,
+        // The page's headings in order: the builds come right after the archetype's name and metrics.
+        headings: [...document.querySelectorAll('h1, h2')].map(node => node.textContent),
         builds: builds && {
-          heading: builds.querySelector('h2')?.textContent, text: builds.innerText.replaceAll('\u00a0', ' ').toLowerCase(),
+          text: builds.innerText.replaceAll('\u00a0', ' ').toLowerCase(),
+          titles: [...builds.querySelectorAll('h3')].map(node => node.textContent),
           code: builds.querySelector('code')?.textContent, time: builds.querySelector('time')?.getAttribute('datetime'),
-          cards: [...builds.querySelectorAll('ol a')].map(link => [link.textContent, link.getAttribute('href')]),
+          cards: [...(builds.querySelector('ol[aria-label="Карты: Зоолок, сборка 1"]')?.querySelectorAll('a') ?? [])]
+            .map(link => [link.textContent, link.getAttribute('href')]),
         } };
     });
     await plain.close();
@@ -222,8 +252,9 @@ test('Next archetype details isolate access and load builds before independent o
     assert.equal(bare.time, '2026-07-24T12:38:57.727Z');
     assert.ok(bare.links >= 3 && bare.links <= 6, `${bare.links} class links`);
     // Right after the metrics, without JavaScript: the build's numbers, date, source, linked cards and code.
-    assert.equal(bare.builds?.heading, 'Сборки архетипа');
-    assert.ok(['1 из 3 сборок', 'винрейт', '57,1%', 'игры', '2 216', 'hsguru', 'тестовый удар ×2'].every(part => bare.builds.text.includes(part)), bare.builds.text);
+    assert.deepEqual(bare.headings.slice(0, 2), ['Зоолок', 'Сборки архетипа']);
+    assert.equal(bare.builds.titles.length, 8, 'the first page of builds is in the HTML');
+    assert.ok(['9 сборок', 'король ллейн', 'винрейт', '57,1%', 'игры', '2 216', 'hsguru', 'тестовый удар ×2'].every(part => bare.builds.text.includes(part)), bare.builds.text);
     assert.equal(bare.builds.time, '2026-07-22T21:05:32.877Z');
     assert.equal(bare.builds.code, OPEN_DECK);
     assert.deepEqual(bare.builds.cards, [['Тестовый удар', '/standard/cards/standard/TST_001/'], ['Тестовый страж', '/standard/cards/standard/TST_002/']]);

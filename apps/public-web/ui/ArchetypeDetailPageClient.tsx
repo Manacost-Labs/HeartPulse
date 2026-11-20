@@ -12,8 +12,8 @@ import { navigate } from './navigation';
  * the metrics until a subscriber's gallery replaces it; `children` is
  * server-rendered text (the summary) shown below the archetype, inside the shell's `<main>`.
  */
-export function ArchetypeDetailPageClient({ pathname, detail, openBuilds, children }: {
-  pathname: string; detail: ArchetypeDetail; openBuilds?: ReactNode; children?: ReactNode;
+export function ArchetypeDetailPageClient({ pathname, detail, openLayer = false, openBuilds, children }: {
+  pathname: string; detail: ArchetypeDetail; openLayer?: boolean; openBuilds?: ReactNode; children?: ReactNode;
 }) {
   const access = usePublicAccess();
   const { allowed, pending } = paidAccess(access, 'standard');
@@ -21,7 +21,7 @@ export function ArchetypeDetailPageClient({ pathname, detail, openBuilds, childr
   return <PublicPageShell activeTab="constructed-archetypes" pathname={pathname}
     access={access} navigate={navigate} wide>
     <ConstructedArchetypes key={pageKey} currentPath={pathname} navigatePath={navigate}
-      initialDetail={detail} openBuilds={openBuilds} embedded hasFullAccess={allowed} accessPending={pending}
+      initialDetail={detail} openLayer={openLayer} openBuilds={openBuilds} embedded hasFullAccess={allowed} accessPending={pending}
       paywall={{ authUser: access.user, subscriptionStatus: access.subscription,
         subscriptionLoading: access.checking, onRefreshSubscription: access.refresh }} />
     {children}

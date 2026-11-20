@@ -4,7 +4,7 @@ import { Router, type RequestHandler } from 'express';
 import type { StandardMetaClassKey } from './standardMetaClasses.js';
 import { resolveStandardMetaRequestPeriod } from '../shared/standardMetaPeriods.js';
 import { withCatalogCardMedia, loadCatalogCardMedia, type CatalogCardMedia } from './modules/constructedCards/public.js';
-import { publicArchetypeDetail } from './publicArchetypeDetail.js';
+import { DEGRADED_OPEN_ARCHETYPE_CACHE, PUBLIC_CARD_CATALOG_DEADLINE_MS, publicArchetypeDetail, readBuildsOffset, readPublicCardCatalog, withDeadline } from './publicArchetypeDetail.js';
 
 export type ConstructedArchetypeFormat = 'standard' | 'wild';
 
@@ -110,6 +110,10 @@ export type ConstructedArchetypeRouterDependencies = {
     archetype: string,
   ) => Promise<ConstructedArchetypeHistoryPoint[]>;
   loadCardCatalog?: (format: ConstructedArchetypeFormat) => Promise<{ cards: Record<string, unknown>[] }>;
+  /** Card dictionaries by id, as the deck builder merges them (`cards_ru.json`, then all of HearthstoneJSON): name the cards the format's catalog lacks. */
+  loadCardDictionaries?: () => Promise<Record<string, unknown>[]>;
+  /** How long the open archetype answer waits for the card catalog (default `PUBLIC_CARD_CATALOG_DEADLINE_MS`). */
+  cardCatalogDeadlineMs?: number;
   loadAnalysis: (format: ConstructedArchetypeFormat, archetype: string) => Promise<ConstructedArchetypeAnalysis | null>;
   loadRanks?: (format: ConstructedArchetypeFormat, archetype: string) => Promise<ArchetypeRankMatrix>;
   onError?: (scope: 'catalog' | 'detail' | 'history' | 'analysis' | 'media' | 'ranks', error: unknown) => void;
@@ -191,17 +195,24 @@ export function createConstructedArchetypeRouter(
   router.get('/constructed-archetypes/teaser/:format/:slug', async (request, response) => {
     const format = readFormat(request.params.format);
     const slug = String(request.params.slug ?? '').trim().toLowerCase();
-    if (!format || !/^[a-z0-9-]{1,90}$/.test(slug)) {
+    const offset = readBuildsOffset(request.query.buildsOffset);
+    if (!format || !/^[a-z0-9-]{1,90}$/.test(slug) || offset === null) {
       return response.status(400).json({ error: 'Некорректный адрес архетипа' });
     }
     try {
       const catalog = await dependencies.loadCatalog(format, null, slug);
       const item = catalog.items.find(row => row.slug === slug);
       if (!item) return response.status(404).json({ error: 'Архетип не найден в текущей мете' });
-      // The format's card catalog names the cards of the open builds; without it they keep their codes.
-      const cards = item.builds.length ? await loadCatalogCardMedia(format, dependencies.loadCardCatalog, error => dependencies.onError?.('media', error)) : [];
+      // The format's card catalog names the cards of the open builds; without it in time they keep their codes.
+      const deadline = dependencies.cardCatalogDeadlineMs ?? PUBLIC_CARD_CATALOG_DEADLINE_MS;
+      const onMediaError = (error: unknown) => dependencies.onError?.('media', error);
+      const [cards, dictionaries] = item.builds.length > offset ? await Promise.all([
+        readPublicCardCatalog(dependencies.loadCardCatalog, format, deadline, onMediaError),
+        withDeadline(dependencies.loadCardDictionaries, deadline, onMediaError)]) : [[], null];
+      const body = publicArchetypeDetail(catalog, item, cards, offset, dictionaries);
       publicTeaser(response);
-      return response.json(publicArchetypeDetail(catalog, item, cards));
+      if (body.item.builds.some(build => build.cards === null || build.cards.some(card => card.name === null))) response.set('Cache-Control', DEGRADED_OPEN_ARCHETYPE_CACHE);
+      return response.json(body);
     } catch (error) {
       dependencies.onError?.('detail', error);
       return response.status(502).json({ error: 'Страница архетипа временно недоступна' });
