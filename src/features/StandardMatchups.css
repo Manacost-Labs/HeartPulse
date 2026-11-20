@@ -219,17 +219,16 @@
  * in it moves. The reserved label is generated content, hidden: no text in the HTML, nothing for a screen reader.
  */
 .arena-app-standard-matchups .standard-matchups__heading-rank {
-  display: inline-grid;
+  display: inline-block;
   white-space: nowrap;
 }
 
-.arena-app-standard-matchups .standard-matchups__heading-rank > span,
-.arena-app-standard-matchups .standard-matchups__heading-rank::after {
-  grid-area: 1 / 1;
-}
-
-.arena-app-standard-matchups .standard-matchups__heading-rank::after {
+/* Zero-height block before the label: sets the piece's width, leaves its baseline and the heading's text as they are. */
+.arena-app-standard-matchups .standard-matchups__heading-rank::before {
   content: 'Все ранги';
+  display: block;
+  height: 0;
+  overflow: hidden;
   visibility: hidden;
 }
 
