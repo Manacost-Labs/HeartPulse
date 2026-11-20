@@ -5,10 +5,9 @@ import { shareImageUrl } from '../shared/shareImages.js';
 import { buildEntityStructuredData } from '../shared/entitySeoStructuredData.js';
 import { isPositiveDbfId, registerPublicBattlegroundHeroRoute } from './battlegroundHeroPublicRoutes.js';
 import { createHeroStatsLoader } from './battlegroundHeroStatsLoader.js';
-import { createHeroProfileLoader } from './battlegroundHeroPublicProfile.js';
+import { createHeroProfileLoader, heroLibraryUrl } from './battlegroundHeroPublicProfile.js';
 import type { PublicBattlegroundHero } from './battlegroundHeroPublicTypes.js';
 import { renderTextPlurals } from '../shared/hearthstoneCardText.js';
-import { hsDataApiOrigin } from './hsDataApiOrigin.js';
 export type { PublicBattlegroundHero } from './battlegroundHeroPublicTypes.js';
 
 type JsonRecord = Record<string, unknown>;
@@ -393,8 +392,7 @@ export function createBattlegroundHeroSeoRouter(
       hero = duoHeroes.find(candidate => String(candidate.dbfId) === dbfId);
       if (hero) {
         try {
-          const libraryUrl = new URL(`${hsDataApiOrigin()}/api/v1/heroes`);
-          libraryUrl.searchParams.set('dbf', dbfId);
+          const libraryUrl = heroLibraryUrl(dbfId);
           const libraryResponse = await withDeadline(fetchImpl(libraryUrl, {
             signal: controller.signal,
             headers: { Accept: 'application/json', 'User-Agent': 'HearthPulse/BattlegroundHeroSEO' },
@@ -414,7 +412,7 @@ export function createBattlegroundHeroSeoRouter(
     loadHero,
     loadStats: createHeroStatsLoader({ fetchImpl, timeoutMs: catalogTimeoutMs, onError: dependencies.onError }),
     loadProfile: createHeroProfileLoader({
-      libraryUrl: dbfId => `${hsDataApiOrigin()}/api/v1/heroes?dbf=${dbfId}`,
+      libraryUrl: heroLibraryUrl,
       imageUrl: value => sameOriginPublicResourceUrl(value, origin),
       fetchImpl, onError: dependencies.onError,
     }),

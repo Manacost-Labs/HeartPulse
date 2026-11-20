@@ -32,6 +32,14 @@ export type PublicBattlegroundHeroProfile = {
   buddy: (PublicBattlegroundHeroCard & { golden: PublicBattlegroundHeroCard | null }) | null;
   skins: Array<{ cardId: string | null; title: string; image: string; url: string | null }>;
   links: Array<{ label: string; url: string }>;
+  /**
+   * The hero's balance history («было → стало»), open by the owner's decision (as on card pages): the wiki change
+   * groups in the library's shape (`wiki.card_changes`), so the page reads them with `battlegroundHeroPatchEntries`.
+   */
+  patches: Array<{
+    heading: string | null;
+    entries: Array<{ date: string | null; patch: string | null; patch_url: string | null; wiki_url: string | null; items: string[] }>;
+  }>;
 };
 
 /**
