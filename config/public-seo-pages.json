@@ -259,7 +259,7 @@
       "title": "Сборки Полей сражений Hearthstone: тир-лист {year}",
       "description": "Тир-лист сборок Полей сражений Hearthstone (хс): составы по тирам S–D, ключевые существа и как играть, заклинания и аксессуары актуального патча.",
       "dataTitle": "Сборки Полей сражений Hearthstone: тир-лист, {month}[ | HearthPulse]",
-      "dataDescription": "Лучшие сборки Полей сражений Hearthstone (хс){asOf}[: тир S — {leader}]. Ключевые существа и как играть, данные HSReplay.",
+      "dataDescription": "Лучшие сборки Полей сражений Hearthstone (хс){asOf}[: тир S — {leader}]. Ключевые существа, данные HSReplay.",
       "sitemap": true
     },
     "/battlegrounds/tier-builder": {

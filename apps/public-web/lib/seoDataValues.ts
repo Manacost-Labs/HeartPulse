@@ -197,6 +197,8 @@ export function battlegroundHeroesSeoValues(ranking: PublicBattlegroundHeroesRan
   };
 }
 
+const TIER_S_TRIBES_SHOWN = 3;
+
 /** `/battlegrounds/tier-list`: the date and the tribes of tier S (the page does not print a count of builds). */
 export function battlegroundBuildsSeoValues(data: PublicBattlegroundBuilds | null, now: number): SeoDataValues | null {
   const date = data && isHsreplay(data.source) && seoDataDate(data.updatedAt, now);
@@ -204,7 +206,10 @@ export function battlegroundBuildsSeoValues(data: PublicBattlegroundBuilds | nul
   // «Нежить: APM-нежить» → «Нежить»: the tribe before the colon, each once, in the page's order.
   const tribes = [...new Set(data.builds.filter(build => build.tier === 'S')
     .map(build => build.title.split(':')[0].trim()).filter(Boolean))];
-  return { ...seoDateValues(date), leader: tribes.length > 0 ? tribes.join(', ') : null };
+  // Three tribes fit a description with the longest date; the rest is counted, not dropped silently.
+  const shown = tribes.slice(0, TIER_S_TRIBES_SHOWN).join(', ');
+  const more = tribes.length - TIER_S_TRIBES_SHOWN;
+  return { ...seoDateValues(date), leader: tribes.length === 0 ? null : more > 0 ? `${shown} и ещё ${more}` : shown };
 }
 
 // ── Standard matchups and patch notes (#540) ──

@@ -719,10 +719,10 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
     build('A', 'Механизмы: APM-магнетизм'),
   ]), NOW)), {
     title: 'Сборки Полей сражений Hearthstone: тир-лист, ноябрь 2026',
-    description: 'Лучшие сборки Полей сражений Hearthstone (хс) на 20 ноября 2026: тир S — Нежить, Элементали. Ключевые существа и как играть, данные HSReplay.',
+    description: 'Лучшие сборки Полей сражений Hearthstone (хс) на 20 ноября 2026: тир S — Нежить, Элементали. Ключевые существа, данные HSReplay.',
   });
   assert.equal(text('/battlegrounds/tier-list', battlegroundBuildsSeoValues(builds([build('A', 'Механизмы: APM-магнетизм')]), NOW)).description,
-    'Лучшие сборки Полей сражений Hearthstone (хс) на 20 ноября 2026. Ключевые существа и как играть, данные HSReplay.');
+    'Лучшие сборки Полей сражений Hearthstone (хс) на 20 ноября 2026. Ключевые существа, данные HSReplay.');
 
   // Limits: the longest month and real-size lists keep every text inside the meta limits.
   const SEPTEMBER = '2026-09-15T06:00:00.000Z';
@@ -740,6 +740,10 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
     assert.ok(value.description.includes('15 сентября 2026'), value.description);
     assert.ok(value.description.split('(хс)').length <= 2, `one «(хс)» at most: ${value.description}`);
   }
+  // Five tribes in tier S (the production case of 20.11.2026): three are named, the rest counted, and it fits.
+  assert.equal(text('/battlegrounds/tier-list', battlegroundBuildsSeoValues({ ...builds([build('S', 'Нежить: x'), build('S', 'Элементали: y'),
+    build('S', 'Свинобразы: z'), build('S', 'Мурлоки: w'), build('S', 'Звери: v')]), updatedAt: SEPTEMBER }, september)).description,
+    'Лучшие сборки Полей сражений Hearthstone (хс) на 15 сентября 2026: тир S — Нежить, Элементали, Свинобразы и ещё 2. Ключевые существа, данные HSReplay.');
 }
 
 // ── Standard matchups and patch notes: date, size of the matrix, version and release date (#540) ──
