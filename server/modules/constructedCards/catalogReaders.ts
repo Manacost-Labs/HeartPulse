@@ -11,6 +11,7 @@ type Catalog = Pick<ConstructedCardCollection, 'cacheSource' | 'dataStatus' | 'w
   /** The last good copy after a failed or late refresh, not a stale-but-loaded catalog (#396). */
   fallback?: true;
 };
+type StoredCopy = { document: Catalog['document']; repairWarning?: string | null };
 type Ports = {
   catalog: (format: ConstructedCardFormat) => Promise<Catalog>;
   patch: () => Promise<string | null>;
@@ -24,7 +25,7 @@ type Ports = {
   jobs: Map<string, Promise<ConstructedCardCollection>>;
   generation: () => number; now: () => number; ttlMs: number; origin: string;
   /** Last verified catalog without any network read; null when none is usable. */
-  lastKnown?: (format: ConstructedCardFormat) => { document: Catalog['document'] } | null;
+  lastKnown?: (format: ConstructedCardFormat) => StoredCopy | null;
   /** A caller waits this long for a shared load before it gets the last good version. */
   responseDeadlineMs?: number;
   /** A shared load that has not settled by then is dropped from `jobs` so the next caller retries. */
@@ -45,12 +46,15 @@ function stalePublicCatalog(value: ConstructedCardCollection): ConstructedCardCo
  * catalog for the format is in memory.
  */
 function storedCatalogMemo(ports: Pick<Ports, 'lastKnown' | 'generation' | 'now'>) {
-  type Entry = { generation: number; until: number; value: { document: Catalog['document'] } | null };
-  const stored = new Map<ConstructedCardFormat, Entry>();
-  const read = (format: ConstructedCardFormat) => {
+  const stored = new Map<ConstructedCardFormat, { generation: number; until: number; value: StoredCopy | null }>();
+  const held = (format: ConstructedCardFormat) => {
     const memo = stored.get(format);
-    if (memo && memo.generation === ports.generation() && memo.until > ports.now()) return memo.value;
-    let value: { document: Catalog['document'] } | null = null;
+    return memo && memo.generation === ports.generation() && memo.until > ports.now() ? memo : undefined;
+  };
+  const read = (format: ConstructedCardFormat) => {
+    const memo = held(format);
+    if (memo) return memo.value;
+    let value: StoredCopy | null = null;
     try { value = ports.lastKnown?.(format) ?? null; } catch { /* no stored catalog to fall back to */ }
     const until = ports.now() + 30_000;
     stored.set(format, { generation: ports.generation(), until, value });
@@ -58,7 +62,11 @@ function storedCatalogMemo(ports: Pick<Ports, 'lastKnown' | 'generation' | 'now'
     setTimeout(() => { if (stored.get(format)?.until === until) stored.delete(format); }, 30_000).unref?.();
     return value;
   };
-  return Object.assign(read, { release: (format: ConstructedCardFormat) => { stored.delete(format); } });
+  return Object.assign(read, {
+    release: (format: ConstructedCardFormat) => { stored.delete(format); },
+    /** The copy already read, without reading the disk; null when none is held. */
+    held: (format: ConstructedCardFormat) => held(format)?.value ?? null,
+  });
 }
 
 /**
@@ -182,6 +190,7 @@ export function createConstructedCardCatalogReaders(ports: Ports) {
     peekCards: (format: ConstructedCardFormat, period: ConstructedCardPeriod = '1d', rank: ConstructedCardRank = 'legend') => fallback(true, format, period, rank),
     /** The same for public identity: the latest public result, else the stored catalog; never reads a source. */
     peekPublicCards: (format: ConstructedCardFormat) => fallback(false, format, '1d', 'legend'),
+    heldStoredCatalog: storedCatalog.held,
   };
 }
 

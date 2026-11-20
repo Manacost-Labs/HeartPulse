@@ -22,8 +22,10 @@ The one exception is the public card endpoint: `peekPublicCards` returns the
 latest public result or the stored catalog without a source read, and the
 public card reader answers a unique indexable card found there at once while
 `loadPublicCards` refreshes in the background (#630). The stored catalog is
-read synchronously, so the readers keep it per format and generation for 30 s
-and release it then, or earlier once a load caches a catalog for the format.
+read synchronously (through the store's fast `readServingCopy`), so the
+readers keep it per format and generation for 30 s and release it then, or
+earlier once a load caches a catalog for the format. A failed source load
+reuses the held copy (`heldStoredCatalog`) instead of reading it again.
 
 ## History context
 

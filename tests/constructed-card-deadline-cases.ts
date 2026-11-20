@@ -9,6 +9,7 @@ import { createEntitySitemapRouter } from '../server/entitySitemapRoutes.js';
 import { createEntitySitemapLoaders } from '../server/entitySitemapSources.js';
 import { createSlowMemo } from '../server/modules/constructedCards/public.js';
 import { createConstructedCardSeoRouter } from '../server/constructedCardSeoRoutes.js';
+import { ConstructedCardCatalogStore } from '../server/constructedCardCatalogStore.js';
 
 // Incident 2026-11-15: a source read that never settles stayed in the shared
 // load map forever, so the catalog, card pages and card sitemaps hung with it.
@@ -238,6 +239,48 @@ test('the slow memo stays bounded and gives up only its oldest mark, never the f
   assert.deepEqual(['b', 'c', 'd', 'e'].map(key => memo.isSlow(key)), [true, false, true, true]);
   now = 36_000;
   assert.deepEqual(['b', 'd', 'e'].map(key => memo.isSlow(key)), [false, false, false], 'marks still expire on time');
+});
+
+// The production Wild copy: 6 501 cards, 33 MB per file, with the wiki records.
+// Verifying and comparing both copies takes 2.5-3 s; the first page waits 2 s.
+function productionSizedCard(index: number) {
+  const id = index === 0 ? 'CS1_130' : `WILD_${index}`;
+  const changes = Array.from({ length: 10 }, (_, change) => ({
+    patch: `${20 + change}.${index % 7}.0`, date: '2024-01-0' + (change % 9 + 1), type: change % 2 ? 'buff' : 'nerf',
+    text: { ru: `Изменение ${change} карты ${id}: стоимость, атака и здоровье`, en: `Change ${change} of ${id}` },
+    before: { mana_cost: change, attack: change + 1, health: change + 2 }, after: { mana_cost: change + 1, attack: change, health: change },
+  }));
+  return {
+    ...card(id, 10_000 + index), card_set: `SET_${index % 40}`, flavor: { ru: 'Флейвор '.repeat(12), en: 'Flavor '.repeat(12) },
+    text: { ru: `<b>Боевой клич:</b> текст карты ${id} `.repeat(4), en: `<b>Battlecry:</b> card text ${id} `.repeat(4) },
+    wiki: { patch_changes: changes, related_cards: Array.from({ length: 10 }, (_, related) => ({ card_id: `REL_${index}_${related}`,
+      name: { ru: `Связанная ${related}`, en: `Related ${related}` }, image: `https://cdn.example.test/r/${index}/${related}.png` })),
+    links: { hearthpwn: `https://example.test/cards/${index}`, wiki: `https://example.test/wiki/${id}` } },
+  };
+}
+
+test('after a restart the first Wild card answers within 1 s from a production-sized stored catalog', async () => {
+  const h = harness({ loadDeadlineMs: 3_000 });
+  const cards = Array.from({ length: 6_501 }, (_, index) => productionSizedCard(index));
+  new ConstructedCardCatalogStore({ stateDirectory: h.directory, now: () => h.state.now, minimumCardCountByFormat: { standard: 1, wild: 1 } })
+    .publish('wild', cards, { expectedTotal: cards.length });
+  const restarted = harness({ directory: h.directory, responseDeadlineMs: undefined, loadDeadlineMs: 3_000 });
+  restarted.state.fail = true; // the source answers 500 at once: the refresh fails and falls back too
+  const server = express();
+  server.use(createConstructedCardSeoRouter({ ...restarted.service }));
+  const router = await listen(server);
+  try {
+    const first = await timed(`${router.origin}/api/public/constructed-cards/wild/CS1_130`);
+    assert.equal(first.response.status, 200, first.body);
+    assert.ok(first.elapsed < 1_000, `first Wild card took ${first.elapsed} ms`);
+    // The failed background refresh must not read the 33 MB copy again in the way of the next page.
+    await new Promise(resolve => setTimeout(resolve, 50));
+    const next = await timed(`${router.origin}/api/public/constructed-cards/wild/WILD_6500`);
+    assert.equal(next.response.status, 200, next.body);
+    assert.ok(next.elapsed < 1_000, `next Wild card took ${next.elapsed} ms`);
+  } finally {
+    await router.close();
+  }
 });
 
 // Incident 2026-11-20 (#630): after every restart the public card read waited
