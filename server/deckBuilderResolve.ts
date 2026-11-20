@@ -157,9 +157,18 @@ export function indexCardsByDbf(cards: DeckBuilderCardRecord[]): Map<number, Dec
 
 export function indexCardsRuByDbf(cardsRu: Record<string, any> | null | undefined): Map<number, DeckBuilderCardRecord> {
   const index = new Map<number, DeckBuilderCardRecord>();
-  for (const [cardId, row] of Object.entries(cardsRu ?? {})) {
+  const slashed = new Set<number>();
+  for (const [rawCardId, row] of Object.entries(cardsRu ?? {})) {
     const dbfId = finiteNumber(row?.dbf ?? row?.dbfId);
-    if (dbfId === null || !isValidDeckDbfId(dbfId) || index.has(dbfId)) continue;
+    if (dbfId === null || !isValidDeckDbfId(dbfId)) continue;
+    // The shipped `cards_ru.json` has keys with a leading slash (`/OG_211`): a card id is never one, and a
+    // slashless entry of the same card wins over a slashed one whatever their order.
+    const cardId = rawCardId.replace(/^\/+/, '');
+    // Only an id the public pages allow is indexed; any other key is a card nobody can name.
+    if (!/^[A-Za-z0-9_]{2,80}$/.test(cardId)) continue;
+    const isSlashed = cardId !== rawCardId;
+    if (index.has(dbfId) && !(slashed.has(dbfId) && !isSlashed)) continue;
+    if (isSlashed) slashed.add(dbfId); else slashed.delete(dbfId);
     index.set(dbfId, {
       card_id: cardId,
       dbf: dbfId,
@@ -177,7 +186,8 @@ function sideboardKeyForCardId(
 ): number | null {
   const match = cardId.match(/^(.*?)t\d+[a-z]?$/i);
   if (!match) return null;
-  const parent = cardsRu?.[match[1]];
+  // The shipped dictionary stores some parents under a slashed key (`/FOO`); `cardId` is already without it.
+  const parent = cardsRu?.[match[1]] ?? cardsRu?.[`/${match[1]}`];
   const parentDbf = finiteNumber(parent?.dbf ?? parent?.dbfId);
   return parentDbf !== null && isValidDeckDbfId(parentDbf) ? parentDbf : null;
 }
