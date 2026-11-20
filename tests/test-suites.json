@@ -536,6 +536,7 @@
         "tests/social-oauth-server-security-contract.test.ts",
         "tests/socialOAuth.test.ts",
         "tests/soft-paywall-ui-contract.test.ts",
+        "tests/paid-locks.test.ts",
         "tests/standard-meta-contract.test.ts",
         "tests/standard-meta-preview-cache-policy.test.ts",
         "tests/standard-meta-ui-contract.test.ts",
@@ -554,6 +555,7 @@
       "id": "browser",
       "files": [
         "tests/archetype-radar-picker-browser.test.mjs",
+        "tests/paid-locks-browser.test.mjs",
         "tests/hsguru-archetype-stats-browser.test.mjs",
         "tests/archetypes-detail-browser.test.mjs",
         "tests/arena-card-motion.browser.test.mjs",
