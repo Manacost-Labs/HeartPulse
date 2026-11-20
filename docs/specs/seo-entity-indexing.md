@@ -154,8 +154,10 @@ No new dependency, database migration or public JSON API is introduced.
 
 ## Safety boundaries and rollback
 
-- Subscriber statistics, deck codes, cookies, authorization state and private
-  payloads must not affect or appear in sitemap XML, HTML or JSON-LD.
+- Subscriber statistics, cookies, authorization state and private payloads
+  must not affect or appear in sitemap XML, HTML or JSON-LD. (Deck codes of
+  the open builds of an archetype page are open data and stay in the page's
+  HTML, not in the JSON-LD or the sitemap.)
 - Catalog requests have bounded deadlines. A cold failure returns `503`; a warm
   failure serves only a checksum-valid last-known-good snapshot.
 - The current Standard sitemap URL remains stable for backward compatibility.
@@ -212,8 +214,8 @@ catalog that is 72 of 196 Standard archetypes. Wild is never indexable.
   with the median winrate of the format and of the class (rows of the public
   catalog with at least 1000 games; a median over fewer than 5 or 3 rows is not
   printed), the place by games, how to read the numbers («от N игр»), the
-  «Источник: HSGuru» link, a sentence that builds and deck codes are for
-  subscribers (no values) and 4–6 links to archetypes of the same class
+  «Источник: HSGuru» link, a sentence that matchups, mulligan, history and ranks
+  are for subscribers (no values) and 4–6 links to archetypes of the same class
   (indexable first). 150–250 words. The word «лидер» is not used: a ranking
   word needs a sample threshold. A share above zero that rounds to zero is
   printed «менее 0,1%». When two catalog rows share a Russian name, the English
@@ -222,11 +224,13 @@ catalog that is 72 of 196 Standard archetypes. Wild is never indexable.
   not answer within the first-paint budget) or with fewer than three archetypes
   of the class to link, a short neutral primer («Что такое архетип», no catalog
   numbers) replaces the comparison and the links, so the text keeps its length.
-  Builds, deck codes, history and analysis never reach the HTML or the RSC
-  payload, and the summary and the JSON-LD do not use the numbers of
-  `featuredBuild` (the public teaser carries them and the page's «Главная сборка»
-  block shows them); the sentinel test in `tests/next-seo-page-metadata.test.mjs`
-  fails on any leak.
+  History, matchups, card statistics and ranks never reach the HTML, the RSC
+  payload or the JSON-LD, and the summary and the JSON-LD do not use the numbers
+  of `featuredBuild`; the open builds list (deck codes and card lists of the
+  first builds, `ArchetypeOpenBuilds`) is on the page for everyone. The sentinel
+  tests in `tests/next-seo-page-metadata.test.mjs` and
+  `tests/next-archetype-details-browser.test.mjs` fail on any leak of the
+  closed layer.
 - JSON-LD only for an indexable archetype, built by `archetypeStructuredDataGraph`
   (`src/seo/archetypeStructuredData.ts`) through the same finishing step as the
   registry pages (`seoStructuredDataGraphOf`): `Organization` `#org`,
@@ -237,9 +241,12 @@ catalog that is 72 of 196 Standard archetypes. Wild is never indexable.
   the teaser's winrate, popularity and games as they are, a metric the source
   lacks is omitted). This is the one place where a `Dataset` has values: they
   are the open numbers of this single entity, repeated verbatim in the visible
-  text, and the test checks that each is in the public teaser. `isAccessibleForFree`
-  is not written: the numbers it describes are free, and the paid parts are not
-  described at all.
+  text, and the test checks that each is in the public teaser. The Dataset is
+  `isAccessibleForFree: false` with `hasPart` naming the closed blocks of the
+  page (`.paywalled-archetype-analysis`, `.paywalled-archetype-history`, each a
+  `WebPageElement` with `isAccessibleForFree: false`); the `ItemPage` itself is
+  not marked, and the deck codes of the open builds are not repeated in the
+  graph.
 
 ### Archetype sitemap segment (E9 S3c)
 

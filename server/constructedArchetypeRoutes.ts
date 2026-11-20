@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import { Router, type RequestHandler } from 'express';
 import type { StandardMetaClassKey } from './standardMetaClasses.js';
 import { resolveStandardMetaRequestPeriod } from '../shared/standardMetaPeriods.js';
+import { mountPublicArchetypeRoutes } from './publicArchetypeSlice.js';
 import { withCatalogCardMedia, loadCatalogCardMedia, type CatalogCardMedia } from './modules/constructedCards/public.js';
 
 export type ConstructedArchetypeFormat = 'standard' | 'wild';
@@ -142,6 +143,11 @@ function readSearch(value: unknown): string {
   return String(value ?? '').trim().replace(/\s+/g, ' ').slice(0, 120);
 }
 
+function searchItems(items: ConstructedArchetypeItem[], value: unknown): ConstructedArchetypeItem[] {
+  const query = readSearch(value).toLocaleLowerCase('ru-RU');
+  return query ? items.filter(item => `${item.archetype} ${item.archetypeLabel}`.toLocaleLowerCase('ru-RU').includes(query)) : items;
+}
+
 function responseGuard(dependencies: ConstructedArchetypeRouterDependencies): RequestHandler {
   return (_request, response, next) => {
     dependencies.setPrivateNoStore(response);
@@ -169,12 +175,7 @@ export function createConstructedArchetypeRouter(
     if (period === undefined) return response.status(400).json({ error: 'Неизвестный период' });
     try {
       const catalog = await dependencies.loadCatalog(format, period);
-      const query = readSearch(request.query.q).toLocaleLowerCase('ru-RU');
-      const items = query
-        ? catalog.items.filter(item => (
-          `${item.archetype} ${item.archetypeLabel}`.toLocaleLowerCase('ru-RU').includes(query)
-        ))
-        : catalog.items;
+      const items = searchItems(catalog.items, request.query.q);
       publicTeaser(response);
       return response.json({
         ...catalog,
@@ -222,6 +223,7 @@ export function createConstructedArchetypeRouter(
     }
   });
 
+  mountPublicArchetypeRoutes(router, dependencies);
   router.use('/constructed-archetypes', dependencies.accessGuard, responseGuard(dependencies));
 
   router.get('/constructed-archetypes', async (request, response) => {
@@ -231,12 +233,7 @@ export function createConstructedArchetypeRouter(
     if (period === undefined) return response.status(400).json({ error: 'Неизвестный период' });
     try {
       const catalog = await dependencies.loadCatalog(format, period);
-      const query = readSearch(request.query.q).toLocaleLowerCase('ru-RU');
-      const items = query
-        ? catalog.items.filter(item => (
-          `${item.archetype} ${item.archetypeLabel}`.toLocaleLowerCase('ru-RU').includes(query)
-        ))
-        : catalog.items;
+      const items = searchItems(catalog.items, request.query.q);
       return response.json({
         ...catalog,
         items: items.map(teaserItem),

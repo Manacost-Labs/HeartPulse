@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
-    "sourceFiles": 116,
-    "routeRegistrations": 307,
+    "sourceFiles": 117,
+    "routeRegistrations": 308,
     "middlewareRegistrations": 157,
     "explicitGuardRouteRegistrations": 74,
     "unresolvedPaths": 0
@@ -5717,6 +5717,18 @@
       "guardSignals": [],
       "source": "server/patreonOAuthRoutes.ts",
       "sourceOrder": 1
+    },
+    {
+      "kind": "route",
+      "method": "GET",
+      "path": "/constructed-archetypes/public/:format/:slug",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "createPublicArchetypeHandler(...)",
+      "guardSignals": [],
+      "source": "server/publicArchetypeSlice.ts",
+      "sourceOrder": 0
     },
     {
       "kind": "route",

@@ -217,7 +217,7 @@ test('archetype detail keeps its paid sections loading, without preview or paywa
     const url = new URL(request.url, 'http://fixture');
     const member = /(?:^|;\s*)member=1/.test(request.headers.cookie ?? '');
     const json = (status, payload) => response.writeHead(status, { 'Content-Type': 'application/json' }).end(JSON.stringify(payload));
-    if (url.pathname === '/api/constructed-archetypes/teaser/wild/thief-priest') return json(200, teaser);
+    if (url.pathname === '/api/constructed-archetypes/public/wild/thief-priest') return json(200, teaser);
     if (url.pathname === '/api/constructed-archetypes/wild/thief-priest') {
       if (!member) return json(403, { error: 'denied' });
       const section = url.searchParams.get('section');

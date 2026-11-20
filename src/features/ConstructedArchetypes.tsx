@@ -11,7 +11,7 @@ import {
   ArchetypeAnalysisLoading, ArchetypeAnalysisReserve, ArchetypeBuildsSkeleton, ArchetypeHistorySkeleton, loadArchetypeAnalysis,
 } from './ConstructedArchetypeDetailSkeletons';
 import '../shared/ui/analytics/Analytics.css';
-import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import React, { useDeferredValue, useEffect, useMemo, useState, type ReactNode } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -27,8 +27,10 @@ import '../route-parchment.css';
 import '../shared/ui/LoadingSurface.css';
 import './ConstructedArchetypes.css';
 import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
+import { ArchetypePaidLocks } from './ArchetypePaidLocks';
 import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import type { ConstructedAnalysis } from './ConstructedArchetypeAnalysis';
+import type { OpenDeckCard } from './archetypeOpenBuilds';
 import ConstructedArchetypeDeckGallery from './ConstructedArchetypeDeckGallery';
 import {
   AsyncSurfaceState,
@@ -62,6 +64,8 @@ type ArchetypeBuild = {
   sampleRank: string;
   samplePeriod: string;
   sampleSource?: 'stats' | 'replays';
+  /** The open layer's card list (the guest page); the subscriber's builds are drawn by the gallery. */
+  cards?: OpenDeckCard[];
 };
 
 type ArchetypeItem = {
@@ -450,9 +454,11 @@ type ArchetypeDetailProps = {
   initialDetail: ArchetypeDetail | null;
   embedded: boolean;
   accessPending: boolean;
+  /** The server-rendered open builds: shown to everyone until the paid view has loaded. */
+  openBuilds?: ReactNode;
 };
 
-function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywall, initialDetail, embedded, accessPending }: ArchetypeDetailProps) {
+function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywall, initialDetail, embedded, accessPending, openBuilds }: ArchetypeDetailProps) {
   const Root = embedded ? 'section' : 'main';
   const [visibleBuilds, setVisibleBuilds] = useState(BUILDS_PAGE);
   const { detail, core, history: historyRead, analysis: analysisRead, ranks: ranksRead, fullAccess, denied } = useArchetypeDetail({
@@ -464,6 +470,10 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
     loadArchetypeAnalysis().catch(() => undefined);
     loadInsights().catch(() => undefined);
   }, [fullAccess, accessPending]);
+  // The open builds stay (with their height) until the paid view is loaded and can replace them in one render.
+  // A page with no build to list passes `null`: it still has the open layer, and the locks name what is closed.
+  const openLayer = openBuilds !== undefined;
+  const showOpen = openLayer && !(fullAccess && !accessPending && !core.loading);
   const archetypeLabel = detail?.item.archetypeLabel;
   useEffect(() => {
     if (archetypeLabel) document.title = `${archetypeLabel} — сборки и статистика | HearthPulse`;
@@ -540,13 +550,14 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
 
       {/* While access is checked the paid sections hold their loading place; the
           preview and the paywall belong to a confirmed answer without access. */}
-      {accessPending || (fullAccess && (core.loading || core.error)) ? (
+      {showOpen ? <>{openBuilds}<ArchetypePaidLocks paywall={paywall} /></> : null}
+      {!showOpen && (accessPending || (fullAccess && (core.loading || core.error))) ? (
         <ArchetypeDetailSection reserveViewport title="Сборки архетипа" loading={accessPending || core.loading}
           error={accessPending ? null : core.error} onRetry={core.retry} skeleton={<ArchetypeBuildsSkeleton deckCount={item.deckCount} />} />
       ) : null}
       {denied ? <p role="alert">Доступ изменился. Обновите страницу, чтобы проверить подписку.</p> : null}
 
-      {fullAccess && item.builds.length > 0 && (
+      {fullAccess && !core.loading && item.builds.length > 0 && (
         <section className="archetype-builds" aria-labelledby="archetype-builds-title" data-tour-id="archetype-builds">
           <header className="archetype-section-heading">
             <div>
@@ -582,7 +593,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         </section>
       ) : null}
 
-      {!fullAccess && !accessPending && !paywall.subscriptionStatus?.unavailable && detail.featuredBuild ? (
+      {!openLayer && !fullAccess && !accessPending && !paywall.subscriptionStatus?.unavailable && detail.featuredBuild ? (
         <section className="archetype-build-preview" aria-labelledby="archetype-build-preview-title">
           <div>
             <span className="archetypes-eyebrow"><Sparkles size={14} /> Главная сборка</span>
@@ -596,7 +607,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         </section>
       ) : null}
 
-      {!fullAccess && !accessPending ? (
+      {!openLayer && !fullAccess && !accessPending ? (
         <PaywallGate
           active
           presentation="inline"
@@ -660,6 +671,7 @@ export default function ConstructedArchetypes({
   hasFullAccess = true,
   accessPending = false,
   paywall = DEFAULT_PAYWALL_ACCESS,
+  openBuilds,
 }: {
   currentPath?: string;
   navigatePath?: (path: string) => void;
@@ -670,6 +682,7 @@ export default function ConstructedArchetypes({
   hasFullAccess?: boolean;
   accessPending?: boolean;
   paywall?: PaywallAccessState;
+  openBuilds?: ReactNode;
 }) {
   const detailMatch = currentPath.match(/^\/standard\/(?:archetypes|meta)\/(standard|wild)\/([a-z0-9-]+)\/?$/);
   const content = detailMatch
@@ -683,6 +696,7 @@ export default function ConstructedArchetypes({
         initialDetail={initialDetail}
         accessPending={accessPending}
         embedded={embedded}
+        openBuilds={openBuilds}
       />
     )
     : <ArchetypeCatalogPage navigatePath={navigatePath}

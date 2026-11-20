@@ -9,10 +9,10 @@ import { COLD_READ_WAIT_MS, readPublicJson, type PublicPayloadCheck } from './fi
 import { isPublicDataMissing } from './publicCatalogCache';
 import { patchNotesReader } from './patchNotesStore';
 import { cosmeticsCatalogSeedRequest } from './publicCosmeticsCatalogData';
-import { FUN_DECKS_PATH, HOME_PATHS, STREAMERS_PATH, archetypeTeaserPath, streamerPath } from './publicDataPaths';
+import { FUN_DECKS_PATH, HOME_PATHS, STREAMERS_PATH, archetypePublicPath, archetypeTeaserPath, streamerPath } from './publicDataPaths';
 import { leaderboardPaths } from './publicLeaderboardPaths';
 import {
-  archetypeTeaserCheck, cosmeticsCatalogCheck, funDecksCheck, homeArticlesCheck, homeSummaryCheck,
+  archetypePublicCheck, archetypeTeaserCheck, cosmeticsCatalogCheck, funDecksCheck, homeArticlesCheck, homeSummaryCheck,
 } from './publicPayloadChecks';
 
 /**
@@ -70,6 +70,11 @@ export async function probePublicData(pathname: string, searchParams: URLSearchP
   if (path === '/standard/archetypes') {
     const { format } = readInitialCatalogFilters(search, []);
     return probeReads([archetypeTeaserPath(format, null), archetypeTeaserCheck(format)]);
+  }
+  const archetype = path.match(/^\/standard\/archetypes\/(standard|wild)\/([a-z0-9-]{1,90})$/u);
+  if (archetype) {
+    const [, format, slug] = archetype as unknown as [string, 'standard' | 'wild', string];
+    return probeReads([archetypePublicPath(format, slug), archetypePublicCheck(format, slug)]);
   }
   if (path === '/standard/patches') {
     const version = normalizePatchVersion(searchParams.get('version') ?? undefined) || null;

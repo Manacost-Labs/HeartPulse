@@ -433,10 +433,14 @@ const metaTeaser = (updatedAt, rows) => ({
   items: rows.map(([label, winrate, games], index) => ({ id: `m${index}`, slug: `m${index}`, archetype: label, archetypeLabel: label,
     translated: true, classKey: 'warlock', winrate, popularity: 20.4, games, turns: null, durationMinutes: null, climbingSpeed: null })),
 });
+// The open layer of a detail answer: a build with its deck code and card list (the endpoint `/api/constructed-archetypes/public/…`).
+const OPEN_DECK_CODE = 'AAEBAa0GOpenDeckCodeFixture12345';
+const openBuild = { deckCode: OPEN_DECK_CODE, games: 100, winrate: 50, updatedAt: '2026-10-29T11:00:03.937Z', sampleRank: 'all', samplePeriod: 'past_7_days',
+  cards: [{ dbfId: 1, name: 'Открытая карта', cost: 2, rarity: 'COMMON', count: 2 }], privateNote: 'PRIVATE_BUILD_NOTE' };
 const archetypeItem = (slug, label, format = 'standard') => ({
   slug, format, classKey: 'warlock', archetype: label, archetypeLabel: label, translated: true, games: 14800, winrate: 61.24,
   popularity: 20.4, turns: 8, durationMinutes: 7, climbingSpeed: 1, deckCount: 3, sourceUrl: 'https://www.hsguru.com/archetype',
-  builds: [{ deckCode: 'PAID_BUILD_CODE' }],
+  builds: [openBuild],
 });
 const TOP_ROWS = [['Зоолок', 61, 14800], ['Граб\'Зи К\'тун Шаман', 58.2, 5400], ['Н\'зот Чернокнижник', 57.4, 258]];
 const LONGEST_LABEL = 'Колода-завоеватель с очень-очень длинным названием архетипа Стандарта';
@@ -444,7 +448,7 @@ const LONGEST_LABEL = 'Колода-завоеватель с очень-оче�
 function startFakeExpress(state) {
   return http.createServer((request, response) => {
     const url = new URL(request.url, 'http://fixture');
-    const detail = url.pathname.match(/^\/api\/constructed-archetypes\/teaser\/(standard|wild)\/([a-z0-9-]+)$/);
+    const detail = url.pathname.match(/^\/api\/constructed-archetypes\/public\/(standard|wild)\/([a-z0-9-]+)$/);
     let payload = null;
     if (url.pathname === '/api/auth/me') payload = { user: null };
     else if (url.pathname === '/api/standard-meta/public') payload = state.meta;
@@ -577,10 +581,12 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     const wildArchetype = await page('/standard/archetypes/wild/zoolock/');
     assert.ok(wildArchetype.description.startsWith('Зоолок в Вольном формате (хс) на '), wildArchetype.description);
     state.detail = { updatedAt, label: LONGEST_LABEL };
+    await delay(2200); // the store of last good copies answers within 2 s without asking Express again
     const longest = await page('/standard/archetypes/standard/zoolock/');
     assert.ok(longest.title.includes('Hearthstone') && longest.title.startsWith('Колода-завоеватель'), longest.title);
     assert.ok(longest.description.includes(date) && longest.description.endsWith('Данные HSGuru.'), longest.description);
     state.detail = { updatedAt: '2026-09-01T09:00:00.000Z', label: 'Зоолок' };
+    await delay(2200); // the store of last good copies answers within 2 s without asking Express again
     const staleArchetype = await page('/standard/archetypes/standard/zoolock/');
     assert.equal(staleArchetype.title, 'Зоолок — колода Hearthstone | HearthPulse');
     assert.ok(staleArchetype.description.startsWith('Зоолок в Стандарте (хс), обновлено 1 сентября 2026: винрейт 61,2%'));
@@ -784,7 +790,7 @@ test('the datasets take their date from what the real backend serves: the fetch 
 // Real Next on a fake Express whose upstream answers carry deck codes, builds, history and
 // analysis, as the real one does for a subscriber: none of it may reach any HTML a guest gets.
 
-const PAID_MARKERS = ['AAEBAZSentinelPaidDeckCode0123456789', 'PRIVATE_HISTORY', 'PRIVATE_ANALYSIS', 'PRIVATE_ACCOUNT', 'PRIVATE_FEATURED_DECK'];
+const PAID_MARKERS = ['AAEBAZSentinelPaidDeckCode0123456789', 'PRIVATE_HISTORY', 'PRIVATE_ANALYSIS', 'PRIVATE_ACCOUNT', 'PRIVATE_FEATURED_DECK', 'PRIVATE_BUILD_NOTE', '7.1717', '6.2626'];
 const DECK_CODE = /AAE[A-Za-z0-9+/=]{12,}/;
 
 const catalogRow = (format, slug, label, english, classKey, games, winrate, popularity, deckCount) => ({
@@ -817,7 +823,7 @@ const WILD_ROWS = [
 function startArchetypeExpress(state) {
   return http.createServer((request, response) => {
     const url = new URL(request.url, 'http://fixture');
-    const detail = url.pathname.match(/^\/api\/constructed-archetypes\/teaser\/(standard|wild)\/([a-z0-9-]+)$/);
+    const detail = url.pathname.match(/^\/api\/constructed-archetypes\/public\/(standard|wild)\/([a-z0-9-]+)$/);
     const rowsOf = format => (format === 'wild' ? WILD_ROWS : STANDARD_ROWS);
     let status = 200;
     let payload = { error: 'fixture has no data' };
@@ -833,9 +839,9 @@ function startArchetypeExpress(state) {
       if (!item) status = 404;
       else payload = {
         format: detail[1], formatLabel: detail[1] === 'wild' ? 'Вольный' : 'Стандарт', patch: 'black_empire_ban', minimumGames: 50,
-        updatedAt: state.updatedAt, account: 'PRIVATE_ACCOUNT', item,
+        updatedAt: state.updatedAt, account: 'PRIVATE_ACCOUNT', item: { ...item, builds: [openBuild] },
         featuredBuild: { games: 2216, winrate: 57.1, updatedAt: null, sampleRank: 'all', samplePeriod: 'past_30_days', deckCode: 'PRIVATE_FEATURED_DECK' },
-        history: [{ recordedAt: 'PRIVATE_HISTORY' }], analysis: { private: 'PRIVATE_ANALYSIS' },
+        history: [{ recordedAt: 'PRIVATE_HISTORY' }], analysis: { private: 'PRIVATE_ANALYSIS', cardStats: [{ mulliganImpact: 7.1717, keptImpact: 6.2626 }] },
       };
     } else status = 503;
     response.setHeader('Content-Type', 'application/json');
@@ -1007,7 +1013,8 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
     assert.ok(fetched.length >= 12);
     for (const [path, html] of fetched) {
       for (const marker of PAID_MARKERS) assert.ok(!html.includes(marker), `${path} leaks ${marker}`);
-      assert.doesNotMatch(html, DECK_CODE, `${path} carries a deck code`);
+      // The open layer lists the deck code of a build; no other code (the catalog's, a paid one) is in any document.
+      assert.deepEqual((html.match(new RegExp(DECK_CODE, 'g')) ?? []).filter(code => code !== OPEN_DECK_CODE), [], `${path} carries another deck code`);
       assert.ok(html.includes('self.__next_f'), `${path} includes the RSC payload the check covers`);
     }
   } finally {

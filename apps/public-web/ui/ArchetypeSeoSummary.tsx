@@ -150,7 +150,7 @@ export function ArchetypeSeoSummary({ detail, catalog }: { detail: ArchetypeDeta
         </> : null}
         Источник данных — {frame.hsguru}.
       </p>
-      <p>Сборки и коды колод, история винрейта и разбор карт архетипа доступны по подписке HearthPulse — в этом тексте их нет.</p>
+      <p>Матчапы по классам, муллиган, история винрейта и ранги доступны по подписке HearthPulse — в этом тексте их нет.</p>
       <Neighbours facts={facts} frame={frame} />
       <p><a href={item.format === 'wild' ? '/standard/archetypes/?format=wild' : '/standard/archetypes/'}>Все архетипы {frame.ofFormat}</a></p>
     </section>

@@ -5,6 +5,7 @@ import { publicArchetypeCatalog } from './publicArchetypeCatalogTeaserData';
 import { cosmeticsCatalogSeed } from './publicCosmeticsCatalogData';
 import { articlesData } from './articlesData';
 import { homeSummaryData } from './homeSummaryData';
+import { publicArchetypeTeaser } from './publicArchetypeTeaserData';
 import { publicFunDecksPreview } from './publicFunDecksPreviewData';
 
 /**
@@ -26,4 +27,5 @@ export const homeSummaryCheck = usable(homeSummaryData);
 export const homeArticlesCheck = usable(raw => articlesData(raw));
 export const funDecksCheck = usable(publicFunDecksPreview);
 export const archetypeTeaserCheck = (format: ArchetypeCatalog['format']) => usable(raw => publicArchetypeCatalog(raw, format));
+export const archetypePublicCheck = (format: ArchetypeCatalog['format'], slug: string) => usable(raw => publicArchetypeTeaser(raw, format, slug));
 export const cosmeticsCatalogCheck = (kind: CosmeticKind, url: string) => usable(raw => cosmeticsCatalogSeed(kind, url, raw));

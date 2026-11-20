@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import './public-archetype-slice.check.js';
 import express, { type RequestHandler } from 'express';
 import { setImmediate as flush } from 'node:timers/promises';
 import { loadArchetypeCatalogForPeriod, loadArchetypeCatalogForSlug } from '../server/constructedArchetypeCatalogPeriod.js';

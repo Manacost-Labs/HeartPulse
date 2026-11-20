@@ -520,7 +520,12 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
   assert.deepEqual(dataset.publisher, { '@id': 'https://hearthpulse.net/#org' });
   assert.equal('creator' in dataset, false, 'the site is not the creator of data it derives from HSGuru');
   assert.equal('license' in dataset, false);
-  assert.doesNotMatch(JSON.stringify(graph), /deckCode|builds|history|analysis|AAE/i);
+  assert.doesNotMatch(JSON.stringify(graph), /deckCode|builds|AAE/i);
+  assert.equal(dataset.isAccessibleForFree, false, 'the closed layer is named');
+  assert.deepEqual(dataset.hasPart, ['.paywalled-archetype-analysis', '.paywalled-archetype-history'].map(cssSelector => ({
+    '@type': 'WebPageElement', isAccessibleForFree: false, cssSelector,
+  })));
+  assert.equal(JSON.stringify(page).includes('isAccessibleForFree'), false, 'the page itself is open');
   // A metric the source lacks is left out, not written as null; no date and no source address, none written.
   const sparse = await archetypeStructuredDataGraph({ ...graphFacts, winrate: null, popularity: null, dateModified: null, sourceUrl: null });
   assert.deepEqual(sparse!['@graph'][3].variableMeasured, [{ '@type': 'PropertyValue', name: 'Число игр', value: 53208 }]);

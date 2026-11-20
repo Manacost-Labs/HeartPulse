@@ -8,6 +8,9 @@
 export const archetypeTeaserPath = (format: string, period: string | null) =>
   `/api/constructed-archetypes/teaser?format=${format}${period ? `&period=${period}` : ''}`;
 
+/** The open layer of one archetype page (general slice, builds with deck codes and card lists). */
+export const archetypePublicPath = (format: string, slug: string) => `/api/constructed-archetypes/public/${format}/${slug}`;
+
 export const STREAMERS_PATH = '/api/streamers';
 export const streamerPath = (slug: string) => `/api/streamers/${encodeURIComponent(slug)}`;
 export const FUN_DECKS_PATH = '/api/fun-decks';
