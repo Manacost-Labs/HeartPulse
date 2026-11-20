@@ -40,7 +40,19 @@ async function pageState(page) {
   }));
 }
 
-const text = html => html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
+/** The visible text of a server HTML: parsed by the browser with scripts off, then script and style nodes dropped. */
+async function visibleText(browser, html) {
+  const page = await browser.newPage();
+  try {
+    await page.setJavaScriptEnabled(false);
+    await page.setContent(html, { waitUntil: 'domcontentloaded' });
+    return await page.evaluate(() => {
+      document.querySelectorAll('script, style, noscript').forEach(node => node.remove());
+      document.body.querySelectorAll('*').forEach(node => node.append(' '));
+      return (document.body.textContent ?? '').replace(/\s+/g, ' ');
+    });
+  } finally { await page.close(); }
+}
 
 test('the Assemble tool page draws the chosen card on the server, takes the choice from the address and works on a phone', { timeout: 420000 }, async () => {
   const pilot = await startPublicCardPilot({ pagesEnabled: true, externalRoutes });
@@ -48,12 +60,13 @@ test('the Assemble tool page draws the chosen card on the server, takes the choi
   try {
     // The first request loads the route's modules, which can outlast the first-paint read budget on a busy runner.
     await (await fetch(`${pilot.origin}/standard/assemble/`)).text();
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
     const get = async path => { const response = await fetch(`${pilot.origin}${path}`); return { response, html: await response.text() }; };
 
     const rajh = await get('/standard/assemble/?card=BE_004');
     assert.equal(rajh.response.status, 200);
     assert.match(rajh.html, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/standard\/assemble\/"/, 'the canonical of a chosen card is the tool');
-    const rajhText = text(rajh.html);
+    const rajhText = await visibleText(browser, rajh.html);
     assert.match(rajhText, /Радж Пул 13 существ/, 'the section of the requested card is in the HTML without JavaScript');
     assert.match(rajhText, /призывает Бейна Кровавое Копыто 5\/5/, 'the texts of the best builds are in the HTML');
     assert.match(rajh.html, /href="https:\/\/hsreplay\.net\/[^"]*"/, 'HSReplay is linked as the source');
@@ -62,18 +75,17 @@ test('the Assemble tool page draws the chosen card on the server, takes the choi
     assert.match(rajhText, /Непроглядные глубины [^ ]+ Нет данных/, 'a card without data says so in the choice');
 
     const wild = await get('/standard/assemble/?card=BE_044&format=wild');
-    assert.match(text(wild.html), /РЕ-3-ВЕР Пул 38 существ/);
+    assert.match(await visibleText(browser, wild.html), /РЕ-3-ВЕР Пул 38 существ/);
     assert.match(wild.html, /href="\/standard\/assemble\/\?card=BE_044&(?:amp;)?format=wild"/, 'the links keep the format');
     assert.doesNotMatch(wild.html, /Радж/, 'the Wild list has no Rajh');
 
     for (const path of ['/standard/assemble/?card=XYZ', '/standard/assemble/']) {
       const page = await get(path);
       assert.equal(page.response.status, 200, `${path} is a page, not a 404`);
-      assert.match(text(page.html), /РЕ-3-ВЕР Пул 38 существ/, `${path} shows the neutral card with data`);
+      assert.match(await visibleText(browser, page.html), /РЕ-3-ВЕР Пул 38 существ/, `${path} shows the neutral card with data`);
     }
-    assert.match(text((await get('/standard/assemble/?card=BE_087')).html), /Выберите другую карту|не собрал данных/, 'a card without data is not hidden, it is explained');
+    assert.match(await visibleText(browser, (await get('/standard/assemble/?card=BE_087')).html), /Выберите другую карту|не собрал данных/, 'a card without data is not hidden, it is explained');
 
-    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
