@@ -31,3 +31,23 @@ export const loadPublicCard = cache(async (format: CardFormat, cardId: string): 
     return publicCardSeed(last, cardId);
   }
 });
+
+/**
+ * Whether the card is legal in Standard: its Standard projection answers. A
+ * Wild page of such a card is a copy of the Standard page and names it as
+ * canonical (#307). It reads Express directly, because the projection header
+ * of this request carries the Wild card. `null` when the answer is unknown
+ * (Express down and no last good Standard copy): the page then keeps its own
+ * canonical rather than guess.
+ */
+export const isStandardCard = cache(async (cardId: string): Promise<boolean | null> => {
+  try {
+    const response = await fetchPublicExpress(`/api/public/constructed-cards/standard/${encodeURIComponent(cardId)}`,
+      undefined, { timeoutMs: CATALOG_READ_DEADLINE_MS });
+    if (response.status === 404) return false;
+    if (response.ok) return true;
+  } catch {
+    // Fall through to the last good copy.
+  }
+  return lastGoodCardProjection('standard', cardId) === undefined ? null : true;
+});

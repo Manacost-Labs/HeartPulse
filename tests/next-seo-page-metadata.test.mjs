@@ -194,7 +194,8 @@ test('a card page describes the card, its site and its path in one JSON-LD graph
         'Публичная карта 2 (Вольный формат) — карта мага: существо 2/3 за 2 маны, обычная, набор «Основной набор». Боевой клич: возьмите карту.'],
     ]) {
       const path = `/standard/cards/${format}/CARD_QA_0002/`;
-      const canonical = `https://hearthpulse.net${path}`;
+      // The card is legal in Standard, so its Wild page names the Standard page as canonical (#307).
+      const canonical = 'https://hearthpulse.net/standard/cards/standard/CARD_QA_0002/';
       const response = await fetch(`${runtime.nextOrigin}${path}`);
       assert.equal(response.status, 200, path);
       const html = await response.text();
@@ -238,6 +239,14 @@ test('a card page describes the card, its site and its path in one JSON-LD graph
       assert.deepEqual(shown.map(crumb => crumb.href && new URL(crumb.href, 'https://hearthpulse.net').href),
         [...crumbs(breadcrumb).slice(0, 2).map(crumb => crumb.item), null], `${format} each step but the card links where its JSON-LD points`);
     }
+    // A card outside Standard has only its Wild page: it stays its own canonical and indexable.
+    const wildOnly = await (await fetch(`${runtime.nextOrigin}/standard/cards/wild/CARD_QA_WILD/`)).text();
+    assert.match(wildOnly, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/standard\/cards\/wild\/CARD_QA_WILD\/"\/>/);
+    assert.match(wildOnly, /<meta property="og:url" content="https:\/\/hearthpulse\.net\/standard\/cards\/wild\/CARD_QA_WILD\/"\/>/);
+    assert.match(wildOnly, /<meta name="robots" content="index, follow/);
+    const wildCopy = await (await fetch(`${runtime.nextOrigin}/standard/cards/wild/CARD_QA_0002/`)).text();
+    assert.match(wildCopy, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/standard\/cards\/standard\/CARD_QA_0002\/"\/>/);
+    assert.match(wildCopy, /<meta property="og:url" content="https:\/\/hearthpulse\.net\/standard\/cards\/standard\/CARD_QA_0002\/"\/>/);
   } finally {
     await runtime.close();
   }
