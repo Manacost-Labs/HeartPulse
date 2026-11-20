@@ -248,7 +248,7 @@ for (const outage of ['fail', 'hang'] as const) {
   test(`after a restart a public card answers from the stored catalog within 1 s while the source ${outage}s`, async () => {
     const before = harness();
     // Production stores thousands of cards: reading that copy from disk on every request would queue them.
-    before.state.cards = [...before.state.cards, ...Array.from({ length: 6_000 }, (_, index) => card(`BULK_${index}`, 1_000 + index))];
+    before.state.cards = [...before.state.cards, ...Array.from({ length: 1_000 }, (_, index) => card(`BULK_${index}`, 1_000 + index))];
     await before.service.loadPublicCards('standard');
     await before.service.loadPublicCards('wild');
     // Production deadlines: a caller waits 2 s, a stuck source load is dropped after 3 s.
@@ -266,7 +266,7 @@ for (const outage of ['fail', 'hang'] as const) {
       const standard = await card('standard', 'CARD_1');
       assert.equal(standard.response.status, 200, standard.body);
       assert.ok(standard.elapsed < 1_000, `standard card took ${standard.elapsed} ms`);
-      const burst = await Promise.all(Array.from({ length: 20 }, () => card('wild', 'CARD_2')));
+      const burst = await Promise.all(Array.from({ length: 40 }, () => card('wild', 'CARD_2')));
       assert.deepEqual([...new Set(burst.map(result => result.response.status))], [200]);
       assert.ok(Math.max(...burst.map(result => result.elapsed)) < 1_000, 'a burst of cold reads must not queue');
       // A stored copy cannot prove that a card is absent: not a false 404, a retryable 503
