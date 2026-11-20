@@ -79,7 +79,7 @@ test('static public pages roll out independently of cards', () => {
     assert.equal(publicWebOwner(path, false, 'HEAD', true), 'next', path);
     assert.equal(publicWebOwner(path, false, 'POST', true), 'legacy', path);
   }
-  for (const page of ['faq', 'privacy', 'terms', 'developers/api', 'articles', 'guides-archive', 'heroes', 'library', 'classes', 'tierlist', 'legendaries', 'standard/matchups', 'standard/meta', 'standard/fun-decks', 'standard/vicious-gold', 'standard/archetypes']) {
+  for (const page of ['faq', 'privacy', 'terms', 'developers/api', 'articles', 'guides-archive', 'heroes', 'library', 'classes', 'tierlist', 'legendaries', 'standard/matchups', 'standard/matchups/wild', 'standard/meta', 'standard/meta/wild', 'standard/fun-decks', 'standard/vicious-gold', 'standard/archetypes']) {
     assert.equal(publicWebOwner(`/${page}/`, true), 'legacy');
     assert.equal(publicWebOwner(`/${page}/`, false, 'GET', true), 'next');
     assert.equal(publicWebOwner(`/${page}/`, false, 'POST', true), 'legacy');
