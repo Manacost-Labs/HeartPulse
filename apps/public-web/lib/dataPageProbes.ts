@@ -16,6 +16,7 @@ import { PUBLIC_TIERLIST_PATH } from './publicTierlistData';
  */
 export const DATA_PAGE_PROBES = {
   '/standard/meta': standardMetaPublicPath(),
+  '/standard/meta/wild': standardMetaPublicPath('wild'),
   '/articles': '/api/articles',
   '/tierlist': PUBLIC_TIERLIST_PATH,
   '/classes': CLASSES_TEASER_PATH,

@@ -32,7 +32,7 @@ const slice = (format, paid) => ({
 });
 
 async function startStack() {
-  const state = { next: null, publicReads: [], protectedReads: 0 };
+  const state = { next: null, publicReads: [], protectedReads: 0, down: false };
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://stack');
     const reader = /(?:^|;\s*)sm_session=reader/.test(request.headers.cookie ?? '');
@@ -42,6 +42,7 @@ async function startStack() {
     if (url.pathname === '/api/subscription/status') return reader ? json(200, SUBSCRIBED) : json(401, { error: 'guest' });
     if (url.pathname === '/api/standard-meta/public') {
       state.publicReads.push(`${url.pathname}${url.search}`);
+      if (state.down) return json(503, { error: 'source down' });
       return json(200, slice(url.searchParams.get('format') === 'wild' ? 'wild' : 'standard', false));
     }
     if (url.pathname === '/api/standard-meta') {
@@ -103,14 +104,52 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     await guest.click('[data-locked-filter]');
     assert.ok(await guest.$('#standard-meta-paywall'), 'the offer is on the page');
     assert.equal(stack.publicReads.length, 1, 'locked filters send no request');
-    await guest.evaluate(() => [...document.querySelectorAll('.standard-meta__segmented button')].at(1).click());
-    await guest.waitForFunction(() => document.body.textContent.includes('Вольный архетип 1'), { timeout: 15000 });
-    assert.equal(stack.publicReads.at(-1), '/api/standard-meta/public?format=wild');
+    // The format switch is two links, each its own address: Wild opens at /standard/meta/wild/.
+    assert.deepEqual(await guest.$$eval('.standard-meta__segmented a', links => links.map(link => link.getAttribute('href'))),
+      ['/standard/meta/', '/standard/meta/wild/']);
+    await guest.click('.standard-meta__segmented a[href="/standard/meta/wild/"]');
+    await guest.waitForFunction(() => location.pathname === '/standard/meta/wild/' && document.body.textContent.includes('Вольный архетип 1'),
+      { timeout: 15000 });
+    assert.ok(stack.publicReads.includes('/api/standard-meta/public?format=wild'));
     assert.equal(await guest.$$eval('.standard-meta-card', cards => cards.length), 8);
     const guestText = await guest.evaluate(() => document.body.textContent);
     assert.deepEqual(SENTINELS.filter(value => guestText.includes(value)), []);
     assert.deepEqual(errors, []);
     await guest.close();
+
+    // Wild at its own address: the same open slice in the HTML, one H1, a self canonical, the same HTML for a crawler.
+    const wildBare = await browser.newPage();
+    await wildBare.setJavaScriptEnabled(false);
+    await wildBare.goto(`${stack.origin}/standard/meta/wild/`, { waitUntil: 'load' });
+    const wildHtml = await wildBare.content();
+    assert.equal((wildHtml.match(/class="standard-meta-card"/g) ?? []).length, 8, 'all eight Wild archetypes are in the HTML');
+    assert.ok(wildHtml.includes('Вольный архетип 8') && !wildHtml.includes('Стандартный архетип'), 'only the Wild slice is printed');
+    assert.equal((wildHtml.match(/<h1[\s>]/g) ?? []).length, 1, 'one H1');
+    assert.ok(wildHtml.includes('Мета Вольного формата Hearthstone'));
+    assert.match(wildHtml, /<link rel="canonical" href="https:\/\/hearthpulse\.net\/standard\/meta\/wild\/"/);
+    assert.deepEqual(SENTINELS.filter(value => wildHtml.includes(value)), [], 'no sentinel in the Wild HTML');
+    const wildCrawler = await (await fetch(`${stack.origin}/standard/meta/wild/`, { headers: { 'User-Agent': 'Googlebot/2.1' } })).text();
+    const wildGuest = await (await fetch(`${stack.origin}/standard/meta/wild/`)).text();
+    assert.equal(wildCrawler, wildGuest, 'a crawler gets the guest HTML of Wild');
+    const wildLd = [...wildGuest.matchAll(/<script type="application\/ld\+json">([^<]*)<\/script>/g)].map(match => match[1]).join('');
+    assert.match(wildLd, /meta\/wild\/#dataset/);
+    assert.match(wildLd, /"isAccessibleForFree":false/);
+    assert.deepEqual(SENTINELS.filter(value => wildLd.includes(value) || wildGuest.includes(value)), []);
+    const wildRsc = await (await fetch(`${stack.origin}/standard/meta/wild/`, { headers: { RSC: '1' } })).text();
+    assert.deepEqual(SENTINELS.filter(value => wildRsc.includes(value)), [], 'no sentinel in the RSC payload');
+    await wildBare.close();
+
+    // The source is down: the revalidation leaves both pages as they are and a guest still gets the data.
+    stack.down = true;
+    const answer = await (await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' })).json();
+    assert.ok(answer.skipped.some(item => item.path === '/standard/meta/wild'), 'the Wild page is skipped while its source is down');
+    for (const path of ['/standard/meta/', '/standard/meta/wild/']) {
+      const response = await fetch(`${stack.origin}${path}`);
+      assert.equal(response.status, 200, `${path} answers while the source is down`);
+      assert.ok((await response.text()).includes('архетип 8'), `${path} keeps its data`);
+    }
+    stack.down = false;
+    await fetch(`${next.origin}/health/next/revalidate/`, { method: 'POST' });
 
     // A subscriber: the paid columns replace the locks in place, the rows do not move.
     const reader = await browser.newPage();

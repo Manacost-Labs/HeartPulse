@@ -47,7 +47,7 @@ for (const path of ['/standard/matchups/', '/standard/deck-builder/', '/battlegr
 assert.equal(html.match(/class="hp-nav-list"/g)?.length, 10, 'five lists in the drawer and five in the sidebar');
 // The mode switch is a native <details>: it opens without JavaScript. Its five banners are plain links to the mode's main page.
 assert.equal(html.match(/<details class="hp-mode"/g)?.length, 2, 'one switch in the drawer and one in the sidebar');
-for (const [mode, path] of [['standard', '/standard/meta/'], ['wild', '/standard/meta/?format=wild'], ['arena', '/classes/'], ['battlegrounds', '/heroes/'], ['community', '/articles/']]) {
+for (const [mode, path] of [['standard', '/standard/meta/'], ['wild', '/standard/meta/wild/'], ['arena', '/classes/'], ['battlegrounds', '/heroes/'], ['community', '/articles/']]) {
   assert.equal(html.split(`<a href="${path}" class="hp-mode-card" data-mode="${mode}"`).length - 1, 2, `the ${mode} banner leads to ${path}`);
 }
 assert.equal(html.match(/<a[^>]*class="hp-mode-card"[^>]*aria-current="true"/g)?.length, 2, 'only the current mode is marked');
@@ -158,7 +158,7 @@ const wildLists = html.split('class="hp-nav-list" data-for="wild"').slice(1).map
 assert.equal(wildLists.length, 2, 'a Wild list in the drawer and in the sidebar');
 for (const list of wildLists) {
   const hrefs = [...list.matchAll(/<a href="([^"]+)"/g)].map(match => match[1].replace(/&amp;/g, '&'));
-  assert.deepEqual(hrefs, ['/standard/meta/?format=wild', '/standard/matchups/?format=wild', '/standard/archetypes/?format=wild',
+  assert.deepEqual(hrefs, ['/standard/meta/wild/', '/standard/matchups/?format=wild', '/standard/archetypes/?format=wild',
     '/standard/fun-decks/?format=wild', '/standard/cards/wild/', '/standard/deck-builder/?format=wild', '/standard/patches/']);
   assert.match(list, /src="\/menu\/icons\/standard-meta-80\.webp\?v=[0-9a-f]{10}"/, 'a Wild item shows the icon of its twin');
   assert.doesNotMatch(list, /vicious-gold|VS Gold/);

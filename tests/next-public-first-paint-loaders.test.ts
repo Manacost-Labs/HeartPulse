@@ -70,6 +70,15 @@ assert.equal(metaSeed?.data.items.length, 3);
 const wholeSlice = await loadStandardMetaTeaserSeed(async () => metaPayload('patch_36.6.3',
   [metaItem(1), metaItem(2), metaItem(3), metaItem(4), metaItem(5)]));
 assert.equal(wholeSlice?.data.items.length, 5, 'every row of the open slice reaches the page');
+const wildSeed = await loadStandardMetaTeaserSeed(async path => {
+  assert.equal(path, '/api/standard-meta/public?format=wild');
+  return { ...metaPayload('patch_36.6.3'), format: 'wild', formatLabel: 'Вольный' };
+}, 'wild');
+assert.equal(wildSeed?.data.format, 'wild');
+assert.equal(await loadStandardMetaTeaserSeed(async () => metaPayload('patch_36.6.3'), 'wild'), null,
+  'a Standard answer is never the seed of the Wild page');
+assert.equal(await loadStandardMetaTeaserSeed(async () => ({ ...metaPayload('patch_36.6.3', [{ ...metaItem(1), climbingSpeed: 7.7 }]),
+  format: 'wild', formatLabel: 'Вольный' }), 'wild'), null, 'a paid column is never printed into the Wild HTML either');
 assert.equal(await loadStandardMetaTeaserSeed(async () => null), null);
 assert.equal(await loadStandardMetaTeaserSeed(async () => ({ items: 'broken' })), null);
 assert.equal(await loadStandardMetaTeaserSeed(async () => metaPayload('patch_36.6.3', [])), null, 'an empty slice is not seeded');

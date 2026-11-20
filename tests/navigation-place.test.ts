@@ -82,7 +82,7 @@ test('every Wild item opens a page that its own address puts in Wild, except the
 
 test('the Wild list has the pages of the issue and no VS Gold', () => {
   assert.deepEqual(WILD_NAVIGATION_ITEMS.map(item => [item.id, item.path]), [
-    ['wild-meta', '/standard/meta?format=wild'],
+    ['wild-meta', '/standard/meta/wild'],
     ['wild-matchups', '/standard/matchups?format=wild'],
     ['wild-archetypes', '/standard/archetypes?format=wild'],
     ['wild-fun-decks', '/standard/fun-decks?format=wild'],

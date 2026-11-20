@@ -58,6 +58,14 @@
       "dataDescription": "Мета Хартстоуна (хс){asOf}: тир-лист колод Стандарта.[ Лидер — {leader}.][ Винрейт и популярность архетипов.] Данные HSGuru.",
       "sitemap": true
     },
+    "/standard/meta/wild": {
+      "policyRouteId": "standard-meta-wild",
+      "title": "Мета Вольного формата Hearthstone, {year} | HearthPulse",
+      "description": "Мета Вольного формата Хартстоуна (хс) {year}: тир-лист колод Вольного, винрейт и популярность архетипов. Данные HSGuru.",
+      "dataTitle": "Мета Вольного формата Hearthstone, {month}: колоды",
+      "dataDescription": "Мета Вольного формата Хартстоуна (хс){asOf}: тир-лист колод Вольного.[ Лидер — {leader}.][ Винрейт и популярность архетипов.] Данные HSGuru.",
+      "sitemap": true
+    },
     "/standard/fun-decks": {
       "policyRouteId": "fun-decks",
       "navigationRouteId": "fun-decks",

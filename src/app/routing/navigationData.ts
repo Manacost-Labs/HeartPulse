@@ -17,7 +17,7 @@ export type NavigationModeId = Extract<NavigationGroupId, 'standard' | 'arena' |
 
 export const NAVIGATION_MODES = [
   { id: 'standard', label: 'Стандарт', description: 'Мета, матчапы, колоды, карты', homeTab: 'standard-meta', path: '/standard/meta' },
-  { id: 'wild', label: 'Вольный', description: 'Все дополнения: мета, колоды, карты', homeTab: 'wild-meta', path: '/standard/meta?format=wild' },
+  { id: 'wild', label: 'Вольный', description: 'Все дополнения: мета, колоды, карты', homeTab: 'wild-meta', path: '/standard/meta/wild' },
   { id: 'arena', label: 'Арена', description: 'Классы, тир-лист, легендарки', homeTab: 'winrates', path: '/classes' },
   { id: 'battlegrounds', label: 'Поля сражений', description: 'Герои, тир-лист, библиотека', homeTab: 'bg-heroes', path: '/heroes' },
   { id: 'community', label: 'Сообщество', description: 'Подборка, стримеры, конкурсы', homeTab: 'articles', path: '/articles' },
@@ -75,7 +75,7 @@ type WildNavigationItem = {
 };
 
 const WILD_ITEM_TABLE = [
-  { id: 'wild-meta', twin: 'standard-meta', path: '/standard/meta?format=wild' },
+  { id: 'wild-meta', twin: 'standard-meta', path: '/standard/meta/wild' },
   { id: 'wild-matchups', twin: 'standard-matchups', path: '/standard/matchups?format=wild' },
   { id: 'wild-archetypes', twin: 'constructed-archetypes', path: '/standard/archetypes?format=wild' },
   { id: 'wild-fun-decks', twin: 'fun-decks', path: '/standard/fun-decks?format=wild' },
