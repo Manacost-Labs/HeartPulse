@@ -37,8 +37,8 @@ const openRaw = {
         { id: 'TIME_875t', name: 'Король Ллейн', cost: 3, count: 1, hasPage: false },
         { id: null, name: null, cost: null, count: 1, hasPage: true }] },
     { deckCode: 'AAEBAa0GAfGiBAH0ogQAAA==', games: null, winrate: null, updatedAt: null, cards: null },
-    { deckCode: 'AAECAf0GAfKiBALxogTzogQAAA==', games: 10, winrate: 50, updatedAt: null,
-      cards: [{ id: '../../admin', name: 'PRIVATE_CARD', cost: 1, count: 1 }] },
+    { deckCode: 'AAECAf0GAfKiBALxogTzogQAAC==', games: 10, winrate: 50, updatedAt: null,
+      cards: [{ id: 'TST_001', name: 'Тестовый удар', cost: 1, count: 2, hasPage: true }, { id: '/OG_211', name: 'Зов лесов', cost: 8, count: 1, hasPage: true }, { id: '../../admin', name: 'Чужая', cost: 1, count: 1 }, { id: 'TST_002', name: '', cost: 1, count: 1, hasPage: true }] },
     { deckCode: 'PRIVATE_DECK', games: 10, winrate: 50, updatedAt: null, cards: null },
     { deckCode: 'AAEBAa0GAfGiBAH0ogQAAA==', games: 1, winrate: 1, updatedAt: null, cards: null },
   ] },
@@ -52,6 +52,9 @@ assert.deepEqual(open.openBuilds, [
       { id: 'TIME_875t', name: 'Король Ллейн', cost: 3, count: 1, hasPage: false },
       { id: null, name: null, cost: null, count: 1, hasPage: false }] },
   { deckCode: 'AAEBAa0GAfGiBAH0ogQAAA==', games: null, winrate: null, updatedAt: null, cards: null },
+  { deckCode: 'AAECAf0GAfKiBALxogTzogQAAC==', games: 10, winrate: 50, updatedAt: null,
+    cards: [{ id: 'TST_001', name: 'Тестовый удар', cost: 1, count: 2, hasPage: true },
+      { id: null, name: 'Зов лесов', cost: 8, count: 1, hasPage: false }, { id: null, name: 'Чужая', cost: 1, count: 1, hasPage: false }, { id: 'TST_002', name: null, cost: 1, count: 1, hasPage: false }] },
 ]);
 assert.deepEqual(open.item.builds, [], 'the client gallery never gets the open builds');
 assert.equal(open.openBuildsTotal, 12, 'the page counts every open build, not only the ones of this page');

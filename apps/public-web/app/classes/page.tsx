@@ -17,6 +17,12 @@ export const generateMetadata = seoStaticPageMetadata('/classes', 'HearthPulse â
 
 export default async function Page() {
   const teaser = await loadPublicClassesTeaser();
+  // Regenerating at runtime without data throws: Next does not publish the result and keeps the earlier copy.
+  // Only the build, which has no Express, prints the stub; regenerated copies live in memory (`isrFlushToDisk:
+  // false`), so after a deploy or restart the warm-up replaces it (#631, as /legendaries/ and /standard/matchups/).
+  if (!teaser && process.env.NEXT_PHASE !== 'phase-production-build') {
+    throw new Error('Open Arena class ranking unavailable: the earlier copy stays');
+  }
   return <>
     <SeoStructuredData path="/classes" data={teaser} />
     <ClassesPageClient teaser={teaser} />
