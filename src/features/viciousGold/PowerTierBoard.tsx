@@ -19,11 +19,11 @@ function barStyle(winrate: number) {
 }
 
 /**
- * The Power Tier of the open frame: as many rows as a vS bracket holds (16) in three tier groups (the usual count of
- * non-empty tiers), split by a fixed scheme, never by the report: the paid rows and tier heads replace the slots
- * without a shift, and the slots say nothing of the tiers, their decks or their order.
+ * The Power Tier of the open frame: as many rows as a vS bracket holds (16) in five tier groups (vS ranks its decks in
+ * tiers S to D), split by a fixed scheme, never by the report: the paid rows and tier heads replace the slots without
+ * a shift, and the slots say nothing of the tiers, their decks or their order.
  */
-const LOCKED_GROUPS = [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11], [12, 13, 14, 15, 16]];
+const LOCKED_GROUPS = [[1, 2, 3, 4], [5, 6, 7], [8, 9, 10], [11, 12, 13], [14, 15, 16]];
 
 /**
  * `locked` (the open frame, #656): the rank tabs stay, the class filter is a lock, and the rows are slots with a lock

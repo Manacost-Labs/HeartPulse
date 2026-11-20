@@ -331,10 +331,11 @@ test('a guest, a robot, an Arena-only viewer and a subscriber on /standard/vicio
   }
 });
 
-// A typical vS report (#660 QA): 16 decks in the bracket in three tiers (S, A, B) and a build for every deck. The open
-// frame reserves exactly this: 16 rows in three tier groups, the KPI tiles and banner of a report with data.
+// A typical vS report (#660 QA): 16 decks in the bracket in five tiers (S to D) and a build for every deck. The open
+// frame reserves exactly this: 16 rows in five tier groups, the KPI tiles and banner of a report with data.
 const TYPICAL_CLASSES = [['Warrior', 'Воин', 'warrior'], ['Mage', 'Маг', 'mage'], ['Priest', 'Жрец', 'priest'], ['Rogue', 'Разбойник', 'rogue']];
-const TYPICAL_WINRATES = [56.1, 55.2, 54.6, 54.1, 53.7, 53.2, 52.8, 52.4, 51.9, 51.5, 51.1, 50.7, 50.3, 49.9, 49.5, 49.1];
+// Tiers S–D (floors 53, 51, 49, 47): 3 / 3 / 4 / 3 / 3 decks.
+const TYPICAL_WINRATES = [56.1, 54.6, 53.2, 52.8, 51.9, 51.1, 50.7, 50.3, 49.9, 49.5, 48.6, 47.9, 47.2, 46.5, 45.8, 44.9];
 const typicalDeck = index => {
   const [className, classLabel, classIcon] = TYPICAL_CLASSES[index % TYPICAL_CLASSES.length];
   return { deck: `Typical Deck ${index + 1}`, deckLabel: `Типичная колода ${index + 1}`, class: className, classLabel, classIcon, archetypeSlug: null, build: null };
@@ -356,6 +357,36 @@ const TYPICAL_BUILDS = {
 };
 
 const box = (page, selector) => page.$eval(selector, node => Math.round(node.getBoundingClientRect().height * 10) / 10);
+/**
+ * Locks a guest sees whose box or focus ring (2px outline 2px off the box) an ancestor that clips its overflow cuts:
+ * each lock is focused and its ring read from its own computed outline.
+ */
+const clippedLocks = page => page.evaluate(() => [...document.querySelectorAll('.vsgold button.paid-lock, .vsgold button.paid-filter-lock')]
+  .filter(lock => lock.getBoundingClientRect().width > 0)
+  .flatMap(lock => {
+    lock.focus({ focusVisible: true });
+    const style = getComputedStyle(lock);
+    const ring = style.outlineStyle === 'none' ? 0 : parseFloat(style.outlineWidth) + parseFloat(style.outlineOffset);
+    const box = lock.getBoundingClientRect();
+    const cuts = [];
+    for (let node = lock.parentElement; node && node !== document.body; node = node.parentElement) {
+      const clip = getComputedStyle(node);
+      if (clip.overflowX === 'visible' && clip.overflowY === 'visible') continue;
+      const outer = node.getBoundingClientRect();
+      const inner = { left: outer.left + node.clientLeft, top: outer.top + node.clientTop };
+      inner.right = inner.left + node.clientWidth;
+      inner.bottom = inner.top + node.clientHeight;
+      for (const [what, grow] of [['box', 0], ['focus ring', ring]]) {
+        if (box.left - grow < inner.left - 0.5 || box.top - grow < inner.top - 0.5
+          || box.right + grow > inner.right + 0.5 || box.bottom + grow > inner.bottom + 0.5) {
+          cuts.push(`${lock.getAttribute('aria-label').split(':')[0]}: ${what} cut by ${node.className || node.tagName}`);
+        }
+      }
+    }
+    lock.blur();
+    return cuts;
+  }));
+
 const geometry = async page => ({
   banner: await box(page, '.vsgold .traditional-mode-banner'),
   plate: await box(page, '.vsgold-report'),
@@ -390,6 +421,7 @@ test('the open frame keeps the report\'s geometry: no shift when the paid report
       await guest.waitForFunction(() => getComputedStyle(document.querySelector('.vsgold-power-row')).display === 'grid');
       await guest.evaluate(() => document.fonts.ready.then(() => undefined));
       const guestBoxes = await geometry(guest);
+      if (viewport.height !== 900) for (const cut of await clippedLocks(guest)) failures.push(`${size} ${cut}`);
       await guestContext.close();
 
       // A remembered subscriber: the first visit stores the viewer, the second is measured from its first frame while

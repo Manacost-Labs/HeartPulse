@@ -328,8 +328,10 @@ a:is(.vsgold-power-row__name, .vsgold-deck-row__name):focus-visible { outline: 2
 .vsgold-tier__head .vsgold-lock-mark { vertical-align: middle; }
 .vsgold-deck-row .vsgold-build .paid-lock { margin-left: auto; }
 .vsgold-lock-mark { justify-self: end; }
-/* The lock in a KPI value's place keeps the value line's height (the 24px target overflows a shorter line). */
+/* The lock in a KPI value's place keeps the value line's height (the 24px target overflows a shorter line), and the
+   line and the banner's total that hold a lock do not clip it: its frame and focus ring stay whole. */
 .vsgold-report__kpis .ui-kpi-group__value .paid-lock { vertical-align: middle; margin-block: -4px; }
+.vsgold[data-locked] :is(.vsgold-report__kpis .ui-kpi-group__value, .traditional-mode-banner__summary dd):has(.paid-lock) { overflow: visible; }
 /* While a remembered viewer's access is checked, or a subscriber's report loads, the locks are hidden: a subscriber
    does not see them flash. Server HTML has no `data-access-settled`, so they stay hidden until hydration too. */
 .vsgold[data-access-pending] :is(.paid-lock, .paid-filter-lock),
