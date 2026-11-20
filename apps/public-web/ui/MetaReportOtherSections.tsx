@@ -2,6 +2,7 @@ import type { ReportHero, ReportMatchups, ReportSection } from '@/apps/public-we
 import type { ArenaView, MatchupView, MetaReportView } from '@/apps/public-web/lib/metaReportView';
 import { REPORT_MIN_ARENA_SAMPLE, REPORT_MIN_MATCHUP_GAMES } from '@/apps/public-web/lib/metaReportView';
 import { count, decimal, instantDateLabel, mmrLabel, percent, periodLabel, reportDateLabel, sectionNote } from '@/apps/public-web/lib/metaReportText';
+import { pluralRu } from '@/src/shared/text/pluralRu';
 import { ArchetypeName } from './MetaReportStandard';
 
 function Note({ section, href, live }: { section: ReportSection<unknown>; href: string; live: string }) {
@@ -50,11 +51,14 @@ export function MetaReportMatchups({ rows, section, slugOf, linkable }: {
 export function MetaReportArena({ view, section }: { view: ArenaView | null; section: ReportSection<unknown> }) {
   if (!view) return <Missing id="meta-report-arena" title="Арена" section={section} />;
   const unit = view.sampleUnit === 'games' ? 'игр' : 'забегов';
+  // «682 забега», «1 308 забегов»: the unit agrees with each count.
+  const unitOf = (sample: number) => view.sampleUnit === 'games'
+    ? pluralRu(sample, 'игра', 'игры', 'игр') : pluralRu(sample, 'забег', 'забега', 'забегов');
   return <section aria-labelledby="meta-report-arena">
     <h2 id="meta-report-arena">Арена: классы по проценту побед</h2>
     <ol className="meta-report__list">
       {view.ranked.map(item => <li key={item.id} value={item.place}>
-        {item.name} — {percent(item.winrate)}, {count(item.sample)} {unit}
+        {item.name} — {percent(item.winrate)}, {count(item.sample)} {unitOf(item.sample)}
       </li>)}
     </ol>
     {view.lowSample.length ? <p>
