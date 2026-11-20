@@ -198,7 +198,8 @@ function assertConsumerImports(
 // The hero statistics panels own the minion type icons now; the page itself no longer reads them.
 const MINION_ICON_NAMES = ['battlegroundMinionIconByRussianName', 'battlegroundMinionIconBySlug'];
 assertConsumerImports('../src/features/Battlegrounds.tsx', [...CONTRACT_NAMES, 'BattlegroundHeroTierData'],
-  [...RUNTIME_CONTRACT_NAMES.filter(name => !MINION_ICON_NAMES.includes(name)), ...ANALYTICS_CONTRACT_NAMES]);
+  [...RUNTIME_CONTRACT_NAMES.filter(name => !MINION_ICON_NAMES.includes(name) && name !== 'useBattlegroundHeroTierData'),
+    ...ANALYTICS_CONTRACT_NAMES]);
 // The tier list (minions, strategies, spells, trinkets) lives in its own files: a guest's page renders it without the monolith.
 const TIER_LIST_CONSUMERS: Array<[string, string[], string[]]> = [
   ['BattlegroundTierList.tsx', ['BattlegroundTierListKey'], ['BATTLEGROUND_TIER_LISTS', 'battlegroundTierListMetaLine', 'TierListToolbar']],
@@ -212,6 +213,12 @@ const TIER_LIST_CONSUMERS: Array<[string, string[], string[]]> = [
 for (const [file, types, runtime] of TIER_LIST_CONSUMERS) assertConsumerImports(`../src/features/${file}`, types, runtime);
 assert.deepEqual([...new Set(TIER_LIST_CONSUMERS.flatMap(([, , runtime]) => runtime))].sort(), [...TIER_LIST_RUNTIME_NAMES].sort(),
   'every tier-list contract of the public entry has its consumer');
+// The hero ranking view is shared by the subscriber's page and the open page of `/heroes/`: it reads the tier data hook
+// over whichever resource it is given.
+assertConsumerImports('../src/features/BattlegroundHeroTierList.tsx', ['BattlegroundHeroMode', 'BattlegroundHeroTierSection'],
+  ['useBattlegroundHeroTierData']);
+assertConsumerImports('../src/features/battlegroundHeroListState.ts', ['BattlegroundHeroMmr', 'BattlegroundHeroMode',
+  'BattlegroundHeroSortDirection', 'BattlegroundHeroSortKey', 'BattlegroundHeroTierEntry', 'createBattlegroundHeroTierResource']);
 assertConsumerImports('../src/features/BgLibrary.tsx', ['BattlegroundMinionStats'], ['LibraryControls', 'battlegroundMinionIconBySlug', 'createBattlegroundLibraryResource', 'fetchBattlegroundMinionStats', 'useBattlegroundLibraryData']);
 const ledgerSource = assertConsumerImports(
   '../src/features/BattlegroundHeroLedger.tsx',
@@ -236,6 +243,8 @@ assert.deepEqual(battlegroundPublicEdges, [
     target: 'src/modules/battlegrounds/public.ts',
     kind: 'type',
   },
+  { source: 'src/features/battlegroundHeroListState.ts', target: 'src/modules/battlegrounds/public.ts', kind: 'type' },
+  { source: 'src/features/BattlegroundHeroTierList.tsx', target: 'src/modules/battlegrounds/public.ts', kind: 'runtime' },
   { source: 'src/features/BattlegroundMinionBoard.tsx', target: 'src/modules/battlegrounds/public.ts', kind: 'runtime' },
   ...[
     'src/features/BattlegroundMinionStats.stories.tsx',

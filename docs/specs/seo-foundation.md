@@ -296,7 +296,7 @@ are cache busters (card image `?v=`) or upstream sync stamps (cosmetics
   таблицы заменяется сразу (#404).
 - **Свежесть `/legendaries/` и `/heroes/`** (#463). Обе страницы тоже входят
   в `DATA_PAGES`, прогрев и минутное правило edge-узла; прогрев ждёт блок
-  данных (`legendary-group-card`, `bg-heroes-public__hero`), а не пустую
+  данных (`legendary-group-card`, `battleground-hero-card`), а не пустую
   копию сборки.
 
 Тесты: `tests/classes-public-teaser.test.ts` (проекция, маршрут, JSON-LD) и

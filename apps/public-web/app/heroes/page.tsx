@@ -1,7 +1,6 @@
 import '@/src/route-parchment.css';
 import '@/src/features/TraditionalModeBanner.css';
 import { BattlegroundHeroesPageClient } from '@/apps/public-web/ui/BattlegroundHeroesPageClient';
-import { BattlegroundHeroesPublicRanking } from '@/apps/public-web/ui/BattlegroundHeroesPublicRanking';
 import { seoStaticPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
 import { battlegroundHeroesSeoValues } from '@/apps/public-web/lib/seoDataValues';
 import { loadPublicBattlegroundHeroes } from '@/apps/public-web/lib/publicBattlegroundHeroes';
@@ -21,6 +20,6 @@ export default async function Page() {
   return <>
     <SeoStructuredData path="/heroes" data={first}
       items={solo?.heroes.map(hero => ({ name: hero.name, url: `https://hearthpulse.net/heroes/${hero.dbfId}/` }))} />
-    <BattlegroundHeroesPageClient ranking={<BattlegroundHeroesPublicRanking solo={solo} duos={duos} />} />
+    <BattlegroundHeroesPageClient solo={solo} duos={duos} />
   </>;
 }

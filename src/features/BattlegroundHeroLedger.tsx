@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowDown, ArrowUp, ChevronsUpDown } from 'lucide-react';
+import { LockedCell } from './BattlegroundHeroLockedCell';
 import { publicResourceUrl } from '../publicResourceUrl';
 import { TierBadge } from '../modules/arenaTierList/public';
 import type {
@@ -11,7 +12,7 @@ import type {
   BattlegroundHeroTierSection,
 } from '../modules/battlegrounds/public';
 
-const TIER_ORDER = ['S', 'A', 'B', 'C', 'D'];
+const TIER_ORDER = ['S', 'A', 'B', 'C', 'D', 'E', 'F'];
 type CompositionMap = Record<string, string>;
 type CompositionReference = {
   byHero: CompositionMap;
@@ -19,6 +20,7 @@ type CompositionReference = {
 };
 let compositionReferenceCache: CompositionReference | null = null;
 let compositionReferenceRequest: Promise<CompositionReference> | null = null;
+const EMPTY_COMPOSITIONS: CompositionReference = { byHero: {}, byId: {} };
 
 function metricNumber(value: unknown): number | null {
   const parsed = Number.parseFloat(String(value || '').replace(',', '.').replace('%', ''));
@@ -141,6 +143,7 @@ function LedgerRow({
   composition,
   compositionsLoading,
   onNavigate,
+  onLockedClick,
   flat = false,
 }: {
   hero: BattlegroundHeroTierEntry;
@@ -148,6 +151,7 @@ function LedgerRow({
   composition?: string;
   compositionsLoading: boolean;
   onNavigate: (path: string) => void;
+  onLockedClick?: () => void;
   flat?: boolean;
 }) {
   const href = hero.dbfId ? `/heroes/${hero.dbfId}/` : '/heroes/';
@@ -191,7 +195,7 @@ function LedgerRow({
       </div>
       <div className="bg-hero-ledger__composition" role="cell">
         <small>Лучший состав</small>
-        <strong>
+        {!composition && onLockedClick ? <LockedCell onClick={onLockedClick} /> : <strong>
           <span
             className={`bg-hero-ledger__composition-value${
               composition ? '' : ` bg-hero-ledger__composition-value--${compositionsLoading ? 'pending' : 'empty'}`
@@ -199,7 +203,7 @@ function LedgerRow({
           >
             {composition || (compositionsLoading ? '…' : 'Нет данных')}
           </span>
-        </strong>
+        </strong>}
       </div>
       <div className="bg-hero-ledger__metric bg-hero-ledger__metric--placement" role="cell">
         <small>Среднее место</small>
@@ -208,7 +212,7 @@ function LedgerRow({
       </div>
       <div className="bg-hero-ledger__distribution" role="cell">
         <small>Распределение мест</small>
-        <PlacementDistribution values={hero.placementDistribution} />
+        {!hero.placementDistribution?.length && onLockedClick ? <LockedCell onClick={onLockedClick} /> : <PlacementDistribution values={hero.placementDistribution} />}
       </div>
     </div>
   );
@@ -220,6 +224,7 @@ export default function BattlegroundHeroLedger({
   sortDirection,
   onSort,
   onNavigate,
+  onLockedClick,
 }: {
   sections: BattlegroundHeroTierSection[];
   mode: BattlegroundHeroMode;
@@ -228,6 +233,8 @@ export default function BattlegroundHeroLedger({
   sortDirection: BattlegroundHeroSortDirection;
   onSort: (field: BattlegroundHeroSortKey) => void;
   onNavigate: (path: string) => void;
+  /** A viewer without access: compositions are not requested, closed figures show a lock that calls this. */
+  onLockedClick?: () => void;
 }) {
   const orderedSections = useMemo(() => {
     const direction = sortDirection === 'asc' ? 1 : -1;
@@ -258,34 +265,25 @@ export default function BattlegroundHeroLedger({
   const ariaSort = (field: BattlegroundHeroSortKey): 'ascending' | 'descending' | 'none' => (
     sortKey === field ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'
   );
-  const [compositionReference, setCompositionReference] = useState<CompositionReference>(
-    compositionReferenceCache || { byHero: {}, byId: {} },
-  );
-  const [compositionsLoading, setCompositionsLoading] = useState(!compositionReferenceCache);
+  const locked = Boolean(onLockedClick);
+  const [compositionReference, setCompositionReference] = useState<CompositionReference>(() => (!locked && compositionReferenceCache) || EMPTY_COMPOSITIONS);
+  const [compositionsLoading, setCompositionsLoading] = useState(!locked && !compositionReferenceCache);
 
   useEffect(() => {
-    if (compositionReferenceCache) {
-      setCompositionReference(compositionReferenceCache);
-      setCompositionsLoading(false);
-      return;
-    }
+    if (locked) return;
 
     let alive = true;
-    setCompositionsLoading(true);
+    // A cached answer resolves at once; the loading mark is shown only for a request.
+    if (!compositionReferenceCache) setCompositionsLoading(true);
     void loadCompositionReference()
-      .then(result => {
-        if (alive) setCompositionReference(result);
-      })
-      .catch(() => {
-        if (alive) setCompositionReference({ byHero: {}, byId: {} });
-      })
-      .finally(() => {
-        if (alive) setCompositionsLoading(false);
-      });
+      .then(result => { if (alive) setCompositionReference(result); })
+      .catch(() => { if (alive) setCompositionReference(EMPTY_COMPOSITIONS); })
+      .finally(() => { if (alive) setCompositionsLoading(false); });
     return () => { alive = false; };
-  }, []);
+  }, [locked]);
 
-  const compositionFor = (hero: BattlegroundHeroTierEntry) => (
+  // A locked view never reads the paid composition names, not even those a subscriber left in this tab's cache.
+  const compositionFor = (hero: BattlegroundHeroTierEntry) => locked ? (hero.bestComposition || '') : (
     hero.bestComposition
     || (hero.bestCompositionId ? compositionReference.byId[String(hero.bestCompositionId)] : '')
     || (hero.dbfId ? compositionReference.byHero[String(hero.dbfId)] : '')
@@ -329,6 +327,7 @@ export default function BattlegroundHeroLedger({
                       composition={compositionFor(hero)}
                       compositionsLoading={compositionsLoading}
                       onNavigate={onNavigate}
+                      onLockedClick={onLockedClick}
                     />
                 ))}
               </div>
@@ -343,6 +342,7 @@ export default function BattlegroundHeroLedger({
                     composition={compositionFor(hero)}
                     compositionsLoading={compositionsLoading}
                     onNavigate={onNavigate}
+                    onLockedClick={onLockedClick}
                     flat
                   />
               ))}

@@ -93,14 +93,20 @@ export type AssembleBestOffered = {
 // The keyword is a bold «Собирает» / «собираете» ("Вы собираете…") / «Assemble». No HSJ card carries the ASSEMBLE mechanic (checked 2026-11-18).
 const ASSEMBLE_KEYWORD = /<b>\s*(?:собира(?:ет|ете)|assemble)(?![\p{L}])/iu;
 
-/** A card with the Assemble keyword in its Russian or English text (or the ASSEMBLE mechanic, for later). */
+// The server's card seed carries the rules text without markup («Боевой клич: собирает существо», «Вы собираете зверя»,
+// «Собирает механизм.»). A plain word is the keyword only when it names what it assembles (a minion, a mech, a beast…), so «Собирает всё, что плохо лежит» is not a card with Assemble.
+const ASSEMBLE_TARGETS = 'существ|механизм|зверя|дракона|демона|элементаля|пирата|мурлока|тотем|нежить';
+const ASSEMBLE_PLAIN = new RegExp(`(?:^|[:.>\\s(])собира(?:ет|ете)\\s+(?:${ASSEMBLE_TARGETS})|\\bassemble an?\\s+(?:minion|mech|beast|dragon|demon|elemental|pirate|murloc|totem|undead)`, 'iu');
+
+/** A card with the Assemble keyword in its Russian or English text (marked up or plain), or the ASSEMBLE mechanic. */
 export function isAssembleCard(card: {
   mechanics?: readonly unknown[] | null;
   text?: { ru?: string | null; en?: string | null } | null;
 } | null | undefined): boolean {
   if (!card) return false;
   if ((card.mechanics ?? []).some(item => String(item).toUpperCase() === 'ASSEMBLE')) return true;
-  return [card.text?.ru, card.text?.en].some(value => typeof value === 'string' && ASSEMBLE_KEYWORD.test(value));
+  return [card.text?.ru, card.text?.en].some(value => typeof value === 'string'
+    && (ASSEMBLE_KEYWORD.test(value) || ASSEMBLE_PLAIN.test(value)));
 }
 
 export function assembleFullText(text: AssembleText | null): string | null {
