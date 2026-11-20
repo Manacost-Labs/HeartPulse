@@ -7,11 +7,11 @@ import { cosmeticsListing } from '@/src/modules/cosmetics/public';
 import { readInitialCatalogFilters } from '@/src/features/constructedArchetypeCatalogUrl';
 import { isIndexableArchetype } from '@/shared/constructedArchetypeIndexing';
 import { deckClass } from './classDecks';
-import { fetchPublicExpress } from './expressApi';
 import { COLD_READ_WAIT_MS, readPublicJson, type PublicPayloadCheck } from './firstPaintStore';
-import { isPublicDataMissing } from './publicCatalogCache';
+import { isCatalogReadLate, isPublicDataMissing } from './publicCatalogCache';
 import { patchNotesReader } from './patchNotesStore';
 import { cosmeticsCatalogSeedRequest } from './publicCosmeticsCatalogData';
+import { probeArchetypeDetailRead } from './publicArchetypeDetailRead';
 import { publicArchetypeTeaser } from './publicArchetypeTeaserData';
 import { FUN_DECKS_PATH, HOME_PATHS, STREAMERS_PATH, archetypeCatalogPeriod, archetypeTeaserPath, streamerPath } from './publicDataPaths';
 import { leaderboardPaths } from './publicLeaderboardPaths';
@@ -53,23 +53,29 @@ const ARCHETYPE_DETAIL = /^\/standard\/archetypes\/(standard|wild)\/([a-z0-9-]{1
 
 /**
  * An indexable archetype page (#599) is worth its index for its open builds or for the plates and neighbours it
- * reads from its window's catalog. With neither (every build refused, and no answer nor copy of the catalog, as
- * after a restart during an outage) it would be a thin page: a 503. Whatever else the detail answers (a 404, an
- * error, an archetype that does not index) is the page's own business, as before.
+ * reads from its window's catalog. With neither (every build refused, and the catalog failed or refused with no
+ * copy, as after a restart during an outage) it would be a thin page: a 503. Whatever else the detail answers
+ * (a 404, an error, an archetype that does not index) is the page's own business, as before.
  */
 async function probeArchetypeDetail(format: 'standard' | 'wild', slug: string): Promise<DataProbe> {
   let detail;
   try {
-    const response = await fetchPublicExpress(`/api/constructed-archetypes/teaser/${format}/${slug}`, undefined, { timeoutMs: COLD_READ_WAIT_MS });
-    if (!response.ok) { await response.body?.cancel(); return 'none'; }
-    detail = publicArchetypeTeaser(await response.json(), format, slug);
+    // The page's own read, handed over to it (`publicArchetypeDetailRead.ts`): no second request, the same deadline.
+    const { status, json } = await probeArchetypeDetailRead(format, slug);
+    if (status !== 200) return 'none';
+    detail = publicArchetypeTeaser(json, format, slug);
   } catch {
     return 'none';
   }
   if (!isIndexableArchetype(detail.item) || detail.openBuilds.length > 0) return 'none';
-  // A refused read (a period the source does not know) is not an outage: the page renders as it did.
-  const catalog = await read(archetypeTeaserPath(format, archetypeCatalogPeriod(detail.patch)), true, archetypeTeaserCheck(format));
-  return catalog === 'ok' ? 'ready' : catalog === 'failed' ? 'unavailable' : 'none';
+  // Through the page's store and key. Only a catalog surely not there (failed or refused, no copy) is a 503; one still
+  // on its way when the wait runs out is served as before.
+  try {
+    await readPublicJson(archetypeTeaserPath(format, archetypeCatalogPeriod(detail.patch)), true, archetypeTeaserCheck(format));
+    return 'ready';
+  } catch (error) {
+    return isCatalogReadLate(error) ? 'none' : 'unavailable';
+  }
 }
 
 const trimSlash = (pathname: string) => (pathname.length > 1 && pathname.endsWith('/') ? pathname.slice(0, -1) : pathname);

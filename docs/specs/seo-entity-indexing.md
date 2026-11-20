@@ -245,17 +245,21 @@ indexable.
   meets `shared/seoIndexThreshold.ts` through its open builds with card lists
   and the plates (150 own words or 10 own facts).
 - An indexable page with neither is not served thin (#599): when every open
-  build of its first page is refused and its window's catalog has no answer and
-  no last good copy (a restart during a catalog outage), `proxy.ts` answers the
-  document with the data-page 503 (`Retry-After: 60`, no `noindex` from the
-  app; nginx's `5xx` header above still applies). The probe
-  (`probeArchetypeDetail` in `apps/public-web/lib/publicDataProbe.ts`) reads
-  the detail (2 s), and only for an indexable archetype without open builds
-  reads the catalog of the detail's window (`archetypeCatalogPeriod`, the key
-  the page reads) patiently, so the page that follows finds it in the store. A
-  page below the threshold, a page with open builds, a catalog that answers or
-  has its copy, a catalog the source refuses (`4xx`) and a detail that fails
-  are served as before; `tests/next-archetype-detail-unavailable.test.mjs`.
+  build of its first page is refused and its window's catalog surely failed
+  (an error or a refusal of the source) with no last good copy, as after a
+  restart during a catalog outage, `proxy.ts` answers the document with the
+  data-page 503 (`Retry-After: 60`, no `noindex` from the app; nginx's `5xx`
+  header above still applies: a `5xx` is not indexed whatever it carries).
+  The probe (`probeArchetypeDetail` in `apps/public-web/lib/publicDataProbe.ts`)
+  makes the page's own detail read and hands it to the page
+  (`publicArchetypeDetailRead.ts`: one Express read per document, as before;
+  probes of a slug share one read), and only for an indexable archetype
+  without open builds reads the catalog of the detail's window through the
+  page's store and key (`archetypeCatalogPeriod`). A catalog still on its way
+  when the probe's 2 s wait runs out is not an outage: the page is served as
+  before, as are a page below the threshold, a page with open builds, a
+  catalog that answers or has its copy, and a detail that fails;
+  `tests/next-archetype-detail-unavailable.test.mjs`.
   History and analysis never reach the HTML or the RSC
   payload, and the block and the JSON-LD do not use the numbers of
   `featuredBuild`; the sentinel test in `tests/next-seo-page-metadata.test.mjs`

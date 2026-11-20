@@ -23,6 +23,9 @@ export class PublicDataMissingError extends Error {
 }
 
 /** By name: `proxy.ts` and the pages are bundled apart, so the class of an error caught there may be another copy. */
+const CATALOG_LATE = 'Public catalog request timed out';
+/** The caller's wait ran out with no copy: the source may still answer, which is not an outage (`publicDataProbe.ts`). */
+export const isCatalogReadLate = (error: unknown) => error instanceof Error && error.name === 'CatalogUnavailableError' && error.message === CATALOG_LATE;
 export const isPublicDataMissing = (error: unknown) => error instanceof Error && error.name === 'PublicDataMissingError';
 
 /** Tuning of one cache; the defaults are the card catalog's. */
@@ -148,6 +151,6 @@ export function createDefaultCatalogCache<T>(read: (key: string, signal: AbortSi
     if (outcome === 'done' && entry.missing) throw entry.missing;
     if (outcome === 'done' && entry.good && entry.freshUntil > now()) return entry.good.value;
     if (outcome === 'late' && entry.good && missBackoffMs > 0) entry.missUntil = now() + missBackoffMs;
-    return stale(entry, outcome === 'late' ? new CatalogUnavailableError('Public catalog request timed out') : null);
+    return stale(entry, outcome === 'late' ? new CatalogUnavailableError(CATALOG_LATE) : null);
   };
 }
