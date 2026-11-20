@@ -5,7 +5,9 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
-import { CLOSED_HTML_VALUES, MISTAKEN_OPEN_ANSWER } from './fixtures/viciousGoldSentinels.mjs';
+import {
+  CLOSED_HTML_VALUES, CLOSED_INTEGER_PATTERN, CLOSED_KEYS, closedKeyPattern, MISTAKEN_OPEN_ANSWER,
+} from './fixtures/viciousGoldSentinels.mjs';
 
 // /standard/vicious-gold/ (#656) in a real browser against an Express stub. A guest, Googlebot and YandexBot get one
 // HTML: the subscriber's report on the open frame (header, classes and archetypes in a neutral order, the rank
@@ -157,6 +159,8 @@ test('a guest, a robot, an Arena-only viewer and a subscriber on /standard/vicio
     // The HTML (with its RSC payload) has the open frame and no paid value.
     const text = guestHtml.replaceAll('<!-- -->', '');
     assert.deepEqual(CLOSED_HTML_VALUES.filter(value => text.includes(value)), [], 'no closed value of the open answer in the HTML or the RSC payload');
+    assert.deepEqual([...text.matchAll(CLOSED_INTEGER_PATTERN)].map(match => match[0]), [], 'no closed integer (rank, games, coverage) as a value');
+    assert.deepEqual(CLOSED_KEYS.filter(key => closedKeyPattern(key).test(text)), [], 'no closed field name as a key of the RSC payload');
     assert.deepEqual(PAID_RAW.filter(value => text.includes(value)), [], 'no paid value in the HTML or the RSC payload');
     assert.doesNotMatch(text, PAID_TEXT);
     assert.doesNotMatch(text, /arena-paywall/, 'no gate over the page');

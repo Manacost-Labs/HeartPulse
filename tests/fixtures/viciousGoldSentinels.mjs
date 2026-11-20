@@ -138,3 +138,13 @@ export const CLOSED_HTML_VALUES = [
   '5.4321', '4.4444', '3.3333', '2.2222', '58.8001', '59.9001', '56.7891', '54.3219', '52.1098',
   '31,42', '27,18', '16,18', '12,35', '9,88', '8,77', '7,65', '5,43', '4,44', '3,33', '2,22', '58,80', '59,90', '56,79', '54,32', '52,11',
 ];
+
+/**
+ * The closed integers (rank, games, sample games, build coverage, a card's dbfId). Bare, they could match a chunk id or
+ * hash by chance, so a page is checked for them where a value sits: after a JSON key (`:7771`, also escaped in the RSC
+ * payload) or as a cell's text (`>7771<`).
+ */
+export const CLOSED_INTEGERS = [917_331, 3_331, 3_332, 7_771, 6_661, 4_441, 99_991];
+export const CLOSED_INTEGER_PATTERN = new RegExp(`(?::\\s*|>\\s*)(?:${CLOSED_INTEGERS.join('|')})(?!\\d|[.,]\\d)`, 'g');
+/** A closed field name as a JSON key, plain or escaped inside the RSC payload's strings. */
+export const closedKeyPattern = key => new RegExp(`\\\\?"${key}\\\\?"\\s*:`);
