@@ -132,7 +132,8 @@ export function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess,
   // Locks stand until access is granted (a remembered subscriber is granted at once); a granted viewer sees the loading state.
   const locked = Boolean(openLayer && !fullAccess);
   const pending = Boolean(openLayer && fullAccess && core.loading);
-  const openRadar = openLayer ? <ArchetypeRadarSection item={item} viewerId={viewerId(paywall.authUser)}
+  // While locked the comparison reads no matchups: a lapsed subscriber's own cached ones would show instead of the lock.
+  const openRadar = openLayer ? <ArchetypeRadarSection item={item} viewerId={locked ? undefined : viewerId(paywall.authUser)}
     matchupLock={locked ? <PaidMetricLock label="Очный матчап" closed="paywalled-archetype" /> : undefined} /> : null;
 
   return (
