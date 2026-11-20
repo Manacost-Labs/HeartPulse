@@ -70,10 +70,11 @@ async function libraryMetadata(path: string, query: string): Promise<Metadata> {
   const listing = battlegroundLibraryListing(path);
   if (!listing) throw new Error(`Missing Battleground library SEO contract: ${path}`);
   const policy = await resolvePublicUrlPolicy(path, query);
-  const canonical = policy.canonicalUrl ?? `https://hearthpulse.net${listing.pathname}`;
+  // A noindex listing (the archive has no open layer) names no canonical and no og:url.
+  const canonical = policy.canonicalUrl ?? undefined;
   return {
     title: listing.seo.title, description: listing.seo.description,
-    alternates: { canonical },
+    alternates: canonical ? { canonical } : undefined,
     robots: policy.robots,
     openGraph: { type: 'website', url: canonical, siteName: 'HearthPulse', locale: 'ru_RU',
       title: listing.seo.title, description: listing.seo.description,

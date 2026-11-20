@@ -79,7 +79,7 @@
       "navigationRouteId": "standard-vicious-gold",
       "title": "Vicious Syndicate Gold — мета Стандарта {year} | HearthPulse",
       "description": "Распределение классов и колод, готовые сборки и Power Tier по всем доступным рангам Vicious Syndicate Live.",
-      "sitemap": true
+      "sitemap": false
     },
     "/standard/deck-builder": {
       "policyRouteId": "deck-builder",
@@ -181,7 +181,7 @@
       "navigationRouteId": "contests",
       "title": "Конкурсы Манакоста | HearthPulse",
       "description": "Конкурсы для подписчиков Манакоста: участие, автоматическая проверка подписки и публикация ID победителей после завершения.",
-      "sitemap": true
+      "sitemap": false
     },
     "/streamers": {
       "policyRouteId": "streamers",
@@ -227,19 +227,19 @@
       "policyRouteId": "bg-library-archive-root",
       "title": "Архив карт Полей сражений Hearthstone | HearthPulse",
       "description": "Архивные существа и заклинания Hearthstone Battlegrounds с отдельными страницами карт.",
-      "sitemap": true
+      "sitemap": false
     },
     "/library/archive/minions": {
       "policyRouteId": "bg-library-archive",
       "title": "Архив существ Полей сражений Hearthstone | HearthPulse",
       "description": "Архив существ Hearthstone Battlegrounds: старые существа вне активного пула с карточками и поиском.",
-      "sitemap": true
+      "sitemap": false
     },
     "/library/archive/spells": {
       "policyRouteId": "bg-library-archive",
       "title": "Архив заклинаний Полей сражений Hearthstone | HearthPulse",
       "description": "Архив заклинаний Hearthstone Battlegrounds: старые заклинания таверны вне активного пула.",
-      "sitemap": true
+      "sitemap": false
     },
     "/battlegrounds/tier-list": {
       "policyRouteId": "bg-tier-list",
@@ -253,7 +253,7 @@
       "navigationRouteId": "bg-tier-builder",
       "title": "Конструктор тир-листов Полей сражений | HearthPulse",
       "description": "Конструктор тир-листов Hearthstone Battlegrounds: создавайте собственные списки героев, карт и стратегий Полей сражений.",
-      "sitemap": true
+      "sitemap": false
     },
     "/admin": {
       "policyRouteId": "admin-panel",

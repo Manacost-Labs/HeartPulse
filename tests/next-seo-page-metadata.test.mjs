@@ -741,7 +741,7 @@ test('statistics pages without a public date carry no date, and the tier-list co
   const runtime = await startPublicCardPilot({ pagesEnabled: true, galleryEnabled: true });
   try {
     const graphOf = async path => jsonLdGraph(await (await fetch(`${runtime.nextOrigin}${path}`)).text())['@graph'];
-    for (const path of ['/standard/vicious-gold/', '/classes/', '/tierlist/']) {
+    for (const path of ['/classes/', '/tierlist/']) {
       const graph = await graphOf(path);
       assert.deepEqual(graph[0], ORGANIZATION, `${path} defines the organization`);
       const dataset = nodeOfType(graph, 'Dataset');

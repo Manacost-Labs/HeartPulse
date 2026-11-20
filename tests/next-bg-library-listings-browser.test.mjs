@@ -83,7 +83,8 @@ test('Next Battleground library listings preserve anonymous SEO without private 
           violations: (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } }))
             .violations.map(violation => violation.id),
         }));
-        assert.equal(state.canonical, `https://hearthpulse.net${path}`);
+        // The archive has no open layer: noindex without a canonical (#538).
+        assert.equal(state.canonical, open ? `https://hearthpulse.net${path}` : undefined, path);
         assert.deepEqual(state.h1, [heading]);
         assert.equal(state.main, 1);
         assert.equal(state.overflow, false);

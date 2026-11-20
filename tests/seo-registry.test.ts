@@ -76,8 +76,6 @@ for (const page of pages) {
 for (const pathname of [
   '/standard/matchups',
   '/gallery',
-  '/library/archive/minions',
-  '/library/archive/spells',
 ]) {
   assert.equal(
     sitemapPages.some(page => page.pathname === pathname),

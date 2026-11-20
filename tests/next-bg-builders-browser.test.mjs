@@ -14,9 +14,10 @@ import { isMenuBackgroundRead, MENU_PATCH_ARCHIVE } from './helpers/menuBackgrou
 
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
 const pages = [
-  { path: '/battlegrounds/strategies/', heading: 'Конструктор стратегий Полей сражений',
+  { path: '/battlegrounds/strategies/', heading: 'Конструктор стратегий Полей сражений', canonical: 'https://hearthpulse.net/battlegrounds/strategies/',
     script: 'strategy-builder.gridfix2.js', initialized: '#builder-comp-select', placeholder: 'Загружаю сборки...' },
-  { path: '/battlegrounds/tier-builder/', heading: 'Конструктор тир-листов Полей сражений',
+  // The tier builder is a tool without an open layer: noindex, no canonical (#538).
+  { path: '/battlegrounds/tier-builder/', heading: 'Конструктор тир-листов Полей сражений', canonical: undefined,
     script: 'shared.js', initialized: '#tier-builder-summary', placeholder: 'Загружаю библиотеку...' },
 ];
 
@@ -88,7 +89,7 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
 
     for (const width of [3560, 1440, 390, 320]) {
       await page.setViewport({ width, height: 900 });
-      for (const { path, heading } of pages) {
+      for (const { path, heading, canonical } of pages) {
         const response = await page.goto(`${origin}${path}`, { waitUntil: 'networkidle2' });
         assert.equal(response.status(), 200, path);
         await page.waitForFunction(() => !document.body.textContent.includes('Проверяем доступ'));
@@ -108,7 +109,7 @@ test('Next Battleground builders keep public teasers separate from legacy subscr
         }));
         assert.deepEqual(state.h1, [heading], path);
         assert.equal(state.mainCount, 1, path);
-        assert.equal(state.canonical, `https://hearthpulse.net${path}`);
+        assert.equal(state.canonical, canonical, path);
         assert.equal(state.paywall, true, path);
         if (width >= 1024) assert.ok(state.contentWidth >= state.mainWidth - 48,
           `${path} fills the workspace beside the sidebar at ${width}px`);

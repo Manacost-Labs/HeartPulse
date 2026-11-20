@@ -757,75 +757,6 @@
         }
       }
     ],
-    "/standard/vicious-gold": [
-      {
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Главная",
-            "item": "https://hearthpulse.net"
-          },
-          {
-            "@type": "ListItem",
-            "position": 2,
-            "name": "Стандарт",
-            "item": "https://hearthpulse.net/standard/meta/"
-          },
-          {
-            "@type": "ListItem",
-            "position": 3,
-            "name": "Vicious Syndicate Gold",
-            "item": "https://hearthpulse.net/standard/vicious-gold/"
-          }
-        ]
-      },
-      {
-        "@type": "Dataset",
-        "@id": "https://hearthpulse.net/standard/vicious-gold/#dataset",
-        "name": "Vicious Syndicate Gold — мета Стандарта Hearthstone",
-        "description": "Распределение классов и колод, готовые сборки и Power Tier по рангам Vicious Syndicate Live.",
-        "url": "https://hearthpulse.net/standard/vicious-gold/",
-        "isBasedOn": {
-          "@type": "Dataset",
-          "name": "Vicious Syndicate: Data Reaper Live",
-          "url": "https://www.vicioussyndicate.com/data-reaper-live/"
-        },
-        "variableMeasured": [
-          {
-            "@type": "PropertyValue",
-            "name": "Винрейт колоды",
-            "unitText": "%"
-          },
-          {
-            "@type": "PropertyValue",
-            "name": "Частота колоды",
-            "unitText": "%"
-          },
-          {
-            "@type": "PropertyValue",
-            "name": "Частота класса",
-            "unitText": "%"
-          },
-          {
-            "@type": "PropertyValue",
-            "name": "Power Tier"
-          }
-        ],
-        "keywords": [
-          "Hearthstone",
-          "Стандарт",
-          "Vicious Syndicate",
-          "Power Tier",
-          "мета"
-        ],
-        "about": {
-          "@type": "VideoGame",
-          "name": "Hearthstone"
-        }
-      }
-    ],
     "/standard/patches": [
       {
         "@type": "BreadcrumbList",
@@ -1262,32 +1193,6 @@
         "inLanguage": "ru"
       }
     ],
-    "/contests": [
-      {
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Главная",
-            "item": "https://hearthpulse.net"
-          },
-          {
-            "@type": "ListItem",
-            "position": 2,
-            "name": "Конкурсы",
-            "item": "https://hearthpulse.net/contests/"
-          }
-        ]
-      },
-      {
-        "@type": "CollectionPage",
-        "@id": "https://hearthpulse.net/contests/#collection",
-        "name": "Конкурсы Манакоста",
-        "description": "Розыгрыши для подписчиков Манакоста с автоматической проверкой доступа.",
-        "url": "https://hearthpulse.net/contests/"
-      }
-    ],
     "/streamers": [
       {
         "@type": "BreadcrumbList",
@@ -1507,36 +1412,6 @@
         "inLanguage": "ru"
       }
     ],
-    "/library/archive": [
-      {
-        "@type": "CollectionPage",
-        "@id": "https://hearthpulse.net/library/archive/#collection",
-        "name": "Архив карт Полей сражений Hearthstone",
-        "description": "Архивные карты Hearthstone Battlegrounds.",
-        "url": "https://hearthpulse.net/library/archive/",
-        "inLanguage": "ru"
-      }
-    ],
-    "/library/archive/minions": [
-      {
-        "@type": "CollectionPage",
-        "@id": "https://hearthpulse.net/library/archive/minions/#collection",
-        "name": "Архив существ Полей сражений Hearthstone",
-        "description": "Существа Hearthstone Battlegrounds вне активного пула.",
-        "url": "https://hearthpulse.net/library/archive/minions/",
-        "inLanguage": "ru"
-      }
-    ],
-    "/library/archive/spells": [
-      {
-        "@type": "CollectionPage",
-        "@id": "https://hearthpulse.net/library/archive/spells/#collection",
-        "name": "Архив заклинаний Полей сражений Hearthstone",
-        "description": "Заклинания Hearthstone Battlegrounds вне активного пула.",
-        "url": "https://hearthpulse.net/library/archive/spells/",
-        "inLanguage": "ru"
-      }
-    ],
     "/battlegrounds/tier-list": [
       {
         "@type": "BreadcrumbList",
@@ -1607,33 +1482,6 @@
           "@type": "VideoGame",
           "name": "Hearthstone"
         }
-      }
-    ],
-    "/battlegrounds/tier-builder": [
-      {
-        "@type": "BreadcrumbList",
-        "itemListElement": [
-          {
-            "@type": "ListItem",
-            "position": 1,
-            "name": "Главная",
-            "item": "https://hearthpulse.net"
-          },
-          {
-            "@type": "ListItem",
-            "position": 2,
-            "name": "Конструктор тир-листов",
-            "item": "https://hearthpulse.net/battlegrounds/tier-builder/"
-          }
-        ]
-      },
-      {
-        "@type": "WebPage",
-        "@id": "https://hearthpulse.net/battlegrounds/tier-builder/#page",
-        "name": "Конструктор тир-листов Полей сражений",
-        "description": "Инструмент для создания собственных тир-листов Hearthstone Battlegrounds.",
-        "url": "https://hearthpulse.net/battlegrounds/tier-builder/",
-        "inLanguage": "ru"
       }
     ]
   }
