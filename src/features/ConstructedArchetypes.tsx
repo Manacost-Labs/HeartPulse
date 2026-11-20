@@ -1,39 +1,29 @@
-import { useArchetypeDetail, useArchetypeCatalog, ArchetypeDetailSection } from '../modules/constructedArchetypes/public';
-import { archetypeClassBackdrop, archetypeHeroArt } from './archetypeDetailModel';
-import { buildsWindowNote } from './archetypeBuildsModel';
-import { ArchetypesCatalogSkeleton } from './ArchetypesCatalogSkeleton';
-import { ArchetypeDossierKpis } from './ArchetypeDossierKpis';
-import { ArchetypeRadarSection, BuildComparisonSection, loadInsights, RankHeatmapSection } from './ArchetypeInsightSlots';
-import { ArchetypeHistoryCharts } from './ArchetypeHistoryCharts';
+import { useArchetypeCatalog } from '../modules/constructedArchetypes/public';
 import { standardMetaPeriodLabel } from './standardMetaFilterModel';
-import { isStandardMetaPeriod, type StandardMetaPeriod } from '../../shared/standardMetaPeriods';
+import { isStandardMetaPeriod } from '../../shared/standardMetaPeriods';
+import { ArchetypeDetailPage } from './ArchetypeDetailPage';
 import {
-  ArchetypeAnalysisLoading, ArchetypeAnalysisReserve, ArchetypeBuildsSkeleton, ArchetypeHistorySkeleton, loadArchetypeAnalysis,
-} from './ConstructedArchetypeDetailSkeletons';
+  BUILDS_PENDING_MESSAGE, classIcon, ErrorState, formatNumber, LoadingState, numberFormat,
+} from './archetypeDetailHelpers';
+import type { OpenBuilds } from './archetypeOpenBuilds';
 import '../shared/ui/analytics/Analytics.css';
-import React, { useDeferredValue, useEffect, useMemo, useState } from 'react';
+import React, { useDeferredValue, useMemo, useState } from 'react';
 import {
-  ArrowLeft,
   ArrowRight,
   BookOpenText,
   Check,
   ChevronDown,
   Search,
-  Sparkles,
-  TrendingUp,
 } from 'lucide-react';
 import '../route-parchment.css';
 import '../shared/ui/LoadingSurface.css';
 import './ConstructedArchetypes.css';
-import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
+import { type PaywallAccessState } from '../components/PaywallGate';
 import { canonicalPagePath } from '../app/routing/canonicalPagePath';
-import type { ConstructedAnalysis } from './ConstructedArchetypeAnalysis';
-import ConstructedArchetypeDeckGallery from './ConstructedArchetypeDeckGallery';
 import {
   AsyncSurfaceState,
   RecoverableSurfaceBoundary,
 } from './recovery/RecoverableSurface';
-import { LoadingSurface } from '../shared/ui/LoadingSurface';
 import { pluralRu } from '../shared/text/pluralRu';
 import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
 import { MODE_ORDER } from '../components/transitions/transitionOrder';
@@ -46,79 +36,8 @@ import {
   type ArchetypeFormat,
 } from './constructedArchetypeCatalogUrl';
 
-/** Builds the gallery shows at first and adds with each «Загрузить ещё». */
-const BUILDS_PAGE = 8;
-
-
-const ConstructedArchetypeAnalysis = React.lazy(loadArchetypeAnalysis);
-
-type ArchetypeBuild = {
-  deckCode: string;
-  games: number | null;
-  winrate: number | null;
-  sourceUrl: string;
-  updatedAt: string | null;
-  classKey: ArchetypeClass | null;
-  sampleRank: string;
-  samplePeriod: string;
-  sampleSource?: 'stats' | 'replays';
-};
-
-type ArchetypeItem = {
-  slug: string;
-  archetype: string;
-  archetypeLabel: string;
-  translated: boolean;
-  classKey: ArchetypeClass | null;
-  format: ArchetypeFormat;
-  games: number;
-  winrate: number | null;
-  popularity: number | null;
-  turns: number | null;
-  durationMinutes: number | null;
-  climbingSpeed: number | null;
-  deckCount: number;
-  builds: ArchetypeBuild[];
-  sourceUrl: string;
-};
-
-export type ArchetypeCatalog = {
-  format: ArchetypeFormat;
-  formatLabel: string;
-  patch: string;
-  /** HSGuru period of the catalog; null from a source (or a cached page) that does not name it. */
-  period?: StandardMetaPeriod | null;
-  minimumGames: number;
-  updatedAt: string | null;
-  coverage: Record<string, unknown>;
-  items: ArchetypeItem[];
-};
-
-type HistoryPoint = {
-  recordedAt: string;
-  games: number;
-  winrate: number | null;
-  popularity: number | null;
-  turns: number | null;
-  durationMinutes: number | null;
-  climbingSpeed: number | null;
-  /** HSGuru period of the slice: games and rates accumulate inside it and restart at the next one. */
-  patch?: string | null;
-};
-
-export type ArchetypeDetail = Omit<ArchetypeCatalog, 'coverage' | 'items'> & {
-  item: ArchetypeItem;
-  history: HistoryPoint[];
-  analysis: ConstructedAnalysis | null;
-  featuredBuild?: Pick<ArchetypeBuild, 'games' | 'winrate' | 'updatedAt' | 'sampleRank' | 'samplePeriod'> | null;
-};
-
-/** The signed-in account keys the subscriber's cached matchup table; access itself stays with PaywallGate. */
-function viewerId(user: PaywallAccessState['authUser']): string | undefined {
-  return user && 'id' in user && user.id !== null && user.id !== undefined ? String(user.id) : undefined;
-}
-
-const BUILDS_PENDING_MESSAGE = 'Колоды появятся, когда наберётся выборка';
+export type { ArchetypeCatalog, ArchetypeDetail } from './archetypeDetailTypes';
+import type { ArchetypeCatalog, ArchetypeDetail } from './archetypeDetailTypes';
 
 type SortKey = 'games' | 'winrate' | 'popularity' | 'decks' | 'name';
 
@@ -178,26 +97,6 @@ const CLASS_FILTERS: Array<{ id: ArchetypeClassFilter; label: string; asset: str
   })),
 ];
 
-function classIcon(classKey: ArchetypeClass | null): string {
-  return classKey ? `/class_icon/ui/${classKey}-64.webp` : '/class_icon/neutral.webp';
-}
-
-// toLocaleString with options builds an Intl.NumberFormat per call, three per
-// catalog row on every render. Counts use 3 digits, toLocaleString's default.
-const NUMBER_FORMATS = new Map<number, Intl.NumberFormat>();
-function numberFormat(maximumFractionDigits: number): Intl.NumberFormat {
-  const cached = NUMBER_FORMATS.get(maximumFractionDigits);
-  if (cached) return cached;
-  const format = new Intl.NumberFormat('ru-RU', { maximumFractionDigits });
-  NUMBER_FORMATS.set(maximumFractionDigits, format);
-  return format;
-}
-
-function formatNumber(value: number | null, suffix = '', maximumFractionDigits = 1): string {
-  if (value === null || !Number.isFinite(value)) return '—';
-  return `${numberFormat(maximumFractionDigits).format(value)}${suffix}`;
-}
-
 function formatDate(value: string | null, timeZone?: string): string {
   if (!value || !Number.isFinite(Date.parse(value))) return 'Нет данных';
   return new Intl.DateTimeFormat('ru-RU', {
@@ -217,35 +116,11 @@ function catalogPeriodLabel(catalog: Pick<ArchetypeCatalog, 'period' | 'patch'> 
   return `Патч ${catalog?.patch || '—'}`;
 }
 
-/** The page's HSGuru window: the detail answer names it only in `patch` (`black_empire_ban`). */
-function pagePeriod(detail: Pick<ArchetypeCatalog, 'period' | 'patch'>): string | null {
-  return detail.period ?? (isStandardMetaPeriod(detail.patch) ? detail.patch : null);
-}
-
 function winrateTone(value: number | null): 'strong' | 'even' | 'weak' | 'neutral' {
   if (value === null) return 'neutral';
   if (value >= 52) return 'strong';
   if (value >= 49) return 'even';
   return 'weak';
-}
-
-function LoadingState({ detail = false }: { detail?: boolean }) {
-  if (!detail) return <ArchetypesCatalogSkeleton />;
-  return <LoadingSurface label="Загружаем архетип" quiet layout="rows"
-    className="archetypes-loading archetypes-loading--detail" />;
-}
-
-function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
-  return (
-    <AsyncSurfaceState
-      variant="error"
-      title="Не удалось открыть архетипы"
-      message={message}
-      actionLabel="Повторить запрос"
-      onAction={onRetry}
-      className="archetypes-state"
-    />
-  );
 }
 
 type ArchetypeCatalogProps = {
@@ -436,221 +311,6 @@ function ArchetypeCatalogPage({ navigatePath, initialSearch, embedded, initialCa
   );
 }
 
-type ArchetypeDetailProps = {
-  format: ArchetypeFormat;
-  slug: string;
-  navigatePath: (path: string) => void;
-  hasFullAccess: boolean;
-  paywall: PaywallAccessState;
-  initialDetail: ArchetypeDetail | null;
-  embedded: boolean;
-  accessPending: boolean;
-  /**
-   * `openLayer`: the page prints the open builds on the server (`openBuilds`, possibly empty: a server component that
-   * renders nothing reaches the client as `null`); they stand until a subscriber's gallery has loaded.
-   */
-  openLayer?: boolean;
-  openBuilds?: React.ReactNode;
-};
-
-function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywall, initialDetail, embedded, accessPending, openLayer, openBuilds }: ArchetypeDetailProps) {
-  const Root = embedded ? 'section' : 'main';
-  const [visibleBuilds, setVisibleBuilds] = useState(BUILDS_PAGE);
-  const { detail, core, history: historyRead, analysis: analysisRead, ranks: ranksRead, fullAccess, denied } = useArchetypeDetail({
-    format, slug, hasFullAccess, accessPending, seed: initialDetail,
-  });
-  // The analysis chunk loads beside the analysis request, so its placeholder and view are usually ready first.
-  useEffect(() => {
-    if (!fullAccess || accessPending) return;
-    loadArchetypeAnalysis().catch(() => undefined);
-    loadInsights().catch(() => undefined);
-  }, [fullAccess, accessPending]);
-  const archetypeLabel = detail?.item.archetypeLabel;
-  useEffect(() => {
-    if (archetypeLabel) document.title = `${archetypeLabel} — сборки и статистика | HearthPulse`;
-  }, [archetypeLabel]);
-
-  if (core.loading && !detail) {
-    return <Root className="archetypes-page archetype-detail-page" id={embedded ? undefined : 'main-content'} tabIndex={embedded ? undefined : -1}><LoadingState detail /></Root>;
-  }
-  if (!detail) {
-    return (
-      <Root className="archetypes-page archetype-detail-page" id={embedded ? undefined : 'main-content'} tabIndex={embedded ? undefined : -1}>
-        <button type="button" className="archetype-back" onClick={() => navigatePath('/standard/archetypes')}>
-          <ArrowLeft size={18} /> Все архетипы
-        </button>
-        <ErrorState message={core.error || 'Архетип не найден'} onRetry={core.retry} />
-      </Root>
-    );
-  }
-
-  const { item, history } = detail;
-  const shownBuilds = item.builds.slice(0, visibleBuilds);
-  const buildsNote = buildsWindowNote(item.builds, pagePeriod(detail));
-  const heroArt = archetypeHeroArt(item.slug, detail.analysis?.cardStats ?? []);
-  const backdrop = archetypeClassBackdrop(item.classKey);
-
-  return (
-    <Root className="archetypes-page archetype-detail-page" id={embedded ? undefined : 'main-content'} tabIndex={embedded ? undefined : -1}>
-      <nav className="archetype-breadcrumb" aria-label="Навигационная цепочка">
-        <a href="/standard/archetypes/" onClick={event => { event.preventDefault(); navigatePath('/standard/archetypes/'); }}>
-          <ArrowLeft size={17} /> Архетипы
-        </a>
-        <span aria-hidden="true">/</span>
-        {/* Wild's catalog has its own address (#543); Standard's is the first step. */}
-        {format === 'wild' ? <a href="/standard/archetypes/wild/">{detail.formatLabel}</a> : <span>{detail.formatLabel}</span>}
-        <span aria-hidden="true">/</span>
-        <strong>{item.archetypeLabel}</strong>
-      </nav>
-      <section className="archetype-dossier" data-tour-id="archetype-summary">
-        {/* The class art is known from the public seed, so guests get it and it can lead LCP;
-            the archetype's card art arrives with the paid analysis and sits on the right. */}
-        {backdrop ? (
-          <img
-            key={backdrop.src}
-            className="archetype-dossier__backdrop"
-            onError={event => { event.currentTarget.hidden = true; }}
-            src={backdrop.src}
-            srcSet={backdrop.srcSet}
-            sizes="(min-width: 1480px) 1440px, 100vw"
-            style={{ objectPosition: backdrop.focus }}
-            width={1920}
-            height={800}
-            alt=""
-            aria-hidden="true"
-            decoding="async"
-            fetchPriority="high"
-          />
-        ) : null}
-        {heroArt ? (
-          <img
-            key={heroArt.src}
-            className="archetype-dossier__art"
-            onError={event => { event.currentTarget.hidden = true; }}
-            src={heroArt.src}
-            alt=""
-            aria-hidden="true"
-            decoding="async"
-          />
-        ) : null}
-        <div className="archetype-dossier__identity">
-          <img src={classIcon(item.classKey)} alt="" width="92" height="92" />
-          <h1>{item.archetypeLabel}</h1>
-        </div>
-        <ArchetypeDossierKpis item={item} history={history} />
-      </section>
-
-      {/* The open builds stand here until a subscriber's gallery has loaded; without them, while access is
-          checked the paid sections hold their loading place. The preview and the paywall belong to a confirmed answer without access. */}
-      {/* The open builds stay until a non-empty subscriber gallery replaces them: a failed or empty paid answer keeps them. */}
-      {/* A failed gallery under the open builds is one line, not a second «Сборки архетипа» section. */}
-      {openLayer && fullAccess && core.error && !core.loading ? <p role="status" className="archetype-open-builds__retry">
-        Галерея подписчика не загрузилась, ниже — открытые сборки.{' '}
-        <button type="button" className="archetype-detail-read__retry" onClick={core.retry}>Повторить загрузку</button>
-      </p> : null}
-      {openLayer && !(fullAccess && !core.loading && !core.error && item.builds.length > 0) ? openBuilds : null}
-      {(!openLayer && accessPending) || (fullAccess && !openLayer && (core.error || core.loading)) ? (
-        <ArchetypeDetailSection reserveViewport={!openLayer} title="Сборки архетипа" loading={accessPending || core.loading}
-          error={accessPending ? null : core.error} onRetry={core.retry} skeleton={<ArchetypeBuildsSkeleton deckCount={item.deckCount} />} />
-      ) : null}
-      {denied ? <p role="alert">Доступ изменился. Обновите страницу, чтобы проверить подписку.</p> : null}
-
-      {fullAccess && item.builds.length > 0 && (
-        <section className="archetype-builds" aria-labelledby="archetype-builds-title" data-tour-id="archetype-builds">
-          <header className="archetype-section-heading">
-            <div>
-              <h2 id="archetype-builds-title">Сборки архетипа</h2>
-              <p>Сборки отсортированы по размеру выборки. Код можно скопировать и сразу импортировать в Hearthstone.</p>
-              {buildsNote ? <small className="archetype-builds__window">{buildsNote}</small> : null}
-            </div>
-            <span className="archetype-section-heading__count">{item.builds.length} {pluralRu(item.builds.length, 'сборка', 'сборки', 'сборок')}</span>
-          </header>
-          <ConstructedArchetypeDeckGallery
-            builds={shownBuilds}
-            format={item.format}
-            archetype={item.archetype}
-            archetypeLabel={item.archetypeLabel}
-            classKey={item.classKey}
-          />
-          {visibleBuilds < item.builds.length && (
-            <button type="button" className="archetype-builds__more" onClick={() => setVisibleBuilds(value => value + BUILDS_PAGE)}>
-              Загрузить ещё {Math.min(BUILDS_PAGE, item.builds.length - visibleBuilds)}
-              <ChevronDown size={17} />
-            </button>
-          )}
-        </section>
-      )}
-
-      {item.deckCount === 0 ? (
-        <section className="archetype-build-preview" aria-labelledby="archetype-builds-pending-title">
-          <div>
-            <span className="archetypes-eyebrow"><Sparkles size={14} /> Сборки</span>
-            <h2 id="archetype-builds-pending-title">{BUILDS_PENDING_MESSAGE}</h2>
-            <p>Статистика архетипа уже есть, но ни одна его сборка пока не набрала достаточно игр на HSGuru.</p>
-          </div>
-        </section>
-      ) : null}
-
-      {!openLayer && !fullAccess && !accessPending && !paywall.subscriptionStatus?.unavailable && detail.featuredBuild ? (
-        <section className="archetype-build-preview" aria-labelledby="archetype-build-preview-title">
-          <div>
-            <span className="archetypes-eyebrow"><Sparkles size={14} /> Главная сборка</span>
-            <h2 id="archetype-build-preview-title">Самая большая подтверждённая выборка</h2>
-          </div>
-          <dl>
-            <div><dt>Винрейт</dt><dd>{formatNumber(detail.featuredBuild.winrate, '%')}</dd></div>
-            <div><dt>Игры</dt><dd>{detail.featuredBuild.games?.toLocaleString('ru-RU') ?? '—'}</dd></div>
-          </dl>
-        </section>
-      ) : null}
-
-      {!fullAccess && !accessPending ? (
-        <PaywallGate
-          active
-          presentation="inline"
-          surface="archetype"
-          variant="standard"
-          title="Матчапы, муллиган и история"
-          {...paywall}
-        />
-      ) : null}
-
-      {fullAccess && !core.loading ? <BuildComparisonSection builds={item.builds} format={item.format} archetype={item.archetype} /> : null}
-
-      {fullAccess && !core.loading ? <ArchetypeDetailSection title="Матчапы и муллиган" loading={analysisRead.loading}
-        error={analysisRead.error} onRetry={analysisRead.retry} skeleton={<ArchetypeAnalysisLoading />}>
-        <RecoverableSurfaceBoundary scope="constructed-archetype-analysis" title="Аналитика архетипа временно недоступна">
-          <React.Suspense fallback={<ArchetypeAnalysisReserve />}>
-            <ConstructedArchetypeAnalysis analysis={detail.analysis} format={item.format} slug={item.slug} />
-          </React.Suspense>
-        </RecoverableSurfaceBoundary>
-      </ArchetypeDetailSection> : null}
-
-      {fullAccess && !core.loading ? <RankHeatmapSection read={ranksRead} /> : null}
-
-      {fullAccess && !core.loading ? <ArchetypeRadarSection item={item} viewerId={viewerId(paywall.authUser)} /> : null}
-
-      {fullAccess && !core.loading ? (
-        <ArchetypeDetailSection title="История архетипа" loading={historyRead.loading} error={historyRead.error} onRetry={historyRead.retry}
-          skeleton={<ArchetypeHistorySkeleton />}>
-        <section className="archetype-history" aria-labelledby="archetype-history-title" data-tour-id="archetype-history">
-        <header className="archetype-section-heading">
-          <div>
-            <span className="archetypes-eyebrow"><TrendingUp size={15} /> Накопительная статистика</span>
-            <h2 id="archetype-history-title">История архетипа</h2>
-            <p>Срез добавляется каждые 12 часов. HSGuru считает статистику внутри периода — патча или дополнения — и с новым периодом начинает счёт заново, поэтому граница отмечена пунктиром.</p>
-          </div>
-          <span className="archetype-section-heading__count">{history.length} срезов</span>
-        </header>
-        <ArchetypeHistoryCharts history={history} />
-        </section>
-        </ArchetypeDetailSection>
-      ) : null}
-
-    </Root>
-  );
-}
-
 export default function ConstructedArchetypes({
   currentPath = typeof window === 'undefined' ? '/standard/archetypes/' : window.location.pathname,
   navigatePath = path => window.location.assign(path),
@@ -674,7 +334,7 @@ export default function ConstructedArchetypes({
   accessPending?: boolean;
   paywall?: PaywallAccessState;
   openLayer?: boolean;
-  openBuilds?: React.ReactNode;
+  openBuilds?: OpenBuilds;
 }) {
   const detailMatch = currentPath.match(/^\/standard\/(?:archetypes|meta)\/(standard|wild)\/([a-z0-9-]+)\/?$/);
   const content = detailMatch

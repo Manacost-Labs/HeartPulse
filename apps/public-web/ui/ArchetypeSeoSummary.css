@@ -58,7 +58,7 @@
 }
 
 .archetype-seo-summary__delta { color: #735e49; font-weight: 700; white-space: nowrap; }
-.archetype-seo-summary__delta[data-trend='up'] { color: #2f7a3e; }
+.archetype-seo-summary__delta[data-trend='up'] { color: #1f6a30; }
 .archetype-seo-summary__delta[data-trend='down'] { color: #a33a3a; }
 .archetype-seo-summary .archetype-seo-summary__note { color: #735e49; font-size: 0.75rem; }
 

@@ -69,7 +69,7 @@ type SourceCatalog = { format: 'standard' | 'wild'; formatLabel: string; patch: 
  * catalog and are listed by name only. `name: null` (and `id: null`) is a
  * card no dictionary knows: it keeps its place and count in the list.
  */
-type OpenArchetypeCard = { id: string | null; name: string | null; cost: number | null; count: number; hasPage: boolean };
+type OpenArchetypeCard = { id: string | null; name: string | null; cost: number | null; rarity: string | null; count: number; hasPage: boolean };
 
 /**
  * The whole main-deck list of a deck code, cheapest first, or `null` when the
@@ -82,8 +82,8 @@ function openDeckCards(deckCode: string, catalog: Map<number, DeckBuilderCardRec
   if (!definition) return null;
   const cards = extractMainDeckCardCounts(definition).map(({ dbfId, count }): OpenArchetypeCard => {
     const card = resolveDeckCard(dbfId, count, catalog, dictionary, null);
-    return card ? { id: card.id, name: card.name, cost: card.cost, count, hasPage: card.collectible }
-      : { id: null, name: null, cost: null, count, hasPage: false };
+    return card ? { id: card.id, name: card.name, cost: card.cost, rarity: card.rarity, count, hasPage: card.collectible }
+      : { id: null, name: null, cost: null, rarity: null, count, hasPage: false };
   });
   if (!cards.length) return null;
   return cards.sort((left, right) => (left.cost ?? 99) - (right.cost ?? 99) || (left.name ?? '').localeCompare(right.name ?? '', 'ru'));

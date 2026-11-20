@@ -27,7 +27,7 @@ function InsightHeading({ icon, eyebrow, title, text }: { icon: React.ReactNode;
   </header>;
 }
 
-const RANKS_TEXT = 'Винрейт архетипа в каждом ранге за разные периоды HSGuru, ниже — первым ходом и с монеткой в окне банов. Пустая клетка — в срезе меньше 100 игр.';
+export const RANKS_TEXT = 'Винрейт архетипа в каждом ранге за разные периоды HSGuru, ниже — первым ходом и с монеткой в окне банов. Пустая клетка — в срезе меньше 100 игр.';
 
 function RankHeatmapSkeleton() {
   return <LoadingSurface label="Загружаем винрейт по рангам" quiet layout="rows" className="archetype-detail-skeleton">
@@ -96,7 +96,7 @@ export function BuildComparisonSection({ builds, format, archetype }: { builds: 
       <div>
         <span className="archetypes-eyebrow"><GitCompareArrows size={15} aria-hidden="true" /> Сборки</span>
         <h2 id="archetype-compare-title">Сравнение сборок</h2>
-        <p>Выберите две из {builds.length} сборок: винрейт с погрешностью, надёжность выборки, кривая маны и карты, которыми они отличаются.</p>
+        <p>Выберите две сборки: винрейт с погрешностью, надёжность выборки, кривая маны и карты, которыми они отличаются.</p>
       </div>
       <button type="button" className="archetype-compare__toggle" aria-expanded={open} aria-controls="archetype-compare-content"
         onClick={() => { setOpened(true); setOpen(value => !value); }}>
@@ -115,14 +115,16 @@ export function BuildComparisonSection({ builds, format, archetype }: { builds: 
 type Format = 'standard' | 'wild';
 
 /** The format's catalog summary is the anonymous teaser list the catalog page already reads. */
-export function ArchetypeRadarSection({ item, viewerId }: { item: RadarItem & { format: Format }; viewerId?: string }) {
+export function ArchetypeRadarSection({ item, viewerId, matchupLock }: {
+  item: RadarItem & { format: Format }; viewerId?: string; matchupLock?: React.ReactNode;
+}) {
   const catalog = useArchetypeCatalog<{ format: Format; items: RadarItem[] }>(item.format, null);
   const items = catalog.data?.format === item.format ? catalog.data.items : null;
   return <section className="archetype-insight archetype-radar-section" aria-labelledby="archetype-radar-title" data-tour-id="archetype-radar">
     <InsightHeading icon={<Radar size={15} />} eyebrow="Профиль архетипа" title="Сравнение с другим архетипом"
       text="Найдите соперника: радар показывает место обоих архетипов в формате (0 — минимум, 100 — максимум) и их реальные значения, таблица — кто впереди, ниже — их очный матчап." />
     <React.Suspense fallback={<LoadingBlock className="archetype-radar__reserve" />}>
-      {items ? <LazyRadar item={item} items={items} viewerId={viewerId} /> : catalog.error
+      {items ? <LazyRadar item={item} items={items} viewerId={viewerId} matchupLock={matchupLock} /> : catalog.error
         ? <p className="archetype-insight-empty">{catalog.error}</p> : <LoadingBlock className="archetype-radar__reserve" />}
     </React.Suspense>
   </section>;

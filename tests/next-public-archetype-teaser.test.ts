@@ -33,8 +33,8 @@ const openRaw = {
     { deckCode: 'AAECAf0GAfKiBALxogTzogQAAA==', games: 2216, winrate: 57.1, updatedAt: '2026-07-22T21:05:32.877Z',
       sampleRank: 'all', samplePeriod: 'past_30_days', sourceUrl: 'https://www.hsguru.com/deck/PRIVATE_URL',
       mulliganImpact: 7.1717, keptImpact: 6.2626,
-      cards: [{ id: 'TST_001', name: 'Тестовый удар', cost: 1, count: 2, hasPage: true, keptImpact: 6.2626 },
-        { id: 'TIME_875t', name: 'Король Ллейн', cost: 3, count: 1, hasPage: false },
+      cards: [{ id: 'TST_001', name: 'Тестовый удар', cost: 1, rarity: 'LEGENDARY', count: 2, hasPage: true, keptImpact: 6.2626 },
+        { id: 'TIME_875t', name: 'Король Ллейн', cost: 3, rarity: 'legendary<script>', count: 1, hasPage: false },
         { id: null, name: null, cost: null, count: 1, hasPage: true }] },
     { deckCode: 'AAEBAa0GAfGiBAH0ogQAAA==', games: null, winrate: null, updatedAt: null, cards: null },
     { deckCode: 'AAECAf0GAfKiBALxogTzogQAAC==', games: 10, winrate: 50, updatedAt: null,
@@ -48,13 +48,15 @@ const openRaw = {
 const open = publicArchetypeTeaser(openRaw, 'wild', 'thief-priest');
 assert.deepEqual(open.openBuilds, [
   { deckCode: 'AAECAf0GAfKiBALxogTzogQAAA==', games: 2216, winrate: 57.1, updatedAt: '2026-07-22T21:05:32.877Z',
-    cards: [{ id: 'TST_001', name: 'Тестовый удар', cost: 1, count: 2, hasPage: true },
-      { id: 'TIME_875t', name: 'Король Ллейн', cost: 3, count: 1, hasPage: false },
-      { id: null, name: null, cost: null, count: 1, hasPage: false }] },
-  { deckCode: 'AAEBAa0GAfGiBAH0ogQAAA==', games: null, winrate: null, updatedAt: null, cards: null },
-  { deckCode: 'AAECAf0GAfKiBALxogTzogQAAC==', games: 10, winrate: 50, updatedAt: null,
-    cards: [{ id: 'TST_001', name: 'Тестовый удар', cost: 1, count: 2, hasPage: true },
-      { id: null, name: 'Зов лесов', cost: 8, count: 1, hasPage: false }, { id: null, name: 'Чужая', cost: 1, count: 1, hasPage: false }, { id: 'TST_002', name: null, cost: 1, count: 1, hasPage: false }] },
+    sampleRank: 'all', samplePeriod: 'past_30_days',
+    cards: [{ id: 'TST_001', name: 'Тестовый удар', cost: 1, rarity: 'LEGENDARY', count: 2, hasPage: true },
+      { id: 'TIME_875t', name: 'Король Ллейн', cost: 3, rarity: null, count: 1, hasPage: false },
+      { id: null, name: null, cost: null, rarity: null, count: 1, hasPage: false }] },
+  { deckCode: 'AAEBAa0GAfGiBAH0ogQAAA==', games: null, winrate: null, updatedAt: null, sampleRank: '', samplePeriod: '', cards: null },
+  { deckCode: 'AAECAf0GAfKiBALxogTzogQAAC==', games: 10, winrate: 50, updatedAt: null, sampleRank: '', samplePeriod: '',
+    cards: [{ id: 'TST_001', name: 'Тестовый удар', cost: 1, rarity: null, count: 2, hasPage: true },
+      { id: null, name: 'Зов лесов', cost: 8, rarity: null, count: 1, hasPage: false }, { id: null, name: 'Чужая', cost: 1, rarity: null, count: 1, hasPage: false },
+      { id: 'TST_002', name: null, cost: 1, rarity: null, count: 1, hasPage: false }] },
 ]);
 assert.deepEqual(open.item.builds, [], 'the client gallery never gets the open builds');
 assert.equal(open.openBuildsTotal, 12, 'the page counts every open build, not only the ones of this page');
