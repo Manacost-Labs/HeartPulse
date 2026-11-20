@@ -37,6 +37,9 @@ export async function publicCardFixture({ backendEnv, externalRoutes = {} } = {}
     attack: 2, health: 3, card_set: 'CORE', collectible: true, mechanics: ['BATTLECRY'], referenced_tags: [],
     images: { card: '/arena-logo-icon.webp' }, formats: [{ slug: 'standard' }, { slug: 'wild' }],
   }));
+  // One card outside Standard: its Wild page is the only page of the card (#307).
+  cards.push({ ...cards[1], card_id: 'CARD_QA_WILD', dbf: 29999, name: { ru: 'Яркая вольная карта', en: 'Wild Card' }, mana_cost: 10,
+    formats: [{ slug: 'wild' }] });
   const source = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://fixture');
     if (url.pathname.startsWith('/fixture-assets/')) {
@@ -57,7 +60,9 @@ export async function publicCardFixture({ backendEnv, externalRoutes = {} } = {}
     if (url.pathname === '/api/v1/constructed-cards') {
       if (unavailable) { response.writeHead(503).end('{"error":"Fixture outage"}'); return; }
       const page = Number(url.searchParams.get('page') || 1);
-      response.end(JSON.stringify({ data: cards.slice((page - 1) * 200, page * 200), updated_at: new Date().toISOString(), pagination: { page, total: cards.length, total_pages: Math.ceil(cards.length / 200) } }));
+      const format = url.searchParams.get('format');
+      const listed = format ? cards.filter(card => card.formats.some(entry => entry.slug === format)) : cards;
+      response.end(JSON.stringify({ data: listed.slice((page - 1) * 200, page * 200), updated_at: new Date().toISOString(), pagination: { page, total: listed.length, total_pages: Math.ceil(listed.length / 200) } }));
     } else if (url.pathname.startsWith('/api/v1/constructed-cards/')) {
       const card = cards.find(card => card.card_id === decodeURIComponent(url.pathname.split('/').at(-1)));
       response.end(JSON.stringify({ data: card ? { ...card, wiki: { patch_changes: [] } } : null }));

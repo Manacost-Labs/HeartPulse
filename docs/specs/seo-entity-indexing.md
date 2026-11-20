@@ -446,6 +446,20 @@ SEO cost is 250–400 words fewer on three indexed pages.
   деталям архива. Вернуть `index` можно только вместе с открытым слоем,
   который проходит порог выше.
 
+## Canonical карт двух форматов (#307)
+
+Карта, легальная в Стандарте, имеет одну индексируемую страницу —
+`/standard/cards/standard/<id>/`. Её Вольная копия
+`/standard/cards/wild/<id>/` остаётся доступной (200, `index, follow`), но
+canonical, `og:url` и `@id` JSON-LD ведут на страницу Стандарта: тексты карт
+совпадают, а статистика по форматам платная и в HTML не попадает. Легальность
+в Стандарте страница узнаёт у Express (`isStandardCard` в
+`apps/public-web/lib/publicCard.ts`: 200/404 открытой проекции Стандарта,
+при сбое — последняя удачная копия); если ответа нет, Вольная страница
+оставляет canonical на себя, а не угадывает. Карта только Вольного формата —
+self-canonical. В `wild-cards.xml` копий карт Стандарта нет
+(`excludeStandardCardsFromWildCatalog`).
+
 ## Documentation impact
 
 - This specification records the new sitemap segment and page-quality contract.
