@@ -7507,8 +7507,8 @@ app.use('/api', createPatchNotesApi({
     const catalog = await loadConstructedArchetypeCatalog(format);
     return { format, period: catalog.patch || null, updatedAt: catalog.updatedAt, items: catalog.items };
   },
-  // Archetypes of the day before each patch live under DATA_DIR; the hourly job keeps each day on record.
-  archetypeSnapshotsDirectory: DATA_DIR, recordArchetypesHourly: BACKGROUND_JOBS_ENABLED,
+  // Archetypes of the day before each patch and the last good archive (served after a restart) live under DATA_DIR.
+  stateDirectory: DATA_DIR, recordArchetypesHourly: BACKGROUND_JOBS_ENABLED,
   patchesUrl: `${DATASET_API_ORIGIN}/api/patches?limit=500&include_content=1`, cardHistoryBaseUrl: KOLODAHS_API_BASE_URL, fetchCardHistory: url => fetchConstructedCardJson(url, 6_000),
   onError: error => console.error('[patch-notes] archive failed:', error instanceof Error ? error.message : error),
 }));
@@ -9501,7 +9501,7 @@ const funDeckPreviewCoordinator = createFunDeckPreviewCoordinator({
 
 app.use('/api', createPublicFunDecksRouter({
   loadFunDecks: loadFunDecksDataset,
-  getDatabase: db,
+  getDatabase: db, loadCardCatalog: constructedCardDataService.loadPublicCards ?? constructedCardDataService.loadCards, loadCardDictionaries: createArchetypeCardDictionaries({ local: () => loadDataCached('cards_ru.json')?.data ?? null, remote: async () => (await loadHsjsonAllCards()).byId, deadlineMs: 1_500 }),
   loadArchetypeLabels: async () => {
     const { map } = await getStandardArchetypeTranslations();
     return name => archetypeLabel(name, map);

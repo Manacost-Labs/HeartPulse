@@ -1,4 +1,5 @@
 import React, {
+  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
@@ -10,7 +11,6 @@ import {
   Search,
   TriangleAlert,
 } from 'lucide-react';
-import PaywallGate, { type PaywallAccessState } from '../components/PaywallGate';
 import '../route-parchment.css';
 import DeckListView from './decklist/DeckListView';
 import DeckRenderPreview from './deckrender/DeckRenderPreview';
@@ -42,13 +42,6 @@ const EMPTY_DATA: FunDecksPayload = {
   stats: { total: 0, standard: 0, wild: 0 },
   methodology: { detectorVersion: null, minFunScore: null, maxMetaSimilarity: null, ladderMemberSim: null },
   decks: [],
-};
-
-const DEFAULT_PAYWALL_ACCESS: PaywallAccessState = {
-  authUser: null,
-  subscriptionStatus: null,
-  subscriptionLoading: false,
-  onRefreshSubscription: async () => null,
 };
 
 function timestamp(value: string | null): number {
@@ -212,35 +205,33 @@ function useFunDecksData(initialPreview: FunDecksPayload | null) {
 }
 
 export default function FunDecksPage({
-  hasFullAccess = true,
-  accessPending = false,
-  paywall = DEFAULT_PAYWALL_ACCESS,
   initialPreview = null,
+  openDecks,
 }: {
-  hasFullAccess?: boolean;
-  accessPending?: boolean;
-  paywall?: PaywallAccessState;
-  /** Guest preview read on the server (apps/public-web/lib/publicFunDecksPreview.ts). */
+  /** The selection read on the server (apps/public-web/lib/publicFunDecksPreview.ts): every deck, for every viewer. */
   initialPreview?: FunDecksPayload | null;
+  /** The server-rendered list of those decks with their cards and codes; it stays until the interactive view has real decks to replace it. */
+  openDecks?: ReactNode;
 }) {
   const { data, loading, complete, error: loadError, retry } = useFunDecksData(initialPreview);
-  // A guest whose complete list failed still has the preview it may see.
-  const error = loadError && (hasFullAccess || !data.decks.length) ? loadError : '';
-  const [arrivesLater] = useState(!initialPreview);
+  // A failed refresh keeps the preview the page already has.
+  const error = loadError && !data.decks.length ? loadError : '';
+  const [arrivesLater] = useState(!initialPreview || openDecks !== undefined);
   const { filters, query, view, filtered, change, search, reset } = useFunDecksFilters();
   const { listeners: previewListeners, tooltip: cardPreview } = useFunDeckCardPreview();
   const [layout, setLayout] = useDeckLayout();
   const deckView = DECK_VIEWS[layout];
   const filteredDecks = useMemo(
-    () => selectFunDecks(data.decks, view, hasFullAccess),
-    [data.decks, view, hasFullAccess],
+    () => selectFunDecks(data.decks, view),
+    [data.decks, view],
   );
   // Until the complete list arrives, only the guest preview is at hand: a filter or a sort from the link would show a wrong answer on it.
   const settling = !complete && !loadError
     && (filters.format !== 'all' || filters.classes.length > 0 || filters.tags.length > 0 || filters.sort !== 'newest');
 
-  // A subscriber sees every deck of the filter; the guest's selection is already cut to the free preview.
   const visibleDecks = filteredDecks;
+  // The server list holds the page until the full answer arrives with decks in it, then the interactive view takes its place in one render.
+  const showOpen = openDecks !== undefined && !(complete && data.decks.length > 0) && !loadError && !settling;
 
   return (
     <div className="fun-decks-page">
@@ -299,14 +290,14 @@ export default function FunDecksPage({
         onReset={reset}
       />
 
-      {!error && (loading || settling || visibleDecks.length) ? (
+      {!error && !showOpen && (loading || settling || visibleDecks.length) ? (
         <div className="fun-decks-layout-bar">
           <p>{loading || settling ? '\u00a0' : `${filteredDecks.length} ${decksWord(filteredDecks.length)}`}</p>
           <DeckLayoutSwitch layout={layout} onChange={setLayout} />
         </div>
       ) : null}
 
-      {loading || settling ? (
+      {showOpen ? openDecks : loading || settling ? (
         <FunDecksSkeleton layout={layout} />
       ) : error ? (
         <section className="fun-decks-page__state fun-decks-page__state--error" role="alert">
@@ -321,7 +312,7 @@ export default function FunDecksPage({
       ) : visibleDecks.length ? (
         <>
           <section className={`${deckView.className} data-surface${arrivesLater ? ' data-arrive' : ''}`} aria-label="Подборка фан-колод"
-            aria-busy={hasFullAccess && !complete} {...previewListeners}>
+            aria-busy={!complete} {...previewListeners}>
             {visibleDecks.map((deck, index) => (
               <React.Fragment key={`${deck.format}:${deck.deckCode}`}>
                 <deckView.Card
@@ -345,9 +336,7 @@ export default function FunDecksPage({
           <Search aria-hidden="true" />
           <h2>Колоды не найдены</h2>
           <p>
-            {!filtered ? 'Подборка пока пуста.'
-              : hasFullAccess ? 'Ни одна колода не подходит под выбранные фильтры.'
-                : 'Среди открытых колод таких нет.'}
+            {!filtered ? 'Подборка пока пуста.' : 'Ни одна колода не подходит под выбранные фильтры.'}
           </p>
           {filtered ? (
             <button type="button" onClick={reset}>
@@ -357,24 +346,6 @@ export default function FunDecksPage({
           ) : null}
         </section>
       )}
-
-      {!loading && !error && !hasFullAccess && !accessPending ? (
-        <PaywallGate
-          active
-          presentation="inline"
-          surface="meta"
-          variant="standard"
-          title="Откройте всю подборку фан-колод"
-          description="Сейчас показаны три недавно добавленные колоды выбранного формата. Тариф «Алмаз» открывает всю подборку и новые сборки после каждого обновления."
-          benefits={[
-            'Все колоды Стандарта и Вольного',
-            'Полные составы и коды для импорта',
-            'Свежие стримерские и off-meta сборки',
-          ]}
-          providerButtons
-          {...paywall}
-        />
-      ) : null}
     </div>
   );
 }

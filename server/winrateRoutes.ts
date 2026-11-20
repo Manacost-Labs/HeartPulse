@@ -50,6 +50,8 @@ export type WinratesTeaserClass = {
   winrate: number;
   /** The size of the class's sample, in the unit of `sampleUnit`; `null` when the source gives none. */
   sample: number | null;
+  /** The class colour of the ranking bar (`#rrggbb`), a fact of the class and not a figure; `null` when the dataset has none. */
+  color: string | null;
 };
 
 /** What `sample` counts: HSReplay publishes drafts (`num_drafts`), Firestone games (`totalGames`). */
@@ -75,7 +77,7 @@ export function projectWinratesPublicTeaser(dataset: unknown): WinratesPublicTea
   const data = record(dataset);
   const source = text(data.source);
   if (source === 'initial' || !Array.isArray(data.classes)) return null;
-  const ranked: Array<{ id: string; name: string; exact: number; sample: number | null }> = [];
+  const ranked: Array<{ id: string; name: string; exact: number; sample: number | null; color: string | null }> = [];
   for (const entry of data.classes as unknown[]) {
     const row = record(entry);
     const id = text(row.id);
@@ -83,7 +85,8 @@ export function projectWinratesPublicTeaser(dataset: unknown): WinratesPublicTea
     const exact = typeof row.winrate === 'number' ? row.winrate : Number.NaN;
     if (!id || !name || !Number.isFinite(exact) || exact < 0 || exact > 100) continue;
     const sample = typeof row.games === 'number' && Number.isFinite(row.games) && row.games > 0 ? Math.floor(row.games) : null;
-    ranked.push({ id, name, exact, sample });
+    const color = typeof row.color === 'string' && /^#[0-9a-f]{6}$/i.test(row.color) ? row.color : null;
+    ranked.push({ id, name, exact, sample, color });
   }
   if (!ranked.length) return null;
   ranked.sort((a, b) => b.exact - a.exact);
@@ -97,6 +100,7 @@ export function projectWinratesPublicTeaser(dataset: unknown): WinratesPublicTea
     sampleUnit: firestone ? 'games' : 'drafts',
     classes: ranked.map((item, index) => ({
       place: index + 1, id: item.id, name: item.name, winrate: Math.round(item.exact * 10) / 10, sample: item.sample,
+      color: item.color,
     })),
   };
 }

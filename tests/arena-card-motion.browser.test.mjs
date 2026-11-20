@@ -31,7 +31,7 @@ async function assertStableGeometryAndChart(page, width) {
       utilityPadding: utilityProbe ? getComputedStyle(utilityProbe).paddingTop : '',
     };
   });
-  assert.equal(immediate.labelText, '54.2%', `${width}px label is readable from the first frame`);
+  assert.equal(immediate.labelText, '54,2%', `${width}px label is readable from the first frame`);
   assert.equal(immediate.labelOpacity, '1', `${width}px label is never hidden during fill entrance`);
   assert.notEqual(immediate.labelBackground, 'rgba(0, 0, 0, 0)', `${width}px label has a stable contrast backing`);
   assert.ok(!immediate.fillTransition.includes('width'), `${width}px fill does not transition width`);
