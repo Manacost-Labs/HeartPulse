@@ -165,6 +165,8 @@ for a fresh catalog (a real 404) and otherwise gets 503 with
 The stored catalog is tens of megabytes (Wild) and is read synchronously, so
 it is read at most once per format and invalidation generation every 30 s,
 not once per waiting request. The first card of each format after a restart
-pays that one read; later requests answer in milliseconds.
+pays that one read; later requests answer in milliseconds. Parsed, the copy
+holds about 90 MB of heap for Wild and 20 MB for Standard, so it is released
+after those 30 s or as soon as a load puts a catalog for the format in memory.
 Check: `tests/constructed-card-deadline-cases.ts` (restart with a stored
 catalog while the source hangs or fails).

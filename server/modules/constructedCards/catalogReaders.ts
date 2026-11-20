@@ -39,19 +39,26 @@ function stalePublicCatalog(value: ConstructedCardCollection): ConstructedCardCo
 }
 
 /**
- * The stored catalog is large (tens of MB for Wild) and read synchronously:
- * read it once per format and generation every 30 s, not once per waiting request.
+ * The stored catalog is large (tens of MB for Wild, ~90 MB of heap parsed) and
+ * read synchronously: read it once per format and generation every 30 s, not
+ * once per waiting request, and let it go after those 30 s or as soon as a
+ * catalog for the format is in memory.
  */
 function storedCatalogMemo(ports: Pick<Ports, 'lastKnown' | 'generation' | 'now'>) {
-  const stored = new Map<ConstructedCardFormat, { generation: number; until: number; value: { document: Catalog['document'] } | null }>();
-  return (format: ConstructedCardFormat) => {
+  type Entry = { generation: number; until: number; value: { document: Catalog['document'] } | null };
+  const stored = new Map<ConstructedCardFormat, Entry>();
+  const read = (format: ConstructedCardFormat) => {
     const memo = stored.get(format);
     if (memo && memo.generation === ports.generation() && memo.until > ports.now()) return memo.value;
     let value: { document: Catalog['document'] } | null = null;
     try { value = ports.lastKnown?.(format) ?? null; } catch { /* no stored catalog to fall back to */ }
-    stored.set(format, { generation: ports.generation(), until: ports.now() + 30_000, value });
+    const until = ports.now() + 30_000;
+    stored.set(format, { generation: ports.generation(), until, value });
+    // The timer must not hold the document itself, or a released copy would live on for 30 s.
+    setTimeout(() => { if (stored.get(format)?.until === until) stored.delete(format); }, 30_000).unref?.();
     return value;
   };
+  return Object.assign(read, { release: (format: ConstructedCardFormat) => { stored.delete(format); } });
 }
 
 /**
@@ -146,6 +153,7 @@ export function createConstructedCardCatalogReaders(ports: Ports) {
           const ttlMs = catalog.fallback ? Math.min(ports.ttlMs, 30_000) : ports.ttlMs;
           ports.cache.set(key, { value, expiresAt: ports.now() + ttlMs });
           publicBackoff.delete(key);
+          storedCatalog.release(format);
         }
         return value;
       })(), loadMs, `constructed-cards:${key}`, ports.onDeadline)
