@@ -375,6 +375,29 @@ export const fixtures = {
       games: 1200, winrate: 61.1, updatedAt: '2026-07-24T00:00:00.000Z', sampleRank: 'all', samplePeriod: 'past_30_days',
     },
   },
+  // The open layer the Next archetype page reads: the general slice and the first builds with their card lists.
+  '/api/constructed-archetypes/public/standard/qa-evenlock': {
+    format: 'standard',
+    formatLabel: 'Стандарт',
+    patch: '36.0.3',
+    minimumGames: 50,
+    updatedAt: '2026-07-24T00:00:00.000Z',
+    item: {
+      ...qaArchetypeItems[0],
+      builds: qaArchetypeBuilds.slice(0, 8).map(({ sourceUrl, classKey, ...build }) => ({
+        ...build,
+        cards: [
+          { dbfId: 9001, name: 'Контрольная карта 1', cost: 1, rarity: 'LEGENDARY', count: 1 },
+          { dbfId: 9002, name: 'Контрольная карта 2', cost: 3, rarity: 'COMMON', count: 2 },
+        ],
+      })),
+    },
+    featuredBuild: {
+      games: 1200, winrate: 61.1, updatedAt: '2026-07-24T00:00:00.000Z', sampleRank: 'all', samplePeriod: 'past_30_days',
+    },
+    history: [],
+    analysis: null,
+  },
   '/api/bg/heroes/public/9001': {
     hero: {
       dbfId: 9001, cardId: 'BG_HERO_QA_9001', name: 'Контрольный герой',

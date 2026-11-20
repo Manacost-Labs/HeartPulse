@@ -4,8 +4,8 @@
 
 const FETCHED_AT = '2026-10-25T12:00:00Z';
 
-/** Код колоды «Контроль Воина»: 15 карт по две из фикстуры карт, Стандарт. */
-export const CONTROL_WARRIOR_DECK_CODE = 'AAECAQcAD7sC2AqinAGjnAGknAGlnAGmnAGnnAGonAGpnAGqnAGrnAGsnAGtnAGunAEAAA==';
+/** Код колоды «Контроль Воина»: 15 карт по две, все из фикстуры карт (dbf 20002–20016), чтобы открытый слой назвал каждую карту. Стандарт. */
+export const CONTROL_WARRIOR_DECK_CODE = 'AAECAQcAD6KcAaOcAaScAaWcAaacAaecAaicAamcAaqcAaucAaycAa2cAa6cAa+cAbCcAQAA';
 
 const ARCHETYPES = [
   { archetype: 'Thief Priest', winrate: 55.1, popularity: 12.5, games: 31959 },

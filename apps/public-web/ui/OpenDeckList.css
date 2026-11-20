@@ -39,7 +39,7 @@
 .open-deck__cards li[data-rarity='rare'] { color: #1f5f99; }
 
 .open-deck__code { display: grid; gap: 0.4rem; margin-block-start: auto; }
-.open-deck__code code { overflow-wrap: anywhere; color: #4a3323; font-size: 0.66rem; line-height: 1.4; user-select: all; }
+.open-deck__code code { overflow-wrap: anywhere; color: #4a3323; font-size: 0.6875rem; line-height: 1.4; user-select: all; }
 .open-deck__copy { inline-size: 100%; }
 
 /* The closed part named in the page's JSON-LD (`ArchetypePaidLocks`). */
