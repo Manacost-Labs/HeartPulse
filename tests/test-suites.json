@@ -647,6 +647,7 @@
         "tests/next-bg-tier-list-browser.test.mjs",
         "tests/next-mode-hubs-browser.test.mjs",
         "tests/next-decks-pages-browser.test.mjs",
+        "tests/next-archetype-detail-unavailable.test.mjs",
         "tests/next-paywall-access-check-browser.test.mjs",
         "tests/next-instant-access-browser.test.mjs",
         "tests/next-paid-panels-pending-browser.test.mjs",

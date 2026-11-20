@@ -3,11 +3,11 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { resolvePublicUrlPolicy } from '@/src/shared/seo/publicUrlPolicy';
 import { robotsContent } from '@/src/shared/seo/robots';
-import { isStandardMetaPeriod } from '@/shared/standardMetaPeriods';
 import { isIndexableArchetype } from '@/shared/constructedArchetypeIndexing';
 import { SHARE_IMAGE_HEIGHT, SHARE_IMAGE_WIDTH, shareImagePath } from '@/shared/shareImages';
 import { loadPublicArchetypeCatalogTeaser } from './publicArchetypeCatalogTeaser';
 import { loadPublicArchetypeTeaser } from './publicArchetypeTeaser';
+import { archetypeCatalogPeriod } from './publicDataPaths';
 import { archetypeDetailSeoText } from './seoDataValues';
 
 export type ArchetypeRouteParams = Promise<{ format: string; archetypeSlug: string }>;
@@ -30,9 +30,8 @@ export async function resolveArchetypeRoute(params: ArchetypeRouteParams) {
  * render, so the metadata and the page ask Express once).
  */
 export function loadArchetypeFormatCatalog(format: 'standard' | 'wild', detail?: { patch: string }) {
-  // The detail names its window in `patch` (`black_empire_ban`, or `37.0.2` for a patch): neighbours come from that window.
-  const period = detail?.patch ? (isStandardMetaPeriod(detail.patch) ? detail.patch : `patch_${detail.patch}`) : null;
-  return loadPublicArchetypeCatalogTeaser(`?format=${format}`, period);
+  // Neighbours come from the detail's own window; `proxy.ts` probes the same key (`publicDataProbe.ts`).
+  return loadPublicArchetypeCatalogTeaser(`?format=${format}`, detail ? archetypeCatalogPeriod(detail.patch) : null);
 }
 
 export async function archetypeDetailMetadata(params: ArchetypeRouteParams, family: ArchetypeFamily): Promise<Metadata> {

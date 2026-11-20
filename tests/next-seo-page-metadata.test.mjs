@@ -597,6 +597,8 @@ test('meta, catalog and archetype pages carry the date and numbers of their data
     assert.equal(noCatalog.description, catalog.description);
 
     // Archetype page, under both URL families: name, month, winrate, games, period and source; the longest name still fits.
+    // Its builds are all refused, so the indexable page needs its window's catalog, never read before: without it, a 503 (#599).
+    state.catalog = { updatedAt, labels: ['Мурлоки', 'Контроль Воин'] };
     state.detail = { updatedAt, label: 'Зоолок' };
     for (const path of ['/standard/archetypes/standard/zoolock/', '/standard/meta/standard/zoolock/']) {
       const archetype = await page(path);
