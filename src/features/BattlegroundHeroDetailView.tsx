@@ -31,7 +31,8 @@ export type BattlegroundHeroStatisticsInput = {
 import { BattlegroundHeroMediaLightbox } from './BattlegroundHeroDetailLightbox';
 
 
-function BattlegroundHeroSkins({ skins, skinMediaItems, openMediaGallery }: {
+function BattlegroundHeroSkins({ heroName, skins, skinMediaItems, openMediaGallery }: {
+  heroName: string;
   skins: BattlegroundHeroSkin[];
   skinMediaItems: BattlegroundHeroMediaItem[];
   openMediaGallery: (items: BattlegroundHeroMediaItem[], index: number) => void;
@@ -52,7 +53,7 @@ function BattlegroundHeroSkins({ skins, skinMediaItems, openMediaGallery }: {
           >
             <BattlegroundHeroImage
               sources={bgDetailImageSources(skin.image, bgHeroSkinLargeImage(skin.image))}
-              alt={skin.title || 'Скин героя'}
+              alt={skin.title && skin.title !== heroName ? `${heroName} — ${skin.title}` : `${heroName} — скин героя`}
               className="mx-auto w-full"
               imgClassName="mx-auto h-40 w-full object-contain drop-shadow-[0_12px_16px_rgba(61,42,30,0.16)] transition-transform duration-200 group-hover:scale-[1.02]"
             />
@@ -113,7 +114,7 @@ export function BattlegroundHeroDetailView({ dbfId, stats, libraryHero: loadedLi
       )}
 
       {skins.length > 0 && (
-        <BattlegroundHeroSkins skins={skins} skinMediaItems={skinMediaItems} openMediaGallery={openMediaGallery} />
+        <BattlegroundHeroSkins heroName={heroName} skins={skins} skinMediaItems={skinMediaItems} openMediaGallery={openMediaGallery} />
       )}
 
       <BattlegroundHeroGallery

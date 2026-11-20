@@ -3,6 +3,7 @@
 import { BattlegroundHeroStatistics } from '@/src/features/BattlegroundHeroStatistics';
 import { PaidMetricLock } from '@/src/shared/ui/PaidLocks';
 import type { PublicBattlegroundHeroStats } from '@/apps/public-web/lib/publicBattlegroundHeroStats';
+import type { SeoDataDate } from '@/apps/public-web/lib/seoDataDate';
 import { BattlegroundHeroPublicStats } from './BattlegroundHeroPublicStats';
 
 /** A paid analytics view of the tab: the lock in its place (`paywalled-hero` is the closed part of the page's JSON-LD). */
@@ -15,11 +16,11 @@ function Locked({ label }: { label: string }) {
  * of the base range; the distribution of places, combat, the hero power and tavern by turn and the compositions
  * with their metrics are locks that open the subscription offer.
  */
-export function BattlegroundHeroOpenStatistics({ stats }: { stats: PublicBattlegroundHeroStats | null }) {
+export function BattlegroundHeroOpenStatistics({ stats, date }: { stats: PublicBattlegroundHeroStats | null; date: SeoDataDate | null }) {
   return <BattlegroundHeroStatistics
     description="Рейтинг «Топ 50%», Соло и Дуо."
     overview={<>
-      {stats ? <BattlegroundHeroPublicStats stats={stats} /> : null}
+      {stats ? <BattlegroundHeroPublicStats stats={stats} date={date} /> : null}
       <Locked label="Распределение мест и бои по ходам" />
     </>}
     power={<Locked label="Сила героя по ходам и уровням таверны" />}

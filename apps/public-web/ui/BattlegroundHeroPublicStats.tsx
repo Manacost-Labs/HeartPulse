@@ -1,5 +1,5 @@
 import './BattlegroundHeroPublicStats.css';
-import { seoDataDate } from '@/apps/public-web/lib/seoDataDate';
+import type { SeoDataDate } from '@/apps/public-web/lib/seoDataDate';
 import {
   formatHeroFigure, heroStatsModeLabel, HERO_STATS_MODES,
   type PublicBattlegroundHeroModeStats, type PublicBattlegroundHeroStats,
@@ -25,10 +25,10 @@ function ModeStats({ mode, stats, id }: { mode: 'solo' | 'duos'; stats: PublicBa
 /**
  * The open figures of a hero in the «Обзор» tab of a guest's statistics block: tier, average place, top-4 share, pick
  * rate, place in the ranking, best build and key minions of the base range («Топ 50%») for solo and duos, with the
- * date and source of the data. The same markup for a guest and a robot, rendered on the server.
+ * date and source of the data. The same markup for a guest and a robot, rendered on the server. `date` is computed
+ * once on the server, so hydration in the browser (another clock) prints the same text.
  */
-export function BattlegroundHeroPublicStats({ stats }: { stats: PublicBattlegroundHeroStats }) {
-  const date = seoDataDate(stats.updatedAt, Date.now());
+export function BattlegroundHeroPublicStats({ stats, date }: { stats: PublicBattlegroundHeroStats; date: SeoDataDate | null }) {
   return <div className="bg-hero-public">
     {HERO_STATS_MODES.map(mode => {
       const values = stats.modes[mode];

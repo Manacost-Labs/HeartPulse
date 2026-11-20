@@ -5,6 +5,7 @@ import '@/src/features/TraditionalModeBanner.css';
 import { buildEntityStructuredData } from '@/shared/entitySeoStructuredData';
 import { loadPublicBattlegroundHero, loadPublicBattlegroundHeroProfile, loadPublicBattlegroundHeroStats } from '@/apps/public-web/lib/publicBattlegroundHero';
 import { openHeroDetail } from '@/apps/public-web/lib/openHeroDetail';
+import { seoDataDate } from '@/apps/public-web/lib/seoDataDate';
 import { heroStatsSummary } from '@/apps/public-web/lib/publicBattlegroundHeroStats';
 import { BattlegroundHeroDetailPageClient } from '@/apps/public-web/ui/BattlegroundHeroDetailPageClient';
 import { isIndexableBattlegroundHero } from '@/shared/battlegroundHeroIndexing';
@@ -95,10 +96,12 @@ export default async function Page({ params }: Props) {
       about: { '@type': 'VideoGame', name: 'Hearthstone' },
     });
   }
+  // A server component: the date is read once here and handed to the client view as text, so hydration matches.
+  const openDate = stats ? seoDataDate(stats.updatedAt, Date.now()) : null;
   return <>
     {resolved.indexable ? <script type="application/ld+json" data-server-entity-jsonld data-entity-path={`/heroes/${hero.dbfId}/`}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(structured).replace(/</g, '\\u003c') }} /> : null}
-    <BattlegroundHeroDetailPageClient hero={hero} openStats={stats}
+    <BattlegroundHeroDetailPageClient hero={hero} openStats={stats} openDate={openDate}
       detail={openHeroDetail(hero, stats, await loadPublicBattlegroundHeroProfile(String(hero.dbfId)))} />
   </>;
 }

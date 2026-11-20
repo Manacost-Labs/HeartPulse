@@ -6,6 +6,7 @@ import { BattlegroundHeroDetailView } from '@/src/features/BattlegroundHeroDetai
 import type { BattlegroundHeroDetailLibraryHero, BattlegroundHeroDetailStats } from '@/src/features/battlegroundHeroDetailTypes';
 import type { PublicBattlegroundHero } from '@/apps/public-web/lib/publicBattlegroundHeroData';
 import type { PublicBattlegroundHeroStats } from '@/apps/public-web/lib/publicBattlegroundHeroStats';
+import type { SeoDataDate } from '@/apps/public-web/lib/seoDataDate';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { BattlegroundHeroesRoute, loadBattlegrounds, useBattlegroundsModuleLoaded, usePaidViewPrefetch } from './lazyBattlegrounds';
 import { BattlegroundHeroOpenStatistics } from './BattlegroundHeroOpenStatistics';
@@ -22,10 +23,12 @@ const OFFER_TEXT = 'Распределение мест, бои, сила гер
  * subscription) gets that view, rendered on the server, with locks in place of the paid analytics. A subscriber gets
  * the same view on the protected data once its module has loaded (the open view stays until then, with its height).
  */
-export function BattlegroundHeroDetailPageClient({ hero, detail, openStats }: {
+export function BattlegroundHeroDetailPageClient({ hero, detail, openStats, openDate }: {
   hero: PublicBattlegroundHero;
   detail: { stats: BattlegroundHeroDetailStats; libraryHero: BattlegroundHeroDetailLibraryHero };
   openStats: PublicBattlegroundHeroStats | null;
+  /** The date of the open figures, computed on the server (one text for SSR and hydration). */
+  openDate: SeoDataDate | null;
 }) {
   const pathname = `/heroes/${hero.dbfId}/`;
   const access = usePublicAccess();
@@ -40,7 +43,7 @@ export function BattlegroundHeroDetailPageClient({ hero, detail, openStats }: {
       ? <BattlegroundHeroesRoute key={`${hero.dbfId}:${access.user?.id}`} path={pathname} onNavigate={navigate} teaser={hero} />
       : <PaidOfferProvider title="Аналитика героя — по подписке" text={OFFER_TEXT} entitlement="battlegrounds">
         <BattlegroundHeroDetailView dbfId={String(hero.dbfId)} stats={detail.stats} libraryHero={detail.libraryHero}
-          onNavigate={navigate} statistics={() => <BattlegroundHeroOpenStatistics stats={openStats} />} />
+          onNavigate={navigate} statistics={() => <BattlegroundHeroOpenStatistics stats={openStats} date={openDate} />} />
       </PaidOfferProvider>}
   </PublicPageShell>;
 }

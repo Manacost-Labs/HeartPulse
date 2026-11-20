@@ -10,12 +10,13 @@ import { fetchPublicExpress } from './expressApi';
 
 const validDbfId = (dbfId: string) => /^[1-9][0-9]*$/.test(dbfId) && Number.isSafeInteger(Number(dbfId));
 
-async function readAnswer(dbfId: string): Promise<unknown | null> {
+/** One anonymous read per request: the page's loaders share it when the proxy header could not carry the projection. */
+const readAnswer = cache(async (dbfId: string): Promise<unknown | null> => {
   const response = await fetchPublicExpress(`/api/bg/heroes/public/${dbfId}`);
   if (response.status === 404) return null;
   if (!response.ok) throw new Error('Public hero projection temporarily unavailable');
   return response.json();
-}
+});
 
 /**
  * The anonymous Express projection (identity and open statistics) without

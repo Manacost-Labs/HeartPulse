@@ -45,16 +45,28 @@ profile: {
   patches: [{ heading: 'Balance changes', entries: [{ date: '2025-01-01', patch: 'Patch 31.2.0.1', patch_url: null, wiki_url: null,
     items: ['Now has 5 armor (previously: 7).'], placement: 'SENTINEL_PATCH_PLACEMENT' }] }],
 } };
+// A hero whose profile does not fit the proxy's request header (the statistics do: their parser caps them): the page
+// reads the projection itself, once (the loaders share one request-scoped read).
+const bigHero = { ...hero,
+  hero: { ...hero.hero, dbfId: 57946, name: 'Большой герой' },
+  profile: { ...hero.profile, skins: Array.from({ length: 24 }, (_, index) => ({
+    cardId: `TB_BaconShop_HERO_16_SKIN_${index}`, title: `Скин с длинным названием номер ${index}`,
+    image: 'https://hearthpulse.net/assets/og-preview.png', url: `https://hearthstone.wiki.gg/wiki/Skin_${index}` })) },
+};
 const CLOSED_MARKS = ['PRIVATE_HERO_STATISTICS', 'SENTINEL_TOP_1_PERCENT', 'SENTINEL_PLACE', 'SENTINEL_ADJUSTED', 'SENTINEL_COMPOSITION_METRICS',
   'SENTINEL_PATCH_HISTORY', 'SENTINEL_PROFILE_EXTRA', 'SENTINEL_BUDDY_WINRATE', 'SENTINEL_SKIN_POPULARITY', 'SENTINEL_PATCH_PLACEMENT'];
 
 test('Next hero detail renders a safe teaser and real 404 without guest statistics requests', async () => {
   let publicCalls = 0;
+  let bigCalls = 0;
   const legacy = http.createServer((request, response) => {
     const pathname = new URL(request.url, 'http://fixture').pathname;
     response.setHeader('Content-Type', 'application/json');
     if (pathname === '/api/bg/heroes/public/57944') {
       publicCalls += 1; response.end(JSON.stringify(hero)); return;
+    }
+    if (pathname === '/api/bg/heroes/public/57946') {
+      bigCalls += 1; response.end(JSON.stringify(bigHero)); return;
     }
     if (pathname === '/api/bg/heroes/public/888888') {
       response.writeHead(503, { 'Retry-After': '45' }).end('{"error":"unavailable"}'); return;
@@ -166,6 +178,26 @@ test('Next hero detail renders a safe teaser and real 404 without guest statisti
     assert.ok(JSON.parse(heroJsonLd[0][1])['@graph'].some(node => node.identifier === 57944
       && node.url === 'https://hearthpulse.net/heroes/57944/'));
     assert.equal(publicCalls - callsBeforeSpoof, 1, 'a valid page uses one anonymous projection request');
+    // Too large for the proxy header: the proxy's read and one shared read of the page, whatever the loaders.
+    const big = await fetch(`${origin}/heroes/57946/`);
+    assert.equal(big.status, 200);
+    assert.match(await big.text(), /Скин с длинным названием номер 23/);
+    assert.equal(bigCalls, 2, 'the proxy read and one read of the page for the profile');
+    // The date of the open figures is computed on the server: a browser whose clock is five days behind (the data date
+    // then lies in its future) hydrates the same text, without a mismatch.
+    const skewed = await browser.newPage();
+    const skewErrors = [];
+    skewed.on('pageerror', error => skewErrors.push(error.message));
+    skewed.on('console', message => { if (message.type() === 'error') skewErrors.push(message.text()); });
+    await skewed.evaluateOnNewDocument(() => {
+      const shift = 5 * 24 * 60 * 60 * 1000;
+      const realNow = Date.now.bind(Date);
+      Date.now = () => realNow() - shift;
+    });
+    await skewed.goto(`${origin}/heroes/57944/`, { waitUntil: 'networkidle2' });
+    assert.match(await skewed.$eval('.bg-hero-public time', node => node.textContent ?? ''), /МСК/);
+    assert.deepEqual(skewErrors.filter(text => !/Failed to load resource/.test(text)), [], 'no hydration mismatch');
+    await skewed.close();
     const missing = await page.goto(`${origin}/heroes/999999/`, { waitUntil: 'networkidle2' });
     assert.equal(missing.status(), 404);
     assert.equal(await page.$eval('meta[name="robots"]', node => node.content), 'noindex, nofollow');
