@@ -7,7 +7,7 @@ import './recovery/RecoverableSurface.css';
 import { AsyncSurfaceState } from './recovery/RecoverableSurface';
 import { LoadingBlock } from '../shared/ui/LoadingSurface';
 import { GuideDetailSkeleton, GuideReaderSkeleton, GuidesArchiveSkeleton } from './GuidesArchiveSkeleton';
-import { type GuideArchiveItem, type GuideDetailSeed, useGuideDetail, useGuidesArchivePage } from './GuidesArchiveData';
+import { type GuideArchiveItem, type GuideDetailSeed, type GuidesArchiveResponse, useGuideDetail, useGuidesArchivePage } from './GuidesArchiveData';
 
 import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
 export type { GuideDetailSeed } from './GuidesArchiveData';
@@ -31,9 +31,9 @@ function guideKindLabel(kind: string | null): string {
   return kind || 'Архив';
 }
 
-function GuideArchiveCard({ guide, navigatePath }: { key?: React.Key; guide: GuideArchiveItem; navigatePath: (path: string) => void }) {
+function GuideArchiveCard({ guide, navigatePath, timeZone }: { key?: React.Key; guide: GuideArchiveItem; navigatePath: (path: string) => void; timeZone?: string }) {
   const href = `/guides-archive/${encodeURIComponent(guide.slug)}/`;
-  const date = guide.publishedAt ? formatGuideDate(guide.publishedAt) : '';
+  const date = guide.publishedAt ? formatGuideDate(guide.publishedAt, timeZone) : '';
   return (
     <a
       href={href}
@@ -65,12 +65,20 @@ function GuideArchiveCard({ guide, navigatePath }: { key?: React.Key; guide: Gui
   );
 }
 
-function GuidesArchiveList({ navigatePath }: { navigatePath: (path: string) => void }) {
+/**
+ * The archive list. It is open to everyone (a guest's search skips the paid text, which only the server
+ * knows); `initial` is the first page the server already rendered.
+ */
+function GuidesArchiveList({ navigatePath, open, initial }: {
+  navigatePath: (path: string) => void; open: boolean; initial: GuidesArchiveResponse | null;
+}) {
+  // The server renders dates in one zone; the browser switches to the viewer's after hydrating.
+  const timeZone = useViewerTimeZone();
   const [page, setPage] = useState(1);
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [kind, setKind] = useState('');
-  const { data, pending, error, retry } = useGuidesArchivePage(page, submittedQuery, kind);
+  const { data, pending, error, retry } = useGuidesArchivePage(page, submittedQuery, kind, { open, initial });
 
   const visibleKinds = useMemo(() => data?.filters.kinds.filter(item => item.count > 0) ?? [], [data]);
 
@@ -145,7 +153,7 @@ function GuidesArchiveList({ navigatePath }: { navigatePath: (path: string) => v
         <>
           <div className="guide-archive-grid data-surface" aria-busy={pending}>
             {data.items.map(item => (
-              <GuideArchiveCard key={item.id} guide={item} navigatePath={navigatePath} />
+              <GuideArchiveCard key={item.id} guide={item} navigatePath={navigatePath} timeZone={timeZone} />
             ))}
           </div>
 
@@ -176,10 +184,10 @@ function GuidesArchiveList({ navigatePath }: { navigatePath: (path: string) => v
 
 function GuideBackButton({ navigatePath }: { navigatePath: (path: string) => void }) {
   return (
-    <button type="button" className="guide-archive-back" onClick={() => navigatePath('/guides-archive')}>
-      <ArrowLeft size={18} />
-      К архиву
-    </button>
+    <a className="guide-archive-back" href="/guides-archive/"
+      onClick={event => { event.preventDefault(); navigatePath('/guides-archive'); }}>
+      <ArrowLeft size={18} />К архиву
+    </a>
   );
 }
 
@@ -214,13 +222,14 @@ export function GuideArchiveDetailHeader({ guide }: { guide: GuideDetailSeed }) 
  * as they are and only the body, which the teaser never has, waits for the
  * request. Without a teaser the whole detail waits in its fitted skeleton.
  */
-function GuidesArchiveDetail({ slug, navigatePath, seed, slots }: {
+function GuidesArchiveDetail({ slug, navigatePath, seed, slots, fullText }: {
   slug: string;
   navigatePath: (path: string) => void;
   seed?: GuideDetailSeed | null;
   slots?: GuideDetailSlots;
+  fullText: boolean;
 }) {
-  const { guide, error, missing, retry } = useGuideDetail(slug);
+  const { guide, error, missing, retry } = useGuideDetail(slug, fullText);
   const [seedSlug] = useState(slug);
   const header = guide ?? (slug === seedSlug ? seed : null);
   const seeded = slug === seedSlug ? slots : undefined;
@@ -232,11 +241,16 @@ function GuidesArchiveDetail({ slug, navigatePath, seed, slots }: {
       <GuideBackButton navigatePath={navigatePath} />
       {header && <GuideArchiveDetailHeader guide={header} />}
       {seeded?.toc}
-      {error ? (
+      {guide ? null : seeded?.excerpt}
+      {/* The open text stays on screen when the full text does not come: the failure says so, with a retry. */}
+      {!guide && error && seeded?.excerpt ? (
+        <AsyncSurfaceState variant="error" title="Не удалось загрузить полный текст гайда"
+          message={missing ? 'Гайд не найден' : error} actionLabel="Повторить" onAction={retry} />
+      ) : !guide && error ? (
         <AsyncSurfaceState variant="error" title={missing ? 'Гайд не найден' : 'Не удалось загрузить гайд'}
           message={missing ? undefined : error} actionLabel={missing ? undefined : 'Повторить'} onAction={missing ? undefined : retry} />
       ) : !guide ? (
-        seeded?.excerpt ?? <GuideReaderSkeleton />
+        seeded?.excerpt ? (fullText ? null : seeded.lock) : <GuideReaderSkeleton />
       ) : guide.contentHtml ? (
         <div className="guide-archive-reader" dangerouslySetInnerHTML={{ __html: guide.contentHtml }} />
       ) : (
@@ -252,16 +266,20 @@ function GuidesArchiveDetail({ slug, navigatePath, seed, slots }: {
  * The server-rendered contents and open text of the seeded guide. The contents stay for the
  * whole visit; the open text stands in for the body until the full text replaces it.
  */
-export type GuideDetailSlots = { toc?: ReactNode; excerpt?: ReactNode };
+export type GuideDetailSlots = { toc?: ReactNode; excerpt?: ReactNode; lock?: ReactNode };
 
-export default function GuidesArchive({ currentPath, navigatePath, detailSeed, detailSlots }: {
+export default function GuidesArchive({ currentPath, navigatePath, detailSeed, detailSlots, hasAccess = true, initialList = null }: {
   currentPath: string;
   navigatePath: (path: string) => void;
+  /** False for a viewer without the subscription: the list is the open one, a guide ends at its open text and `detailSlots.lock`. */
+  hasAccess?: boolean;
+  /** The first list page the server rendered. */
+  initialList?: GuidesArchiveResponse | null;
   /** The server-rendered teaser of the guide at `currentPath`, kept on screen while its body loads. */
   detailSeed?: GuideDetailSeed | null;
   detailSlots?: GuideDetailSlots;
 }) {
   const slug = detailSlugFromPath(currentPath);
-  if (slug) return <GuidesArchiveDetail slug={slug} navigatePath={navigatePath} seed={detailSeed} slots={detailSlots} />;
-  return <GuidesArchiveList navigatePath={navigatePath} />;
+  if (slug) return <GuidesArchiveDetail slug={slug} navigatePath={navigatePath} seed={detailSeed} slots={detailSlots} fullText={hasAccess} />;
+  return <GuidesArchiveList navigatePath={navigatePath} open={!hasAccess} initial={initialList} />;
 }

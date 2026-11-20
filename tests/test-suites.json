@@ -35,6 +35,9 @@
     "tests/next-tierlist-public.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
+    "tests/next-tierlist-class-pages.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
     "tests/next-meta-report.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
@@ -372,6 +375,7 @@
         "tests/battleground-library-seo-routes.test.ts",
         "tests/battleground-proxy-routes.test.ts",
         "tests/battleground-seo-routes.test.ts",
+        "tests/battleground-hero-public-profile.test.ts",
         "tests/battleground-trinket-metrics.test.ts",
         "tests/browser-identity-binding.test.ts",
         "tests/browser-identity-cleanup.test.ts",
@@ -400,6 +404,7 @@
         "tests/ecosystem-internal-routes.test.ts",
         "tests/entity-sitemap-routes.test.ts",
         "tests/entity-sitemap-store.test.ts",
+        "tests/entity-sitemap-decks.test.ts",
         "tests/indexnow.test.ts",
         "tests/gallery-routes.test.ts",
         "tests/game-data-audit-repository.test.ts",
@@ -607,6 +612,7 @@
         "tests/next-first-paint-data-browser.test.mjs",
         "tests/next-tierlist-public.test.mjs",
         "tests/next-deploy-restart.test.mjs",
+        "tests/next-tierlist-class-pages.test.mjs",
         "tests/next-classes-teaser.test.mjs",
         "tests/next-arena-open-first-screen-browser.test.mjs",
         "tests/next-legendaries-open-layer.test.mjs",

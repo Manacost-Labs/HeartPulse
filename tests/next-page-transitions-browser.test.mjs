@@ -168,7 +168,7 @@ test('public navigation preserves the frame, sidebar state and native link behav
     assert.equal(await page.$eval('#root', root => root.firstElementChild?.matches('.arena-skip-link')), true,
       'the persistent skip link remains the first root element');
     await page.evaluate(() => { document.querySelector('.arena-sidebar .hp-nav-scroll').scrollTop = 180; });
-    await page.hover('.arena-sidebar .hp-nav-list a[href="/guides-archive/"]');
+    await page.hover('.arena-sidebar .hp-nav-list a[href="/contests/"]');
     const scroll = await page.$eval('.arena-sidebar .hp-nav-scroll', node => node.scrollTop);
     assert.ok(scroll > 0, 'fixture must exercise sidebar scroll');
     const documentCount = gateway.requests.filter(request => request.destination === 'document').length;
@@ -178,7 +178,7 @@ test('public navigation preserves the frame, sidebar state and native link behav
     });
     assert.ok(readingOffset > 0, 'fixture must leave a scrolled page');
     await watchRouteMotion(page);
-    await visitByClick(page, '.arena-sidebar .hp-nav-list a[href="/guides-archive/"]', '/guides-archive/');
+    await visitByClick(page, '.arena-sidebar .hp-nav-list a[href="/contests/"]', '/contests/');
     assert.deepEqual(await routeMotion(page), [
       { target: 'content', skeleton: false, duration: 220, delay: 0, from: '1', to: '1', transform: 'translateY(16px)' },
     ], 'the ready destination rises in once (ValyroUI rise) at full opacity, at commit, over --motion-base; nothing else moves');
@@ -186,9 +186,9 @@ test('public navigation preserves the frame, sidebar state and native link behav
     assert.equal(await page.evaluate(() => document.activeElement?.id), 'main-content', 'focus continues at the new page');
     await assertSameFrame(page);
     assert.equal(await page.$eval('.arena-sidebar .hp-nav-scroll', node => node.scrollTop), scroll);
-    assert.equal(await page.$eval('.arena-sidebar .hp-nav-list a[href="/guides-archive/"]', node => node.getAttribute('aria-current')), 'page', 'the current page stays marked in the same list');
+    assert.equal(await page.$eval('.arena-sidebar .hp-nav-list a[href="/contests/"]', node => node.getAttribute('aria-current')), 'page', 'the current page stays marked in the same list');
     assert.equal(gateway.requests.filter(request => request.destination === 'document').length, documentCount);
-    assert.ok(gateway.requests.some(request => request.rsc === '1' && request.path.startsWith('/guides-archive/')));
+    assert.ok(gateway.requests.some(request => request.rsc === '1' && request.path.startsWith('/contests/')));
     assert.equal(await page.evaluate(() => document.querySelector('script[type="speculationrules"]') === null
       && !document.documentElement.hasAttribute('data-page-enter') && getComputedStyle(document.querySelector('.arena-content')).opacity === '1'), true);
     await watchRouteMotion(page);
@@ -197,7 +197,7 @@ test('public navigation preserves the frame, sidebar state and native link behav
     assert.deepEqual(await routeMotion(page), [], 'Back restores the page without a transition');
     await assertSameFrame(page);
     await page.evaluate(() => history.forward());
-    await page.waitForFunction(() => location.pathname === '/guides-archive/');
+    await page.waitForFunction(() => location.pathname === '/contests/');
     await assertSameFrame(page);
     // A plain anchor from page content uses the same router; fragments remain native.
     await page.evaluate(() => {

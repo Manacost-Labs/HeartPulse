@@ -67,6 +67,8 @@ const OPEN_DECK_CODE_ROUTES = [
   /^\/standard\/archetypes\/(?:standard|wild)\/[a-z0-9-]{1,90}\/$/,
   // Fun decks: every deck with its list and code (#446).
   /^\/standard\/fun-decks\/$/,
+  // Deck hub and class pages: the code of the best build of each archetype (#309, #650).
+  /^\/standard\/decks\/(?:[a-z]+\/)?$/,
   // Card detail: the decks with the card, winrate and score nulled (#547).
   /^\/standard\/cards\/(?:standard|wild)\/(?:[A-Za-z0-9_]{2,80}|blizzard%3A[1-9][0-9]{0,18})\/$/,
 ];
@@ -153,6 +155,18 @@ const ENTITY_SITEMAP_SEGMENTS = [
     identityFragment: null,
     pageJsonLd: true,
     sampleCount: 5,
+  },
+  // Deck class pages above the content threshold (`isIndexableDeckClass`, #650): at most 11, so one URL is
+  // enough (the server's `SITEMAP_DECKS_MIN`). The JSON-LD is the CollectionPage graph of the page itself.
+  {
+    key: 'decks',
+    path: '/sitemaps/decks.xml',
+    label: 'deck class sitemap',
+    minimumUrls: 1,
+    pathPattern: /^\/standard\/decks\/[a-z]{2,20}\/$/,
+    identityFromPath: pathname => pathname.split('/').filter(Boolean).at(-1),
+    identityFragment: null,
+    pageJsonLd: true,
   },
 ];
 

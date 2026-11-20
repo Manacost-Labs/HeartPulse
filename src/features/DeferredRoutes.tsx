@@ -639,7 +639,7 @@ export const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabl
       <button
         type="button"
         ref={cardRef}
-        className="hs-tier-card relative z-0 flex-shrink-0 group cursor-pointer hover:z-[9999] focus-within:z-[9999] appearance-none border-0 bg-transparent p-0 text-left"
+        className="hs-tier-card"
         data-rarity={String(card.rarity || 'common').toLowerCase()}
         data-card-frame={frame}
         onClick={handleClick}
@@ -665,7 +665,7 @@ export const HSCard: React.FC<HSCardProps> = memo(({ card, onClick, previewEnabl
     <button
       type="button"
       ref={cardRef}
-      className="hs-tier-card relative z-0 flex-shrink-0 group cursor-pointer hover:z-[9999] focus-within:z-[9999] appearance-none border-0 bg-transparent p-0 text-left"
+      className="hs-tier-card"
       data-rarity={String(card.rarity || 'common').toLowerCase()}
       onClick={handleClick}
       onMouseEnter={showPreview}
@@ -1231,7 +1231,7 @@ function HSReplayCardsTable({ tiers, onCardOpen, previewSuppressed = false }: {
   );
 }
 
-export function TierList({ data, loading, error, companionIds, tierlistSource, onTierlistSourceChange, switchingTierlistSource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, accessGranted, initialClassId, openLayer = false, serverRendered = false, onPaidOffer, dataLine, fullClassId, classHref }: {
+export function TierList({ data, loading, error, companionIds, tierlistSource, onTierlistSourceChange, switchingTierlistSource, onNavigate, authUser, subscriptionStatus, subscriptionLoading, onRefreshSubscription, accessGranted, initialClassId, openLayer = false, serverRendered = false, onPaidOffer, dataLine, fullClassId, classHref, classPage }: {
   data: TierlistData; loading: boolean; error: boolean;
   companionIds: Set<string>;
   tierlistSource: TierlistSource;
@@ -1261,6 +1261,8 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
   fullClassId?: string;
   /** Class pages exist: the class choice is a link to `/tierlist/<class>/` (see `TierListControls`). */
   classHref?: (id: string) => string;
+  /** A class page names its class in the H1 (not a duplicate of the tier list's) and in the breadcrumbs. */
+  classPage?: { title: string; name: string; href: string };
 }) {
   const [activeClassId, setActiveClassId] = useState<string>(initialClassId ?? ALL_CARDS_ID);
   const [offer, setOffer] = useState(false);
@@ -1459,10 +1461,11 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
 
   return (
     <div className="arena-tierlist-page">
-      <SectionBanner title="Тир-лист карт Арены Hearthstone" subtitle="Оценки карт для каждого класса — текущий патч" />
+      <SectionBanner title={classPage?.title ?? 'Тир-лист карт Арены Hearthstone'} subtitle="Оценки карт для каждого класса — текущий патч" />
       <Breadcrumbs items={[
         { name: 'Главная', href: '/', onClick: () => onNavigate('home') },
         { name: 'Тир-лист', href: '/tierlist/' },
+        ...(classPage ? [{ name: classPage.name, href: classPage.href }] : []),
       ]} />
       <PaywallGate
         active={paywallActive}
@@ -1576,10 +1579,8 @@ export function TierList({ data, loading, error, companionIds, tierlistSource, o
                       key={`${card.cardId}-${idx}`}
                       className="anim-scale-in"
                       data-tour-id={tierIdx === 0 && idx === 0 ? 'arena-tier-results' : undefined}
-                      style={{
-                        // Cap animation delay: past 20 cards the stagger is imperceptible
-                        animationDelay: idx < 20 ? `calc(var(--motion-stagger) * ${tierIdx + idx / 4})` : '0s',
-                      }}
+                      // Cap animation delay: past 20 cards the stagger is imperceptible, and no style keeps their HTML short.
+                      style={idx < 20 ? { animationDelay: `calc(var(--motion-stagger) * ${tierIdx + idx / 4})` } : undefined}
                     >
                       <HSCard
                         card={card}

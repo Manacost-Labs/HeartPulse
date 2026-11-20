@@ -63,9 +63,18 @@ failingApp.use('/api', createGuidesArchiveRouter({
   logError: () => {},
 }));
 
+let databaseDown = false;
+const flakyApp = express();
+flakyApp.use('/api', createGuidesArchiveRouter({
+  getDatabase: () => { if (databaseDown) throw new Error('database unavailable'); return database; },
+  accessGuard,
+  publicUrl: 'https://legacy.example.test',
+  logError: () => {},
+}));
 const server = app.listen(0, '127.0.0.1');
 const failingServer = failingApp.listen(0, '127.0.0.1');
-await Promise.all([server, failingServer].map(instance => new Promise<void>((resolve, reject) => {
+const flakyServer = flakyApp.listen(0, '127.0.0.1');
+await Promise.all([server, failingServer, flakyServer].map(instance => new Promise<void>((resolve, reject) => {
   instance.once('listening', resolve);
   instance.once('error', reject);
 })));
@@ -144,6 +153,62 @@ try {
   assert.equal(missing.response.status, 404);
   assert.deepEqual(missing.body, { error: 'Гайд не найден' });
 
+  // The open list: card fields only, no paid text, no guard, and a search that never reads the paid text.
+  database.prepare(`INSERT INTO guides VALUES (3, 'sentinel', '/guides/sentinel', 300, NULL, 'Открытый гайд', 'Открытое описание',
+    'ключ', '/images/s.png', 'Арена', 'arena', 'Гайды', 'guides', '', '<p>FREE_PART</p>',
+    '<p>PAID_SENTINEL_BODY_HTML</p>', 'PAID_SENTINEL_BODY_TEXT', 0)`).run();
+  const open = await request('/guides-archive/public/list');
+  assert.equal(open.response.status, 200);
+  assert.equal(open.body.total, 3);
+  assert.equal(open.body.items[0].slug, 'sentinel');
+  assert.deepEqual(Object.keys(open.body.items[0]).sort(), ['description', 'id', 'image', 'kind', 'kindSlug', 'menuCode',
+    'menuName', 'oldUrl', 'publishedAt', 'slug', 'title']);
+  assert.equal(open.body.items[0].oldUrl, null, 'the address of the legacy site stays out of the open list');
+  assert.equal(JSON.stringify(open.body).includes('PAID_SENTINEL'), false, 'the paid text must not reach the open list');
+  assert.equal(JSON.stringify(open.body).includes('FREE_PART'), false);
+  assert.equal((await request('/guides-archive/public/list?q=PAID_SENTINEL_BODY_TEXT')).body.total, 0,
+    'a guest search must not tell whether a word stands in the paid text');
+  assert.equal((await request('/guides-archive/public/list?q=%D0%9E%D1%82%D0%BA%D1%80%D1%8B%D1%82%D0%BE%D0%B5')).body.total, 1);
+  assert.equal((await request('/guides-archive/public/list?kind=meta')).body.total, 1);
+  assert.equal((await request('/guides-archive?q=PAID_SENTINEL_BODY_TEXT', { headers })).body.total, 1,
+    'a subscriber keeps the full-text search');
+
+  // A guide without a description is described by its open part: never by the start of the body text, which may be the paid part.
+  database.prepare(`INSERT INTO guides VALUES (4, 'no-description', '/guides/no-description', 400, NULL, 'Без описания', '',
+    '', NULL, 'Арена', 'arena', 'Гайды', 'guides', '', ?, ?, ?, 0)`).run(
+    `<p>FREE_START ${'слово '.repeat(10)}</p>`, `<p>${'слово '.repeat(300)}PAID_DEEP_SENTINEL</p>`,
+    `PAID_BODY_TEXT_FIRST ${'слово '.repeat(300)}`);
+  const described = await request('/guides-archive/public/list');
+  const noDescription = described.body.items.find((item: any) => item.slug === 'no-description');
+  assert.match(noDescription.description, /^FREE_START слово/, 'described by the open part');
+  assert.equal(JSON.stringify(described.body).includes('PAID_'), false, 'no paid text in the list, whatever the description is');
+  const describedTeaser = await request('/guides-archive/teaser/no-description');
+  assert.match(describedTeaser.body.description, /^FREE_START слово/);
+  assert.equal(JSON.stringify(describedTeaser.body).includes('PAID_'), false);
+
+  // No description and no body_text: the old chain fell back to body_html. A deck code is paid and never in the open part.
+  database.prepare(`INSERT INTO guides VALUES (5, 'html-only', '/guides/html-only', 500, NULL, 'Только HTML', '', '', NULL, 'Арена',
+    'arena', 'Гайды', 'guides', '', '', ?, '', 0)`).run(`<p><code>PAID_CODE_SENTINEL</code></p><p>OPEN_HTML_START ${'слово '.repeat(300)}</p>`);
+  const htmlOnly = await request('/guides-archive/public/list');
+  const htmlOnlyItem = htmlOnly.body.items.find((item: any) => item.slug === 'html-only');
+  assert.match(htmlOnlyItem.description, /^OPEN_HTML_START/, 'the description starts at the open text, not at the paid code');
+  assert.equal(JSON.stringify(htmlOnly.body).includes('PAID_'), false);
+  const htmlOnlyTeaser = await request('/guides-archive/teaser/html-only');
+  assert.match(htmlOnlyTeaser.body.description, /^OPEN_HTML_START/, 'the same description feeds meta and og');
+  assert.equal(JSON.stringify(htmlOnlyTeaser.body).includes('PAID_'), false);
+
+  // Stale copy of the same request, else 503 with Retry-After; never a 500 and never an empty list.
+  const flaky = async (path: string) => fetch(`${origin(flakyServer)}${path}`);
+  assert.equal((await flaky('/guides-archive/public/list?page=1')).status, 200);
+  databaseDown = true;
+  const stale = await flaky('/guides-archive/public/list?page=1');
+  assert.equal(stale.status, 200);
+  assert.equal((await stale.json() as any).warning, 'stale');
+  const none = await flaky('/guides-archive/public/list?page=2');
+  assert.equal(none.status, 503);
+  assert.equal(none.headers.get('retry-after'), '60');
+  databaseDown = false;
+
   const failedList = await fetch(`${origin(failingServer)}/guides-archive`);
   assert.equal(failedList.status, 500);
   assert.deepEqual(await failedList.json(), { error: 'Не удалось загрузить архив гайдов' });
@@ -155,7 +220,7 @@ try {
   const failedTeaser = await fetch(`${origin(failingServer)}/guides-archive/teaser/example`);
   assert.equal(failedTeaser.status, 500);
 } finally {
-  await Promise.all([server, failingServer].map(instance => new Promise<void>((resolve, reject) => (
+  await Promise.all([server, failingServer, flakyServer].map(instance => new Promise<void>((resolve, reject) => (
     instance.close(error => error ? reject(error) : resolve())
   ))));
   database.close();

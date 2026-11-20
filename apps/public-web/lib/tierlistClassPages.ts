@@ -7,8 +7,8 @@ export const TIERLIST_CLASS_SLUGS = ['death-knight', 'demon-hunter', 'druid', 'h
   'rogue', 'shaman', 'warlock', 'warrior', 'neutral'] as const;
 export type TierlistClassSlug = typeof TIERLIST_CLASS_SLUGS[number];
 
-/** Switched on by the PR that adds the `app/tierlist/[class]` route and its Nginx contract (#617). */
-export const TIERLIST_CLASS_PAGES_LIVE = false;
+/** On since the `app/tierlist/[class]` route and its Nginx contract are served (#617). */
+export const TIERLIST_CLASS_PAGES_LIVE = true;
 
 const NEUTRAL_ID = 'any';
 const ALL_CARDS_ID = '__all__';
@@ -23,4 +23,14 @@ export function tierlistClassPath(id: string): string {
 export function tierlistClassIdFromSlug(slug: string): string | null {
   if (!(TIERLIST_CLASS_SLUGS as readonly string[]).includes(slug)) return null;
   return slug === 'neutral' ? NEUTRAL_ID : slug;
+}
+
+/**
+ * The H1 and breadcrumb of a class page: its own heading (it matches the page's title, not the tier list's), the
+ * neutral cards named as such. `name` is the section's name in the pool («Маг»).
+ */
+export function tierlistClassPageHeading(id: string, name: string): { title: string; name: string; href: string } {
+  return id === NEUTRAL_ID
+    ? { title: 'Нейтральные карты Арены Hearthstone', name: 'Нейтральные', href: tierlistClassPath(id) }
+    : { title: `Тир-лист карт Арены Hearthstone: ${name}`, name, href: tierlistClassPath(id) };
 }

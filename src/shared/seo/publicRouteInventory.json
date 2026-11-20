@@ -428,9 +428,9 @@
       "pattern": "/standard/decks",
       "kind": "static",
       "owner": "traditional-data",
-      "indexPolicy": "noindex-follow",
-      "canonicalPolicy": "none",
-      "sitemap": false,
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
       "htmlStrategy": "server-ssr",
       "expectedStatus": 200,
       "criticality": "P1",
@@ -442,9 +442,9 @@
       "pattern": "/standard/decks/:classKey",
       "kind": "listing",
       "owner": "traditional-data",
-      "indexPolicy": "noindex-follow",
-      "canonicalPolicy": "none",
-      "sitemap": false,
+      "indexPolicy": "index",
+      "canonicalPolicy": "self",
+      "sitemap": true,
       "htmlStrategy": "server-ssr",
       "expectedStatus": 200,
       "criticality": "P1",
@@ -615,6 +615,38 @@
       "criticality": "P0",
       "mobileFixture": "arena-tierlist-anonymous",
       "entitlement": "arena"
+    },
+    {
+      "id": "tierlist-class",
+      "pattern": "/tierlist/:classSlug",
+      "kind": "listing",
+      "owner": "arena-data",
+      "indexPolicy": "noindex-follow",
+      "canonicalPolicy": "none",
+      "sitemap": false,
+      "htmlStrategy": "server-ssr",
+      "expectedStatus": 200,
+      "criticality": "P2",
+      "mobileFixture": "arena-tierlist-anonymous",
+      "entitlement": "arena",
+      "pathParameters": {
+        "classSlug": {
+          "allowedValues": [
+            "death-knight",
+            "demon-hunter",
+            "druid",
+            "hunter",
+            "mage",
+            "paladin",
+            "priest",
+            "rogue",
+            "shaman",
+            "warlock",
+            "warrior",
+            "neutral"
+          ]
+        }
+      }
     },
     {
       "id": "legendaries",

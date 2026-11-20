@@ -7,8 +7,8 @@ import { parsePublicClassesTeaser, CLASSES_TEASER_PATH } from './publicClassesTe
 
 /**
  * The open slice of the Arena class ranking for the prerendered guest view, or
- * `null` (an upstream failure or no data yet): the page is then served without
- * the slice instead of failing.
+ * `null` (an upstream failure or no data yet): the build then prints the page
+ * without the slice, a runtime regeneration fails and keeps the earlier copy (#631).
  */
 export const loadPublicClassesTeaser = cache(async () => parsePublicClassesTeaser(await readFirstPaintJson(
   signal => fetchPublicExpress(CLASSES_TEASER_PATH, signal, { revalidate: PRERENDERED_DATA_REVALIDATE_SECONDS }),

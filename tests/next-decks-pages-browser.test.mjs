@@ -42,6 +42,9 @@ const detailOf = item => ({
 });
 const catalog = { format: 'standard', formatLabel: 'Стандарт', patch: '37.0.2', minimumGames: 10,
   updatedAt: '2026-07-24T12:38:57.727Z', coverage: {}, items: ROWS };
+const INDEXABLE = 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
+/** The node types of the JSON-LD graphs of a page, sorted. */
+const graphTypes = graphs => graphs.flatMap(graph => graph['@graph'].map(node => node['@type'])).sort();
 const axe = readFileSync(fileURLToPath(import.meta.resolve('axe-core')), 'utf8');
 
 /** Production Next behind the public gateway with a fake Express; `api(pathname, request, response)` answers `/api/` reads. */
@@ -132,7 +135,7 @@ test('deck hub and class pages: server HTML with open codes, 404 for an unknown 
         title: document.title,
         robots: [...document.querySelectorAll('meta[name=robots]')].map(node => node.content),
         canonical: document.querySelector('link[rel=canonical]')?.href ?? null,
-        graphs: document.querySelectorAll('script[type="application/ld+json"]').length,
+        graphs: [...document.querySelectorAll('script[type="application/ld+json"]')].map(node => JSON.parse(node.textContent)),
         h1: [...document.querySelectorAll('h1')].map(node => node.textContent),
         data: document.querySelector('h1 + p')?.textContent.replaceAll(' ', ' '),
         links: [...document.querySelectorAll('main a')].map(node => `${node.textContent.replaceAll(' ', ' ')} → ${node.getAttribute('href')}`),
@@ -147,9 +150,10 @@ test('deck hub and class pages: server HTML with open codes, 404 for an unknown 
       assert.equal(hub.status, 200);
       assert.deepEqual(hub.h1, ['Лучшие колоды Hearthstone']);
       assert.match(hub.title, /^Лучшие колоды Hearthstone \(хс\), \d{4} \| HearthPulse$/);
-      assert.deepEqual(hub.robots, ['noindex, follow']);
-      assert.equal(hub.canonical, null);
-      assert.equal(hub.graphs, 0, 'no JSON-LD while the page is noindex');
+      // Indexed since #650: self-canonical with its JSON-LD.
+      assert.deepEqual(hub.robots, [INDEXABLE]);
+      assert.equal(hub.canonical, 'https://hearthpulse.net/standard/decks/');
+      assert.deepEqual(graphTypes(hub.graphs), ['BreadcrumbList', 'CollectionPage', 'ItemList', 'Organization']);
       assert.equal(hub.data, 'Данные на 24 июля 2026, 15:38 МСК · 3 архетипа, 53 800 игр · источник HSGuru');
       assert.equal(hub.overflow, false, `hub at ${width}px`);
       // The best archetype of each class by winrate above the threshold: Агро Паладин, not the weak 70%.
@@ -166,8 +170,10 @@ test('deck hub and class pages: server HTML with open codes, 404 for an unknown 
       assert.equal(paladin.status, 200);
       assert.deepEqual(paladin.h1, ['Колоды Паладина']);
       assert.match(paladin.title, /^Колоды Паладина Hearthstone \(хс\): топ/);
-      assert.deepEqual(paladin.robots, ['noindex, follow']);
-      assert.equal(paladin.canonical, null);
+      // Four archetypes above the threshold: the class page is indexed (#650).
+      assert.deepEqual(paladin.robots, [INDEXABLE]);
+      assert.equal(paladin.canonical, 'https://hearthpulse.net/standard/decks/paladin/');
+      assert.deepEqual(graphTypes(paladin.graphs), ['BreadcrumbList', 'CollectionPage', 'ItemList', 'Organization']);
       assert.equal(paladin.data, 'Данные на 24 июля 2026, 15:38 МСК · 4 архетипа, 87 200 игр · источник HSGuru');
       assert.equal(paladin.overflow, false, `class page at ${width}px`);
       assert.deepEqual(paladin.links.filter(link => link.includes('/standard/archetypes/')), [
@@ -182,6 +188,9 @@ test('deck hub and class pages: server HTML with open codes, 404 for an unknown 
 
     const warlock = await read('/standard/decks/warlock/', 390);
     assert.ok(warlock.text.includes('Мало данных: 1 из 4 нужных архетипов от 1 000 игр, страница не индексируется.'));
+    // Below the content threshold the page decides `noindex, follow` and prints no JSON-LD, as an archetype page does.
+    assert.deepEqual(warlock.robots, ['noindex, follow']);
+    assert.deepEqual(warlock.graphs, []);
     const hunter = await read('/standard/decks/hunter/', 390);
     assert.ok(hunter.text.includes('Фейс Охотник: код сборки пока недоступен.'), 'a failed detail keeps the row without a code');
     const empty = await read('/standard/decks/mage/', 390);

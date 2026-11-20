@@ -348,10 +348,12 @@ test('/tierlist/ in a browser: cards without JS, the subscriber view with locks 
       const cards = () => page.evaluate(() => document.querySelectorAll('.tierlist-card-grid .hs-tier-card').length);
       const shift = await page.evaluate(() => window.__layoutShifts.reduce((sum, value) => sum + value, 0));
       assert.ok(shift < 0.02, `${viewport.width}px: the page shifted by ${shift.toFixed(4)} while it hydrated`);
-      await page.click('button[aria-label="Класс mage"]');
+      // A class is a link to its page (#617), which shows the class whole; «Все карты» leads back.
+      await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle2' }), page.click('a[aria-label="Класс mage"]')]);
+      assert.equal(new URL(page.url()).pathname, '/tierlist/mage/');
       await page.waitForFunction(count => document.querySelectorAll('.tierlist-card-grid .hs-tier-card').length === count, {},
         CARDS.filter(card => card.classId === 'mage').length);
-      await page.click('button[aria-label="Все карты"]');
+      await Promise.all([page.waitForNavigation({ waitUntil: 'networkidle2' }), page.click('a[aria-label="Все карты"]')]);
       await page.waitForFunction(count => document.querySelectorAll('.tierlist-card-grid .hs-tier-card').length === count, {}, Math.min(48, CARDS.length));
       // The card details show the open figures and the paid ones as locks; a lock opens the offer in place.
       await page.click('.tierlist-card-grid .hs-tier-card');
@@ -363,6 +365,24 @@ test('/tierlist/ in a browser: cards without JS, the subscriber view with locks 
       assert.deepEqual(errors, [], `${viewport.width}px: no page errors`);
     await page.close();
     }
+
+    // A class page is its class: `?class=` in its address (an old link, a sign-in return) does not switch it after hydration.
+    const conflicting = await browser.newPage();
+    const conflictErrors = [];
+    conflicting.on('pageerror', error => conflictErrors.push(String(error)));
+    await conflicting.goto(`${origin}/tierlist/mage/?class=warrior`, { waitUntil: 'networkidle2' });
+    await conflicting.waitForFunction(() => {
+      const classes = document.querySelector('.arena-tier-classes');
+      return classes !== null && Object.keys(classes).some(key => key.startsWith('__reactFiber'));
+    });
+    await delay(500);
+    assert.equal(await conflicting.$eval('.arena-tier-classes a[aria-current="page"]', link => link.getAttribute('aria-label')), 'Класс mage');
+    assert.deepEqual(await conflicting.$$eval('.tierlist-card-grid .hs-tier-card', items => items.map(item => item.getAttribute('aria-label')).sort()),
+      ['Открыть карту Карта mage-0', 'Открыть карту Карта mage-1', 'Открыть карту Карта mage-2', 'Открыть карту Карта mage-3',
+        'Открыть карту Карта mage-4', 'Открыть карту Карта mage-5', 'Открыть карту Карта mage-6', 'Открыть карту Карта mage-7',
+        'Открыть карту Карта mage-s0', 'Открыть карту Карта mage-s1'], 'the mage cards stay after hydration');
+    assert.deepEqual(conflictErrors, []);
+    await conflicting.close();
   } finally {
     if (browser) await browser.close();
     if (front) { front.closeAllConnections(); await new Promise(done => front.close(done)); }
@@ -413,11 +433,11 @@ test('the post-deploy warm-up regenerates /legendaries/, /heroes/, /standard/mat
 
 // The warm-up table lists exactly the ISR pages the real revalidate route regenerates (that literal is asserted against the
 // real route by the warm-up test above).
-test('DATA_PAGES marked isr are the 23 pages of the revalidate route', () => {
+test('DATA_PAGES marked isr are the 24 pages of the revalidate route', () => {
   const expected = ['/articles', '/battlegrounds/tier-list', '/classes', '/heroes', '/legendaries', '/library', ...['anomalies', 'dark-gifts', 'darkmoon-prizes', 'minions', 'quests',
     'rewards', 'spells', 'timewarped', 'trinkets'].map(kind => `/library/${kind}`), '/standard/matchups', '/standard/meta', '/standard/meta/wild', '/tierlist',
-    '/arena', '/battlegrounds', '/standard', '/wild'];
-  assert.equal(expected.length, 23);
+    '/arena', '/battlegrounds', '/standard', '/wild', '/guides-archive'];
+  assert.equal(expected.length, 24);
   assert.deepEqual(DATA_PAGES.filter(page => page.isr).map(page => page.path.replace(/\/$/, '')).sort(), [...expected].sort());
   assert.equal(DATA_PAGES.find(page => page.path === '/library/').marker, 'bg-library-public__size', 'the hub marker is not on the copy without sizes');
 });
