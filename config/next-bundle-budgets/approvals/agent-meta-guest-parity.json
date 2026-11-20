@@ -1,0 +1,8 @@
+{
+  "reason": "Паритет гостя меты (#618): общий usePublicAccess снимает метку remembered у подтверждённого гостя (+16 B JS на всех маршрутах), матчапы делят код замков/useHydrated (+65 B). Допуск каталога карт исчерпан предыдущими мержами (#662). Одобрено с запасом на разброс сборок CI; мета при этом −3,3 KB JS.",
+  "routes": {
+    "/standard/cards/": { "jsGzipBytes": 64 },
+    "/standard/cards/standard/": { "jsGzipBytes": 64 },
+    "/standard/matchups/": { "jsGzipBytes": 128 }
+  }
+}
