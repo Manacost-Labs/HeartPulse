@@ -316,9 +316,9 @@ function Pagination({ page, totalPages, total, perPage, onPage, hrefFor }: { pag
     <nav className="constructed-cards__pagination" aria-label="Страницы библиотеки">
       <span className="constructed-cards__page-summary">Страница {page} из {totalPages} · по {perPage} · всего {number(total)}</span>
       {totalPages > 1 && <>
-        {page > 1 ? link(page - 1, <><ChevronLeft size={17} /> Назад</>) : <span aria-disabled="true"><ChevronLeft size={17} /> Назад</span>}
+        {page > 1 ? link(page - 1, <><ChevronLeft size={17} /> Назад</>) : <a role="link" aria-disabled="true"><ChevronLeft size={17} /> Назад</a>}
         {pages.map((item, index) => <React.Fragment key={item}>{index > 0 && item - pages[index - 1] > 1 && <span>…</span>}{link(item, item, item === page)}</React.Fragment>)}
-        {page < totalPages ? link(page + 1, <>Вперёд <ChevronRight size={17} /></>) : <span aria-disabled="true">Вперёд <ChevronRight size={17} /></span>}
+        {page < totalPages ? link(page + 1, <>Вперёд <ChevronRight size={17} /></>) : <a role="link" aria-disabled="true">Вперёд <ChevronRight size={17} /></a>}
       </>}
     </nav>
   );
