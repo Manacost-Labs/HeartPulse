@@ -162,7 +162,6 @@ function HoverTooltip({ card, rect, rankLabel, statsAccess, gate }: { card: Card
 type GalleryCardProps = {
   card: CardRecord;
   index: number;
-  search: string;
   format: CardFormat;
   period: ConstructedCardPeriod;
   rank: ConstructedCardRank;
@@ -176,7 +175,7 @@ type GalleryCardProps = {
 
 // Memoized so that hovering one card (which moves the tooltip state of the
 // gallery) re-renders the tooltip, not all 60 cards.
-const GalleryCard = memo(function GalleryCard({ card, index, search, format, period, rank, sort, statsAccess, immediate, navigatePath, onShow, onHide }: GalleryCardProps) {
+const GalleryCard = memo(function GalleryCard({ card, index, format, period, rank, sort, statsAccess, immediate, navigatePath, onShow, onHide }: GalleryCardProps) {
   const metric = sortMetric(card, sort);
   const name = cardName(card);
   const fullImage = constructedCardImage(card);
@@ -222,15 +221,15 @@ function useCardTooltip() {
   return { hovered, onShow, onHide };
 }
 
-function CardGallery({ cards, search, format, period, rank, sort, navigatePath, statsAccess, gate }: { cards: CardRecord[]; search: string; format: CardFormat; period: ConstructedCardPeriod; rank: ConstructedCardRank; sort: string; navigatePath: (path: string) => void; statsAccess: boolean; gate: StatsGateProps }) {
+function CardGallery({ cards, format, period, rank, sort, navigatePath, statsAccess, gate }: { cards: CardRecord[]; format: CardFormat; period: ConstructedCardPeriod; rank: ConstructedCardRank; sort: string; navigatePath: (path: string) => void; statsAccess: boolean; gate: StatsGateProps }) {
   const { hovered, onShow, onHide } = useCardTooltip();
   const { galleryRef, immediateImageCount } = useCardGalleryImageLoading(cards);
   // A filter (rarity, class, mana, set) or page change: new cards enter, the ones that stay glide.
   const listRef = useListTransition<HTMLDivElement>(cards, galleryRef);
   const grid = useMemo(() => cards.map((card, index) => (
-    <GalleryCard key={card.card_id} card={card} index={index} search={search} format={format} period={period} rank={rank} sort={sort}
+    <GalleryCard key={card.card_id} card={card} index={index} format={format} period={period} rank={rank} sort={sort}
       statsAccess={statsAccess} immediate={index < immediateImageCount} navigatePath={navigatePath} onShow={onShow} onHide={onHide} />
-  )), [cards, search, format, period, rank, sort, statsAccess, immediateImageCount, navigatePath, onShow, onHide]);
+  )), [cards, format, period, rank, sort, statsAccess, immediateImageCount, navigatePath, onShow, onHide]);
   return (
     <>
       <div className="constructed-cards__gallery" ref={listRef}>{grid}</div>
@@ -244,7 +243,7 @@ function sortAria(sort: string, column: string, direction: Filters['direction'])
   return direction === 'asc' ? 'ascending' : 'descending';
 }
 
-function CardTable({ cards, search, format, period, rank, sort, direction, navigatePath, statsAccess }: { cards: CardRecord[]; search: string; format: CardFormat; period: ConstructedCardPeriod; rank: ConstructedCardRank; sort: string; direction: Filters['direction']; navigatePath: (path: string) => void; statsAccess: boolean }) {
+function CardTable({ cards, format, period, rank, sort, direction, navigatePath, statsAccess }: { cards: CardRecord[]; format: CardFormat; period: ConstructedCardPeriod; rank: ConstructedCardRank; sort: string; direction: Filters['direction']; navigatePath: (path: string) => void; statsAccess: boolean }) {
   const [preview, setPreview] = useState<CardPreviewTarget | null>(null);
   const prefetchTimer = useRef<number | null>(null);
   const showPreview = (card: CardRecord, element: HTMLElement) => setPreview({
@@ -354,7 +353,6 @@ function CardsListPage({ initialFormat, isLibraryRoot, initialCatalog, initialSe
   // nodes) renders after it in an interruptible transition.
   const contentView = useDeferredValue(view);
   const viewRef = useViewEntrance<HTMLDivElement>(contentView);
-  const contentSearch = catalogLocationUrl('', { ...state, view: contentView });
   const normalizedInputQuery = filters.query.trim();
   const searchPending = Boolean(normalizedInputQuery) && (
     normalizedInputQuery !== requestQuery || loading
@@ -462,7 +460,7 @@ function CardsListPage({ initialFormat, isLibraryRoot, initialCatalog, initialSe
 
       {loading && !data ? <CardCatalogSkeleton view={contentView} count={perPage} />
         : error ? <section className="constructed-cards__state" role="alert"><h2>{error.title}</h2><p>{error.message}</p>{error.retry && <button type="button" onClick={retry}><RefreshCw size={16} /> Повторить</button>}</section>
-          : data && data.cards.length > 0 ? <div className="data-surface" aria-busy={loading} ref={viewRef}>{contentView === 'gallery' ? <CardGallery search={contentSearch} cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} navigatePath={navigatePath} statsAccess={hasStatsAccess} gate={statsGate} /> : <CardTable search={contentSearch} cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} direction={filters.direction} navigatePath={navigatePath} statsAccess={hasStatsAccess} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} hrefFor={pageHref} /></div>
+          : data && data.cards.length > 0 ? <div className="data-surface" aria-busy={loading} ref={viewRef}>{contentView === 'gallery' ? <CardGallery cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} navigatePath={navigatePath} statsAccess={hasStatsAccess} gate={statsGate} /> : <CardTable cards={data.cards} format={format} period={period} rank={rank} sort={filters.sort} direction={filters.direction} navigatePath={navigatePath} statsAccess={hasStatsAccess} />}<Pagination page={data.pagination.page} totalPages={data.pagination.totalPages} total={data.pagination.total} perPage={data.pagination.perPage} onPage={setPage} hrefFor={pageHref} /></div>
             : <section className="constructed-cards__state"><Search size={34} /><h2>Карты не найдены</h2><p>Измените фильтры или сбросьте их.</p><button type="button" onClick={reset}><RefreshCw size={16} /> Сбросить фильтры</button></section>}
     </div>
   );
