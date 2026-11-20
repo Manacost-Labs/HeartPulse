@@ -100,8 +100,16 @@ test('the guest HTML of /legendaries/ carries the open groups and no paid value'
 
     // A browser, Googlebot and YandexBot get the same document.
     // One at a time, after the copy is warm: a regeneration in flight would make two answers differ for a reason that is not the user agent.
-    await guestHtml(next.origin, { 'User-Agent': BROWSER_UA });
-    const browser = await guestHtml(next.origin, { 'User-Agent': BROWSER_UA });
+    // Compare only after two identical copies in a row: a background regeneration can still be publishing right after the data returned.
+    let browser = await guestHtml(next.origin, { 'User-Agent': BROWSER_UA });
+    let settled = false;
+    for (let attempt = 0; attempt < 20 && !settled; attempt += 1) {
+      await delay(300);
+      const again = await guestHtml(next.origin, { 'User-Agent': BROWSER_UA });
+      settled = again === browser;
+      browser = again;
+    }
+    assert.ok(settled, 'the copy settled before the user agents are compared');
     const google = await guestHtml(next.origin, { 'User-Agent': GOOGLEBOT_UA });
     const yandex = await guestHtml(next.origin, { 'User-Agent': YANDEXBOT_UA });
     assert.equal(google, browser, 'Googlebot gets the guest HTML');
