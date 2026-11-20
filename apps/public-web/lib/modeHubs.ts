@@ -37,7 +37,7 @@ export const MODE_HUBS: Readonly<Record<ModeHubId, ModeHub>> = {
     path: '/standard',
     name: 'Стандарт',
     heading: 'Стандарт Hearthstone: колоды, мета и архетипы',
-    lead: 'Сильнейшие колоды Стандарта сейчас и все разделы формата.',
+    lead: 'Мета, архетипы, матчапы и карты Стандарта.',
     nowTitle: 'Сейчас в Стандарте',
     links: [
       { href: '/standard/meta/', title: 'Мета Hearthstone', text: 'Тир-лист колод Стандарта: винрейт, популярность и число игр каждого архетипа.' },
@@ -54,7 +54,7 @@ export const MODE_HUBS: Readonly<Record<ModeHubId, ModeHub>> = {
     path: '/arena',
     name: 'Арена',
     heading: 'Арена Hearthstone: тир-лист карт и классы',
-    lead: 'Лучшие классы и карты Арены сейчас и все разделы режима.',
+    lead: 'Тир-лист карт, классы и легендарки Арены.',
     nowTitle: 'Сейчас на Арене',
     links: [
       { href: '/tierlist/', title: 'Тир-лист карт Арены', text: 'Весь пул карт по классам и тирам с базовым винрейтом и частотой выбора.' },
@@ -67,7 +67,7 @@ export const MODE_HUBS: Readonly<Record<ModeHubId, ModeHub>> = {
     path: '/battlegrounds',
     name: 'Поля сражений',
     heading: 'Поля сражений Hearthstone: герои, сборки и карты',
-    lead: 'Лучшие герои Полей сражений сейчас и все разделы режима.',
+    lead: 'Герои, сборки и библиотека карт Полей сражений.',
     nowTitle: 'Сейчас на Полях сражений',
     links: [
       { href: '/heroes/', title: 'Герои', text: 'Рейтинг героев для одиночной игры и Дуо: тир, среднее место и доля попаданий в топ-4.' },
@@ -91,7 +91,7 @@ export const MODE_HUBS: Readonly<Record<ModeHubId, ModeHub>> = {
     path: '/wild',
     name: 'Вольный формат',
     heading: 'Вольный формат Hearthstone: колоды и карты',
-    lead: 'Популярные колоды Вольного формата и страницы, где он есть.',
+    lead: 'Колоды и карты Вольного формата.',
     nowTitle: 'Сейчас в Вольном формате',
     links: [
       { href: '/standard/meta/', title: 'Мета', text: 'Тир-лист колод, формат «Вольный» в переключателе.' },

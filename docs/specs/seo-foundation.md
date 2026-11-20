@@ -186,7 +186,8 @@ are cache busters (card image `?v=`) or upstream sync stamps (cosmetics
   посетитель.
 - Порог индексации (`shared/seoIndexThreshold.ts`) страница проходит
   фактами интерфейса (`INDEX_MIN_OWN_FACTS`), а не словами, добавленными
-  ради счёта.
+  ради счёта. Исключение — хабы режимов: их блок ссылок сам является
+  интерфейсом (`docs/specs/seo-query-clusters.md`, «Mode hubs»).
 
 ## Открытый слой и платная разметка
 
