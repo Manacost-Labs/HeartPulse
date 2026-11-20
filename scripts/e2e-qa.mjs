@@ -3435,10 +3435,14 @@ for (const [device, viewport] of [
     }
     await page.screenshot({ path: `${OUT}/standard-matchups-focused-${device}.png`, fullPage: false });
     await page.click('button[aria-label="Показать матчапы: Вольный"]');
+    // Wild has its own address: the page changes, and the matrix is its default view again.
+    await page.waitForFunction(() => location.pathname === '/standard/matchups/wild/' && document.querySelector('#matchups-matrix .ui-matchup-matrix'), { timeout: 15_000 });
+    await page.click('.standard-matchups__view-switcher button[aria-pressed="false"]');
     await page.waitForFunction(() => (
       document.querySelector('button[aria-label="Показать матчапы: Вольный"]')?.getAttribute('aria-pressed') === 'true'
       && document.querySelector('.standard-matchups__ledger-heading h2')?.textContent?.includes('Вольный')
       && document.querySelector('#matchups-archetype')?.value === 'Вольный Контроль Разбойник'
+      && !document.querySelector('#matchups-matrix')
     ), { timeout: 10_000 });
     const wildMatchupsState = await page.evaluate(() => ({
       heading: document.querySelector('.standard-matchups__ledger-heading h2')?.textContent?.replace(/\s+/g, ' ').trim() || '',
