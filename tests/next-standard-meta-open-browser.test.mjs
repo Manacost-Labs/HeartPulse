@@ -33,13 +33,13 @@ const slice = (format, paid) => ({
 });
 
 async function startStack() {
-  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [], protectedQueries: [], protectedDown: false, protectedDelay: PROTECTED_DELAY_MS, protectedHang: false, protectedDenied: 0, protectedDeniedOnce: 0, statusDelay: 0 };
+  const state = { next: null, publicReads: [], protectedReads: 0, down: false, publicHeaders: [], protectedQueries: [], protectedDown: false, protectedDelay: PROTECTED_DELAY_MS, protectedHang: false, protectedDenied: 0, protectedDeniedOnce: 0, statusDelay: 0, authDelay: 0 };
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://stack');
     const reader = /(?:^|;\s*)sm_session=reader/.test(request.headers.cookie ?? '');
     const json = (status, payload) => response.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'private, no-store' })
       .end(JSON.stringify(payload));
-    if (url.pathname === '/api/auth/me') return json(200, { user: reader ? READER : null });
+    if (url.pathname === '/api/auth/me') return void setTimeout(() => json(200, { user: reader ? READER : null }), reader ? 0 : state.authDelay);
     if (url.pathname === '/api/subscription/refresh') return reader ? void setTimeout(() => json(200, SUBSCRIBED), state.statusDelay) : json(401, { error: 'guest' });
     if (url.pathname === '/api/subscription/status') return reader ? void setTimeout(() => json(200, SUBSCRIBED), state.statusDelay) : json(401, { error: 'guest' });
     if (url.pathname === '/api/standard-meta/public') {
@@ -359,6 +359,31 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     assert.equal(await revoked.$$eval('[data-locked-filter]', nodes => nodes.length), 3, 'the paid filters are locks again');
     assert.equal(await revoked.$$eval('.standard-meta-card', cards => cards.length), 8, 'the open slice is what is left');
     await revoked.close();
+
+    // A remembered subscriber whose session has expired: the head script marks the page as a remembered viewer's (its lock
+    // marks stay hidden while the session is checked), the check answers a guest, and the locks must then be visible.
+    const expired = await (await browser.createBrowserContext()).newPage();
+    await expired.setViewport(DESKTOP);
+    await expired.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin }, { name: 'hp_viewer', value: 'BBBBBBBBBBBBBBBBBBBBBB', url: stack.origin });
+    await expired.goto(`${stack.origin}/standard/meta/`, { waitUntil: 'load' });
+    await expired.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+    await expired.waitForFunction(() => localStorage.getItem('hs_arena_viewer_hint') !== null, { timeout: 5000 });
+    await expired.deleteCookie({ name: 'sm_session', url: stack.origin });
+    stack.authDelay = 2_500;
+    stack.protectedHang = true; // only the session check may end the remembered viewer here, not a refused paid request
+    await expired.reload({ waitUntil: 'domcontentloaded' });
+    assert.equal(await expired.evaluate(() => document.documentElement.dataset.hpViewer), 'remembered', 'the head script remembers the viewer');
+    await expired.waitForSelector('button[aria-label^="Ходы: по подписке"]', { timeout: 15000 });
+    await expired.waitForFunction(() => document.documentElement.dataset.hpViewer === undefined, { timeout: 15000 });
+    const lockMark = await expired.$eval('button[aria-label^="Ходы: по подписке"] svg', node => {
+      const box = node.getBoundingClientRect();
+      return { visibility: getComputedStyle(node).visibility, width: box.width, height: box.height };
+    });
+    assert.deepEqual({ visibility: lockMark.visibility, sized: lockMark.width > 0 && lockMark.height > 0 }, { visibility: 'visible', sized: true },
+      'a guest whose remembered session ended sees the lock marks');
+    stack.authDelay = 0;
+    stack.protectedHang = false;
+    await expired.close();
 
     // The paid route refuses a subscriber whose slice is loaded (401/403 on the next paid request, no pageshow): from
     // the answer on, not one frame shows the paid slice while the access check runs. When the check confirms access the
