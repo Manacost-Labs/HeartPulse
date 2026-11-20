@@ -76,6 +76,14 @@
       "dataDescription": "Архетипы колод Хартстоуна (хс){asOf}: {archetypes} {format} — винрейт, популярность и число игр. Данные HSGuru.",
       "sitemap": true
     },
+    "/standard/archetypes/wild": {
+      "policyRouteId": "constructed-archetypes-wild",
+      "title": "Архетипы Вольного формата Hearthstone: винрейт, {year}",
+      "description": "Вольный формат Хартстоуна (хс) {year}: архетипы колод — винрейт, популярность и число игр каждого архетипа. Данные HSGuru.",
+      "dataTitle": "Архетипы Вольного формата Hearthstone: винрейт, {month}",
+      "dataDescription": "Вольный формат Хартстоуна (хс){asOf}: {archetypes} — винрейт, популярность и число игр каждого архетипа. Данные HSGuru.",
+      "sitemap": false
+    },
     "/standard/vicious-gold": {
       "policyRouteId": "standard-vicious-gold",
       "navigationRouteId": "standard-vicious-gold",

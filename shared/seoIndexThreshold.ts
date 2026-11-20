@@ -16,10 +16,16 @@ export const INDEX_MIN_OWN_FACTS = 10;
  * of the number. Archetype pilot value: it keeps about a third of the Standard
  * catalog; tune it from Search Console coverage, here and nowhere else.
  * `constructedArchetypeIndexing.ts` reads it (its `INDEXABLE_ARCHETYPE_MIN_GAMES`
- * is this value under the old name) and decides with `meetsSampleThreshold`.
+ * and `INDEXABLE_WILD_ARCHETYPE_MIN_GAMES` are these values under the readers'
+ * names) and decides with `meetsSampleThreshold`.
  */
 export const INDEX_MIN_SAMPLE_GAMES = {
   archetype: 1000,
+  /**
+   * Wild archetypes: the Wild sample is thinner (three of four archetypes have
+   * fewer than 500 games), so a Wild page needs five times the Standard one.
+   */
+  wildArchetype: 5000,
 } as const;
 
 export type IndexContentFacts = {

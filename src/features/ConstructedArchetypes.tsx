@@ -122,18 +122,21 @@ const BUILDS_PENDING_MESSAGE = 'Колоды появятся, когда наб
 
 type SortKey = 'games' | 'winrate' | 'popularity' | 'decks' | 'name';
 
-const FORMATS: Array<{ id: ArchetypeFormat; label: string; description: string; asset: string }> = [
+/** Each format's catalog has its own address (`/standard/archetypes/wild/` for Wild), so the switch is two links. */
+const FORMATS: Array<{ id: ArchetypeFormat; label: string; description: string; asset: string; href: string }> = [
   {
     id: 'standard',
     label: 'Стандарт',
     description: 'Карты текущей ротации',
     asset: '/card-format-standard.webp',
+    href: '/standard/archetypes/',
   },
   {
     id: 'wild',
     label: 'Вольный',
     description: 'Карты всех дополнений',
     asset: '/assets/card-format-wild-128.webp',
+    href: '/standard/archetypes/wild/',
   },
 ];
 
@@ -251,29 +254,25 @@ type ArchetypeCatalogProps = {
   embedded: boolean;
   /** Anonymous summary, shared by guests and subscribers. */
   initialCatalog: ArchetypeCatalog | null;
+  /** The format the path names (`/standard/archetypes/wild/`); without it the query's (`?format=wild`) or Standard. */
+  pathFormat?: ArchetypeFormat;
 };
 
-function ArchetypeCatalogPage({ navigatePath, initialSearch, embedded, initialCatalog }: ArchetypeCatalogProps) {
+function ArchetypeCatalogPage({ navigatePath, initialSearch, embedded, initialCatalog, pathFormat }: ArchetypeCatalogProps) {
   const Root = embedded ? 'section' : 'main';
-  const { format: initialFormat, classFilter: initialClass } = readInitialCatalogFilters(initialSearch, CLASS_FILTERS);
-  const seed = initialCatalog?.format === initialFormat ? initialCatalog : null;
-  const [format, setFormat] = useState<ArchetypeFormat>(initialFormat);
-  const [classFilter, setClassFilter] = useState<ArchetypeClassFilter>(initialClass);
+  const filters = readInitialCatalogFilters(initialSearch, CLASS_FILTERS);
+  const format = pathFormat ?? filters.format;
+  const seed = initialCatalog?.format === format ? initialCatalog : null;
+  const [classFilter, setClassFilter] = useState<ArchetypeClassFilter>(filters.classFilter);
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
   const [sort, setSort] = useState<SortKey>('games');
   const [arrivesLater] = useState(!seed);
   const { data: catalog, loading, error, retry } = useArchetypeCatalog(format, seed);
 
-  const selectFormat = (next: ArchetypeFormat) => {
-    setFormat(next);
-    setQuery('');
-    replaceCatalogUrl(next, classFilter);
-  };
-
   const selectClass = (next: ArchetypeClassFilter) => {
     setClassFilter(next);
-    replaceCatalogUrl(format, next);
+    replaceCatalogUrl(format, next, pathFormat === 'wild');
   };
 
   const items = useMemo(() => {
@@ -308,7 +307,7 @@ function ArchetypeCatalogPage({ navigatePath, initialSearch, embedded, initialCa
     <Root className="archetypes-page" id={embedded ? undefined : 'main-content'} tabIndex={embedded ? undefined : -1}>
       <section className="traditional-mode-banner">
         <div className="traditional-mode-banner__copy">
-          <h1>Архетипы</h1>
+          <h1>{pathFormat === 'wild' ? 'Архетипы Вольного формата' : 'Архетипы'}</h1>
         </div>
         <dl className="traditional-mode-banner__summary" aria-label="Сводка каталога">
           <div><dt>Архетипов</dt><dd>{catalog?.items.length ?? '—'}</dd></div>
@@ -318,16 +317,12 @@ function ArchetypeCatalogPage({ navigatePath, initialSearch, embedded, initialCa
 
       <nav className="archetypes-format-switch" aria-label="Формат Hearthstone" data-tour-id="archetypes-format">
         {FORMATS.map(item => (
-          <button
-            key={item.id}
-            type="button"
-            aria-pressed={format === item.id}
-            onClick={() => selectFormat(item.id)}
-          >
+          <a key={item.id} href={`${item.href}${classFilter === 'all' ? '' : `?class=${classFilter}`}`}
+            aria-current={format === item.id ? 'page' : undefined}>
             <img src={item.asset} alt="" width="56" height="56" />
             <span><strong>{item.label}</strong><small>{item.description}</small></span>
             {format === item.id && <Check size={18} aria-hidden="true" />}
-          </button>
+          </a>
         ))}
       </nav>
 
@@ -366,7 +361,7 @@ function ArchetypeCatalogPage({ navigatePath, initialSearch, embedded, initialCa
         <div>
           <span className="archetypes-eyebrow"><BookOpenText size={14} /> Каталог</span>
           <strong>{catalog?.formatLabel ?? (format === 'standard' ? 'Стандарт' : 'Вольный')}</strong>
-          <small>{catalogPeriodLabel(catalog)} · минимум {catalog?.minimumGames ?? 50} игр · обновлено {formatDate(catalog?.updatedAt ?? null, timeZone)}</small>
+          <small>{catalogPeriodLabel(catalog)} · минимум {catalog?.minimumGames ?? 50} игр · обновлено {formatDate(catalog?.updatedAt ?? null, timeZone)} · данные HSGuru</small>
         </div>
         <label className="archetypes-search" data-tour-id="archetypes-search">
           <Search size={18} aria-hidden="true" />
@@ -502,7 +497,8 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
           <ArrowLeft size={17} /> Архетипы
         </a>
         <span aria-hidden="true">/</span>
-        <span>{detail.formatLabel}</span>
+        {/* Wild's catalog has its own address (#543); Standard's is the first step. */}
+        {format === 'wild' ? <a href="/standard/archetypes/wild/">{detail.formatLabel}</a> : <span>{detail.formatLabel}</span>}
         <span aria-hidden="true">/</span>
         <strong>{item.archetypeLabel}</strong>
       </nav>
@@ -696,8 +692,8 @@ export default function ConstructedArchetypes({
         openBuilds={openBuilds}
       />
     )
-    : <ArchetypeCatalogPage navigatePath={navigatePath}
-      initialSearch={initialSearch} embedded={embedded} initialCatalog={initialCatalog} />;
+    : <ArchetypeCatalogPage navigatePath={navigatePath} initialSearch={initialSearch} embedded={embedded}
+      initialCatalog={initialCatalog} pathFormat={/^\/standard\/archetypes\/wild\/?$/.test(currentPath) ? 'wild' : undefined} />;
   return (
     <RecoverableSurfaceBoundary scope="constructed-archetypes">
       {content}

@@ -641,7 +641,8 @@ own banner and list; it adds no page and no route.
 1. `NAVIGATION_MODES` has five entries in the order Standard, Wild, Arena,
    Battlegrounds, Community. The Wild list (`WILD_NAVIGATION_ITEMS`,
    `navigationData.ts`) is the Standard pages opened in the Wild format:
-   Мета, Матчапы, Архетипы, Фан-колоды (`?format=wild`), Карты
+   Мета, Матчапы, Фан-колоды (`?format=wild`), Архетипы
+   (`/standard/archetypes/wild/`, its own server list since #543), Карты
    (`/standard/cards/wild/`), Конструктор колод (`?format=wild`) and the shared
    Патчноуты. VS Gold has no Wild data and stays in Standard. An item takes its
    icon, label, entitlement and «Новый» badge from its twin; it is not an entry
