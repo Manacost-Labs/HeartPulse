@@ -10,7 +10,7 @@ import FunDecksPage from './FunDecksPage';
 type Mode = 'fail' | 'network';
 const meta = {
   title: 'Constructed/Fun decks states', component: FunDecksPage,
-  args: { hasFullAccess: true, initialPreview: null },
+  args: { initialPreview: null },
   parameters: { layout: 'fullscreen', fullPage: true, mode: 'fail' satisfies Mode },
   decorators: [Story => <div style={{ maxWidth: 1092, marginInline: 'auto', paddingInline: 'clamp(.8rem, 2vw, 1.5rem)' }}><Story /></div>],
   beforeEach: ({ parameters }) => {

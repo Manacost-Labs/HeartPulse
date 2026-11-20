@@ -31,7 +31,8 @@ export type FunDeckRow = {
   why: string[];
   tags: string[];
   url: string | null;
-  candidateSourceId: string | null;
+  /** Internal source id: the admin answer only, the public one leaves it out. */
+  candidateSourceId?: string | null;
   firstSeenAt: string | null;
   lastSeenAt: string | null;
   render?: {

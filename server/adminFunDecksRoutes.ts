@@ -2,6 +2,7 @@ import { Router, type RequestHandler, type Response } from 'express';
 import type { DatabaseSync } from 'node:sqlite';
 import { createAdminFunDeckModerationRouter, type AdminFunDeckModerationDependencies } from './adminFunDeckModerationRoutes.js';
 import { applyFunDeckModeration, listFunDeckModeration, type FunDeckModerationRecord } from './adminFunDeckModerationStore.js';
+import { createFunDeckOpenCards, type FunDeckOpenCardsDependencies } from './funDeckOpenCards.js';
 import { asRecord, normalizeFunDeckRow, numberOrNull, text, type FunDeckRow } from './funDeckRows.js';
 
 export type { FunDeckRow };
@@ -59,6 +60,9 @@ export type PublicFunDecksDependencies = {
   getDatabase?: () => DatabaseSync;
   /** The site's Russian archetype names; a failure leaves the English ones. */
   loadArchetypeLabels?: () => Promise<(name: string) => string>;
+  /** The card catalog of a format: with it every deck of the answer carries its decoded card list. */
+  loadCardCatalog?: FunDeckOpenCardsDependencies['loadCardCatalog'];
+  loadCardDictionaries?: FunDeckOpenCardsDependencies['loadCardDictionaries'];
   getPreview?: (deck: FunDeckRow) => FunDeckRow['render'] | null;
   schedulePreviews?: (decks: FunDeckRow[]) => void;
   onError?: (error: unknown) => void;
@@ -116,7 +120,8 @@ export function normalizePublicFunDecksPayload(raw: unknown): PublicFunDecksPayl
       maxMetaSimilarity: numberOrNull(normalized.filters.max_meta_similarity),
       ladderMemberSim: numberOrNull(normalized.filters.ladder_member_sim),
     },
-    decks: normalized.decks,
+    // `candidateSourceId` is an internal source id no page reads: it stays in the admin answer only.
+    decks: normalized.decks.map(({ candidateSourceId: _internal, ...deck }) => deck),
   };
 }
 
@@ -145,6 +150,8 @@ export async function loadPublishedFunDecks(
 
 export function createPublicFunDecksRouter(dependencies: PublicFunDecksDependencies): Router {
   const router = Router();
+  const withCards = dependencies.loadCardCatalog ? createFunDeckOpenCards({ loadCardCatalog: dependencies.loadCardCatalog,
+    loadCardDictionaries: dependencies.loadCardDictionaries, onError: dependencies.onError }) : null;
 
   router.get('/fun-decks', async (_request, response) => {
     try {
@@ -159,6 +166,7 @@ export function createPublicFunDecksRouter(dependencies: PublicFunDecksDependenc
           deck.nearestArchetype ? { ...deck, nearestArchetypeLabel: archetypeLabel(deck.nearestArchetype) } : deck
         ));
       }
+      if (withCards) payload.decks = await withCards(payload.decks);
       if (dependencies.getPreview) {
         payload.decks = payload.decks.map(deck => {
           const render = dependencies.getPreview?.(deck);
