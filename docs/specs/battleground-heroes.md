@@ -37,17 +37,24 @@ the access guard.
 
 The Next page (`apps/public-web/app/heroes/page.tsx`, ISR 5 minutes) reads
 both modes anonymously (`lib/publicBattlegroundHeroes.ts`, which re-parses
-field by field in `publicBattlegroundHeroesData.ts`) and renders
-`BattlegroundHeroesPublicRanking`: a table per mode (Solo and Duos both in the
-HTML, anchors `#heroes-solo` and `#heroes-duos`, no script needed). The same
-HTML goes to every visitor and robot. A visitor without access (a guest or a
-signed-in non-subscriber) sees the table and, in the closed part wrapped in
-`.paywalled-heroes`, locked buttons «Топ 20% / 5% / 1%» that carry no data; a
-press opens the subscription offer. A subscriber has the interactive view in
-place of the table (it is unmounted, not hidden: no duplicate). JSON-LD:
-`CollectionPage` with an `ItemList` of the solo table (same names and URLs)
-and a `Dataset` with `isAccessibleForFree: false` and
-`hasPart.cssSelector: ".paywalled-heroes"`.
+field by field in `publicBattlegroundHeroesData.ts`) and renders the
+subscriber's ranking view (`src/features/BattlegroundHeroTierList.tsx`) on
+that data through `BattlegroundHeroesOpenList`: the same toolbar (Solo/Duos,
+rating range, cards or table, search), tier sections with `TierBadge` and hero
+cards with the portrait and the hero power card (`heroPowerText`,
+`heroPowerImage` of the projection are public card facts). The server HTML
+holds the solo cards; duos is in the RSC payload and renders on the switch.
+The same HTML goes to every visitor and robot. For a visitor without access
+(a guest or a signed-in non-subscriber) the closed parts stay in place with a
+lock and carry no data: the range buttons «Топ 20% / 5% / 1%» (their
+fieldset is `.paywalled-heroes`), and in the table the best composition and
+the placement distribution; a press opens the subscription offer inline. A
+subscriber gets the same view on the live data of every range once the
+Battlegrounds module is loaded (it replaces the open view in one render, no
+duplicate). Without data the page is a 200 with «Рейтинг героев временно
+недоступен». JSON-LD: `CollectionPage` with an `ItemList` of the solo
+ranking (same names and URLs) and a `Dataset` with `isAccessibleForFree:
+false` and `hasPart.cssSelector: ".paywalled-heroes"`.
 
 Tests: `tests/battleground-hero-ranking-public.test.ts` (projection, route,
 guard, JSON-LD) and `tests/next-heroes-ranking.test.mjs` (built page: HTML,

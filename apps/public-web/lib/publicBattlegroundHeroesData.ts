@@ -21,6 +21,8 @@ export type PublicBattlegroundHeroRow = {
   pickRate: number | null;
   games: number | null;
   heroPowerName: string | null;
+  heroPowerText: string | null;
+  heroPowerImage: string | null;
   bestComposition: string | null;
   keyMinions: string[];
 };
@@ -49,6 +51,7 @@ function row(value: unknown): PublicBattlegroundHeroRow | null {
   if (!hero || !Number.isSafeInteger(dbfId) || dbfId <= 0 || !name || !TIERS.has(tier)
     || !Number.isFinite(avg) || avg < 1 || avg > 8) return null;
   const image = text(hero.image, 500);
+  const powerImage = text(hero.heroPowerImage, 500);
   const games = Number(hero.games);
   return {
     dbfId, name, tier,
@@ -58,6 +61,8 @@ function row(value: unknown): PublicBattlegroundHeroRow | null {
     pickRate: percent(hero.pickRate),
     games: Number.isSafeInteger(games) && games > 0 ? games : null,
     heroPowerName: text(hero.heroPowerName) || null,
+    heroPowerText: text(hero.heroPowerText, 400) || null,
+    heroPowerImage: powerImage.startsWith('/api/public-resource/') ? powerImage : null,
     bestComposition: text(hero.bestComposition) || null,
     keyMinions: (Array.isArray(hero.keyMinions) ? hero.keyMinions : []).slice(0, 3).map(item => text(item)).filter(Boolean),
   };

@@ -23,7 +23,7 @@ function hero(index: number, range: string, mode: string): Row {
     id: `BG_SENT_HERO_${index}`,
     tier: ['A', 'B', 'B', 'C', 'C', 'D'][index],
     image: `https://hearthstone.wiki.gg/images/BG_SENT_HERO_${index}.png`,
-    hero_power: { dbf: id + 1, card: { name: `Сила ${index}`, text: `Текст силы ${index}` } },
+    hero_power: { dbf: id + 1, card: { name: `Сила ${index}`, text: `Текст силы ${index}`, image: `https://art.hearthstonejson.com/v1/bgs/latest/ruRU/512x/BG_SENT_HERO_${index}p.png` } },
     best_composition: { id: 7, name: `Сборка ${index}` },
     key_minions_top3: [{ name: `Существо ${index}a` }, { name: `Существо ${index}b` }],
   };

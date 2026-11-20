@@ -28,6 +28,9 @@ export type PublicBattlegroundHeroRankingEntry = {
   /** Only when the source row itself carries a sample size. */
   games?: number;
   heroPowerName: string | null;
+  /** Card text and same-origin image of the hero power: public card facts the ranking cards show. */
+  heroPowerText: string | null;
+  heroPowerImage: string | null;
   bestComposition: string | null;
   keyMinions: string[];
 };
@@ -65,6 +68,17 @@ const cardName = (value: unknown): string | null => {
   return plain(typeof value === 'string' ? value : card.name ?? record(card.card).name);
 };
 
+/** The card of a related card field (`{ dbf, card: {...} }` or the card itself). */
+const relatedCard = (value: unknown): Record<string, unknown> => {
+  const card = record(value);
+  return Object.keys(record(card.card)).length ? record(card.card) : card;
+};
+
+function sameOriginImage(value: unknown): string | null {
+  const image = publicResourceUrl(value);
+  return image.startsWith('/api/public-resource/') ? image : null;
+}
+
 function projectEntry(value: unknown): PublicBattlegroundHeroRankingEntry | null {
   const hero = record(value);
   if (!isPositiveDbfId(hero.dbfId)) return null;
@@ -89,6 +103,8 @@ function projectEntry(value: unknown): PublicBattlegroundHeroRankingEntry | null
     top4Rate: top4 !== null && top4 >= 0 && top4 <= 100.5 ? Math.min(top4, 100) : null,
     pickRate: pick !== null && pick >= 0 && pick <= 100 ? round(pick, 2) : null,
     heroPowerName: cardName(hero.hero_power),
+    heroPowerText: plain(relatedCard(hero.hero_power).text, 400),
+    heroPowerImage: sameOriginImage(relatedCard(hero.hero_power).image),
     bestComposition: cardName(hero.best_composition) ?? plain(record(hero.best_composition).composition),
     keyMinions: list(hero.key_minions_top3).map(cardName).filter((item): item is string => item !== null).slice(0, 3),
   };

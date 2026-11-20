@@ -191,7 +191,7 @@ test('/heroes/ shows the open ranking without a placeholder and keeps it until t
     for (let attempt = 0; attempt < 40; attempt += 1) {
       process.kill(next.pid, 'SIGUSR2');
       const html = await (await fetch(`${next.origin}/heroes/`)).text();
-      if (html.includes('id="heroes-solo"')) break;
+      if (html.includes('battleground-hero-card')) break;
       await delay(250);
     }
     gateway = await startGateway(next.origin);
@@ -239,7 +239,9 @@ test('/heroes/ shows the open ranking without a placeholder and keeps it until t
           }).catch(() => request.continue().catch(() => {}));
         });
         await page.goto(`${frontOrigin}/heroes/`, { waitUntil: 'domcontentloaded' });
-        const rows = () => page.evaluate(() => document.querySelectorAll('#heroes-solo tbody tr').length);
+        // Cards of the open ranking: the subscriber's paid view has the same cards inside `.arena-paid-view`.
+        const openCards = '.battleground-hero-card:not(.arena-paid-view .battleground-hero-card)';
+        const rows = () => page.evaluate(selector => document.querySelectorAll(selector).length, openCards);
         assert.equal(await rows(), 6, 'the open ranking is in the first paint');
         assert.equal(await page.$('.arena-paywall-pending'), null, 'no placeholder while access is checked');
         assert.equal(await page.$('.arena-paywall'), null, 'no gate for a visitor of an open page');
@@ -247,15 +249,15 @@ test('/heroes/ shows the open ranking without a placeholder and keeps it until t
           await page.waitForFunction(() => performance.getEntriesByType('resource').some(entry => entry.name.endsWith('/api/subscription/status')), { timeout: 10_000 });
           await delay(1200);
           // Access is confirmed, the chunk is still on its way: the ranking has not been replaced by a placeholder.
-          const state = await page.evaluate(() => ({ rows: document.querySelectorAll('#heroes-solo tbody tr').length, paid: !!document.querySelector('.arena-paid-view'),
-            pending: !!document.querySelector('.arena-paywall-pending'), text: document.querySelector('main')?.innerText.slice(0, 200) }));
+          const state = await page.evaluate(selector => ({ rows: document.querySelectorAll(selector).length, paid: !!document.querySelector('.arena-paid-view'),
+            pending: !!document.querySelector('.arena-paywall-pending'), text: document.querySelector('main')?.innerText.slice(0, 200) }), openCards);
           assert.equal(state.rows, 6, `the ranking stays until the paid view has loaded: ${JSON.stringify(state)}`);
           assert.equal(await page.$('.arena-paywall-pending'), null, 'no placeholder while the paid view loads');
           assert.ok(held > 0, 'the chunk of the paid view was held back (the scenario is real)');
           await page.waitForSelector('.arena-paid-view', { timeout: 15_000 });
           assert.equal(await rows(), 0, 'the ranking is replaced, not doubled');
         } else {
-          await page.waitForSelector('.bg-heroes-locks button', { timeout: 10_000 });
+          await page.waitForSelector('.paywalled-heroes button.bg-heroes-locked', { timeout: 10_000 });
         }
         await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
         const total = (await page.evaluate(() => window.__layoutShifts)).reduce((sum, value) => sum + value, 0);
@@ -263,6 +265,26 @@ test('/heroes/ shows the open ranking without a placeholder and keeps it until t
         await page.close();
       }
     }
+    // The address survives the open view: a guest keeps a locked range and the table in it (the range stays
+    // «Топ 50%» on screen, the table's closed cells are locks), and a subscriber's view that replaces the open
+    // one opens on the range the address asked for.
+    const guest = await browser.newPage();
+    await guest.goto(`${frontOrigin}/heroes/?mmr=TOP_5_PERCENT&view=table`, { waitUntil: 'networkidle2' });
+    await guest.waitForSelector('.bg-hero-ledger__locked', { timeout: 10_000 });
+    const guestState = await guest.evaluate(() => ({ search: location.search,
+      pressed: [...document.querySelectorAll('.bg-heroes-control-group--mmr button[aria-pressed="true"]')].map(button => button.textContent) }));
+    assert.match(guestState.search, /mmr=TOP_5_PERCENT/, `the locked range stays in the address: ${guestState.search}`);
+    assert.match(guestState.search, /view=table/);
+    assert.deepEqual(guestState.pressed, ['Топ 50%'], 'a guest sees the open range');
+    await guest.close();
+    const reader = await browser.newPage();
+    await reader.setCookie({ name: 'pending_reader', value: '1', url: frontOrigin });
+    await reader.goto(`${frontOrigin}/heroes/?mmr=TOP_5_PERCENT`, { waitUntil: 'domcontentloaded' });
+    await reader.waitForSelector('.arena-paid-view', { timeout: 15_000 });
+    await reader.waitForFunction(() => [...document.querySelectorAll('.arena-paid-view .bg-heroes-control-group--mmr button[aria-pressed="true"]')]
+      .map(button => button.textContent).join() === 'Топ 5%', { timeout: 10_000 });
+    assert.match(await reader.evaluate(() => location.search), /mmr=TOP_5_PERCENT/);
+    await reader.close();
     await closeLocal(front);
   } finally {
     if (browser) await browser.close();
