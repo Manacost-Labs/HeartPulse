@@ -34,6 +34,11 @@ interface ControlsProps {
    * (the subscription offer); `.paywalled-tierlist` is the closed part the page's JSON-LD names.
    */
   onLockedFilter?: () => void;
+  /**
+   * Each class has a page of its own (`/tierlist/<class>/`): the class choice is a plain link to it, so the whole
+   * card pool is reachable through server-rendered pages. Without it the choice switches the class in place.
+   */
+  classHref?: (id: string) => string;
 }
 
 function LockedFilter({ label, icon, onClick }: { label: string; icon: string; onClick: () => void }) {
@@ -53,12 +58,14 @@ export function TierListControls(props: ControlsProps) {
   return <div className="arena-tier-controls">
     <div className="arena-tier-controls-top" data-tour-id="arena-tier-class">
       <div className="arena-tier-classes" role="group" aria-label="Класс карт">
-        {classes.map(section => <button key={section.id} type="button"
-          aria-label={section.name} title={section.name}
-          aria-pressed={section.id === props.activeClassId}
-          onClick={() => props.onClassChange(section.id)}>
-          <img src={CLASS_ICONS[section.id] ?? CLASS_ICONS.any} alt="" draggable={false} />
-        </button>)}
+        {classes.map(section => {
+          const icon = <img src={CLASS_ICONS[section.id] ?? CLASS_ICONS.any} alt="" draggable={false} />;
+          return props.classHref
+            ? <a key={section.id} href={props.classHref(section.id)} aria-label={section.name} title={section.name}
+              aria-current={section.id === props.activeClassId ? 'page' : undefined}>{icon}</a>
+            : <button key={section.id} type="button" aria-label={section.name} title={section.name}
+              aria-pressed={section.id === props.activeClassId} onClick={() => props.onClassChange(section.id)}>{icon}</button>;
+        })}
       </div>
       <label className="arena-tier-search">
         <Search size={18} aria-hidden="true" />

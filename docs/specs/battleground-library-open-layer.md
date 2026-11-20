@@ -40,10 +40,14 @@ stale-while-revalidate=600`) that is also the last known copy: a failing source
 answers it with `warning: "stale"` and `max-age=60`; no copy is a `503` with
 `Retry-After` and `no-store` (never `502`, never an empty list). A row holds
 `dbfId`, `name`, the canonical `path`, `tavernTier`, `typeName`, `group` (tribe
-of a minion, group of a trinket), `attack`, `health` and, for a minion, `stats`
-(average place, popularity, sample). No picture: three hundred thumbnails
-double the weight of the page. Staged kinds are read from the card service page
-by page (100 per page, six pages at most).
+of a minion, group of a trinket), `attack`, `health`, for a minion `stats`
+(average place, popularity, sample) and the facts of the card's tile, each only
+when known: `cardId` (it names the pictures), `nameEn`, `golden` (the golden
+picture under the catalog's `/uploads/`), `tier` (a Darkmoon prize's rating),
+`duosOnly` and `mechanics` (the names the card page states; the listing search
+and the mechanic filter read them). No picture URL: the tile builds it from
+`cardId`. Staged kinds are read from the card service page by page (100 per
+page, six pages at most).
 
 The Next pages (`app/library/page.tsx`, `app/library/[kind]/page.tsx`) are ISR
 (`revalidate = 300`, metadata without request data). The loader
@@ -53,36 +57,46 @@ the last listing this process verified, so a regeneration never replaces the
 cards with an empty page. A listing the process never read, with the source
 down, is a 200 page with a notice («Список карт временно недоступен») and the
 closed part, as the open hero ranking is; the next regeneration retries.
-`BattlegroundLibraryPublicListing` prints the cards grouped by tavern tier
-(a table per tier, anchors `#tier-N`) with name, link, tribe, attack/health and,
-for minions, average place and popularity, with the date and source of the
-statistics. The hub prints a link to every listing with its size (the links
-stay when the sizes are unavailable). The archive listings have no open list
-and keep the gate.
+A listing renders the subscriber's listing view for everyone (owner decision of
+2026-11-20: a guest sees the same interface, the limits are in the data and the
+functions). `BgLibraryListPage` (`src/features/`) is the one view: the H1 of the
+listing, the section switcher, search, the tavern, tribe and group filters, the
+Duo switch, the card tiles by tier (picture, golden version on hover, names,
+badges) and «Показать ещё». A subscriber gets it on the protected catalog
+(`BgLibrary`, loaded on demand), a viewer without access on the open cards in the
+server HTML (`BattlegroundLibraryOpenListing`): the page hands the client a
+compact copy (`openLibraryPayload`: the tile facts, each mechanic name once, no
+statistics, no paths) and `openLibraryCards` maps it to the catalog cards of the
+view. The mechanic filter is keyed by name on both sources. What needs closed
+data stays in place with a lock and the class `.paywalled-library`: the pool
+switch (the archive is closed); a press opens the subscription offer
+(`PaywallGate presentation="inline"`) under the controls and scrolls to it on
+every press. The listing view prints no
+statistics, so the page has no `Dataset` and no `dateModified`. The hub prints a
+link to every listing with its size (the links stay when the sizes are
+unavailable). The archive listings have no open list and keep the gate.
 
-The page carries every element twice (in the HTML and in the RSC payload), so a
-tier's table is built by a client component from one text line per card
-(`LibraryListingTable`): the markup is a string without the optional end tags
-(valid HTML), every value is escaped, and the payload holds the lines, not
-elements. The minion listing (303 cards) weighs about 215 KB raw, the budget is
-250 KB (the same technique as the open Arena tier list).
+The page carries every element twice (in the HTML and in the RSC payload): the
+view prints its first page (36 tiles, Duo cards hidden) and the payload holds
+one small object per card, so the minion listing stays within the 250 KB budget.
 
-The same HTML goes to every visitor and robot. A visitor without access sees
-the list and, wrapped in `.paywalled-library`, one locked button («Фильтры,
-сравнение карт и статистика по ходам»); a press opens the subscription offer. A
-subscriber has the interactive view in place of the list, and only after its
-chunk is loaded (`useBgLibraryModuleLoaded`), so the swap is one render and adds
-no layout shift. JSON-LD: the registered `CollectionPage` with an `ItemList` of
-the table (the first 100, the limit of `seoStructuredDataGraph`),
-`isAccessibleForFree: false` and `hasPart.cssSelector: ".paywalled-library"`,
-and for minions a `Dataset` of the open slice with the same `hasPart`.
+The same HTML goes to every visitor and robot. The listing view is one instance
+for the whole visit: for a subscriber a chunk of its own brings the reader of
+the protected catalog (`src/features/bgLibraryCatalog.ts`), the page reads it
+with `useBattlegroundLibraryData`, and the view swaps its cards from the open
+ones to the catalog once it has arrived, keeping the search, filters,
+Duo and pages the viewer has set; its container (`.arena-paid-view` from the
+moment the chunk is there) keeps its element, so nothing remounts or moves.
+JSON-LD: the registered `CollectionPage` with an `ItemList` of exactly the
+printed tiles (`printedOpenLibraryItems`), `isAccessibleForFree: false` and
+`hasPart.cssSelector: ".paywalled-library"`.
 
 Data markers for the post-deploy warm-up (slice #476): pages
 `/library/`, `/library/minions/`, `/library/spells/`, `/library/anomalies/`,
 `/library/dark-gifts/`, `/library/quests/`, `/library/rewards/`,
 `/library/darkmoon-prizes/`, `/library/trinkets/`,
-`/library/timewarped/`; the CSS marker of the block with data is
-`.bg-library-public`.
+`/library/timewarped/`; the marker of the hub with data is
+`bg-library-public__size`, of a listing a card tile (`data-library-card-tile`).
 
 ## Card pages (`/library/<kind>/<slug>-<id>/`, `/library/archive/<kind>/<slug>-<id>/`)
 

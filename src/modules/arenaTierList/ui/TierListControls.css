@@ -20,7 +20,7 @@
   flex-wrap: wrap;
   gap: 4px;
 }
-.arena-tier-classes button,
+.arena-tier-classes :is(button, a),
 .arena-tier-view button {
   display: grid;
   place-items: center;
@@ -32,11 +32,11 @@
   cursor: pointer;
 }
 .arena-tier-classes img { width: 32px; height: 32px; object-fit: contain; }
-.arena-tier-classes button[aria-pressed='true'] {
+.arena-tier-classes :is(button[aria-pressed='true'], a[aria-current='page']) {
   border-color: #7e4b20;
   background: #eed39c;
 }
-.arena-tier-classes button:hover,
+.arena-tier-classes :is(button, a):hover,
 .arena-tier-view button:hover { background: #ecd29f; }
 .arena-tier-search {
   display: flex;

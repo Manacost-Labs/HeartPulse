@@ -1,12 +1,13 @@
 'use client';
 
-import { createContext, lazy, Suspense, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { LockKeyhole } from 'lucide-react';
+import { OfferContext, usePaidOffer } from '@/src/shared/ui/paidOfferContext';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 
 const ArenaPaidOffer = lazy(() => import('./ArenaPaidOffer').then(module => ({ default: module.ArenaPaidOffer })));
 
-const OfferContext = createContext<(() => void) | null>(null);
+export { usePaidOffer };
 
 /**
  * Owns the subscription offer of a page whose open data carries locks
@@ -31,7 +32,8 @@ export function PaidOfferProvider({ title, text, children }: { title: string; te
 
 /**
  * A lock in the open data: names what is closed and opens the offer. Without
- * the provider (or a script) it does nothing, and the data stays readable.
+ * the provider (or a script) it does nothing, and the data stays readable. A press does not bubble,
+ * so the lock can sit in a clickable row.
  * `paywalled-*` is the class the page's JSON-LD names as the closed part.
  */
 export function PaidLockButton({ className, label, closed, children }: {
@@ -41,8 +43,8 @@ export function PaidLockButton({ className, label, closed, children }: {
   closed: 'paywalled-tierlist' | 'paywalled-classes';
   children?: ReactNode;
 }) {
-  const open = useContext(OfferContext);
-  return <button type="button" className={`${className} ${closed}`} onClick={() => open?.()}
+  const open = usePaidOffer();
+  return <button type="button" className={`${className} ${closed}`} onClick={event => { event.stopPropagation(); open?.(); }}
     aria-label={`${label}: по подписке. Узнать, как открыть`}>
     <LockKeyhole size={13} aria-hidden="true" />{children}
   </button>;
