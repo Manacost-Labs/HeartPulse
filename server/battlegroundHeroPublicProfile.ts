@@ -1,0 +1,120 @@
+import type { PublicBattlegroundHeroCard, PublicBattlegroundHeroProfile } from './battlegroundHeroPublicTypes.js';
+
+type JsonRecord = Record<string, unknown>;
+
+/** Hosts a hero's outbound links may point to: the wiki and the card databases the library names. */
+const LINK_HOSTS = new Set(['hearthstone.wiki.gg', 'hsreplay.net', 'www.hearthpwn.com', 'hearthpwn.com']);
+const PROFILE_TTL_MS = 10 * 60_000;
+
+const record = (value: unknown): JsonRecord =>
+  value && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : {};
+
+function plain(value: unknown, maximum: number): string | null {
+  if (typeof value !== 'string') return null;
+  const normalized = value.replace(/<[^>]*>/g, ' ').replace(/\[[^\]]+]/g, ' ').replace(/\s+/g, ' ').trim();
+  return normalized ? normalized.slice(0, maximum) : null;
+}
+
+const count = (value: unknown): number | null =>
+  typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null;
+
+function link(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && LINK_HOSTS.has(url.hostname) ? url.href : null;
+  } catch {
+    return null;
+  }
+}
+
+/** A companion card by name: its text as plain text, its pictures through the same-origin resource proxy. */
+function card(value: unknown, imageUrl: (value: unknown) => string | null): PublicBattlegroundHeroCard | null {
+  const source = record(value);
+  const name = plain(source.name, 180);
+  const image = imageUrl(source.image);
+  if (!name || !image) return null;
+  return { name, text: plain(source.text, 500), image, imageGold: imageUrl(source.image_gold) };
+}
+
+/**
+ * The open profile of a hero from the hero library (`/api/v1/heroes?dbf=`): game content only, copied field by field
+ * (the artist, race, health and armor, the description, the full art, the companion and its golden version, skins,
+ * outbound links). The patch history (`wiki.card_changes`), statistics and every other field stay out. Pictures are
+ * same-origin resource URLs (`imageUrl` answers `null` for a host the proxy does not serve: the picture is dropped).
+ */
+export function projectBattlegroundHeroProfile(
+  payload: unknown,
+  dbfId: number,
+  imageUrl: (value: unknown) => string | null,
+): PublicBattlegroundHeroProfile | null {
+  const rows = Array.isArray(record(payload).data) ? record(payload).data as unknown[] : [];
+  const hero = rows.map(record).find(row => Number(row.dbf) === dbfId);
+  if (!hero) return null;
+  const armor = record(hero.armor);
+  const buddy = record(record(hero.buddy).card);
+  const buddyCard = card(buddy, imageUrl);
+  const wiki = record(hero.wiki);
+  const skins = (Array.isArray(wiki.hero_skins) ? wiki.hero_skins : [])
+    .flatMap(group => Array.isArray(record(group).cards) ? record(group).cards as unknown[] : [])
+    .flatMap(value => {
+      const skin = record(value);
+      const image = imageUrl(skin.image_url);
+      const title = plain(skin.title, 180);
+      return image && title ? [{ cardId: plain(skin.card_id, 100), title, image, url: link(skin.url) }] : [];
+    });
+  const links = [
+    ...(link(record(wiki.page).url) ? [{ label: 'Hearthstone Wiki', url: link(record(wiki.page).url) as string }] : []),
+    ...(Array.isArray(wiki.external_links) ? wiki.external_links : []).flatMap(value => {
+      const label = plain(record(value).label, 60);
+      const url = link(record(value).url);
+      return label && url ? [{ label, url }] : [];
+    }),
+  ];
+  return {
+    artist: plain(hero.artist, 180),
+    race: plain(hero.race, 60),
+    health: count(hero.health),
+    armor: count(armor.normal) === null && count(armor.duos) === null ? null
+      : { normal: count(armor.normal), duos: count(armor.duos) },
+    description: plain(record(hero.character).description, 1_000),
+    fullArt: imageUrl(record(hero.images).full_art),
+    buddy: buddyCard ? { ...buddyCard, golden: card(buddy.golden, imageUrl) } : null,
+    skins: skins.slice(0, 24),
+    links: links.slice(0, 8),
+  };
+}
+
+/**
+ * Reads the open profile of a hero, kept for ten minutes per hero. A failing library is `null` (the page shows the
+ * hero without its profile), never a stale copy and never an error of the whole projection.
+ */
+export function createHeroProfileLoader(options: {
+  libraryUrl: (dbfId: number) => string;
+  imageUrl: (value: unknown) => string | null;
+  fetchImpl?: typeof fetch;
+  timeoutMs?: number;
+  onError?: (error: unknown) => void;
+  now?: () => number;
+}) {
+  const fetchImpl = options.fetchImpl ?? fetch;
+  const now = options.now ?? Date.now;
+  const cache = new Map<number, { at: number; profile: PublicBattlegroundHeroProfile | null }>();
+  return async (dbfId: number): Promise<PublicBattlegroundHeroProfile | null> => {
+    const kept = cache.get(dbfId);
+    if (kept && now() - kept.at < PROFILE_TTL_MS) return kept.profile;
+    try {
+      const response = await fetchImpl(options.libraryUrl(dbfId), {
+        signal: AbortSignal.timeout(options.timeoutMs ?? 10_000),
+        headers: { Accept: 'application/json', 'User-Agent': 'HearthPulse/BattlegroundHeroProfile' },
+      });
+      if (!response.ok) throw new Error(`Battleground hero library HTTP ${response.status}`);
+      const profile = projectBattlegroundHeroProfile(await response.json(), dbfId, options.imageUrl);
+      cache.set(dbfId, { at: now(), profile });
+      return profile;
+    } catch (error) {
+      try { options.onError?.(error); } catch { /* diagnostics are best-effort */ }
+      return null;
+    }
+  };
+}

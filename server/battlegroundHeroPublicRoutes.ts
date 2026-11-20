@@ -1,5 +1,5 @@
 import type { Router } from 'express';
-import type { PublicBattlegroundHero, PublicBattlegroundHeroStats } from './battlegroundHeroPublicTypes.js';
+import type { PublicBattlegroundHero, PublicBattlegroundHeroProfile, PublicBattlegroundHeroStats } from './battlegroundHeroPublicTypes.js';
 
 export function isPositiveDbfId(value: unknown): boolean {
   const raw = String(value ?? '');
@@ -8,15 +8,19 @@ export function isPositiveDbfId(value: unknown): boolean {
 }
 
 /**
- * Registers the anonymous identity of a hero and its open statistics (the base
- * rating range, solo and duos; see `battlegroundHeroStatsProjection.ts`).
- * Everything else about a hero (other ranges, placement distribution,
- * compositions with metrics, patch history) stays on guarded routes.
+ * Registers the anonymous identity of a hero, its open profile (game content of
+ * the hero library; see `battlegroundHeroPublicProfile.ts`) and its open
+ * statistics (the base rating range, solo and duos; see
+ * `battlegroundHeroStatsProjection.ts`). Everything else about a hero (other
+ * ranges, placement distribution, compositions with metrics, patch history)
+ * stays on guarded routes.
  */
 export function registerPublicBattlegroundHeroRoute(router: Router, options: {
   loadHero: (dbfId: string) => Promise<PublicBattlegroundHero | null>;
   /** Open statistics of the hero; `null` when it is not rated. A rejection is a 503 with `Retry-After`. */
   loadStats?: (dbfId: number) => Promise<PublicBattlegroundHeroStats | null>;
+  /** Open profile of the hero; `null` when the library has none or fails (never a rejection). */
+  loadProfile?: (dbfId: number) => Promise<PublicBattlegroundHeroProfile | null>;
   imageUrl: (value: string | null) => string;
   retryAfterSeconds: number;
   onError?: (error: unknown) => void;
@@ -30,8 +34,11 @@ export function registerPublicBattlegroundHeroRoute(router: Router, options: {
       const hero = await options.loadHero(dbfId);
       if (!hero) return response.status(404).json({ error: 'Hero not found' });
       // A failing statistics source with no copy is a retryable 503 like the catalog: never a 200 without figures.
-      const stats = options.loadStats ? await options.loadStats(hero.dbfId) : null;
-      return response.json({ stats, hero: {
+      const [stats, profile] = await Promise.all([
+        options.loadStats ? options.loadStats(hero.dbfId) : null,
+        options.loadProfile ? options.loadProfile(hero.dbfId) : null,
+      ]);
+      return response.json({ stats, profile, hero: {
         dbfId: hero.dbfId, cardId: hero.cardId, name: hero.name,
         image: options.imageUrl(hero.image),
         heroPower: hero.heroPower ? {
