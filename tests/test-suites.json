@@ -59,6 +59,9 @@
     "tests/next-mode-hubs-browser.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
+    "tests/next-decks-pages-browser.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
     "tests/next-legendaries-open-layer.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
@@ -278,6 +281,7 @@
         "tests/recoverable-surface.test.tsx",
         "tests/standard-matchups-controls-ui.test.ts",
         "tests/standard-archetype-label.test.ts",
+        "tests/class-decks-detail-loader.test.ts",
         "tests/archetype-label-golden.test.ts",
         "tests/standard-meta-table-model.test.ts",
         "tests/profile-stats-model.test.ts",
@@ -365,6 +369,7 @@
         "tests/battleground-library-seo-routes.test.ts",
         "tests/battleground-proxy-routes.test.ts",
         "tests/battleground-seo-routes.test.ts",
+        "tests/battleground-hero-public-profile.test.ts",
         "tests/battleground-trinket-metrics.test.ts",
         "tests/browser-identity-binding.test.ts",
         "tests/browser-identity-cleanup.test.ts",
@@ -637,6 +642,7 @@
         "tests/next-meta-report-browser.test.mjs",
         "tests/next-bg-tier-list-browser.test.mjs",
         "tests/next-mode-hubs-browser.test.mjs",
+        "tests/next-decks-pages-browser.test.mjs",
         "tests/next-paywall-access-check-browser.test.mjs",
         "tests/next-instant-access-browser.test.mjs",
         "tests/next-paid-panels-pending-browser.test.mjs",

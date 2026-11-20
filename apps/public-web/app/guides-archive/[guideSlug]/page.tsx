@@ -9,6 +9,7 @@ import { robotsContent } from '@/src/shared/seo/robots';
 import { loadPublicGuideTeaser } from '@/apps/public-web/lib/publicGuideTeaser';
 import { buildGuideStructuredData } from '@/apps/public-web/lib/publicGuideTeaserStructuredData';
 import { GuideArchiveExcerpt, GuideArchiveToc } from '@/apps/public-web/ui/GuideArchiveExcerpt';
+import { SharedPageShell } from '@/apps/public-web/ui/SharedPageShell';
 import { GuideArchiveDetailPageClient } from '@/apps/public-web/ui/GuideArchiveDetailPageClient';
 
 type Props = { params: Promise<{ guideSlug: string }> };
@@ -18,6 +19,7 @@ async function resolveGuide(params: Props['params']) {
   const { guideSlug } = await params;
   const teaser = await loadPublicGuideTeaser(guideSlug);
   if (!teaser) notFound();
+  if (teaser === 'unavailable') return { teaser, pathname: '', canonical: '' };
   const pathname = `/guides-archive/${encodeURIComponent(guideSlug)}/`;
   const canonical = `https://hearthpulse.net/guides-archive/${encodeURIComponent(teaser.slug)}/`;
   return { teaser, pathname, canonical };
@@ -25,6 +27,8 @@ async function resolveGuide(params: Props['params']) {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { teaser, pathname, canonical } = await resolveGuide(params);
+  // Express did not answer: no title or canonical of a guide we cannot name, and nothing for search engines to keep.
+  if (teaser === 'unavailable') return { title: 'Гайд — HearthPulse', robots: { index: false, follow: false } };
   const policy = await resolvePublicUrlPolicy(pathname, '');
   const title = brandedTitle(teaser.title);
   const description = teaser.description || `Архивный гайд Hearthstone: ${teaser.title}.`;
@@ -40,6 +44,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function Page({ params }: Props) {
   const { teaser, pathname } = await resolveGuide(params);
+  if (teaser === 'unavailable') {
+    return <SharedPageShell pathname="/guides-archive/">
+      <div className="guide-archive-detail" role="status">
+        <h1>Гайд временно недоступен</h1>
+        <p>Сайт сейчас перегружен. <a href="">Обновите страницу</a> через минуту или вернитесь в <a href="/guides-archive/">архив гайдов</a>.</p>
+      </div>
+    </SharedPageShell>;
+  }
   const { excerptHtml, toc, ...header } = teaser;
   const excerptIds = new Set([...excerptHtml.matchAll(/\sid="([^"]+)"/g)].map(match => match[1]));
   // A heading of the closed part has no element in the open text: it gets an anchor at the gate.

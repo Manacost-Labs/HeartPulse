@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { compactTierlistClass, openTierlistView } from '../apps/public-web/lib/openTierlistView.js';
-import { TIERLIST_CLASS_SLUGS, tierlistClassIdFromSlug, tierlistClassPath } from '../apps/public-web/lib/tierlistClassPages.js';
+import { TIERLIST_CLASS_SLUGS, tierlistClassIdFromSlug, tierlistClassPageHeading, tierlistClassPath } from '../apps/public-web/lib/tierlistClassPages.js';
 import type { PublicTierlist } from '../apps/public-web/lib/publicTierlistData.js';
 
 // The class pages of the Arena tier list (#617): every class of the open pool and the neutral cards have a page,
@@ -33,3 +33,7 @@ assert.deepEqual(mage.sections.map(section => section.totalCards), [2, 0, 0], 'o
 assert.deepEqual(Object.keys(mage.cards).sort(), ['M1', 'M2']);
 const neutral = openTierlistView(compactTierlistClass(pool, 'any'));
 assert.deepEqual(neutral.sections.map(section => section.totalCards), [0, 0, 1]);
+
+// A class page has its own H1 and breadcrumb: not a duplicate of the tier list's heading.
+assert.deepEqual(tierlistClassPageHeading('mage', 'Маг'), { title: 'Тир-лист карт Арены Hearthstone: Маг', name: 'Маг', href: '/tierlist/mage/' });
+assert.deepEqual(tierlistClassPageHeading('any', 'Нейтральные'), { title: 'Нейтральные карты Арены Hearthstone', name: 'Нейтральные', href: '/tierlist/neutral/' });

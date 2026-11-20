@@ -25,7 +25,7 @@ test('anonymous public route families may be restored from the back/forward cach
     '/standard/', '/arena/', '/battlegrounds/', '/wild/',
     '/standard/meta/', '/standard/meta/standard/aggro-paladin/', '/standard/matchups/', '/standard/archetypes/',
     '/standard/archetypes/standard/aggro-paladin/', '/standard/cards/', '/standard/cards/standard/',
-    '/standard/cards/standard/blizzard:12345/', '/standard/fun-decks/', '/standard/vicious-gold/',
+    '/standard/cards/standard/blizzard:12345/', '/standard/fun-decks/', '/standard/vicious-gold/', '/standard/decks/', '/standard/decks/paladin/',
     '/heroes/', '/heroes/107183/', '/library/', '/library/minions/', '/library/minions/name-123/',
     '/library/archive/', '/library/archive/minions/name-123/', '/battlegrounds/tier-list/',
     '/battlegrounds/tier-builder/', '/battlegrounds/strategies/', '/cosmetics/', '/cosmetics/card-backs/',
@@ -59,7 +59,7 @@ const root = resolve(import.meta.dirname, '..');
 const app = join(root, 'apps/public-web/app');
 const FAMILY_DIRECTORIES = ['articles', 'classes', 'contests', 'gallery', 'leaderboards', 'legendaries', 'tierlist',
   'battlegrounds/strategies', 'battlegrounds/tier-builder', 'battlegrounds/tier-list', 'cosmetics',
-  'guides-archive', 'heroes', 'library', 'standard/archetypes', 'standard/cards', 'standard/fun-decks',
+  'guides-archive', 'heroes', 'library', 'standard/archetypes', 'standard/cards', 'standard/decks', 'standard/fun-decks',
   'standard/matchups', 'standard/meta', 'standard/vicious-gold', 'arena', 'wild', 'reports/meta'];
 // The Standard and Battlegrounds hubs are the root pages of directories that hold other families.
 const FAMILY_PAGES = ['standard/page.tsx', 'battlegrounds/page.tsx'];

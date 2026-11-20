@@ -6,6 +6,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
 import express from 'express';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
+import { DATA_PAGES, hasMarker } from '../scripts/lib/post-deploy-data-pages.mjs';
 import { createBattlegroundLibrarySeoRouter } from '../server/battlegroundLibrarySeoRoutes.ts';
 import { CLOSED, fetchImpl, slug } from './helpers/battlegroundLibraryOpenFixture.ts';
 
@@ -49,6 +50,9 @@ test('the guest HTML of the library carries the open layer and nothing closed', 
     assert.match(cold.html, /Список карт временно недоступен/);
     assert.match(cold.html, /class="[^"]*\bpaywalled-library\b/);
     assert.equal(rowsCount(cold.html), 0);
+    // The deploy warm-up tells the listing with data by its marker class (#640): absent from the notice copy.
+    const { marker } = DATA_PAGES.find(page => page.path === '/library/minions/');
+    assert.equal(hasMarker(cold.html, marker), false, 'the warm-up marker is not in the copy without data');
     state.listingDown = false;
     let listed = cold;
     for (let attempt = 0; attempt < 40 && rowsCount(listed.html) === 0; attempt += 1) {
@@ -59,6 +63,7 @@ test('the guest HTML of the library carries the open layer and nothing closed', 
     // The listing of minions: the subscriber's tiles on the open cards of the current pool, by tavern tier then name.
     const { status, html } = listed;
     assert.equal(status, 200);
+    assert.equal(hasMarker(html, marker), true, 'the warm-up finds its marker in the listing with data');
     const rows = tilesOf(html, 'minions');
     assert.deepEqual(rows.map(row => row.name), ['Без выборки', 'Мурлок', 'Первый зверь', 'Второй зверь'], 'every card of the pool, by tier then name');
     assert.deepEqual(rows.find(row => row.name === 'Первый зверь'), {
