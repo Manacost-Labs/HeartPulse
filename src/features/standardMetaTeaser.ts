@@ -6,6 +6,7 @@ import type {
   StandardMetaPeriod,
   StandardMetaServingRank,
 } from '../../shared/standardMetaContract';
+import { resolveStandardMetaRequestPeriod } from '../../shared/standardMetaPeriods';
 
 /**
  * The guest's first slice, read on the server from the open general slice
@@ -34,7 +35,6 @@ export function teaserSeedKey(seed: StandardMetaTeaserSeed | null, fullAccess: b
 const RANKS = new Set<string>(['diamond', 'diamond_legend', 'legend', 'top_5k', 'top_legend']);
 const COINS = new Set<string>(['any_player', 'on_coin', 'going_first']);
 const FLOORS = new Set<number>([100, 250, 500, 1000, 2500, 5000]);
-const PERIOD = /^[a-z0-9_.]{1,64}$/;
 
 export type StandardMetaFilterQuery = {
   rank?: StandardMetaServingRank; coin?: StandardMetaCoin; minGames?: StandardMetaMinGames; period?: StandardMetaPeriod;
@@ -51,7 +51,8 @@ export function readMetaFilterQuery(search: string): StandardMetaFilterQuery {
     ...(RANKS.has(rank) ? { rank: rank as StandardMetaServingRank } : {}),
     ...(COINS.has(coin) ? { coin: coin as StandardMetaCoin } : {}),
     ...(FLOORS.has(minGames) ? { minGames: minGames as StandardMetaMinGames } : {}),
-    ...(PERIOD.test(period) ? { period: period as StandardMetaPeriod } : {}),
+    // The server's own period check: an unknown period is dropped, so the page opens the default slice, not an error.
+    ...(period && resolveStandardMetaRequestPeriod(period) ? { period: resolveStandardMetaRequestPeriod(period) as StandardMetaPeriod } : {}),
   };
 }
 

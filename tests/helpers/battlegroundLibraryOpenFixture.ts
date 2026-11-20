@@ -9,7 +9,7 @@ export const leaks = (text: string) => CLOSED.filter(value => text.includes(valu
 
 export const slug = (name: string) => name.toLowerCase().replace(/[^a-zа-я0-9]+/g, '-').replace(/^-|-$/g, '');
 export const catalogCard = (dbf: number, name: string, extra: Record<string, unknown> = {}, inPool = true) => ({
-  dbf, card_type: { slug: 'minion', name_ru: 'Существо' }, name: { ru: name, en: `${name} EN` }, tavern_tier: 2,
+  dbf, card_id: `BG_T${dbf}`, card_type: { slug: 'minion', name_ru: 'Существо' }, name: { ru: name, en: `${name} EN` }, tavern_tier: 2,
   creature_type: { slug: 'beast', name_ru: 'Зверь' }, attack: 3, health: 4, in_pool: inPool,
   mechanics: [{ slug: 'TAUNT', name_ru: 'Провокация' }], text_ru: 'Провокация.',
   images: { card: `https://api.kolodahearthstone.com/uploads/cards/${dbf}.png`, horizontal: `https://api.kolodahearthstone.com/uploads/horizontal-art/${dbf}.webp` },

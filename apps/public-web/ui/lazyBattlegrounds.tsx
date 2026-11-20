@@ -16,13 +16,17 @@ export { usePaidViewPrefetch } from './lazyPaidView';
 type BattlegroundsModule = typeof import('@/src/features/Battlegrounds');
 type BgLibraryModule = typeof import('@/src/features/BgLibrary');
 type TierBuilderModule = typeof import('@/src/features/BattlegroundTierBuilder');
+type BgLibraryCatalogModule = typeof import('@/src/features/bgLibraryCatalog');
 
 const battlegrounds = moduleLoader<BattlegroundsModule>(() => import('@/src/features/Battlegrounds'));
 const bgLibrary = moduleLoader<BgLibraryModule>(() => import('@/src/features/BgLibrary'));
+// A listing page keeps its own view and needs only the protected catalog's reader, not the library views.
+const bgLibraryCatalog = moduleLoader<BgLibraryCatalogModule>(() => import('@/src/features/bgLibraryCatalog'));
 // The tier builder and its VaryloUI tier list are a chunk of their own: no other view needs them.
 const tierBuilder = moduleLoader<TierBuilderModule>(() => import('@/src/features/BattlegroundTierBuilder'));
 export const loadBattlegrounds = battlegrounds.load;
 export const loadBgLibrary = bgLibrary.load;
+export const loadBgLibraryCatalog = bgLibraryCatalog.load;
 export const loadBattlegroundTierBuilder = tierBuilder.load;
 
 const pending = <PaywallPending plate={false}>Загружаем раздел…</PaywallPending>;
@@ -41,6 +45,14 @@ const idle = { current: () => null, load: () => new Promise<null>(() => undefine
  */
 export function useBattlegroundsModuleLoaded(enabled: boolean): boolean {
   return useLoadedModule<BattlegroundsModule | null>(enabled ? battlegrounds : idle) !== null;
+}
+
+/**
+ * The library's protected catalog (a resource for `useBattlegroundLibraryData`) once the module is loaded and
+ * `enabled`; `undefined` before. A listing page renders its one view throughout and only swaps its cards to it.
+ */
+export function useBgLibraryCatalogResource(enabled: boolean): BgLibraryCatalogModule['bgLibraryCatalogResource'] | undefined {
+  return useLoadedModule<BgLibraryCatalogModule | null>(enabled ? bgLibraryCatalog : idle)?.bgLibraryCatalogResource;
 }
 
 /** Whether the library module is loaded: the same rule as `useBattlegroundsModuleLoaded` for the library views. */

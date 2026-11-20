@@ -86,7 +86,7 @@ assert.equal(teaserSeedKey(metaSeed, false), metaRequestKey('standard', 'diamond
 assert.equal(teaserSeedKey(wildSeed, true), '', 'a subscriber needs the full slice');
 assert.deepEqual(readMetaFilterQuery('?rank=legend&min_games=500&coin=on_coin&period=patch_36.6.3&x=1'),
   { rank: 'legend', coin: 'on_coin', minGames: 500, period: 'patch_36.6.3' });
-assert.deepEqual(readMetaFilterQuery('?rank=bogus&min_games=7'), {});
+assert.deepEqual(readMetaFilterQuery('?rank=bogus&min_games=7&period=broken&coin=x'), {}, 'values the server refuses are dropped');
 assert.equal(metaFilterSearch({ rank: 'legend', coin: 'any_player', minGames: 100, period: null }), '?rank=legend');
 assert.equal(metaFilterSearch({ rank: 'diamond_legend', coin: 'any_player', minGames: 100, period: null }), '');
 assert.equal(await loadStandardMetaTeaserSeed(async () => null), null);

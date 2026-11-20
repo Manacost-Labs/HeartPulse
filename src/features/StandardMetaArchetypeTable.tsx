@@ -12,7 +12,7 @@ import {
   type StandardMetaSortKey,
 } from './standardMetaTableModel';
 import { point, WinrateCell, WinrateSparkline } from './StandardMetaWinrateCells';
-import { MetaLockedCell, type OpenPaidOffer } from './StandardMetaLocks';
+import { MetaLockedCell } from './StandardMetaLocks';
 import { useStandardMetaTrends, type StandardMetaTrendsQuery } from './useStandardMetaTrends';
 import '../vendor/varylo-ui/styles/index.css';
 import './StandardMetaVarylo.css';
@@ -41,8 +41,6 @@ export type StandardMetaArchetypeTableProps = StandardMetaTrendsQuery & {
   periodLabel: string;
   /** The rendered table, read by the page toolbar's CSV export. */
   tableRef?: Ref<HTMLTableElement>;
-  /** The subscription offer a guest's locks open (trend, change, turns, duration, climb speed). */
-  onPaidOffer?: OpenPaidOffer;
 };
 
 /**
@@ -51,7 +49,7 @@ export type StandardMetaArchetypeTableProps = StandardMetaTrendsQuery & {
  * whole row links to the archetype. Below 640px every row is a card.
  */
 export default function StandardMetaArchetypeTable(props: StandardMetaArchetypeTableProps) {
-  const { items, rankById, format, formatLabel, rankLabel, periodLabel, loadTrends, tableRef, onPaidOffer } = props;
+  const { items, rankById, format, formatLabel, rankLabel, periodLabel, loadTrends, tableRef } = props;
   const [sort, setSort] = useState<StandardMetaSort>({ key: null, direction: 'desc' });
   const { trends, error } = useStandardMetaTrends(props);
   const trendById = useMemo(() => new Map(trends?.items.map(item => [item.id, item]) ?? []), [trends]);
@@ -106,7 +104,6 @@ export default function StandardMetaArchetypeTable(props: StandardMetaArchetypeT
                 trend={trendById.get(item.id) ?? null}
                 showChange={Boolean(comparison)}
                 locked={!loadTrends}
-                onPaidOffer={onPaidOffer}
                 buckets={trends?.buckets ?? []}
                 maxPopularity={maxPopularity}
               />
@@ -165,12 +162,11 @@ type ArchetypeRowProps = {
   showChange: boolean;
   /** A guest: trend, change and the secondary columns are locks of the same size. */
   locked: boolean;
-  onPaidOffer: OpenPaidOffer;
   buckets: string[];
   maxPopularity: number;
 };
 
-function ArchetypeRow({ item, position, href, tourTarget, trend, showChange, locked, onPaidOffer, buckets, maxPopularity }: ArchetypeRowProps) {
+function ArchetypeRow({ item, position, href, tourTarget, trend, showChange, locked, buckets, maxPopularity }: ArchetypeRowProps) {
   const estimate = standardMetaWinrateEstimate(item.winrate, item.games);
   const previous = showChange ? trend?.previous?.winrate ?? null : null;
   const change = previous !== null && item.winrate !== null ? item.winrate - previous : null;
@@ -189,10 +185,10 @@ function ArchetypeRow({ item, position, href, tourTarget, trend, showChange, loc
       </th>
       <td className="standard-meta-table__winrate" data-label="Винрейт" data-export-value={number(item.winrate, 1, '%')}>
         <WinrateCell estimate={estimate} change={change}
-          changeLock={locked ? <MetaLockedCell what="Изменение винрейта" onOpen={onPaidOffer} className="standard-meta-table__change-lock" /> : undefined} />
+          changeLock={locked ? <MetaLockedCell what="Изменение винрейта" className="standard-meta-table__change-lock" /> : undefined} />
       </td>
       <td className="standard-meta-table__trend" data-label="Тренд" data-export-value="">
-        {locked ? <MetaLockedCell what="Тренд" onOpen={onPaidOffer} className="standard-meta-table__trend-lock" />
+        {locked ? <MetaLockedCell what="Тренд" className="standard-meta-table__trend-lock" />
           : <WinrateSparkline winrates={trend?.winrates ?? null} buckets={buckets} />}
       </td>
       <td className="standard-meta-table__popularity" data-label="Популярность" data-export-value={number(item.popularity, 2, '%')}>
@@ -205,13 +201,13 @@ function ArchetypeRow({ item, position, href, tourTarget, trend, showChange, loc
         {item.games?.toLocaleString('ru-RU') ?? '—'}
         {estimate?.lowSample && <span className="standard-meta-table__low-sample">мало</span>}
       </td>
-      <td className="standard-meta-table__secondary" data-label="Ходы">{locked ? <MetaLockedCell what="Ходы" onOpen={onPaidOffer} /> : number(item.turns)}</td>
-      <td className="standard-meta-table__secondary" data-label="Мин">{locked ? <MetaLockedCell what="Длительность" onOpen={onPaidOffer} /> : number(item.durationMinutes)}</td>
+      <td className="standard-meta-table__secondary" data-label="Ходы">{locked ? <MetaLockedCell what="Ходы" /> : number(item.turns)}</td>
+      <td className="standard-meta-table__secondary" data-label="Мин">{locked ? <MetaLockedCell what="Длительность" /> : number(item.durationMinutes)}</td>
       <td
         className={`standard-meta-table__secondary${item.climbingSpeed !== null && item.climbingSpeed < 0 ? ' standard-meta-table__climb--negative' : ''}`}
         data-label="★/ч"
       >
-        {locked ? <MetaLockedCell what="Скорость набора" onOpen={onPaidOffer} /> : number(item.climbingSpeed, 2)}
+        {locked ? <MetaLockedCell what="Скорость набора" /> : number(item.climbingSpeed, 2)}
       </td>
     </tr>
   );

@@ -5,9 +5,11 @@ import { loadPublicLibraryListing } from '@/apps/public-web/lib/publicBattlegrou
 import { LIBRARY_LISTING_KINDS, type LibraryListingKind } from '@/apps/public-web/lib/publicBattlegroundLibraryListingData';
 import { BattlegroundLibraryListingJsonLd } from '@/apps/public-web/ui/BattlegroundLibraryListingJsonLd';
 import { BattlegroundLibraryPageClient } from '@/apps/public-web/ui/BattlegroundLibraryPageClient';
-import { BattlegroundLibraryPublicListing } from '@/apps/public-web/ui/BattlegroundLibraryPublicListing';
+import { openLibraryPayload } from '@/apps/public-web/lib/openBattlegroundLibrary';
 
 type Props = { params: Promise<{ kind: string }> };
+// Everyone gets the subscriber's listing view: on the open cards in the server HTML (`BattlegroundLibraryOpenListing`),
+// on the protected catalog once a subscriber's chunk is loaded.
 // Prerendered on the first visit and regenerated every 5 minutes (PRERENDERED_DATA_REVALIDATE_SECONDS). A source
 // that fails is answered from the last listing this process verified (`loadPublicLibraryListing`), so a regeneration
 // never replaces the cards with an empty page. nginx sends query robots as X-Robots-Tag.
@@ -32,9 +34,6 @@ export default async function Page({ params }: Props) {
   const data = await loadPublicLibraryListing(kind);
   return <>
     <BattlegroundLibraryListingJsonLd path={listing.pathname} heading={listing.heading} description={listing.description} listing={data} />
-    <BattlegroundLibraryPageClient {...listing}>
-      {data ? <BattlegroundLibraryPublicListing listing={data} groupLabel="Все карты" />
-        : <p className="bg-library-public" role="status">Список карт временно недоступен. Попробуйте позже.</p>}
-    </BattlegroundLibraryPageClient>
+    <BattlegroundLibraryPageClient {...listing} kind={kind} listing={data ? openLibraryPayload(data) : null} />
   </>;
 }

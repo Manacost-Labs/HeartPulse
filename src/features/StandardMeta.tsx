@@ -39,6 +39,7 @@ import StandardMetaChart from './StandardMetaChart';
 import { PeriodCoinFloorFilters } from './StandardMetaGuestFilters';
 import { MetaLockedRank, MetaLockedValue } from './StandardMetaLocks';
 import { useHydrated } from '../shared/ui/useHydrated';
+import { usePaidOffer } from '../shared/ui/paidOfferContext';
 import { STANDARD_META_CLASS_COLORS, standardMetaClassIcon } from './standardMetaClassModel';
 import {
   carriedMetaFilters, handOffMetaFilters, metaFilterSearch, metaRequestKey, teaserSeedKey, TEASER_SEED_FILTERS, type StandardMetaTeaserSeed,
@@ -429,8 +430,6 @@ type StandardMetaPageProps = {
   teaserWaitsForAccess?: boolean;
   /** The viewer's access is being checked: the locks are not shown yet. */
   accessPending?: boolean;
-  /** Opens the page's subscription offer; the locks of a viewer without access call it. */
-  onPaidOffer?: () => void;
   /** The paid route refused the viewer (401/403): the page asks for the access check again. */
   onAccessDenied?: () => void;
   embedded?: boolean;
@@ -470,7 +469,6 @@ function useIdleMetaViews(ready: boolean) {
 function StandardMetaContent({
   hasFullAccess,
   teaserWaitsForAccess,
-  onPaidOffer,
   onAccessDenied,
   initialTeaser,
   format,
@@ -492,7 +490,7 @@ function StandardMetaContent({
     if (carried.minGames) setMinGames(carried.minGames);
   }
   // A guest's paid filters (rank, period, coin, floor) open the subscription offer instead of changing the slice.
-  const openOffer = hasFullAccess ? undefined : onPaidOffer;
+  const openOffer = usePaidOffer();
   const hydrated = useHydrated();
   const deferredQuery = useDeferredValue(query);
   const [view, setView] = useState<MetaView>('cards');
@@ -631,7 +629,7 @@ function StandardMetaContent({
                     {group.ranks.map(rankId => {
                       const option = RANKS.find(candidate => candidate.id === rankId)!;
                       return !hasFullAccess && option.id !== rank
-                        ? <MetaLockedRank key={option.id} label={option.label} onOpen={openOffer} />
+                        ? <MetaLockedRank key={option.id} label={option.label} />
                         : <button key={option.id} type="button" aria-pressed={rank === option.id} onClick={() => setRank(option.id)}>{option.label}</button>;
                     })}
                   </fieldset>
@@ -650,7 +648,7 @@ function StandardMetaContent({
         </div>
         <div className="standard-meta__secondary-filters" inert={!hydrated}>
           <PeriodCoinFloorFilters hasFullAccess={hasFullAccess} selectedPeriod={selectedPeriod} periodOptions={periodOptions}
-            onPeriod={setPeriod} coin={coin} onCoin={setCoin} minGames={minGames} onMinGames={setMinGames} onLocked={openOffer} />
+            onPeriod={setPeriod} coin={coin} onCoin={setCoin} minGames={minGames} onMinGames={setMinGames} />
           <label className="standard-meta__search" data-tour-id="meta-search">
             <Search size={18} />
             <span className="sr-only">Поиск архетипа</span>
@@ -719,13 +717,13 @@ function StandardMetaContent({
                   <dl className="standard-meta-card__metrics">
                     <div><dt>Популярность</dt><dd>{formatNumber(item.popularity, '%')}</dd></div>
                     <div><dt>Игры</dt><dd>{item.games?.toLocaleString('ru-RU') ?? '—'}</dd></div>
-                    <div><dt>Ходы</dt><dd>{hasFullAccess ? formatNumber(item.turns) : <MetaLockedValue what="Ходы" onOpen={openOffer} />}</dd></div>
-                    <div><dt>Длительность</dt><dd>{hasFullAccess ? formatNumber(item.durationMinutes, ' мин') : <MetaLockedValue what="Длительность" onOpen={openOffer} />}</dd></div>
+                    <div><dt>Ходы</dt><dd>{hasFullAccess ? formatNumber(item.turns) : <MetaLockedValue what="Ходы" />}</dd></div>
+                    <div><dt>Длительность</dt><dd>{hasFullAccess ? formatNumber(item.durationMinutes, ' мин') : <MetaLockedValue what="Длительность" />}</dd></div>
                   </dl>
                   <div className={`standard-meta-card__climb ${item.climbingSpeed !== null && item.climbingSpeed < 0 ? 'standard-meta-card__climb--negative' : ''}`}>
                     <Swords size={17} />
                     <span>Скорость набора</span>
-                    <strong>{hasFullAccess ? formatNumber(item.climbingSpeed, ' ★/ч') : <MetaLockedValue what="Скорость набора" onOpen={openOffer} />}</strong>
+                    <strong>{hasFullAccess ? formatNumber(item.climbingSpeed, ' ★/ч') : <MetaLockedValue what="Скорость набора" />}</strong>
                   </div>
                   <a
                     className="standard-meta__primary-button standard-meta__deck-action standard-meta-card__deck-button"
@@ -746,7 +744,7 @@ function StandardMetaContent({
                   periodLabel={standardMetaPeriodLabel(selectedPeriod)} minGames={minGames} />
               ) : (
                 <StandardMetaArchetypeTable items={visibleItems} rankById={rankById} format={format} rank={rank} period={selectedPeriod}
-                  coin={coin} minGames={minGames} loadTrends={hasFullAccess} onPaidOffer={openOffer} formatLabel={data.formatLabel} rankLabel={data.rankLabel}
+                  coin={coin} minGames={minGames} loadTrends={hasFullAccess} formatLabel={data.formatLabel} rankLabel={data.rankLabel}
                   periodLabel={standardMetaPeriodLabel(selectedPeriod)} tableRef={tableRef} />
               )}
             </React.Suspense>
@@ -771,7 +769,6 @@ export default function StandardMetaPage({
   hasFullAccess = true,
   teaserWaitsForAccess = false,
   accessPending = false,
-  onPaidOffer,
   onAccessDenied,
   embedded = false,
   initialTeaser = null,
@@ -785,7 +782,7 @@ export default function StandardMetaPage({
         title="Раздел меты временно недоступен"
         message="Навигация и остальные разделы сайта продолжают работать. Попробуйте открыть мету ещё раз."
       >
-        <StandardMetaContent {...{ hasFullAccess, teaserWaitsForAccess, onPaidOffer, onAccessDenied, initialTeaser, format }} />
+        <StandardMetaContent {...{ hasFullAccess, teaserWaitsForAccess, onAccessDenied, initialTeaser, format }} />
       </RecoverableSurfaceBoundary>
     </Root>
   );

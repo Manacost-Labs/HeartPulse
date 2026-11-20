@@ -1,5 +1,5 @@
 import type { StandardMetaCoin, StandardMetaPeriod } from '../../shared/standardMetaContract';
-import { MetaLockedFilter, type OpenPaidOffer } from './StandardMetaLocks';
+import { MetaLockedFilter } from './StandardMetaLocks';
 import { STANDARD_META_COINS, standardMetaPeriodLabel } from './standardMetaFilterModel';
 
 type MetaMinGames = 100 | 250 | 500 | 1000 | 2500 | 5000;
@@ -22,16 +22,15 @@ function MetaCoinSelect({ value, onChange }: { value: MetaCoin; onChange: (coin:
 type PeriodOption = { id: MetaPeriod; label: string };
 
 /** Period, coin and game floor: selects for a subscriber, locks with the open slice's values for a guest. */
-export function PeriodCoinFloorFilters({ hasFullAccess, selectedPeriod, periodOptions, onPeriod, coin, onCoin, minGames, onMinGames, onLocked }: {
+export function PeriodCoinFloorFilters({ hasFullAccess, selectedPeriod, periodOptions, onPeriod, coin, onCoin, minGames, onMinGames }: {
   hasFullAccess: boolean; selectedPeriod: MetaPeriod; periodOptions: PeriodOption[]; onPeriod: (period: MetaPeriod) => void;
   coin: MetaCoin; onCoin: (coin: MetaCoin) => void; minGames: MetaMinGames; onMinGames: (minGames: MetaMinGames) => void;
-  onLocked: OpenPaidOffer;
 }) {
   if (!hasFullAccess) {
     return (<>
-      <MetaLockedFilter label="Период" value={standardMetaPeriodLabel(selectedPeriod)} onOpen={onLocked} />
-      <MetaLockedFilter label="Очерёдность хода" value="Любой игрок" onOpen={onLocked} />
-      <MetaLockedFilter label="Минимум игр" value={minGames.toLocaleString('ru-RU')} onOpen={onLocked} />
+      <MetaLockedFilter label="Период" value={standardMetaPeriodLabel(selectedPeriod)} />
+      <MetaLockedFilter label="Очерёдность хода" value="Любой игрок" />
+      <MetaLockedFilter label="Минимум игр" value={minGames.toLocaleString('ru-RU')} />
     </>);
   }
   return (<>

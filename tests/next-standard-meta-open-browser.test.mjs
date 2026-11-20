@@ -52,6 +52,11 @@ async function startStack() {
       state.protectedReads += 1;
       state.protectedQueries.push(Object.fromEntries(url.searchParams));
       if (state.protectedDown) return json(503, { error: 'paid source down' });
+      // Like the real route: a period or rank it does not serve is refused.
+      const askedPeriod = url.searchParams.get('period');
+      const askedRank = url.searchParams.get('rank');
+      if ((askedPeriod && !/^(?:past_day|past_week|patch_\d+(?:\.\d+)*)$/.test(askedPeriod))
+        || (askedRank && !['diamond', 'diamond_legend', 'legend', 'top_5k', 'top_legend'].includes(askedRank))) return json(400, { error: 'bad filter' });
       // The answer carries the filters it was asked for, as the real route does.
       const asked = {
         rank: url.searchParams.get('rank') ?? 'diamond_legend', coin: url.searchParams.get('coin') ?? 'any_player',
@@ -388,6 +393,23 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     await filtered.waitForFunction(() => window.location.pathname === '/standard/meta/' && document.body.textContent.includes('Стандартный архетип 1') && document.body.textContent.includes('77,77'), { timeout: 15000 });
     assert.equal(await filtered.$eval('fieldset button[aria-pressed="true"]', node => node.textContent.trim()), 'Легенда', 'Back opens the filters of the address');
     await filtered.close();
+
+    // A direct link with values the server refuses opens the default slice: no error, and no paid request carries them.
+    const broken = await browser.newPage();
+    await broken.setViewport(DESKTOP);
+    await broken.setCookie({ name: 'sm_session', value: 'reader', url: stack.origin });
+    const queriesBefore = stack.protectedQueries.length;
+    await broken.goto(`${stack.origin}/standard/meta/wild/?period=broken&rank=xyz`, { waitUntil: 'load' });
+    await broken.waitForFunction(() => document.body.textContent.includes('77,77'), { timeout: 15000 });
+    assert.ok(!(await broken.evaluate(() => document.body.textContent)).includes('Не удалось загрузить мету'), 'no error for a bad link');
+    const brokenQueries = stack.protectedQueries.slice(queriesBefore);
+    assert.ok(brokenQueries.length > 0, 'the paid slice was asked');
+    for (const asked of brokenQueries) {
+      assert.notEqual(asked.period, 'broken');
+      assert.notEqual(asked.rank, 'xyz');
+      assert.equal(asked.rank, 'diamond_legend', 'the default rank replaces the bad one');
+    }
+    await broken.close();
   } finally {
     if (browser) await browser.close();
     await next.close();

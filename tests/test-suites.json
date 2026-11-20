@@ -47,6 +47,9 @@
     "tests/next-bg-library-listings-browser.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
+    "tests/next-bg-library-list-behavior-browser.test.mjs": {
+      "NODE_OPTIONS": "--import=tsx"
+    },
     "tests/next-paywall-access-check-browser.test.mjs": {
       "NODE_OPTIONS": "--import=tsx"
     },
@@ -459,6 +462,7 @@
         "tests/tierlist-cache-bust-routes.test.ts",
         "tests/tierlist-routes.test.ts",
         "tests/tierlist-public.test.ts",
+        "tests/tierlist-class-pages.test.ts",
         "tests/classes-public-teaser.test.ts",
         "tests/player-games-routes.test.ts",
         "tests/player-games-schema.test.ts",
@@ -538,6 +542,7 @@
         "tests/social-oauth-server-security-contract.test.ts",
         "tests/socialOAuth.test.ts",
         "tests/soft-paywall-ui-contract.test.ts",
+        "tests/paid-locks.test.ts",
         "tests/standard-meta-contract.test.ts",
         "tests/standard-meta-preview-cache-policy.test.ts",
         "tests/standard-meta-ui-contract.test.ts",
@@ -556,6 +561,7 @@
       "id": "browser",
       "files": [
         "tests/archetype-radar-picker-browser.test.mjs",
+        "tests/paid-locks-browser.test.mjs",
         "tests/hsguru-archetype-stats-browser.test.mjs",
         "tests/archetypes-detail-browser.test.mjs",
         "tests/arena-card-motion.browser.test.mjs",
@@ -615,6 +621,7 @@
         "tests/next-wild-menu-browser.test.mjs",
         "tests/next-bg-hero-detail-browser.test.mjs",
         "tests/next-bg-library-listings-browser.test.mjs",
+        "tests/next-bg-library-list-behavior-browser.test.mjs",
         "tests/bg-library-controls-browser.test.mjs",
         "tests/next-bg-builders-browser.test.mjs",
         "tests/next-assemble-tool-browser.test.mjs",

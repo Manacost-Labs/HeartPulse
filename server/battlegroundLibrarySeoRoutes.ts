@@ -206,6 +206,7 @@ export function projectPublicBattlegroundLibraryCard(
   const images = record(card.images);
   return {
     dbfId: Number(card.dbf),
+    cardId: typeof card.card_id === 'string' && /^[A-Za-z0-9_]{1,60}$/.test(card.card_id) ? card.card_id : null,
     kind: expectedKind,
     typeName: plainCatalogText(cardType.name_ru, 100)
       ?? (expectedKind === 'minion' ? 'Существо' : 'Заклинание'),
@@ -228,6 +229,7 @@ export function projectPublicBattlegroundLibraryCard(
     },
     artist: rawCatalogText(card.artist, 300),
     inPool: card.in_pool,
+    duosOnly: card.duos_only === true,
   };
 }
 
