@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { PublicPageShell } from '@/src/app/shell/PublicPageShell';
+import { Breadcrumbs } from '@/src/shared/ui/EditorialRouteChrome';
 import type { PublicBattlegroundHero } from '@/apps/public-web/lib/publicBattlegroundHeroData';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { BattlegroundHeroesRoute, loadBattlegrounds, useBattlegroundsModuleLoaded, usePaidViewPrefetch } from './lazyBattlegrounds';
@@ -27,13 +28,14 @@ export function BattlegroundHeroDetailPageClient({ hero, summary, open }: {
     {allowed && paidViewReady
       ? <BattlegroundHeroesRoute key={`${hero.dbfId}:${access.user?.id}`} path={pathname} onNavigate={navigate} teaser={hero} />
       : <article className="space-y-5">
-        <a href="/heroes/" className="inline-flex min-h-11 items-center rounded-md border border-[#d7b66a] px-3 py-2">Все герои</a>
+        {/* The trail the page's JSON-LD names (app/heroes/[dbfId]/page.tsx). */}
+        <Breadcrumbs items={[{ name: 'Главная', href: '/' }, { name: 'Герои Полей сражений', href: '/heroes/' }, { name: hero.name, href: pathname }]} />
         <header className="grid gap-4 sm:grid-cols-[1fr_180px]">
           <div className="space-y-3">
             <h1 className="font-hs text-3xl sm:text-4xl">{hero.name}</h1>
             <p>{summary}</p>
           </div>
-          <img src={hero.image} alt="" width="180" height="240" decoding="async" />
+          <img src={hero.image} alt={`${hero.name} — герой Полей сражений`} width="180" height="240" decoding="async" />
         </header>
         {open}
         {/* The closed part, named by the page's JSON-LD (`hasPart.cssSelector`); a wrapper without a box of its own. */}

@@ -5,13 +5,12 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import { buildEntityStructuredData } from '@/shared/entitySeoStructuredData';
 import { loadPublicBattlegroundLibraryCard } from './publicBattlegroundLibraryCard';
 import { libraryCardIndexingFacts, type PublicBattlegroundLibraryCard } from './publicBattlegroundLibraryCardData';
-import { libraryCardSummary } from './battlegroundLibraryCardText';
+import { libraryCardDescription, libraryCardSummary } from './battlegroundLibraryCardText';
 import type { BattlegroundLibraryPool } from './battlegroundLibraryDetailKinds';
 import { BattlegroundLibraryDetailPageClient } from '@/apps/public-web/ui/BattlegroundLibraryDetailPageClient';
 import { BattlegroundLibraryPublicCard } from '@/apps/public-web/ui/BattlegroundLibraryPublicCard';
 import { isIndexableBattlegroundLibraryCard } from '@/shared/battlegroundLibraryIndexing';
 import { INDEXABLE_ROBOTS, robotsContent } from '@/src/shared/seo/robots';
-import { fitMetaDescription } from '@/src/shared/seo/metaDescription';
 
 type Search = Promise<Record<string, string | string[] | undefined>>;
 export type BattlegroundDetailProps = {
@@ -44,12 +43,20 @@ function seo(card: PublicBattlegroundLibraryCard, pool: BattlegroundLibraryPool)
   const origin = 'https://hearthpulse.net';
   const canonical = new URL(card.canonicalPath, origin).href;
   const title = battlegroundCardTitle({ name: card.name, type: card.typeName, archive: pool === 'archive' });
-  const description = pool === 'archive'
-    ? `${card.name} — архивная карта Полей сражений Hearthstone. ${card.text ?? ''}`.slice(0, 300)
-    : card.text
-      ? `${card.name} — ${card.typeName.toLowerCase()} Hearthstone Battlegrounds. ${card.text}`.slice(0, 300)
-      : `${card.name} — карта режима «Поля сражений» в Hearthstone.`;
-  return { origin, canonical, title, description: fitMetaDescription(description) };
+  return { origin, canonical, title, description: libraryCardDescription(card, pool === 'archive') };
+}
+
+/** The trail of a card page: the JSON-LD BreadcrumbList and the visible one are this one list. */
+function crumbs(card: PublicBattlegroundLibraryCard, pool: BattlegroundLibraryPool, kind: string) {
+  const prefix = pool === 'archive' ? '/library/archive' : '/library';
+  const kindLabel = kind === 'minions' ? 'Существа' : kind === 'spells' ? 'Заклинания' : card.typeName;
+  return [
+    { name: 'Главная', href: '/' },
+    { name: 'Библиотека Полей сражений', href: '/library/' },
+    ...(pool === 'archive' ? [{ name: 'Архив', href: '/library/archive/' }] : []),
+    { name: kindLabel, href: `${prefix}/${kind}/` },
+    { name: card.name, href: card.canonicalPath },
+  ];
 }
 
 export async function battlegroundDetailMetadata(props: BattlegroundDetailProps,
@@ -67,22 +74,14 @@ export async function battlegroundDetailPage(props: BattlegroundDetailProps,
   pool: BattlegroundLibraryPool) {
   const card = await resolveCard(props, pool);
   const { origin, canonical, title, description } = seo(card, pool);
-  const kind = (await props.params).kind;
-  const prefix = pool === 'archive' ? '/library/archive' : '/library';
-  const kindLabel = kind === 'minions' ? 'Существа' : kind === 'spells' ? 'Заклинания' : card.typeName;
+  const trail = crumbs(card, pool, (await props.params).kind);
   const structured = buildEntityStructuredData({
     canonical, title, description, origin, image: card.image, entityFragment: 'card',
     entity: {
       name: card.name, identifier: card.dbfId, image: card.image, description, inLanguage: 'ru',
       isPartOf: { '@type': 'VideoGame', name: 'Hearthstone: Поля сражений' },
     },
-    breadcrumbs: [
-      { name: 'Главная', item: `${origin}/` },
-      { name: 'Библиотека Полей сражений', item: `${origin}/library/` },
-      ...(pool === 'archive' ? [{ name: 'Архив', item: `${origin}/library/archive/` }] : []),
-      { name: kindLabel, item: `${origin}${prefix}/${kind}/` },
-      { name: card.name, item: canonical },
-    ],
+    breadcrumbs: trail.map(crumb => ({ name: crumb.name, item: new URL(crumb.href, origin).href })),
   });
   if (card.stats) {
     // The statistics are open for the base slice; the closed part is named for crawlers (`isAccessibleForFree: false`).
@@ -107,6 +106,6 @@ export async function battlegroundDetailPage(props: BattlegroundDetailProps,
     {isIndexable(card) ? <script type="application/ld+json" data-server-entity-jsonld data-entity-path={card.canonicalPath}
       dangerouslySetInnerHTML={{ __html: JSON.stringify(structured).replace(/</g, '\\u003c') }} /> : null}
     <BattlegroundLibraryDetailPageClient card={card} summary={libraryCardSummary(card)}
-      open={<BattlegroundLibraryPublicCard card={card} />} />
+      open={<BattlegroundLibraryPublicCard card={card} />} crumbs={trail} />
   </>;
 }
