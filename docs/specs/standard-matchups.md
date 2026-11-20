@@ -39,8 +39,8 @@ the JSON-LD.
   period and the games floor stand in their places as locks
   (`StandardMatchupsFilterLocks` on the shared `PaidLocks`,
   `.paywalled-standard-matchups`, named by the JSON-LD `hasPart`); a
-  press opens the subscription offer (`PaidOfferProvider`). While a signed-in reader's access is checked the
-  locks are neutral and inert. A subscriber's slice replaces the open data
+  press opens the subscription offer (`PaidOfferProvider`). While a
+  signed-in reader's access is checked the locks are neutral and inert. A subscriber's slice replaces the open data
   inside the same component, with no remount; if it does not arrive, the open
   data stays with the message and «Повторить». Until the browser has run the
   content is `inert`, so the server markup has no dead control. Wild is read
