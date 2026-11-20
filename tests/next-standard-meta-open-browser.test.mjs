@@ -379,6 +379,14 @@ test('a guest and a subscriber on /standard/meta/ in a real browser', { timeout:
     };
     await goTo('Вольный', '/standard/meta/wild/', 'Вольный архетип 1');
     await goTo('Стандарт', '/standard/meta/', 'Стандартный архетип 1');
+    // Back within the hand-off's few seconds opens the page with the filters of its own address, not those just handed to the other format.
+    await filtered.evaluate(() => [...document.querySelectorAll('fieldset button')].find(button => button.textContent.trim() === 'Топ-5000').click());
+    await filtered.evaluate(() => [...document.querySelectorAll('a')].find(link => link.textContent.trim().startsWith('Вольный')
+      && link.closest('[aria-label="Фильтры меты"]')).click());
+    await filtered.waitForFunction(() => window.location.pathname === '/standard/meta/wild/' && document.body.textContent.includes('Вольный архетип 1'), { timeout: 15000 });
+    await filtered.evaluate(() => window.history.back());
+    await filtered.waitForFunction(() => window.location.pathname === '/standard/meta/' && document.body.textContent.includes('Стандартный архетип 1') && document.body.textContent.includes('77,77'), { timeout: 15000 });
+    assert.equal(await filtered.$eval('fieldset button[aria-pressed="true"]', node => node.textContent.trim()), 'Легенда', 'Back opens the filters of the address');
     await filtered.close();
   } finally {
     if (browser) await browser.close();
