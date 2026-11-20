@@ -214,6 +214,38 @@ try {
   assert.doesNotMatch(await text('[data-card-assemble]'), /г\.\./);
   await page.goto(storybook.storyUrl('card-detail-assemble--not-enough-data'), { waitUntil: 'networkidle0' });
   assert.match(await text('[data-card-assemble]'), /Мало данных/);
+
+  // The card page's block, found as a reader finds it: the link «Открыть инструмент сборки» and the line under the heading «Сборка».
+  const teaserLink = () => page.evaluate(() => {
+    const link = [...document.querySelectorAll('a')].find(node => node.textContent?.trim() === 'Открыть инструмент сборки');
+    if (!link) return null;
+    const box = link.getBoundingClientRect();
+    return { href: link.getAttribute('href'), top: box.top, height: box.height };
+  });
+  const pageText = () => page.evaluate(() => document.body.innerText);
+  await page.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
+  await page.goto(storybook.storyUrl('card-detail-assemble-teaser--default'), { waitUntil: 'networkidle0' });
+  await page.waitForFunction(() => /Пул 38 существ · лучшая база — /.test(document.body.innerText));
+  assert.equal((await teaserLink()).href, '/standard/assemble/?card=BE_044');
+  assert.doesNotMatch(await pageText(), /Что выпало|Лучшие сборки|Мне предложили/, 'no full section on the card page');
+  await page.goto(storybook.storyUrl('card-detail-assemble-teaser--wild'), { waitUntil: 'networkidle0' });
+  assert.equal((await teaserLink()).href, '/standard/assemble/?card=BE_044&format=wild');
+  // A failed or unknown card keeps the button without any message, and the line's place does not move the button.
+  for (const story of ['failed', 'missing']) {
+    await page.goto(storybook.storyUrl(`card-detail-assemble-teaser--${story}`), { waitUntil: 'networkidle0' });
+    assert.ok(await teaserLink(), `${story} keeps the button`);
+    assert.equal(await page.$('[role="alert"]'), null, `${story} shows no error`);
+    assert.doesNotMatch(await pageText(), /Пул \d+/, `${story} shows no figures`);
+  }
+  await page.goto(storybook.storyUrl('card-detail-assemble-teaser--default'), { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => [...document.querySelectorAll('a')].some(node => node.textContent?.trim() === 'Открыть инструмент сборки'));
+  const buttonTop = (await teaserLink()).top;
+  await page.waitForFunction(() => /Пул 38/.test(document.body.innerText));
+  assert.equal((await teaserLink()).top, buttonTop, 'the figures arrive without moving the button');
+  await page.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
+  await page.goto(storybook.storyUrl('card-detail-assemble-teaser--phone'), { waitUntil: 'networkidle0' });
+  assert.ok(await overflow() <= 0, 'the block fits a phone');
+  assert.ok((await teaserLink()).height >= 44, 'the button is a finger target');
   assert.deepEqual(runtimeErrors, []);
 } finally {
   await browser?.close();

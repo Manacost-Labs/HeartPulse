@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { fetchWithDeadline } from '../../shared/http/fetchWithDeadline';
 import { createStandardMatchupsClient } from './model/client';
 import { readStandardMatchupsSlice, sameStandardMatchupsSlice, writeStandardMatchupsSlice } from './model/slice';
 import type { StandardMatchupsState } from './model/state';
@@ -14,6 +15,14 @@ type ViewState = {
   status: 'loading' | StandardMatchupsState['status'];
   data: StandardMatchupsData | null;
 };
+
+/**
+ * A matrix request that has not answered by now is not coming (the slowest answer seen in production, on a cache
+ * miss, is 13 s): it ends as an error with a retry instead of leaving the subscriber waiting for ever.
+ */
+export const MATCHUPS_REQUEST_DEADLINE_MS = 25_000;
+const requestWithDeadline: typeof fetch = (input, init) =>
+  fetchWithDeadline(String(input), { ...init, deadlineMs: MATCHUPS_REQUEST_DEADLINE_MS });
 
 function browserStorage(): Storage | undefined {
   try { return window.localStorage; } catch { return undefined; }
@@ -70,7 +79,7 @@ export function useStandardMatchups(accountId: string | undefined, enabled: bool
           : { accountId, slice, ...next };
       });
     };
-    const client = createStandardMatchupsClient({ request: fetch, storage: browserStorage() });
+    const client = createStandardMatchupsClient({ request: requestWithDeadline, storage: browserStorage() });
     void client.load(accountId, slice, { signal: controller.signal,
       bust: request.bust, onCache: accept }).then(accept);
     return () => controller.abort();

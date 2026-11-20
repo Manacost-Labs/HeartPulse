@@ -52,7 +52,7 @@
       {
         "id": "battlegrounds-heroes-open-ranking",
         "path": "/heroes",
-        "assertions": [{ "selector": ".bg-heroes-public tbody tr", "minCount": 20 }],
+        "assertions": [{ "selector": ".battleground-hero-card", "minCount": 20 }],
         "forbiddenSelectors": [".arena-paywall"]
       },
       {

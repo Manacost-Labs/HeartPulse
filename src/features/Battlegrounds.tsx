@@ -1,7 +1,7 @@
 import '../shared/ui/analytics/Analytics.css';
 import { HeroCompositionAnalytics, HeroOverview, HeroPowerAnalytics, HeroTavernAnalytics } from '../modules/battlegrounds/public';
 import '../modules/battlegrounds/public.css';
-import React, { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { usePageScrollLock } from '../hooks/usePageScrollLock';
 import { useOverlayFade } from '../hooks/useOverlayFade';
@@ -11,7 +11,6 @@ import {
 import {
   battlegroundHeroCardImage,
   createBattlegroundHeroTierResource,
-  useBattlegroundHeroTierData,
   type BattlegroundHeroTierData,
   battlegroundHeroRosterBridgeV1,
   battlegroundBuilderWorkbenchV1,
@@ -28,20 +27,20 @@ import { TierBadge } from '../modules/arenaTierList/public';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
 import { publicResourceUrl } from '../publicResourceUrl';
 import { battlegroundFullCardImage, preferredBattlegroundGoldenBuddyImage } from '../modules/battlegrounds/public';
-import { BattlegroundHeroCard as MemoBattlegroundHeroCard } from './BattlegroundHeroCard';
 import { BattlegroundHeroStatistics } from './BattlegroundHeroStatistics';
 import { CardPatchTimeline } from './CardPatchTimeline';
 import { battlegroundHeroPatchEntries } from './battlegroundHeroPatchChanges';
-import { BattlegroundHeroDetailSkeleton, BattlegroundHeroListSkeleton, BattlegroundLoadError, type BattlegroundHeroTeaser } from './BattlegroundsSkeletons';
+import { BattlegroundHeroDetailSkeleton, BattlegroundLoadError, type BattlegroundHeroTeaser } from './BattlegroundsSkeletons';
 import { BattlegroundTierList } from './BattlegroundTierList';
 import { bgDetailCardTooltipText } from './battlegroundTierListItems';
 import { useBattlegroundHeroDetail } from './useBattlegroundHeroDetail';
+import { BattlegroundHeroTierList, BG_HERO_MMR_OPTIONS } from './BattlegroundHeroTierList';
 import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
+import { SERVER_RENDER_TIME_ZONE } from '../shared/ui/serverRenderTimeZone';
 import '../route-parchment.css';
 import './Battlegrounds.css';
 import '../battlegrounds-shell.css';
 import '../battlegrounds-parchment.css';
-import { useViewEntrance } from '../components/transitions/useViewEntrance';
 import {
   ArrowDown,
   ArrowUp,
@@ -54,7 +53,6 @@ import {
   Maximize2,
   Pause,
   Play,
-  Search,
   Volume2,
   X,
 } from 'lucide-react';
@@ -65,24 +63,18 @@ function uniqueSources(sources: Array<string | null | undefined>): string[] {
   return [...new Set(sources.filter(Boolean) as string[])];
 }
 
-function formatDate(iso: string | null): string {
-  if (!iso) return 'нет данных';
-  const d = new Date(iso);
-  return d.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+const BG_MOSCOW_DATE = new Intl.DateTimeFormat('ru-RU', {
+  timeZone: SERVER_RENDER_TIME_ZONE, day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit',
+});
+
+/** « · обновлено 20 ноября 2026, 09:01 МСК», as the open hero ranking writes it; empty without a valid date. */
+function bgMoscowDateLabel(iso: unknown): string {
+  const date = new Date(String(iso || ''));
+  if (Number.isNaN(date.getTime())) return '';
+  const parts = Object.fromEntries(BG_MOSCOW_DATE.formatToParts(date).map(part => [part.type, part.value]));
+  return ` · обновлено ${parts.day} ${parts.month} ${parts.year}, ${parts.hour}:${parts.minute} МСК`;
 }
 
-type BattlegroundHeroView = 'grid' | 'table';
-
-const BG_HERO_MODES: Array<{ id: BattlegroundHeroMode; label: string; hint: string }> = [
-  { id: 'solo', label: 'Соло', hint: 'Обычные матчи' },
-  { id: 'duos', label: 'Дуо', hint: 'Командные матчи' },
-];
-const BG_HERO_MMR_OPTIONS: Array<{ id: BattlegroundHeroMmr; label: string }> = [
-  { id: 'TOP_50_PERCENT', label: 'Топ 50%' },
-  { id: 'TOP_20_PERCENT', label: 'Топ 20%' },
-  { id: 'TOP_5_PERCENT', label: 'Топ 5%' },
-  { id: 'TOP_1_PERCENT', label: 'Топ 1%' },
-];
 interface BattlegroundHeroDetailPayload {
   ok?: boolean;
   stats?: any;
@@ -98,55 +90,6 @@ const BG_DUO_FALLBACK_DETAIL_IDS = new Set(['107183', '104981', '104982']);
 let bgHeroLibraryClientCache: Map<number, any> | null = null;
 let bgHeroLibraryRequest: Promise<Map<number, any>> | null = null;
 let bgHeroImageMapClientCache: Record<string, string> | null = null;
-const BattlegroundHeroLedger = React.lazy(() => import('./BattlegroundHeroLedger'));
-
-function bgHeroModeFromValue(value: unknown): BattlegroundHeroMode {
-  return String(value || '').toLowerCase() === 'duos' ? 'duos' : 'solo';
-}
-
-function bgHeroMmrFromValue(value: unknown): BattlegroundHeroMmr {
-  const normalized = String(value || '').toUpperCase();
-  return BG_HERO_MMR_OPTIONS.some(option => option.id === normalized)
-    ? normalized as BattlegroundHeroMmr
-    : 'TOP_50_PERCENT';
-}
-
-function bgHeroViewFromValue(value: unknown): BattlegroundHeroView {
-  return String(value || '').toLowerCase() === 'table' ? 'table' : 'grid';
-}
-
-function bgHeroSortKeyFromValue(value: unknown): BattlegroundHeroSortKey {
-  const normalized = String(value || '').toLowerCase();
-  if (normalized === 'pickrate') return 'pickRate';
-  if (normalized === 'averageplace') return 'averagePlace';
-  return 'tier';
-}
-
-function bgHeroSortDirectionFromValue(value: unknown, sortKey: BattlegroundHeroSortKey): BattlegroundHeroSortDirection {
-  const normalized = String(value || '').toLowerCase();
-  if (normalized === 'asc' || normalized === 'desc') return normalized;
-  return sortKey === 'pickRate' ? 'desc' : 'asc';
-}
-
-function bgHeroListUrlState(): {
-  mode: BattlegroundHeroMode;
-  mmr: BattlegroundHeroMmr;
-  view: BattlegroundHeroView;
-  search: string;
-  sortKey: BattlegroundHeroSortKey;
-  sortDirection: BattlegroundHeroSortDirection;
-} {
-  const params = new URLSearchParams(typeof window === 'undefined' ? '' : window.location.search);
-  const sortKey = bgHeroSortKeyFromValue(params.get('sort'));
-  return {
-    mode: bgHeroModeFromValue(params.get('mode')),
-    mmr: bgHeroMmrFromValue(params.get('mmr')),
-    view: bgHeroViewFromValue(params.get('view')),
-    search: String(params.get('q') || '').slice(0, 120),
-    sortKey,
-    sortDirection: bgHeroSortDirectionFromValue(params.get('dir'), sortKey),
-  };
-}
 
 function bgHeroApiUrl(mode: BattlegroundHeroMode, mmr: BattlegroundHeroMmr): string {
   const params = new URLSearchParams({ mode, mmr });
@@ -233,28 +176,6 @@ function bgHeroRelatedCard(value: any): BattlegroundHeroRelatedCard | null {
   };
 }
 
-function bgHeroSearchText(hero: BattlegroundHeroTierEntry, tier: string): string {
-  return [
-    hero.name,
-    hero.originalName,
-    tier,
-    hero.averagePlace,
-    hero.popularity,
-    hero.bestComposition,
-    hero.heroPower?.name,
-    hero.heroPower?.text,
-  ].filter(Boolean).join(' ');
-}
-
-function bgNormalizeHeroSearch(value: any): string {
-  return String(value || '')
-    .toLowerCase()
-    .replace(/ё/g, 'е')
-    .replace(/[^a-zа-я0-9%.,\s-]+/gi, ' ')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
 function bgHeroCompositionName(value: any): string {
   if (typeof value === 'string') return value.trim();
   return String(value?.name || value?.composition || '').trim();
@@ -324,7 +245,7 @@ function groupBgHeroesFromApi(
     });
   });
 
-  return ['S', 'A', 'B', 'C', 'D'].flatMap(tier => {
+  return ['S', 'A', 'B', 'C', 'D', 'E', 'F'].flatMap(tier => {
     const entries = grouped.get(tier) || [];
     entries.sort((a, b) => Number(String(a.averagePlace || '99').replace(',', '.')) - Number(String(b.averagePlace || '99').replace(',', '.')));
     return entries.length ? [{ tier, title: `${tier} Тир`, heroes: entries }] : [];
@@ -349,7 +270,7 @@ async function bgFetchLiveHeroSlice(
   const modeLabel = mode === 'duos' ? 'Дуо' : 'Соло';
   const mmrLabel = BG_HERO_MMR_OPTIONS.find(option => option.id === mmr)?.label || '';
   return { sections,
-    sourceLabel: `HSReplay · ${modeLabel} · ${mmrLabel} · обновлено ${formatDate(apiPayload.fetched_at)}`,
+    sourceLabel: `HSReplay · ${modeLabel} · ${mmrLabel}${bgMoscowDateLabel(apiPayload.fetched_at)}`,
   };
 }
 
@@ -598,15 +519,6 @@ function bgHeroDetailPathFromPath(path: string): string {
 function bgHeroMetricNumber(value: unknown): number | null {
   const parsed = Number.parseFloat(String(value || '').replace(',', '.').replace('%', ''));
   return Number.isFinite(parsed) ? parsed : null;
-}
-
-function bgHeroCountLabel(count: number): string {
-  const mod100 = count % 100;
-  const mod10 = count % 10;
-  const noun = mod10 === 1 && mod100 !== 11
-    ? 'герой'
-    : (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14) ? 'героя' : 'героев');
-  return `${count} ${noun}`;
 }
 
 function bgHeroPlainText(value: unknown): string {
@@ -1742,220 +1654,7 @@ function BattlegroundHeroesRoute({ path, onNavigate, teaser }: { path: string; o
     );
   }
   // A retry remounts the list: its observer then requests the failed slice again.
-  return <BattlegroundHeroTierList key={listAttempt} onNavigate={onNavigate} onRetry={() => setListAttempt(value => value + 1)} />;
-}
-
-function BattlegroundHeroTierList({ onNavigate, onRetry }: { onNavigate: (path: string) => void; onRetry: () => void }) {
-  const initialUrlState = useMemo(bgHeroListUrlState, []);
-  const [mode, setMode] = useState<BattlegroundHeroMode>(initialUrlState.mode);
-  const [mmr, setMmr] = useState<BattlegroundHeroMmr>(initialUrlState.mmr);
-  const [view, setView] = useState<BattlegroundHeroView>(initialUrlState.view);
-  const viewRef = useViewEntrance<HTMLDivElement>(view);
-  const [searchTerm, setSearchTerm] = useState(initialUrlState.search);
-  const [sortKey, setSortKey] = useState<BattlegroundHeroSortKey>(initialUrlState.sortKey);
-  const [sortDirection, setSortDirection] = useState<BattlegroundHeroSortDirection>(initialUrlState.sortDirection);
-  const { sections, loading, error } = useBattlegroundHeroTierData(bgHeroTierResource, mode, mmr);
-  const deferredSearchTerm = useDeferredValue(searchTerm);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const params = new URLSearchParams();
-    if (mode !== 'solo') params.set('mode', mode);
-    if (mmr !== 'TOP_50_PERCENT') params.set('mmr', mmr);
-    if (view !== 'grid') params.set('view', view);
-    if (sortKey !== 'tier') params.set('sort', sortKey);
-    const defaultSortDirection = sortKey === 'pickRate' ? 'desc' : 'asc';
-    if (sortDirection !== defaultSortDirection) params.set('dir', sortDirection);
-    const normalizedQuery = searchTerm.trim();
-    if (normalizedQuery) params.set('q', normalizedQuery);
-    const nextUrl = `${window.location.pathname}${params.size ? `?${params.toString()}` : ''}${window.location.hash}`;
-    window.history.replaceState(window.history.state, '', nextUrl);
-  }, [mmr, mode, searchTerm, sortDirection, sortKey, view]);
-
-  const handleHeroSort = useCallback((field: BattlegroundHeroSortKey) => {
-    if (field === sortKey) {
-      setSortDirection(current => current === 'asc' ? 'desc' : 'asc');
-      return;
-    }
-    setSortKey(field);
-    setSortDirection(field === 'pickRate' ? 'desc' : 'asc');
-  }, [sortKey]);
-
-  const normalizedSearch = bgNormalizeHeroSearch(deferredSearchTerm);
-  const filteredSections = useMemo(() => {
-    if (!normalizedSearch) return sections;
-    return sections.flatMap(section => {
-      const heroes = section.heroes.filter(hero => bgNormalizeHeroSearch(bgHeroSearchText(hero, section.tier)).includes(normalizedSearch));
-      return heroes.length ? [{ ...section, heroes }] : [];
-    });
-  }, [normalizedSearch, sections]);
-  const totalHeroes = useMemo(() => sections.reduce((sum, section) => sum + section.heroes.length, 0), [sections]);
-  const visibleHeroes = useMemo(() => filteredSections.reduce((sum, section) => sum + section.heroes.length, 0), [filteredSections]);
-
-  return (
-    <div className="bg-heroes-page space-y-5">
-      <section className="bg-heroes-tools">
-        <div className="bg-heroes-controls">
-          <fieldset className="bg-heroes-control-group">
-            <legend>Тип игры</legend>
-            <div className="bg-heroes-segmented">
-              {BG_HERO_MODES.map(option => (
-                <button
-                  key={option.id}
-                  type="button"
-                  aria-pressed={mode === option.id}
-                  title={option.hint}
-                  onPointerEnter={() => { void bgHeroTierResource.load(option.id, mmr).catch(() => undefined); }}
-                  onFocus={() => { void bgHeroTierResource.load(option.id, mmr).catch(() => undefined); }}
-                  onClick={() => setMode(option.id)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-
-          <fieldset className="bg-heroes-control-group bg-heroes-control-group--mmr">
-            <legend>Рейтинг игроков</legend>
-            <div className="bg-heroes-segmented">
-              {BG_HERO_MMR_OPTIONS.map(option => (
-                <button
-                  key={option.id}
-                  type="button"
-                  aria-pressed={mmr === option.id}
-                  onPointerEnter={() => { void bgHeroTierResource.load(mode, option.id).catch(() => undefined); }}
-                  onFocus={() => { void bgHeroTierResource.load(mode, option.id).catch(() => undefined); }}
-                  onClick={() => setMmr(option.id)}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </fieldset>
-
-          <fieldset className="bg-heroes-control-group bg-heroes-control-group--view">
-            <legend>Вид списка</legend>
-            <div className="bg-heroes-segmented bg-heroes-view-toggle">
-              <button
-                type="button"
-                aria-pressed={view === 'grid'}
-                aria-label="Показать карточками"
-                title="Карточки"
-                onClick={() => setView('grid')}
-              >
-                <LayoutGrid aria-hidden="true" />
-                <span>Карточки</span>
-              </button>
-              <button
-                type="button"
-                aria-pressed={view === 'table'}
-                aria-label="Показать таблицей"
-                title="Таблица"
-                onClick={() => setView('table')}
-              >
-                <List aria-hidden="true" />
-                <span>Таблица</span>
-              </button>
-            </div>
-          </fieldset>
-        </div>
-
-        <div className="bg-heroes-tools__legend">
-          <div className="bg-heroes-tools__explanation">
-            <p className="font-hs text-xs uppercase tracking-[0.16em] text-[#8b6c42]">
-              {mode === 'duos' ? 'Командный рейтинг' : 'Одиночный рейтинг'}
-            </p>
-            <p className="mt-1 text-sm font-semibold text-[#6b4c2a]">
-              {view === 'table'
-                ? 'Таблица объединяет силу героя, состав и распределение мест в одной строке.'
-                : 'На карточках указаны среднее место и частота выбора героя.'}
-            </p>
-          </div>
-          <div
-            className="bg-heroes-tools__metrics"
-            aria-label="Обозначения показателей"
-            data-tour-id="bg-heroes-metrics"
-          >
-            <span className="bg-heroes-metric bg-heroes-metric--placement"><strong>4,06</strong>Среднее место</span>
-            <span className="bg-heroes-metric bg-heroes-metric--pickrate"><strong>23.05%</strong>Выбор героя</span>
-          </div>
-        </div>
-
-        <label className="bg-heroes-search" data-tour-id="bg-heroes-search">
-          <span className="sr-only">Поиск по героям</span>
-          <Search className="h-5 w-5 shrink-0" aria-hidden="true" />
-          <input
-            type="search"
-            value={searchTerm}
-            onChange={event => setSearchTerm(event.target.value)}
-            placeholder="Герой, сила героя или состав — на русском и английском"
-            className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none"
-          />
-          {searchTerm && <button type="button" onClick={() => setSearchTerm('')} className="bg-heroes-search__reset">Сбросить</button>}
-          <span className="bg-heroes-search__count">
-            {normalizedSearch ? `${visibleHeroes} / ${bgHeroCountLabel(totalHeroes)}` : bgHeroCountLabel(totalHeroes)}
-          </span>
-        </label>
-      </section>
-
-      {loading && sections.length === 0 && <BattlegroundHeroListSkeleton />}
-      {loading && sections.length > 0 && (
-        <div className="bg-heroes-refresh-status" role="status" aria-live="polite">
-          Обновляем рейтинг…
-        </div>
-      )}
-      {error && !loading && <BattlegroundLoadError message={error} onRetry={onRetry} />}
-      {sections.length > 0 && !error && (
-        <div className={view === 'grid' ? 'space-y-5' : ''} aria-busy={loading} ref={viewRef}>
-          {filteredSections.length === 0 && (
-            <div className="rounded-2xl border border-[#d7b66a]/65 bg-[#fff9ed] p-6 text-center font-hs text-[#6b4c2a]">
-              Герои не найдены
-            </div>
-          )}
-          {view === 'table' && filteredSections.length > 0
-            ? (
-                <React.Suspense fallback={<div className="py-10 text-center font-hs text-[#6b4c2a]" role="status">Подготавливаем таблицу…</div>}>
-                  <BattlegroundHeroLedger
-                    sections={filteredSections}
-                    mode={mode}
-                    mmr={mmr}
-                    sortKey={sortKey}
-                    sortDirection={sortDirection}
-                    onSort={handleHeroSort}
-                    onNavigate={onNavigate}
-                  />
-                </React.Suspense>
-              )
-            : filteredSections.map((section, sectionIndex) => {
-                const heroes = Array.isArray(section.heroes) ? section.heroes : [];
-                if (!heroes.length) return null;
-                return (
-                  <section key={section.tier} className="rounded-lg border border-[#c4a46a]/35 bg-[#fff3d8]/65 p-3 sm:p-4">
-                    <div className="mb-3 flex items-center gap-3">
-                      <TierBadge tier={section.tier} />
-                      <div>
-                        <h3 className="font-hs text-lg text-[#3d2a1e]">{section.title || `Тир ${section.tier}`}</h3>
-                        <p className="text-xs text-[#8b6c42]">{bgHeroCountLabel(heroes.length)}</p>
-                      </div>
-                    </div>
-                    <div className="bg-heroes-grid grid gap-3">
-                      {heroes.map((hero, heroIndex) => (
-                        <MemoBattlegroundHeroCard
-                          key={`${section.tier}-${hero.dbfId || hero.name}`}
-                          hero={hero}
-                          tier={section.tier}
-                          onNavigate={onNavigate}
-                          tourId={sectionIndex === 0 && heroIndex === 0 ? 'bg-heroes-results' : undefined}
-                        />
-                      ))}
-                    </div>
-                  </section>
-                );
-              })}
-        </div>
-      )}
-    </div>
-  );
+  return <BattlegroundHeroTierList key={listAttempt} resource={bgHeroTierResource} onNavigate={onNavigate} onRetry={() => setListAttempt(value => value + 1)} />;
 }
 
 

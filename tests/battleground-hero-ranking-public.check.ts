@@ -52,10 +52,12 @@ test('the projection is the ranked heroes with open figures only, best average p
     assert.equal(ranking.heroes.length, HERO_COUNT, 'an unrated hero has no place in the ranking');
     assert.deepEqual(ranking.heroes.map(({ dbfId, name, tier, avgPlacement, top4Rate, pickRate }) => ({ dbfId, name, tier, avgPlacement, top4Rate, pickRate })),
       OPEN_ROWS(mode));
-    assert.deepEqual(Object.keys(ranking.heroes[0]).sort(), ['avgPlacement', 'bestComposition', 'cardId', 'dbfId', 'heroPowerName',
-      'image', 'keyMinions', 'name', 'pickRate', 'tier', 'top4Rate']);
+    assert.deepEqual(Object.keys(ranking.heroes[0]).sort(), ['avgPlacement', 'bestComposition', 'cardId', 'dbfId', 'heroPowerImage', 'heroPowerName',
+      'heroPowerText', 'image', 'keyMinions', 'name', 'pickRate', 'tier', 'top4Rate']);
     assert.equal(ranking.heroes[0].image, '/api/public-resource/wiki/images/BG_SENT_HERO_0.png');
     assert.equal(ranking.heroes[0].heroPowerName, 'Сила 0');
+    assert.equal(ranking.heroes[0].heroPowerText, 'Текст силы 0');
+    assert.equal(ranking.heroes[0].heroPowerImage, '/api/public-resource/hsjson/v1/bgs/latest/ruRU/512x/BG_SENT_HERO_0p.png');
     assert.equal(ranking.heroes[0].bestComposition, 'Сборка 0');
     assert.deepEqual(ranking.heroes[0].keyMinions, ['Существо 0a', 'Существо 0b']);
     assert.deepEqual(leaks(JSON.stringify(ranking)), [], `no closed value in the ${mode} projection`);
@@ -86,8 +88,8 @@ test('the page parser copies only the whitelisted fields, caps the list and drop
   }));
   const parsed = parsePublicBattlegroundHeroesRanking(dirty, 'solo')!;
   assert.equal(parsed.heroes.length, HERO_COUNT);
-  assert.deepEqual(Object.keys(parsed.heroes[0]).sort(), ['avgPlacement', 'bestComposition', 'dbfId', 'games', 'heroPowerName', 'image',
-    'keyMinions', 'name', 'pickRate', 'tier', 'top4Rate']);
+  assert.deepEqual(Object.keys(parsed.heroes[0]).sort(), ['avgPlacement', 'bestComposition', 'dbfId', 'games', 'heroPowerImage', 'heroPowerName',
+    'heroPowerText', 'image', 'keyMinions', 'name', 'pickRate', 'tier', 'top4Rate']);
   assert.equal(parsed.heroes[0].top4Rate, null, 'a share over 100 is dropped');
   assert.deepEqual(leaks(JSON.stringify(parsed)), []);
   assert.equal(parsePublicBattlegroundHeroesRanking(ranking, 'duos'), null, 'the mode must match');

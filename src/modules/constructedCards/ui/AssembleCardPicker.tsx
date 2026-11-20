@@ -3,15 +3,9 @@ import type { AssembleListCard } from '../model/assemblePage';
 import { assembleClassLabel, assemblePageHref } from '../model/assemblePage';
 import type { CardAssembleData } from '../model/cardAssemble';
 import { formatChoicePercent } from '../model/cardChoices';
+import { creaturesLabel } from '../model/plural';
 
 const artUrl = (cardId: string) => `/api/public-resource/hsjson/v1/orig/${encodeURIComponent(cardId)}.png?width=256&quality=82&format=webp&trim=1`;
-
-function plural(count: number): string {
-  const tail = count % 100;
-  const last = count % 10;
-  if (tail >= 11 && tail <= 14) return 'существ';
-  return last === 1 ? 'существо' : last >= 2 && last <= 4 ? 'существа' : 'существ';
-}
 
 /** A plain left click is a soft navigation; a modified click or a middle click keeps the browser's own behaviour. */
 function plainClick(event: MouseEvent): boolean {
@@ -38,7 +32,7 @@ function Tile({ item, format, selected, onChoose }: { item: AssembleListCard; fo
 
 function poolLine(item: AssembleListCard, hasData: boolean) {
   return hasData && item.basesTotal !== null
-    ? <>Пул <b>{item.basesTotal}</b> {plural(item.basesTotal)}{item.winRate !== null && <> · {formatChoicePercent(item.winRate)}</>}</>
+    ? <>Пул <b>{item.basesTotal}</b> {creaturesLabel(item.basesTotal)}{item.winRate !== null && <> · {formatChoicePercent(item.winRate)}</>}</>
     : <i>Нет данных</i>;
 }
 
