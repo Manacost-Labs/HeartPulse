@@ -13,11 +13,16 @@ export type ArchetypeClass =
   | 'warrior';
 export type ArchetypeClassFilter = 'all' | ArchetypeClass;
 
-/** Keeps catalog selection in the address bar without triggering navigation. */
-export function replaceCatalogUrl(nextFormat: ArchetypeFormat, nextClass: ArchetypeClassFilter): void {
-  const params = new URLSearchParams({ format: nextFormat });
+/**
+ * Keeps catalog selection in the address bar without triggering navigation. The Wild catalog's
+ * own page (`wildPath`) names its format in the path, so only the class stays in the query.
+ */
+export function replaceCatalogUrl(nextFormat: ArchetypeFormat, nextClass: ArchetypeClassFilter, wildPath = false): void {
+  const params = new URLSearchParams(wildPath ? undefined : { format: nextFormat });
   if (nextClass !== 'all') params.set('class', nextClass);
-  window.history.replaceState(window.history.state, '', `/standard/archetypes?${params.toString()}`);
+  const query = params.toString();
+  const path = wildPath ? '/standard/archetypes/wild/' : '/standard/archetypes';
+  window.history.replaceState(window.history.state, '', query ? `${path}?${query}` : path);
 }
 
 export function readInitialCatalogFilters(

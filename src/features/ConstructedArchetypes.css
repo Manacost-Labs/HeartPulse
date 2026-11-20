@@ -137,8 +137,9 @@
     var(--arena-parchment-texture) center / cover;
 }
 
-.archetypes-format-switch button {
+.archetypes-format-switch a {
   position: relative;
+  box-sizing: border-box;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 0.75rem;
@@ -148,12 +149,13 @@
   border: 1px solid rgba(82, 45, 20, 0.25);
   color: #4a3323;
   text-align: left;
+  text-decoration: none;
   background: rgba(255, 249, 227, 0.46);
   cursor: pointer;
 }
 
-.archetypes-format-switch button:hover { background: rgba(255, 248, 220, 0.82); }
-.archetypes-format-switch button[aria-pressed='true'] {
+.archetypes-format-switch a:hover { background: rgba(255, 248, 220, 0.82); }
+.archetypes-format-switch a[aria-current='page'] {
   border-color: #d9ab49;
   color: #fff0c8;
   background:
@@ -172,7 +174,7 @@
 .archetypes-format-switch span { min-width: 0; }
 .archetypes-format-switch strong { display: block; font-family: var(--font-display); font-size: 1.05rem; }
 .archetypes-format-switch small { display: block; margin-top: 0.12rem; color: #7d6045; font-size: 0.7rem; }
-.archetypes-format-switch button[aria-pressed='true'] small { color: #d3b77f; }
+.archetypes-format-switch a[aria-current='page'] small { color: #d3b77f; }
 
 .archetypes-class-filter {
   display: grid;
@@ -894,7 +896,7 @@
   .archetypes-hero { padding: 0.75rem; border-width: 5px; }
   .archetypes-hero h1 { font-size: clamp(1.8rem, 10vw, 2.35rem); }
   .archetypes-format-switch { padding: 0.4rem; border-width: 5px; }
-  .archetypes-format-switch button { grid-template-columns: 42px minmax(0, 1fr) auto; gap: 0.5rem; min-height: 64px; padding: 0.55rem; }
+  .archetypes-format-switch a { grid-template-columns: 42px minmax(0, 1fr) auto; gap: 0.5rem; min-height: 64px; padding: 0.55rem; }
   .archetypes-format-switch img { width: 42px; height: 42px; }
   .archetypes-class-filter {
     padding: 0.55rem 0.45rem;

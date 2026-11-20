@@ -22,7 +22,11 @@ Object.defineProperty(globalThis, 'window', {
 try {
   replaceCatalogUrl('wild', 'mage');
   replaceCatalogUrl('standard', 'all');
-  assert.deepEqual(paths, ['/standard/archetypes?format=wild&class=mage', '/standard/archetypes?format=standard']);
+  // The Wild catalog's own page (#543): the format is in the path, the class in the query.
+  replaceCatalogUrl('wild', 'mage', true);
+  replaceCatalogUrl('wild', 'all', true);
+  assert.deepEqual(paths, ['/standard/archetypes?format=wild&class=mage', '/standard/archetypes?format=standard',
+    '/standard/archetypes/wild/?class=mage', '/standard/archetypes/wild/']);
 } finally {
   if (originalWindow) Object.defineProperty(globalThis, 'window', originalWindow);
   else Reflect.deleteProperty(globalThis, 'window');

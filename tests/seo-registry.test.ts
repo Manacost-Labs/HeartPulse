@@ -26,7 +26,7 @@ import {
 import { publicArchetypeCatalog } from '../apps/public-web/lib/publicArchetypeCatalogTeaserData';
 import { publicArchetypeTeaser } from '../apps/public-web/lib/publicArchetypeTeaserData';
 import { archetypeCountText, archetypeSeoFacts, formatShare } from '../apps/public-web/lib/archetypeSeoSummary';
-import { INDEXABLE_ARCHETYPE_MIN_GAMES, isIndexableArchetype } from '../shared/constructedArchetypeIndexing';
+import { INDEXABLE_ARCHETYPE_MIN_GAMES, INDEXABLE_WILD_ARCHETYPE_MIN_GAMES, isIndexableArchetype } from '../shared/constructedArchetypeIndexing';
 import { archetypeStructuredDataGraph } from '../src/seo/archetypeStructuredData';
 import { assertProperty } from './helpers/propertyRuns';
 
@@ -376,7 +376,16 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
   assert.equal(isIndexableArchetype(facts({ deckCount: 0 })), false, 'an archetype without a build is a placeholder');
   assert.equal(isIndexableArchetype(facts({ popularity: 0 })), false, 'nobody plays it');
   assert.equal(isIndexableArchetype(facts({ popularity: null })), false, 'no share of games is no evidence');
-  assert.equal(isIndexableArchetype(facts({ format: 'wild' })), false, 'Wild is never indexed');
+  // Wild (#543): the same rule with a higher sample, 5000 games.
+  assert.equal(INDEXABLE_WILD_ARCHETYPE_MIN_GAMES, 5000);
+  assert.equal(isIndexableArchetype(facts({ format: 'wild', games: 5000 })), true, 'a Wild archetype at its threshold is indexable');
+  assert.equal(isIndexableArchetype(facts({ format: 'wild', games: 4999 })), false, 'one game below the Wild threshold is not');
+  assert.equal(isIndexableArchetype(facts({ format: 'wild', games: 4000 })), false, 'the Standard threshold is not enough for Wild');
+  assert.equal(isIndexableArchetype(facts({ format: 'wild', games: 20000, deckCount: 0 })), false, 'a Wild archetype without a build');
+  assert.equal(isIndexableArchetype(facts({ format: 'wild', games: 20000, popularity: 0 })), false, 'a Wild archetype nobody plays');
+  assert.equal(isIndexableArchetype(facts({ format: 'wild', games: 20000, popularity: null })), false);
+  assert.equal(isIndexableArchetype(facts({ format: '', games: 20000 })), false, 'a row without a format is never indexed');
+  assert.equal(isIndexableArchetype(facts({ format: 'classic', games: 20000 })), false, 'another format is never indexed');
   assert.equal(isIndexableArchetype(facts({ games: Number.NaN })), false);
   assert.equal(isIndexableArchetype(facts({ games: Number.POSITIVE_INFINITY })), false, 'a broken number is not a sample');
 
@@ -390,16 +399,17 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
   assertProperty(fc.property(anyFacts, fc.nat(1_000_000), (row, extra) => {
     if (isIndexableArchetype(row)) assert.equal(isIndexableArchetype({ ...row, games: row.games + extra }), true);
   }));
-  // Wild, and anything that is not Standard, never is, whatever its numbers.
+  // A format other than Standard and Wild never is, whatever its numbers; a Wild page that is indexable is one in Standard too.
   assertProperty(fc.property(anyFacts, row => {
-    assert.equal(isIndexableArchetype({ ...row, format: 'wild' }), false);
-    if (row.format !== 'standard') assert.equal(isIndexableArchetype(row), false);
+    if (row.format !== 'standard' && row.format !== 'wild') assert.equal(isIndexableArchetype(row), false);
+    if (isIndexableArchetype({ ...row, format: 'wild' })) assert.equal(isIndexableArchetype({ ...row, format: 'standard' }), true);
   }));
-  // Each part of the rule is needed on its own.
+  // Each part of the rule is needed on its own, with the sample of the format.
   assertProperty(fc.property(anyFacts, row => {
     if (row.games < INDEXABLE_ARCHETYPE_MIN_GAMES || row.deckCount <= 0 || !(row.popularity! > 0)) {
       assert.equal(isIndexableArchetype(row), false);
     }
+    if (row.games < INDEXABLE_WILD_ARCHETYPE_MIN_GAMES) assert.equal(isIndexableArchetype({ ...row, format: 'wild' }), false);
   }));
 
   const STAMP = '2026-10-28T23:00:00.000Z';
@@ -705,7 +715,7 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
   });
   assert.deepEqual(text('/heroes', battlegroundHeroesSeoValues(heroes(116), NOW)), {
     title: 'Тир-лист героев Полей сражений Hearthstone, ноябрь 2026',
-    description: 'Рейтинг 116 героев Полей сражений Hearthstone (хс) в Соло на 20 ноября 2026: лучший — Лорд Джараксус, среднее место 4,04. Тир, топ-4 и выбор, данные HSReplay.',
+    description: 'Рейтинг 116 героев Полей сражений Hearthstone (хс) в Соло на 20 ноября 2026: лучший — Лорд Джараксус, среднее место 4,04. Тир и выбор, данные HSReplay.',
   });
   assert.ok(text('/heroes', battlegroundHeroesSeoValues(heroes(121), NOW)).description.startsWith('Рейтинг 121 героя '));
   assert.deepEqual(text('/heroes', battlegroundHeroesSeoValues(heroes(0), NOW)), staticText('/heroes'));

@@ -7,8 +7,9 @@ import { startNextServer } from '../scripts/lib/next-server.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 import { role } from './helpers/browserUserView.mjs';
 
-const WILD = role('button', 'Вольный Карты всех дополнений');
-const STANDARD = role('button', 'Стандарт Карты текущей ротации');
+// Each format's catalog has its own page (#543): the switch is two links.
+const WILD = role('link', 'Вольный Карты всех дополнений');
+const STANDARD = role('link', 'Стандарт Карты текущей ротации');
 
 const chromiumPath = [process.env.CHROMIUM_PATH, '/usr/bin/chromium', '/usr/bin/google-chrome'].find(candidate => candidate && existsSync(candidate));
 const CLASSES = ['deathknight', 'demonhunter', 'druid', 'hunter', 'mage', 'paladin', 'priest', 'rogue', 'shaman', 'warlock', 'warrior'];
@@ -123,13 +124,16 @@ test('the archetype catalog renders only the rows near the viewport', { timeout:
     assert.deepEqual(dataReads, [], 'subscribers reuse the anonymous server summary without a protected catalog read');
     await page.evaluate(() => scrollTo(0, 0));
     await page.click(WILD);
-    await page.waitForFunction(() => document.querySelector('.archetype-row__open')?.getAttribute('href')?.includes('/wild/'));
+    await page.waitForFunction(() => location.pathname === '/standard/archetypes/wild/'
+      && document.querySelector('.archetype-row__open')?.getAttribute('href')?.includes('/wild/'));
+    assert.equal(await page.$eval('h1', heading => heading.textContent), 'Архетипы Вольного формата');
     await page.click(STANDARD);
-    await page.waitForFunction(() => document.querySelector('.archetype-row__open')?.getAttribute('href')?.includes('/standard/'));
-    assert.equal(dataReads.length, 1, 'returning to a fresh format reuses its public snapshot');
+    await page.waitForFunction(() => location.pathname === '/standard/archetypes/'
+      && document.querySelector('.archetype-row__open')?.getAttribute('href')?.includes('/standard/'));
+    assert.deepEqual(dataReads, [], 'each format page arrives with its server summary, without a browser read');
     await page.type(role('searchbox', 'Найти архетип'), 'Архетип 2');
     await page.waitForFunction(() => document.querySelectorAll('.archetype-row').length > 0 && document.querySelectorAll('.archetype-row').length < 90);
-    assert.equal(dataReads.length, 1, 'local search does not read the server');
+    assert.deepEqual(dataReads, [], 'local search does not read the server');
     delayNextCatalog = true;
     let releaseAuth;
     authGate = new Promise(resolve => { releaseAuth = resolve; });
@@ -150,6 +154,10 @@ test('the archetype catalog renders only the rows near the viewport', { timeout:
     next = await startNextServer({ legacyOrigin });
     gateway = await startGateway(next.origin);
     serverCatalogDown = true;
+    // A document of either list without any catalog is a 503 for the crawler to retry, not an empty page (#543 for Wild).
+    for (const path of ['/standard/archetypes/', '/standard/archetypes/wild/']) {
+      assert.equal((await fetch(`${gateway.origin}${path}`)).status, 503, path);
+    }
     const recovery = await browser.newPage(); const recoveryReads = [];
     recovery.on('request', request => { if (new URL(request.url()).pathname === '/api/constructed-archetypes/teaser') recoveryReads.push(request.url()); });
     await recovery.goto(`${gateway.origin}/faq/`, { waitUntil: 'networkidle0' });
@@ -164,12 +172,13 @@ test('the archetype catalog renders only the rows near the viewport', { timeout:
     await recovery.waitForFunction(() => document.querySelectorAll('.archetype-row').length > 0 && document.querySelectorAll('.archetype-row').length < 90);
     await new Promise(resolve => setTimeout(resolve, 100));
     assert.equal(recoveryReads.length, 2, 'search after retry must not restart a settled catalog read');
+    // The Wild page of a server without a catalog reads Wild's in the browser, once.
     await recovery.click(WILD);
-    await recovery.waitForFunction(() => document.querySelector('.archetype-row__open')?.getAttribute('href')?.includes('/wild/'));
-    await recovery.click(STANDARD);
-    await recovery.waitForFunction(() => document.querySelector('.archetype-row__open')?.getAttribute('href')?.includes('/standard/'));
+    await recovery.waitForFunction(() => location.pathname === '/standard/archetypes/wild/'
+      && document.querySelector('.archetype-row__open')?.getAttribute('href')?.includes('/wild/'));
     await new Promise(resolve => setTimeout(resolve, 100));
-    assert.equal(recoveryReads.length, 3, 'retry must not invalidate other fresh format snapshots');
+    assert.equal(recoveryReads.length, 3, 'one browser read of the Wild catalog');
+    assert.ok(recoveryReads[2].includes('format=wild'), recoveryReads[2]);
     await recovery.close();
   } finally {
     if (browser) await browser.close();

@@ -11,12 +11,12 @@ const chromiumPath = [
 ].find(candidate => candidate && existsSync(candidate));
 if (!chromiumPath) throw new Error('Chromium/Chrome executable is required for the card preview image test');
 
-// Hover previews of full cards loaded the 0.5 MB HearthstoneJSON PNG through
-// the resource proxy. Every edge node fetched it from the origin on the first
-// hover, so the preview closed before the picture came or stayed empty. The
-// preview now asks for the edge's local card picture as soon as the pointer
-// arrives, shows a card-shaped placeholder meanwhile and falls back to the
-// render when the card picture is missing.
+// Hover previews of full cards asked for their picture only once they showed
+// and left an empty frame while a cold picture travelled. The preview now asks
+// as soon as the pointer arrives and shows a card-shaped placeholder meanwhile.
+// The current render comes first: the card image cache is not refreshed after
+// balance patches, so it is only the fallback (#574: a preview showed a
+// card's text from before the patch).
 const EDGE_IMAGE = '/api/card-image/BE_790/full.webp';
 const RENDER_IMAGE = '/api/public-resource/hsjson/v1/render/latest/ruRU/512x/BE_790.png';
 const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
@@ -50,7 +50,7 @@ try {
     let release;
     const released = new Promise(resolve => { release = resolve; });
     const { page, requests } = await openWithImages(storybook.storyUrl('features-card-preview-image--hover'),
-      async path => (path === EDGE_IMAGE ? released.then(() => image) : missing));
+      async path => (path === RENDER_IMAGE ? released.then(() => image) : missing));
     await page.evaluate(() => {
       new MutationObserver((_, observer) => {
         if (!document.querySelector('[role="tooltip"]')) return;
@@ -74,10 +74,9 @@ try {
     assert.equal(loading.busy, 'true', 'the preview is busy while the picture is on its way');
     assert.notEqual(loading.placeholder, 'none', 'a card-shaped placeholder fills the empty frame');
     assert.match(loading.text, /Загрузка изображения…/);
-    const firstRequest = requests.find(request => request.path === EDGE_IMAGE);
-    assert.ok(firstRequest, 'the preview asks for the edge card picture first');
-    assert.ok(firstRequest.at <= loading.shownAt, 'the picture is requested when the pointer arrives, not after the preview shows');
-    assert.deepEqual(requests.filter(request => request.path === RENDER_IMAGE), [], 'the heavy render is not requested while the card picture loads');
+    assert.equal(requests[0]?.path, RENDER_IMAGE, 'the preview asks for the current render first');
+    assert.ok(requests[0].at <= loading.shownAt, 'the picture is requested when the pointer arrives, not after the preview shows');
+    assert.deepEqual(requests.filter(request => request.path === EDGE_IMAGE), [], 'the card image, which may predate a patch, is not asked while the render loads');
 
     release();
     await page.waitForSelector('[role="tooltip"][data-preview-state="loaded"]');
@@ -86,17 +85,17 @@ try {
       path: new URL(element.currentSrc).pathname,
       width: element.naturalWidth,
     }));
-    assert.deepEqual(loaded, { alt: "Зер'онту", path: EDGE_IMAGE, width: 1 });
+    assert.deepEqual(loaded, { alt: "Зер'онту", path: RENDER_IMAGE, width: 1 });
     await page.close();
   }
 
-  // 2. A card without an edge picture: the preview falls back to the render.
+  // 2. The render is unavailable: the preview falls back to the card image.
   {
     const { page } = await openWithImages(storybook.storyUrl('features-card-preview-image--hover'),
-      async path => (path === RENDER_IMAGE ? image : missing));
+      async path => (path === EDGE_IMAGE ? image : missing));
     await page.hover('#storybook-root button');
     await page.waitForSelector('[role="tooltip"][data-preview-state="loaded"]');
-    assert.equal(await page.$eval('[role="tooltip"] img', element => new URL(element.currentSrc).pathname), RENDER_IMAGE);
+    assert.equal(await page.$eval('[role="tooltip"] img', element => new URL(element.currentSrc).pathname), EDGE_IMAGE);
     await page.close();
   }
 
