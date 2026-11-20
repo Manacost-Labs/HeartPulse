@@ -10,9 +10,10 @@ import { createBattlegroundHeroRankingRouter } from '../server/battlegroundHeroR
 import { buildHeroCatalog, closedValues, HERO_COUNT, OPEN_ROWS } from './helpers/battlegroundHeroesFixture.ts';
 
 // The built /heroes/ page against an Express that serves the real open-ranking projection: a guest
-// and a robot get the same HTML with the full base-range ranking of solo and duos (tier, average
-// place, top-4, pick rate, tip, date), the ItemList equals the solo table, and no closed value is in
-// the HTML, the RSC payload (`self.__next_f`) or the JSON-LD. Without data the page is a 200.
+// and a robot get the same HTML, the subscriber's ranking view on the base range (tier sections, hero
+// cards with average place and pick rate, locked narrower ranges, date), the ItemList equals the solo
+// ranking, and no closed value is in the HTML, the RSC payload (`self.__next_f`) or the JSON-LD.
+// Without data the page is a 200.
 
 const CLOSED = closedValues();
 const BROWSER_UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0 Safari/537.36';
@@ -63,31 +64,32 @@ test('the guest HTML of /heroes/ carries the open ranking of both modes and noth
     }
     return assert.fail(`the page was not regenerated: ${phase}; ${next.output().slice(-300)}`);
   };
-  const hasRanking = html => html.includes('id="heroes-solo"');
+  const hasRanking = html => html.includes('battleground-hero-card');
   try {
     const buildCopy = await guestHtml(next.origin);
     assert.equal(hasRanking(buildCopy), false, 'the copy made without Express has no ranking but is a 200 page');
-    assert.match(buildCopy, /class="paywalled-heroes"/);
+    assert.match(buildCopy, /Рейтинг героев временно недоступен/);
     state.down = false;
     const html = await regenerated(hasRanking, 'ranking appears');
 
-    const rowsOf = id => {
-      const start = html.indexOf(`id="${id}"`);
-      const section = html.slice(start, html.indexOf('</section>', start));
-      return [...section.matchAll(/<tr><td>(\d+)<\/td><th scope="row"><a class="bg-heroes-public__hero" href="\/heroes\/(\d+)\/">(?:<img[^>]*>)?<span>([^<]+)<\/span><\/a><\/th><td>([^<]+)<\/td><td>([^<]+)<\/td><td>([^<]+)<\/td><td>([^<]+)<\/td><td class="bg-heroes-public__tip">([^<]+)<\/td><\/tr>/g)]
-        .map(match => ({ place: Number(match[1]), dbfId: Number(match[2]), name: match[3], tier: match[4], avg: match[5], top4: match[6], pick: match[7], tip: match[8] }));
-    };
-    for (const [id, mode] of [['heroes-solo', 'solo'], ['heroes-duos', 'duos']]) {
-      assert.deepEqual(rowsOf(id), OPEN_ROWS(mode).map((row, index) => ({
-        place: index + 1, dbfId: row.dbfId, name: row.name, tier: row.tier, avg: format(row.avgPlacement, 2),
-        top4: row.top4Rate === null ? '—' : `${format(row.top4Rate, 1)}%`, pick: `${format(row.pickRate, 1)}%`,
-        tip: `Сила: Сила ${index}. Лучшая сборка: Сборка ${index}. Ключевые существа: Существо ${index}a, Существо ${index}b`,
-      })), `${mode}: every ranked hero, in order, with the open figures`);
-    }
-    assert.match(html, /Данные на <time dateTime="2026-11-18T17:01:18\.663Z">18 ноября 2026, 20:01 МСК<\/time> · источник HSReplay/, 'date and source');
-    assert.ok(html.indexOf('<h1') < html.indexOf('id="heroes-solo"') && html.indexOf('id="heroes-solo"') < html.indexOf('class="paywalled-heroes"'),
-      'the ranking stands after the H1 and before the closed part');
+    // The subscriber's view on the open data: tier sections with the hero cards of the solo ranking, in order.
+    const cards = [...html.matchAll(/<a href="\/heroes\/(\d+)\/"[^>]*class="battleground-hero-card[^"]*"[^>]*>[\s\S]*?<h4[^>]*>([^<]+)<\/h4><div[^>]*><span[^>]*>([^<]+)<\/span>(?:<span[^>]*>([^<]+)<\/span>)?/g)]
+      .map(match => ({ dbfId: Number(match[1]), name: match[2], avg: match[3], pick: match[4] }));
+    assert.deepEqual(cards, OPEN_ROWS('solo').map(row => ({
+      dbfId: row.dbfId, name: row.name, avg: format(row.avgPlacement, 2), pick: `${row.pickRate.toFixed(2)}%`,
+    })), 'every ranked solo hero, in order, with the open figures');
+    assert.deepEqual([...html.matchAll(/<h3[^>]*>([A-D]) Тир<\/h3>/g)].map(match => match[1]), ['A', 'B', 'C', 'D'], 'tier sections');
+    assert.match(html, /Сила героя: Сила 0/, 'the hero power card');
+    assert.match(html, /HSReplay · Соло · Топ 50%(?:<!-- -->)? · обновлено <time dateTime="2026-11-18T17:01:18\.663Z">18 ноября 2026, 20:01 МСК<\/time>/, 'date and source');
+    // What the page's description says is on the page: the size of the ranking and the best hero's average place.
+    assert.match(html, /<span class="bg-heroes-search__count">6 героев<\/span>/, 'the size of the ranking');
+    assert.match(html, /placeholder="Герой, сила героя или состав/, 'the search');
+    assert.ok(html.indexOf('<h1') < html.indexOf('class="bg-heroes-control-group bg-heroes-control-group--mmr paywalled-heroes"')
+      && html.indexOf('paywalled-heroes') < html.indexOf('battleground-hero-card'),
+    'the locked ranges stand in the toolbar after the H1, before the cards');
     assert.match(html, /Топ 20%[\s\S]*Топ 5%[\s\S]*Топ 1%/, 'the narrower ranges are named and locked');
+    assert.equal((html.match(/ — по подписке/g) ?? []).length, 3, 'each narrower range is locked');
+    const rowsOf = () => cards;
 
     // Nothing closed in the HTML, in the RSC payload and in the JSON-LD: each is checked on its own.
     assert.match(html, /self\.__next_f/, 'the page carries an RSC payload');
@@ -104,7 +106,8 @@ test('the guest HTML of /heroes/ carries the open ranking of both modes and noth
     const list = graph.find(node => node['@type'] === 'ItemList');
     assert.equal(list.numberOfItems, HERO_COUNT);
     assert.deepEqual(list.itemListElement.map(item => ({ name: item.name, url: item.url })),
-      rowsOf('heroes-solo').map(row => ({ name: row.name, url: `https://hearthpulse.net/heroes/${row.dbfId}/` })), 'the ItemList equals the solo table');
+      rowsOf().map(row => ({ name: row.name, url: `https://hearthpulse.net/heroes/${row.dbfId}/` })), 'the ItemList equals the solo ranking');
+    assert.match(payload, /\\"mode\\":\\"duos\\"/, 'the duos ranking travels in the RSC payload for the switch');
 
     // The server reads the projection anonymously.
     const reads = state.reads.filter(read => read.path.startsWith('/api/bg/heroes'));
@@ -123,11 +126,10 @@ test('the guest HTML of /heroes/ carries the open ranking of both modes and noth
     assert.equal(await guestHtml(next.origin, { 'User-Agent': ROBOT_UA }), await guestHtml(next.origin, { 'User-Agent': BROWSER_UA }),
       'the HTML does not depend on the user agent');
 
-    // No data: a 200 page without the table but with the closed-part marker and a notice.
+    // No data: a 200 page without the ranking but with a notice.
     state.reset();
     state.down = true;
     const empty = await regenerated(page => !hasRanking(page), 'ranking disappears without data');
-    assert.match(empty, /class="paywalled-heroes"/);
     assert.match(empty, /Рейтинг героев временно недоступен/);
   } finally {
     await next.close();

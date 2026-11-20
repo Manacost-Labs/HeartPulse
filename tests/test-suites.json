@@ -527,6 +527,7 @@
         "tests/security-tooling-contract.test.mjs",
         "tests/sentry-privacy.test.ts",
         "tests/seo-registry.test.ts",
+        "tests/battleground-heroes-open-list.test.ts",
         "tests/seo-meta-description.test.ts",
         "tests/seo-structured-data.test.ts",
         "tests/snapshots.test.ts",

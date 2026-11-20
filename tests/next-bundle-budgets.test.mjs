@@ -42,15 +42,20 @@ function adminShellAssets(assets) {
 // Guests on the Battlegrounds routes see only the gate: the paid views and
 // their stylesheet are lazy assets that load once access is confirmed.
 const PAID_BATTLEGROUNDS_MARKERS = { js: ['bg-heroes-page', 'bg-library-page'], css: ['.bg-hero-ledger'] };
+// /heroes/ renders the subscriber's hero ranking for everyone (#575: the same view for a guest and a subscriber),
+// so its list and stylesheet belong to the page; the subscriber-only module with the live-data loaders (named by
+// its error text) and the library view must still load only once access is confirmed.
+const PAID_HEROES_MARKERS = { js: ['API героев временно недоступен', 'bg-library-page'], css: [] };
 const PAID_BATTLEGROUNDS_ROUTES = ['/heroes/', '/library/', '/battlegrounds/tier-builder/',
   '/battlegrounds/strategies/', '/battlegrounds/tier-list/'];
 // The tier list's guest view is the subscriber's tier list (same component, open data): it shares the Battlegrounds
 // stylesheet with the paid views, so only the paid views' scripts are checked there.
 const SHARED_SKIN_ROUTES = new Set(['/battlegrounds/tier-list/']);
 function paidBattlegroundsAssets(assets, path) {
+  const markers = path === '/heroes/' ? PAID_HEROES_MARKERS : PAID_BATTLEGROUNDS_MARKERS;
   return (SHARED_SKIN_ROUTES.has(path) ? ['js'] : ['js', 'css']).flatMap(kind => assets[kind].filter(file => {
     const source = readFileSync(join(nextRoot, file), 'utf8');
-    return PAID_BATTLEGROUNDS_MARKERS[kind].some(marker => source.includes(marker));
+    return markers[kind].some(marker => source.includes(marker));
   }));
 }
 
@@ -100,7 +105,7 @@ test('initial Next.js JavaScript and CSS of public routes stay within their budg
       assert.ok(built.some(file => file.endsWith(`.${kind}`)
         && readFileSync(join(nextRoot, 'static', file), 'utf8').includes(ADMIN_SHELL_MARKERS[kind])),
       `no built ${kind} file contains "${ADMIN_SHELL_MARKERS[kind]}": update the administrator shell marker`);
-      for (const marker of PAID_BATTLEGROUNDS_MARKERS[kind]) {
+      for (const marker of [...PAID_BATTLEGROUNDS_MARKERS[kind], ...PAID_HEROES_MARKERS[kind]]) {
         assert.ok(built.some(file => file.endsWith(`.${kind}`)
           && readFileSync(join(nextRoot, 'static', file), 'utf8').includes(marker)),
         `no built ${kind} file contains "${marker}": update the paid Battlegrounds marker`);
