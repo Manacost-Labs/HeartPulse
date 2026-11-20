@@ -1,7 +1,8 @@
 import { CardVariantImages, CardVariantSwitch } from '../shared/ui/CardVariantSwitch';
 import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
 import { htmlPlainText as plainText } from '../shared/text/htmlPlainText';
-import { useConstructedCardPeriod, useConstructedCardRank, ConstructedCardIdentity, constructedCardPath, constructedCardRoute as routeState, CardChoicesSection, cardChoiceKindOf, CardAssembleSection, isAssembleCard } from '../modules/constructedCards/public';
+import { CardAssembleTeaser } from './CardAssembleTeaser';
+import { useConstructedCardPeriod, useConstructedCardRank, ConstructedCardIdentity, constructedCardPath, constructedCardRoute as routeState, CardChoicesSection, cardChoiceKindOf, isAssembleCard } from '../modules/constructedCards/public';
 import { cardPatchEntries } from './cardPatchChanges';
 import { CardPatchTimeline } from './CardPatchTimeline';
 import React, { useEffect, useRef, useState } from 'react';
@@ -699,7 +700,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
       )}
 
       {choiceKind && <React.Suspense fallback={null}><CardChoicesSection key={`card-choices:${format}:${card.card_id}`} format={format} cardId={card.card_id} kind={choiceKind} /></React.Suspense>}
-      {hasAssemble && <React.Suspense fallback={null}><CardAssembleSection key={`card-assemble:${format}:${card.card_id}`} format={format} cardId={card.card_id} /></React.Suspense>}
+      {hasAssemble && <CardAssembleTeaser key={`card-assemble:${format}:${card.card_id}`} format={format} cardId={card.card_id} onNavigate={navigatePath} />}
 
       {/* A section without data is not printed: no «не указаны / не найдена» filler at the foot of the page. */}
       {(mechanics.length > 0 || patchEntries.length > 0) && <section className={`constructed-card-detail__lower-grid${mechanics.length && patchEntries.length ? '' : ' constructed-card-detail__lower-grid--one'}`}>
