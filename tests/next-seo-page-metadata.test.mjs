@@ -1029,7 +1029,7 @@ test('archetype pages: only a strong Standard archetype is indexable; every page
 const FIGURE_OR_FREQUENCY = /\d|%|каждые\s+\S+\s+час|раз\s+в\s+(?:сутки|день|час|неделю)|ежедневн|ежечасн|несколько\s+раз/iu;
 const ARENA_PAGES = [
   { path: '/tierlist/', title: `Тир-лист Арены Hearthstone (хс), ${YEAR} | HearthPulse`, sources: ['HSReplay', 'HearthArena', 'Firestone'], dataset: true },
-  { path: '/classes/', title: `Винрейт классов Арены Hearthstone, ${YEAR} | HearthPulse`, sources: ['HSReplay', 'Firestone'], dataset: true },
+  { path: '/classes/', title: `Лучшие классы Арены Hearthstone, ${YEAR} | HearthPulse`, sources: ['HSReplay', 'Firestone'], dataset: true },
   { path: '/legendaries/', title: `Легендарки Арены Hearthstone, ${YEAR} | HearthPulse`, sources: ['HSReplay', 'Firestone'], dataset: true },
 ];
 

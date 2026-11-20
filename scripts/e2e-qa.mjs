@@ -5307,7 +5307,7 @@ for (const [device, viewport] of [
     await page.click('.arena-sidebar [data-mode-card][data-mode="arena"]');
     await page.waitForSelector('.arena-sidebar .hp-nav-list a[href="/classes/"]', { visible: true, timeout: 15_000 });
     await page.click('.arena-sidebar .hp-nav-list a[href="/classes/"]');
-    await page.waitForFunction(() => document.title.startsWith('Винрейт классов'), { timeout: 5_000 });
+    await page.waitForFunction(() => document.title.startsWith('Лучшие классы'), { timeout: 5_000 });
     const seoRegistryState = await page.evaluate(() => ({
       path: location.pathname,
       description: document.querySelector('meta[name="description"]')?.getAttribute('content') || '',

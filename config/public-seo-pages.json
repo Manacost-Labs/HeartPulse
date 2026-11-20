@@ -105,8 +105,10 @@
     "/classes": {
       "policyRouteId": "winrates",
       "navigationRouteId": "winrates",
-      "title": "Винрейт классов Арены Hearthstone, {year} | HearthPulse",
+      "title": "Лучшие классы Арены Hearthstone, {year} | HearthPulse",
       "description": "Лучшие классы Арены Hearthstone (хс): винрейты всех 11 классов на текущем патче по данным HSReplay и Firestone. Доступ по подписке.",
+      "dataTitle": "Лучшие классы Арены Hearthstone, {month}[ | HearthPulse]",
+      "dataDescription": "Лучший класс Арены Hearthstone (хс){asOf} — {leader}. Порядок и винрейты всех 11 классов по данным HSReplay.",
       "sitemap": true
     },
     "/tierlist": {
@@ -114,6 +116,8 @@
       "navigationRouteId": "tierlist",
       "title": "Тир-лист Арены Hearthstone (хс), {year} | HearthPulse",
       "description": "Тир-лист карт Арены Hearthstone по классам: оценки от S до F по данным HSReplay, HearthArena и Firestone. Данные обновляются автоматически, доступ по подписке.",
+      "dataTitle": "Тир-лист Арены Hearthstone (хс), {month}[ | HearthPulse]",
+      "dataDescription": "Тир-лист карт Арены Hearthstone{asOf}: тир, винрейт и частота выбора[ — {items} по классам][, {games}]. Данные HSReplay.",
       "sitemap": true
     },
     "/legendaries": {
@@ -121,6 +125,8 @@
       "navigationRouteId": "legendaries",
       "title": "Легендарки Арены Hearthstone, {year} | HearthPulse",
       "description": "Какую легендарку выбрать на Арене Hearthstone? Группы первого выбора с процентом побед по классам, данные HSReplay и Firestone. Доступ по подписке.",
+      "dataTitle": "Легендарки Арены Hearthstone, {month}[ | HearthPulse]",
+      "dataDescription": "Какую легендарку взять на Арене Hearthstone{asOf}: {items} первого выбора[, лучшая — {leader}]. Винрейт и выбор, данные HSReplay.",
       "sitemap": true
     },
     "/articles": {
@@ -200,8 +206,10 @@
     "/heroes": {
       "policyRouteId": "bg-heroes",
       "navigationRouteId": "bg-heroes",
-      "title": "Герои Полей сражений Hearthstone: способности и тиры",
-      "description": "Герои Полей сражений Hearthstone: способности героев, тиры, компаньоны, статистика и отдельная индексируемая страница каждого героя.",
+      "title": "Тир-лист героев Полей сражений Hearthstone {year}",
+      "description": "Тир-лист героев Полей сражений Hearthstone (хс): тир, среднее место, топ-4 и выбор в Соло и Дуо, силы героев и отдельная страница каждого героя.",
+      "dataTitle": "Тир-лист героев Полей сражений Hearthstone, {month}[ | HearthPulse]",
+      "dataDescription": "Рейтинг {items} Полей сражений Hearthstone (хс){asOf}[: лучший — {leader}]. Соло и Дуо, данные HSReplay.",
       "sitemap": true
     },
     "/library": {
@@ -244,8 +252,10 @@
     "/battlegrounds/tier-list": {
       "policyRouteId": "bg-tier-list",
       "navigationRouteId": "bg-tier-list",
-      "title": "Тир-лист Полей сражений Hearthstone, {year} | HearthPulse",
-      "description": "Тир-лист Полей сражений Hearthstone: рейтинг существ, составов, заклинаний и аксессуаров по данным актуального патча.",
+      "title": "Сборки Полей сражений Hearthstone: тир-лист {year}",
+      "description": "Тир-лист сборок Полей сражений Hearthstone (хс): составы по тирам S–D, ключевые существа и как играть, заклинания и аксессуары актуального патча.",
+      "dataTitle": "Сборки Полей сражений Hearthstone: тир-лист, {month}[ | HearthPulse]",
+      "dataDescription": "Лучшие сборки Полей сражений Hearthstone (хс){asOf}: {items}[, тир S — {leader}]. Ключевые существа и как играть, данные HSReplay.",
       "sitemap": true
     },
     "/battlegrounds/tier-builder": {

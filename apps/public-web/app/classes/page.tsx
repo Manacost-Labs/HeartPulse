@@ -2,6 +2,7 @@ import '@/src/route-parchment.css';
 import '@/src/features/TraditionalModeBanner.css';
 import { ClassesPageClient } from '@/apps/public-web/ui/ClassesPageClient';
 import { seoStaticPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
+import { arenaClassesSeoValues } from '@/apps/public-web/lib/seoDataValues';
 import { loadPublicClassesTeaser } from '@/apps/public-web/lib/publicClassesTeaser';
 import { ClassesPublicTeaser } from '@/apps/public-web/ui/ClassesPublicTeaser';
 import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
@@ -12,7 +13,8 @@ import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
 // projection. nginx sends query robots as X-Robots-Tag. Regeneration picks up
 // runtime switches.
 export const revalidate = 300;
-export const generateMetadata = seoStaticPageMetadata('/classes', 'HearthPulse — классы Арены');
+export const generateMetadata = seoStaticPageMetadata('/classes', 'HearthPulse — классы Арены',
+  async () => arenaClassesSeoValues(await loadPublicClassesTeaser(), Date.now()));
 
 export default async function Page() {
   const teaser = await loadPublicClassesTeaser();

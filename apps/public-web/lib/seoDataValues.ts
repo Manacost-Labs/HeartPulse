@@ -1,10 +1,15 @@
 import type { ArchetypeCatalog, ArchetypeDetail } from '@/src/features/ConstructedArchetypes';
+import type { LegendariesData } from '@/src/modules/arenaLegendaries/public';
 import { standardMetaPeriodLabel } from '@/src/features/standardMetaFilterModel';
 import type { StandardMetaTeaserSeed } from '@/src/features/standardMetaTeaser';
 import { renderSeoDataTemplate, type SeoDataValues } from '@/src/seo/dataTemplate';
 import { fitMetaDescription, META_DESCRIPTION_MAX, META_TITLE_MAX } from '@/src/shared/seo/metaDescription';
 import { pluralRu } from '@/src/shared/text/pluralRu';
 import { isStandardMetaPeriod } from '@/shared/standardMetaPeriods';
+import type { PublicBattlegroundBuilds } from './publicBattlegroundBuildsData';
+import type { PublicBattlegroundHeroesRanking } from './publicBattlegroundHeroesData';
+import type { PublicClassesTeaser } from './publicClassesTeaserData';
+import type { PublicTierlist } from './publicTierlistData';
 import { seoDataDate, seoDateValues } from './seoDataDate';
 
 /**
@@ -131,5 +136,71 @@ export function archetypeDetailSeoText(
   return {
     title: fitWithLabel(TITLE_TEMPLATE, { ...values, label: titleName(detail.item.archetypeLabel, alias) }, META_TITLE_MAX, TITLE_LABEL_MAX),
     description: fitWithLabel(DESCRIPTION_TEMPLATE, values, META_DESCRIPTION_MAX, DESCRIPTION_LABEL_MAX),
+  };
+}
+
+// ── Arena and Battlegrounds tier lists (#539) ──
+// The registry templates of these pages name HSReplay as the source, so their values
+// exist only for an HSReplay answer: another source falls back to the static text.
+const isHsreplay = (source: string | null | undefined) => /hsreplay/i.test(source ?? '');
+const count = (value: number, one: string, few: string, many: string) =>
+  `${value.toLocaleString('ru-RU')} ${pluralRu(value, one, few, many)}`;
+/** A rounded lower bound of games the page prints as «более 53 000 игр». */
+const gamesAtLeast = (value: number | null) => value && value > 0 ? `более ${count(value, 'игры', 'игр', 'игр')}` : null;
+const placement = (value: number) => value.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** `/tierlist`: the date, the number of distinct cards of the open pool and its sample. */
+export function arenaTierlistSeoValues(pool: PublicTierlist | null, now: number): SeoDataValues | null {
+  const date = pool && isHsreplay(pool.source) && seoDataDate(pool.updatedAt, now);
+  if (!pool || !date) return null;
+  const cards = new Set(pool.classes.flatMap(group => group.cards.map(card => card.cardId))).size;
+  if (cards === 0) return null;
+  return { ...seoDateValues(date), items: count(cards, 'карта', 'карты', 'карт'), games: gamesAtLeast(pool.sampleGamesAtLeast) };
+}
+
+/** `/classes`: the date and the first class of the open order with its winrate. */
+export function arenaClassesSeoValues(teaser: PublicClassesTeaser | null, now: number): SeoDataValues | null {
+  const date = teaser && isHsreplay(teaser.source) && seoDataDate(teaser.updatedAt, now);
+  const first = teaser?.classes[0];
+  if (!teaser || !date || !first) return null;
+  return { ...seoDateValues(date), leader: `${first.name}, ${percent(first.winrate, 1)} побед` };
+}
+
+/** `/legendaries`: the date, the number of groups and the group the page lists first (by winrate). */
+export function arenaLegendariesSeoValues(data: LegendariesData | null, now: number): SeoDataValues | null {
+  const date = data && isHsreplay(data.sourceId ?? data.source) && seoDataDate(data.updatedAt, now);
+  if (!data || !date || data.groups.length === 0) return null;
+  const best = data.groups.reduce<LegendariesData['groups'][number] | null>((top, group) =>
+    group.winRate !== null && (top === null || (top.winRate ?? -1) < group.winRate) ? group : top, null);
+  return {
+    ...seoDateValues(date),
+    items: count(data.groups.length, 'группа', 'группы', 'групп'),
+    leader: best ? `${best.keyCard.name}, ${percent(best.winRate!, 1)} побед` : null,
+  };
+}
+
+/** `/heroes`: the date, the number of ranked heroes and the first of the solo ranking with its average place. */
+export function battlegroundHeroesSeoValues(ranking: PublicBattlegroundHeroesRanking | null, now: number): SeoDataValues | null {
+  const date = ranking && isHsreplay(ranking.source) && seoDataDate(ranking.updatedAt, now);
+  const first = ranking?.heroes[0];
+  if (!ranking || !date || !first) return null;
+  return {
+    ...seoDateValues(date),
+    items: count(ranking.heroes.length, 'героя', 'героев', 'героев'),
+    leader: `${first.name}, среднее место ${placement(first.avgPlacement)}`,
+  };
+}
+
+/** `/battlegrounds/tier-list`: the date, the number of builds and the tribes of tier S. */
+export function battlegroundBuildsSeoValues(data: PublicBattlegroundBuilds | null, now: number): SeoDataValues | null {
+  const date = data && isHsreplay(data.source) && seoDataDate(data.updatedAt, now);
+  if (!data || !date || data.builds.length === 0) return null;
+  // «Нежить: APM-нежить» → «Нежить»: the tribe before the colon, each once, in the page's order.
+  const tribes = [...new Set(data.builds.filter(build => build.tier === 'S')
+    .map(build => build.title.split(':')[0].trim()).filter(Boolean))];
+  return {
+    ...seoDateValues(date),
+    items: count(data.builds.length, 'сборка', 'сборки', 'сборок'),
+    leader: tribes.length > 0 ? tribes.join(', ') : null,
   };
 }

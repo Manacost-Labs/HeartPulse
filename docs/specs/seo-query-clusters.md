@@ -47,13 +47,16 @@ pages of the registry share a title, a description or an H1
   `/standard/meta` (H1 «Мета Hearthstone: колоды и винрейты», title
   `Мета Hearthstone, {month}: колоды и винрейты`, no brand when it does not
   fit).
-- «винрейт классов Арены»: `/classes`, H1 «Винрейт классов на Арене».
+- «лучший класс Арены», «винрейт классов Арены»: `/classes`, H1 «Винрейт
+  классов на Арене», title `Лучшие классы Арены Hearthstone, {month}`.
 - «тир-лист Арены»: `/tierlist`, H1 «Тир-лист карт Арены Hearthstone».
 - «легендарки Арены»: `/legendaries`, H1 «Легендарки Арены Hearthstone».
-- «герои Полей сражений»: `/heroes`, H1 «Герои Полей сражений», title
-  `Герои Полей сражений Hearthstone: способности и тиры`.
-- «тир-лист Полей сражений»: `/battlegrounds/tier-list`, H1 «Тир-лист Полей
-  сражений», title `Тир-лист Полей сражений Hearthstone, {year} | HearthPulse`.
+- «тир-лист героев Полей сражений», «герои Полей сражений»: `/heroes`, H1
+  «Герои Полей сражений», title `Тир-лист героев Полей сражений Hearthstone,
+  {month}`.
+- «сборки Полей сражений», «тир-лист Полей сражений»:
+  `/battlegrounds/tier-list`, H1 «Тир-лист Полей сражений», title `Сборки
+  Полей сражений Hearthstone: тир-лист, {month}`.
 - «конструктор стратегий»: `/battlegrounds/strategies`, H1 «Конструктор
   стратегий Полей сражений».
 - «косметика Hearthstone»: `/cosmetics`, H1 «Косметика Hearthstone»;
