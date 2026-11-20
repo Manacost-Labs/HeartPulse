@@ -33,7 +33,7 @@
   margin: 1.4rem auto 1.2rem;
   padding: 2rem 1.5rem;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1.5rem;
   border: 1px solid rgba(148, 163, 184, 0.16);
   border-radius: 24px;
@@ -151,6 +151,12 @@
 
 .arena-app-shell .arena-footer__legal p {
   color: #c7aa76;
+}
+
+@media (max-width: 1023px) {
+  .arena-footer__columns {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 767px) {
