@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { createServer } from 'node:http';
-import { existsSync, mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
 import { startNextServer } from '../scripts/lib/next-server.mjs';
-import { openAnswer } from './helpers/standardMatchupsOpenFixture.ts';
+import { openAnswer, SENTINELS } from './helpers/standardMatchupsOpenFixture.ts';
 
 // The deploy of a prerendered data page (/standard/meta/, /standard/meta/wild/, /standard/matchups/) against an
 // Express that is up, down or busy, on the built Next server:
@@ -29,9 +29,12 @@ const metaRows = format => Array.from({ length: 8 }, (_, index) => ({
   id: `${format}-${index + 1}`, slug: `${format}-arch-${index + 1}`, archetype: `Archetype ${format} ${index + 1}`,
   archetypeLabel: `${format === 'wild' ? 'Вольный' : 'Стандартный'} архетип ${index + 1}`, translated: true,
   classKey: index % 2 ? 'mage' : 'priest', winrate: 55 - index, popularity: 12 - index / 2, games: 5000 - index * 300,
-  turns: null, durationMinutes: null, climbingSpeed: null,
+  turns: null, durationMinutes: null, climbingSpeed: null, privateBreakdown: META_NOISE,
 }));
+// Fields an open answer must never let through, in the slice and in its rows (the page's parser drops them).
+const META_NOISE = 'SENTINEL_META_NOISE';
 const metaSlice = format => ({
+  history: META_NOISE,
   format, formatLabel: format === 'wild' ? 'Вольный' : 'Стандарт', rank: 'diamond_legend', rankLabel: 'Алмаз — Легенда',
   period: 'patch_36.6.3', availablePeriods: ['patch_36.6.3'], currentPeriod: 'patch_36.6.3', currentPatchPeriod: 'patch_36.6.3',
   coin: 'any_player', minGames: 100, source: 'hsguru', sourceUrl: 'https://www.hsguru.com/meta', translationSource: '',
@@ -64,15 +67,18 @@ async function startExpress() {
   return { state, origin: `http://127.0.0.1:${server.address().port}`, close };
 }
 
-const startNext = (express, stateDir) => startNextServer({ legacyOrigin: express.origin, readyTimeoutMs: 30_000,
-  env: { PAGE_LAST_GOOD_DIR: stateDir, NODE_OPTIONS: `--require=${resolve('tests/helpers/shiftableClock.cjs')}` } });
+// `variable` is how the process is told where Express keeps its state: SERVER_DATA_DIR as on the host, or the override.
+const startNext = (express, stateDir, variable = 'PAGE_LAST_GOOD_DIR') => startNextServer({ legacyOrigin: express.origin, readyTimeoutMs: 30_000,
+  env: { [variable]: stateDir, NODE_OPTIONS: `--require=${resolve('tests/helpers/shiftableClock.cjs')}` } });
 
 const get = async (next, page, headers = {}) => {
   const asRoute = headers.RSC === '1';
   const response = await fetch(`${next.origin}${page.path}${asRoute ? '?_rsc=abc12' : ''}`, { headers: { 'User-Agent': BROWSER_UA, ...headers }, signal: AbortSignal.timeout(30_000) });
   return { status: response.status, body: await response.text() };
 };
-const hasData = (page, { body }) => body.includes(page.marker) && body.replaceAll('<!-- -->', '').includes(page.text);
+// An HTML page carries the marker of its data block and a row of the open slice; a router payload (`?_rsc=`) carries the row's text.
+const hasData = (page, { body }, rsc = false) => (rsc ? body.includes(page.text.replace('<', ''))
+  : body.includes(page.marker) && body.replaceAll('<!-- -->', '').includes(page.text));
 
 /** Moves the server's clock past the five-minute window and requests until `ready(answer)`; every answer on the way must not be a 500. */
 async function regenerate(next, page, ready, headers) {
@@ -92,9 +98,20 @@ test('a restart or a revalidation while Express is down or busy never gives a 50
   const express = await startExpress();
   try {
     // The release before: the pages have been regenerated with data once.
-    const before = await startNext(express, stateDir);
+    const before = await startNext(express, stateDir, 'SERVER_DATA_DIR');
     try {
-      for (const page of PAGES) await regenerate(before, page, answer => hasData(page, answer));
+      for (const page of PAGES) {
+        await regenerate(before, page, answer => hasData(page, answer));
+        await regenerate(before, page, answer => hasData(page, answer, true), { RSC: '1' });
+      }
+      assert.match(before.output(), new RegExp(`\\[page-last-good\\] last good slices are kept in ${stateDir}/next-page-last-good-v1`), 'the directory is logged once');
+      // The copy holds the open slice the pages render, not the answer as it came: no sentinel of a field the parsers drop.
+      const directory = join(stateDir, 'next-page-last-good-v1');
+      const files = readdirSync(directory).filter(name => name.endsWith('.json'));
+      assert.deepEqual(files.sort(), ['standard-matchups.json', 'standard-meta-standard.json', 'standard-meta-wild.json']);
+      const stored = files.map(name => readFileSync(join(directory, name), 'utf8')).join('\n');
+      assert.ok(stored.includes('Стандартный архетип 3') && stored.includes('Открытый архетип 1'), 'the open rows are kept');
+      for (const sentinel of [...SENTINELS, META_NOISE]) assert.equal(stored.includes(sentinel), false, `${sentinel} is not kept`);
     } finally {
       await before.close();
     }
@@ -106,8 +123,8 @@ test('a restart or a revalidation while Express is down or busy never gives a 50
       for (const page of PAGES) {
         for (const headers of [{}, { 'User-Agent': ROBOT_UA }, { RSC: '1' }]) {
           // Regenerates from the stored slice: the page comes back with its data, never as the stub, and never as a 500.
-          const answer = await regenerate(next, page, current => hasData(page, current) || headers.RSC === '1', headers);
-          if (headers.RSC !== '1') assert.ok(hasData(page, answer), `${page.path}: the last good page is served, not the stub`);
+          const answer = await regenerate(next, page, current => hasData(page, current, headers.RSC === '1'), headers);
+          assert.ok(hasData(page, answer, headers.RSC === '1'), `${page.path} ${JSON.stringify(headers)}: the last good page is served, not the stub`);
         }
       }
       // The warm-up marks the pages stale while Express still answers; then it stops answering before the render, as it did
@@ -119,7 +136,7 @@ test('a restart or a revalidation while Express is down or busy never gives a 50
       const waiting = await Promise.all(PAGES.flatMap(page => [{}, { 'User-Agent': ROBOT_UA }, { RSC: '1' }].map(async headers => ({ page, headers, answer: await get(next, page, headers) }))));
       for (const { page, headers, answer } of waiting) {
         assert.equal(answer.status, 200, `${page.path} ${JSON.stringify(headers)} while Express is busy: ${next.output().slice(-300)}`);
-        if (headers.RSC !== '1') assert.ok(hasData(page, answer), `${page.path} keeps the last good page while Express is busy`);
+        assert.ok(hasData(page, answer, headers.RSC === '1'), `${page.path} ${JSON.stringify(headers)} keeps the last good page while Express is busy`);
       }
     } finally {
       express.state.mode = 'up';
@@ -144,7 +161,10 @@ test('the deploy warm-up leaves Next itself with the data, whatever the public a
   express.state.mode = 'busy';
   const next = await startNext(express, stateDir);
   try {
-    for (const page of PAGES) assert.equal(hasData(page, await get(next, page)), false, `${page.path}: the build copy has no data`);
+    for (const page of PAGES) {
+      assert.equal(hasData(page, await get(next, page)), false, `${page.path}: the build copy has no data`);
+      assert.equal(hasData(page, await get(next, page, { RSC: '1' }), true), false, `${page.path}: the build copy's router payload has no data either`);
+    }
     setTimeout(() => { express.state.mode = 'up'; }, 7000);
     const child = spawn(process.execPath, ['scripts/warm-prerendered-pages.mjs'], { env: { PATH: process.env.PATH,
       PRODUCTION_BASE_URL: `http://127.0.0.1:${edge.address().port}`, NEXT_LOCAL_ORIGIN: next.origin, EXPRESS_LOCAL_ORIGIN: express.origin,

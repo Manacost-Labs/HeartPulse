@@ -11,9 +11,10 @@ import { basename, dirname, join } from 'node:path';
  * down, busy or empty renders the last slice that passed the page's own checks.
  *
  * It lives in memory and in a file next to Express's state (`shared/server-data`, which survives releases
- * and restarts; `PAGE_LAST_GOOD_DIR` overrides it, tests point it at a temporary directory). Only the
- * open slice the page already renders is kept, so no paid field can be in it; a slice over
- * `MAX_BYTES` or older than `MAX_AGE_MS` is not used. Files are replaced atomically.
+ * and restarts; `SERVER_DATA_DIR` or `PAGE_LAST_GOOD_DIR` override it). Only the
+ * open slice the page already renders is kept: the model that the page's own allowlist parser made of the
+ * answer (never the raw answer, which may carry fields the page drops), and on reading the page's `restore`
+ * checks it again. A slice over `MAX_BYTES` or older than `MAX_AGE_MS` is not used. Files are replaced atomically.
  */
 const MAX_BYTES = 512 * 1024;
 const MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -31,15 +32,29 @@ const store = (): Map<string, Entry> => {
   return holder[STORE_KEY] ??= new Map();
 };
 
-/** The directory of the files, or `null` where there is no persistent state (a build, a dev server). */
+let announced = false;
+let warned = false;
+
+/**
+ * The directory of the files, or `null` where there is no persistent state (a build, a dev server). Order:
+ * `PAGE_LAST_GOOD_DIR` (tests), `SERVER_DATA_DIR` (as Express's own state, when the process has it), else the
+ * production layout `<root>/releases/<sha>` (the working directory) with `<root>/shared/server-data`.
+ * Where the copy goes is logged once, the first time it is used (a page is first rendered after the start).
+ */
 function directory(): string | null {
-  const configured = process.env.PAGE_LAST_GOOD_DIR;
-  if (configured) return join(configured, DIRECTORY);
-  // Production layout: `<root>/releases/<sha>` is the working directory, `<root>/shared/server-data` is Express's.
-  const release = process.cwd();
-  if (basename(dirname(release)) !== 'releases') return null;
-  const shared = join(dirname(dirname(release)), 'shared', 'server-data');
-  return existsSync(shared) ? join(shared, DIRECTORY) : null;
+  const root = process.env.PAGE_LAST_GOOD_DIR || process.env.SERVER_DATA_DIR;
+  let target: string | null = null;
+  if (root) target = join(root, DIRECTORY);
+  else {
+    const release = process.cwd();
+    const shared = basename(dirname(release)) === 'releases' ? join(dirname(dirname(release)), 'shared', 'server-data') : '';
+    if (shared && existsSync(shared)) target = join(shared, DIRECTORY);
+  }
+  if (!announced) {
+    announced = true;
+    console.info(target ? `[page-last-good] last good slices are kept in ${target}` : '[page-last-good] no state directory: last good slices are kept in memory only');
+  }
+  return target;
 }
 
 function writeFile(key: string, raw: unknown, storedAt: number) {
@@ -50,9 +65,13 @@ function writeFile(key: string, raw: unknown, storedAt: number) {
     mkdirSync(target, { recursive: true });
     writeFileSync(temporary, JSON.stringify({ format: FORMAT, savedAt: storedAt, raw }), { mode: 0o640, flag: 'wx' });
     renameSync(temporary, join(target, `${key}.json`));
-  } catch {
+  } catch (error) {
     // A read-only or full disk only loses persistence across restarts; the memory copy still serves.
     rmSync(temporary, { force: true });
+    if (!warned) {
+      warned = true;
+      console.warn(`[page-last-good] cannot write ${target}: ${error instanceof Error ? error.message : String(error)}; the copy is kept in memory only`);
+    }
   }
 }
 
@@ -98,16 +117,18 @@ function recall(key: string): unknown {
 
 /**
  * The page's slice from its source, or, when the source gives nothing the page accepts, the last slice
- * that was accepted (this process's or the file's). `parse` is the page's own check, applied to both, so a
- * stored slice never skips it. `null` only when there is no source and no usable copy.
+ * that was accepted (this process's or the file's). `parse` is the page's allowlist parser of an answer and
+ * its result is what is kept; `restore` is the page's own check of a kept model (a stored file is only
+ * data), so a stored slice never skips a check. `null` only when there is no source and no usable copy.
  */
-export async function loadWithLastGood<T>(key: string, read: () => Promise<unknown>, parse: (raw: unknown) => T | null): Promise<T | null> {
+export async function loadWithLastGood<T>(
+  key: string, read: () => Promise<unknown>, parse: (raw: unknown) => T | null, restore: (stored: unknown) => T | null,
+): Promise<T | null> {
   if (!KEY_PATTERN.test(key)) throw new Error('Invalid last good key');
-  const raw = await read();
-  const fresh = parse(raw);
+  const fresh = parse(await read());
   if (fresh !== null) {
-    remember(key, raw);
+    remember(key, fresh);
     return fresh;
   }
-  return parse(recall(key));
+  return restore(recall(key));
 }

@@ -28,4 +28,4 @@ export const loadPublicStandardMetaTeaser = cache(async (format: StandardMetaFor
  * build, a first start): the page prints the stub that the warm-up after a deploy replaces.
  */
 export const loadPublicStandardMetaPageTeaser = cache(async (format: StandardMetaFormat = 'standard') =>
-  loadWithLastGood(`standard-meta-${format}`, () => readSlice(format), raw => parseStandardMetaSeed(raw, format)));
+  loadWithLastGood(`standard-meta-${format}`, () => readSlice(format), raw => parseStandardMetaSeed(raw, format), stored => parseStandardMetaSeed((stored as { data?: unknown } | null)?.data, format)));
