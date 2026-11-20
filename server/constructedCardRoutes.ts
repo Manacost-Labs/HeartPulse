@@ -667,7 +667,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
           sourceUpdatedAt: candidate.sourceUpdatedAt,
           controlledExpansion: dependencies.controlledCatalogExpansionByFormat?.[format] === true,
         });
-        const inspection = catalogStore.inspect(format);
+        const inspection = catalogStore.inspectSummary(format);
         const persistenceDegraded = Boolean(inspection.repairWarning);
         value = {
           document, cacheSource: persistenceDegraded ? 'LKG' : 'fresh', dataStatus: persistenceDegraded ? 'stale' : 'fresh',
@@ -938,7 +938,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
 
   const getCatalogHealth = (format: ConstructedCardFormat): ConstructedCardCatalogHealth => {
     const cached = catalogCache.get(format)?.value;
-    const inspection = catalogStore.inspect(format);
+    const inspection = catalogStore.inspectSummary(format);
     const document = cached?.document ?? inspection.document;
     const unavailable = !document || inspection.state === 'expired';
     const degraded = !unavailable && (

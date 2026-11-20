@@ -394,6 +394,7 @@
         "tests/client-error-routes.test.ts",
         "tests/constructed-archetype-routes.test.ts",
         "tests/constructed-card-catalog-store.test.ts",
+        "tests/constructed-card-catalog-health-summary.test.ts",
         "tests/constructed-card-history-store.test.ts",
         "tests/constructed-card-routes.test.ts",
         "tests/constructed-card-seo-routes.test.ts",

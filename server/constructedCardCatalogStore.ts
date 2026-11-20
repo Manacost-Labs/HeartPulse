@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { closeSync, existsSync, fsyncSync, openSync, readFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { writeJsonAtomically } from './durableJson.js';
+import { createCatalogHealthSummary, formatEvidence } from './modules/constructedCards/public.js';
 
 export type ConstructedCardCatalogFormat = 'standard' | 'wild';
 type JsonRecord = Record<string, any>;
@@ -159,38 +160,6 @@ function datasetVersion(cards: JsonRecord[]): string {
   return `ccc1-sha256:${digest}`;
 }
 
-function collectFormatEvidence(value: unknown, evidence: Set<ConstructedCardCatalogFormat>): void {
-  if (Array.isArray(value)) {
-    for (const item of value) collectFormatEvidence(item, evidence);
-    return;
-  }
-  if (value && typeof value === 'object') {
-    const record = value as Record<string, unknown>;
-    for (const key of ['slug', 'name', 'id', 'name_en', 'name_ru']) {
-      collectFormatEvidence(record[key], evidence);
-    }
-    return;
-  }
-  if (typeof value === 'number') {
-    if (value === 1) evidence.add('wild');
-    if (value === 2) evidence.add('standard');
-    return;
-  }
-  const normalized = String(value ?? '').trim().toLocaleLowerCase('en-US');
-  if (normalized === '1' || normalized === 'wild' || normalized === 'вольный') evidence.add('wild');
-  if (normalized === '2' || normalized === 'standard' || normalized === 'стандарт' || normalized === 'стандартный') {
-    evidence.add('standard');
-  }
-}
-
-function formatEvidence(card: JsonRecord): Set<ConstructedCardCatalogFormat> {
-  const evidence = new Set<ConstructedCardCatalogFormat>();
-  collectFormatEvidence(card?.format, evidence);
-  collectFormatEvidence(card?.game_format, evidence);
-  collectFormatEvidence(card?.formats, evidence);
-  return evidence;
-}
-
 function removeFileDurably(dataDirectory: string, filename: string): void {
   const pathname = join(dataDirectory, filename);
   try {
@@ -269,6 +238,7 @@ export class ConstructedCardCatalogStore {
   private readonly removeFileDurably: (dataDirectory: string, filename: string) => void;
   private readonly ambiguousColdWildMinimum: number;
   private readonly transientDegradedFormats = new Set<ConstructedCardCatalogFormat>();
+  private readonly health: ReturnType<typeof createCatalogHealthSummary>;
 
   constructor(options: StoreOptions) {
     this.directory = join(options.stateDirectory, STORE_DIRECTORY);
@@ -289,6 +259,8 @@ export class ConstructedCardCatalogStore {
     this.ambiguousColdWildMinimum = options.minimumCardCountByFormat?.wild === undefined
       ? AMBIGUOUS_COLD_WILD_MINIMUM
       : this.minimumCardCount.wild;
+    this.health = createCatalogHealthSummary({ inspect: format => this.inspect(format), now: this.now, freshWindowMs: this.freshWindowMs, maxStaleMs: this.maxStaleMs,
+      files: format => [this.filename(format), this.recoveryFilename(format), this.markerFilename(format)].map(name => join(this.directory, name)) });
   }
 
   private filename(format: ConstructedCardCatalogFormat): string { return `${format}.json`; }
@@ -392,6 +364,9 @@ export class ConstructedCardCatalogStore {
       repairWarning,
     };
   }
+
+  /** `inspect` without the cards for readiness, read again only after a change on disk (#669). */
+  inspectSummary(format: ConstructedCardCatalogFormat) { return this.health.read(format); }
 
   /** The newest copy, shape-checked only: no checksum, comparison or repair as in `readUsable` (~0.1 s, not ~3 s, for Wild). */
   readServingCopy(format: ConstructedCardCatalogFormat): { document: ConstructedCardCatalogDocument; repairWarning: string | null } | null {
@@ -532,7 +507,7 @@ export class ConstructedCardCatalogStore {
       // read-repair will reconcile the mirror and clear the marker.
       return document;
     }
-    this.clearDegradedMarker(format, document);
+    if (this.clearDegradedMarker(format, document)) this.health.remember(format, document);
     return document;
   }
 }
