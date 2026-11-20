@@ -667,7 +667,7 @@ export function createConstructedCardDataService(dependencies: DataServiceDepend
           sourceUpdatedAt: candidate.sourceUpdatedAt,
           controlledExpansion: dependencies.controlledCatalogExpansionByFormat?.[format] === true,
         });
-        const inspection = catalogStore.inspect(format);
+        const inspection = catalogStore.inspectSummary(format);
         const persistenceDegraded = Boolean(inspection.repairWarning);
         value = {
           document, cacheSource: persistenceDegraded ? 'LKG' : 'fresh', dataStatus: persistenceDegraded ? 'stale' : 'fresh',
