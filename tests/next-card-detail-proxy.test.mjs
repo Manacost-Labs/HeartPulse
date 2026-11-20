@@ -131,7 +131,7 @@ test('an answer that claims statistics access is not used: the page is the seed'
     const response = await fetch(`${next.origin}/standard/cards/standard/CARD_QA_1/`);
     assert.equal(response.status, 200, next.output());
     const html = await response.text();
-    assert.ok(visibleText(html).includes('Механики не указаны'), 'the seed, without the detail');
+    assert.ok(!visibleText(html).includes('Похищение жизни'), 'the seed, without the detail');
     for (const paid of ['71.7171', '59.5959', 'QA_PRIVATE_SCORE', 'Проверочный Зоолок']) assert.ok(!html.includes(paid), `no ${paid}`);
   } finally {
     if (next) await next.close();
@@ -148,6 +148,9 @@ test('a card page without its open detail is still the card, from the seed', asy
     assert.equal(response.status, 200, next.output());
     const text = visibleText(await response.text());
     assert.ok(text.includes('Проверочная карта') && text.includes('Боевой клич: возьмите карту.'), 'the seed facts and rules text');
+    // A section without data is not printed (owner's rule 2026-11-20: no filler at the foot of the page).
+    for (const filler of ['Механики не указаны', 'История изменений не найдена', 'Дополнительные изображения отсутствуют',
+      'Дополнительная информация', 'Галерея · 0']) assert.ok(!text.includes(filler), `no «${filler}»`);
   } finally {
     if (next) await next.close();
     await closeLocal(api.server);
