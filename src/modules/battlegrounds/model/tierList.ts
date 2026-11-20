@@ -98,21 +98,24 @@ export function battlegroundStrategyMetaLine(item: TierStatItem): string {
 
 const SOURCE_LABELS: Record<string, string> = { hsreplay: 'HSReplay', firestone: 'Firestone' };
 
-function updatedLabel(iso: unknown): string {
+function updatedLabel(iso: unknown, timeZone?: string): string {
   const date = new Date(String(iso || ''));
   if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  const label = date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', timeZone });
+  return timeZone === 'Europe/Moscow' ? `${label} МСК` : label;
 }
 
 /**
  * Status line of a loaded list: how many entries are shown (of how many when a
  * filter hides some), the data source and when it was refreshed.
  */
-export function battlegroundTierListMetaLine({ shown, total, source, fetchedAt }: {
+export function battlegroundTierListMetaLine({ shown, total, source, fetchedAt, timeZone }: {
   shown: number;
   total: number | null;
   source?: unknown;
   fetchedAt?: unknown;
+  /** The zone the time is written in (the viewer's by default); Moscow time is marked «МСК». */
+  timeZone?: string;
 }): string {
   const rawSource = String(source || '').trim();
   return [
@@ -120,6 +123,6 @@ export function battlegroundTierListMetaLine({ shown, total, source, fetchedAt }
       ? `${shown.toLocaleString('ru-RU')} из ${total.toLocaleString('ru-RU')}`
       : shown.toLocaleString('ru-RU'),
     SOURCE_LABELS[rawSource.toLowerCase()] || rawSource,
-    updatedLabel(fetchedAt),
+    updatedLabel(fetchedAt, timeZone),
   ].filter(Boolean).join(' · ');
 }

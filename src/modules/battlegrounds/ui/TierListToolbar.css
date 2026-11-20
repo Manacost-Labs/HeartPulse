@@ -71,6 +71,13 @@
   background: rgba(143, 83, 109, 0.1);
 }
 
+.bg-tierlist-tabs > button.bg-tierlist-tab--locked svg {
+  flex: none;
+  width: 0.85rem;
+  height: 0.85rem;
+  color: #b8862f;
+}
+
 .arena-app-battlegrounds .bg-tierlist-tabs > button[aria-pressed='true'],
 .arena-app-battlegrounds .bg-tierlist-choice[aria-pressed='true'] {
   border-color: var(--bg-violet-dark, #3d2335);

@@ -44,8 +44,11 @@ function adminShellAssets(assets) {
 const PAID_BATTLEGROUNDS_MARKERS = { js: ['bg-heroes-page', 'bg-library-page'], css: ['.bg-hero-ledger'] };
 const PAID_BATTLEGROUNDS_ROUTES = ['/heroes/', '/library/', '/battlegrounds/tier-builder/',
   '/battlegrounds/strategies/', '/battlegrounds/tier-list/'];
-function paidBattlegroundsAssets(assets) {
-  return ['js', 'css'].flatMap(kind => assets[kind].filter(file => {
+// The tier list's guest view is the subscriber's tier list (same component, open data): it shares the Battlegrounds
+// stylesheet with the paid views, so only the paid views' scripts are checked there.
+const SHARED_SKIN_ROUTES = new Set(['/battlegrounds/tier-list/']);
+function paidBattlegroundsAssets(assets, path) {
+  return (SHARED_SKIN_ROUTES.has(path) ? ['js'] : ['js', 'css']).flatMap(kind => assets[kind].filter(file => {
     const source = readFileSync(join(nextRoot, file), 'utf8');
     return PAID_BATTLEGROUNDS_MARKERS[kind].some(marker => source.includes(marker));
   }));
@@ -73,7 +76,7 @@ test('initial Next.js JavaScript and CSS of public routes stay within their budg
     for (const path of PAID_BATTLEGROUNDS_ROUTES) {
       const response = await fetch(`${runtime.nextOrigin}${path}`);
       assert.equal(response.status, 200, `${path} must render`);
-      assert.deepEqual(paidBattlegroundsAssets(initialAssets(await response.text())), [],
+      assert.deepEqual(paidBattlegroundsAssets(initialAssets(await response.text()), path), [],
         `${path} must not load the paid Battlegrounds view before access is confirmed`);
     }
 

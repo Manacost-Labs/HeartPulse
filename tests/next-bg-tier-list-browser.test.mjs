@@ -80,8 +80,11 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
           body: readFileSync(new URL(`../public${url.pathname}`, import.meta.url)) });
       } else void request.continue();
     });
-    // Whether the paid view is on screen (it is mounted, hidden, while the open list stays).
-    const shownPaid = () => page.evaluate(() => [...document.querySelectorAll('[data-tour-id="bg-tier-list-strategy"], .bg-tierlist-toolbar')].some(node => node.getClientRects().length > 0));
+    // Whether the paid view is on screen (it is mounted, hidden, while the open view stays). Both are the same tier
+    // list: the paid one is the view inside `.arena-paid-view`.
+    const PAID = '.arena-paid-view';
+    const OPEN_LOCKS = '.paywalled-builds.bg-tierlist-tab--locked';
+    const shownPaid = () => page.evaluate(paid => [...document.querySelectorAll(`${paid} .bg-tierlist-toolbar`)].some(node => node.getClientRects().length > 0), PAID);
     const errors = []; const failed = []; const failedResponses = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('console', message => { if (message.type() === 'error') errors.push(message.text()); });
@@ -97,8 +100,10 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
       const state = await page.evaluate(async () => ({
         headings: [...document.querySelectorAll('h1')].map(node => node.textContent?.trim()),
         canonical: document.querySelector('link[rel="canonical"]')?.href,
-        // The open builds replace the gate: the closed part is a note and a button, no subscription dialog.
-        teaser: Boolean(document.querySelector('.paywalled-builds .bg-builds-locks button')) && !document.querySelector('.arena-paywall'),
+        // The subscriber's view on the open builds (none in this copy, so it says so): the other lists are locked
+        // tabs, no subscription dialog until one is pressed.
+        teaser: document.querySelectorAll('.paywalled-builds.bg-tierlist-tab--locked').length === 3 && !document.querySelector('.arena-paywall')
+          && document.querySelector('main').textContent.includes('Сборки временно недоступны'),
         overflow: document.documentElement.scrollWidth > innerWidth,
         violations: (await axe.run(document,
           { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } })).violations.map(item => item.id),
@@ -127,7 +132,7 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
     assert.equal(deepLink.headers.get('x-robots-tag'), 'noindex, follow');
     assert.equal(await page.$eval('link[rel="canonical"]', node => node.href),
       'https://hearthpulse.net/battlegrounds/tier-list/');
-    const strategy = await page.waitForSelector('[data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]',
+    const strategy = await page.waitForSelector(`${PAID} [data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]`,
       { timeout: 12000 }).catch(() => null);
     assert.ok(strategy, JSON.stringify({ tierRequests,
       main: await page.$eval('main', node => node.textContent.slice(0, 450)) }));
@@ -137,18 +142,18 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
     assert.deepEqual(failedResponses, []);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
     await page.reload({ waitUntil: 'networkidle2' });
-    assert.ok(await page.$('[data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]'));
-    assert.equal(await page.$eval('.bg-tierlist-toolbar__meta', node => node.textContent), '1');
+    await page.waitForSelector(`${PAID} [data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]`, { timeout: 10000 });
+    assert.equal(await page.$eval(`${PAID} .bg-tierlist-toolbar__meta`, node => node.textContent), '1');
     failedSubscriptionResponsesRemaining = 1;
     await page.reload({ waitUntil: 'networkidle2' });
     assert.equal(failedSubscriptionResponsesRemaining, 0);
     assert.doesNotMatch(await page.$eval('main', node => node.textContent), /Подписка не найдена|доступен подписчикам/,
       'a temporary subscription API failure must not appear as a revoked entitlement');
-    await page.waitForSelector('[data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]', { timeout: 10000 });
+    await page.waitForSelector(`${PAID} [data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]`, { timeout: 10000 });
     tierStatus = 503;
     await page.reload({ waitUntil: 'networkidle2' });
     // The subscriber's own data fails: the open list stays instead of the paid view's error.
-    await page.waitForSelector('.paywalled-builds .bg-builds-locks', { timeout: 10000 });
+    await page.waitForSelector(OPEN_LOCKS, { timeout: 10000 });
     assert.equal(await shownPaid(), false, 'no paid view over a failed protected read');
     // The list the paid view really asks for (the one in the address) decides, not another list: a failed or an
     // empty answer for it keeps the open list, whatever the other lists answer.
@@ -157,14 +162,14 @@ test('Next BG tier list keeps its public teaser separate from subscriber data an
       ['list=strategies&source=hsreplay', 'strategies', 'empty']]) {
       (mode === 'failing' ? failingLists : emptyLists).add(list);
       await page.goto(`${nextOrigin}/battlegrounds/tier-list/?${query}`, { waitUntil: 'networkidle2' });
-      await page.waitForSelector('.paywalled-builds .bg-builds-locks', { timeout: 10000 });
+      await page.waitForSelector(OPEN_LOCKS, { timeout: 10000 });
       assert.equal(await shownPaid(), false, `${list} ${mode}: the open list stays`);
       assert.equal(await page.$$eval('h1', nodes => nodes.filter(node => node.getClientRects().length > 0).length), 1, `${list} ${mode}: one visible H1`);
       failingLists.clear(); emptyLists.clear();
     }
     await page.goto(`${nextOrigin}/battlegrounds/tier-list/?list=strategies&source=hsreplay`, { waitUntil: 'networkidle2' });
-    await page.waitForSelector('[data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]', { timeout: 10000 });
-    assert.equal(await page.$('.paywalled-builds'), null, 'a good answer replaces the open list');
+    await page.waitForSelector(`${PAID} [data-tour-id="bg-tier-list-strategy"][aria-pressed="true"]`, { timeout: 10000 });
+    assert.equal(await page.$(OPEN_LOCKS), null, 'a good answer replaces the open view');
     await page.close();
   } finally {
     if (browser) await browser.close();

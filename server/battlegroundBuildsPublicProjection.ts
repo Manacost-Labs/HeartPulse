@@ -4,7 +4,7 @@ import { publicResourceUrl } from '../shared/publicResourceUrl.js';
 /**
  * The open slice of the Battlegrounds builds (compositions and strategies) for
  * anonymous visitors: tier, name, conditions, key minions and the base-range
- * average place and popularity. Every field is copied by name (an allowlist):
+ * average place and popularity, and of each card its name, images and text. Every field is copied by name (an allowlist):
  * sample sizes, first-place and top-four shares, confidence intervals, other
  * rating ranges, trinkets and the fork analysis never reach the guest, nor does
  * any field the source adds later.
@@ -28,6 +28,10 @@ export type PublicBuildCard = {
   name: string;
   /** Same-origin `/api/public-resource/...` path, or null. */
   image: string | null;
+  /** The framed card render (same origin), or null: what the tier list's strategy card shows. */
+  frame: string | null;
+  /** The card's own text (a public fact of the card), plain, or null. */
+  text: string | null;
 };
 
 export type PublicBuild = {
@@ -78,7 +82,12 @@ function projectCard(value: unknown): PublicBuildCard | null {
   const name = plain(card.ruName ?? card.localizedName ?? card.name, 120);
   if (!cardId || !/^[A-Za-z0-9_#-]+$/.test(cardId) || !Number.isSafeInteger(dbfId) || dbfId <= 0 || !name) return null;
   const image = [card.card, card.image256, card.fallback].map(publicResourceUrl).find(url => url.startsWith('/api/public-resource/'));
-  return { dbfId, cardId, name, image: image ?? null };
+  const frame = publicResourceUrl(card.frame);
+  return {
+    dbfId, cardId, name, image: image ?? null,
+    frame: frame.startsWith('/api/public-resource/') ? frame : null,
+    text: plain(card.ruText ?? card.text),
+  };
 }
 
 function projectCards(value: unknown, maximum: number): PublicBuildCard[] {
