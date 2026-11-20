@@ -1191,6 +1191,7 @@
       "appliesTo": [
         "/articles",
         "/guides-archive",
+        "/standard/cards",
         "/standard/cards/:format",
         "/cosmetics/:kind",
         "/admin"
