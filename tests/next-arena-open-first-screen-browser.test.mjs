@@ -47,7 +47,9 @@ const protectedTierlist = () => {
 };
 const openClasses = () => ({ updatedAt: UPDATED_AT, source: 'HSReplay', sampleUnit: 'drafts',
   classes: RANKED.map(([id, name], i) => ({ id, name, winrate: 56.4 - i * 0.9, sample: 48210 - i * 1900 })) });
-const protectedClasses = () => ({ updatedAt: UPDATED_AT, source: 'hsreplay.net',
+// The protected ranking is a newer snapshot than the open slice: the data line must follow the ranking it heads.
+const PROTECTED_CLASSES_AT = '2026-11-19T15:30:00.000Z';
+const protectedClasses = () => ({ updatedAt: PROTECTED_CLASSES_AT, source: 'hsreplay.net',
   classes: RANKED.map(([id, name], i) => ({ id, name, color: '#704a16', winrate: 56.4 - i * 0.9, games: 12000 - i * 300 })) });
 
 async function startStack() {
@@ -224,6 +226,9 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
       assert.ok(await classes.page.$('.classes-paid-more'), 'the open ranking (with its lock) is there while the protected data loads');
       await classes.page.waitForFunction(() => !document.querySelector('.classes-paid-more') && document.querySelector('.arena-class-row'), { timeout: 15000 });
       assert.equal(await classes.page.$$eval('.arena-classes-board', boards => boards.length), 1, 'one ranking, not two');
+      assert.equal(await classes.page.$eval('.classes-data-line time', node => node.getAttribute('datetime')), PROTECTED_CLASSES_AT,
+        'the data line dates the ranking shown');
+      assert.match(await classes.page.$eval('.classes-data-line', node => node.textContent), /источник HSReplay/);
       assert.equal(await classes.page.$('.arena-paywall'), null);
       await delay(600);
       assert.ok(await shift(classes.page) < 0.01, `${viewport.width}px: the swap shifted the classes page by ${await shift(classes.page)}: ${await shiftSources(classes.page)}`);

@@ -25,19 +25,25 @@ function openClassesState(teaser: PublicClassesTeaser): ArenaClassesState {
   return {
     status: 'ready',
     data: {
-      updatedAt: teaser.updatedAt, source: teaser.source,
+      updatedAt: teaser.updatedAt, source: teaser.source, ...(teaser.sampleUnit ? { sampleUnit: teaser.sampleUnit } : {}),
       classes: teaser.classes.map(item => ({ id: item.id, name: item.name, winrate: item.winrate,
         color: item.color ?? NEUTRAL_COLOR, ...(item.sample === null ? {} : { games: item.sample }) })),
     },
   };
 }
 
-/** The date and source of the open slice, dated with `<time>` in Moscow time (the same text on the server and in the browser). */
-function DataLine({ teaser }: { teaser: PublicClassesTeaser }) {
-  const date = seoDataDate(teaser.updatedAt, Date.now());
+/** The protected dataset names its origin by host; the reader knows the source by name. */
+const sourceName = (source: string) => /firestone/i.test(source) ? 'Firestone' : source ? 'HSReplay' : '';
+
+/**
+ * The date and source of the ranking shown, dated with `<time>` in Moscow time (the same text on the server and in
+ * the browser): the open slice's, then the protected data's once it replaces it.
+ */
+function DataLine({ updatedAt, source }: { updatedAt: string | null; source: string }) {
+  const date = seoDataDate(updatedAt, Date.now());
   return <p className="classes-data-line">
     {date ? <>Данные на <time dateTime={date.iso}>{`${date.date}, ${date.time} МСК`}</time></> : 'Дата обновления неизвестна'}
-    {teaser.source ? ` · источник ${teaser.source}` : ''}
+    {source ? ` · источник ${source}` : ''}
   </p>;
 }
 
@@ -65,7 +71,9 @@ export function ClassesPageClient({ teaser }: { teaser: PublicClassesTeaser | nu
   return <PublicPageShell activeTab="winrates" pathname="/classes/" parchmentPreload="tablet-up" access={access}
     navigate={navigate} updatedAtLabel={updatedAtLabel}>
     <ArenaClassesPage onNavigate={navigateTab}>
-      {teaser && <DataLine teaser={teaser} />}
+      {/* Only with an open slice: the page without one starts from the skeleton, which has no line. */}
+      {teaser && <DataLine updatedAt={shown.data?.updatedAt ?? null}
+        source={openLayer ? teaser.source : sourceName(shown.data?.source ?? '')} />}
       {openLayer
         ? <PaidOfferProvider title="Подробная статистика классов — по подписке" text={OFFER_TEXT}>
           <ArenaClassesResults state={openState} onRetry={noRetry} />

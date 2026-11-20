@@ -11,6 +11,8 @@ export type ArenaClassesData = {
   updatedAt: string | null;
   source: string;
   warning?: string;
+  /** What `games` counts when the data says so: HSReplay publishes drafts, Firestone games. */
+  sampleUnit?: 'drafts' | 'games';
 };
 export type ArenaClassesState = {
   status: 'loading' | 'ready' | 'empty' | 'error' | 'stale';

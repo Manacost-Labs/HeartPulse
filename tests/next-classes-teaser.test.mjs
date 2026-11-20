@@ -93,7 +93,8 @@ test('the guest HTML of /classes/ carries the open order of the classes and noth
       place: Number(item.match(/data-rank="(\d+)"/)?.[1]),
       name: item.match(/<span class="font-hs[^"]*">([^<]+)<\/span>/)?.[1],
       winrate: item.match(/<span class="arena-class-meter-label[^"]*">([^<]+)<\/span>/)?.[1],
-      sample: item.match(/>([\d\s\u00a0]+)(?:<!-- -->)? игр<\/span>/)?.[1].replace(/[\s\u00a0]/g, ''),
+      // HSReplay counts drafts, and the board says so.
+      sample: item.match(/>([\d\s\u00a0]+)(?:<!-- -->)? (?:<!-- -->)?забегов<\/span>/)?.[1].replace(/[\s\u00a0]/g, ''),
     }));
     assert.deepEqual(rows, OPEN_ROWS.map(row => ({
       place: row.place, name: row.name, winrate: `${row.winrate.toFixed(1)}%`, sample: String(row.sample),

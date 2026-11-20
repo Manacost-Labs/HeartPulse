@@ -70,6 +70,14 @@ test('the page parser copies only the whitelisted fields, rounds again and caps 
   assert.equal(JSON.stringify(parsed).match(/wins|pickRate|byPeriod|history|sentinel|4281773|13\.37041|57\.34821/), null);
   assert.equal(parsePublicClassesTeaser({ ...teaser, classes: [{ ...teaser.classes[0], sample: 1.5 }] })!.classes[0].sample, null, 'an odd sample figure is dropped');
   assert.equal(parsePublicClassesTeaser(teaser)!.sampleUnit, 'drafts');
+  // The colour is a `#rrggbb` fact or nothing: odd values never reach the page's inline style.
+  for (const color of ['red', '#12345', '#1234567', 'url(javascript:x)', 'expression(1)', '', 7, null, undefined]) {
+    assert.equal(parsePublicClassesTeaser({ ...teaser, classes: [{ ...teaser.classes[0], color }] })!.classes[0].color, null, `parser drops ${String(color)}`);
+    const dataset = buildClassesFixture();
+    (dataset.classes[0] as Record<string, unknown>).color = color;
+    assert.equal(projectWinratesPublicTeaser(dataset)!.classes.find(item => item.id === dataset.classes[0].id)!.color, null,
+      `projection drops ${String(color)}`);
+  }
   for (const unit of ['minutes', null, 7]) {
     const odd = parsePublicClassesTeaser({ ...teaser, sampleUnit: unit })!;
     assert.equal(odd.sampleUnit, null, `an unknown unit is dropped: ${unit}`);

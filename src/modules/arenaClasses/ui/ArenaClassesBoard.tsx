@@ -25,6 +25,7 @@ export function ArenaClassesBoard({ state, onRetry }: {
   state: ArenaClassesState; onRetry: () => void;
 }) {
   const classes = state.data?.classes ?? [];
+  const sampleWord = state.data?.sampleUnit === 'drafts' ? 'забегов' : 'игр';
   const initialLoading = state.status === 'loading' && classes.length === 0;
   return (
     <section aria-label="Статистика классов" aria-busy={state.status === 'loading' && !initialLoading}>
@@ -75,7 +76,7 @@ export function ArenaClassesBoard({ state, onRetry }: {
                   {(cls.games ?? 0) > 0 && (
                     <div className="flex-shrink-0 hidden lg:block text-right min-w-[88px]">
                       <span className="text-xs text-[#8b6c42] font-medium">
-                        {(cls.games ?? 0).toLocaleString('ru-RU')} игр
+                        {(cls.games ?? 0).toLocaleString('ru-RU')} {sampleWord}
                       </span>
                     </div>
                   )}
