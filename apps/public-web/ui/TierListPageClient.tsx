@@ -9,7 +9,7 @@ import { useArenaCompanionIds, useArenaTierList,
   type TierlistData } from '@/src/modules/arenaTierList/public';
 import { openTierlistView, type CompactTierlist } from '@/apps/public-web/lib/openTierlistView';
 import { seoDataDate } from '@/apps/public-web/lib/seoDataDate';
-import { TIERLIST_CLASS_PAGES_LIVE, tierlistClassPath } from '@/apps/public-web/lib/tierlistClassPages';
+import { TIERLIST_CLASS_PAGES_LIVE, tierlistClassPageHeading, tierlistClassPath } from '@/apps/public-web/lib/tierlistClassPages';
 import { paidAccess, usePublicAccess } from './usePublicAccess';
 import { navigate, navigateTab } from './navigation';
 import { PaidOfferProvider, usePaidOffer } from './PaidOffer';
@@ -65,6 +65,8 @@ export function TierListPageClient({ pool, classId }: { pool: CompactTierlist | 
   }, [data.updatedAt]);
 
   const classLinks = TIERLIST_CLASS_PAGES_LIVE || classId !== undefined;
+  const className = classId ? data.sections.find(section => section.id === classId)?.name : undefined;
+  const classPage = classId && className ? tierlistClassPageHeading(classId, className) : undefined;
   return <PublicPageShell activeTab="tierlist" pathname={classId ? tierlistClassPath(classId) : '/tierlist/'} parchmentPreload="tablet-up" access={access}
     navigate={navigate} updatedAtLabel={updatedAtLabel}>
     {/* The locks open the site's subscription offer (`ArenaPaidOffer`; sign-in returns to this address and class).
@@ -81,6 +83,7 @@ export function TierListPageClient({ pool, classId }: { pool: CompactTierlist | 
             subscriptionLoading={pending} onRefreshSubscription={access.refresh}
             accessGranted={allowed} openLayer={openLayer} serverRendered onPaidOffer={openOffer}
             initialClassId={classId} fullClassId={classId} classHref={classLinks ? tierlistClassPath : undefined}
+            classPage={classPage}
             dataLine={openLayer && pool ? <DataLine updatedAt={pool.updatedAt} games={pool.sampleGamesAtLeast} />
               // With an open snapshot the line stays when the protected data arrives (no shift); without one the page starts
               // from the skeleton, which has no line, so the protected view shows none either (skeleton-route-geometry).
