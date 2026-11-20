@@ -73,8 +73,8 @@ export const DeckShareList = forwardRef<HTMLDivElement, {
               <DeckName deck={deck} className="vsgold-deck-row__name" />
               {locked ? <>
                 <span className="vsgold-deck-row__bar" aria-hidden="true" />
-                <span className="vsgold-deck-row__share"><PaidMetricLock label={`Доля ${deck.deckLabel}`} /></span>
-                <span className="vsgold-build"><PaidMetricLock label={`Колода и код ${deck.deckLabel}`} /></span>
+                <span className="vsgold-deck-row__share"><PaidMetricLock label={`Доля ${deck.deckLabel}`} closed="paywalled-vicious-gold" /></span>
+                <span className="vsgold-build"><PaidMetricLock label={`Колода и код ${deck.deckLabel}`} closed="paywalled-vicious-gold" /></span>
               </> : <>
                 <span className="vsgold-deck-row__bar" aria-hidden="true"><i style={{ width: shareOfLeader(deck.frequency, leader) }} /></span>
                 <b className="vsgold-deck-row__share">{percent(deck.frequency)}<span className="sr-only"> партий</span></b>

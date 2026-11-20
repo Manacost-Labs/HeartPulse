@@ -243,9 +243,9 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.equal(viciousGold.status, 200, runtime.output());
     const viciousGoldHtml = await viciousGold.text();
     assert.match(viciousGoldHtml, /<h1>Vicious Syndicate Gold<\/h1>/);
-    // No open layer yet: reachable, out of the index, no canonical, share tags or JSON-LD (#553).
-    assert.match(viciousGoldHtml, /<meta name="robots" content="noindex, follow"\/>/);
-    assert.doesNotMatch(viciousGoldHtml, /rel="canonical"|property="og:url"|application\/ld\+json/);
+    // The guest view with locks is the open layer (#656), so the page is back in the index (#655).
+    assert.match(viciousGoldHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/standard\/vicious-gold\/"/);
+    assert.doesNotMatch(viciousGoldHtml, /<meta name="robots" content="noindex/);
     assert.equal((viciousGoldHtml.match(/<main\b/g) || []).length, 1);
     assert.doesNotMatch(viciousGoldHtml, /deckCode|card-reader@example|manacost_auth_token/);
 

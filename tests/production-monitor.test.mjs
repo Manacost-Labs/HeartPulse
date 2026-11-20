@@ -869,8 +869,9 @@ try {
   assert.deepEqual(uncovered, [],
     'every indexable template needs a sample in production-monitor-templates.mjs or a reason');
   const sampledIds = new Set(samples.map(sample => sample.id));
-  // /articles (#376) and five pages without an open layer (#538) left the index.
-  assert.ok(INDEXABLE_TEMPLATES.length >= 34 && sampledIds.size >= 32);
+  // /articles (#376) and four pages without an open layer (#538) left the index; Vicious Gold came back (#655).
+  assert.ok(INDEXABLE_TEMPLATES.length >= 35 && sampledIds.size >= 33);
+  assert.ok(sampledIds.has('standard-vicious-gold'), 'Vicious Gold is indexed again and monitored');
   for (const id of ['standard-cards', 'standard-cards-format', 'standard-card-detail']) {
     assert.ok(sampledIds.has(id), `${id} must be monitored`);
   }

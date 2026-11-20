@@ -106,5 +106,8 @@
   строки и заголовка тира гостя и подписчика ±2 px на 1440 и 390, рамка и
   кольцо фокуса каждого замка гостя не обрезаны предками на 1440 и 390.
 
-Индексация страницы (inventory, `public-seo-*`, sitemap, robots) — отдельная
-задача #655.
+Индексация (#655): страница `index, follow`, canonical на себя, в
+`static.xml`; Dataset JSON-LD — `isAccessibleForFree: false` и
+`hasPart.cssSelector: ".paywalled-vicious-gold"`. Этот класс несёт каждый
+замок страницы (`closed="paywalled-vicious-gold"` у `PaidMetricLock` и
+`PaidFilterLock`, `LockMark`); подробности — `docs/specs/seo-entity-indexing.md`.
