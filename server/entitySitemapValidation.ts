@@ -5,6 +5,7 @@ import type {
   SitemapSemanticEntry,
   StoredSitemapEntry,
 } from './entitySitemapTypes.js';
+import { DECK_CLASS_KEYS } from '../shared/deckClassIndexing.js';
 
 export const MAX_SITEMAP_ENTRIES = 50_000;
 const SCHEMA_VERSION = 1;
@@ -23,6 +24,8 @@ function keyIsValid(key: string, segment: SitemapSegment): boolean {
   if (segment === 'cosmetics') return COSMETICS_KEY_PATTERN.test(key);
   if (segment === 'guides-archive') return GUIDE_KEY_PATTERN.test(key);
   if (segment === 'archetypes') return ARCHETYPE_KEY_PATTERN.test(key);
+  // A deck class page is keyed by its class, one of the eleven the page serves.
+  if (segment === 'decks') return (DECK_CLASS_KEYS as readonly string[]).includes(key);
   if (segment === 'static-pages') return STATIC_PAGE_KEY_PATTERN.test(key);
   return KEY_PATTERN.test(key);
 }
@@ -64,6 +67,7 @@ function entryPathIsValid(pathname: string, key: string, segment: SitemapSegment
   if (segment === 'archetypes') {
     return pathname === (key.startsWith('wild/') ? `/standard/archetypes/${key}/` : `/standard/archetypes/standard/${key}/`);
   }
+  if (segment === 'decks') return pathname === `/standard/decks/${key}/`;
   if (segment === 'static-pages') return pathname === key;
   const libraryKind = segment === 'battleground-minions' ? 'minions' : 'spells';
   return pathname.startsWith(`/library/${libraryKind}/`)

@@ -51,6 +51,7 @@ test('static root is assembled from public assets and SEO registries', () => {
       `${routeInventory.canonicalOrigin}/sitemaps/cosmetics.xml`,
       `${routeInventory.canonicalOrigin}/sitemaps/guides-archive.xml`,
       `${routeInventory.canonicalOrigin}/sitemaps/archetypes.xml`,
+      `${routeInventory.canonicalOrigin}/sitemaps/decks.xml`,
     ]);
     assert.doesNotMatch(sitemapIndex, /<(?:lastmod|changefreq|priority)>/i,
       'the build knows no freshness: the server dates the index and the static pages at runtime');

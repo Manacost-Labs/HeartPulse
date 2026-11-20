@@ -396,6 +396,7 @@
         "tests/ecosystem-internal-routes.test.ts",
         "tests/entity-sitemap-routes.test.ts",
         "tests/entity-sitemap-store.test.ts",
+        "tests/entity-sitemap-decks.test.ts",
         "tests/indexnow.test.ts",
         "tests/gallery-routes.test.ts",
         "tests/game-data-audit-repository.test.ts",

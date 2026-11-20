@@ -8,6 +8,7 @@ import {
   loadIndexableArchetypeRows,
   type ArchetypeSitemapSource,
 } from './entitySitemapArchetypeSources.js';
+import { loadIndexableDeckClassRows } from './entitySitemapDeckSources.js';
 import { isIndexableBattlegroundHero } from '../shared/battlegroundHeroIndexing.js';
 import { projectBattlegroundHeroRanking, type PublicHeroRankingMode } from './battlegroundHeroRankingProjection.js';
 
@@ -192,6 +193,9 @@ export function createEntitySitemapRuntimeOptions(
     ...(archetypes ? {
       loadArchetypes: () => loadIndexableArchetypeRows(archetypes),
       minimumArchetypeCount: minimumFromEnvironment(environment.SITEMAP_ARCHETYPES_MIN, 30),
+      // The deck class pages read the first Standard window of the same catalog; 11 classes, so the floor is one.
+      loadDecks: () => loadIndexableDeckClassRows(archetypes),
+      minimumDeckClassCount: minimumFromEnvironment(environment.SITEMAP_DECKS_MIN, 1),
     } : {}),
     ...(editorial ? {
       loadCosmetics: () => loadCosmeticsSitemapRows(editorial.loadCosmeticsCatalog),
