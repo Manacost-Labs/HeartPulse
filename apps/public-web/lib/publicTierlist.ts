@@ -7,8 +7,8 @@ import { parsePublicTierlist, PUBLIC_TIERLIST_PATH } from './publicTierlistData'
 
 /**
  * The open Arena tier list (whole card pool) for the prerendered guest view, or
- * `null` (an upstream failure or no data yet): the page is then served without
- * the list instead of failing.
+ * `null` (an upstream failure or no data yet): the build then prints the page
+ * without the list, a runtime regeneration fails and keeps the earlier copy (#631).
  */
 export const loadPublicTierlist = cache(async () => parsePublicTierlist(await readFirstPaintJson(
   signal => fetchPublicExpress(PUBLIC_TIERLIST_PATH, signal, { revalidate: PRERENDERED_DATA_REVALIDATE_SECONDS }),

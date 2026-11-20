@@ -15,7 +15,8 @@ const load = (mode: HeroesRankingMode) => readFirstPaintJson(
 
 /**
  * The open hero ranking (solo and duos) for the prerendered guest view. A mode
- * with no data is `null`: the page is then served without its table instead of failing.
+ * with no data is `null`; with neither mode the build prints the page without its tables, a runtime
+ * regeneration fails and keeps the earlier copy (#631).
  */
 export const loadPublicBattlegroundHeroes = cache(async (): Promise<{
   solo: PublicBattlegroundHeroesRanking | null; duos: PublicBattlegroundHeroesRanking | null;
