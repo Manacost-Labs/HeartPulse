@@ -76,3 +76,10 @@
 .bg-heroes-grid .battleground-hero-related-card {
   max-width: 92%;
 }
+
+/* The tier mark of the hero page's summary plaque (`TierBadge small`, 32px): its side is pinned, so a mark that fails to
+   load is not sized by its alt text (the base `img { height: auto }`) and the plaques never grow under the page. */
+.bg-hero-stat-plaque img.arena-tier-badge {
+  width: 32px;
+  height: 32px;
+}

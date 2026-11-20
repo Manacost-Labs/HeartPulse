@@ -3,6 +3,7 @@ import { cosmeticsDetailPath } from '@/src/modules/cosmetics/public';
 import { constructedCardRoute } from '@/src/modules/constructedCards/public';
 import { publicBattlegroundHero } from './lib/publicBattlegroundHeroData';
 import { publicBattlegroundHeroStatsOf } from './lib/publicBattlegroundHeroStats';
+import { publicBattlegroundHeroProfileOf } from './lib/publicBattlegroundHeroProfile';
 import { publicBattlegroundLibraryCard } from './lib/publicBattlegroundLibraryCardData';
 import { battlegroundLibraryDetailApiPath, type BattlegroundLibraryPool } from './lib/battlegroundLibraryDetailKinds';
 import { publicCardSeed } from './lib/publicCardSeed';
@@ -66,8 +67,10 @@ async function checkBattlegroundDetail(probe: BattlegroundDetailProbe, headers: 
     if (probe.type === 'hero') {
       const hero = publicBattlegroundHero(value, probe.dbfId);
       const stats = publicBattlegroundHeroStatsOf(value);
-      // The open statistics ride along when they fit the header; otherwise the page reads them itself.
-      projection = { hero, stats };
+      const profile = publicBattlegroundHeroProfileOf(value);
+      // The open statistics and profile ride along when they fit the header; otherwise the page reads them itself.
+      projection = { hero, stats, profile };
+      if (!encodePublicProjection(projection)) projection = { hero, stats };
       if (!encodePublicProjection(projection)) projection = { hero };
     } else {
       const card = publicBattlegroundLibraryCard(value, probe.kindPath, probe.dbfId, probe.pool);

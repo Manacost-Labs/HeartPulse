@@ -30,7 +30,7 @@ export function BattlegroundHeroReliquary({ model, hero, libraryHero, openMediaG
           <div className="bg-hero-reliquary__portrait rounded-[26px] border border-[#d7b66a]/75 bg-[radial-gradient(circle_at_top,#fff7dc,transparent_55%),linear-gradient(180deg,#fffaf0,#eedcba)] p-3 shadow-[0_18px_34px_rgba(61,42,30,0.12)]">
             <BattlegroundHeroImage
               sources={bgDetailImageSources(heroImage)}
-              alt={heroName}
+              alt={`${heroName} — герой Полей сражений`}
               className="w-full max-w-[210px]"
               imgClassName="w-full object-contain drop-shadow-[0_20px_22px_rgba(61,42,30,0.22)]"
             />
