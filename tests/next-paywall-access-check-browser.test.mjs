@@ -269,6 +269,8 @@ test('/heroes/ shows the open ranking without a placeholder and keeps it until t
     // «Топ 50%» on screen, the table's closed cells are locks), and a subscriber's view that replaces the open
     // one opens on the range the address asked for.
     const guest = await browser.newPage();
+    // The browser keeps the cookies of the pages above: the guest must not carry the subscriber's.
+    await guest.deleteCookie({ name: 'pending_reader', url: frontOrigin });
     await guest.goto(`${frontOrigin}/heroes/?mmr=TOP_5_PERCENT&view=table`, { waitUntil: 'networkidle2' });
     await guest.waitForSelector('.bg-hero-ledger__locked', { timeout: 10_000 });
     const guestState = await guest.evaluate(() => ({ search: location.search,
