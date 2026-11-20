@@ -47,7 +47,9 @@ const protectedTierlist = () => {
 };
 const openClasses = () => ({ updatedAt: UPDATED_AT, source: 'HSReplay', sampleUnit: 'drafts',
   classes: RANKED.map(([id, name], i) => ({ id, name, winrate: 56.4 - i * 0.9, sample: 48210 - i * 1900 })) });
-const protectedClasses = () => ({ updatedAt: UPDATED_AT, source: 'hsreplay.net',
+// The protected ranking is a newer snapshot than the open slice: the data line must follow the ranking it heads.
+const PROTECTED_CLASSES_AT = '2026-11-19T15:30:00.000Z';
+const protectedClasses = () => ({ updatedAt: PROTECTED_CLASSES_AT, source: 'hsreplay.net',
   classes: RANKED.map(([id, name], i) => ({ id, name, color: '#704a16', winrate: 56.4 - i * 0.9, games: 12000 - i * 300 })) });
 
 async function startStack() {
@@ -91,7 +93,7 @@ async function startStack() {
   return Object.assign(state, { server, origin, sessions });
 }
 
-async function open(browser, origin, path, { viewport = DESKTOP, session = null, wait = '.hs-tier-card, .classes-public-teaser' } = {}) {
+async function open(browser, origin, path, { viewport = DESKTOP, session = null, wait = '.hs-tier-card, .arena-class-meter-label' } = {}) {
   const page = await browser.newPage();
   await page.setViewport(viewport);
   await page.setCacheEnabled(false);
@@ -127,7 +129,7 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
   let browser;
   try {
     // Both pages are five-minute ISR copies: move the server's clock until the copies with the data are served.
-    for (const [path, marker] of [['/tierlist/', 'hs-tier-card'], ['/classes/', 'classes-public-teaser']]) {
+    for (const [path, marker] of [['/tierlist/', 'hs-tier-card'], ['/classes/', 'arena-class-meter-label']]) {
       for (let attempt = 0; attempt < 40; attempt += 1) {
         process.kill(next.pid, 'SIGUSR2');
         if ((await (await fetch(`${next.origin}${path}`)).text()).includes(marker)) break;
@@ -187,12 +189,12 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
       await delay(1000);
       assert.equal(await classes.page.$('.arena-paywall'), null, `${viewport.width}px: no gate over the ranking`);
       // A phone is only asked for the first rows of the eleven.
-      const rowsBottom = await classes.page.$eval('.classes-public-teaser tbody tr:nth-child(2)', row => row.getBoundingClientRect().bottom);
+      const rowsBottom = await classes.page.$eval('.arena-classes-board li:nth-child(2)', row => row.getBoundingClientRect().bottom);
       assert.ok(rowsBottom <= viewport.height, `${viewport.width}px: the ranking starts below the first screen (${rowsBottom})`);
-      assert.deepEqual(await classes.page.$$eval('.classes-public-teaser thead th', cells => cells.filter(th => th.scrollWidth > th.clientWidth + 1).map(th => th.textContent.trim())),
-        [], `${viewport.width}px: the ranking headings must fit their cells`);
+      assert.equal(await classes.page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth) <= 0, true,
+        `${viewport.width}px: the page does not scroll sideways`);
       assert.ok(await shift(classes.page) < 0.01, `${viewport.width}px: the classes page shifted by ${await shift(classes.page)}`);
-      await classes.page.click('.classes-public-teaser__lock');
+      await classes.page.click('.classes-paid-more');
       await classes.page.waitForSelector('[data-testid="arena-paid-offer"]');
       assert.deepEqual(classes.errors, []);
       await classes.page.close();
@@ -221,9 +223,12 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
       // The same on the classes page.
       const classes = await open(browser, stack.origin, '/classes/', { viewport, session: 'reader' });
       await delay(300);
-      assert.ok(await classes.page.$('.classes-public-teaser'), 'the open ranking is there while the protected data loads');
-      await classes.page.waitForSelector('.arena-class-row', { timeout: 15000 });
-      assert.equal(await classes.page.$('.classes-public-teaser'), null, 'no open ranking next to the full one');
+      assert.ok(await classes.page.$('.classes-paid-more'), 'the open ranking (with its lock) is there while the protected data loads');
+      await classes.page.waitForFunction(() => !document.querySelector('.classes-paid-more') && document.querySelector('.arena-class-row'), { timeout: 15000 });
+      assert.equal(await classes.page.$$eval('.arena-classes-board', boards => boards.length), 1, 'one ranking, not two');
+      assert.equal(await classes.page.$eval('.classes-data-line time', node => node.getAttribute('datetime')), PROTECTED_CLASSES_AT,
+        'the data line dates the ranking shown');
+      assert.match(await classes.page.$eval('.classes-data-line', node => node.textContent), /источник HSReplay/);
       assert.equal(await classes.page.$('.arena-paywall'), null);
       await delay(600);
       assert.ok(await shift(classes.page) < 0.01, `${viewport.width}px: the swap shifted the classes page by ${await shift(classes.page)}: ${await shiftSources(classes.page)}`);
@@ -235,7 +240,7 @@ test('/tierlist/ and /classes/: the open data is the first screen, locks stand f
     for (const failure of ['500', 'broken', 'empty']) {
       stack.protectedFail = failure;
       for (const [path, open1, full] of [['/tierlist/', '.tierlist-card-grid .hs-tier-card + *, .paywalled-tierlist', '.arena-paywall'],
-        ['/classes/', '.classes-public-teaser', '.arena-class-row, .arena-classes-notice, .arena-paywall']]) {
+        ['/classes/', '.classes-paid-more', '.arena-classes-notice, .arena-paywall']]) {
         const failed = await open(browser, stack.origin, path, { session: 'reader' });
         await delay(2500);
         assert.ok(await failed.page.$(open1), `${path} (${failure}): the open data must stay when the protected answer fails`);

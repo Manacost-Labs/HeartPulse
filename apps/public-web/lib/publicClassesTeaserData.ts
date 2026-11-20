@@ -9,7 +9,7 @@
 export const CLASSES_TEASER_PATH = '/api/winrates/public-teaser';
 export const CLASSES_TEASER_MAX_CLASSES = 20;
 
-export type PublicClassesTeaserClass = { place: number; id: string; name: string; winrate: number; sample: number | null };
+export type PublicClassesTeaserClass = { place: number; id: string; name: string; winrate: number; sample: number | null; color: string | null };
 export type PublicClassesSampleUnit = 'drafts' | 'games';
 export type PublicClassesTeaser = {
   updatedAt: string | null; source: string;
@@ -30,7 +30,8 @@ function classRow(value: unknown, index: number): PublicClassesTeaserClass[] {
   const winrate = typeof row?.winrate === 'number' ? row.winrate : Number.NaN;
   if (!id || !name || !Number.isFinite(winrate) || winrate < 0 || winrate > 100) return [];
   const sample = typeof row?.sample === 'number' && Number.isInteger(row.sample) && row.sample > 0 ? row.sample : null;
-  return [{ place: index + 1, id, name, winrate: Math.round(winrate * 10) / 10, sample }];
+  const color = typeof row?.color === 'string' && /^#[0-9a-f]{6}$/i.test(row.color) ? row.color : null;
+  return [{ place: index + 1, id, name, winrate: Math.round(winrate * 10) / 10, sample, color }];
 }
 
 /** `null` when the answer is not a teaser or has no classes: the page then renders without the slice. */

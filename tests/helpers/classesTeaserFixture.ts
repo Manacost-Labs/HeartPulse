@@ -44,6 +44,7 @@ export function buildClassesFixture(): { classes: Row[]; updatedAt: string; sour
 /** What the open table says, best class first: the rounded winrate and the sample size. */
 export const OPEN_ROWS = CLASS_IDS.map((id, rank) => ({
   place: rank + 1, id, name: `Класс ${id}`, winrate: Math.round(exactWinrate(rank) * 10) / 10, sample: 120_000 + rank * 1_337 + 11,
+  color: '#123456',
 }));
 
 /** The figures and words that must never reach a guest's page. */

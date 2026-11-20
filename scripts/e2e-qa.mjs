@@ -715,7 +715,7 @@ function assertLayout(path, layout) {
     const routePath = path.split(' ')[0].replace(/\/$/, '');
     // /legendaries keeps a short banner on a phone (min-height 96px in LegendariesOpenLayer.css, ~98px with
     // its title) so the name, composition and winrate of the first group fit a 390×844 first screen.
-    // /tierlist and /classes do the same (TierListPage.css and ClassesPublicTeaser.css, #410): the open data is the first screen.
+    // /tierlist and /classes do the same (TierListPage.css and ClassesPage.css, #410): the open data is the first screen.
     const expectedHeight = routePath === '/faq' ? (layout.mobile ? 180 : 210)
       : (routePath === '/legendaries' || routePath === '/tierlist') && layout.mobile ? 98
         : routePath === '/classes' && layout.mobile ? 96 : (layout.mobile ? 360 : 320);
