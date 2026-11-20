@@ -46,7 +46,7 @@ function openCards(value: unknown): FunDeckOpenCard[] | undefined {
       const card = record(raw);
       // An id the allowlist refuses never costs the deck its list: the line is printed by name, without a link.
       const id = typeof card.id === 'string' && /^[A-Za-z0-9_]{2,80}$/.test(card.id) ? card.id : null;
-      const name = typeof card.name === 'string' && card.name.length <= 120 ? card.name : null;
+      const name = typeof card.name === 'string' && card.name !== '' && card.name.length <= 120 ? card.name : null;
       const cost = card.cost === null || card.cost === undefined ? null : count(card.cost);
       const copies = count(card.count);
       if (copies < 1 || copies > 40) throw new InvalidSelection();

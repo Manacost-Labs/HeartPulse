@@ -21,6 +21,7 @@ const withStranger = cardsOf([777_002]); // in no dictionary
 const withSlashed = cardsOf([777_003]); // the dictionary key has a leading slash, as in the shipped cards_ru.json
 const dictionary = { TIME_609t1: { dbfId: 777_001, id: 'TIME_609t1', name: 'Рейнджер-капитан Алерия', mana: 3 },
   '/OG_211': { dbf: 777_003, name: 'Зов лесов', mana: 8 },
+  '/../admin': { dbf: 777_005, name: 'Чужая', mana: 2 }, 'bad id': { dbf: 777_006, name: 'Пробел', mana: 2 },
   // the same card twice: the slashless entry wins whatever the order
   '/OG_212': { dbf: 777_004, name: 'Дубль', mana: 1 }, OG_212: { dbf: 777_004, name: 'Дубль', mana: 1 } };
 
@@ -35,6 +36,7 @@ app.use('/api', createPublicFunDecksRouter({
     { title: 'Token', deck_code: withToken, format: 'Standard' },
     { title: 'Slashed', deck_code: withSlashed, format: 'Standard' },
     { title: 'Twin', deck_code: cardsOf([777_004]), format: 'Standard' },
+    { title: 'Evil keys', deck_code: cardsOf([777_005, 777_006]), format: 'Standard' },
     { title: 'Stranger', deck_code: withStranger, format: 'Standard' },
     { title: 'Garbled', deck_code: 'A'.repeat(40), format: 'Standard' },
   ] } } }),
@@ -57,7 +59,7 @@ const read = async () => (await (await fetch(`http://127.0.0.1:${port}/api/fun-d
 try {
   let decks = await read();
   const by = (title: string) => decks.find(deck => deck.title === title);
-  assert.deepEqual(decks.map(deck => deck.title).sort(), ['Garbled', 'Known', 'Slashed', 'Stranger', 'Token', 'Twin', 'Wild known'], 'no deck is dropped');
+  assert.deepEqual(decks.map(deck => deck.title).sort(), ['Evil keys', 'Garbled', 'Known', 'Slashed', 'Stranger', 'Token', 'Twin', 'Wild known'], 'no deck is dropped');
   assert.equal(by('Known')?.cards?.length, 14);
   assert.deepEqual(by('Known')?.cards?.[0], { id: 'FUN_0', name: 'Карта 0', cost: 0, count: 1, hasPage: true });
   assert.ok(decks.every(deck => !('candidateSourceId' in deck)), 'the internal source id is not public');
@@ -65,6 +67,8 @@ try {
   assert.deepEqual(token, { id: 'TIME_609t1', name: 'Рейнджер-капитан Алерия', cost: 3, count: 1, hasPage: false }, 'a card outside the catalog is named, without a page');
   assert.equal(by('Token')?.cards?.length, 15);
   assert.deepEqual(by('Slashed')?.cards?.find(card => card.name === 'Зов лесов'), { id: 'OG_211', name: 'Зов лесов', cost: 8, count: 1, hasPage: false }, 'a slashed dictionary key is a plain card id');
+  assert.equal(by('Evil keys')?.cards?.length, 16, 'the two lines with an unusable dictionary key stay in the list');
+  assert.equal(by('Evil keys')?.cards?.filter(card => card.id === null && card.name === null && !card.hasPage).length, 2, 'and are unknown cards, not ids');
   assert.equal(by('Twin')?.cards?.find(card => card.name === 'Дубль')?.id, 'OG_212');
   assert.ok(decks.flatMap(deck => deck.cards ?? []).every(card => card.id === null || /^[A-Za-z0-9_]+$/.test(card.id)), 'no card id outside the page allowlist is public');
   assert.deepEqual(by('Stranger')?.cards?.find(card => card.name === null), { id: null, name: null, cost: null, count: 1, hasPage: false }, 'a card nobody knows keeps its place');
@@ -74,7 +78,7 @@ try {
   // A failing catalog serves the last good one; a failing dictionary only leaves the extra cards unnamed.
   catalogFails = true; dictionaryFails = true;
   decks = await read();
-  assert.equal(decks.length, 7);
+  assert.equal(decks.length, 8);
   assert.equal(by('Known')?.cards?.length, 14, 'the last good catalog answers');
   assert.equal(by('Token')?.cards?.find(card => card.count === 1 && card.hasPage === false)?.name, null, 'without the dictionary the token has no name');
 } finally {

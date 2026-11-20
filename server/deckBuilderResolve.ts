@@ -164,7 +164,8 @@ export function indexCardsRuByDbf(cardsRu: Record<string, any> | null | undefine
     // The shipped `cards_ru.json` has keys with a leading slash (`/OG_211`): a card id is never one, and a
     // slashless entry of the same card wins over a slashed one whatever their order.
     const cardId = rawCardId.replace(/^\/+/, '');
-    if (!cardId) continue;
+    // Only an id the public pages allow is indexed; any other key is a card nobody can name.
+    if (!/^[A-Za-z0-9_]{2,80}$/.test(cardId)) continue;
     const isSlashed = cardId !== rawCardId;
     if (index.has(dbfId) && !(slashed.has(dbfId) && !isSlashed)) continue;
     if (isSlashed) slashed.add(dbfId); else slashed.delete(dbfId);
