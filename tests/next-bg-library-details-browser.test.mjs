@@ -126,12 +126,23 @@ test('Next Battleground card detail keeps public identity and real missing-card 
         canonical: document.querySelector('link[rel=canonical]')?.href,
         h1: [...document.querySelectorAll('h1')].map(node => node.textContent?.trim()),
         main: document.querySelectorAll('main').length,
+        description: document.querySelector('meta[name="description"]')?.content,
+        cardImage: [...document.querySelectorAll('main img')].map(node => node.alt).filter(alt => alt.includes('Баюбот')),
+        trail: [...document.querySelectorAll('nav[aria-label="Breadcrumb"] li')].map(node => ({
+          name: node.textContent?.replace('›', '').trim(), href: node.querySelector('a')?.getAttribute('href') ?? null })),
         overflow: document.documentElement.scrollWidth > innerWidth,
         violations: (await axe.run(document, { runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21aa'] } }))
           .violations.map(violation => violation.id),
       }));
       assert.deepEqual(state.h1, ['Баюбот']);
       assert.equal(state.main, 1);
+      assert.equal(state.description,
+        'Баюбот — существо Полей сражений Hearthstone: Механизм, таверна 1, 2/2, среднее место 3,90 в «Топ 50%». Магнетизм.');
+      assert.deepEqual(state.cardImage, ['Баюбот — существо Полей сражений'], 'the card picture is named');
+      assert.deepEqual(state.trail, [
+        { name: 'Главная', href: '/' }, { name: 'Библиотека Полей сражений', href: '/library/' },
+        { name: 'Существа', href: '/library/minions/' }, { name: 'Баюбот', href: null },
+      ], 'the visible trail is the JSON-LD one, the card itself unlinked');
       assert.equal(state.overflow, false);
       assert.deepEqual(state.violations, []);
       assert.equal(state.canonical, encodeURI('https://hearthpulse.net/library/minions/баюбот-98582/'));

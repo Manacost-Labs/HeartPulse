@@ -84,6 +84,14 @@ test('static public pages roll out independently of cards', () => {
     assert.equal(publicWebOwner(`/${page}/`, false, 'GET', true), 'next');
     assert.equal(publicWebOwner(`/${page}/`, false, 'POST', true), 'legacy');
   }
+  // The mode hubs are the section roots only: a path below them keeps its own owner.
+  for (const path of ['/standard/', '/standard', '/arena/', '/battlegrounds/', '/wild/']) {
+    assert.equal(publicWebOwner(path, false, 'GET', true), 'next', path);
+    assert.equal(publicWebOwner(path, false, 'POST', true), 'legacy', path);
+  }
+  for (const path of ['/arena/draft/', '/wild/decks/', '/standard/unknown/']) {
+    assert.equal(publicWebOwner(path, false, 'GET', true), 'legacy', path);
+  }
   assert.equal(publicWebOwner('/standard/cards/', false, 'GET', true), 'legacy');
   assert.equal(publicWebOwner('/fonts/google/inter-cyrillic.woff2', false, 'GET', true), 'legacy');
   assert.equal(publicWebOwner('/heroes/123/', false, 'GET', true), 'next');
