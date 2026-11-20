@@ -1,0 +1,44 @@
+/* Open builds of an archetype page (`ArchetypeOpenBuilds`): plain server HTML, the same for a guest and a robot. */
+.archetype-open-builds {
+  margin-top: 1rem;
+  border: 8px solid transparent;
+  border-image: url('/wallpaper/main-page-rail-border.png') 18 stretch;
+  background:
+    linear-gradient(rgba(250, 235, 197, 0.9), rgba(229, 199, 144, 0.8)),
+    var(--arena-parchment-texture) center / cover;
+}
+
+.archetype-open-builds .archetype-section-heading a { color: #8d171d; }
+
+.archetype-open-builds__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: 0.85rem;
+  padding: 0.85rem;
+}
+
+.archetype-open-build {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.7rem;
+  border: 1px solid rgba(92, 54, 24, 0.3);
+  color: #2f1f14;
+  background: rgba(255, 248, 219, 0.5);
+}
+
+.archetype-open-build h3 { margin: 0; font-family: var(--font-display); font-size: 1.05rem; }
+.archetype-open-build dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; border: 1px solid rgba(92, 54, 24, 0.2); }
+.archetype-open-build dl div { min-width: 0; padding: 0.4rem 0.5rem; border-right: 1px solid rgba(92, 54, 24, 0.16); }
+.archetype-open-build dl div:last-child { border-right: 0; }
+.archetype-open-build dt { color: var(--archetype-muted, #735e49); font-size: 0.6875rem; font-weight: 900; text-transform: uppercase; }
+.archetype-open-build dd { margin: 0.1rem 0 0; font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+
+.archetype-open-build__cards { display: grid; margin: 0; padding: 0; list-style: none; font-size: 0.8rem; line-height: 1.3; }
+.archetype-open-build__cards li { display: flex; gap: 0.45rem; align-items: baseline; padding: 0.12rem 0; border-bottom: 1px solid rgba(92, 54, 24, 0.12); overflow-wrap: anywhere; }
+.archetype-open-build__cards li::before { content: attr(data-cost); flex: 0 0 1.4rem; color: #1f4f80; font-weight: 900; text-align: center; font-variant-numeric: tabular-nums; }
+.archetype-open-build__cards a { color: inherit; }
+
+.archetype-open-build code { margin-top: auto; overflow-wrap: anywhere; color: #4a3323; font-size: 0.69rem; line-height: 1.45; user-select: all; }
+.archetype-open-build .archetype-copy-button { width: 100%; }

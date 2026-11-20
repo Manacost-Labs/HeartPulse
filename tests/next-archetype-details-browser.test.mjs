@@ -12,6 +12,12 @@ import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 import { isAbortedRoutePrefetch } from './helpers/abortedRoutePrefetch.mjs';
 import { isMenuBackgroundRead, MENU_PATCH_ARCHIVE } from './helpers/menuBackgroundReads.mjs';
 
+// The open layer of a build as Express sends it, with paid values a careless pass-through would leak (sentinel).
+const OPEN_DECK = 'AAECAf0GAfKiBALxogTzogQAAA==';
+const openBuild = { deckCode: OPEN_DECK, games: 2216, winrate: 57.1, updatedAt: '2026-07-22T21:05:32.877Z',
+  sampleRank: 'all', samplePeriod: 'past_30_days', mulliganImpact: 7.1717, keptImpact: 6.2626,
+  cards: [{ id: 'TST_001', name: 'Тестовый удар', cost: 1, count: 2 }, { id: 'TST_002', name: 'Тестовый страж', cost: 4, count: 1 }] };
+const PAID_SENTINELS = ['7.1717', '6.2626', '41.4141'];
 const teaser = {
   format: 'wild', formatLabel: 'Вольный', patch: '36.0.3', minimumGames: 50,
   updatedAt: '2026-07-24T12:38:57.727Z', account: 'PRIVATE_ACCOUNT',
@@ -20,11 +26,12 @@ const teaser = {
     translated: true, classKey: 'priest', format: 'wild', games: 31959,
     winrate: 58.3, popularity: 13.5, turns: 7.9, durationMinutes: 8,
     climbingSpeed: 1.24, deckCount: 1, sourceUrl: 'https://www.hsguru.com/meta',
-    builds: [{ deckCode: 'PRIVATE_DECK' }],
+    builds: [openBuild],
   },
   featuredBuild: { games: 2216, winrate: 57.1, updatedAt: null,
     sampleRank: 'all', samplePeriod: 'past_30_days', deckCode: 'PRIVATE_FEATURED_DECK' },
-  history: [{ recordedAt: 'PRIVATE_HISTORY' }], analysis: { private: 'PRIVATE_ANALYSIS' },
+  history: [{ recordedAt: 'PRIVATE_HISTORY', winrate: 41.4141 }],
+  analysis: { private: 'PRIVATE_ANALYSIS', cardStats: [{ cardId: 'TST_001', mulliganImpact: 7.1717, keptImpact: 6.2626 }] },
 };
 // Standard archetypes: one strong enough to be indexed, one that is not; the catalog gives the summary its neighbours.
 const catalogRow = (format, slug, label, english, classKey, games, winrate, popularity, deckCount) => ({
@@ -39,7 +46,8 @@ const STANDARD_ROWS = [
   catalogRow('standard', 'weak-warlock', 'Слабый Чернокнижник', 'Weak Warlock', 'warlock', 500, 50, 0.2, 0),
 ];
 const WILD_ROWS = [catalogRow('wild', 'thief-priest', 'Воровской Жрец', 'Thief Priest', 'priest', 31959, 58.3, 13.5, 1)];
-const teaserOf = item => ({ ...teaser, format: item.format, formatLabel: item.format === 'wild' ? 'Вольный' : 'Стандарт', item });
+const teaserOf = item => ({ ...teaser, format: item.format, formatLabel: item.format === 'wild' ? 'Вольный' : 'Стандарт',
+  item: { ...item, builds: item.deckCount ? [openBuild] : [] } });
 const catalogOf = format => ({
   format, formatLabel: format === 'wild' ? 'Вольный' : 'Стандарт', patch: '36.0.3', minimumGames: 50, updatedAt: teaser.updatedAt,
   coverage: {}, items: format === 'wild' ? WILD_ROWS : STANDARD_ROWS,
@@ -171,16 +179,41 @@ test('Next archetype details isolate access and load builds before independent o
       assert.match(document.summary?.heading ?? '', /^Насколько силён /, `${path} shows the summary`);
       assert.ok(document.summary.inMain && document.summary.height > 150 && document.summary.right <= width, `${path} summary sits in <main> inside the viewport`);
       assert.equal(document.html.includes('PRIVATE_'), false);
-      assert.doesNotMatch(document.html, /AAE[A-Za-z0-9+/=]{12,}/, `${path} carries no deck code`);
+      // Deck codes are open (owner decision 2026-11-18); mulligan and card statistics and history are not.
+      assert.equal(document.html.includes(OPEN_DECK), h1 !== 'Слабый Чернокнижник', `${path} shows the open deck code`);
+      for (const paid of PAID_SENTINELS) assert.equal(document.html.includes(paid), false, `${path} carries ${paid}`);
     }
+    // The server answer itself (HTML with its RSC payload and JSON-LD, and the RSC payload of a client navigation) carries no paid value.
+    for (const init of [{}, { headers: { RSC: '1' } }]) {
+      const body = await (await fetch(`${origin}/standard/archetypes/standard/zoolock/`, init)).text();
+      assert.ok(body.includes(OPEN_DECK) && body.includes('/standard/cards/standard/TST_001/'), `${JSON.stringify(init)} carries the open build`);
+      for (const paid of [...PAID_SENTINELS, 'mulliganImpact', 'keptImpact', 'PRIVATE_']) {
+        assert.equal(body.includes(paid), false, `${JSON.stringify(init)} carries ${paid}`);
+      }
+    }
+    const graph = JSON.parse(await page.goto(`${origin}/standard/archetypes/standard/zoolock/`, { waitUntil: 'networkidle2' })
+      .then(() => page.$eval('script[type="application/ld+json"]', node => node.textContent)));
+    assert.deepEqual(graph['@graph'].map(node => node['@type']), ['Organization', 'BreadcrumbList', 'ItemPage', 'Dataset']);
+    assert.equal(JSON.stringify(graph).includes('isAccessibleForFree'), false, 'the deck code is not marked as paid');
+    // A guest copies the deck code.
+    await browser.defaultBrowserContext().overridePermissions(origin, ['clipboard-read', 'clipboard-write', 'clipboard-sanitized-write']);
+    await page.click('button[aria-label="Скопировать код колоды: Зоолок, сборка 1"]');
+    await page.waitForSelector('button[aria-label="Код скопирован: Зоолок, сборка 1"]');
+    assert.equal(await page.evaluate(() => navigator.clipboard.readText()), OPEN_DECK);
     // Without JavaScript the strong page still reads: the question, the date, the source and the class links.
     const plain = await browser.newPage();
     await plain.setJavaScriptEnabled(false);
     await plain.goto(`${origin}/standard/archetypes/standard/zoolock/`, { waitUntil: 'domcontentloaded' });
     const bare = await plain.evaluate(() => {
       const summary = document.querySelector('.archetype-seo-summary');
+      const builds = document.querySelector('.archetype-dossier')?.nextElementSibling;
       return { text: (summary?.innerText ?? '').replaceAll('\u00a0', ' '), time: summary?.querySelector('time')?.getAttribute('datetime'),
-        links: [...(summary?.querySelectorAll('a[href^="/standard/archetypes/standard/"]') ?? [])].length };
+        links: [...(summary?.querySelectorAll('a[href^="/standard/archetypes/standard/"]') ?? [])].length,
+        builds: builds && {
+          heading: builds.querySelector('h2')?.textContent, text: builds.innerText.replaceAll('\u00a0', ' ').toLowerCase(),
+          code: builds.querySelector('code')?.textContent, time: builds.querySelector('time')?.getAttribute('datetime'),
+          cards: [...builds.querySelectorAll('ol a')].map(link => [link.textContent, link.getAttribute('href')]),
+        } };
     });
     await plain.close();
     const bareWords = bare.text.split(/\s+/).filter(token => /[\p{L}\p{N}]/u.test(token)).length;
@@ -188,6 +221,12 @@ test('Next archetype details isolate access and load builds before independent o
     assert.ok(bare.text.includes('HSGuru') && bare.text.includes('14 800') && bare.text.includes('от 50 игр'));
     assert.equal(bare.time, '2026-07-24T12:38:57.727Z');
     assert.ok(bare.links >= 3 && bare.links <= 6, `${bare.links} class links`);
+    // Right after the metrics, without JavaScript: the build's numbers, date, source, linked cards and code.
+    assert.equal(bare.builds?.heading, 'Сборки архетипа');
+    assert.ok(['1 из 3 сборок', 'винрейт', '57,1%', 'игры', '2 216', 'hsguru', 'тестовый удар ×2'].every(part => bare.builds.text.includes(part)), bare.builds.text);
+    assert.equal(bare.builds.time, '2026-07-22T21:05:32.877Z');
+    assert.equal(bare.builds.code, OPEN_DECK);
+    assert.deepEqual(bare.builds.cards, [['Тестовый удар', '/standard/cards/standard/TST_001/'], ['Тестовый страж', '/standard/cards/standard/TST_002/']]);
     assert.deepEqual(errors, []);
     assert.deepEqual(failed, []);
     assert.deepEqual(protectedCalls, []);

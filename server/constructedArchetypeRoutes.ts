@@ -4,6 +4,7 @@ import { Router, type RequestHandler } from 'express';
 import type { StandardMetaClassKey } from './standardMetaClasses.js';
 import { resolveStandardMetaRequestPeriod } from '../shared/standardMetaPeriods.js';
 import { withCatalogCardMedia, loadCatalogCardMedia, type CatalogCardMedia } from './modules/constructedCards/public.js';
+import { publicArchetypeDetail } from './publicArchetypeDetail.js';
 
 export type ConstructedArchetypeFormat = 'standard' | 'wild';
 
@@ -197,25 +198,10 @@ export function createConstructedArchetypeRouter(
       const catalog = await dependencies.loadCatalog(format, null, slug);
       const item = catalog.items.find(row => row.slug === slug);
       if (!item) return response.status(404).json({ error: 'Архетип не найден в текущей мете' });
-      const build = item.builds[0] ?? null;
+      // The format's card catalog names the cards of the open builds; without it they keep their codes.
+      const cards = item.builds.length ? await loadCatalogCardMedia(format, dependencies.loadCardCatalog, error => dependencies.onError?.('media', error)) : [];
       publicTeaser(response);
-      return response.json({
-        format: catalog.format,
-        formatLabel: catalog.formatLabel,
-        patch: catalog.patch,
-        minimumGames: catalog.minimumGames,
-        updatedAt: catalog.updatedAt,
-        item: teaserItem(item),
-        featuredBuild: build ? {
-          games: build.games,
-          winrate: build.winrate,
-          updatedAt: build.updatedAt,
-          sampleRank: build.sampleRank,
-          samplePeriod: build.samplePeriod,
-        } : null,
-        history: [],
-        analysis: null,
-      });
+      return response.json(publicArchetypeDetail(catalog, item, cards));
     } catch (error) {
       dependencies.onError?.('detail', error);
       return response.status(502).json({ error: 'Страница архетипа временно недоступна' });

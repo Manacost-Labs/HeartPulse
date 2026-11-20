@@ -59,7 +59,7 @@ const catalog: ConstructedArchetypeCatalog = {
     deckCount: 1,
     sourceUrl: 'https://www.hsguru.com/meta',
     builds: [{
-      deckCode: 'AAEBAa0GValidDeckCode',
+      deckCode: 'AAECAf0GAfKiBALxogTzogQAAA==',
       games: 2_216,
       winrate: 57.1,
       sourceUrl: 'https://www.hsguru.com/deck/40919030',
@@ -107,13 +107,16 @@ const dependencies: ConstructedArchetypeRouterDependencies = {
   loadHistory: async () => { historyReads++; if (historyFails) throw new Error('History unavailable'); return [{
     recordedAt: '2026-07-24T12:38:57.727Z',
     games: 31_959,
-    winrate: 58.3,
+    winrate: 41.4141,
     popularity: 13.5,
     turns: 7.9,
     durationMinutes: 8,
     climbingSpeed: 1.24,
   }]; },
-  loadCardCatalog: async () => { mediaReads++; if (!mediaAvailable) throw new Error('Catalog unavailable'); return { cards: [{ card_id: 'different-id', dbf: 123, rarity: 'EPIC', images: { tile: 'https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/TOY_330-test.png', horizontal: 'https://api.kolodahearthstone.com/uploads/horizontal-art/constructed_card/TOY_330.webp' } }] }; },
+  loadCardCatalog: async () => { mediaReads++; if (!mediaAvailable) throw new Error('Catalog unavailable'); return { cards: [{ card_id: 'different-id', dbf: 123, rarity: 'EPIC', images: { tile: 'https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/TOY_330-test.png', horizontal: 'https://api.kolodahearthstone.com/uploads/horizontal-art/constructed_card/TOY_330.webp' } },
+    { card_id: 'TST_001', dbf: 70_001, name: { ru: 'Тестовый удар', en: 'Test Strike' }, mana_cost: 1, rarity: 'COMMON' },
+    { card_id: 'TST_002', dbf: 70_002, name: { ru: 'Тестовый страж', en: 'Test Warden' }, mana_cost: 4, rarity: 'LEGENDARY' },
+    { card_id: 'TST_003', dbf: 70_003, name: { ru: 'Тестовая буря', en: 'Test Storm' }, mana_cost: 2, rarity: 'RARE' }] }; },
   loadAnalysis: async () => { analysisReads++; if (analysisFails) throw new Error('Analysis unavailable'); return ({
     rank: 'legend',
     period: 'past_week',
@@ -137,11 +140,11 @@ const dependencies: ConstructedArchetypeRouterDependencies = {
       dbfId: 123,
       cardName: 'Гость из Бездны',
       cost: 3,
-      mulliganImpact: 4.8,
+      mulliganImpact: 7.1717,
       mulliganCount: 1_250,
       drawnImpact: -1.2,
       drawnCount: 980,
-      keptImpact: 6.1,
+      keptImpact: 6.2626,
       keptCount: 740,
     }],
   }); },
@@ -180,7 +183,7 @@ try {
   const teaserListingBody = await teaserListing.json() as any;
   assert.equal(teaserListingBody.items.length, 1);
   assert.deepEqual(teaserListingBody.items[0].builds, []);
-  assert.equal(JSON.stringify(teaserListingBody).includes('AAEBAa0GValidDeckCode'), false);
+  assert.equal(JSON.stringify(teaserListingBody).includes('AAECAf0GAfKiBALxogTzogQAAA=='), false, 'the catalog lists no deck codes');
 
   // The period is optional: absent opens the default catalog, an unknown one is refused before any read.
   assert.equal(catalogPeriods.at(-1), null);
@@ -193,8 +196,23 @@ try {
 
   const teaserDetail = await fetch(`${origin}/teaser/wild/thief-priest`);
   assert.equal(teaserDetail.status, 200, 'The detail hero teaser is public');
+  assert.match(teaserDetail.headers.get('cache-control') ?? '', /^public,/);
   const teaserDetailBody = await teaserDetail.json() as any;
-  assert.deepEqual(teaserDetailBody.item.builds, []);
+  // Open layer (owner decision 2026-11-18): the builds with their deck codes and card lists, nothing else of a build.
+  assert.deepEqual(teaserDetailBody.item.builds, [{
+    deckCode: 'AAECAf0GAfKiBALxogTzogQAAA==', games: 2_216, winrate: 57.1, updatedAt: '2026-07-22T21:05:32.877Z',
+    sampleRank: 'all', samplePeriod: 'past_30_days',
+    cards: [
+      { id: 'TST_001', name: 'Тестовый удар', cost: 1, count: 2 },
+      { id: 'TST_003', name: 'Тестовая буря', cost: 2, count: 2 },
+      { id: 'TST_002', name: 'Тестовый страж', cost: 4, count: 1 },
+    ],
+  }]);
+  // Sentinel: the paid layer (mulligan and card statistics, class matchups, history, ranks) is never read for the open answer.
+  for (const paid of ['7.1717', '6.2626', 'mulliganImpact', 'keptImpact', 'classMatchups', '54.2', '41.4141', 'hsguru.com/deck/']) {
+    assert.equal(JSON.stringify(teaserDetailBody).includes(paid), false, `the open archetype answer carries ${paid}`);
+  }
+  assert.deepEqual([historyReads, analysisReads, rankReads, mediaReads], [0, 0, 0, 1]);
   assert.deepEqual(teaserDetailBody.history, []);
   assert.equal(teaserDetailBody.analysis, null);
   assert.deepEqual(teaserDetailBody.featuredBuild, {
@@ -204,7 +222,6 @@ try {
     sampleRank: 'all',
     samplePeriod: 'past_30_days',
   });
-  assert.equal(JSON.stringify(teaserDetailBody).includes('AAEBAa0GValidDeckCode'), false);
 
   assert.equal((await fetch(`${origin}?format=wild`)).status, 403);
 
@@ -225,14 +242,14 @@ try {
   assert.equal(coreBody.item.builds[0].deckCode, catalog.items[0].builds[0].deckCode);
   assert.deepEqual(coreBody.history, []);
   assert.equal(coreBody.analysis, null);
-  assert.deepEqual([historyReads, analysisReads, mediaReads], [0, 0, 0], 'core must not start optional work');
+  assert.deepEqual([historyReads, analysisReads, mediaReads], [0, 0, 1], 'core must not start optional work');
   assert.equal(core.headers.get('cache-control'), 'no-store');
   const history = await fetch(`${origin}/wild/thief-priest?section=history`, { headers });
   assert.equal((await history.json() as any).history.length, 1);
-  assert.deepEqual([historyReads, analysisReads, mediaReads], [1, 0, 0]);
+  assert.deepEqual([historyReads, analysisReads, mediaReads], [1, 0, 1]);
   const analysis = await fetch(`${origin}/wild/thief-priest?section=analysis`, { headers });
   assert.equal((await analysis.json() as any).analysis.cardStats[0].rarity, 'EPIC');
-  assert.deepEqual([historyReads, analysisReads, mediaReads], [1, 1, 1]);
+  assert.deepEqual([historyReads, analysisReads, mediaReads], [1, 1, 2]);
   historyFails = true; analysisFails = true;
   assert.equal((await fetch(`${origin}/wild/thief-priest?section=core`, { headers })).status, 200);
   assert.equal((await fetch(`${origin}/wild/thief-priest?section=history`, { headers })).status, 502);
@@ -273,7 +290,7 @@ try {
   assert.equal(detailBody.history.length, 1);
   assert.equal(detailBody.analysis.rank, 'legend');
   assert.equal(detailBody.analysis.classMatchups[0].classKey, 'mage');
-  assert.equal(detailBody.analysis.cardStats[0].mulliganImpact, 4.8);
+  assert.equal(detailBody.analysis.cardStats[0].mulliganImpact, 7.1717);
   assert.equal(detailBody.analysis.cardStats[0].cost, 3);
   assert.equal(detailBody.analysis.cardStats[0].tile, 'https://api.kolodahearthstone.com/uploads/card-tiles/constructed_card/TOY_330-test.png');
   assert.equal(detailBody.analysis.cardStats[0].rarity, 'EPIC');
@@ -282,7 +299,7 @@ try {
   assert.equal(withoutMedia.status, 200);
   const withoutMediaBody = await withoutMedia.json() as any;
   assert.equal(withoutMediaBody.analysis.cardStats[0].tile, null);
-  assert.equal(withoutMediaBody.analysis.cardStats[0].mulliganImpact, 4.8);
+  assert.equal(withoutMediaBody.analysis.cardStats[0].mulliganImpact, 7.1717);
 
   assert.equal((await fetch(`${origin}/classic/thief-priest`, { headers })).status, 400);
   assert.equal((await fetch(`${origin}/wild/missing`, { headers })).status, 404);
@@ -299,7 +316,9 @@ try {
     assert.deepEqual(responses.map(response => response.status), [200, 200, 403]);
     const guest = await responses[0].json() as any;
     const member = await responses[1].json() as any;
-    assert.deepEqual(guest.item.builds, [], 'refresh must preserve the public projection');
+    assert.deepEqual(Object.keys(guest.item.builds[0]), ['deckCode', 'games', 'winrate', 'updatedAt', 'sampleRank', 'samplePeriod', 'cards'],
+      'refresh must preserve the public projection');
+    assert.equal(guest.item.builds[0].cards, null, 'without the card catalog a build keeps its code and loses only the list');
     assert.equal(member.item.builds[0].deckCode, catalog.items[0].builds[0].deckCode);
     assert.equal(responses[1].headers.get('cache-control'), 'no-store');
     assert.equal(catalogReads, 2, 'guest and protected routes share a single refresh');

@@ -49,6 +49,11 @@ import {
 
 /** Builds the gallery shows at first and adds with each «Загрузить ещё». */
 const BUILDS_PAGE = 8;
+/** With the builds open (owner decision 2026-11-18) the subscription sells the analysis only. */
+const OPEN_LAYER_PAYWALL = {
+  description: 'Откройте статистику против классов, влияние карт на винрейт и историю показателей.',
+  benefits: ['Матчапы на ранге Легенда', 'Муллиган и влияние карт', 'История и ранги архетипа'],
+};
 
 const ConstructedArchetypeAnalysis = React.lazy(loadArchetypeAnalysis);
 
@@ -450,9 +455,11 @@ type ArchetypeDetailProps = {
   initialDetail: ArchetypeDetail | null;
   embedded: boolean;
   accessPending: boolean;
+  /** Server-rendered open builds (deck codes and card lists for everyone); a subscriber's gallery replaces them once loaded. */
+  openBuilds?: React.ReactNode;
 };
 
-function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywall, initialDetail, embedded, accessPending }: ArchetypeDetailProps) {
+function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywall, initialDetail, embedded, accessPending, openBuilds }: ArchetypeDetailProps) {
   const Root = embedded ? 'section' : 'main';
   const [visibleBuilds, setVisibleBuilds] = useState(BUILDS_PAGE);
   const { detail, core, history: historyRead, analysis: analysisRead, ranks: ranksRead, fullAccess, denied } = useArchetypeDetail({
@@ -538,9 +545,9 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         <ArchetypeDossierKpis item={item} history={history} />
       </section>
 
-      {/* While access is checked the paid sections hold their loading place; the
-          preview and the paywall belong to a confirmed answer without access. */}
-      {accessPending || (fullAccess && (core.loading || core.error)) ? (
+      {/* The open builds stand here until a subscriber's gallery has loaded; without them, while access is
+          checked the paid sections hold their loading place. The preview and the paywall belong to a confirmed answer without access. */}
+      {openBuilds && (!fullAccess || core.loading) ? openBuilds : accessPending || (fullAccess && (core.loading || core.error)) ? (
         <ArchetypeDetailSection reserveViewport title="Сборки архетипа" loading={accessPending || core.loading}
           error={accessPending ? null : core.error} onRetry={core.retry} skeleton={<ArchetypeBuildsSkeleton deckCount={item.deckCount} />} />
       ) : null}
@@ -582,7 +589,7 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
         </section>
       ) : null}
 
-      {!fullAccess && !accessPending && !paywall.subscriptionStatus?.unavailable && detail.featuredBuild ? (
+      {!openBuilds && !fullAccess && !accessPending && !paywall.subscriptionStatus?.unavailable && detail.featuredBuild ? (
         <section className="archetype-build-preview" aria-labelledby="archetype-build-preview-title">
           <div>
             <span className="archetypes-eyebrow"><Sparkles size={14} /> Главная сборка</span>
@@ -602,7 +609,8 @@ function ArchetypeDetailPage({ format, slug, navigatePath, hasFullAccess, paywal
           presentation="inline"
           surface="archetype"
           variant="standard"
-          title="Колоды, матчапы и муллиган"
+          title={openBuilds ? 'Матчапы, муллиган и история' : 'Колоды, матчапы и муллиган'}
+          {...(openBuilds ? { description: OPEN_LAYER_PAYWALL.description, benefits: OPEN_LAYER_PAYWALL.benefits } : {})}
           {...paywall}
         />
       ) : null}
@@ -660,6 +668,7 @@ export default function ConstructedArchetypes({
   hasFullAccess = true,
   accessPending = false,
   paywall = DEFAULT_PAYWALL_ACCESS,
+  openBuilds,
 }: {
   currentPath?: string;
   navigatePath?: (path: string) => void;
@@ -670,6 +679,7 @@ export default function ConstructedArchetypes({
   hasFullAccess?: boolean;
   accessPending?: boolean;
   paywall?: PaywallAccessState;
+  openBuilds?: React.ReactNode;
 }) {
   const detailMatch = currentPath.match(/^\/standard\/(?:archetypes|meta)\/(standard|wild)\/([a-z0-9-]+)\/?$/);
   const content = detailMatch
@@ -683,6 +693,7 @@ export default function ConstructedArchetypes({
         initialDetail={initialDetail}
         accessPending={accessPending}
         embedded={embedded}
+        openBuilds={openBuilds}
       />
     )
     : <ArchetypeCatalogPage navigatePath={navigatePath}

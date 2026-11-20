@@ -24,3 +24,30 @@ assert.equal(teaser.analysis, null);
 assert.equal(JSON.stringify(teaser).includes('PRIVATE_'), false);
 assert.throws(() => publicArchetypeTeaser(raw, 'wild', 'wrong-slug'), /Invalid/);
 assert.throws(() => publicArchetypeTeaser({ ...raw, item: { ...raw.item, games: -1 } }, 'wild', 'thief-priest'), /Invalid/);
+
+// Open layer: a build passes field by field with its card list; anything else of a build, and a build the page
+// cannot show whole, stays out. The paid layer (mulligan and card statistics, history) never reaches the page.
+const openRaw = {
+  ...raw,
+  item: { ...raw.item, deckCount: 3, builds: [
+    { deckCode: 'AAECAf0GAfKiBALxogTzogQAAA==', games: 2216, winrate: 57.1, updatedAt: '2026-07-22T21:05:32.877Z',
+      sampleRank: 'all', samplePeriod: 'past_30_days', sourceUrl: 'https://www.hsguru.com/deck/PRIVATE_URL',
+      mulliganImpact: 7.1717, keptImpact: 6.2626,
+      cards: [{ id: 'TST_001', name: 'Тестовый удар', cost: 1, count: 2, keptImpact: 6.2626 }] },
+    { deckCode: 'AAEBAa0GAfGiBAH0ogQAAA==', games: null, winrate: null, updatedAt: null, cards: null },
+    { deckCode: 'AAECAf0GAfKiBALxogTzogQAAA==', games: 10, winrate: 50, updatedAt: null,
+      cards: [{ id: '../../admin', name: 'PRIVATE_CARD', cost: 1, count: 1 }] },
+    { deckCode: 'PRIVATE_DECK', games: 10, winrate: 50, updatedAt: null, cards: null },
+  ] },
+  history: [{ recordedAt: '2026-07-24T12:38:57.727Z', winrate: 41.4141 }],
+};
+const open = publicArchetypeTeaser(openRaw, 'wild', 'thief-priest');
+assert.deepEqual(open.openBuilds, [
+  { deckCode: 'AAECAf0GAfKiBALxogTzogQAAA==', games: 2216, winrate: 57.1, updatedAt: '2026-07-22T21:05:32.877Z',
+    cards: [{ id: 'TST_001', name: 'Тестовый удар', cost: 1, count: 2 }] },
+  { deckCode: 'AAEBAa0GAfGiBAH0ogQAAA==', games: null, winrate: null, updatedAt: null, cards: null },
+]);
+assert.deepEqual(open.item.builds, [], 'the client gallery never gets the open builds');
+for (const paid of ['7.1717', '6.2626', '41.4141', 'PRIVATE_']) {
+  assert.equal(JSON.stringify(open).includes(paid), false, `the page data carries ${paid}`);
+}
