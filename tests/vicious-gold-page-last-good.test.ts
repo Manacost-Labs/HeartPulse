@@ -9,21 +9,21 @@ import { promisify } from 'node:util';
 import { OPEN_FRAME } from './fixtures/viciousGoldSentinels.mjs';
 
 // A regeneration of /standard/vicious-gold/ while vS is down (#677): Express answers a prerender 503 (it never hands
-// out a stale frame there), so the page renders the last frame it accepted instead of throwing, and an outage
-// costs one warning, not an error per regeneration. The loader is `server-only`: it runs in a child with the
+// out a stale frame there), so the page renders the last frame it accepted instead of throwing; only with no frame
+// at all it throws, so Next keeps its earlier copy. An outage costs one warning of the page, not one per regeneration. The loader is `server-only`: it runs in a child with the
 // react-server condition, as Next loads it; each child is a fresh Next process.
 
 const run = promisify(execFile);
 
 const SCRIPT = `
-const { loadPublicViciousGold } = await import('./apps/public-web/lib/publicViciousGold.ts');
+const { loadPublicViciousGoldPage } = await import('./apps/public-web/lib/publicViciousGold.ts');
 const logged = { error: 0, warn: 0 };
 console.error = () => { logged.error += 1; };
 console.warn = () => { logged.warn += 1; };
 const pages = [];
 for (let attempt = 0; attempt < Number(process.env.ATTEMPTS); attempt += 1) {
   try {
-    const frame = await loadPublicViciousGold();
+    const frame = await loadPublicViciousGoldPage();
     pages.push(frame ? JSON.stringify(frame) === process.env.EXPECTED ? 'frame' : 'other' : 'empty');
   } catch {
     pages.push('threw');
@@ -66,8 +66,8 @@ test('a regeneration while vS is down renders the last good frame, after a resta
       'vS goes down after the first regeneration: the page keeps its frame');
     assert.deepEqual(await regenerate(stateDirectory, 2), { pages: ['frame', 'frame'], logged: { error: 0, warn: 1 } },
       'a restarted Next renders the frame kept on disk');
-    assert.deepEqual(await regenerate(emptyDirectory, 2), { pages: ['empty', 'empty'], logged: { error: 0, warn: 1 } },
-      'with no frame ever kept the page renders without data (the browser loads it), still one warning');
+    assert.deepEqual(await regenerate(emptyDirectory, 2), { pages: ['threw', 'threw'], logged: { error: 0, warn: 1 } },
+      'with no frame kept the regeneration throws (Next keeps its earlier copy), still one warning');
     assert.deepEqual([...new Set(prerenderReads)], ['1'], 'every read is a prerender read: Express never answers it with a stale frame');
   } finally {
     await new Promise<void>(resolve => express.close(() => resolve()));

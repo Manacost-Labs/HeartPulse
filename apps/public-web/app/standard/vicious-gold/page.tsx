@@ -4,7 +4,7 @@ import '@/src/features/TraditionalModeBanner.css';
 import { ViciousGoldPageClient } from '@/apps/public-web/ui/ViciousGoldPageClient';
 import { PageBannerPreload } from '@/apps/public-web/ui/PageBannerPreload';
 import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
-import { loadPublicViciousGold } from '@/apps/public-web/lib/publicViciousGold';
+import { loadPublicViciousGoldPage } from '@/apps/public-web/lib/publicViciousGold';
 import { seoStaticPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
 
 // Prerendered and regenerated every 5 minutes with the open frame of the report (#656), read without a cookie:
@@ -13,7 +13,7 @@ export const revalidate = 300;
 export const generateMetadata = seoStaticPageMetadata('/standard/vicious-gold', 'HearthPulse — Vicious Syndicate Gold');
 
 export default async function Page() {
-  const open = await loadPublicViciousGold();
+  const open = await loadPublicViciousGoldPage();
   return <>
     <SeoStructuredData path="/standard/vicious-gold" />
     <PageBannerPreload />
