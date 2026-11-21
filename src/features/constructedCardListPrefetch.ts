@@ -1,3 +1,5 @@
+import { forgetPaidCardAnswers, holdPaidCardAnswers, paidCardAnswersGeneration, refusesViewer } from './constructedCardPaidAnswers';
+
 export type ConstructedCardListResponse<T> = {
   ok: boolean;
   status: number;
@@ -12,6 +14,8 @@ type CacheEntry<T> = {
 const LIST_PREFETCH_TTL_MS = 90_000;
 const LIST_PREFETCH_LIMIT = 16;
 const listRequests = new Map<string, CacheEntry<unknown>>();
+// Every held answer goes: the server answers by the session, so a list asked as public may hold paid numbers too.
+holdPaidCardAnswers(() => listRequests.clear());
 
 function requestKey(url: string, statsAccess: boolean): string {
   return `${statsAccess ? 'paid' : 'public'}:${url}`;
@@ -40,6 +44,7 @@ export function loadConstructedCardList<T>(
 
   if (options.bust) listRequests.delete(key);
   pruneExpired(now);
+  const generation = paidCardAnswersGeneration();
   const promise = fetch(url, {
     credentials: 'same-origin',
     headers: { Accept: 'application/json' },
@@ -47,9 +52,16 @@ export function loadConstructedCardList<T>(
     const result = {
       ok: response.ok,
       status: response.status,
-      payload: await response.json().catch(() => ({} as T)),
+      payload: refusesViewer(response.status) ? {} as T : await response.json().catch(() => ({} as T)),
     };
-    if (!response.ok) listRequests.delete(key);
+    const guest = statsAccess && result.ok && (result.payload as { statsAccess?: unknown } | null)?.statsAccess === false;
+    // A paid answer started before paid answers were dropped confirms nothing: it answers as refused.
+    const stale = result.ok && (result.payload as { statsAccess?: unknown } | null)?.statsAccess === true
+      && generation !== paidCardAnswersGeneration();
+    // Refused, or a paid request answered as to a guest: the server no longer serves this viewer paid numbers.
+    if (refusesViewer(response.status) || guest) forgetPaidCardAnswers();
+    if (!response.ok || stale) listRequests.delete(key);
+    if (stale) return { ok: false, status: 401, payload: {} as T };
     return result;
   }).catch(error => {
     listRequests.delete(key);

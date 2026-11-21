@@ -55,7 +55,7 @@ assert.equal(invalid.view, 'gallery');
 assert.equal(invalid.filters.sort, 'set');
 assert.equal(invalid.filters.direction, 'asc');
 assert.equal(invalid.period, '1d');
-assert.equal(invalid.rank, 'legend');
+assert.equal(invalid.rank, 'platinum');
 assert.equal(catalogLocation('standard', '?page=-2').page, 1);
 assert.equal(catalogLocation('standard', '?page=2.5').page, 1);
 assert.equal(catalogLocation('standard', `?query=${'a'.repeat(500)}`).filters.query.length, 120);

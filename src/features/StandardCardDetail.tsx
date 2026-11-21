@@ -2,7 +2,7 @@ import { CardVariantImages, CardVariantSwitch } from '../shared/ui/CardVariantSw
 import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
 import { htmlPlainText as plainText } from '../shared/text/htmlPlainText';
 import { CardAssembleTeaser } from './CardAssembleTeaser';
-import { OPEN_STATISTICS_SLICE, useConstructedCardPeriod, useConstructedCardRank, ConstructedCardIdentity, constructedCardPath, constructedCardRoute as routeState, CardChoicesSection, cardChoiceKindOf, isAssembleCard } from '../modules/constructedCards/public';
+import { OPEN_STATISTICS_SLICE, useConstructedCardPeriod, useConstructedCardRank, ConstructedCardIdentity, constructedCardRoute as routeState, CardChoicesSection, cardChoiceKindOf, isAssembleCard } from '../modules/constructedCards/public';
 import { cardPatchEntries } from './cardPatchChanges';
 import { CardPatchTimeline } from './CardPatchTimeline';
 import React, { useEffect, useRef, useState } from 'react';
@@ -24,20 +24,18 @@ import { PaidMetricLock } from '../shared/ui/PaidLocks';
 import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
 import { fetchWithDeadline, RequestDeadlineError, RequestNetworkError } from '../shared/http/fetchWithDeadline';
 import { useScrollToTopOnCardChange } from './useScrollToTopOnCardChange';
-import { publicResourceUrl } from '../publicResourceUrl';
 import { fallbackCardImageToOrigin } from '../config/publicAssetDelivery';
 import ConstructedCardHistoryChart from './ConstructedCardHistoryChart';
 import { cardSupportsStandardStatistics } from './constructedCardFormats';
 import ConstructedCardLightbox from './ConstructedCardLightbox';
 import { loadConstructedCardDetail } from './constructedCardDetailPrefetch';
+import { useCardDocumentMeta, useForgetPaidWithoutAccess } from './useCardDetailPage';
 import DeckListView, {
   type DeckListCard,
   type DeckListSideboard,
 } from './decklist/DeckListView';
 import DeckRenderPreview from './deckrender/DeckRenderPreview';
-import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
-import { constructedCardDescription, constructedCardTitle } from '../../shared/entityPageTitles';
-import { CONSTRUCTED_SET_LABELS, constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
+import { constructedSetLabel, constructedSoundGroupLabel } from './constructedCardLabels';
 import {
   constructedClassIcon as classIcon,
   constructedClassLabel as classLabel,
@@ -507,6 +505,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
     window.addEventListener('popstate', syncFromLocation);
     return () => window.removeEventListener('popstate', syncFromLocation);
   }, [format]);
+  useForgetPaidWithoutAccess(statsAccess, () => setServerStatsAccess(false)); // before the load, so it runs first
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -549,7 +548,9 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
         }
         setCard(loadedCard);
         refusalRetried.current = false;
-        setServerStatsAccess(payload.statsAccess === true);
+        // A paid answer counts only when asked with access confirmed: the server answers by the session, and an answer
+        // asked while access was being checked must not show its paid numbers once access is confirmed.
+        setServerStatsAccess(statsAccess && payload.statsAccess === true);
         setLoadedWithAccess(statsAccess);
         setLoadedSlice(`${statsFormat}|${period}|${rank}`);
         setPeriodLabel(payload.period?.label || constructedCardPeriodLabel(period));
@@ -568,8 +569,9 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
           const shownError = readable ? { ...copy, message: loadError.message } : copy;
           if (status === 401 || status === 403) {
             // The card route refused the viewer (the subscription ended on the server): the paid numbers already on the
-            // page go before the next frame, whatever the access check still says; then access is checked again, and a
-            // confirmed one reads the card once more (once, so a refusing route cannot make a loop).
+            // page go before the next frame, whatever the access check still says, and the loader has dropped every held
+            // paid answer (`constructedCardPaidAnswers`); then access is checked again, and a confirmed one reads the
+            // card once more (once, so a refusing route cannot make a loop).
             flushSync(() => { setServerStatsAccess(false); setLoadedWithAccess(false); setError(shownError); });
             if (!refusalRetried.current) {
               refusalRetried.current = true;
@@ -586,26 +588,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
     return () => { cancelled = true; };
   }, [cardId, format, period, rank, reloadToken, statsAccess, statsFormat, initialCard]);
   useScrollToTopOnCardChange(card?.card_id ?? null);
-  useEffect(() => {
-    if (!card) return;
-    const name = cardName(card);
-    const resolvedCardId = card.card_id || cardId;
-    // The same facts as the server title (`page.tsx`), so loading the full record does not change the title a crawler rendered:
-    // the seed carries the labels, the full record the codes.
-    const facts = {
-      name, id: resolvedCardId, format, rulesText: plainText(card.text?.ru || card.text?.en), classCode: card.class,
-      set: card.card_set ? CONSTRUCTED_SET_LABELS[card.card_set] ?? card.card_set : null,
-      rarity: card.rarity ? constructedRarityLabel(card.rarity) : null,
-      type: card.card_type?.name_ru, mana: card.mana_cost, attack: card.attack, health: card.health, durability: card.durability,
-    };
-    void applyDocumentPageMeta({
-      title: constructedCardTitle(facts),
-      description: constructedCardDescription(facts),
-      pathname: constructedCardPath(format, resolvedCardId),
-      search: '',
-      image: publicResourceUrl(card.images?.card),
-    });
-  }, [card, cardId, format]);
+  useCardDocumentMeta(card, cardId, format);
 
   if (loading) return <CardDetailSkeleton />;
   // A failed refresh with a card at hand keeps the page (the open numbers stay) and says so beside the statistics.

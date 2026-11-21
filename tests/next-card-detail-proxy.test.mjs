@@ -98,7 +98,12 @@ test('a card page shows its open detail without script, and nothing paid', async
     for (const paid of [...PAID_SENTINELS, 'QA_PRIVATE_SCORE']) assert.ok(!html.includes(paid), `no ${paid} in the HTML, its RSC payload or JSON-LD`);
     // The open numbers are the page's own: shown, with their date; every paid row stands as a named lock.
     for (const shown of ['Популярность', '12,3%', '54,2%', '1,9', 'обновлено']) assert.ok(text.includes(shown), `the server HTML shows «${shown}»`);
-    assert.equal((html.match(/aria-label="[^"]*: по подписке/g) ?? []).length >= 8, true, 'the paid rows, filters and history stand as locks');
+    for (const row of ['Винрейт, если сыграна', 'Винрейт, если взята', 'Оставляют в муллигане', 'Винрейт из стартовой руки',
+      'Обычно разыгрывают на ходу', 'Партий в выборке']) {
+      assert.ok(html.includes(`aria-label="${row}: по подписке. Узнать, как открыть"`), `the paid row «${row}» stands as a lock`);
+    }
+    // Rank and period are the subscriber's selects on the open slice (#447), not locks.
+    assert.match(text, /Ранг\s+Платина\s+Период\s+Последний день/, 'the open slice in the selects');
     assert.ok(!text.includes('Алмаз'), 'no separate paywall block');
   } finally {
     if (next) await next.close();

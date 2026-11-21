@@ -41,7 +41,9 @@ function watchFrames(paid) {
   const look = when => {
     const text = document.querySelector('.constructed-card-detail')?.textContent ?? '';
     const found = text.match(pattern);
-    if (window.__armed && found) window.__paidFrames.push({ when, found: found[0] });
+    if (window.__armed && found) {
+      window.__paidFrames.push({ when, found: found[0], mode: document.querySelector('dl.constructed-cards__stats')?.dataset.statsMode });
+    }
   };
   window.__look = look;
   const sample = () => { look('frame'); requestAnimationFrame(sample); };
@@ -133,6 +135,145 @@ async function restoredWithoutConfirmation(cases) {
   }
 }
 
+/**
+ * Picks an option of the card page's «Период» select from the keyboard (the sticky header cannot cover it). A viewer the
+ * page holds for a guest gets the offer for a closed option; it is closed again and the page stays where it was.
+ */
+async function pickPeriod(page, option) {
+  const select = 'xpath/.//*[contains(@class,"constructed-card-detail__statistics-controls")]//*[contains(@class,"constructed-cards__filter")][span[normalize-space()="Период"]]//button';
+  await (await page.waitForSelector(select, { timeout: 10_000 })).focus();
+  await page.keyboard.press('ArrowDown');
+  const choice = await page.waitForSelector(`xpath/.//*[@role="option"][starts-with(normalize-space(), "${option}")]`, { visible: true, timeout: 10_000 });
+  await choice.evaluate(node => node.click());
+  if (await page.waitForSelector('[role="dialog"]', { visible: true, timeout: 500 }).catch(() => null)) {
+    await page.keyboard.press('Escape');
+    await page.waitForSelector('[role="dialog"]', { hidden: true, timeout: 5_000 });
+  }
+}
+
+/**
+ * Marks the moment the page itself learns that the server no longer serves it paid numbers: its `fetch` resolves with a
+ * refusal (401, 403), or a paid card answer it reads says `statsAccess: false` (a guest's answer). A frame before that
+ * cannot know; every frame from then on counts (`window.__armed`).
+ */
+function markWithdrawal() {
+  const pageFetch = window.fetch.bind(window);
+  window.fetch = async (...args) => {
+    const response = await pageFetch(...args);
+    const url = String(args[0] instanceof Request ? args[0].url : args[0]);
+    if (!url.includes('/api/constructed-cards/')) return response;
+    if (response.status === 401 || response.status === 403) window.__armed = true;
+    const readJson = response.json.bind(response);
+    response.json = async () => {
+      const payload = await readJson();
+      if (window.__paidAsked && payload?.statsAccess === false) window.__armed = true;
+      return payload;
+    };
+    return response;
+  };
+}
+
+/**
+ * 4. Paid answers held by the page are no confirmation. Slices A (Platinum · last day) and B (Platinum · 3 days) are
+ * read with access; then the server stops serving paid numbers in one of three ways:
+ * - `401` / `403`: the card route refuses the viewer (slice C, 7 days);
+ * - `guest`: the card route answers as to a guest (`statsAccess: false`: the session no longer reaches it) from slice C
+ *   on, while the subscription check still grants access;
+ * - `unconfirmed`: Back restores the page and the check fails; then the card route answers as to a guest and
+ *   «Повторить проверку» confirms access again.
+ * From then on no frame shows a paid number: back on A and on B by the select, after Back from a client navigation
+ * (breadcrumb «Стандарт» and `history.back()`) and after Back from the back/forward cache.
+ */
+async function cachedSlicesAfterWithdrawal(trigger) {
+  const runtime = await cardPilot();
+  const target = new URL(runtime.origin);
+  const proxy = { card: 'pass', status: 'pass' };
+  // A proxy, not request interception: an intercepted page does not enter the back/forward cache.
+  const server = http.createServer((request, response) => {
+    const { pathname } = new URL(request.url, 'http://proxy');
+    if (typeof proxy.card === 'number' && pathname.startsWith('/api/constructed-cards/blizzard')) {
+      response.writeHead(proxy.card, { 'Content-Type': 'application/json' }).end('{"error":"Статистика доступна по подписке"}');
+      return;
+    }
+    if (proxy.status === 'error' && ['/api/subscription/status', '/api/subscription/refresh'].includes(pathname)) {
+      response.writeHead(503, { 'Content-Type': 'application/json' }).end('{"error":"unavailable"}');
+      return;
+    }
+    // `guest`: the card route gets no session, so it answers as to a guest.
+    const headers = { ...request.headers };
+    if (proxy.card === 'guest' && pathname.startsWith('/api/constructed-cards')) delete headers.cookie;
+    const upstream = http.request(target, { method: request.method, path: request.url, headers },
+      answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
+    upstream.on('error', () => response.destroy());
+    request.pipe(upstream);
+  });
+  const browser = await launchBrowser({ executablePath, headless: true, args: ['--no-sandbox'] });
+  try {
+    const origin = await listenLocal(server);
+    const { context, page } = await subscriberPage(browser, origin, runtime);
+    await page.evaluateOnNewDocument(markWithdrawal);
+    const backFromCache = async where => {
+      await page.evaluate(() => { window.__restoreMarker = true; });
+      await Promise.all([page.waitForNavigation({ waitUntil: 'load' }), page.evaluate(() => { setTimeout(() => { location.href = '/faq/'; }, 0); })]);
+      await Promise.all([page.waitForNavigation({ waitUntil: 'load' }), page.evaluate(() => { setTimeout(() => history.back(), 0); })]);
+      await page.waitForFunction(() => document.readyState === 'complete' && Boolean(document.querySelector('.constructed-card-detail')), { timeout: 10_000 }).catch(() => {});
+      assert.equal(await page.evaluate(() => window.__restoreMarker === true), true, `${trigger}: Back restores the page from the back/forward cache ${where}`);
+    };
+    const noPaidFrame = async where => {
+      await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 2000)));
+      assert.deepEqual(await page.evaluate(() => window.__paidFrames.slice(0, 3)), [], `${trigger}: no paid number ${where}`);
+    };
+
+    await page.goto(origin + CARD, { waitUntil: 'load' });
+    await settled(page, 'full');
+    assert.match(await pageText(page), /56,21%/, `${trigger}: slice A is read with its paid numbers`);
+    await pickPeriod(page, 'Последние 3 дня');
+    await settled(page, 'full');
+    assert.match(await pageText(page), /56,21%/, `${trigger}: slice B too`);
+
+    if (trigger === 'unconfirmed') {
+      proxy.status = 'error';
+      await backFromCache('with the check failing');
+      await page.evaluate(() => { window.__armed = true; });
+      await page.waitForSelector('.constructed-card-detail__statistics-unavailable button', { timeout: 25_000 });
+      await noPaidFrame('while access is not confirmed');
+      proxy.card = 'guest';
+      proxy.status = 'pass';
+      await (await page.waitForSelector('xpath/.//button[normalize-space()="Повторить проверку"]')).click();
+      await page.waitForFunction(() => !document.querySelector('.constructed-card-detail__statistics-unavailable'), { timeout: 20_000 });
+      await noPaidFrame('after the check grants again');
+    } else {
+      proxy.card = trigger;
+      await page.evaluate(() => { window.__paidAsked = true; });
+      await pickPeriod(page, 'Последние 7 дней');
+      await page.waitForFunction(() => window.__armed === true, { timeout: 15_000 });
+      await noPaidFrame('after the server stopped serving paid numbers');
+    }
+    await pickPeriod(page, 'Последний день');
+    await noPaidFrame('back on slice A');
+    await pickPeriod(page, 'Последние 3 дня');
+    await noPaidFrame('back on slice B');
+    await pickPeriod(page, 'Последний день');
+    await page.evaluate(() => { window.__clientMarker = true; });
+    // A reader's click on the link (the sticky search bar may cover it on screen).
+    await (await page.waitForSelector('xpath/.//nav[@aria-label="Breadcrumb"]//a[normalize-space()="Стандарт"]')).evaluate(node => node.click());
+    await page.waitForFunction(() => location.pathname === '/standard/cards/standard/' && Boolean(document.querySelector('h1')), { timeout: 20_000 })
+      .catch(error => { throw new Error(`${error.message}; at ${page.url()}`); });
+    assert.equal(await page.evaluate(() => window.__clientMarker === true), true, `${trigger}: the catalog opened by client navigation`);
+    await page.evaluate(() => history.back());
+    await page.waitForFunction(() => location.pathname.startsWith('/standard/cards/standard/blizzard'), { timeout: 20_000 });
+    await page.waitForSelector('.constructed-card-detail__statistics dl.constructed-cards__stats', { timeout: 20_000 });
+    await noPaidFrame('after Back from a client navigation');
+    await backFromCache('at the end');
+    await noPaidFrame('after Back from the back/forward cache');
+    assert.doesNotMatch(await pageText(page), new RegExp(PAID), `${trigger}: the page ends without paid numbers`);
+    await context.close();
+  } finally {
+    await browser.close();
+    await closeLocal(server);
+  }
+}
+
 describe('paid card numbers leave with the access', { concurrency: 2 }, () => {
   // 1. The card route refuses the next request (the subscription ended on the server): the paid numbers already on the
   // page go in the frame the refusal arrives, before any check answers.
@@ -180,6 +321,11 @@ describe('paid card numbers leave with the access', { concurrency: 2 }, () => {
   // 2. Legend's numbers are paid, its three «open» rows included: after a restore a check that fails or is late shows none.
   test('a restored Legend page whose access is not confirmed again shows none of its numbers', { timeout: 180_000 },
     () => restoredWithoutConfirmation([['?rank=legend', 'error'], ['?rank=legend', 'late']]));
+
+  for (const trigger of [401, 403, 'guest', 'unconfirmed']) {
+    test(`held paid answers show nothing after the server stops serving paid numbers (${trigger})`, { timeout: 180_000 },
+      () => cachedSlicesAfterWithdrawal(trigger));
+  }
 
   // 3. On the open slice the recommended decks' winrates are paid: after a restore a failed or late check shows none.
   test('a restored card page whose access is not confirmed again shows no deck winrate', { timeout: 180_000 },

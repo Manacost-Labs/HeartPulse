@@ -26,6 +26,7 @@ import {
   prefetchConstructedCardList,
 } from './constructedCardListPrefetch';
 export { prefetchInitialConstructedCardCatalog } from './constructedCardListPrefetch';
+import { forgetPaidCardAnswers } from './constructedCardPaidAnswers';
 import { type ConstructedCardCatalogFilters as Filters } from './constructedCardCatalogModel';
 import { compareConstructedSets, constructedSetLabel } from './constructedCardLabels';
 import {
@@ -327,6 +328,8 @@ function CardsListPage({ initialFormat, isLibraryRoot, initialCatalog, initialSe
   const { state, update, updateFilter, reset, clearSearch } = useCatalogLocation(initialFormat, initialSearch);
   const { format, period, rank, view, filters, perPage } = state;
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  // Access not confirmed now: the held paid answers of every card and slice go (`constructedCardPaidAnswers`).
+  useEffect(() => { if (!statsAccess) forgetPaidCardAnswers(); }, [statsAccess]);
   const { data, loading, error: failure, requestQuery, loadedWithAccess, retry } = useCatalogData<ListPayload>({ state, seed: initialCatalog, statsAccess, load: loadConstructedCardList });
   const warmCatalog = useCatalogIntentWarm(state, statsAccess, prefetchConstructedCardList);
   const error = failure ? constructedCardRequestError('list', failure.status, '') : null;
