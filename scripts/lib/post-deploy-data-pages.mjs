@@ -56,8 +56,9 @@ export const DATA_PAGES = [
   { path: '/standard/archetypes/', marker: 'archetype-row__rank', copyWords: 186, dataWords: 3603 },
   // The Wild list (#637): the same rows as the Standard list; words not measured.
   { path: '/standard/archetypes/wild/', marker: 'archetype-row__rank', copyWords: 0, dataWords: 0 },
-  // The open list (#566) renders the decks of server HTML; `fun-deck-card` is only the subscriber's client view.
-  { path: '/standard/fun-decks/', marker: 'fun-decks-open__facts', copyWords: 279, dataWords: 410 },
+  // One deck card for every viewer (#675): the numbers of a deck exist only in a card with data (the loader draws
+  // `fun-deck-tiles-skeleton-stats`, an empty selection a notice).
+  { path: '/standard/fun-decks/', marker: 'fun-deck-tiles__stats', copyWords: 279, dataWords: 410 },
   // The deck hub and the class pages (#309, #650): dynamic, 503 with Retry-After until the catalog is warm after a
   // restart. The hub's marker is a deck code (only a copy whose builds came in time has one; the warm-up also fills
   // the shared build loader), a class page's the table of its archetypes. Words: not measured.

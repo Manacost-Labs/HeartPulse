@@ -1,9 +1,8 @@
 import { useMemo } from 'react';
-import { useResolvedDeck } from '../decklist/useResolvedDeck';
+import { useDeckView } from '../deckViews/DeckViewCards';
 import { funDeckWhy, type FunDeckRow, type FunDeckTagId } from '../funDecksPreview';
-import { funDeckEntries } from './deckEntries';
 import { funDeckClassMeta, funDeckFormat } from './deckMeta';
-import { useNearScreen } from './useNearScreen';
+import { funDeckSeed } from './funDeckSeed';
 import './FunDeckLayouts.css';
 
 /** Shared pieces of the tile and row deck cards. */
@@ -15,22 +14,24 @@ export type DeckCardProps = {
   pinnedTags?: readonly FunDeckTagId[];
 };
 
-/** `eager`: in view on arrival, resolved at once; the others wait until they are about a screen away. */
+/**
+ * The deck's cards for the tile and row views. The open card list of the answer
+ * is drawn at once, on the server too, and is the same for every viewer; once
+ * the deck is about a screen away (`eager`: at once) its full list (rarities,
+ * sideboards) is read and replaces it in place. A failed read keeps the open list.
+ */
 export function useFunDeck(deck: FunDeckRow, eager = false) {
   const format = funDeckFormat(deck);
-  const { ref, near } = useNearScreen<HTMLElement>(eager);
-  const resolved = useResolvedDeck(deck.deckCode, { format, archetype: deck.nearestArchetype || undefined, enabled: near });
-  const classMeta = funDeckClassMeta(deck, resolved.data?.heroDbfId);
-  const entries = useMemo(
-    () => (resolved.data ? funDeckEntries(resolved.data.cards, resolved.data.sideboards) : []),
-    [resolved.data],
-  );
+  const seed = useMemo(() => funDeckSeed(deck, format), [deck, format]);
+  const view = useDeckView(deck.deckCode, { format, archetype: deck.nearestArchetype || undefined }, eager, seed, true);
+  const classMeta = funDeckClassMeta(deck, view.data?.heroDbfId);
   const subtitle = [
     classMeta.label,
     format === 'wild' ? 'Вольный' : 'Стандарт',
-    resolved.data?.deckSizeLimit === 40 ? '40 карт' : '',
+    view.data?.deckSizeLimit === 40 ? '40\u00a0карт' : '',
+    deck.streamer ?? '',
   ].filter(Boolean).join(' · ');
-  return { ...resolved, classMeta, entries, subtitle, ref };
+  return { ...view, classMeta, subtitle };
 }
 
 

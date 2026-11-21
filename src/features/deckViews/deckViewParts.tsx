@@ -90,7 +90,8 @@ function DeckTile({ card, configuredCost = null, eager }: { card: FunDeckCard; c
       <span className="fun-deck-tile__fallback" aria-hidden="true">
         <b>{cost}</b><span>{card.name}</span>
       </span>
-      {art.showImage ? (
+      {/* An open list's card nobody names has no id, so no art to ask for. */}
+      {art.showImage && card.id ? (
         <img key={art.attempt} {...art.imageProps} src={funDeckCardArt(card.id, 'row')} alt="" width={400} height={80}
           loading={eager ? 'eager' : 'lazy'} decoding="async" />
       ) : null}
@@ -128,7 +129,7 @@ export function DeckPortrait({ card, configuredCost = null, small = false, eager
     <CardLink card={card} cost={cost} className={`fun-deck-portrait is-${rarity}${small ? ' is-small' : ''}${art.status === 'loaded' ? ' is-loaded' : ''}`}>
       <span className="fun-deck-portrait__ring">
         <b aria-hidden="true">{cost}</b>
-        {art.showImage ? (
+        {art.showImage && card.id ? (
           <img key={art.attempt} {...art.imageProps} src={funDeckCardArt(card.id, 'portrait')} alt="" width={96} height={96}
             loading={eager ? 'eager' : 'lazy'} decoding="async" />
         ) : null}

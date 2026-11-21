@@ -1,5 +1,4 @@
 import React, {
-  type ReactNode,
   useCallback,
   useEffect,
   useMemo,
@@ -167,9 +166,10 @@ function decksWord(count: number): string {
 }
 
 /**
- * The selection: a server-rendered guest preview shows at once, and the
- * complete list, which filters and subscribers need, loads behind it
- * without a loader. Only a page without a preview starts with the loader.
+ * The selection: the one the server read shows at once, and the complete
+ * list, which filters need, loads behind it without a loader. An answer
+ * without decks, or a failed read, keeps the decks the page already shows.
+ * Only a page without a preview starts with the loader.
  */
 function useFunDecksData(initialPreview: FunDecksPayload | null) {
   const [data, setData] = useState<FunDecksPayload>(initialPreview ?? EMPTY_DATA);
@@ -187,7 +187,8 @@ function useFunDecksData(initialPreview: FunDecksPayload | null) {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить подборку');
-      setData(payload as FunDecksPayload);
+      const next = payload as FunDecksPayload;
+      setData(current => (next.decks?.length || !current.decks.length ? next : current));
       setComplete(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Не удалось загрузить подборку');
@@ -204,19 +205,22 @@ function useFunDecksData(initialPreview: FunDecksPayload | null) {
   return { data, loading, complete, error, retry };
 }
 
+/**
+ * One page for every viewer: a guest, a robot and a subscriber get the same
+ * server HTML (the default tile view of `initialPreview`) and the same page
+ * after it loads. The selection is open, so nothing on it is locked.
+ */
 export default function FunDecksPage({
   initialPreview = null,
-  openDecks,
 }: {
   /** The selection read on the server (apps/public-web/lib/publicFunDecksPreview.ts): every deck, for every viewer. */
   initialPreview?: FunDecksPayload | null;
-  /** The server-rendered list of those decks with their cards and codes; it stays until the interactive view has real decks to replace it. */
-  openDecks?: ReactNode;
 }) {
   const { data, loading, complete, error: loadError, retry } = useFunDecksData(initialPreview);
   // A failed refresh keeps the preview the page already has.
   const error = loadError && !data.decks.length ? loadError : '';
-  const [arrivesLater] = useState(!initialPreview || openDecks !== undefined);
+  // Decks the server rendered are part of the document; only decks the browser loads fade in.
+  const [arrivesLater] = useState(!initialPreview);
   const { filters, query, view, filtered, change, search, reset } = useFunDecksFilters();
   const { listeners: previewListeners, tooltip: cardPreview } = useFunDeckCardPreview();
   const [layout, setLayout] = useDeckLayout();
@@ -230,8 +234,6 @@ export default function FunDecksPage({
     && (filters.format !== 'all' || filters.classes.length > 0 || filters.tags.length > 0 || filters.sort !== 'newest');
 
   const visibleDecks = filteredDecks;
-  // The server list holds the page until the full answer arrives with decks in it, then the interactive view takes its place in one render.
-  const showOpen = openDecks !== undefined && !(complete && data.decks.length > 0) && !loadError && !settling;
 
   return (
     <div className="fun-decks-page">
@@ -290,14 +292,14 @@ export default function FunDecksPage({
         onReset={reset}
       />
 
-      {!error && !showOpen && (loading || settling || visibleDecks.length) ? (
+      {!error && (loading || settling || visibleDecks.length) ? (
         <div className="fun-decks-layout-bar">
           <p>{loading || settling ? '\u00a0' : `${filteredDecks.length} ${decksWord(filteredDecks.length)}`}</p>
           <DeckLayoutSwitch layout={layout} onChange={setLayout} />
         </div>
       ) : null}
 
-      {showOpen ? openDecks : loading || settling ? (
+      {loading || settling ? (
         <FunDecksSkeleton layout={layout} />
       ) : error ? (
         <section className="fun-decks-page__state fun-decks-page__state--error" role="alert">

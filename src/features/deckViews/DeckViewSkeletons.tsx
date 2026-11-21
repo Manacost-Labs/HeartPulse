@@ -10,14 +10,20 @@ export function DeckCodeSkeleton() {
   return <code className="fun-deck-code"><LoadingText className="archetype-skeleton__words">{CODE_SHAPE}</LoadingText></code>;
 }
 
-/** Placeholder of a tile column: the same shell the loaded deck has while its list loads. */
-export function TileSkeleton({ code = false }: { code?: boolean }) {
+/**
+ * Placeholder of a tile column: the same shell the loaded deck has while its list loads. `funDeck`: a fun deck's
+ * tile, its four numbers in two pairs and the date of its data over the code.
+ */
+export function TileSkeleton({ code = false, funDeck = false }: { code?: boolean; funDeck?: boolean }) {
   return <div className="fun-deck-tiles fun-deck-tiles--loading" aria-hidden="true">
     <div className="fun-deck-tiles__head"><LoadingBlock className="fun-deck-skeleton-icon" /><div><LoadingBlock /><LoadingBlock /></div></div>
-    <LoadingBlock className="fun-deck-tiles-skeleton-stats" />
+    <LoadingBlock className={funDeck ? 'fun-deck-tiles-skeleton-stats fun-deck-tiles-skeleton-stats--pairs' : 'fun-deck-tiles-skeleton-stats'} />
     <LoadingBlock className="fun-deck-tiles-skeleton-why" />
     <div className="fun-deck-tiles__deck"><div className="fun-deck-layout-state fun-deck-layout-state--tiles" /></div>
-    <div className="fun-deck-tiles__foot">{code ? <DeckCodeSkeleton /> : null}<LoadingBlock className="fun-deck-tiles-skeleton-copy" /></div>
+    <div className="fun-deck-tiles__foot">
+      {funDeck ? <p className="fun-deck-tiles__date"><LoadingText>Данные на 20 октября 2026 г.</LoadingText></p> : null}
+      {code || funDeck ? <DeckCodeSkeleton /> : null}<LoadingBlock className="fun-deck-tiles-skeleton-copy" />
+    </div>
   </div>;
 }
 

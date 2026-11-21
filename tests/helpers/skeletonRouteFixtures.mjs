@@ -33,7 +33,8 @@ const FUN_CLASSES = ['MAGE', 'DRUID', 'PALADIN', 'WARLOCK', 'DEATHKNIGHT', 'ROGU
 function funDecks(variant) {
   const decks = FUN_CLASSES.map((className, index) => ({
     title: pick(variant, `Колода с очень длинным названием про необычную идею номер ${index + 1}, которая переносится`, `Идея ${index + 1}`),
-    deckCode: `AAECAfixtureFunDeck${index + 1}`,
+    // A real deck code's length (the tile prints the code, and its skeleton reserves the lines of a typical one).
+    deckCode: `AAECAfixtureFunDeck${index + 1}`.padEnd(103, 'A'),
     format: 'wild',
     className,
     streamer: pick(variant, 'Стример с длинным псевдонимом', null),

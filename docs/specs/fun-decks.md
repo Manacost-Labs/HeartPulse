@@ -2,21 +2,28 @@
 
 `/standard/fun-decks/` presents selected Standard and Wild decks with format,
 class, type and search filters and four sorts. The whole selection is open to
-every viewer: a guest, a robot and a subscriber get the same HTML. The server
+every viewer, and every viewer gets one page (#675): a guest, a robot and a
+subscriber get the same HTML and the same page after it loads. The server
 reads `/api/fun-decks` anonymously
 (`apps/public-web/lib/publicFunDecksPreview.ts`, a field-by-field allowlist in
-`publicFunDecksPreviewData.ts`) and renders every deck, newest first
-(`orderFunDecks()`), as `FunDecksOpenList`: each deck is the archetypes' open
-build (`ArchetypeOpenBuild`: win rate, games, date, the card list, the deck
-code with «Скопировать код») plus the format, class, fun index, distance from
-the meta and reasons, all without scripts. Each card links to
-`/standard/cards/<format>/<id>/` of the deck's own format (Wild decks to
-`wild`). No deck is left out of the list: one whose card list is missing keeps
-its numbers, its code and the copy button. The browser then loads
-`/api/fun-decks` and, once it holds decks, the interactive page (filters,
-three layouts, deck pictures) replaces the list in one render; if that read
-fails the page keeps the decks it has. Nothing in
-the selection is paid, so the page has no subscription offer and no lock.
+`publicFunDecksPreviewData.ts`) and renders `FunDecksPage` itself from that
+selection: every deck, newest first (`orderFunDecks()`), in the default tile
+view (`FunDeckTilesCard`). A tile carries the class, format and streamer, the
+«Новая» badge, the win rate, games, fun index and distance from the meta
+(«Вне меты»), the reasons, the card list, the date of the data, the deck code
+as text and «Копировать код». The card list on the server is the answer's open
+`cards` (`funDeckSeed()`): each card links to `/standard/cards/<format>/<id>/`
+of the deck's own format (Wild decks to `wild`), a card outside the catalog is
+named without a link, and a card nobody names is «Неизвестная карта» in its
+place, without art. No deck is left out: one without a card list keeps its
+numbers, its code and the copy button. In the browser each deck, once about a
+screen away (the first at once), reads its full list (`/api/deck/resolve`:
+rarities, sideboards), which replaces the open one in place; a failed read
+keeps the open list. The browser also loads `/api/fun-decks` for filters; its
+answer replaces the selection in the same places, and a failed read or an
+answer without decks keeps the decks the page has. Nothing in the selection is
+paid, so the page has no subscription offer and no lock. The post-deploy
+warm-up waits for `fun-deck-tiles__stats`, the numbers of a tile with data.
 
 The public endpoint adds `cards` to every deck: the main deck decoded from
 `deckCode` (`server/funDeckOpenCards.ts`), each line
@@ -81,7 +88,7 @@ no tag matches.
 `?format=wild&class=priest,mage&tag=highlander&sort=reliable`. Defaults and
 unknown values are left out, other parameters stay, the search text is not
 kept. The page reads the address after hydration (the server renders the
-defaults) and shows the loader instead of the server list while the complete
+defaults) and shows the loader instead of the server-rendered decks while the complete
 list, which a filtered view needs, is on its way.
 
 ## Off-meta and moderation

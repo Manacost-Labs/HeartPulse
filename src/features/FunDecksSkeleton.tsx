@@ -23,7 +23,7 @@ function PictureSkeleton() {
 }
 
 const VIEWS: Record<DeckLayout, { grid: string; Deck: () => React.JSX.Element }> = {
-  tiles: { grid: 'fun-decks-tiles-grid', Deck: () => <TileSkeleton /> },
+  tiles: { grid: 'fun-decks-tiles-grid', Deck: () => <TileSkeleton funDeck /> },
   rows: { grid: 'fun-decks-rows', Deck: () => <RowSkeleton /> },
   images: { grid: 'fun-decks-grid', Deck: PictureSkeleton },
 };
