@@ -39,12 +39,11 @@ drops the mark. The script drops the mark itself after 3 s
 still shows its tiles. A guest without parameters or a kept view gets the
 server HTML as it is.
 
-Every filtered variant keeps the bare page's canonical
-(`https://hearthpulse.net/standard/fun-decks/`) and robots: the public URL
-policy has no query rule for this page, so the variants are `index, follow`
-with a canonical to the bare page. Whether `format`, `class`, `tag` and `sort`
-should be `noindex, follow` here, as on the other faceted pages, is the SEO
-registry's decision (`src/shared/seo/publicRouteInventory.json`).
+Every filtered variant names the bare page as its canonical
+(`https://hearthpulse.net/standard/fun-decks/`) and is `noindex, follow`: the
+SEO registry's query rules for the page's `format`, `class`, `tag` and `sort`
+(#684, `src/shared/seo/publicRouteInventory.json`). Only the bare page is
+indexed.
 
 Lead decisions of #675 (2026-11-21): the server renders a link's filters and
 sort (the page is `force-dynamic`, not ISR); the open answer carries

@@ -313,10 +313,11 @@ test('a guest, a robot and a subscriber get one fun-decks page', { timeout: 240_
     assert.doesNotMatch(guestHtml, /по подписке|paywalled-/i);
     assert.doesNotMatch(guestHtml, /SENTINEL_SOURCE_ID|SENTINEL_ADMIN_NOTE|candidateSourceId|moderationNote/);
     // A link's filters and sort change the server HTML (#675), but not what is indexed: every variant names the bare page
-    // as its canonical and carries the bare page's robots rule.
-    assert.equal(headOf(guestHtml).canonical, BARE);
+    // as its canonical and is `noindex, follow` (the SEO registry's rule for the page's filters, #684).
+    assert.deepEqual(headOf(guestHtml), { canonical: BARE, robots: 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1' });
     for (const search of ['?format=wild', '?format=standard', '?class=mage,priest&sort=fun', '?tag=highlander', '?sort=reliable']) {
-      assert.deepEqual(headOf(await html(stack.origin, GOOGLEBOT_UA, search)), headOf(guestHtml), `${search}: canonical and robots of the bare page`);
+      assert.deepEqual(headOf(await html(stack.origin, GOOGLEBOT_UA, search)), { canonical: BARE, robots: 'noindex, follow' },
+        `${search}: canonical of the bare page, not indexed`);
     }
 
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
@@ -476,14 +477,13 @@ test('the server tiles show by themselves when the page\'s scripts never run', {
 }));
 
 // The address is the reader's input: unknown values, very long ones and markup are ignored, never printed as markup,
-// and change nothing of what is indexed.
+// and the page stays the bare page's variant (canonical to it, not indexed).
 test('the page reads only its own filters from the address', { timeout: 240_000 }, async () => {
   const stack = await startStack();
   const next = await startNextServer({ legacyOrigin: stack.origin });
   stack.next = next.origin;
   let browser;
   try {
-    const bare = await html(stack.origin, GOOGLEBOT_UA);
     const injected = [
       ['?format=%3Cscript%3Ealert(1)%3C/script%3E', 24],
       [`?class=${encodeURIComponent('"><img src=x onerror=alert(1)>')},mage`, 3],
@@ -498,7 +498,7 @@ test('the page reads only its own filters from the address', { timeout: 240_000 
       const page = await response.text();
       assert.equal(titlesOf(page).length, decks, `${search.slice(0, 60)}: what is left of the filters applies`);
       assert.doesNotMatch(page, /<script>alert\(1\)|<img src=x onerror|<svg\/onload|<b id=injected/i, `${search.slice(0, 60)}: no value is printed as markup`);
-      assert.deepEqual(headOf(page), headOf(bare), `${search.slice(0, 60)}: canonical and robots of the bare page`);
+      assert.deepEqual(headOf(page), { canonical: BARE, robots: 'noindex, follow' }, `${search.slice(0, 60)}: canonical of the bare page, not indexed`);
     }
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
