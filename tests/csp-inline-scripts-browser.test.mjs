@@ -3,7 +3,7 @@ import { after, before, test } from 'node:test';
 import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { startQaNextRuntime } from '../scripts/qa/nextRuntime.mjs';
 import { registeredInlineScriptHashes } from '../apps/public-web/contentSecurityPolicy.mjs';
-import { startCspEnforcingProxy } from './helpers/cspEnforcingProxy.mjs';
+import { isFrameworkScript, startCspEnforcingProxy } from './helpers/cspEnforcingProxy.mjs';
 
 // The pages of #686: home, meta, an archetype, a card, Vicious Syndicate Gold,
 // fun decks (with a kept deck view) and the Battlegrounds tier list.
@@ -15,11 +15,12 @@ let runtime;
 let proxy;
 let browser;
 let dropped = null;
+let planted = '';
 
 before(async () => {
   runtime = await startQaNextRuntime();
   proxy = await startCspEnforcingProxy(runtime.origin, { policyHashes: () => Object.entries(registeredInlineScriptHashes())
-    .filter(([id]) => id !== dropped).map(([, hash]) => hash) });
+    .filter(([id]) => id !== dropped).map(([, hash]) => hash), rewriteHtml: html => html.replace('</body>', `${planted}</body>`) });
   browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
 });
 
@@ -112,3 +113,31 @@ for (const [id, path, missing] of [
     }
   });
 }
+
+test('only complete framework scripts count as the framework\'s', () => {
+  for (const body of ['(self.__next_f=self.__next_f||[]).push([0])', 'self.__next_f.push([1,"0:\\"$Sreact.fragment\\"\\n"])',
+    'requestAnimationFrame(function(){$RT=performance.now()});', '$RC("B:1","S:1")', '$RS("S:2","P:2")']) {
+    assert.equal(isFrameworkScript(body), true, body);
+  }
+  for (const body of ['self.__next_f.push([0]);window.unregisteredCode=1', 'self.__next_f.push([0]),alert(1)',
+    'self.__next_f.push(alert(1))', '(self.__next_f=self.__next_f||[]).push([0]);fetch("/x")', '$RC("B:1","S:1");alert(1)',
+    '$RC("B:1",alert(1))', '$RC("B:1")', '$RX("B:1")', 'requestAnimationFrame(function(){$RT=performance.now()});alert(1)',
+    '$RB=[];alert(1)', '']) {
+    assert.equal(isFrameworkScript(body), false, body);
+  }
+});
+
+test('a script that only looks like the framework\'s is blocked', { timeout: 90_000 }, async () => {
+  planted = '<script>self.__next_f.push([0]);window.__planted="payload"</script>'
+    + '<script>$RC("B:9","S:9");window.__planted="instruction"</script>';
+  const { page, context } = await open('/');
+  try {
+    const state = await page.evaluate(() => ({ violations: window.__violations, planted: window.__planted }));
+    assert.deepEqual(state.violations.map(violation => [violation.directive, violation.blocked]),
+      [['script-src-elem', 'inline'], ['script-src-elem', 'inline']], 'both planted scripts are blocked');
+    assert.equal(state.planted, undefined, 'neither planted script ran');
+  } finally {
+    planted = '';
+    await context.close();
+  }
+});

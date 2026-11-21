@@ -119,14 +119,19 @@ cookieless visitors (`docs/specs/public-document-caching.md`).
 - `tests/csp-inline-scripts-browser.test.mjs`: the QA runtime
   (`scripts/qa/nextRuntime.mjs`) behind a loopback proxy that sends an
   enforcing `Content-Security-Policy` on every HTML response: the site policy
-  plus the hashes of that response's framework scripts (recognised only by the
-  prefixes above, so a site script without a registered hash stays blocked).
+  plus the hashes of that response's framework scripts. A framework script is
+  recognised only in its complete shape (`self.__next_f.push(<JSON array>)`,
+  React's exact runtime definitions, one `$RC`/`$RS` call with JSON string
+  arguments; `tests/helpers/cspEnforcingProxy.mjs`), so a site script without
+  a registered hash, or code appended to a framework-like prefix, stays blocked.
   On `/`, meta, an archetype, a card, Vicious Syndicate Gold, fun decks and the
   Battlegrounds tier list it checks that no violation is reported, that the
   head scripts mark the remembered viewer, the compact menu and the kept deck
   view, that the runtime switches arrive and that the page hydrates (the menu
   toggle answers a click). For every registered script of these pages it also
-  drops that one hash and checks that exactly this script is blocked.
+  drops that one hash and checks that exactly this script is blocked, and it
+  plants two scripts that start like the framework's but carry other code and
+  checks that both are blocked.
 
 ## Before enforcing in production
 
