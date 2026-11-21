@@ -282,7 +282,7 @@
     "esbuild": "0.28.2",
     "fast-check": "4.10.2",
     "knip": "6.38.0",
-    "markdownlint-cli2": "0.24.0",
+    "markdownlint-cli2": "0.24.2",
     "oxlint": "1.89.0",
     "puppeteer": "25.16.0",
     "react-doctor": "0.9.14",
@@ -303,7 +303,16 @@
     "@google/design.md": {
       "zod": "4.6.7"
     },
-    "katex": "0.18.2"
+    "katex": "0.18.2",
+    "@stryker-mutator/core": {
+      "minimatch": "11.0.9"
+    },
+    "@stryker-mutator/tap-runner": {
+      "glob": "14.0.6"
+    },
+    "@joshwooding/vite-plugin-react-docgen-typescript": {
+      "glob": "14.0.6"
+    }
   },
   "description": "Russian Hearthstone Arena and Battlegrounds analytics platform"
 }
