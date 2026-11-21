@@ -16,6 +16,7 @@ export type { CatalogLocation } from './model/catalogLocation';
 export type { CardCatalogPayload, PublicCatalogCard, PublicCardCatalogSeed } from './model/catalogPayload';
 export { useCatalogLocation } from './useCatalogLocation';
 export { useCatalogData } from './useCatalogData';
+export { forgetPaidCardAnswers, holdPaidCardAnswers, onPaidCardAnswersForgotten, paidCardAnswersGeneration, refusesViewer } from './paidAnswers';
 export { useCatalogIntentWarm } from './useCatalogIntentWarm';
 export { ConstructedCardsBanner } from './ui/ConstructedCardsBanner';
 export { constructedFacetValues } from './model/filterFacets';

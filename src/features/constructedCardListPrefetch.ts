@@ -1,4 +1,4 @@
-import { forgetPaidCardAnswers, holdPaidCardAnswers, paidCardAnswersGeneration, refusesViewer } from './constructedCardPaidAnswers';
+import { forgetPaidCardAnswers, holdPaidCardAnswers, paidCardAnswersGeneration, refusesViewer } from '../modules/constructedCards/public';
 
 export type ConstructedCardListResponse<T> = {
   ok: boolean;

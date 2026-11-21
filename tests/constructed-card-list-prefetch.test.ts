@@ -5,7 +5,7 @@ import {
   prefetchInitialConstructedCardCatalog,
 } from '../src/features/constructedCardListPrefetch';
 import { loadConstructedCardDetail } from '../src/features/constructedCardDetailPrefetch';
-import { forgetPaidCardAnswers } from '../src/features/constructedCardPaidAnswers';
+import { forgetPaidCardAnswers, onPaidCardAnswersForgotten } from '../src/modules/constructedCards/paidAnswers';
 
 const originalFetch = globalThis.fetch;
 let calls = 0;
@@ -68,7 +68,11 @@ try {
   await loadConstructedCardList(paidList, true);
   await loadConstructedCardDetail({ ...detail, statsAccess: true });
   assert.equal(calls, held, 'paid answers are held while nothing refused the viewer');
+  // The views showing paid numbers hear of it: at once for a refusal read outside React, with the render from an effect.
+  const heard: boolean[] = [];
+  const stopHearing = onPaidCardAnswersForgotten(sync => heard.push(sync));
   assert.equal((await loadConstructedCardList('/api/constructed-cards?refused=1', true)).status, 401);
+  assert.deepEqual(heard, [true], 'a refusal reaches the shown views at once');
   const refusedAt = calls;
   await loadConstructedCardList(paidList, true);
   await loadConstructedCardDetail({ ...detail, statsAccess: true });
@@ -88,7 +92,9 @@ try {
 
   // An access that is not confirmed drops them too, and a paid answer still on its way then confirms nothing.
   const onTheWay = loadConstructedCardDetail({ ...detail, period: '7d', statsAccess: true });
-  forgetPaidCardAnswers();
+  forgetPaidCardAnswers({ sync: false });
+  assert.deepEqual(heard.slice(-1), [false], 'an access lost in an effect reaches the views with its render');
+  stopHearing();
   assert.equal((await onTheWay).status, 401, 'a paid answer started before the access went answers as refused');
   const forgottenAt = calls;
   await loadConstructedCardDetail({ ...detail, statsAccess: true });

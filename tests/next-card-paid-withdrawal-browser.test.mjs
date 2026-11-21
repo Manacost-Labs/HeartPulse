@@ -34,12 +34,12 @@ let pilot = null;
 const cardPilot = () => (pilot ??= startPublicCardPilot({ pagesEnabled: true, externalRoutes }).then(runtime => { runtime.grant(); return runtime; }));
 after(async () => { if (pilot) await (await pilot).close(); });
 
-/** Counts the frames that show a paid figure anywhere in the card page once `window.__armed` is set. */
+/** Counts the frames that show a paid figure anywhere in the page's content (hidden nodes included) once `window.__armed` is set. */
 function watchFrames(paid) {
   const pattern = new RegExp(paid);
   window.__paidFrames = [];
   const look = when => {
-    const text = document.querySelector('.constructed-card-detail')?.textContent ?? '';
+    const text = (document.querySelector('main') ?? document.body)?.textContent ?? '';
     const found = text.match(pattern);
     if (window.__armed && found) {
       window.__paidFrames.push({ when, found: found[0], mode: document.querySelector('dl.constructed-cards__stats')?.dataset.statsMode });
@@ -52,13 +52,13 @@ function watchFrames(paid) {
 
 const settled = (page, mode, timeout = 25_000) =>
   page.waitForSelector(`.constructed-card-detail__statistics dl.constructed-cards__stats[data-stats-mode="${mode}"]:not([aria-busy])`, { timeout });
-const subscriberPage = async (browser, origin, runtime) => {
+const subscriberPage = async (browser, origin, runtime, paid = PAID) => {
   const context = await browser.createBrowserContext();
   const page = await context.newPage();
   await page.setViewport({ width: 1440, height: 900 });
   const [name, value] = runtime.cookie.split('=');
   await page.setCookie({ name, value, url: origin });
-  await page.evaluateOnNewDocument(watchFrames, PAID);
+  await page.evaluateOnNewDocument(watchFrames, paid);
   return { context, page };
 };
 const pageText = page => page.$eval('.constructed-card-detail', node => node.textContent);
@@ -161,7 +161,7 @@ function markWithdrawal() {
   window.fetch = async (...args) => {
     const response = await pageFetch(...args);
     const url = String(args[0] instanceof Request ? args[0].url : args[0]);
-    if (!url.includes('/api/constructed-cards/')) return response;
+    if (!url.includes('/api/constructed-cards')) return response;
     if (response.status === 401 || response.status === 403) window.__armed = true;
     const readJson = response.json.bind(response);
     response.json = async () => {
@@ -274,6 +274,66 @@ async function cachedSlicesAfterWithdrawal(trigger) {
   }
 }
 
+/** The catalog's paid figures for the fixture cards: popularity, deck winrate and games (all locked for a guest). */
+const CATALOG_PAID = String.raw`12,5\s?%|53,0\s?%|20\s000`;
+
+/**
+ * 5. The catalog shows paid numbers; the reader rests on another rank in the menu and the warm request of that slice is
+ * refused (401, 403) or answered as to a guest, while the subscription check still grants access. The shown list
+ * turns into its open view in the frame the page reads that answer: no paid number in any later frame, hidden nodes
+ * included.
+ */
+async function catalogAfterWarmRefusal(trigger) {
+  const runtime = await cardPilot();
+  const target = new URL(runtime.origin);
+  const proxy = { list: 'pass' };
+  const server = http.createServer((request, response) => {
+    const { pathname } = new URL(request.url, 'http://proxy');
+    const list = pathname === '/api/constructed-cards';
+    if (list && typeof proxy.list === 'number') {
+      response.writeHead(proxy.list, { 'Content-Type': 'application/json' }).end('{"error":"Статистика доступна по подписке"}');
+      return;
+    }
+    const headers = { ...request.headers };
+    if (list && proxy.list === 'guest') delete headers.cookie;
+    const upstream = http.request(target, { method: request.method, path: request.url, headers },
+      answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
+    upstream.on('error', () => response.destroy());
+    request.pipe(upstream);
+  });
+  const browser = await launchBrowser({ executablePath, headless: true, args: ['--no-sandbox'] });
+  try {
+    const origin = await listenLocal(server);
+    const { context, page } = await subscriberPage(browser, origin, runtime, CATALOG_PAID);
+    await page.evaluateOnNewDocument(markWithdrawal);
+    const warmed = [];
+    page.on('request', request => { if (new URL(request.url()).pathname === '/api/constructed-cards') warmed.push(new URL(request.url()).searchParams.get('rank')); });
+    await page.goto(`${origin}/standard/cards/standard/?view=table`, { waitUntil: 'networkidle0' });
+    await page.waitForFunction(paid => new RegExp(paid).test(document.querySelector('.constructed-cards__table')?.textContent ?? ''),
+      { timeout: 25_000 }, CATALOG_PAID);
+    await page.click('.constructed-cards__advanced-toggle');
+    await page.click('.constructed-cards__rank-filter .constructed-cards__filter-trigger');
+    const option = await page.waitForSelector('.constructed-cards__rank-filter [role="option"][aria-selected="false"]', { visible: true });
+    proxy.list = trigger;
+    await page.evaluate(() => { window.__paidAsked = true; });
+    const box = await option.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 3 });
+    await page.waitForFunction(() => window.__armed === true, { timeout: 15_000 });
+    assert.ok(warmed.length > 0, `${trigger}: resting on a rank warms its slice`);
+    await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 2000)));
+    assert.deepEqual(await page.evaluate(() => window.__paidFrames.slice(0, 3)), [], `${trigger}: no paid number in the catalog after the warm answer`);
+    await page.keyboard.press('Escape');
+    const table = await page.$eval('.constructed-cards__table', node => node.textContent);
+    assert.doesNotMatch(table, new RegExp(CATALOG_PAID), `${trigger}: the shown list is its open view`);
+    assert.ok(await page.$('.constructed-cards__table [aria-label*="Тариф"], .constructed-cards__table .constructed-cards__locked-value, .constructed-cards__table button[aria-label*="по подписке"]'),
+      `${trigger}: the paid columns stand as locks`);
+    await context.close();
+  } finally {
+    await browser.close();
+    await closeLocal(server);
+  }
+}
+
 describe('paid card numbers leave with the access', { concurrency: 2 }, () => {
   // 1. The card route refuses the next request (the subscription ended on the server): the paid numbers already on the
   // page go in the frame the refusal arrives, before any check answers.
@@ -322,6 +382,10 @@ describe('paid card numbers leave with the access', { concurrency: 2 }, () => {
   test('a restored Legend page whose access is not confirmed again shows none of its numbers', { timeout: 180_000 },
     () => restoredWithoutConfirmation([['?rank=legend', 'error'], ['?rank=legend', 'late']]));
 
+  for (const trigger of [401, 403, 'guest']) {
+    test(`a shown paid catalog turns open when the warm request of another slice is refused (${trigger})`, { timeout: 180_000 },
+      () => catalogAfterWarmRefusal(trigger));
+  }
   for (const trigger of [401, 403, 'guest', 'unconfirmed']) {
     test(`held paid answers show nothing after the server stops serving paid numbers (${trigger})`, { timeout: 180_000 },
       () => cachedSlicesAfterWithdrawal(trigger));

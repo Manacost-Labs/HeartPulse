@@ -5,7 +5,7 @@ import type {
 } from './constructedCardPeriods';
 
 import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
-import { forgetPaidCardAnswers, holdPaidCardAnswers, paidCardAnswersGeneration, refusesViewer } from './constructedCardPaidAnswers';
+import { forgetPaidCardAnswers, holdPaidCardAnswers, paidCardAnswersGeneration, refusesViewer } from '../modules/constructedCards/public';
 
 type CardFormat = 'standard' | 'wild';
 

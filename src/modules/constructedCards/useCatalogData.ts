@@ -1,15 +1,22 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import type { CatalogLocation } from './model/catalogLocation';
 import { constructedCardCatalogUrl } from './model/catalogQuery';
+import { forgetPaidCardAnswers, onPaidCardAnswersForgotten } from './paidAnswers';
 
 const SEARCH_REQUEST_DEBOUNCE_MS = 250;
 
 type CatalogResponse<T> = { ok: boolean; status: number; payload: T };
 type CatalogLoader<T> = (url: string, statsAccess: boolean, options: { bust?: boolean }) => Promise<CatalogResponse<T>>;
 
-export function useCatalogData<T extends { statsAccess: boolean }>({ state, seed, statsAccess, load }: {
-  state: CatalogLocation; seed?: T; statsAccess: boolean; load: CatalogLoader<T>;
+/**
+ * The catalog list of the location. `openPart`: the list without its paid numbers; a refusal or a guest answer of any
+ * card request (`onPaidCardAnswersForgotten`) turns a shown paid list into it in the same frame (`withdrawn` until a
+ * new paid answer).
+ */
+export function useCatalogData<T extends { statsAccess: boolean }>({ state, seed, statsAccess, load, openPart }: {
+  state: CatalogLocation; seed?: T; statsAccess: boolean; load: CatalogLoader<T>; openPart: (data: T) => T;
 }) {
   const [data, setData] = useState<T | null>(seed ?? null);
   // The access the shown data was requested with (the server-rendered seed has none).
@@ -17,6 +24,18 @@ export function useCatalogData<T extends { statsAccess: boolean }>({ state, seed
   const [loading, setLoading] = useState(!seed);
   const [error, setError] = useState<{ status: number } | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
+  const [withdrawn, setWithdrawn] = useState(false);
+  const toOpen = useRef(openPart);
+  useEffect(() => { toOpen.current = openPart; });
+  // Access not confirmed now: every held answer goes, of every card and slice (`paidAnswers`).
+  useEffect(() => { if (!statsAccess) forgetPaidCardAnswers({ sync: false }); }, [statsAccess]);
+  useEffect(() => onPaidCardAnswersForgotten(sync => {
+    const hide = () => {
+      setData(current => (current?.statsAccess ? toOpen.current(current) : current));
+      setWithdrawn(true);
+    };
+    if (sync) flushSync(hide); else hide();
+  }), []);
   const [requestQuery, setRequestQuery] = useState(() => state.filters.query.trim());
   const firstRequest = useRef(true);
   const url = constructedCardCatalogUrl({ ...state, query: requestQuery });
@@ -36,6 +55,7 @@ export function useCatalogData<T extends { statsAccess: boolean }>({ state, seed
       if (result.ok) {
         setData(result.payload);
         setLoadedWithAccess(statsAccess);
+        setWithdrawn(Boolean(statsAccess && !result.payload.statsAccess));
       }
       else setError({ status: result.status });
     }).catch(() => { if (active) setError({ status: 0 }); })
@@ -44,5 +64,5 @@ export function useCatalogData<T extends { statsAccess: boolean }>({ state, seed
   }, [url, statsAccess, reloadToken, load, seed]);
   // A previous paid response must disappear as soon as access is lost.
   const visibleData = !statsAccess && data?.statsAccess ? null : data;
-  return { data: visibleData, loading, error, requestQuery, loadedWithAccess, retry: () => setReloadToken(value => value + 1) };
+  return { data: visibleData, loading, error, requestQuery, loadedWithAccess, withdrawn, retry: () => setReloadToken(value => value + 1) };
 }

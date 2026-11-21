@@ -26,7 +26,6 @@ import {
   prefetchConstructedCardList,
 } from './constructedCardListPrefetch';
 export { prefetchInitialConstructedCardCatalog } from './constructedCardListPrefetch';
-import { forgetPaidCardAnswers } from './constructedCardPaidAnswers';
 import { type ConstructedCardCatalogFilters as Filters } from './constructedCardCatalogModel';
 import { compareConstructedSets, constructedSetLabel } from './constructedCardLabels';
 import {
@@ -324,13 +323,14 @@ function Pagination({ page, totalPages, total, perPage, onPage, hrefFor }: { pag
   );
 }
 
+/** The catalog without its paid numbers: what a guest gets for the same page. */
+const openCatalogPart = (payload: ListPayload): ListPayload => ({ ...payload, statsAccess: false, cards: payload.cards.map(card => ({ ...card, stats: null })) });
+
 function CardsListPage({ initialFormat, isLibraryRoot, initialCatalog, initialSearch, navigatePath, statsAccess, statsAccessLoading, statsAccessUnavailable, authUser, onRefreshSubscription }: Pick<StandardCardsProps, 'initialCatalog' | 'initialSearch' | 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'statsAccessUnavailable' | 'authUser' | 'onRefreshSubscription'> & { initialFormat: CardFormat; isLibraryRoot: boolean }) {
   const { state, update, updateFilter, reset, clearSearch } = useCatalogLocation(initialFormat, initialSearch);
   const { format, period, rank, view, filters, perPage } = state;
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  // Access not confirmed now: the held paid answers of every card and slice go (`constructedCardPaidAnswers`).
-  useEffect(() => { if (!statsAccess) forgetPaidCardAnswers(); }, [statsAccess]);
-  const { data, loading, error: failure, requestQuery, loadedWithAccess, retry } = useCatalogData<ListPayload>({ state, seed: initialCatalog, statsAccess, load: loadConstructedCardList });
+  const { data, loading, error: failure, requestQuery, loadedWithAccess, withdrawn, retry } = useCatalogData<ListPayload>({ state, seed: initialCatalog, statsAccess, load: loadConstructedCardList, openPart: openCatalogPart });
   const warmCatalog = useCatalogIntentWarm(state, statsAccess, prefetchConstructedCardList);
   const error = failure ? constructedCardRequestError('list', failure.status, '') : null;
   useEffect(() => {
@@ -348,8 +348,9 @@ function CardsListPage({ initialFormat, isLibraryRoot, initialCatalog, initialSe
   // way, statistics stay blank instead of locked: locks belong to a confirmed
   // answer without access.
   const loadedWithStats = data ? Boolean(data.statsAccess) : statsAccess;
-  const hasStatsAccess = loadedWithStats || statsAccessLoading || Boolean(statsAccessUnavailable)
-    || (statsAccess && loadedWithAccess !== true && !failure);
+  // Paid numbers withdrawn by a refusal or a guest answer: the open view, with locks, until a new paid answer.
+  const hasStatsAccess = !withdrawn && (loadedWithStats || statsAccessLoading || Boolean(statsAccessUnavailable)
+    || (statsAccess && loadedWithAccess !== true && !failure));
   const statsGate = { statsAccessLoading, authUser, onRefreshSubscription };
   const dataNotice = data ? constructedCardDataNotice(data) : null;
   // The pressed button paints at once; the other view (about 1,800 table

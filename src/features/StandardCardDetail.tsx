@@ -570,7 +570,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
           if (status === 401 || status === 403) {
             // The card route refused the viewer (the subscription ended on the server): the paid numbers already on the
             // page go before the next frame, whatever the access check still says, and the loader has dropped every held
-            // paid answer (`constructedCardPaidAnswers`); then access is checked again, and a confirmed one reads the
+            // paid answer (`constructedCards/paidAnswers`); then access is checked again, and a confirmed one reads the
             // card once more (once, so a refusing route cannot make a loop).
             flushSync(() => { setServerStatsAccess(false); setLoadedWithAccess(false); setError(shownError); });
             if (!refusalRetried.current) {

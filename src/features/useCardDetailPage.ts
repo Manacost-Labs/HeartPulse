@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { flushSync } from 'react-dom';
 import { htmlPlainText as plainText } from '../shared/text/htmlPlainText';
 import { applyDocumentPageMeta } from '../shared/seo/publicUrlPolicy';
 import { constructedCardDescription, constructedCardTitle } from '../../shared/entityPageTitles';
@@ -7,7 +8,7 @@ import { publicResourceUrl } from '../publicResourceUrl';
 import { CONSTRUCTED_SET_LABELS } from './constructedCardLabels';
 import { constructedRarityLabel } from './constructedCardFilterOptions';
 import { cardName, type CardFormat, type CardRecord } from './constructedCardRecord';
-import { forgetPaidCardAnswers } from './constructedCardPaidAnswers';
+import { forgetPaidCardAnswers, onPaidCardAnswersForgotten } from '../modules/constructedCards/public';
 
 // Hooks of the card page (`StandardCardDetail`), kept apart so the page stays within its size budget.
 
@@ -36,8 +37,9 @@ export function useCardDocumentMeta(card: CardRecord | null, cardId: string, for
 }
 
 /**
- * Access not confirmed now (refused, being checked, unavailable): every paid answer held in the page goes
- * (`constructedCardPaidAnswers`), the loaded card's paid numbers included (`forgetLoaded`), so a confirmed access
+ * Access not confirmed now (refused, being checked, unavailable), or a refusal or a guest answer of any card request:
+ * every paid answer held in the page goes
+ * (`constructedCards/paidAnswers`), the loaded card's paid numbers included (`forgetLoaded`), so a confirmed access
  * shows them only from a new answer of the server.
  */
 export function useForgetPaidWithoutAccess(statsAccess: boolean, forgetLoaded: () => void) {
@@ -45,7 +47,9 @@ export function useForgetPaidWithoutAccess(statsAccess: boolean, forgetLoaded: (
   useEffect(() => { forget.current = forgetLoaded; });
   useEffect(() => {
     if (statsAccess) return;
-    forgetPaidCardAnswers();
-    forget.current();
+    forgetPaidCardAnswers({ sync: false });
   }, [statsAccess]);
+  // Any refusal or guest answer anywhere (a prefetch, another card, the catalog list) drops the page's paid numbers in
+  // the same frame.
+  useEffect(() => onPaidCardAnswersForgotten(sync => { if (sync) flushSync(() => forget.current()); else forget.current(); }), []);
 }
