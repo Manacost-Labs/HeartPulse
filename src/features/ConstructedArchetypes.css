@@ -531,10 +531,12 @@
 
 .archetype-dossier {
   --dossier-art-width: min(30%, 340px);
+  --dossier-metric-columns: 6;
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 1.1rem;
+  align-content: start;
   align-items: center;
   overflow: hidden;
   min-height: 15rem;
@@ -613,12 +615,12 @@
 .archetype-dossier__metrics {
   position: relative;
   z-index: 3;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
-/* The plate's material outranks the kit's `.ui-panel` on the same element, which another
-   CSS chunk may load later. */
+/* Keep all tracks while HTML streams the six tiles. A later kit stylesheet uses auto-fit,
+   which otherwise expands the first tiles into the space of the ones still on the wire. */
 .archetype-dossier .archetype-dossier__metrics {
+  grid-template-columns: repeat(var(--dossier-metric-columns), minmax(0, 1fr));
   border: 1px solid rgba(239, 201, 111, 0.28);
   background: rgba(30, 4, 9, 0.5);
   -webkit-backdrop-filter: blur(10px) saturate(1.15);
@@ -824,8 +826,7 @@
   .archetype-row { grid-template-columns: 32px 48px minmax(160px, 1fr) auto; contain-intrinsic-size: auto 117px; }
   .archetype-row__metrics { grid-column: 1 / -1; grid-row: 2; }
   .archetype-row__open { grid-column: 4; grid-row: 1; }
-  .archetype-dossier__metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .archetype-dossier { --dossier-art-width: min(32%, 300px); }
+  .archetype-dossier { --dossier-art-width: min(32%, 300px); --dossier-metric-columns: 3; }
   .archetype-history__charts { grid-template-columns: 1fr; }
   .archetype-trend svg { min-width: 0; }
 }
@@ -879,7 +880,6 @@
   .archetype-dossier__identity { align-items: center; gap: 0.65rem; }
   .archetype-dossier__identity > img { width: 62px; height: 62px; }
   .archetype-dossier h1 { font-size: clamp(1.65rem, 9vw, 2.35rem); }
-  .archetype-dossier__metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   /* Phones keep the change line but not the sparkline. */
   .archetype-dossier__metrics { --ui-kpi-group-padding: 0.55rem 0.5rem; --ui-kpi-group-value-size: 1.1rem; }
   .archetype-dossier__metrics .ui-kpi-group__tile { min-height: 5.6rem; }

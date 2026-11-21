@@ -5,6 +5,7 @@ import { once } from 'node:events';
 import { readFileSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import test from 'node:test';
+import { measureDossierStream } from './helpers/archetypeDossierStream.mjs';
 import { launchBrowser } from '../scripts/lib/browser-launch.mjs';
 import { createPublicWebGateway } from '../scripts/public-web-gateway.mjs';
 import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
@@ -153,7 +154,7 @@ async function startStand() {
       await page.evaluate(() => document.fonts.ready);
       return { page, close: () => context.close() };
     };
-    return { state, release, open, close };
+    return { state, release, open, close, browser, gateway, origin };
   } catch (error) {
     await close();
     throw error;
@@ -408,6 +409,24 @@ test('the rows view kept in this browser gets the subscriber the full lists, and
     await guest.close();
     assert.equal(open, 7, 'the guest\'s rows show the open lists');
     assert.equal(state.resolves, 0, 'no full list is read for a guest');
+  } finally {
+    await stand.close();
+  }
+});
+
+test('streamed dossier tiles keep their geometry from the first paint at 4x CPU slowdown', { timeout: 180_000 }, async t => {
+  const stand = await startStand();
+  try {
+    for (const width of WIDTHS) {
+      for (const member of [false, true]) {
+        stand.state.member = member;
+        const { partial, final, cls } = await measureDossierStream(stand, PATH, width);
+        const viewer = member ? 'subscriber' : 'guest';
+        t.diagnostic(`${viewer} at ${width}px: dossier CLS ${cls.toFixed(4)}, tile ${partial}px → ${final}px`);
+        assert.ok(cls < 0.01, `${viewer} at ${width}px: dossier CLS ${cls}`);
+        assert.ok(Math.abs(partial - final) < 1, `${viewer} at ${width}px: tile width ${partial} → ${final}`);
+      }
+    }
   } finally {
     await stand.close();
   }
