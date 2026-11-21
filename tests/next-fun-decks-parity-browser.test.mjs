@@ -235,6 +235,17 @@ test('a guest, a robot and a subscriber get one fun-decks page', { timeout: 240_
     // Nothing paid: no lock, no offer, no gate; and no field outside the open allowlist, in the HTML or its RSC payload.
     assert.doesNotMatch(text, /paid-lock|paid-filter-lock|arena-paywall|paywalled-|по подписке/i);
     assert.doesNotMatch(text, /SENTINEL_SOURCE_ID|SENTINEL_ADMIN_NOTE|candidateSourceId|moderationNote/);
+    // A link's filters and sort change the server HTML (#675), but not what is indexed: every variant names the bare page
+    // as its canonical and carries the bare page's robots rule.
+    const head = page => ({
+      canonical: page.match(/<link rel="canonical" href="([^"]+)"/)?.[1] ?? null,
+      robots: page.match(/<meta name="robots" content="([^"]+)"/)?.[1] ?? null,
+    });
+    assert.equal(head(guestHtml).canonical, 'https://hearthpulse.net/standard/fun-decks/');
+    for (const search of ['?format=wild', '?format=standard', '?class=mage,priest&sort=fun', '?tag=highlander', '?sort=reliable']) {
+      const variant = await (await fetch(`${stack.origin}/standard/fun-decks/${search}`, { headers: { 'User-Agent': GOOGLEBOT_UA } })).text();
+      assert.deepEqual(head(variant), head(guestHtml), `${search}: canonical and robots of the bare page`);
+    }
 
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
       headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
@@ -353,4 +364,28 @@ test('a kept deck view replaces the server tiles before they show', { timeout: 2
     assert.ok(shift < 0.01, `${at} ${layout}: the kept view and its full lists do not move the page (CLS ${shift})`);
     await page.browserContext().close();
   }
+}));
+
+// The kept view hides the server tiles until the page's scripts draw it; scripts that never run must not hide them for
+// good: the inline script drops its own mark after DECK_LAYOUT_RESTORE_LIMIT_MS (3 s).
+test('the server tiles show by themselves when the page\'s scripts never run', { timeout: 240_000 }, () => delayedPage(async (browser, stack, viewport, at) => {
+  const page = await (await browser.createBrowserContext()).newPage();
+  await page.setViewport(viewport);
+  await page.evaluateOnNewDocument(() => localStorage.setItem('hp:deck-layout', 'rows'));
+  await page.setRequestInterception(true);
+  page.on('request', request => (/\/_next\/static\/.*\.js(?:\?|$)/.test(request.url()) ? request.abort() : request.continue()));
+  await page.goto(`${stack.origin}/standard/fun-decks/`, { waitUntil: 'domcontentloaded' });
+  const look = () => page.evaluate(() => {
+    const tiles = document.querySelector('.fun-decks-tiles-grid');
+    return { at: performance.now(), mark: document.documentElement.dataset.deckLayoutRestore ?? null,
+      visible: Boolean(tiles) && getComputedStyle(tiles).visibility === 'visible' };
+  });
+  const early = await look();
+  assert.ok(early.at < 2_500, `${at}: looked before the limit (${Math.round(early.at)} ms)`);
+  assert.deepEqual([early.mark, early.visible], ['rows', false], `${at}: the kept view hides the server tiles at first`);
+  await page.waitForFunction(() => performance.now() > 3_500, { timeout: 10_000, polling: 100 });
+  const late = await look();
+  assert.deepEqual([late.mark, late.visible], [null, true], `${at}: without the page's scripts the tiles show after 3 s`);
+  assert.equal(await page.$('section.fun-decks-rows'), null, `${at}: the scripts really never ran`);
+  await page.browserContext().close();
 }));

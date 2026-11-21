@@ -35,10 +35,25 @@ nothing. The deck view a reader keeps («Строки», «Картинки», i
 (`DECK_LAYOUT_RESTORE_SCRIPT`) marks `<html data-deck-layout-restore>`, the
 server tiles keep their place unseen, and the page draws the kept view in the
 first frame after hydration (`useDeckLayout` reads it in a layout effect) and
-drops the mark. A guest without parameters or a kept view gets the server HTML
-as it is. Nothing in the selection is
-paid, so the page has no subscription offer and no lock. The post-deploy
-warm-up waits for `fun-deck-tiles__stats`, the numbers of a tile with data.
+drops the mark. The script drops the mark itself after 3 s
+(`DECK_LAYOUT_RESTORE_LIMIT_MS`), so a page whose scripts never load or run
+still shows its tiles. A guest without parameters or a kept view gets the
+server HTML as it is.
+
+Every filtered variant keeps the bare page's canonical
+(`https://hearthpulse.net/standard/fun-decks/`) and robots: the public URL
+policy has no query rule for this page, so the variants are `index, follow`
+with a canonical to the bare page. Whether `format`, `class`, `tag` and `sort`
+should be `noindex, follow` here, as on the other faceted pages, is the SEO
+registry's decision (`src/shared/seo/publicRouteInventory.json`).
+
+Lead decisions of #675 (2026-11-21): the server renders a link's filters and
+sort (the page is `force-dynamic`, not ISR); the open answer carries
+`sideboards`, decoded from the public `deckCode` and read field by field.
+
+Nothing in the selection is paid, so the page has no subscription offer and no
+lock. The post-deploy warm-up waits for `fun-deck-tiles__stats`, the numbers of
+a tile with data.
 
 The public endpoint adds `cards` to every deck: the main deck decoded from
 `deckCode` (`server/funDeckOpenCards.ts`), each line
