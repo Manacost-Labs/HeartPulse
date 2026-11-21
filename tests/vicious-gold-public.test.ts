@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
-import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import express from 'express';
 import { createStandardMetaRouter, type StandardMetaRouterDependencies } from '../server/standardMetaRoutes.ts';
-import { createPublicViciousGoldHandler, projectPublicViciousGold } from '../server/viciousGoldPublic.ts';
+import { createPublicViciousGoldHandler, createViciousGoldFrameCopy, projectPublicViciousGold } from '../server/viciousGoldPublic.ts';
 import { isPublicDataApiRequest } from '../server/apiRateLimitPolicy.ts';
 import {
   CLOSED_INTEGER_PATTERN, CLOSED_KEYS, CLOSED_VALUES, closedKeyPattern, OPEN_FRAME, PERMUTED_REPORTS, REPORT,
@@ -257,5 +257,34 @@ test('a state directory that is not a directory or is read-only never breaks the
   } finally {
     await chmod(readOnly, 0o755);
     await rm(root, { recursive: true, force: true });
+  }
+});
+
+test('two writes that finish out of order leave the newer frame on disk', async () => {
+  const stateDirectory = await mkdtemp(join(tmpdir(), 'vicious-gold-state-'));
+  const newer = { ...OPEN_FRAME, updatedAt: '2026-11-21T09:00:00.000Z' };
+  // The disk is the outside boundary: the first write (the older frame) is held until the newer one has had its turn.
+  let releaseOlder = () => {};
+  const olderHeld = new Promise<void>(resolve => { releaseOlder = resolve; });
+  let calls = 0;
+  const slowFirstWrite: typeof writeFile = async (...args) => {
+    calls += 1;
+    if (calls === 1) await olderHeld;
+    return writeFile(...args);
+  };
+  try {
+    const copy = createViciousGoldFrameCopy(stateDirectory, () => SAVED_AT, { writeFile: slowFirstWrite });
+    const older = copy.save(OPEN_FRAME);
+    const later = copy.save(newer);
+    await new Promise(resolve => setTimeout(resolve, 50));
+    releaseOlder();
+    await Promise.all([older, later]);
+    const directory = join(stateDirectory, COPY_DIRECTORY);
+    assert.deepEqual(JSON.parse(await readFile(join(directory, 'public.json'), 'utf8')), { format: 1, savedAt: SAVED_AT, frame: newer });
+    assert.deepEqual(await readdir(directory), ['public.json'], 'no temporary file is left behind');
+    assert.deepEqual(await copy.load(), { frame: newer, savedAt: SAVED_AT });
+  } finally {
+    releaseOlder();
+    await rm(stateDirectory, { recursive: true, force: true });
   }
 });

@@ -138,32 +138,46 @@ type KeptFrame = { frame: PublicViciousGold; savedAt: number };
  * The last good open frame in `<stateDirectory>/vicious-gold-last-good-v1/public.json` (#677), so a restarted Express
  * whose source is down still answers a guest. Only the projection is written, never the source's answer, and a read
  * frame passes the contract's parser again (the file is only data). Writes are atomic (a temporary file and a
- * rename); a failing disk costs the copy across restarts, never an answer, and is logged once.
+ * rename); a failing disk costs the copy across restarts, never an answer, and is logged once. Writes run one at a
+ * time, in the order the frames came, and a frame that waits is replaced by a newer one: an older frame whose write
+ * finishes late can never land over a newer one. `files` is the disk boundary, replaceable in tests.
  */
-function createFrameCopy(stateDirectory: string | undefined, now: () => number) {
+export function createViciousGoldFrameCopy(stateDirectory: string | undefined, now: () => number,
+  files: { writeFile: typeof writeFile } = { writeFile }) {
   const directory = stateDirectory ? join(stateDirectory, COPY_DIRECTORY) : null;
   let written = { serialized: '', at: -Infinity };
   let warned = false;
-  return {
-    async save(frame: PublicViciousGold): Promise<void> {
-      if (!directory) return;
-      const serialized = JSON.stringify(frame);
-      const savedAt = now();
-      if (serialized === written.serialized && savedAt - written.at < COPY_REWRITE_MS) return;
-      const file = join(directory, COPY_FILE);
-      const temporary = `${file}.${process.pid}.${randomUUID()}.tmp`;
-      try {
-        await mkdir(directory, { recursive: true });
-        await writeFile(temporary, JSON.stringify({ format: COPY_FORMAT, savedAt, frame }), { mode: 0o640, flag: 'wx' });
-        await rename(temporary, file);
-        written = { serialized, at: savedAt };
-      } catch (error) {
-        await rm(temporary, { force: true }).catch(() => undefined);
-        if (!warned) {
-          warned = true;
-          console.warn(`[vicious-gold] cannot keep the open frame in ${directory}: ${error instanceof Error ? error.message : String(error)}; it is kept in memory only`);
-        }
+  /** The newest frame not written yet; the running write takes it when it is its turn. */
+  let waiting: { frame: PublicViciousGold; serialized: string; savedAt: number } | null = null;
+  let queue = Promise.resolve();
+
+  const write = async (target: string) => {
+    const next = waiting;
+    waiting = null;
+    if (!next || (next.serialized === written.serialized && next.savedAt - written.at < COPY_REWRITE_MS)) return;
+    const file = join(target, COPY_FILE);
+    const temporary = `${file}.${process.pid}.${randomUUID()}.tmp`;
+    try {
+      await mkdir(target, { recursive: true });
+      await files.writeFile(temporary, JSON.stringify({ format: COPY_FORMAT, savedAt: next.savedAt, frame: next.frame }), { mode: 0o640, flag: 'wx' });
+      await rename(temporary, file);
+      written = { serialized: next.serialized, at: next.savedAt };
+    } catch (error) {
+      await rm(temporary, { force: true }).catch(() => undefined);
+      if (!warned) {
+        warned = true;
+        console.warn(`[vicious-gold] cannot keep the open frame in ${target}: ${error instanceof Error ? error.message : String(error)}; it is kept in memory only`);
       }
+    }
+  };
+
+  return {
+    /** Resolves once this frame, or a newer one that replaced it, is on disk (or its write failed); never rejects. */
+    save(frame: PublicViciousGold): Promise<void> {
+      if (!directory) return Promise.resolve();
+      waiting = { frame, serialized: JSON.stringify(frame), savedAt: now() };
+      queue = queue.then(() => write(directory));
+      return queue;
     },
     async load(): Promise<KeptFrame | null> {
       if (!directory) return null;
@@ -195,7 +209,7 @@ export function createPublicViciousGoldHandler(dependencies: {
   now?: () => number;
 }): RequestHandler {
   const now = dependencies.now ?? Date.now;
-  const copy = createFrameCopy(dependencies.stateDirectory, now);
+  const copy = createViciousGoldFrameCopy(dependencies.stateDirectory, now);
   let lastGood: KeptFrame | null = null;
   // Read once at the start; only used while no answer of this process has replaced it.
   const restored = copy.load();
