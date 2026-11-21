@@ -4,7 +4,7 @@ import { FunDecksPageClient } from '@/apps/public-web/ui/FunDecksPageClient';
 import { loadPublicFunDecksPreview } from '@/apps/public-web/lib/publicFunDecksPreview';
 import { seoPageMetadata } from '@/apps/public-web/lib/seoPageMetadata';
 import { SeoStructuredData } from '@/apps/public-web/ui/SeoStructuredData';
-import { DECK_LAYOUT_RESTORE_SCRIPT } from '@/src/features/deckViews/deckLayoutStorage';
+import { InlineScript } from '@/apps/public-web/ui/InlineScript';
 import { readFunDecksQuery } from '@/src/features/funDecksQuery';
 
 export const dynamic = 'force-dynamic';
@@ -33,7 +33,7 @@ export default async function Page({ searchParams }: { searchParams: Search }) {
   const [preview, filters] = await Promise.all([loadPublicFunDecksPreview(), addressFilters(searchParams)]);
   return <>
     <SeoStructuredData path="/standard/fun-decks" />
-    <script dangerouslySetInnerHTML={{ __html: DECK_LAYOUT_RESTORE_SCRIPT }} />
+    <InlineScript id="deckLayoutRestore" />
     <FunDecksPageClient initialPreview={preview} initialFilters={filters} />
   </>;
 }

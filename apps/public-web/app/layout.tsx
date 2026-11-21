@@ -3,13 +3,12 @@ import '@/src/parchment-theme.css';
 import '@/src/app/shell/PublicNavigation.css';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
-import { ANALYTICS_LOADER } from '@/apps/public-web/lib/analyticsLoader';
-import { AUTH_PREFETCH } from '@/apps/public-web/lib/authPrefetch';
+import { RUNTIME_CONFIG_ELEMENT_ID } from '@/apps/public-web/lib/inlineScripts';
+import { InlineScript } from '@/apps/public-web/ui/InlineScript';
 import { PublicNavigationLayout } from '@/apps/public-web/ui/PublicNavigationLayout';
 import { FieldFocusMode } from '@/apps/public-web/ui/FieldFocusMode';
 import { WebVitalsReporter } from '@/apps/public-web/ui/WebVitalsReporter';
 import { loadRuntimeClientConfig } from '@/apps/public-web/lib/runtimeClientConfig';
-import { COMPACT_NAVIGATION_SCRIPT, MODE_NAVIGATION_SCRIPT } from '@/src/app/shell/navigationPreference';
 import searchVerification from '@/config/search-verification.json';
 
 // Pages replace title, description, canonical and robots; everything else
@@ -54,14 +53,16 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         then appear a second or two after the page. */}
     <link rel="preload" as="image" href="/wallpaper/arena-rail-red.jpg" />
     <link rel="preload" as="image" href="/wallpaper/main-page-rail-border.png" />
-    <script dangerouslySetInnerHTML={{ __html: COMPACT_NAVIGATION_SCRIPT + MODE_NAVIGATION_SCRIPT }} />
-    <script dangerouslySetInnerHTML={{ __html: AUTH_PREFETCH }} />
+    <InlineScript id="navigation" />
+    <InlineScript id="authPrefetch" />
   </head><body>
-    {/* Inline and first: the switches must exist before any chunk hydrates. */}
-    <script dangerouslySetInnerHTML={{ __html: `window.__ARENA_RUNTIME_CONFIG__=${runtimeConfig}` }} />
+    {/* Inline and first: the switches must exist before any chunk hydrates. They
+        are data, so the script that publishes them keeps one CSP hash. */}
+    <script type="application/json" id={RUNTIME_CONFIG_ELEMENT_ID} dangerouslySetInnerHTML={{ __html: runtimeConfig }} />
+    <InlineScript id="runtimeConfig" />
     <div id="root"><PublicNavigationLayout>{children}</PublicNavigationLayout></div>
     <FieldFocusMode />
     <WebVitalsReporter />
-    <script dangerouslySetInnerHTML={{ __html: ANALYTICS_LOADER }} />
+    <InlineScript id="analytics" />
   </body></html>;
 }

@@ -325,7 +325,8 @@
         "tests/constructed-card-catalog-readers.test.ts",
         "tests/bg-minion-stats-contract.test.ts",
         "tests/bg-minion-stats-model.test.ts",
-        "tests/bg-library-strategy-rows.test.ts"
+        "tests/bg-library-strategy-rows.test.ts",
+        "tests/content-security-policy.test.ts"
       ]
     },
     {
@@ -693,7 +694,8 @@
         "tests/user-flow-meta-deck-browser.test.mjs",
         "tests/user-flow-mobile-navigation-browser.test.mjs",
         "tests/user-flow-paywall-sign-in-browser.test.mjs",
-        "tests/embed-login-button-browser.test.mjs"
+        "tests/embed-login-button-browser.test.mjs",
+        "tests/csp-inline-scripts-browser.test.mjs"
       ]
     },
     {

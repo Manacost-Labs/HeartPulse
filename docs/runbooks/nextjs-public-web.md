@@ -71,3 +71,15 @@ exclude generated `.next` files. Run `npm run test:agent-tooling` after changing
 their scope. Strict domain checks are separate from the legacy UI compiler:
 full-app strict mode still depends on typing existing login error handlers
 and React DOM imports.
+
+## Content-Security-Policy (report-only)
+
+The site sends no Content-Security-Policy by default. Building with
+`HEARTHPULSE_CSP_REPORT_ONLY=1` (and optionally
+`HEARTHPULSE_CSP_REPORT_URI=<same-origin path or https URL>`) adds
+`Content-Security-Policy-Report-Only` to every document except embeds. The flag
+is read by `next build`, so it has to be set in the release build step, not in
+`hs-arena-next.service`; rebuild without it to turn the policy off. Do not
+enforce it in production before the decision in
+[the spec](../specs/csp.md#before-enforcing-in-production). After changing an
+inline script run `npm run csp:hashes`.

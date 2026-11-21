@@ -94,7 +94,7 @@ assert.match(AUTH_PREFETCH, /window\.__hpAuthMe=\{at:performance\.now\(\),respon
 assert.match(AUTH_PREFETCH, /credentials:"same-origin",cache:"no-store"/);
 assert.match(AUTH_PREFETCH, /\.catch\(function\(\)\{return null\}\)/);
 const layout = readFileSync(new URL('../apps/public-web/app/layout.tsx', import.meta.url), 'utf8');
-assert.match(layout, /<script dangerouslySetInnerHTML=\{\{ __html: AUTH_PREFETCH \}\} \/>\s*<\/head>/,
+assert.match(layout, /<InlineScript id="authPrefetch" \/>\s*<\/head>/,
   'the session check starts in the head, before the body is parsed');
 
 console.log('early session adoption tests passed');
