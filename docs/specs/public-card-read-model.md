@@ -43,7 +43,8 @@ must never be misreported as a missing card.
 
 The card page also reads the anonymous card API
 (`GET /api/constructed-cards/:cardId` with the default statistics context:
-`format`, `statsFormat` = the page format, `period=1d`, `rank=platinum`, the open slice) through
+`format`, `statsFormat` = the page format, `period=1d`, `rank=platinum`, the
+open slice) through
 `fetchPublicExpress` (no cookies, no Authorization) and adds its open part to
 the seed (`apps/public-web/lib/publicCardDetail.ts`): formats, mechanics and
 their translations, minion type, spell school, the wiki record (patch history,
