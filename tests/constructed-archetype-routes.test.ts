@@ -523,6 +523,58 @@ try {
 }
 
 {
+  // Regression (issue 694): the open answer carries a build's sideboards, decoded from its public code and copied field
+  // by field, so the full list that replaces it in a subscriber's gallery adds no line. The code holds the E.T.C. band
+  // (one card no source names), Zilliax's two modules and a sideboard under a card the main list lacks.
+  const BAND_DECK = 'AAEBAa0GAoHxBILxBAHxogQAAQXzogSB8QTzogTyogSK8QSB8QSL8QSC8QSM8QSC8QQAAA==';
+  const bandCatalog = { cards: [
+    { card_id: 'TST_001', dbf: 70_001, name: { ru: 'Тестовый удар' }, mana_cost: 1, rarity: 'COMMON', winrate: 99.9 },
+    { card_id: 'TST_003', dbf: 70_003, name: { ru: 'Тестовая буря' }, mana_cost: 2, rarity: 'RARE' },
+    { card_id: 'ETC_080', dbf: 80_001, name: { ru: 'Э.Т.Ц., менеджер группы' }, mana_cost: 3, rarity: 'LEGENDARY' },
+    { card_id: 'TOY_330', dbf: 80_002, name: { ru: 'Зиллиакс Делюкс 3000' }, mana_cost: 0, rarity: 'LEGENDARY' },
+  ] };
+  const cardsRu = {
+    TOY_330t97: { name: 'Модуль: ядерный', mana: 3, rarity: '', dbf: 80_011 },
+    TOY_330t99: { name: 'Модуль: клинок', mana: 2, rarity: '', dbf: 80_012 },
+  };
+  const band = { ...catalog.items[0], slug: 'band-priest', builds: [{ ...catalog.items[0].builds[0], deckCode: BAND_DECK }] };
+  const bandApp = express();
+  bandApp.use('/api', createConstructedArchetypeRouter({
+    ...dependencies, cardCatalogDeadlineMs: 200,
+    loadCatalog: async () => ({ ...catalog, items: [band] }),
+    loadCardCatalog: async () => bandCatalog,
+    loadCardDictionaries: async () => [cardsRu],
+  }));
+  const bandServer = bandApp.listen(0, '127.0.0.1');
+  await new Promise<void>(resolve => bandServer.once('listening', resolve));
+  const bandAddress = bandServer.address();
+  assert.ok(bandAddress && typeof bandAddress === 'object');
+  try {
+    const response = await fetch(`http://127.0.0.1:${bandAddress.port}/api/constructed-archetypes/teaser/wild/band-priest`);
+    assert.equal(response.status, 200);
+    assert.deepEqual((await response.json() as any).item.builds, [{
+      deckCode: BAND_DECK, games: 2_216, winrate: 57.1, updatedAt: '2026-07-22T21:05:32.877Z', sampleRank: 'all', samplePeriod: 'past_30_days',
+      cards: [
+        { id: 'TOY_330', name: 'Зиллиакс Делюкс 3000', cost: 0, rarity: 'LEGENDARY', count: 1, hasPage: true },
+        { id: 'TST_001', name: 'Тестовый удар', cost: 1, rarity: 'COMMON', count: 2, hasPage: true },
+        { id: 'ETC_080', name: 'Э.Т.Ц., менеджер группы', cost: 3, rarity: 'LEGENDARY', count: 1, hasPage: true },
+      ],
+      // Only under a card of the main list, cheapest first; a card no source names is left out, as the full list leaves it out.
+      sideboards: [
+        { keyId: 'ETC_080', cards: [{ id: 'TST_003', name: 'Тестовая буря', cost: 2, rarity: 'RARE', count: 1, hasPage: true }] },
+        { keyId: 'TOY_330', cards: [
+          { id: 'TOY_330t99', name: 'Модуль: клинок', cost: 2, rarity: 'COMMON', count: 1, hasPage: false },
+          { id: 'TOY_330t97', name: 'Модуль: ядерный', cost: 3, rarity: 'COMMON', count: 1, hasPage: false },
+        ] },
+      ],
+    }]);
+  } finally {
+    bandServer.closeAllConnections();
+    await new Promise<void>(resolve => bandServer.close(() => resolve()));
+  }
+}
+
+{
   // The card dictionaries of the open builds, as production wires them: the local `cards_ru.json` always answers, whatever
   // HearthstoneJSON does; HearthstoneJSON is read once and kept, a failure is retried only after a pause, never per render.
   const local = { TIME_875t: { name: 'Гарона Полуорчиха (1 - Король Ллейн)', mana: 3, rarity: '', dbf: 119815 } };

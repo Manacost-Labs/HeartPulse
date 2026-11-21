@@ -3,7 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import { pluralRu } from '../shared/text/pluralRu';
 import type { ArchetypeBuild, ArchetypeFormat } from './archetypeBuildViews';
 import { buildsWindowNote } from './archetypeBuildsModel';
-import { openBuildAsBuild, openBuildCards, placePaidBuilds, type OpenBuild, type OpenBuilds } from './archetypeOpenBuilds';
+import { openBuildAsBuild, openBuildSeed, placePaidBuilds, type OpenBuild, type OpenBuilds } from './archetypeOpenBuilds';
 import ConstructedArchetypeDeckGallery from './ConstructedArchetypeDeckGallery';
 
 /** Builds the gallery shows at first and adds with each «Загрузить ещё». */
@@ -53,8 +53,8 @@ export function ArchetypeBuildsSection({ item, open, paid, pagePeriod }: {
   // «Загрузить ещё» adds a page.
   const [more, setMore] = useState(0);
   const seeds = useMemo(() => new Map(list.builds.flatMap(build => {
-    const cards = openBuildCards(build, item.format);
-    return cards ? [[build.deckCode, cards] as const] : [];
+    const seed = openBuildSeed(build, item.format);
+    return seed ? [[build.deckCode, seed] as const] : [];
   })), [list.builds, item.format]);
   const placed = useMemo(() => (paid ? placePaidBuilds(list.builds, paid) : null), [list.builds, paid]);
   const builds = placed ?? list.builds.map(openBuildAsBuild);
