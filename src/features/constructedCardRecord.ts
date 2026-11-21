@@ -89,6 +89,27 @@ export type ConstructedDeck = {
   updatedAt?: string | null;
 };
 
+/** The numbers the anonymous card API opens for the open slice (`OPEN_STATISTICS_SLICE`); every other one is paid. */
+export const OPEN_CARD_STATISTICS = ['deckPopularity', 'deckWinrate', 'averageCopies'] as const;
+
+/**
+ * What a viewer without confirmed access may see of a loaded card: the open numbers only when the loaded statistics
+ * are the open slice and that is the slice shown (`openSliceShown`), and the decks without their winrate and score.
+ * The card page derives it in render, so a refusal or a withdrawn access drops the paid numbers in the same frame.
+ */
+export function openPartOfCard(card: CardRecord, openSliceShown: boolean): CardRecord {
+  const stats = openSliceShown && card.stats
+    ? Object.fromEntries(OPEN_CARD_STATISTICS.map(id => [id, card.stats?.[id] ?? null])) as Partial<CardStats>
+    : null;
+  return {
+    ...card,
+    stats,
+    statsUpdatedAt: stats ? card.statsUpdatedAt ?? null : null,
+    statsSourceUrl: stats ? card.statsSourceUrl ?? null : null,
+    decks: Array.isArray(card.decks) ? card.decks.map(deck => ({ ...deck, winrate: null, score: null })) : card.decks,
+  };
+}
+
 export type StandardCardsProps = {
   initialCard?: PublicCardSeed;
   initialCatalog?: PublicCardCatalogSeed;

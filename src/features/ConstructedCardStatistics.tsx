@@ -6,7 +6,7 @@ import FilterSelect from './ConstructedCardFilterSelect';
 import '../shared/ui/LoadingSurface.css';
 import { LoadingBlock } from '../shared/ui/LoadingSurface';
 import { CONSTRUCTED_CARD_DETAIL_METRICS } from './constructedCardDetailMetrics';
-import { number, percent, type CardFormat, type CardStats } from './constructedCardRecord';
+import { number, OPEN_CARD_STATISTICS, percent, type CardFormat, type CardStats } from './constructedCardRecord';
 import {
   CONSTRUCTED_CARD_RANK_OPTIONS, constructedCardPeriodOptions, type ConstructedCardPeriod, type ConstructedCardRank,
 } from './constructedCardPeriods';
@@ -17,8 +17,7 @@ import type { ConstructedCardFilterOption } from './constructedCardFilterOptions
 // summary and the notice (`ConstructedCardStats`), so it carries none of this.
 
 const COUNTS = new Set(['averageTurnPlayed', 'averageCopies', 'timesPlayed']);
-/** The numbers the anonymous card API opens for the open slice (`OPEN_STATISTICS_SLICE`); the other rows are paid. */
-const OPEN_IDS = new Set<string>(['deckPopularity', 'deckWinrate', 'averageCopies']);
+const OPEN_IDS = new Set<string>(OPEN_CARD_STATISTICS);
 
 /**
  * How the rows stand for the viewer. `full`: every number. `locked` (a guest): the open numbers, a lock on the
@@ -32,7 +31,8 @@ export type CardStatsMode = 'full' | 'locked' | 'waiting' | 'failed';
  * comparison line takes one more `dd` after its value; the cell lays out any number of lines. What a number
  * counts is told once, folded, in `CardStatsAbout` (owner's rule 2026-11-20: no explanation sheet on the page).
  * `openPending`: the open numbers themselves are not here yet (another slice is loading).
- * `openSlice`: the shown slice is the open one; off it (another rank or period) a guest has a lock on every row.
+ * `openSlice`: the shown slice is the open one. Off it (another rank or period) no number is open: a guest has a lock
+ * on every row, a subscriber whose access is not confirmed a loading or an empty place, never a number.
  */
 export function CardStatsRows({ stats, pending = false, mode = 'full', openPending = false, openSlice = true }: {
   stats: Partial<CardStats> | null; pending?: boolean; mode?: CardStatsMode; openPending?: boolean; openSlice?: boolean;
@@ -42,7 +42,8 @@ export function CardStatsRows({ stats, pending = false, mode = 'full', openPendi
     <dl className="constructed-cards__stats" data-stats-mode={mode} aria-label={pending ? 'Загружаем статистику' : undefined}
       aria-busy={pending || mode === 'waiting' || openPending || undefined}>
       {CONSTRUCTED_CARD_DETAIL_METRICS.map(({ id, label }) => {
-        const open = OPEN_IDS.has(id) && (openSlice || mode !== 'locked');
+        // Off the open slice no number is open: Legend's popularity is as paid as its mulligan.
+        const open = OPEN_IDS.has(id) && openSlice;
         const loading = pending || (open ? openPending : mode === 'waiting');
         return (
           <div key={id} className="constructed-cards__stat">
@@ -195,7 +196,7 @@ export function CardStatisticsPanel({ stats, updatedAt, sourceUrl, mode, openPen
         onRankChange={value => pick(rankOptions, value, () => onChange({ rank: value as ConstructedCardRank }))}
         period={period} periodOptions={periodOptions}
         onPeriodChange={value => pick(periodOptions, value, () => onChange({ period: value as ConstructedCardPeriod }))} />
-      <CardStatsRows stats={stats} mode={mode} openPending={openPending && openSlice} openSlice={openSlice} />
+      <CardStatsRows stats={stats} mode={mode} openPending={openPending} openSlice={openSlice} />
       {full && !stats && <p className="constructed-card-detail__no-stats">Карта есть в библиотеке, но в выборке «{formatLabel} · {rankLabel} · {periodLabel}» недостаточно данных.</p>}
       {loadFailed && <StatsNotice message={loadFailed} action="Повторить" onAction={onRetry} />}
       {accessUnavailable && <StatsNotice message="Не удалось проверить доступ к статистике." action="Повторить проверку"

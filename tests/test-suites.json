@@ -660,6 +660,7 @@
         "tests/next-instant-access-browser.test.mjs",
         "tests/next-paid-panels-pending-browser.test.mjs",
         "tests/next-card-open-slice-browser.test.mjs",
+        "tests/next-card-paid-withdrawal-browser.test.mjs",
         "tests/next-cosmetics-browser.test.mjs",
         "tests/next-connect-browser.test.mjs",
         "tests/next-deck-builder-browser.test.mjs",

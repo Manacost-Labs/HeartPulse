@@ -6,6 +6,7 @@ import { OPEN_STATISTICS_SLICE, useConstructedCardPeriod, useConstructedCardRank
 import { cardPatchEntries } from './cardPatchChanges';
 import { CardPatchTimeline } from './CardPatchTimeline';
 import React, { useEffect, useRef, useState } from 'react';
+import { flushSync } from 'react-dom';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -82,6 +83,7 @@ import {
   mechanicLabel,
   navigateWithConstructedCardContext,
   number,
+  openPartOfCard,
   percent,
   type CardFormat,
   type CardRecord,
@@ -482,6 +484,9 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
     warning: string | null;
   }>({ dataStatus: 'fresh', partial: false, warning: null });
   const [reloadToken, setReloadToken] = useState(0);
+  const refusalRetried = useRef(false);
+  const refreshAccess = useRef(onRefreshSubscription);
+  useEffect(() => { refreshAccess.current = onRefreshSubscription; });
   // Another card remounts this page (keyed by card), so a background refresh
   // of the same card keeps the variant and the lightbox the reader opened.
   const [variant, setVariant] = useState('normal');
@@ -543,6 +548,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
           return;
         }
         setCard(loadedCard);
+        refusalRetried.current = false;
         setServerStatsAccess(payload.statsAccess === true);
         setLoadedWithAccess(statsAccess);
         setLoadedSlice(`${statsFormat}|${period}|${rank}`);
@@ -555,10 +561,24 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
         });
       } catch (loadError) {
         if (!cancelled) {
-          const copy = constructedCardRequestError('detail', Number((loadError as { status?: number })?.status ?? 0), '');
+          const status = Number((loadError as { status?: number })?.status ?? 0);
+          const copy = constructedCardRequestError('detail', status, '');
           // A stalled or unreachable server says so in words a person can act on.
           const readable = loadError instanceof RequestDeadlineError || loadError instanceof RequestNetworkError;
-          setError(readable ? { ...copy, message: loadError.message } : copy);
+          const shownError = readable ? { ...copy, message: loadError.message } : copy;
+          if (status === 401 || status === 403) {
+            // The card route refused the viewer (the subscription ended on the server): the paid numbers already on the
+            // page go before the next frame, whatever the access check still says; then access is checked again, and a
+            // confirmed one reads the card once more (once, so a refusing route cannot make a loop).
+            flushSync(() => { setServerStatsAccess(false); setLoadedWithAccess(false); setError(shownError); });
+            if (!refusalRetried.current) {
+              refusalRetried.current = true;
+              void refreshAccess.current().then(() => undefined, () => undefined)
+                .then(() => { if (!cancelled) setReloadToken(value => value + 1); });
+            }
+          } else {
+            setError(shownError);
+          }
         }
       } finally { if (!cancelled) setLoading(false); }
     };
@@ -610,7 +630,10 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
   const externalLinks = Array.isArray(wiki.external_links) ? wiki.external_links : [];
   const hasLinks = Boolean(card.wiki_page?.url) || externalLinks.length > 0;
   const mediaSections = (galleryMedia.length > 0 ? 1 : 0) + (sounds.length > 0 ? 1 : 0) + (hasLinks ? 1 : 0);
-  const decks = Array.isArray(card.decks) ? card.decks : [];
+  // Paid numbers only with access confirmed now and paid data loaded; otherwise the open part, derived in this render.
+  const currentSlice = `${statsFormat}|${period}|${rank}`;
+  const shown = serverStatsAccess ? card : openPartOfCard(card, loadedSlice === currentSlice && period === OPEN_PERIOD && rank === OPEN_RANK);
+  const decks = Array.isArray(shown.decks) ? shown.decks : [];
   const choiceKind = cardChoiceKindOf(card.mechanics);
   const hasAssemble = isAssembleCard(card);
   const openMedia = (url: string) => {
@@ -623,7 +646,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
   const waitingPaid = statsAccess ? loadedWithAccess !== true : Boolean(statsAccessLoading && authUser);
   // An access check that gave up is neither a grant nor a refusal: no lock, the open numbers and a retry.
   const statsMode: CardStatsMode = serverStatsAccess ? 'full' : (error && statsAccess) || statsAccessUnavailable ? 'failed' : waitingPaid ? 'waiting' : 'locked';
-  const openPending = !serverStatsAccess && !error && loadedSlice !== `${statsFormat}|${period}|${rank}`;
+  const openPending = !serverStatsAccess && !error && loadedSlice !== currentSlice;
   const winrateLock = statsMode === 'locked' ? <PaidMetricLock label="Винрейт колоды" /> : undefined;
   const statsFormatLabel = constructedCardStatsFormatLabel(statsFormat);
   const standardStatisticsAvailable = cardSupportsStandardStatistics(card.formats);
@@ -662,7 +685,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
           flavorText={plainText(card.flavor?.ru || card.flavor?.en)}
           facts={cardIdentityFacts(card, format)}
         />
-        <CardStatisticsPanel stats={card.stats} updatedAt={card.statsUpdatedAt} sourceUrl={card.statsSourceUrl}
+        <CardStatisticsPanel stats={shown.stats} updatedAt={shown.statsUpdatedAt} sourceUrl={shown.statsSourceUrl}
           mode={statsMode} openPending={openPending} full={serverStatsAccess} canChoose={statsAccess}
           format={statsFormat} formatLabel={statsFormatLabel} standardAvailable={standardStatisticsAvailable}
           rank={rank} rankLabel={rankLabel} period={period} periodLabel={periodLabel} currentPatch={currentPatch}
