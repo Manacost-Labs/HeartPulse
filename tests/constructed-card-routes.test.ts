@@ -445,14 +445,18 @@ try {
   const publicDetailPayload = await publicDetail.json() as any;
   assert.equal(publicDetailPayload.period.id, '1d');
   assert.equal(publicDetailPayload.statsAccess, false);
-  // The open slice (#447): the three base numbers of the default slice, nothing else (no mulligan, no draws).
-  assert.deepEqual(publicDetailPayload.card.stats, { deckPopularity: 12.5, deckWinrate: 54.3, averageCopies: null });
+  // The default slice (Legend) stays paid for a guest (owner's decision 2026-11-21, #447).
+  assert.equal(publicDetailPayload.card.stats, null);
+  // The open slice: Platinum, last day — the three base numbers, nothing else (no mulligan, no draws).
+  const openDetail = await (await fetch(`${publicOrigin}/CARD_1?format=standard&rank=platinum`)).json() as any;
+  assert.equal(openDetail.statsAccess, false);
+  assert.deepEqual(openDetail.card.stats, { deckPopularity: 12.5, deckWinrate: 54.3, averageCopies: null });
   for (const paid of ['57.2', '55.1', '43.2', '52.4']) {
-    assert.equal(JSON.stringify(publicDetailPayload).includes(paid), false, `no paid number ${paid} for a guest`);
+    assert.equal(JSON.stringify(openDetail).includes(paid), false, `no paid number ${paid} for a guest`);
   }
-  for (const query of ['rank=platinum', 'period=7d', 'period=patch']) {
+  for (const query of ['rank=legend', 'rank=diamond', 'rank=diamond_4_1', 'rank=platinum&period=7d', 'rank=platinum&period=patch']) {
     const narrow = await (await fetch(`${publicOrigin}/CARD_1?format=standard&${query}`)).json() as any;
-    assert.equal(narrow.card.stats, null, `${query}: a narrow slice stays paid`);
+    assert.equal(narrow.card.stats, null, `${query}: a paid slice stays closed`);
   }
   assert.equal(publicDetailPayload.card.decks[0].winrate, null);
   assert.equal(publicDetailPayload.card.decks[0].score, null);

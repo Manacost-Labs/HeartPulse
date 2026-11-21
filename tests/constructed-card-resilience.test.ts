@@ -377,9 +377,7 @@ try {
       assert.equal(partial.status, 200);
       const anonymous = await partial.json() as any;
       assert.equal(anonymous.partial, true);
-      // The guest projection runs after the partial fallback composition: the open slice only (#447), no sample size.
-      assert.deepEqual(anonymous.card.stats, { deckPopularity: 7.5, deckWinrate: 53, averageCopies: null });
-      assert.equal(JSON.stringify(anonymous).includes('timesPlayed'), false, 'entitlement redaction must run after partial fallback composition');
+      assert.equal(anonymous.card.stats, null, 'entitlement redaction must run after partial fallback composition');
       assert.equal(partial.headers.get('x-data-cache'), 'LKG');
     } finally {
       await route.close();

@@ -4,16 +4,19 @@ type JsonRecord = Record<string, unknown>;
 const record = (value: unknown): JsonRecord | null => value && typeof value === 'object' && !Array.isArray(value) ? value as JsonRecord : null;
 
 /**
- * The card statistics a guest gets (owner's decision 2026-11-18, #447): the base numbers of
- * the default slice — how often the card is played, how its decks win, how many copies they
- * hold — with their date and source. Mulligan and draw numbers, other ranks and periods and
- * the history stay paid and never leave the server for a guest.
+ * The card statistics a guest gets (owner's decisions 2026-11-18 and 2026-11-21, #447): the base
+ * numbers of the open slice — how often the card is played, how its decks win, how many copies
+ * they hold — with their date and source. Mulligan and draw numbers, the other ranks (Legend,
+ * Diamond, Diamond 4–1) and periods and the history stay paid and never leave the server for a guest.
  */
 export const OPEN_CARD_STATISTICS = ['deckPopularity', 'deckWinrate', 'averageCopies'] as const;
 
-/** The default slice of the card page (last day, Legend): the one open to everybody. */
+/**
+ * The one slice open to everybody: Platinum, last day. The source has no «all ranks» slice for
+ * card statistics (HSReplay rejects `ALL` for card_list), so the owner chose its broadest rank.
+ */
 export function isOpenStatisticsSlice(period: ConstructedCardPeriod, rank: ConstructedCardRank): boolean {
-  return period === '1d' && rank === 'legend';
+  return period === '1d' && rank === 'platinum';
 }
 
 /**
