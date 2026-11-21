@@ -41,10 +41,15 @@ function safeSourceUrl(value: unknown): string {
  * dictionary knows, kept for its count.
  */
 export type OpenArchetypeCard = { id: string | null; name: string | null; cost: number | null; rarity?: string | null; count: number; hasPage: boolean };
-/** A build of the open layer: its deck code, numbers and card list (`null` when the source could not name every card). */
+/** The cards that travel with `keyId`, a card of the build's list (the E.T.C. band, Zilliax's modules), decoded from its code. */
+export type OpenArchetypeSideboard = { keyId: string; cards: OpenArchetypeCard[] };
+/**
+ * A build of the open layer: its deck code, numbers and card list (`null` when the source could not name every card),
+ * and the sideboards of its code, when it has any.
+ */
 export type OpenArchetypeBuild = {
   deckCode: string; games: number | null; winrate: number | null; updatedAt: string | null; sampleRank?: string; samplePeriod?: string;
-  cards: OpenArchetypeCard[] | null;
+  cards: OpenArchetypeCard[] | null; sideboards?: OpenArchetypeSideboard[];
 };
 /**
  * `openBuilds` is one page of the open builds (from `buildsOffset`), without the ones the allowlist refuses and
@@ -55,6 +60,8 @@ export type PublicArchetypeDetail = ArchetypeDetail & { openBuilds: OpenArchetyp
 
 const OPEN_BUILDS = 8;
 const MAX_DECK_CARDS = 40;
+const MAX_SIDEBOARDS = 4;
+const MAX_SIDEBOARD_CARDS = 10;
 
 function openCard(value: unknown): OpenArchetypeCard {
   const row = record(value);
@@ -68,6 +75,26 @@ function openCard(value: unknown): OpenArchetypeCard {
   return { id, name, cost, rarity, count: copies, hasPage: row.hasPage === true && id !== null && name !== null };
 }
 
+/**
+ * The sideboards of a build with a card list: each under a key card of that list, its lines read as the list's; the
+ * first `MAX_SIDEBOARDS` of them with their first `MAX_SIDEBOARD_CARDS` lines. A sideboard that does not read is left
+ * out; it never costs the build its list.
+ */
+function openSideboards(value: unknown, cards: OpenArchetypeCard[] | null): OpenArchetypeSideboard[] | undefined {
+  if (!cards || !Array.isArray(value) || !value.length) return undefined;
+  const boards = value.slice(0, MAX_SIDEBOARDS).flatMap((raw): OpenArchetypeSideboard[] => {
+    try {
+      const board = record(raw);
+      const keyId = typeof board.keyId === 'string' && cards.some(card => card.id === board.keyId) ? board.keyId : null;
+      if (!keyId || !Array.isArray(board.cards) || !board.cards.length) return [];
+      return [{ keyId, cards: board.cards.slice(0, MAX_SIDEBOARD_CARDS).map(openCard) }];
+    } catch {
+      return [];
+    }
+  });
+  return boards.length ? boards : undefined;
+}
+
 /** A build the page cannot show as a whole (no code, a malformed card) is left out, never passed through. */
 function openBuild(value: unknown): OpenArchetypeBuild | null {
   try {
@@ -76,9 +103,11 @@ function openBuild(value: unknown): OpenArchetypeBuild | null {
     if (!/^[A-Za-z0-9+/=]{20,600}$/.test(deckCode)) return null;
     const cards = row.cards === null || row.cards === undefined ? null
       : Array.isArray(row.cards) && row.cards.length <= MAX_DECK_CARDS ? row.cards.map(openCard) : null;
+    const sideboards = openSideboards(row.sideboards, cards);
     return {
       deckCode, games: nullableNumber(row.games), winrate: nullableNumber(row.winrate), updatedAt: nullableString(row.updatedAt),
       sampleRank: nullableString(row.sampleRank) ?? '', samplePeriod: nullableString(row.samplePeriod) ?? '', cards,
+      ...(sideboards ? { sideboards } : {}),
     };
   } catch {
     return null;

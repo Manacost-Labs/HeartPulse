@@ -3,9 +3,13 @@ import { useReportedPending } from './archetypeDeckGalleryPending';
 import type { DeckLayout } from './deckViews/DeckLayoutSwitch';
 import { DeckRowCard, DeckTileCard, useDeckView, winRateTone, type DeckViewCardProps } from './deckViews/DeckViewCards';
 import { deckClassMeta } from './deckViews/deckClass';
+import type { DeckListSideboard } from './decklist/DeckListView';
 import type { FunDeckCard } from './funDecks/deckEntries';
 
 export type ArchetypeFormat = 'standard' | 'wild';
+
+/** A build's card list and sideboards in the shape of the deck views, already held by the page (the open builds). */
+export type BuildSeed = { cards: FunDeckCard[]; sideboards: DeckListSideboard[] };
 
 export type ArchetypeBuild = {
   deckCode: string;
@@ -38,15 +42,15 @@ export function ArchetypeBuildView({ build, index, format, archetype, classKey, 
   archetype: string;
   classKey: string | null;
   layout: Exclude<DeckLayout, 'images'>;
-  /** The card list the page already holds (open builds): drawn as is, no request. */
-  seed?: readonly FunDeckCard[] | null;
+  /** The card list and sideboards the page already holds (open builds): drawn as is, no request. */
+  seed?: BuildSeed | null;
   /** The subscriber's gallery: the full list (with sideboards) is read and replaces the seed. */
   full?: boolean;
   /** A guest's gallery: only the open list is shown, nothing is read. */
   openOnly?: boolean;
   onPendingChange: (deckCode: string, pending: boolean) => void;
 }) {
-  const view = useDeckView(build.deckCode, { format, archetype }, false, seed ?? null, full, openOnly);
+  const view = useDeckView(build.deckCode, { format, archetype }, false, seed?.cards ?? null, full, openOnly, seed?.sideboards);
   // A build below the screen waits for the reader; it is pending only once it starts loading.
   useReportedPending(build.deckCode, view.near && !view.data && !view.error, onPendingChange);
   const classMeta = deckClassMeta(classKey);

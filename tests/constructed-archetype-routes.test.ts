@@ -523,6 +523,73 @@ try {
 }
 
 {
+  // Regression (issue 694): the open answer carries a build's sideboards, decoded from its public code and copied field
+  // by field, so the full list that replaces it in a subscriber's gallery adds no line. The code holds the E.T.C. band
+  // (one card no source names), Zilliax's two modules and a sideboard under a card the main list lacks.
+  const BAND_DECK = 'AAEBAa0GAoHxBILxBAHxogQAAQXzogSB8QTzogTyogSK8QSB8QSL8QSC8QSM8QSC8QQAAA==';
+  const bandCatalog = { cards: [
+    { card_id: 'TST_001', dbf: 70_001, name: { ru: 'Тестовый удар' }, mana_cost: 1, rarity: 'COMMON', winrate: 99.9 },
+    { card_id: 'TST_003', dbf: 70_003, name: { ru: 'Тестовая буря' }, mana_cost: 2, rarity: 'RARE' },
+    { card_id: 'ETC_080', dbf: 80_001, name: { ru: 'Э.Т.Ц., менеджер группы' }, mana_cost: 3, rarity: 'LEGENDARY' },
+    { card_id: 'TOY_330', dbf: 80_002, name: { ru: 'Зиллиакс Делюкс 3000' }, mana_cost: 0, rarity: 'LEGENDARY' },
+    // The crowded code below: five key cards, eleven lines under the first and one under each of the others.
+    ...[1, 2, 3, 4, 5].map(key => ({ card_id: `KEY_${key}`, dbf: 80_100 + key, name: { ru: `Ключ ${key}` }, mana_cost: 1, rarity: 'LEGENDARY' })),
+    ...Array.from({ length: 11 }, (_, line) => ({ card_id: `SB_${String(line + 1).padStart(2, '0')}`, dbf: 81_001 + line,
+      name: { ru: `Строка ${line + 1}` }, mana_cost: line + 1, rarity: 'COMMON' })),
+    ...[20, 21, 22, 23].map(line => ({ card_id: `SB_${line}`, dbf: 81_000 + line, name: { ru: `Строка ${line}` }, mana_cost: 1, rarity: 'COMMON' })),
+  ] };
+  const cardsRu = {
+    TOY_330t97: { name: 'Модуль: ядерный', mana: 3, rarity: '', dbf: 80_011 },
+    TOY_330t99: { name: 'Модуль: клинок', mana: 2, rarity: '', dbf: 80_012 },
+  };
+  let bandCode = BAND_DECK;
+  const bandApp = express();
+  bandApp.use('/api', createConstructedArchetypeRouter({
+    ...dependencies, cardCatalogDeadlineMs: 200,
+    loadCatalog: async () => ({ ...catalog, items: [{ ...catalog.items[0], slug: 'band-priest', builds: [{ ...catalog.items[0].builds[0], deckCode: bandCode }] }] }),
+    loadCardCatalog: async () => bandCatalog,
+    loadCardDictionaries: async () => [cardsRu],
+  }));
+  const bandServer = bandApp.listen(0, '127.0.0.1');
+  await new Promise<void>(resolve => bandServer.once('listening', resolve));
+  const bandAddress = bandServer.address();
+  assert.ok(bandAddress && typeof bandAddress === 'object');
+  try {
+    const response = await fetch(`http://127.0.0.1:${bandAddress.port}/api/constructed-archetypes/teaser/wild/band-priest`);
+    assert.equal(response.status, 200);
+    assert.deepEqual((await response.json() as any).item.builds, [{
+      deckCode: BAND_DECK, games: 2_216, winrate: 57.1, updatedAt: '2026-07-22T21:05:32.877Z', sampleRank: 'all', samplePeriod: 'past_30_days',
+      cards: [
+        { id: 'TOY_330', name: 'Зиллиакс Делюкс 3000', cost: 0, rarity: 'LEGENDARY', count: 1, hasPage: true },
+        { id: 'TST_001', name: 'Тестовый удар', cost: 1, rarity: 'COMMON', count: 2, hasPage: true },
+        { id: 'ETC_080', name: 'Э.Т.Ц., менеджер группы', cost: 3, rarity: 'LEGENDARY', count: 1, hasPage: true },
+      ],
+      // Only under a card of the main list, cheapest first; a card no source names is left out, as the full list leaves it out.
+      sideboards: [
+        { keyId: 'ETC_080', cards: [{ id: 'TST_003', name: 'Тестовая буря', cost: 2, rarity: 'RARE', count: 1, hasPage: true }] },
+        { keyId: 'TOY_330', cards: [
+          { id: 'TOY_330t99', name: 'Модуль: клинок', cost: 2, rarity: 'COMMON', count: 1, hasPage: false },
+          { id: 'TOY_330t97', name: 'Модуль: ядерный', cost: 3, rarity: 'COMMON', count: 1, hasPage: false },
+        ] },
+      ],
+    }]);
+    // A code may carry more than a real deck holds: five sideboards, one of eleven cards. The public answer keeps the
+    // first four, with the first ten lines (cheapest first) of each; the rest never goes out.
+    bandCode = 'AAEBAQcF5fEE5vEE5/EE6PEE6fEEAAABD+n4BOXxBOr4BOXxBOv4BOXxBOz4BOXxBO34BOXxBO74BOXxBO/4BOXxBPD4BOXxBPH4BOXxBPL4BOXxBPP4BOXxBPz4BObxBP34BOfxBP74BOjxBP/4BOnxBAAA';
+    const crowded = await fetch(`http://127.0.0.1:${bandAddress.port}/api/constructed-archetypes/teaser/wild/band-priest`);
+    const [build] = (await crowded.json() as any).item.builds;
+    assert.deepEqual(build.sideboards.map((board: any) => board.keyId), ['KEY_1', 'KEY_2', 'KEY_3', 'KEY_4']);
+    assert.deepEqual(build.sideboards[0].cards.map((card: any) => card.id),
+      ['SB_01', 'SB_02', 'SB_03', 'SB_04', 'SB_05', 'SB_06', 'SB_07', 'SB_08', 'SB_09', 'SB_10']);
+    assert.equal(JSON.stringify(build).includes('SB_11'), false, 'the eleventh line stays out');
+    assert.equal(JSON.stringify(build).includes('SB_23'), false, 'the fifth sideboard stays out');
+  } finally {
+    bandServer.closeAllConnections();
+    await new Promise<void>(resolve => bandServer.close(() => resolve()));
+  }
+}
+
+{
   // The card dictionaries of the open builds, as production wires them: the local `cards_ru.json` always answers, whatever
   // HearthstoneJSON does; HearthstoneJSON is read once and kept, a failure is retried only after a pause, never per render.
   const local = { TIME_875t: { name: 'Гарона Полуорчиха (1 - Король Ллейн)', mana: 3, rarity: '', dbf: 119815 } };

@@ -16,7 +16,7 @@ import { usePendingDecks, useReportedPending } from './archetypeDeckGalleryPendi
 import { DeckCodeLine } from './deckViews/deckViewParts';
 import { DeckLayoutSwitch, useDeckLayout } from './deckViews/DeckLayoutSwitch';
 import { pluralRu } from './deckViews/deckClass';
-import type { FunDeckCard } from './funDecks/deckEntries';
+import type { OpenBuildSeed } from './archetypeOpenBuilds';
 import { seededDeck } from './deckViews/seededDeck';
 import { ArchetypeBuildView, GALLERY_CLASS, formatNumber, formatPercent, type ArchetypeBuild, type ArchetypeFormat } from './archetypeBuildViews';
 
@@ -84,12 +84,12 @@ function DeckBuildCard({
   format: ArchetypeFormat;
   archetype: string; archetypeLabel?: string;
   classKey: string | null;
-  seed?: readonly FunDeckCard[] | null;
+  seed?: OpenBuildSeed | null;
   full?: boolean; openOnly?: boolean;
   onPendingChange: (deckCode: string, pending: boolean) => void;
 }) {
   const [read, setDeck] = useState<ResolvedDeck | null>(null);
-  const seeded = useMemo(() => (seed || openOnly ? seededDeck(build.deckCode, format, seed ?? []) : null), [build.deckCode, format, seed, openOnly]);
+  const seeded = useMemo(() => (seed || openOnly ? seededDeck(build.deckCode, format, seed?.cards ?? [], seed?.sideboards) : null), [build.deckCode, format, seed, openOnly]);
   const deck = full ? read : seeded ?? read; // in the render that drops `full` (access lost): no full list for one frame
   const [error, setError] = useState('');
   const [renderState, setRenderState] = useState<DeckRenderState>('idle');
@@ -100,7 +100,7 @@ function DeckBuildCard({
   const copyLabel = { ok: 'Код скопирован', error: 'Не удалось скопировать', idle: 'Скопировать код колоды' }[copyState];
   useEffect(() => {
     const controller = new AbortController();
-    setDeck(seed ? seededDeck(build.deckCode, format, seed) : null);
+    setDeck(seed ? seededDeck(build.deckCode, format, seed.cards, seed.sideboards) : null);
     setError('');
     if ((seed && !full) || openOnly) return undefined;
     void resolveDeck(build, format, archetype, controller.signal)
@@ -205,8 +205,8 @@ export default function ConstructedArchetypeDeckGallery({
   archetype: string;
   archetypeLabel?: string;
   classKey: string | null;
-  /** Card lists the page already holds, by deck code (the open builds): those decks are not requested. */
-  seeds?: ReadonlyMap<string, readonly FunDeckCard[]>;
+  /** Card lists and sideboards the page already holds, by deck code (the open builds): those decks are not requested. */
+  seeds?: ReadonlyMap<string, OpenBuildSeed>;
   /** A subscriber's gallery: the seeds stand in only until each full deck list is read. */
   full?: boolean;
   /** A guest's archetype gallery: only the seeds are shown, nothing is read (a build without one shows its list as unavailable). */

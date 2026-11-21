@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { openBuildAsBuild, openBuildCards, placePaidBuilds, type OpenBuild } from '../src/features/archetypeOpenBuilds';
+import { openBuildAsBuild, openBuildCards, openBuildSeed, placePaidBuilds, type OpenBuild } from '../src/features/archetypeOpenBuilds';
+import { funDeckEntries } from '../src/features/funDecks/deckEntries';
 import { seededDeck } from '../src/features/deckViews/seededDeck';
 
 const build: OpenBuild = {
@@ -30,6 +31,30 @@ test('a seeded deck is the payload the resolver would give, so the gallery reque
   assert.equal(deck.totalCards, 3);
   assert.equal(deck.deckSizeLimit, 30);
   assert.deepEqual(deck.sideboards, []);
+});
+
+test('an open build\'s sideboards stand under their key cards, as the full list draws them', () => {
+  const banded: OpenBuild = { ...build, cards: [
+    { id: 'TST_001', name: 'Тестовый удар', cost: 1, rarity: 'COMMON', count: 2, hasPage: true },
+    { id: 'ETC_080', name: 'Э.Т.Ц., менеджер группы', cost: 3, rarity: 'LEGENDARY', count: 1, hasPage: true },
+    { id: 'TOY_330', name: 'Зиллиакс Делюкс 3000', cost: 0, rarity: 'LEGENDARY', count: 1, hasPage: true },
+  ], sideboards: [
+    { keyId: 'ETC_080', cards: [{ id: 'TST_003', name: 'Тестовая буря', cost: 2, rarity: 'RARE', count: 1, hasPage: true },
+      { id: null, name: null, cost: null, rarity: null, count: 1, hasPage: false }] },
+    { keyId: 'TOY_330', cards: [{ id: 'TOY_330t11', name: 'Зиллиакс', cost: 0, rarity: null, count: 1, hasPage: false },
+      { id: 'TOY_330t97', name: 'Модуль: ядерный', cost: 3, rarity: null, count: 1, hasPage: false },
+      { id: 'TOY_330t99', name: 'Модуль: клинок', cost: 2, rarity: null, count: 1, hasPage: false }] },
+    { keyId: 'TST_404', cards: [{ id: 'TST_003', name: 'Тестовая буря', cost: 2, rarity: 'RARE', count: 1, hasPage: true }] },
+  ] };
+  const seed = openBuildSeed(banded, 'wild');
+  const entries = funDeckEntries(seed?.cards ?? [], seed?.sideboards ?? []);
+  assert.deepEqual(entries.map(entry => [entry.card.name, entry.configuredCost, entry.sideboardLabel, entry.sideboard.map(card => [card.name, card.pagePath])]), [
+    ['Зиллиакс Делюкс 3000', 5, 'Модули Зиллиакса', [['Модуль: клинок', null], ['Модуль: ядерный', null]]],
+    ['Тестовый удар', null, null, []],
+    ['Э.Т.Ц., менеджер группы', null, 'Группа E.T.C.', [['Тестовая буря', '/standard/cards/wild/TST_003/']]],
+  ]);
+  assert.deepEqual(openBuildSeed({ ...build, sideboards: undefined }, 'wild')?.sideboards, [], 'a code without sideboards has none');
+  assert.equal(openBuildSeed({ ...banded, cards: null }, 'wild'), null, 'a build without a list has no seed');
 });
 
 test('an open build is a gallery build without a source link', () => {

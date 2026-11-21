@@ -35,8 +35,17 @@ const openRaw = {
       mulliganImpact: 7.1717, keptImpact: 6.2626,
       cards: [{ id: 'TST_001', name: 'Тестовый удар', cost: 1, rarity: 'LEGENDARY', count: 2, hasPage: true, keptImpact: 6.2626 },
         { id: 'TIME_875t', name: 'Король Ллейн', cost: 3, rarity: 'legendary<script>', count: 1, hasPage: false },
-        { id: null, name: null, cost: null, count: 1, hasPage: true }] },
-    { deckCode: 'AAEBAa0GAfGiBAH0ogQAAA==', games: null, winrate: null, updatedAt: null, cards: null },
+        { id: null, name: null, cost: null, count: 1, hasPage: true }],
+      // The code's sideboards: kept under a card of the list, field by field; one under a card the list lacks, or with a
+      // line that does not read, is left out.
+      sideboards: [
+        { keyId: 'TST_001', label: 'PRIVATE_LABEL', cards: [{ id: 'TST_003', name: 'Тестовая буря', cost: 2, rarity: 'RARE', count: 1, hasPage: true, mulliganImpact: 7.1717 },
+          { id: 'TOY_330t97', name: 'Модуль', cost: 3, count: 1, hasPage: false }] },
+        { keyId: 'TST_404', cards: [{ id: 'TST_003', name: 'Тестовая буря', cost: 2, count: 1, hasPage: true }] },
+        { keyId: 'TIME_875t', cards: [{ id: 'TST_003', name: 'Тестовая буря', cost: 2, count: 0, hasPage: true }] },
+      ] },
+    { deckCode: 'AAEBAa0GAfGiBAH0ogQAAA==', games: null, winrate: null, updatedAt: null, cards: null,
+      sideboards: [{ keyId: 'TST_001', cards: [{ id: 'TST_003', name: 'Тестовая буря', cost: 2, count: 1, hasPage: true }] }] },
     { deckCode: 'AAECAf0GAfKiBALxogTzogQAAC==', games: 10, winrate: 50, updatedAt: null,
       cards: [{ id: 'TST_001', name: 'Тестовый удар', cost: 1, count: 2, hasPage: true }, { id: '/OG_211', name: 'Зов лесов', cost: 8, count: 1, hasPage: true }, { id: '../../admin', name: 'Чужая', cost: 1, count: 1 }, { id: 'TST_002', name: '', cost: 1, count: 1, hasPage: true }] },
     { deckCode: 'PRIVATE_DECK', games: 10, winrate: 50, updatedAt: null, cards: null },
@@ -51,7 +60,9 @@ assert.deepEqual(open.openBuilds, [
     sampleRank: 'all', samplePeriod: 'past_30_days',
     cards: [{ id: 'TST_001', name: 'Тестовый удар', cost: 1, rarity: 'LEGENDARY', count: 2, hasPage: true },
       { id: 'TIME_875t', name: 'Король Ллейн', cost: 3, rarity: null, count: 1, hasPage: false },
-      { id: null, name: null, cost: null, rarity: null, count: 1, hasPage: false }] },
+      { id: null, name: null, cost: null, rarity: null, count: 1, hasPage: false }],
+    sideboards: [{ keyId: 'TST_001', cards: [{ id: 'TST_003', name: 'Тестовая буря', cost: 2, rarity: 'RARE', count: 1, hasPage: true },
+      { id: 'TOY_330t97', name: 'Модуль', cost: 3, rarity: null, count: 1, hasPage: false }] }] },
   { deckCode: 'AAEBAa0GAfGiBAH0ogQAAA==', games: null, winrate: null, updatedAt: null, sampleRank: '', samplePeriod: '', cards: null },
   { deckCode: 'AAECAf0GAfKiBALxogTzogQAAC==', games: 10, winrate: 50, updatedAt: null, sampleRank: '', samplePeriod: '',
     cards: [{ id: 'TST_001', name: 'Тестовый удар', cost: 1, rarity: null, count: 2, hasPage: true },
@@ -66,3 +77,22 @@ assert.equal(publicArchetypeTeaser(raw, 'wild', 'thief-priest').openBuildsTotal,
 for (const paid of ['7.1717', '6.2626', '41.4141', 'PRIVATE_']) {
   assert.equal(JSON.stringify(open).includes(paid), false, `the page data carries ${paid}`);
 }
+
+// An answer with more than a real code holds (five sideboards, one of eleven lines) keeps the first four sideboards and
+// the first ten lines of each; the rest never reaches the page, and the build keeps its list.
+const line = (id: string) => ({ id, name: `Карта ${id}`, cost: 1, rarity: 'COMMON', count: 1, hasPage: true });
+const crowded = publicArchetypeTeaser({ ...raw, item: { ...raw.item, builds: [{
+  deckCode: 'AAECAf0GAfKiBALxogTzogQAAA==', games: 10, winrate: 50, updatedAt: null,
+  cards: ['KEY_1', 'KEY_2', 'KEY_3', 'KEY_4', 'KEY_5'].map(line),
+  sideboards: [
+    { keyId: 'KEY_1', cards: ['SB_01', 'SB_02', 'SB_03', 'SB_04', 'SB_05', 'SB_06', 'SB_07', 'SB_08', 'SB_09', 'SB_10', 'SB_11'].map(line) },
+    { keyId: 'KEY_2', cards: [line('SB_20')] }, { keyId: 'KEY_3', cards: [line('SB_21')] },
+    { keyId: 'KEY_4', cards: [line('SB_22')] }, { keyId: 'KEY_5', cards: [line('SB_23')] },
+  ],
+}] } }, 'wild', 'thief-priest').openBuilds[0];
+assert.equal(crowded.cards?.length, 5, 'the build keeps its list');
+assert.deepEqual(crowded.sideboards?.map(board => board.keyId), ['KEY_1', 'KEY_2', 'KEY_3', 'KEY_4']);
+assert.deepEqual(crowded.sideboards?.[0].cards.map(card => card.id),
+  ['SB_01', 'SB_02', 'SB_03', 'SB_04', 'SB_05', 'SB_06', 'SB_07', 'SB_08', 'SB_09', 'SB_10']);
+assert.equal(JSON.stringify(crowded).includes('SB_11'), false, 'the eleventh line stays out');
+assert.equal(JSON.stringify(crowded).includes('SB_23'), false, 'the fifth sideboard stays out');
