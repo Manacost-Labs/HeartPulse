@@ -58,7 +58,7 @@ test('server HTML and the hydrated page share the runtime switches for card imag
     const withCdn = await startPublicCardPilot({ pagesEnabled: true, runtimeClientConfigFile: enabledFile });
     try {
       const card = await renderCard(withCdn, browser);
-      assert.ok(card.html.indexOf('window.__ARENA_RUNTIME_CONFIG__={"cardImageCdn":{"enabled":true')
+      assert.ok(card.html.indexOf('<script type="application/json" id="hp-runtime-config">{"cardImageCdn":{"enabled":true')
         < card.html.indexOf('<div id="root"'), 'the switches precede the application markup');
       assert.match(card.serverSrc ?? '', /^https:\/\/cdn\.hearthpulse\.net\/api\/card-image\//, 'server HTML uses the CDN');
       assert.equal(card.src, card.serverSrc.replaceAll('&amp;', '&'), 'hydration keeps the server URL');

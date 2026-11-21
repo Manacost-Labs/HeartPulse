@@ -49,6 +49,7 @@ is a separate administrator workspace and retains its permission gate.
 | `lib/runtimeClientConfig.ts` | Root-managed runtime switches (card-image CDN) for server rendering and the inline document config |
 | `proxy.ts` | Request proxy for card, hero, library and cosmetics detail probes, the data pages' 503 when they have no data, and the home page's `Cache-Control` |
 | `documentCaching.mjs` | Which public documents send `private, no-cache` instead of `no-store` and the edge-cache marker (`next.config.mjs` `headers()`) |
+| `lib/inlineScripts.ts`, `ui/InlineScript.tsx`, `contentSecurityPolicy.mjs`, `inlineScriptHashes.json` | Every executable inline script, rendered only through `<InlineScript id>`, and the Content-Security-Policy that allows them by sha256 (report-only behind a build flag); [spec](../../docs/specs/csp.md) |
 <!-- markdownlint-enable MD013 -->
 
 ## Rules

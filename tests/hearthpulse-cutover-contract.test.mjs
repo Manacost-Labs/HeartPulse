@@ -36,7 +36,7 @@ assert.doesNotMatch(nextLayout, /arena\.hs-manacost\.ru/,
   'the retired Arena host must not remain as the Plausible site identifier');
 assert.match(nextAnalyticsLoader, /const host = JSON\.stringify\(CANONICAL_HOST\);[\s\S]*s\.dataset\.domain=\$\{host\}/,
   'Next.js documents must attribute Plausible pageviews to the canonical host');
-assert.match(nextLayout, /__html: ANALYTICS_LOADER/,
+assert.match(nextLayout, /<InlineScript id="analytics" \/>/,
   'every Next.js document must carry the Plausible loader');
 
 assert.match(application, /server_name\s+hearthpulse\.net;/,

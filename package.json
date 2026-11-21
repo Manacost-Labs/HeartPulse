@@ -210,6 +210,7 @@
     "test:constructed-card-urls": "tsx tests/constructed-card-urls.test.ts",
     "test:public-card-read-model": "tsx tests/public-card-read-model.test.ts",
     "dev:next": "NEXT_TELEMETRY_DISABLED=1 next dev apps/public-web --webpack --hostname 127.0.0.1 --port 4320",
+    "csp:hashes": "tsx scripts/csp-inline-script-hashes.ts",
     "build:next": "NEXT_TELEMETRY_DISABLED=1 next build apps/public-web --webpack",
     "start:next": "NEXT_TELEMETRY_DISABLED=1 next start apps/public-web --hostname 127.0.0.1 --port 4320",
     "dev:web": "PUBLIC_WEB_PORT=3000 PUBLIC_WEB_STATIC_DIR=public PUBLIC_WEB_TIMEOUT_MS=120000 PUBLIC_CARDS_NEXT_ENABLED=1 PUBLIC_PAGES_NEXT_ENABLED=1 PUBLIC_GALLERY_NEXT_ENABLED=1 node scripts/public-web-gateway.mjs",

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { publicDocumentHeaders } from './documentCaching.mjs';
+import { contentSecurityPolicyHeaders } from './contentSecurityPolicy.mjs';
 const repositoryRoot = fileURLToPath(new URL('../../', import.meta.url));
 
 /**
@@ -37,8 +38,9 @@ const config = {
   // Agent rules live in the repository's AGENTS.md; `next dev` must not add its own files here.
   agentRules: false,
   // Anonymous public documents may be restored from the back/forward cache.
+  // The CSP is report-only and off unless the build sets its flag (docs/specs/csp.md).
   async headers() {
-    return [...publicDocumentHeaders(), ...prerenderedQueryRobotsHeaders()];
+    return [...publicDocumentHeaders(), ...prerenderedQueryRobotsHeaders(), ...contentSecurityPolicyHeaders()];
   },
   poweredByHeader: false,
   reactStrictMode: true,
