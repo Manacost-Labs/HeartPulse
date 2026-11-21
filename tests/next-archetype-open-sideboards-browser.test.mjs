@@ -129,16 +129,41 @@ async function startStand() {
     gateway = createPublicWebGateway({ legacyOrigin, nextOrigin, enabled: true, pagesEnabled: true });
     const origin = await listenLocal(gateway);
     browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome', headless: true, args: ['--no-sandbox'] });
-    /** A fresh page in `layout` (kept in this browser) that sums the layout shifts not caused by input from its first frame. */
+    /**
+     * A fresh page in `layout` (kept in this browser) that sums, from its first frame, the layout shifts not caused by
+     * input that move something of the gallery (`.archetype-builds`). A shift elsewhere (the archetype's header as a
+     * loaded runner lays it out, see PR 698) is recorded with its sources but is not this gallery's.
+     */
     const open = async (width, layout) => {
       const context = await browser.createBrowserContext();
       const page = await context.newPage();
       await page.setViewport({ width, height: 900 });
+      // `CPU_THROTTLE=4`: a slow machine, as a loaded CI runner (the timings of hydration and of the full lists move).
+      if (process.env.CPU_THROTTLE) await page.emulateCPUThrottling(Number(process.env.CPU_THROTTLE));
       await page.evaluateOnNewDocument(kept => {
         try { localStorage.setItem('hp:deck-layout', kept); } catch { /* the default view */ }
         window.__cls = 0;
-        new PerformanceObserver(list => { for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.__cls += entry.value; })
-          .observe({ type: 'layout-shift', buffered: true });
+        // Every shift with what moved (a selector of each node, its box before and after), printed when a check fails.
+        window.__shifts = [];
+        const inGallery = node => Boolean(node && document.querySelector('.archetype-builds')?.contains(node));
+        const selectorOf = node => {
+          const parts = [];
+          for (let at = node instanceof Element ? node : node?.parentElement; at && at !== document.body && parts.length < 5; at = at.parentElement) {
+            parts.unshift(`${at.tagName.toLowerCase()}${at.id ? `#${at.id}` : ''}${typeof at.className === 'string' && at.className.trim()
+              ? `.${at.className.trim().split(/\s+/).slice(0, 2).join('.')}` : ''}`);
+          }
+          return parts.join(' > ') || String(node?.nodeName);
+        };
+        const box = rect => rect && [rect.x, rect.y, rect.width, rect.height].map(Math.round).join(',');
+        new PerformanceObserver(list => {
+          for (const entry of list.getEntries()) {
+            if (entry.hadRecentInput) continue;
+            const gallery = (entry.sources ?? []).some(source => inGallery(source.node));
+            if (gallery) window.__cls += entry.value;
+            window.__shifts.push({ at: Math.round(entry.startTime), value: Math.round(entry.value * 10_000) / 10_000, gallery, scrollY: Math.round(scrollY),
+              sources: (entry.sources ?? []).map(source => ({ node: selectorOf(source.node), from: box(source.previousRect), to: box(source.currentRect) })) });
+          }
+        }).observe({ type: 'layout-shift', buffered: true });
       }, layout);
       await page.goto(`${origin}${PATH}`, { waitUntil: 'domcontentloaded' });
       await page.evaluate(() => document.fonts.ready);
@@ -153,7 +178,10 @@ async function startStand() {
 }
 
 const settle = page => page.evaluate(() => new Promise(resolve => setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(resolve)), 400)));
+/** The layout shift of the gallery since the first frame (see `open`). */
 const cls = page => page.evaluate(() => Math.round(window.__cls * 10_000) / 10_000);
+/** The shifts of the page and what moved in each, for a failure message. */
+const shifts = page => page.evaluate(() => JSON.stringify(window.__shifts));
 const ARTICLES = '.archetype-builds article';
 /**
  * The builds of the gallery in `layout`, once the page has hydrated and draws them in that view (the server's tiles
@@ -191,10 +219,11 @@ test('a subscriber\'s full lists with sideboards replace the open ones without m
           await scrollGallery(view.page);
           await fullListsIn(stand, view.page, at);
           const shift = await cls(view.page);
+          const moved = await shifts(view.page);
           // The tiles print a sideboard's heading, the rows give it to the group of portraits as its title.
           const markup = await view.page.$eval('.archetype-builds', node => node.innerHTML);
           await view.close();
-          assert.ok(shift < 0.01, `${at}: the full lists replace the open ones in place (CLS ${shift})`);
+          assert.ok(shift < 0.01, `${at}: the full lists replace the open ones in place (CLS ${shift}): ${moved}`);
           if (layout !== 'images') assert.match(markup, /Группа E\.T\.C\.[\s\S]*Модули Зиллиакса|Модули Зиллиакса[\s\S]*Группа E\.T\.C\./, `${at}: the sideboards are drawn`);
         }
       }
@@ -252,9 +281,10 @@ test('a guest sees the sideboards of the open lists, reads no full list, and get
         await scrollGallery(view.page);
         await settle(view.page);
         const shift = await cls(view.page);
+        const moved = await shifts(view.page);
         const markup = await view.page.$eval('.archetype-builds', node => node.innerHTML);
         await view.close();
-        assert.ok(shift < 0.01, `guest, ${label}, ${width}px: CLS ${shift}`);
+        assert.ok(shift < 0.01, `guest, ${label}, ${width}px: CLS ${shift}: ${moved}`);
         if (layout !== 'images') assert.match(markup, /Группа E\.T\.C\.[\s\S]*Модули Зиллиакса|Модули Зиллиакса[\s\S]*Группа E\.T\.C\./, `guest, ${label}: the sideboards are drawn`);
       }
     }
