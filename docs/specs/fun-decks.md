@@ -17,27 +17,32 @@ reasons, the card list, the date of the data, the deck code as text and
 `wild`), a card outside the catalog is named without a link, and a card nobody
 names is «Неизвестная карта» in its place, without art. The E.T.C. band and
 Zilliax's modules are on the server tile already, so the full list adds no line;
-the «Строки» and «Картинки» views draw the same open list. No deck is left out:
-one without a card list keeps its numbers, its code and the copy button. In the
-browser each deck, once about a screen away (the first at once), reads its full
-list (`/api/deck/resolve`: rarities, sideboards), which replaces the open one in
-place; a failed read keeps the open list. The browser also loads
+the «Строки» and «Картинки» views draw the same open list. In «Картинки» every
+deck's render sits in one 720:609 box (the most common size of production's
+renders), letterboxed, so a render arriving later moves nothing. No deck is left
+out: one without a card list keeps its numbers, its code and the copy button. In
+the browser each deck, once about a screen away (the first at once), reads its
+full list (`/api/deck/resolve`: rarities, sideboards), which replaces the open
+one in place; a failed read keeps the open list. The browser also loads
 `/api/fun-decks`; its answer replaces the selection in the same places, and a
 failed read or an answer without decks keeps the decks the page has.
 
-The page is rendered per request (`force-dynamic`), so the server reads a
-link's filters and sort (`readFunDecksQuery()` on `searchParams`) and renders
-the filtered list, its count and the pressed filters: the first paint of
+The page is rendered per request (`force-dynamic`), so the server reads a link's
+filters and sort (`readFunDecksQuery()` on `searchParams`) and renders the
+filtered list, its count and the pressed filters: the first paint of
 `?format=wild` is the Wild list, and the selection arriving later changes
-nothing. The deck view a reader keeps («Строки», «Картинки», in
-`localStorage`) is the browser's only: an inline script before the list
+nothing. The deck view a reader keeps («Строки», «Картинки», in `localStorage`)
+is the browser's only: an inline script before the list
 (`DECK_LAYOUT_RESTORE_SCRIPT`) marks `<html data-deck-layout-restore>`, the
 server tiles keep their place unseen, and the page draws the kept view in the
 first frame after hydration (`useDeckLayout` reads it in a layout effect) and
-drops the mark. The script drops the mark itself after 3 s
-(`DECK_LAYOUT_RESTORE_LIMIT_MS`), so a page whose scripts never load or run
-still shows its tiles. A guest without parameters or a kept view gets the
-server HTML as it is.
+drops the mark. A page that never hydrates still shows its tiles: the script
+drops the mark one second after the window's `load`
+(`DECK_LAYOUT_RESTORE_AFTER_LOAD_MS`; `load` comes also when the scripts fail or
+are blocked) or 15 s after itself at the latest
+(`DECK_LAYOUT_RESTORE_LIMIT_MS`). A slow bundle only delays `load`, so its
+reader never sees the tiles before the kept view. A guest without parameters or
+a kept view gets the server HTML as it is.
 
 Every filtered variant names the bare page as its canonical
 (`https://hearthpulse.net/standard/fun-decks/`) and is `noindex, follow`: the

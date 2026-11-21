@@ -98,6 +98,7 @@ function FunDeckCard({
         style={{ ['--fun-deck-class' as string]: classMeta.color }}
       >
         <DeckRenderPreview
+          className="deck-render-preview--framed"
           deckCode={deck.deckCode}
           deckName={deck.title}
           eager={eager}

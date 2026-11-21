@@ -44,39 +44,41 @@ const ZILLIAX_MODULES = [
   { id: 'TOY_330t95', name: 'Модуль: перегрев', cost: 3, count: 1, hasPage: false },
   { id: 'TOY_330t5', name: 'Корпус Зиллиакса', cost: 0, count: 1, hasPage: false },
 ];
-// 24 decks, as in production on 2026-11-21: [number, format, class, fun index, win rate, first seen]. The rows are the
+// 24 decks, as in production on 2026-11-21: [number, format, class, fun index, win rate, first seen, render size]; the
+// renders have production's sizes, most of them not square (QA of #675: 720x609, 720x648, 707x720, 691x720, 720x720). The rows are the
 // data; every deck also has the same reasons, 1 240 games, 28% likeness to the meta and the three cards above.
 const DECK_TABLE = [
-  [1, 'Standard', 'mage', 0.5, 57.7, '2026-10-30'],
-  [2, 'Standard', 'priest', 0.55, 53.4, '2026-10-29'],
-  [3, 'Standard', 'warrior', 0.6, 49.1, '2026-10-28'],
-  [4, 'Standard', 'rogue', 0.65, 61.3, '2026-10-27'],
-  [5, 'Wild', 'druid', 0.7, 50, '2026-10-26'],
-  [6, 'Standard', 'hunter', 0.75, 44.8, '2026-10-25'],
-  [7, 'Standard', 'paladin', 0.8, 52.3, '2026-10-24'],
-  [8, 'Standard', 'shaman', 0.5, 58.9, '2026-10-23'],
-  [9, 'Standard', 'warlock', 0.55, 47.6, '2026-10-22'],
-  [10, 'Wild', 'demonhunter', 0.6, 55.5, '2026-10-21'],
-  [11, 'Standard', 'deathknight', 0.65, 51.2, '2026-10-20'],
-  [12, 'Standard', 'mage', 0.7, 56.7, '2026-10-19'],
-  [13, 'Standard', 'priest', 0.75, 62.4, '2026-10-18'],
-  [14, 'Standard', 'warrior', 0.8, 48.3, '2026-10-17'],
-  [15, 'Wild', 'rogue', 0.5, 54.1, '2026-10-16'],
-  [16, 'Standard', 'druid', 0.55, 59.9, '2026-10-15'],
-  [17, 'Standard', 'hunter', 0.6, 46.2, '2026-10-14'],
-  [18, 'Standard', 'paladin', 0.65, 53.8, '2026-10-13'],
-  [19, 'Standard', 'shaman', 0.7, 50.6, '2026-10-12'],
-  [20, 'Wild', 'warlock', 0.75, 57.2, '2026-10-11'],
-  [21, 'Standard', 'demonhunter', 0.8, 49.9, '2026-10-10'],
-  [22, 'Standard', 'deathknight', 0.5, 52.7, '2026-10-09'],
-  [23, 'Standard', 'mage', 0.55, 60.3, '2026-10-08'],
-  [24, 'Standard', 'priest', 0.6, 45.5, '2026-10-07'],
+  [1, 'Standard', 'mage', 0.5, 57.7, '2026-10-30', '720x609'],
+  [2, 'Standard', 'priest', 0.55, 53.4, '2026-10-29', '720x648'],
+  [3, 'Standard', 'warrior', 0.6, 49.1, '2026-10-28', '720x609'],
+  [4, 'Standard', 'rogue', 0.65, 61.3, '2026-10-27', '707x720'],
+  [5, 'Wild', 'druid', 0.7, 50, '2026-10-26', '720x609'],
+  [6, 'Standard', 'hunter', 0.75, 44.8, '2026-10-25', '691x720'],
+  [7, 'Standard', 'paladin', 0.8, 52.3, '2026-10-24', '720x720'],
+  [8, 'Standard', 'shaman', 0.5, 58.9, '2026-10-23', '720x609'],
+  [9, 'Standard', 'warlock', 0.55, 47.6, '2026-10-22', '720x609'],
+  [10, 'Wild', 'demonhunter', 0.6, 55.5, '2026-10-21', '720x648'],
+  [11, 'Standard', 'deathknight', 0.65, 51.2, '2026-10-20', '720x609'],
+  [12, 'Standard', 'mage', 0.7, 56.7, '2026-10-19', '707x720'],
+  [13, 'Standard', 'priest', 0.75, 62.4, '2026-10-18', '720x609'],
+  [14, 'Standard', 'warrior', 0.8, 48.3, '2026-10-17', '691x720'],
+  [15, 'Wild', 'rogue', 0.5, 54.1, '2026-10-16', '720x720'],
+  [16, 'Standard', 'druid', 0.55, 59.9, '2026-10-15', '720x609'],
+  [17, 'Standard', 'hunter', 0.6, 46.2, '2026-10-14', '720x609'],
+  [18, 'Standard', 'paladin', 0.65, 53.8, '2026-10-13', '720x648'],
+  [19, 'Standard', 'shaman', 0.7, 50.6, '2026-10-12', '720x609'],
+  [20, 'Wild', 'warlock', 0.75, 57.2, '2026-10-11', '707x720'],
+  [21, 'Standard', 'demonhunter', 0.8, 49.9, '2026-10-10', '720x609'],
+  [22, 'Standard', 'deathknight', 0.5, 52.7, '2026-10-09', '691x720'],
+  [23, 'Standard', 'mage', 0.55, 60.3, '2026-10-08', '720x720'],
+  [24, 'Standard', 'priest', 0.6, 45.5, '2026-10-07', '720x609'],
 ];
 const EXTRAS = {
   1: { streamer: 'Стример Фикстуры', cards: [...CARDS, ETC], sideboards: [{ keyId: ETC.id, cards: ETC_BAND }] },
   2: { cards: [...CARDS, ZILLIAX], sideboards: [{ keyId: ZILLIAX.id, cards: ZILLIAX_MODULES }] },
 };
 // The answer also carries fields outside the page's allowlist (an internal source id, an admin note): not open fields.
+const RENDER_SIZE = Object.fromEntries(DECK_TABLE.map(row => [`FUN_DECK_${row[0]}`, row[6]]));
 const DECKS = DECK_TABLE.map(([number, format, className, funScore, winRate, firstSeen]) => ({
   title: `Фан-колода ${number}`, deckCode: `FUN_DECK_${number}`, format, className, streamer: null, kind: 'brew',
   funScore, maxMetaSimilarity: 0.28, nearestArchetype: null, winRate, winRateCiLow: 44, winRateCiHigh: 66,
@@ -103,8 +105,6 @@ const resolved = (code, format) => {
   return { ok: true, format, heroDbfId: 637, deckCode: code, totalCards: 5, deckSizeLimit: 30, archetype: null, cards, sideboards };
 };
 
-// A 1×1 PNG: the render's box is square whatever its size.
-const SQUARE_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 // A slow network: the HTML goes out in pieces of this many bytes, one piece per pause.
 const TRICKLE = { bytes: 12_000, pauseMs: 90 };
 
@@ -152,9 +152,20 @@ async function startStack() {
       state.resolveReads += 1;
       return void setTimeout(() => json(200, resolved(url.searchParams.get('code'), url.searchParams.get('format'))), state.resolveDelay);
     }
-    // The «Картинки» view: the deck's picture, as production serves it (a square render), so its box is the real one.
-    if (url.pathname === '/api/deck/render') return json(200, { ok: true, ready: true, imageUrl: '/fixture/deck-render.png' });
-    if (url.pathname === '/fixture/deck-render.png') return void response.writeHead(200, { 'Content-Type': 'image/png' }).end(SQUARE_PNG);
+    // The «Картинки» view: the deck's picture, of the size production's render of such a deck has.
+    if (url.pathname === '/api/deck/render') {
+      let body = '';
+      request.on('data', chunk => { body += chunk; });
+      return void request.on('end', () => {
+        const size = RENDER_SIZE[JSON.parse(body || '{}').deckCode] ?? '720x609';
+        json(200, { ok: true, ready: true, imageUrl: `/fixture/render/${size}.svg` });
+      });
+    }
+    const render = /^\/fixture\/render\/(\d+)x(\d+)\.svg$/.exec(url.pathname);
+    if (render) {
+      return void response.writeHead(200, { 'Content-Type': 'image/svg+xml' })
+        .end(`<svg xmlns="http://www.w3.org/2000/svg" width="${render[1]}" height="${render[2]}"><rect width="100%" height="100%" fill="#6b4a2b"/></svg>`);
+    }
     if (url.pathname.startsWith('/api/')) return json(404, { error: 'missing' });
     const slow = state.slowHtml && browser && url.pathname === '/standard/fun-decks/';
     const headers = { ...request.headers };
@@ -201,6 +212,8 @@ const watchFrames = () => {
       titles: decks.map(deck => deck.querySelector('h2')?.textContent ?? '').join(' | '),
       listShown: Boolean(section && decks.length && section.checkVisibility({ visibilityProperty: true })),
       view: document.querySelector('[role="group"][aria-label="Вид колод"] [aria-pressed="true"]')?.textContent ?? null,
+      // The kept view's mark over the server tiles (the page's inline script).
+      mark: document.documentElement.dataset.deckLayoutRestore ?? null,
       firstWhole: Boolean(first && [...first.querySelectorAll('button')].some(button => /Копировать код/.test(button.textContent))),
       band: /Группа E\.T\.C\./.test(first?.textContent ?? ''),
       skeleton: [...document.querySelectorAll('[role="status"]')].some(node => /Загружаем фан-колоды/.test(node.textContent)),
@@ -494,25 +507,46 @@ test('a kept deck view replaces the server tiles before they show', { timeout: 2
   }
 }));
 
-// The kept view hides the server tiles until the page's scripts draw it; scripts that never run must not hide them for
-// good: the inline script drops its own mark after DECK_LAYOUT_RESTORE_LIMIT_MS (3 s).
-test('the server tiles show by themselves when the page\'s scripts never run', { timeout: 240_000 }, () => delayedPage(async (browser, stack, viewport, at) => {
+// The kept view hides the server tiles until the page's scripts draw it. A slow bundle only delays that: the tiles never
+// show. Scripts that never run must not hide them for good: the mark goes a second after the window's `load`.
+test('a slow bundle keeps the kept view, a blocked one shows the tiles a second after load', { timeout: 300_000 }, () => delayedPage(async (browser, stack, viewport, at) => {
   stack.slowHtml = false;
-  const page = await (await browser.createBrowserContext()).newPage();
-  await page.setViewport(viewport);
-  await page.evaluateOnNewDocument(() => localStorage.setItem('hp:deck-layout', 'rows'));
-  await page.setRequestInterception(true);
-  page.on('request', request => (/\/_next\/static\/.*\.js(?:\?|$)/.test(request.url()) ? request.abort() : request.continue()));
-  await page.goto(`${stack.origin}/standard/fun-decks/`, { waitUntil: 'domcontentloaded' });
-  const look = () => page.$eval(SECTION, section => ({ at: performance.now(), shown: section.checkVisibility({ visibilityProperty: true }),
-    view: document.querySelector('[role="group"][aria-label="Вид колод"] [aria-pressed="true"]')?.textContent ?? null }));
-  const early = await look();
-  assert.ok(early.at < 2_500, `${at}: looked before the limit (${Math.round(early.at)} ms)`);
-  assert.equal(early.shown, false, `${at}: the kept view hides the server tiles at first`);
-  await page.waitForFunction(() => performance.now() > 3_500, { timeout: 10_000, polling: 100 });
-  const late = await look();
-  assert.deepEqual([late.shown, late.view], [true, 'Плитки'], `${at}: without the page's scripts the tiles show after 3 s`);
-  await page.browserContext().close();
+  for (const [mode, label] of [['slow', 'Строки'], ['blocked', 'Плитки']]) {
+    const page = await (await browser.createBrowserContext()).newPage();
+    await page.setViewport(viewport);
+    await page.evaluateOnNewDocument(() => localStorage.setItem('hp:deck-layout', 'rows'));
+    await page.evaluateOnNewDocument(watchFrames);
+    await page.setRequestInterception(true);
+    // Slow: no script of the bundle arrives before 8 s from the start (the chain of chunks then loads at once), so the
+    // page hydrates about 8 s in. Blocked: none arrives.
+    const opened = Date.now();
+    page.on('request', request => {
+      if (!/\/_next\/static\/.*\.js(?:\?|$)/.test(request.url())) return void request.continue();
+      if (mode === 'blocked') return void request.abort();
+      setTimeout(() => void request.continue().catch(() => undefined), Math.max(0, opened + 8_000 - Date.now()));
+    });
+    await page.goto(`${stack.origin}/standard/fun-decks/`, { waitUntil: 'load', timeout: 60_000 });
+    await delay(2_500);
+    const { load, frames } = await page.evaluate(() => ({
+      load: performance.getEntriesByType('navigation')[0].loadEventStart, frames: window.__frames }));
+    const marked = frames.filter(frame => frame.mark === 'rows');
+    const cleared = frames.find(frame => frame.decks && frame.mark === null && marked.length && frame.at > marked[0].at);
+    assert.ok(marked.length > 0, `${at} ${mode}: the kept view was marked`);
+    assert.ok(cleared, `${at} ${mode}: the mark went`);
+    assert.equal(cleared.view, label, `${at} ${mode}: when the mark goes the page shows «${label}»`);
+    if (mode === 'slow') {
+      assert.ok(load > 8_000 && cleared.at > 8_000, `${at} slow: the bundle came after 8 s (load ${Math.round(load)} ms, mark gone ${Math.round(cleared.at)} ms)`);
+      assert.ok(cleared.at < load + 1_000, `${at} slow: hydration, not the timer, dropped the mark (${Math.round(cleared.at)} ms, load ${Math.round(load)} ms)`);
+      assert.deepEqual([...new Set(frames.filter(frame => frame.listShown && frame.view !== 'Строки').map(frame => frame.view))], [],
+        `${at} slow: no frame shows the server tiles`);
+    } else {
+      const after = cleared.at - load;
+      assert.ok(after >= 900 && after < 1_800, `${at} blocked: the tiles show a second after load (${Math.round(after)} ms)`);
+      assert.equal(frames.filter(frame => frame.listShown && frame.at < cleared.at).length, 0, `${at} blocked: hidden until then`);
+      assert.ok(frames.at(-1).listShown, `${at} blocked: the tiles show`);
+    }
+    await page.browserContext().close();
+  }
 }));
 
 // The address is the reader's input: unknown values, very long ones and markup are ignored, never printed as markup,
