@@ -76,7 +76,7 @@ export function initialConstructedCardCatalogUrl(format: ConstructedCardFormat):
   return constructedCardCatalogUrl({
     format,
     period: '1d',
-    rank: 'legend',
+    rank: DEFAULT_CONSTRUCTED_CARD_RANK,
     page: 1,
     perPage: 60,
     filters: EMPTY_CONSTRUCTED_CARD_FILTERS,
@@ -96,3 +96,4 @@ import {
   EMPTY_CONSTRUCTED_CARD_FILTERS,
   type ConstructedCardFormat,
 } from './constructedCardCatalogModel';
+import { DEFAULT_CONSTRUCTED_CARD_RANK } from '../modules/constructedCards/public';

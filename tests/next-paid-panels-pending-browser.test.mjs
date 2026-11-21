@@ -14,7 +14,8 @@ import { closeLocal, listenLocal } from './helpers/publicCardFixture.mjs';
 // without access (instant viewer access, docs/specs/instant-viewer-access.md).
 const STATUS_DELAY_MS = 2500;
 const LOCKS = ['.constructed-cards__stats-lock', '.constructed-cards__locked-value', '.constructed-cards__sort-lock',
-  '.arena-inline-paywall', '.arena-paywall', '.archetype-build-preview'];
+  '.arena-inline-paywall', '.arena-paywall', '.archetype-build-preview', 'visible:.constructed-card-detail .paid-lock',
+  'visible:.constructed-card-detail .paid-filter-lock', 'visible:.constructed-card-detail .constructed-cards__filter-lock'];
 const LOCK_TEXT = ['Статистика доступна с тарифом', 'доступны подписчикам'];
 const executablePath = process.env.CHROMIUM_PATH || '/usr/bin/google-chrome';
 
@@ -34,7 +35,11 @@ function recordLocks(selectors, texts) {
   window.__locks = [];
   const sample = () => {
     if (document.body) {
-      const selector = selectors.find(candidate => document.querySelector(candidate));
+      // `visible:` selectors: a lock that holds its place but is not drawn (the card page while access is checked) does not count.
+      const found = candidate => candidate.startsWith('visible:')
+        ? [...document.querySelectorAll(candidate.slice(8))].some(node => node.checkVisibility({ visibilityProperty: true }))
+        : Boolean(document.querySelector(candidate));
+      const selector = selectors.find(found);
       const text = texts.find(candidate => document.body.textContent.includes(candidate));
       if (selector || text) window.__locks.push({ at: Math.round(performance.now()), selector, text });
     }
@@ -77,7 +82,7 @@ test('constructed card statistics stay in their loading state, never locked, for
     for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844, isMobile: true, hasTouch: true }]) {
       for (const [path, settled] of [
         ['/standard/cards/standard/blizzard%3A12345/',
-          () => Boolean(document.querySelector('.constructed-card-detail__statistics dl.constructed-cards__stats:not([aria-busy])'))],
+          () => Boolean(document.querySelector('.constructed-card-detail__statistics dl.constructed-cards__stats[data-stats-mode="full"]'))],
         ['/standard/cards/', () => performance.getEntriesByType('resource')
           .filter(entry => entry.name.includes('/api/constructed-cards')).length > 0
           && !document.querySelector('[data-loading]')
@@ -101,6 +106,154 @@ test('constructed card statistics stay in their loading state, never locked, for
 // is neither a grant nor a refusal: the card statistics never lock. The card
 // API confirms access by itself here, so its statistics appear; without that
 // the panel would offer a retry.
+// «Динамика карты» is the same block for everybody: a guest opens it and finds the lock in the chart's place and no
+// request for the paid history; a subscriber opens it and the history is asked for, with no lock.
+test('the card dynamics block is a lock for a guest and the history for a subscriber', { timeout: 180_000 }, async () => {
+  const runtime = await cardPilot();
+  const [name, value] = runtime.cookie.split('=');
+  let browser;
+  try {
+    browser = await launchBrowser({ executablePath, headless: true, args: ['--no-sandbox'] });
+    for (const viewer of ['guest', 'subscriber']) {
+      const context = await browser.createBrowserContext();
+      const page = await context.newPage();
+      if (viewer === 'subscriber') await page.setCookie({ name, value, url: runtime.origin });
+      const historyRequests = [];
+      page.on('request', request => { if (new URL(request.url()).pathname.endsWith('/history')) historyRequests.push(request.url()); });
+      await page.goto(`${runtime.origin}/standard/cards/standard/blizzard%3A12345/`, { waitUntil: 'domcontentloaded' });
+      if (viewer === 'subscriber') await page.waitForSelector('dl.constructed-cards__stats[data-stats-mode="full"]', { timeout: 25_000 });
+      else await page.waitForSelector('dl.constructed-cards__stats[data-stats-mode="locked"]', { timeout: 25_000 });
+      const heading = await page.waitForSelector('xpath/.//h2[normalize-space()="Динамика карты"]');
+      await heading.click();
+      const lock = 'button[aria-label="История карты: по подписке. Узнать, как открыть"]';
+      if (viewer === 'guest') {
+        await page.waitForSelector(lock, { visible: true, timeout: 10_000 });
+        // The closed block is the real chart panel, muted: the switches of the metric and of the range are there,
+        // with the chart, out of reach of readers; the lock stands on it.
+        await page.waitForSelector('.constructed-card-history__muted [aria-label="Показатель графика"]', { timeout: 10_000 });
+        await page.waitForSelector('.constructed-card-history__muted svg', { timeout: 10_000 });
+        assert.equal(await page.$eval('.constructed-card-history__muted', node => node.getAttribute('aria-hidden') === 'true' && node.hasAttribute('inert')), true);
+        await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 1000)));
+        assert.deepEqual(historyRequests, [], 'a guest never asks for the paid history');
+      } else {
+        await page.waitForFunction(() => document.querySelector('details.constructed-card-history')?.open === true);
+        await page.waitForFunction(() => performance.getEntriesByType('resource').some(entry => new URL(entry.name).pathname.endsWith('/history')), { timeout: 15_000 });
+        assert.equal(await page.$(lock), null, 'a subscriber sees no lock where the history is');
+      }
+      await context.close();
+    }
+  } finally {
+    if (browser) await browser.close();
+  }
+});
+
+// The same block for everybody: the guest's lock takes no more room than a subscriber's figure, so no caption
+// wraps onto a second line and the block is as tall as the subscriber's, on a phone and on a desktop.
+test('the statistics block is as tall for a guest as for a subscriber, and no caption wraps', { timeout: 240_000 }, async () => {
+  const runtime = await cardPilot();
+  const [name, value] = runtime.cookie.split('=');
+  let browser;
+  try {
+    browser = await launchBrowser({ executablePath, headless: true, args: ['--no-sandbox'] });
+    for (const viewport of [{ width: 390, height: 844, isMobile: true, hasTouch: true }, { width: 1440, height: 900 }]) {
+      const measured = {};
+      for (const viewer of ['guest', 'subscriber']) {
+        const context = await browser.createBrowserContext();
+        const page = await context.newPage();
+        await page.setViewport(viewport);
+        if (viewer === 'subscriber') await page.setCookie({ name, value, url: runtime.origin });
+        await page.goto(`${runtime.origin}/standard/cards/standard/blizzard%3A12345/`, { waitUntil: 'domcontentloaded' });
+        await page.waitForSelector(`dl.constructed-cards__stats[data-stats-mode="${viewer === 'guest' ? 'locked' : 'full'}"]`, { timeout: 25_000 });
+        await page.evaluate(() => document.fonts.ready);
+        measured[viewer] = await page.evaluate(() => ({
+          block: document.querySelector('.constructed-card-detail__statistics').getBoundingClientRect().height,
+          captions: [...document.querySelectorAll('.constructed-cards__stats dt')].map(node => Math.round(node.getBoundingClientRect().height)),
+        }));
+        await context.close();
+      }
+      const label = `${viewport.width}px`;
+      assert.ok(Math.abs(measured.guest.block - measured.subscriber.block) <= 2, `${label}: guest block ${measured.guest.block}, subscriber block ${measured.subscriber.block}`);
+      assert.deepEqual(measured.guest.captions, measured.subscriber.captions, `${label}: no caption wraps differently for a guest`);
+    }
+  } finally {
+    if (browser) await browser.close();
+  }
+});
+
+// A card answer that hangs does not keep the paid rows waiting forever: after the deadline the open numbers stay and a
+// readable message with «Повторить» appears; the retry loads the card.
+test('a hanging paid card request ends with a message and a retry, the open numbers staying', { timeout: 120_000 }, async () => {
+  const runtime = await cardPilot();
+  const [name, value] = runtime.cookie.split('=');
+  let browser;
+  try {
+    browser = await launchBrowser({ executablePath, headless: true, args: ['--no-sandbox'] });
+    const context = await browser.createBrowserContext();
+    const page = await context.newPage();
+    await page.setCookie({ name, value, url: runtime.origin });
+    let hang = true;
+    await page.setRequestInterception(true);
+    page.on('request', request => {
+      if (hang && new URL(request.url()).pathname.startsWith('/api/constructed-cards/')) return; // never answered
+      void request.continue().catch(() => {});
+    });
+    await page.goto(`${runtime.origin}/standard/cards/standard/blizzard%3A12345/`, { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('dl.constructed-cards__stats[data-stats-mode="waiting"]', { timeout: 20_000 });
+    const retry = await page.waitForSelector('xpath/.//button[normalize-space()="Повторить"]', { timeout: 40_000 });
+    const notice = await page.$eval('.constructed-card-detail__statistics-unavailable p', node => node.textContent);
+    assert.match(notice, /Сервер не ответил за 25 секунд/);
+    assert.equal(await page.$eval('dl.constructed-cards__stats', node => node.dataset.statsMode), 'failed');
+    assert.match(await page.$eval('dl.constructed-cards__stats', node => node.textContent), /12,5%/, 'the open numbers stay');
+    hang = false;
+    await retry.click();
+    await page.waitForSelector('dl.constructed-cards__stats[data-stats-mode="full"]', { timeout: 25_000 });
+    await context.close();
+  } finally {
+    if (browser) await browser.close();
+  }
+});
+
+// The offer of a card lock closes when the card's own entitlement is confirmed (`standard`), also for a reader
+// without `arena`: signed in, no access yet; opens a lock; the grant arrives (the subscription answer carries
+// `standard` only: a manual grant would give every entitlement); «Проверить доступ»; the offer goes and the paid
+// statistics are on the page.
+test('the card offer closes once the standard entitlement is confirmed, with no arena one', { timeout: 180_000 }, async () => {
+  const runtime = await startPublicCardPilot({ pagesEnabled: true });
+  const [name, value] = runtime.cookie.split('=');
+  let browser;
+  try {
+    browser = await launchBrowser({ executablePath, headless: true, args: ['--no-sandbox'] });
+    const context = await browser.createBrowserContext();
+    const page = await context.newPage();
+    await page.setCookie({ name, value, url: runtime.origin });
+    let granted = false;
+    await page.setRequestInterception(true);
+    page.on('request', request => {
+      const { pathname } = new URL(request.url());
+      if (!granted || !['/api/subscription/status', '/api/subscription/refresh'].includes(pathname)) { void request.continue().catch(() => {}); return; }
+      void fetch(request.url(), { method: request.method(), headers: { ...request.headers(), Cookie: runtime.cookie }, body: request.postData() }).then(async answer => {
+        const status = await answer.json();
+        const only = { arena: false, battlegrounds: false, standard: true, contests: false, guidesArchive: false, arenaArticles: false, battlegroundsArticles: false };
+        await request.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...status, entitlements: only }) });
+      }).catch(() => request.continue().catch(() => {}));
+    });
+    await page.goto(`${runtime.origin}/standard/cards/standard/blizzard%3A12345/`, { waitUntil: 'domcontentloaded' });
+    // Signed in, the rows wait while the access is checked; the lock comes with the confirmed refusal.
+    const lock = await page.waitForSelector('button[aria-label="Винрейт, если сыграна: по подписке. Узнать, как открыть"]', { visible: true, timeout: 25_000 });
+    await lock.click();
+    await page.waitForSelector('[role="dialog"]', { visible: true, timeout: 10_000 });
+    runtime.grant(); granted = true;
+    const check = await page.waitForSelector('xpath/.//button[normalize-space()="Проверить доступ"]', { visible: true, timeout: 10_000 });
+    await check.click();
+    await page.waitForSelector('[role="dialog"]', { hidden: true, timeout: 20_000 });
+    await page.waitForSelector('dl.constructed-cards__stats[data-stats-mode="full"]', { timeout: 20_000 });
+    await context.close();
+  } finally {
+    if (browser) await browser.close();
+    await runtime.close();
+  }
+});
+
 test('card statistics never lock when the subscription answer fails', { timeout: 180_000 }, async () => {
   const runtime = await cardPilot();
   let browser;
@@ -122,7 +275,7 @@ test('card statistics never lock when the subscription answer fails', { timeout:
     });
     await page.goto(`${runtime.origin}/standard/cards/standard/blizzard%3A12345/`, { waitUntil: 'domcontentloaded' });
     await page.waitForFunction(() => document.querySelector('.constructed-card-detail__statistics-unavailable button')
-      || document.querySelector('.constructed-card-detail__statistics dl.constructed-cards__stats:not([aria-busy])'), { timeout: 25_000 });
+      || document.querySelector('.constructed-card-detail__statistics dl.constructed-cards__stats[data-stats-mode="full"]'), { timeout: 25_000 });
     // Past the check's deadline (10 s) the access state is final: still no lock.
     await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 11_000)));
     assert.deepEqual(await page.evaluate(() => window.__locks.slice(0, 3)), [], 'no frame shows a lock');
@@ -170,12 +323,12 @@ test('a restored card page hides its paid statistics until access is confirmed a
       await page.setCookie({ name, value, url: origin });
       proxy.mode = 'pass';
       await page.goto(`${origin}/standard/cards/standard/blizzard%3A12345/`, { waitUntil: 'load' });
-      await page.waitForSelector('.constructed-card-detail__statistics dl.constructed-cards__stats:not([aria-busy])', { timeout: 20_000 });
+      await page.waitForSelector('.constructed-card-detail__statistics dl.constructed-cards__stats[data-stats-mode="full"]', { timeout: 20_000 });
       await page.evaluate(() => {
         window.__restoreMarker = true;
         addEventListener('pageshow', event => {
           if (!event.persisted) return;
-          const paid = () => Boolean(document.querySelector('.constructed-card-detail__statistics dl.constructed-cards__stats:not([aria-busy])')
+          const paid = () => Boolean(document.querySelector('.constructed-card-detail__statistics dl.constructed-cards__stats[data-stats-mode="full"]')
             || document.querySelector('.constructed-card-detail__history, [class*="history-chart"]'));
           window.__restored = { event: paid(), later: [] };
           requestAnimationFrame(() => { window.__restored.frame = paid(); });
@@ -191,7 +344,7 @@ test('a restored card page hides its paid statistics until access is confirmed a
       assert.deepEqual({ event: restored.event, frame: restored.frame, later: restored.later }, { event: false, frame: false,
         later: [false, false, false] }, `${mode}: no paid statistics before the access is confirmed again`);
       if (mode === 'late') {
-        await page.waitForSelector('.constructed-card-detail__statistics dl.constructed-cards__stats:not([aria-busy])', { timeout: 20_000 });
+        await page.waitForSelector('.constructed-card-detail__statistics dl.constructed-cards__stats[data-stats-mode="full"]', { timeout: 20_000 });
       } else {
         await page.waitForSelector('.constructed-card-detail__statistics-unavailable button', { timeout: 25_000 });
       }

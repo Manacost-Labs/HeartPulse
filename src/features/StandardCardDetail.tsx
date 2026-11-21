@@ -2,7 +2,7 @@ import { CardVariantImages, CardVariantSwitch } from '../shared/ui/CardVariantSw
 import { SectionBanner } from '../shared/ui/EditorialRouteChrome';
 import { htmlPlainText as plainText } from '../shared/text/htmlPlainText';
 import { CardAssembleTeaser } from './CardAssembleTeaser';
-import { useConstructedCardPeriod, useConstructedCardRank, ConstructedCardIdentity, constructedCardPath, constructedCardRoute as routeState, CardChoicesSection, cardChoiceKindOf, isAssembleCard } from '../modules/constructedCards/public';
+import { OPEN_STATISTICS_SLICE, useConstructedCardPeriod, useConstructedCardRank, ConstructedCardIdentity, constructedCardPath, constructedCardRoute as routeState, CardChoicesSection, cardChoiceKindOf, isAssembleCard } from '../modules/constructedCards/public';
 import { cardPatchEntries } from './cardPatchChanges';
 import { CardPatchTimeline } from './CardPatchTimeline';
 import React, { useEffect, useRef, useState } from 'react';
@@ -19,7 +19,9 @@ import {
 import './StandardCards.styles';
 import { CardDetailSkeleton } from './CardDetailSkeleton';
 import { LoadingBlock } from '../shared/ui/LoadingSurface';
-import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
+import { PaidMetricLock } from '../shared/ui/PaidLocks';
+import { useViewerTimeZone } from '../shared/ui/useViewerTimeZone';
+import { fetchWithDeadline, RequestDeadlineError, RequestNetworkError } from '../shared/http/fetchWithDeadline';
 import { useScrollToTopOnCardChange } from './useScrollToTopOnCardChange';
 import { publicResourceUrl } from '../publicResourceUrl';
 import { fallbackCardImageToOrigin } from '../config/publicAssetDelivery';
@@ -47,9 +49,7 @@ import {
   type ConstructedCardRequestErrorCopy,
 } from './constructedCardRequestState';
 import {
-  CONSTRUCTED_CARD_RANK_OPTIONS,
   constructedCardPeriodLabel,
-  constructedCardPeriodOptions,
   constructedCardRankLabel,
   constructedCardStatsFormatFromSearch,
   constructedCardStatsFormatLabel,
@@ -89,7 +89,7 @@ import {
   type StandardCardsProps,
 } from './constructedCardRecord';
 import {
-  CardStatsAbout, CardStatsRows, LockedStatsPanel, PendingStatsRows, STATISTICS_FORMATS, StatisticsControls, StatisticsHead, statisticsPending,
+  CardStatisticsPanel, type CardStatsMode,
 } from './ConstructedCardStatistics';
 
 type ResolvedConstructedDeck = {
@@ -155,14 +155,6 @@ function soundClipLabel(description: string, group: string, index: number): stri
     return `${constructedSoundGroupLabel(group)} · реплика ${index + 1}`;
   }
   return label;
-}
-
-function formatDate(value: string | null | undefined): string {
-  if (!value) return 'нет данных';
-  const date = new Date(value);
-  return Number.isFinite(date.getTime())
-    ? date.toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-    : value;
 }
 
 function GeneratedPoolCards({ pool, format, period, rank, navigatePath, onOpen }: {
@@ -345,8 +337,9 @@ async function copyText(value: string): Promise<boolean> {
   }
 }
 
-function ConstructedDeckCard({ deck, format }: {
+function ConstructedDeckCard({ deck, format, winrateLock }: {
   key?: React.Key;
+  winrateLock?: React.ReactNode;
   deck: ConstructedDeck;
   format: CardFormat;
 }) {
@@ -416,16 +409,20 @@ function ConstructedDeckCard({ deck, format }: {
       </div>
       <div className="constructed-card-detail__deck-copy">
         <h3>{deckTitle}</h3>
-        <p>{[deck.className ? classLabel(deck.className.toUpperCase().replace(/\s+/g, '')) : '', deck.score || (deck.winrate != null ? `${percent(deck.winrate)} побед` : '')].filter(Boolean).join(' · ') || 'Готовая сборка'}</p>
+        {winrateLock
+          ? <p>{deck.className ? `${classLabel(deck.className.toUpperCase().replace(/\s+/g, ''))} · ` : ''}{winrateLock}</p>
+          : <p>{[deck.className ? classLabel(deck.className.toUpperCase().replace(/\s+/g, '')) : '', deck.score || (deck.winrate != null ? `${percent(deck.winrate)} побед` : '')].filter(Boolean).join(' · ') || 'Готовая сборка'}</p>}
         <button type="button" onClick={copyDeck}><Copy size={15} /> {copied ? 'Код скопирован' : 'Скопировать код'}</button>
       </div>
     </article>
   );
 }
 
+const { period: OPEN_PERIOD, rank: OPEN_RANK } = OPEN_STATISTICS_SLICE;
+
 const CARD_DECK_GRID: Record<DeckLayout, string> = { tiles: 'fun-decks-tiles-grid', rows: 'fun-decks-rows', images: 'constructed-card-detail__deck-grid' };
 
-export function ConstructedCardDecks({ decks, format }: { decks: ConstructedDeck[]; format: CardFormat }) {
+export function ConstructedCardDecks({ decks, format, winrateLock }: { decks: ConstructedDeck[]; format: CardFormat; winrateLock?: React.ReactNode }) {
   const [visibleCount, setVisibleCount] = useState(3);
   const [layout, setLayout] = useDeckLayout();
   // A row of tiles holds five decks.
@@ -436,8 +433,8 @@ export function ConstructedCardDecks({ decks, format }: { decks: ConstructedDeck
       <h2 data-tour-id="card-decks"><Layers3 size={19} /> Колоды с этой картой · {decks.length}</h2>
       <div className="fun-decks-layout-bar fun-decks-layout-bar--end"><DeckLayoutSwitch layout={layout} onChange={setLayout} /></div>
       <div className={CARD_DECK_GRID[layout]}>{visibleDecks.map(deck => layout === 'images'
-        ? <ConstructedDeckCard key={deck.id} deck={deck} format={format} />
-        : <ConstructedCardDeckView key={deck.id} deck={deck} format={format} layout={layout} />)}</div>
+        ? <ConstructedDeckCard key={deck.id} deck={deck} format={format} winrateLock={winrateLock} />
+        : <ConstructedCardDeckView key={deck.id} deck={deck} format={format} layout={layout} winrateLock={winrateLock} />)}</div>
       {shown < decks.length && <button type="button" className="constructed-card-detail__pool-toggle" onClick={() => setVisibleCount(Math.min(shown + 3, decks.length))}>Показать больше · ещё {Math.min(3, decks.length - visibleCount)}</button>}
     </section>
   );
@@ -460,8 +457,12 @@ const cardIdentityFacts = (card: CardRecord, format: CardFormat) => [
 ];
 
 function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, statsAccess, statsAccessLoading, statsAccessUnavailable, authUser, onRefreshSubscription }: { format: CardFormat; cardId: string } & Pick<StandardCardsProps, 'initialCard' | 'initialSearch' | 'navigatePath' | 'statsAccess' | 'statsAccessLoading' | 'statsAccessUnavailable' | 'authUser' | 'onRefreshSubscription'>) {
+  // The slice of the address for everybody (no `?rank=` is Platinum, the open slice `OPEN_STATISTICS_SLICE`). A viewer
+  // without access on another slice (an old `?rank=legend` link) sees it with a lock on every row, the same in the
+  // server HTML and in the browser; the server sends no numbers for it.
   const [period, setPeriod] = useConstructedCardPeriod(initialSearch);
   const [rank, setRank] = useConstructedCardRank(initialSearch);
+  const timeZone = useViewerTimeZone();
   const [statsFormat, setStatsFormat] = useState<CardFormat>(() => (
     constructedCardStatsFormatFromSearch(initialSearch ?? (typeof window === 'undefined' ? '' : window.location.search), format)
   ));
@@ -470,7 +471,9 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
   const [card, setCard] = useState<CardRecord | null>(initialCard ?? null);
   const [loadedStatsAccess, setServerStatsAccess] = useState(false);
   const serverStatsAccess = loadedStatsAccess && statsAccess; // paid statistics only while the viewer is granted now
-  const [loadedWithAccess, setLoadedWithAccess] = useState<boolean | null>(initialCard ? false : null); // the seed has no statistics
+  const [loadedWithAccess, setLoadedWithAccess] = useState<boolean | null>(initialCard ? false : null); // the seed has the open numbers only
+  // The slice the shown card's statistics belong to; the seed is the open slice of its own format.
+  const [loadedSlice, setLoadedSlice] = useState<string | null>(initialCard ? `${format}|${OPEN_PERIOD}|${OPEN_RANK}` : null);
   const [loading, setLoading] = useState(!initialCard);
   const [error, setError] = useState<ConstructedCardRequestErrorCopy | null>(null);
   const [dataState, setDataState] = useState<{
@@ -542,6 +545,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
         setCard(loadedCard);
         setServerStatsAccess(payload.statsAccess === true);
         setLoadedWithAccess(statsAccess);
+        setLoadedSlice(`${statsFormat}|${period}|${rank}`);
         setPeriodLabel(payload.period?.label || constructedCardPeriodLabel(period));
         setCurrentPatch(payload.period?.patch || null);
         setDataState({
@@ -550,11 +554,12 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
           warning: typeof payload.warning === 'string' ? payload.warning : null,
         });
       } catch (loadError) {
-        if (!cancelled) setError(constructedCardRequestError(
-          'detail',
-          Number((loadError as { status?: number })?.status ?? 0),
-          loadError instanceof Error ? loadError.message : '',
-        ));
+        if (!cancelled) {
+          const copy = constructedCardRequestError('detail', Number((loadError as { status?: number })?.status ?? 0), '');
+          // A stalled or unreachable server says so in words a person can act on.
+          const readable = loadError instanceof RequestDeadlineError || loadError instanceof RequestNetworkError;
+          setError(readable ? { ...copy, message: loadError.message } : copy);
+        }
       } finally { if (!cancelled) setLoading(false); }
     };
     void load();
@@ -583,7 +588,8 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
   }, [card, cardId, format]);
 
   if (loading) return <CardDetailSkeleton />;
-  if (error || !card) return <section className="constructed-cards constructed-cards__state" role="alert"><SectionBanner title={error?.title || 'Данные карты временно недоступны'} /><p>{error?.message}</p><div className="constructed-cards__state-actions">{error?.retry && <button type="button" onClick={() => setReloadToken(value => value + 1)}><RefreshCw size={17} /> Повторить</button>}<button type="button" onClick={() => navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}`, period, rank)}><ArrowLeft size={17} /> Назад к картам</button></div></section>;
+  // A failed refresh with a card at hand keeps the page (the open numbers stay) and says so beside the statistics.
+  if (!card) return <section className="constructed-cards constructed-cards__state" role="alert"><SectionBanner title={error?.title || 'Данные карты временно недоступны'} /><p>{error?.message}</p><div className="constructed-cards__state-actions">{error?.retry && <button type="button" onClick={() => setReloadToken(value => value + 1)}><RefreshCw size={17} /> Повторить</button>}<button type="button" onClick={() => navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}`, period, rank)}><ArrowLeft size={17} /> Назад к картам</button></div></section>;
 
   const variants = collectConstructedCardVariants(card);
   const selectedImage = variants.find(item => item.id === variant)?.url || variants[0]?.url || '';
@@ -613,14 +619,15 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
   };
   const dataNotice = constructedCardDataNotice(dataState);
   const rankLabel = constructedCardRankLabel(rank);
-  const statsPending = statisticsPending({ open: serverStatsAccess, failed: Boolean(error), statsAccessLoading, statsAccess, loadedWithAccess });
+  // A viewer whose paid numbers are on their way (granted, or signed in while the check runs) sees no lock.
+  const waitingPaid = statsAccess ? loadedWithAccess !== true : Boolean(statsAccessLoading && authUser);
+  // An access check that gave up is neither a grant nor a refusal: no lock, the open numbers and a retry.
+  const statsMode: CardStatsMode = serverStatsAccess ? 'full' : (error && statsAccess) || statsAccessUnavailable ? 'failed' : waitingPaid ? 'waiting' : 'locked';
+  const openPending = !serverStatsAccess && !error && loadedSlice !== `${statsFormat}|${period}|${rank}`;
+  const winrateLock = statsMode === 'locked' ? <PaidMetricLock label="Винрейт колоды" /> : undefined;
   const statsFormatLabel = constructedCardStatsFormatLabel(statsFormat);
   const standardStatisticsAvailable = cardSupportsStandardStatistics(card.formats);
-  const changeStatistics = (next: {
-    format?: CardFormat;
-    rank?: ConstructedCardRank;
-    period?: ConstructedCardPeriod;
-  }) => {
+  const changeStatistics = (next: { format?: CardFormat; rank?: ConstructedCardRank; period?: ConstructedCardPeriod }) => {
     const nextFormat = next.format ?? statsFormat;
     const nextRank = next.rank ?? rank;
     const nextPeriod = next.period ?? period;
@@ -628,25 +635,13 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
     setRank(nextRank);
     setPeriod(nextPeriod);
     if (typeof window !== 'undefined') {
-      window.history.replaceState(
-        window.history.state,
-        '',
-        constructedCardStatsUrl(
-          window.location.pathname,
-          {
-            period: nextPeriod,
-            rank: nextRank,
-            statsFormat: nextFormat,
-            defaultStatsFormat: format,
-          },
-          window.location.search,
-        ),
-      );
+      const context = { period: nextPeriod, rank: nextRank, statsFormat: nextFormat, defaultStatsFormat: format };
+      window.history.replaceState(window.history.state, '', constructedCardStatsUrl(window.location.pathname, context, window.location.search));
     }
   };
 
   return (
-    <article className="constructed-cards constructed-card-detail">
+    <article className="constructed-cards constructed-card-detail" data-access-checking={statsAccessLoading || statsAccessUnavailable || undefined}>
       <nav className="constructed-card-detail__breadcrumb" aria-label="Breadcrumb">{[['/standard/cards/', 'Карты'], [`/standard/cards/${format}/`, format === 'standard' ? 'Стандарт' : 'Вольный']].map(([path, label]) => <React.Fragment key={path}><a href={constructedCardStatsUrl(path, { period, rank })} onClick={event => { if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return; event.preventDefault(); navigateWithConstructedCardContext(navigatePath, path, period, rank); }}>{label}</a><span>/</span></React.Fragment>)}<strong>{cardName(card)}</strong></nav>
       <button type="button" className="constructed-card-detail__back" onClick={() => navigateWithConstructedCardContext(navigatePath, `/standard/cards/${format}`, period, rank)}><ArrowLeft size={17} /> Назад к картам</button>
       <section className="constructed-card-detail__hero">
@@ -667,26 +662,20 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
           flavorText={plainText(card.flavor?.ru || card.flavor?.en)}
           facts={cardIdentityFacts(card, format)}
         />
-        <div className={`constructed-card-detail__statistics${serverStatsAccess || statsPending || statsAccessUnavailable ? '' : ' is-locked'}`}>
-          <StatisticsHead rankLabel={rankLabel} scope={`${statsFormatLabel} · ${periodLabel}`}
-            note={serverStatsAccess ? `обновлено ${formatDate(card.statsUpdatedAt)}` : statsPending || statsAccessUnavailable ? '' : 'тариф «Алмаз»'} />
-          <StatisticsControls
-            formats={standardStatisticsAvailable ? [STATISTICS_FORMATS.standard, STATISTICS_FORMATS.wild] : [STATISTICS_FORMATS.wild]}
-            format={statsFormat} onFormatChange={value => changeStatistics({ format: value as CardFormat })}
-            rank={rank} rankOptions={CONSTRUCTED_CARD_RANK_OPTIONS.map(option => ({ value: option.id, label: option.label }))}
-            onRankChange={value => changeStatistics({ rank: value as ConstructedCardRank })}
-            period={period} periodOptions={constructedCardPeriodOptions(currentPatch).map(option => ({ value: option.id, label: option.label }))}
-            onPeriodChange={value => changeStatistics({ period: value as ConstructedCardPeriod })} />
-          {serverStatsAccess ? <><CardStatsRows stats={card.stats} />{!card.stats && <p className="constructed-card-detail__no-stats">Карта есть в библиотеке, но в выборке «{statsFormatLabel} · {rankLabel} · {periodLabel}» недостаточно данных.</p>}</> : statsPending ? <PendingStatsRows />
-            : <LockedStatsPanel {...{ statsAccessLoading, statsAccessUnavailable, authUser, onRefreshSubscription }} />}
-          <CardStatsAbout />
-        </div>
+        <CardStatisticsPanel stats={card.stats} updatedAt={card.statsUpdatedAt} sourceUrl={card.statsSourceUrl}
+          mode={statsMode} openPending={openPending} full={serverStatsAccess} canChoose={statsAccess}
+          format={statsFormat} formatLabel={statsFormatLabel} standardAvailable={standardStatisticsAvailable}
+          rank={rank} rankLabel={rankLabel} period={period} periodLabel={periodLabel} currentPatch={currentPatch}
+          timeZone={timeZone} onChange={changeStatistics}
+          loadFailed={error?.message ?? null} onRetry={() => setReloadToken(value => value + 1)}
+          accessUnavailable={Boolean(statsAccessUnavailable)} accessChecking={statsAccessLoading} onRefreshAccess={onRefreshSubscription} />
       </section>
 
       {dataNotice && <div className="constructed-cards__data-warning constructed-card-detail__data-warning" role="status"><AlertTriangle size={18} /><span>{dataNotice}</span></div>}
 
-      {serverStatsAccess && (
+      {statsMode !== 'failed' && (
         <ConstructedCardHistoryChart
+          lock={serverStatsAccess ? undefined : statsMode === 'waiting' ? <LoadingBlock className="constructed-card-history__waiting" /> : <PaidMetricLock label="История карты" />}
           points={history.points} trackedSince={history.trackedSince} references={history.references}
           periodLabel={periodLabel}
           formatLabel={statsFormatLabel}
@@ -712,7 +701,7 @@ function DetailPage({ format, cardId, initialCard, initialSearch, navigatePath, 
 
       {generatedPools.length > 0 && <GeneratedCardPools pools={generatedPools} format={format} period={period} rank={rank} navigatePath={navigatePath} onOpen={openMedia} />}
 
-      {decks.length > 0 && <ConstructedCardDecks key={`${format}:${cardId}`} decks={decks} format={format} />}
+      {decks.length > 0 && <ConstructedCardDecks key={`${format}:${cardId}`} decks={decks} format={format} winrateLock={winrateLock} />}
 
       {mediaSections > 0 && <section className={`constructed-card-detail__media-grid${mediaSections === 3 ? '' : mediaSections === 2 ? ' constructed-card-detail__media-grid--two' : ' constructed-card-detail__media-grid--one'}`}>
         {galleryMedia.length > 0 && <div className="constructed-card-detail__section"><h2>Галерея · {galleryMedia.length}</h2><div className="constructed-card-detail__gallery">{galleryMedia.map(item => <button className={item.presentation === 'contain' ? 'is-contain' : undefined} key={item.id} type="button" data-lightbox-src={item.url} onClick={() => openMedia(item.url)} aria-label={`Открыть ${item.label}`}><img src={item.thumbnailUrl} alt={item.label} loading="lazy" decoding="async" onError={fallbackCardImageToOrigin} /><span>{item.label}</span></button>)}</div></div>}

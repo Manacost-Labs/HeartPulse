@@ -4318,7 +4318,7 @@ for (const [device, viewport] of [
   const runtimeErrors = collectRuntimeErrors(page);
   try {
     await page.goto(`${BASE}/standard/cards/standard/CARD_QA_1`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    const loadedRows = '.constructed-card-detail__statistics .constructed-cards__stats:not([aria-busy]) > div';
+    const loadedRows = '.constructed-card-detail__statistics .constructed-cards__stats[data-stats-mode="full"] > div';
     await page.waitForSelector(loadedRows, { timeout: 20_000 });
     const verify = async step => {
       for (const problem of cardStatisticsProblems(await inspectCardStatistics(page), device)) failures.push(`${label} ${step}: ${problem}`);
@@ -4361,29 +4361,30 @@ for (const [device, viewport] of [
   } finally {
     await page.close();
   }
-  // The same slice without access: the locked preview stays inside the block as well.
+  // The same slice without access: the same block, the open numbers in it and a lock on every paid place.
   const guest = await createQaPage();
   await guest.setViewport(viewport);
   await mockApplicationApi(guest, { authenticated: false });
   try {
     await guest.goto(`${BASE}/standard/cards/standard/CARD_QA_1`, { waitUntil: 'domcontentloaded', timeout: 45_000 });
-    await guest.waitForSelector('.constructed-card-detail__statistics-gate .constructed-cards__stats-lock', { visible: true, timeout: 20_000 });
+    await guest.waitForSelector('.constructed-card-detail__statistics .constructed-cards__stats[data-stats-mode="locked"] .paid-lock', { visible: true, timeout: 20_000 });
     const locked = await guest.evaluate(() => {
       const block = document.querySelector('.constructed-card-detail__statistics');
-      const preview = block.querySelector('.constructed-card-detail__statistics-blur');
-      const notice = block.querySelector('.constructed-cards__stats-lock').getBoundingClientRect();
       const frame = block.getBoundingClientRect();
+      // Six paid rows; rank and period are the subscriber's selects (the open slice, Platinum · last day: no lock mark).
+      const locks = [...block.querySelectorAll('.paid-lock, .paid-filter-lock')];
       return {
         blockOverflow: block.scrollWidth - block.clientWidth,
         pageOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-        hiddenFromReaders: preview.getAttribute('aria-hidden') === 'true' && preview.hasAttribute('inert'),
-        noticeInside: notice.left >= frame.left && notice.right <= frame.right,
-        previewHeight: Math.round(preview.getBoundingClientRect().height),
+        rows: block.querySelectorAll('.constructed-cards__stats > div').length,
+        locks: locks.length,
+        lockedChoices: block.querySelectorAll('.constructed-cards__filter-lock').length,
+        locksInside: locks.every(lock => { const box = lock.getBoundingClientRect(); return box.left >= frame.left - 1 && box.right <= frame.right + 1; }),
+        oldPaywall: Boolean(block.querySelector('.constructed-cards__stats-lock, .constructed-card-detail__statistics-blur')),
       };
     });
-    if (locked.blockOverflow > 0 || locked.pageOverflow > 0 || !locked.hiddenFromReaders || !locked.noticeInside
-      || (device === 'mobile' && locked.previewHeight > 330)) {
-      failures.push(`${label} without access: the locked preview regressed (${JSON.stringify(locked)})`);
+    if (locked.blockOverflow > 0 || locked.pageOverflow > 0 || locked.rows !== 9 || locked.locks !== 6 || locked.lockedChoices !== 0 || !locked.locksInside || locked.oldPaywall) {
+      failures.push(`${label} without access: the locked block regressed (${JSON.stringify(locked)})`);
     }
     await guest.evaluate(() => document.querySelector('.constructed-card-detail__statistics')?.scrollIntoView({ block: 'center' }));
     await guest.screenshot({ path: `${OUT}/constructed-card-statistics-locked-${device}.png`, fullPage: false });

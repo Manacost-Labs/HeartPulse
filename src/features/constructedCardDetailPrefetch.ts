@@ -4,7 +4,12 @@ import type {
   ConstructedCardStatsFormat,
 } from './constructedCardPeriods';
 
+import { fetchWithDeadline } from '../shared/http/fetchWithDeadline';
+
 type CardFormat = 'standard' | 'wild';
+
+/** A card answer that has not come by now is a failure with a readable message and a retry, not an endless wait. */
+export const CARD_DETAIL_DEADLINE_MS = 25_000;
 
 export type ConstructedCardDetailRequest = {
   cardId: string;
@@ -67,7 +72,8 @@ export function loadConstructedCardDetail(
     period: request.period,
     rank: request.rank,
   });
-  const promise = fetch(`/api/constructed-cards/${encodeURIComponent(request.cardId)}?${params}`, {
+  const promise = fetchWithDeadline(`/api/constructed-cards/${encodeURIComponent(request.cardId)}?${params}`, {
+    deadlineMs: CARD_DETAIL_DEADLINE_MS,
     credentials: 'same-origin',
     headers: { Accept: 'application/json' },
   }).then(async response => {

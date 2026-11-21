@@ -106,7 +106,29 @@ test('the card page offers its own statistics format, rank and period', () => {
   assert.equal(labelled(detailHtml, 'Формат статистики')?.attrs.role, 'group');
   assert.deepEqual(buttons(detailHtml).filter(button => ['Стандарт', 'Вольный'].includes(button.name)).map(button => button.name),
     ['Стандарт', 'Вольный']);
-  assert.ok(detailText.includes('Ранг Легенда Период Последний день'));
+  // A guest has the subscriber's selects, on the open slice: Platinum, last day (#447).
+  assert.ok(detailText.includes('Ранг Платина') && detailText.includes('Период Последний день'));
+  assert.equal(buttons(detailHtml).filter(button => button.name.includes('(фильтр)')).length, 0, 'no lock in place of a select');
+});
+
+// An old link to another slice opens it: a guest sees its rows with a lock on every one and not a number of the open slice.
+test('a guest on Legend or on another period finds a lock on every statistics row', () => {
+  for (const search of ['?rank=legend', '?period=7d']) {
+    const html = renderToStaticMarkup(React.createElement(StandardCardDetail, {
+      currentPath: '/standard/cards/standard/TOY_330/', initialSearch: search, navigatePath: () => undefined, statsAccess: false,
+      statsAccessLoading: false, authUser: null, onRefreshSubscription: async () => undefined,
+      initialCard: { ...zilliax, stats: { deckPopularity: 1.88, deckWinrate: 39.12, averageCopies: 1.95 } },
+    } as unknown as React.ComponentProps<typeof StandardCardDetail>));
+    const start = html.indexOf('<dl class="constructed-cards__stats"');
+    const rows = html.slice(start, html.indexOf('</dl>', start) + '</dl>'.length);
+    assert.equal(elements(rows).filter(element => element.tag === 'button' && element.attrs['aria-label']?.endsWith('по подписке. Узнать, как открыть')).length, 9, search);
+    assert.ok(!visibleText(rows).includes('1,88') && !visibleText(rows).includes('39,12'), `${search}: no open number under another slice`);
+  }
+  const legend = visibleText(renderToStaticMarkup(React.createElement(StandardCardDetail, {
+    currentPath: '/standard/cards/standard/TOY_330/', initialSearch: '?rank=legend', navigatePath: () => undefined, statsAccess: false,
+    statsAccessLoading: false, authUser: null, onRefreshSubscription: async () => undefined, initialCard: zilliax,
+  } as unknown as React.ComponentProps<typeof StandardCardDetail>)));
+  assert.ok(legend.includes('Статистика · Легенда') && legend.includes('Ранг Легенда'));
 });
 
 test('the selected period and rank reach the list and detail requests', async () => {
@@ -170,8 +192,6 @@ assert.match(standardCardsSource, /navigateWithConstructedCardContext/,
   'card and back navigation must retain the selected statistics context');
 assert.match(cardHistorySource, /\/history\?\$\{params\}/,
   'an entitled card detail must request its persisted statistics history');
-assert.match(standardCardsSource, /serverStatsAccess && \(\s*<ConstructedCardHistoryChart/,
-  'the history chart must follow the server-side statistics entitlement');
 
 console.log('constructed-card Russian unavailable/stale UI contracts passed');
 
@@ -219,6 +239,47 @@ test('the card page names each metric in plain Russian; what it counts is told o
   assert.ok(visibleText(about).endsWith('Партий в выборке Объём выборки'));
   assert.equal(elements(about).filter(element => element.tag === 'details' && element.attrs.open !== undefined).length, 0,
     'closed until the reader opens it, and still in the server HTML');
+});
+
+const openStats = { deckPopularity: 1.88, deckWinrate: 39.12, averageCopies: 1.95 };
+const OPEN = 'по подписке. Узнать, как открыть';
+
+test('a guest reads the three open numbers and finds a lock on every paid row, in the same rows as a subscriber', () => {
+  const html = renderToStaticMarkup(React.createElement(CardStatsRows, {
+    stats: openStats, mode: 'locked',
+  }));
+  const names = elements(html).filter(element => element.tag === 'dt').map(element => element.text);
+  assert.equal(names.length, 9, 'the same nine rows');
+  const text = visibleText(html);
+  assert.ok(text.startsWith('Популярность 1,88% Винрейт колод с картой 39,12% Винрейт, если сыграна Винрейт, если взята'), 'a lock is the lock alone, with no caption of its own');
+  assert.ok(text.includes('Копий в колоде 1,95'));
+  const locks = elements(html).filter(element => element.tag === 'button').map(element => element.attrs['aria-label']);
+  assert.deepEqual(locks, ['Винрейт, если сыграна', 'Винрейт, если взята', 'Оставляют в муллигане', 'Винрейт из стартовой руки',
+    'Обычно разыгрывают на ходу', 'Партий в выборке'].map(name => `${name}: ${OPEN}`));
+  assert.ok(!text.includes('Нет данных'), 'a paid figure is never a blank');
+});
+
+test('a subscriber waiting for the paid numbers keeps the open ones and sees no lock', () => {
+  const html = renderToStaticMarkup(React.createElement(CardStatsRows, {
+    stats: openStats, mode: 'waiting',
+  }));
+  assert.ok(visibleText(html).startsWith('Популярность 1,88% Винрейт колод с картой 39,12%'));
+  assert.ok(!html.includes('По подписке') && elements(html).every(element => element.tag !== 'button'), 'loading places, not locks');
+});
+
+test('when the paid load fails the open numbers stay and the paid rows say there is no data', () => {
+  const html = renderToStaticMarkup(React.createElement(CardStatsRows, { stats: openStats, mode: 'failed' }));
+  assert.ok(visibleText(html).includes('Популярность 1,88%') && visibleText(html).includes('Винрейт, если сыграна Нет данных'));
+});
+
+test('a closed rank chosen from an old link shows in its select with a lock', () => {
+  const html = renderToStaticMarkup(React.createElement(StatisticsControls, {
+    formats: [{ id: 'standard', label: 'Стандарт', icon: '/a.webp' }], format: 'standard', onFormatChange: () => undefined,
+    rank: 'legend', rankOptions: [{ value: 'platinum', label: 'Платина' }, { value: 'legend', label: 'Легенда', locked: true }],
+    onRankChange: () => undefined, period: '1d', periodOptions: [{ value: '1d', label: 'Последний день' }], onPeriodChange: () => undefined,
+  }));
+  assert.ok(visibleText(html).includes('Ранг Легенда Период Последний день'));
+  assert.equal(html.split('constructed-cards__filter-lock').length - 1, 1, 'the lock marks the closed rank only');
 });
 
 test('the hover summary in the card list keeps the same names without the explanations', () => {

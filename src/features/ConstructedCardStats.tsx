@@ -21,7 +21,7 @@ export type StatsGateProps = Pick<StandardCardsProps, 'statsAccessLoading' | 'st
 const LIST_METRICS: ConstructedCardMetricId[] = ['deckPopularity', 'deckWinrate', 'winrateWhenPlayed', 'winrateWhenDrawn', 'keepPercentage', 'timesPlayed'];
 
 /** The hover summary in the card list: the six metrics the list shows, names only. */
-export function StatsRows({ stats }: { stats: CardStats | null }) {
+export function StatsRows({ stats }: { stats: Partial<CardStats> | null }) {
   return (
     <dl className="constructed-cards__stats constructed-cards__stats--compact">
       {LIST_METRICS.map(id => (

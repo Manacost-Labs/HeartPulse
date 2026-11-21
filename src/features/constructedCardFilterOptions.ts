@@ -8,6 +8,8 @@ export type ConstructedCardFilterOption = {
   icon?: string;
   iconAlt?: string;
   disabled?: boolean;
+  /** A paid choice for this viewer: marked with a lock (and «по подписке» for a screen reader); still selectable. */
+  locked?: boolean;
 };
 
 const STATISTIC_SORT_DEFINITIONS = [

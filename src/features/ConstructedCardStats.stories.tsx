@@ -2,7 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect } from 'storybook/test';
 import { useState } from 'react';
 import {
-  CardStatsRows, LockedStatsPanel, PendingStatsRows, STATISTICS_FORMATS, StatisticsControls, StatisticsHead,
+  CardStatsRows, PendingStatsRows, StatsNotice, STATISTICS_FORMATS, StatisticsControls, StatisticsHead,
 } from './ConstructedCardStatistics';
 import './StandardCards.css';
 
@@ -94,12 +94,21 @@ export const Pending: Story = {
   },
 };
 
-// The access check failed: the rows wait for a retry, with no lock.
+// A guest: the three open numbers, a lock on the place of every paid one.
+export const Guest: Story = {
+  render: () => <CardStatsRows mode="locked" stats={{ deckPopularity: 12.4, deckWinrate: 54.2, averageCopies: 1.9 }} />,
+  play: async ({ canvasElement }) => {
+    await expect(canvasElement.textContent).toContain('54,2%');
+    await expect(canvasElement.textContent).toContain('По подписке');
+    await expect(canvasElement.textContent).not.toContain('Алмаз');
+  },
+};
+
+// The access check failed: the rows stay and a retry is offered.
 export const AccessUnavailable: Story = {
-  render: () => <LockedStatsPanel statsAccessLoading={false} statsAccessUnavailable authUser={{}}
-    onRefreshSubscription={async () => null} />,
+  render: () => <><CardStatsRows mode="locked" stats={null} />
+    <StatsNotice message="Не удалось проверить доступ к статистике." action="Повторить проверку" onAction={() => undefined} /></>,
   play: async ({ canvasElement }) => {
     await expect(canvasElement.textContent).toContain('Повторить проверку');
-    await expect(canvasElement.textContent).not.toContain('Алмаз');
   },
 };

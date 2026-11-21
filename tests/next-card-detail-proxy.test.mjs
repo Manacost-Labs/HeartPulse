@@ -58,13 +58,22 @@ test('a card page is rendered from the single Express read of the proxy', async 
   }
 });
 
+// Seven paid fields; a distinctive value each, so any of them in the HTML, the RSC payload or JSON-LD is found.
+const PAID_STATS = {
+  timesPlayed: 987654, winrateWhenPlayed: 61.1111, winrateWhenDrawn: 62.2222, keepPercentage: 71.7171,
+  openingHandWinrate: 59.5959, averageTurnsInHand: 3.3333, averageTurnPlayed: 6.6666,
+};
+const PAID_SENTINELS = ['987654', '61.1111', '62.2222', '71.7171', '59.5959', '3.3333', '6.6666', '61,1', '62,2', '71,7', '59,6'];
+
 // What the anonymous card API answers a guest, with paid sentinels where a subscriber would see numbers.
 const guestDetail = {
   statsAccess: false,
   mechanicTranslations: { LIFESTEAL: 'Похищение жизни' },
   card: {
     card_id: 'CARD_QA_1', formats: [{ slug: 'standard', name_ru: 'Стандартный' }], mechanics: ['LIFESTEAL'],
-    stats: { keepPercentage: 71.7171, openingHandWinrate: 59.5959 },
+    // The three open numbers of the default slice, and the seven paid ones as sentinels that must never reach a page.
+    stats: { deckPopularity: 12.3, deckWinrate: 54.2, averageCopies: 1.9, ...PAID_STATS },
+    statsUpdatedAt: '2026-11-19T21:30:00.000Z', statsSourceUrl: 'https://example.com/source',
     wiki: { patch_changes: [{ entries: [{ date: '2026-11-03', patch: 'Patch 37.0.2.256589', items: ['Now costs 4 (Up from 3).'] }] }],
       golden_cards: [{ label: 'Золотая карта', file_url: 'https://hearthpulse.net/api/public-resource/wiki/images/CARD_QA_1_golden.png' }] },
     related_cards_localized: [{ heading: { ru: 'Награды за задание' }, cards: [{ card_id: 'CARD_QA_1t', name: { ru: 'Проверочный жетон' }, text: { ru: 'Провокация.' } }] }],
@@ -86,7 +95,11 @@ test('a card page shows its open detail without script, and nothing paid', async
       assert.ok(text.includes(shown), `the server HTML shows «${shown}»`);
     }
     assert.ok(!text.includes('История изменений не найдена') && !text.includes('Механики не указаны'), 'no false «nothing» where there is data');
-    for (const paid of ['71.7171', '59.5959', 'QA_PRIVATE_SCORE']) assert.ok(!html.includes(paid), `no ${paid} in the HTML or its RSC payload`);
+    for (const paid of [...PAID_SENTINELS, 'QA_PRIVATE_SCORE']) assert.ok(!html.includes(paid), `no ${paid} in the HTML, its RSC payload or JSON-LD`);
+    // The open numbers are the page's own: shown, with their date; every paid row stands as a named lock.
+    for (const shown of ['Популярность', '12,3%', '54,2%', '1,9', 'обновлено']) assert.ok(text.includes(shown), `the server HTML shows «${shown}»`);
+    assert.equal((html.match(/aria-label="[^"]*: по подписке/g) ?? []).length >= 8, true, 'the paid rows, filters and history stand as locks');
+    assert.ok(!text.includes('Алмаз'), 'no separate paywall block');
   } finally {
     if (next) await next.close();
     await closeLocal(api.server);

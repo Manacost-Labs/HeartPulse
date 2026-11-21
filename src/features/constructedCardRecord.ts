@@ -1,4 +1,4 @@
-import { constructedCardPath, type PublicCardSeed, type PublicCardCatalogSeed } from '../modules/constructedCards/public';
+import { constructedCardPath, type PublicCardSeed, type PublicCardCatalogSeed, type PublicCardOpenStats } from '../modules/constructedCards/public';
 import type { ConstructedCardFormat } from './constructedCardCatalogModel';
 import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import {
@@ -25,6 +25,9 @@ export type CardStats = {
   averageTurnsInHand: number | null;
   averageTurnPlayed: number | null;
 };
+
+/** What a guest's card carries: the three open numbers of the default slice, nothing else. */
+export type OpenCardStats = PublicCardOpenStats;
 
 export type CardRecord = {
   card_id: string;
@@ -60,7 +63,8 @@ export type CardRecord = {
   mechanics?: string[];
   referenced_tags?: string[];
   wiki_page?: { title?: string | null; url?: string | null };
-  stats: CardStats | null;
+  /** Every field for a subscriber; a guest's card carries only the three open ones (`OpenCardStats`). */
+  stats: Partial<CardStats> | null;
   statsUpdatedAt?: string | null;
   statsSourceUrl?: string | null;
   catalogPending?: boolean;

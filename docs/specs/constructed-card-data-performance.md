@@ -57,7 +57,7 @@ multi-upstream rebuilds during ordinary statistics refreshes.
 ## Navigation warming
 
 The main navigation warms both the lazy cards module and the exact first
-catalog request (`standard`, `1d`, `legend`, 60 cards) on pointer enter, focus,
+catalog request (`standard`, `1d`, `platinum`, 60 cards) on pointer enter, focus,
 or pointer down. The catalog page consumes the same bounded in-flight request,
 so a normal navigation does not create a duplicate API call. Public and
 subscriber payloads remain isolated by the existing entitlement-aware cache

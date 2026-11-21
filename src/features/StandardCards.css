@@ -279,7 +279,7 @@
 /* One metric: name and value on a row, then any further lines (a comparison, the explanation) under them. */
 .constructed-card-detail__statistics .constructed-cards__stat { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 0 0.75rem; align-content: start; padding: 0.6rem 0.7rem; border-bottom: 0; background: #f6e8bd; }
 .constructed-card-detail__statistics .constructed-cards__stat dt { color: #3a2718; font-size: 0.8125rem; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
-.constructed-card-detail__statistics .constructed-cards__stat-value { grid-area: 1 / 2; margin: 0; color: var(--cards-ink); font-family: var(--font-body); font-size: 1.0625rem; font-variant-numeric: tabular-nums; font-weight: 700; line-height: 1.2; text-align: right; white-space: nowrap; }
+.constructed-card-detail__statistics .constructed-cards__stat-value { grid-area: 1 / 2; margin: 0; color: var(--cards-ink); font-family: var(--font-body); font-size: 1.0625rem; font-variant-numeric: tabular-nums; font-weight: 700; line-height: 1.2; text-align: right; white-space: nowrap; display: flex; align-items: center; justify-content: flex-end; min-height: 1.2em; }
 .constructed-card-detail__statistics .constructed-cards__stat dd:not(.constructed-cards__stat-value) { grid-column: 1 / -1; margin: 0.2rem 0 0; color: #5d4733; font-size: 0.75rem; font-weight: 400; line-height: 1.35; overflow-wrap: anywhere; }
 .constructed-card-detail__stats-about { margin-top: 0.6rem; color: #5d4733; font-size: 0.8125rem; }
 .constructed-card-detail__stats-about summary { padding: 0.7rem 0; cursor: pointer; font-weight: 600; }
@@ -292,7 +292,7 @@
 /* Name above value: in a wide column, and again when large text leaves a row too little room. */
 @container card-statistics ((width >= 26.25rem) or (width < 15rem)) {
   .constructed-card-detail__statistics .constructed-cards__stat { grid-template-columns: minmax(0, 1fr); }
-  .constructed-card-detail__statistics .constructed-cards__stat-value { grid-area: auto; margin-top: 0.15rem; font-size: 1.25rem; text-align: left; }
+  .constructed-card-detail__statistics .constructed-cards__stat-value { grid-area: auto; margin-top: 0.15rem; font-size: 1.25rem; text-align: left; justify-content: flex-start; }
 }
 @container card-statistics (26.25rem <= width < 37.5rem) {
   .constructed-card-detail__statistics-controls > .constructed-card-detail__statistics-field,
@@ -304,18 +304,19 @@
   .constructed-card-detail__statistics-controls { grid-template-columns: minmax(calc(var(--statistics-formats, 2) * 7.25rem), 1.6fr) minmax(0, 1fr) minmax(0, 1fr); }
   .constructed-card-detail__statistics .constructed-cards__stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-@container card-statistics (width < 37.5rem) {
-  /* The locked preview peeks at the first rows only, so a narrow column stays one screen tall. */
-  .constructed-card-detail__statistics-blur { max-height: 20rem; overflow: hidden; mask-image: linear-gradient(#000 calc(100% - 3rem), transparent); }
-}
 @container card-statistics (width < 26.25rem) {
   .constructed-card-detail__statistics-format img { width: 24px; height: 24px; }
   .constructed-card-detail__statistics-format button { gap: 0.3rem; padding: 0 0.25rem; }
 }
-.constructed-card-detail__statistics.is-locked { border-color: #9d6d35; background: rgba(245, 222, 173, 0.5); }
-.constructed-card-detail__statistics-gate { position: relative; min-height: 190px; margin-top: 0.65rem; display: grid; align-items: center; }
-.constructed-card-detail__statistics-blur { grid-area: 1 / 1; filter: blur(6px); opacity: 0.52; user-select: none; }
-.constructed-card-detail__statistics-gate > .constructed-cards__stats-lock { z-index: 1; grid-area: 1 / 1; align-self: center; margin: 0 auto; width: min(100%, 680px); }
+
+/* While access is checked a lock holds its place but is not drawn, so a subscriber never sees a lock flash
+   by (the server HTML has the same locks for everyone; the places keep their size, nothing moves). */
+.constructed-card-detail[data-access-checking] :is(.paid-lock, .paid-filter-lock, .constructed-cards__filter-lock) { visibility: hidden; }
+html[data-hp-viewer='remembered'] .constructed-card-detail :is(.paid-lock, .paid-filter-lock, .constructed-cards__filter-lock) { visibility: hidden; }
+
+/* The tile view's stats sit on a dark plate: the lock there is light on dark (contrast), not the page's brown. */
+.constructed-card-detail .fun-deck-tiles__stats .paid-lock { color: #fff0d1; border-color: rgba(255, 240, 209, 0.6); background: rgba(255, 240, 209, 0.08); }
+.constructed-card-detail .fun-deck-tiles__stats button.paid-lock:hover { color: #fff; border-color: #fff0d1; }
 
 .constructed-card-detail__lower-grid { display: grid; grid-template-columns: minmax(280px, 0.75fr) minmax(460px, 1.25fr); gap: 0.8rem; margin-top: 0.8rem; }
 .constructed-card-detail__section { padding: 0.95rem 1rem; border: 1px solid #b78a51; background: linear-gradient(180deg, rgba(255, 250, 232, 0.54), rgba(246, 224, 178, 0.3)); box-shadow: inset 0 0 0 2px rgba(255, 252, 236, 0.22), 0 7px 16px rgba(67, 37, 15, 0.06); }

@@ -1,5 +1,5 @@
 import 'server-only';
-import type { CardFormat, PublicCardDeckSeed, PublicCardDetailSeed, PublicCardSeed } from '@/src/modules/constructedCards/public';
+import { OPEN_STATISTICS_SLICE, type CardFormat, type PublicCardDeckSeed, type PublicCardDetailSeed, type PublicCardOpenStats, type PublicCardSeed } from '@/src/modules/constructedCards/public';
 import { fetchPublicExpress } from './expressApi';
 
 /**
@@ -25,6 +25,18 @@ const texts = (value: unknown): string[] => Array.isArray(value) ? value.filter(
 const textRecord = (value: unknown): Record<string, string> =>
   Object.fromEntries(Object.entries(record(value)).filter((entry): entry is [string, string] => typeof entry[1] === 'string'));
 
+/** The open statistics of the default slice, field by field: the paid fields never reach the HTML, even if Express sent them. */
+const OPEN_STATS = ['deckPopularity', 'deckWinrate', 'averageCopies'] as const;
+function openStats(value: unknown): PublicCardOpenStats | null {
+  const source = record(value);
+  const stats = Object.fromEntries(OPEN_STATS.map(key => [key, typeof source[key] === 'number' && Number.isFinite(source[key]) ? source[key] : null])) as PublicCardOpenStats;
+  return Object.values(stats).some(item => item !== null) ? stats : null;
+}
+const sourceUrl = (value: unknown): string | null => {
+  const url = text(value);
+  return url && /^https?:\/\//i.test(url) ? url : null;
+};
+
 /** Whitelisted deck fields; the scores are dropped here too, not only by Express. */
 function deck(value: unknown): PublicCardDeckSeed[] {
   const item = record(value);
@@ -49,8 +61,12 @@ export function publicCardDetailSeed(seed: PublicCardSeed, payload: unknown): Pu
   const related = Array.isArray(card.related_cards_localized) ? card.related_cards_localized : [];
   const images = record(card.images);
   const animated = textRecord(images.animated);
+  const stats = openStats(card.stats);
   const detail: PublicCardDetailSeed = {
     ...seed,
+    stats,
+    statsUpdatedAt: stats ? text(card.statsUpdatedAt) : null,
+    statsSourceUrl: stats ? sourceUrl(card.statsSourceUrl) : null,
     // The picture variants of the full record; the seed keeps its own main picture.
     images: {
       ...seed.images,
@@ -113,7 +129,7 @@ function trimmed(detail: PublicCardDetailSeed): PublicCardDetailSeed {
  * browser asks with the default statistics context. Any failure keeps the seed.
  */
 export async function loadPublicCardDetail(format: CardFormat, seed: PublicCardSeed): Promise<PublicCardDetailSeed | null> {
-  const query = new URLSearchParams({ format, statsFormat: format, period: '1d', rank: 'legend' });
+  const query = new URLSearchParams({ format, statsFormat: format, ...OPEN_STATISTICS_SLICE });
   try {
     const response = await fetchPublicExpress(`/api/constructed-cards/${encodeURIComponent(seed.card_id)}?${query}`,
       undefined, { timeoutMs: DETAIL_READ_DEADLINE_MS });

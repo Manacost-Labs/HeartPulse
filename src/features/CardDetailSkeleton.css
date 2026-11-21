@@ -23,11 +23,6 @@
 .card-detail-skeleton__stats-title { width: min(60%, 16rem); height: 1.6675rem; }
 .card-detail-skeleton__stats-line { width: 11rem; max-width: 100%; height: 1.0125rem; }
 .card-detail-skeleton__control { height: var(--statistics-control-height); }
-/* The locked page keeps its rows inside the gate, which adds this offset. */
-.card-detail-skeleton__stats { margin-top: 0.65rem; }
-@container card-statistics (width < 37.5rem) {
-  .card-detail-skeleton__stats { max-height: 20rem; overflow: hidden; }
-}
 
 @media (max-width: 640px) {
   .card-detail-skeleton__art { max-height: 430px; }

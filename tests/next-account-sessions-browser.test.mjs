@@ -9,17 +9,17 @@ import { startPublicCardPilot } from './helpers/publicCardPilot.mjs';
 // remembered viewer is forgotten, and no frame on the way shows A2 the paid
 // card statistics (docs/specs/account-sessions.md).
 const CARD = '/standard/cards/standard/blizzard%3A12345/';
-// The statistics head says when the data was updated only when the server sent
-// the paid statistics for this viewer; locked and pending rows never say it.
-const PAID_STATS = '.constructed-card-detail__statistics:not(.is-locked) > [data-tour-id="card-statistics"] span';
-const paidShown = selector => [...document.querySelectorAll(selector)].some(node => node.textContent.includes('обновлено'));
-const LOCKS = '.constructed-cards__stats-lock, .constructed-cards__locked-value, .arena-inline-paywall, .arena-paywall';
+// The statistics rows are in their `full` mode only when the server sent the paid
+// statistics for this viewer; a guest's open rows and pending rows never are.
+const PAID_STATS = '.constructed-card-detail__statistics dl.constructed-cards__stats[data-stats-mode="full"]';
+const paidShown = selector => [...document.querySelectorAll(selector)].some(node => node.getAttribute('data-stats-mode') === 'full');
+const LOCKS = '.paid-lock, .paid-filter-lock, .constructed-cards__stats-lock, .constructed-cards__locked-value, .arena-inline-paywall, .arena-paywall';
 const sha = value => createHash('sha256').update(value).digest('hex');
 const viewerTag = token => createHash('sha256').update(`hearthpulse-viewer-session:${token}`).digest('base64url').slice(0, 22);
 
 function recordFrames(paidSelector, lockSelector) {
   window.__frames = [];
-  const paidShown = selector => [...document.querySelectorAll(selector)].some(node => node.textContent.includes('обновлено'));
+  const paidShown = selector => [...document.querySelectorAll(selector)].some(node => node.getAttribute('data-stats-mode') === 'full');
   const sample = () => {
     if (!document.body) return;
     window.__frames.push({

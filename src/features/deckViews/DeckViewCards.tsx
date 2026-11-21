@@ -1,4 +1,4 @@
-import { useMemo, type CSSProperties } from 'react';
+import { useMemo, type CSSProperties, type ReactNode } from 'react';
 import { useResolvedDeck } from '../decklist/useResolvedDeck';
 import { funDeckEntries, type FunDeckCard } from '../funDecks/deckEntries';
 import { seededDeck } from './seededDeck';
@@ -10,7 +10,7 @@ import '../funDecks/FunDeckLayouts.css';
  * The fun-decks tile and row cards for any deck list of the site (archetype
  * builds, a card's decks): the page passes its own title, numbers and tags.
  */
-export type DeckStat = { label: string; value: string; tone?: 'up' | 'down' | null };
+export type DeckStat = { label: string; value: ReactNode; tone?: 'up' | 'down' | null };
 
 /** Win rates read green above 52% and red below 48%. */
 export function winRateTone(value: number | null | undefined): DeckStat['tone'] {
