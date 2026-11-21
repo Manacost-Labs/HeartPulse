@@ -396,6 +396,7 @@
         "tests/constructed-card-deck-stats.test.ts",
         "tests/class-matchup-routes.test.ts",
         "tests/client-error-routes.test.ts",
+        "tests/archetype-card-identity.test.ts",
         "tests/constructed-archetype-routes.test.ts",
         "tests/constructed-card-catalog-store.test.ts",
         "tests/constructed-card-catalog-health-summary.test.ts",

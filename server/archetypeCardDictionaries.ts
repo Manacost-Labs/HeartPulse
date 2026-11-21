@@ -53,6 +53,6 @@ export function createArchetypeCardDictionaries(options: ArchetypeCardDictionari
     const loading = refresh();
     // A kept copy answers at once while it is renewed; only the first read is waited for, and not past the deadline.
     if (loading && !remote) await withDeadline(() => loading, options.deadlineMs, () => undefined);
-    return [local, remote?.value ?? null].filter((dictionary): dictionary is Dictionary => dictionary !== null);
+    return [remote?.value ?? null, local].filter((dictionary): dictionary is Dictionary => dictionary !== null);
   };
 }

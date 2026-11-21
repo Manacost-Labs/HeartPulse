@@ -74,9 +74,9 @@ same shape; as in `/api/deck/resolve`, a sideboard card no dictionary names is
 left out. The card catalog of the deck's format
 names the cards and gives `hasPage` (the card page
 `/standard/cards/<format>/<id>/` exists); a card the catalog lacks (a companion
-of a Fabled legendary) is named from the full card dictionary (`cards_ru.json`,
-then HearthstoneJSON) with `hasPage: false`, listed without a link; a card no
-dictionary knows is `id: null, name: null` and shows as «Неизвестная карта»,
+of a Fabled legendary) is named from the full card dictionary (HearthstoneJSON,
+with `cards_ru.json` as fallback) and listed without a link (`hasPage: false`).
+A card no dictionary knows is `id: null, name: null` and shows as «Неизвестная карта»,
 keeping its place and count. A failed catalog read serves the last good
 catalog of that format; with none, or for a code that does not decode, the
 deck has no `cards` but stays in the answer and on the page. The answer carries

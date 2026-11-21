@@ -31,7 +31,7 @@ export type FunDeckOpenSideboard = { keyId: string; cards: FunDeckOpenCard[] };
 
 export type FunDeckOpenCardsDependencies = {
   loadCardCatalog: (format: Format) => Promise<{ cards: Record<string, unknown>[] }>;
-  /** Card dictionaries by id (`cards_ru.json`, then all of HearthstoneJSON): name the cards the catalog lacks. */
+  /** Card dictionaries by id (HearthstoneJSON, then `cards_ru.json`): name the cards the catalog lacks. */
   loadCardDictionaries?: () => Promise<Record<string, unknown>[]>;
   onError?: (error: unknown) => void;
 };
