@@ -7,6 +7,23 @@ const baseUrl = (process.argv.find(argument => argument.startsWith('--url=')) ||
   .replace(/\/$/, '');
 const outputDirectory = path.resolve('docs/screenshots');
 
+const DESKTOP = { width: 1440, height: 900, deviceScaleFactor: 1 };
+const MOBILE = { width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
+
+// A fresh browser profile is a guest: the README shows what a visitor sees, paid values under locks.
+// `ready` is visible text that appears only after the page has its data; `scrollTo` starts the frame at a heading.
+const SHOTS = [
+  { name: 'home', path: '/', ready: ['Подборка статей'] },
+  { name: 'matchups', path: '/standard/matchups/', ready: ['Полная матрица', 'Против меты'], scrollTo: 'Матчапы · Стандарт' },
+  {
+    name: 'card',
+    path: '/standard/cards/standard/BE_036/',
+    ready: ['Статистика', 'Изменения по патчам'],
+    desktop: { ...DESKTOP, height: 1500 },
+  },
+  { name: 'assemble', path: '/standard/assemble/', ready: ['Данные HSReplay', 'Пул '] },
+];
+
 await mkdir(outputDirectory, { recursive: true });
 
 const browser = await puppeteer.launch({
@@ -15,15 +32,12 @@ const browser = await puppeteer.launch({
   args: ['--no-sandbox', '--disable-dev-shm-usage'],
 });
 
-async function openHome(viewport) {
+async function openPage(shot, viewport) {
   const page = await browser.newPage();
   await page.setViewport(viewport);
-  await page.goto(`${baseUrl}/`, { waitUntil: 'networkidle2', timeout: 45_000 });
-  await page.waitForSelector('.home-stage');
-  await page.waitForSelector('.home-latest-articles');
-  await page.waitForSelector('.home-bg-directory');
-  await page.waitForSelector('.home-arena-directory');
-  await page.waitForSelector('#faq-heading');
+  await page.goto(`${baseUrl}${shot.path}`, { waitUntil: 'networkidle2', timeout: 45_000 });
+  await page.waitForFunction(texts => texts.every(text => document.body.innerText.includes(text)),
+    { timeout: 30_000 }, shot.ready);
   await page.addStyleTag({
     content: '.support-prompt { display: none !important; }',
   });
@@ -40,41 +54,43 @@ async function warmImages(page) {
     }
     window.scrollTo(0, 0);
   });
+  // The closed mode switch keeps its lazy banners unloaded, so only images a visitor can see are awaited.
   await page.waitForFunction(() => [...document.images]
-    .filter(image => image.getBoundingClientRect().width > 0)
+    .filter(image => image.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true }))
     .every(image => image.complete), { timeout: 15_000 });
 }
 
+async function scrollToHeading(page, text) {
+  await page.evaluate(heading => {
+    const target = [...document.querySelectorAll('h1, h2, h3')].find(element => element.textContent.includes(heading));
+    if (!target) throw new Error(`heading not found: ${heading}`);
+    // Clear the sticky top bar: the search row on desktop, the logo row on a phone.
+    target.style.scrollMarginTop = window.innerWidth < 700 ? '76px' : '68px';
+    target.scrollIntoView({ block: 'start' });
+  }, text);
+  await new Promise(resolve => setTimeout(resolve, 400));
+}
+
+async function capture(shot, variant, viewport) {
+  const page = await openPage(shot, viewport);
+  try {
+    await warmImages(page);
+    if (shot.scrollTo) await scrollToHeading(page, shot.scrollTo);
+    await page.screenshot({
+      path: path.join(outputDirectory, `${shot.name}-${variant}.webp`),
+      type: 'webp',
+      quality: 86,
+    });
+  } finally {
+    await page.close();
+  }
+}
+
 try {
-  const desktop = await openHome({ width: 1440, height: 900, deviceScaleFactor: 1 });
-  await warmImages(desktop);
-  await desktop.screenshot({
-    path: path.join(outputDirectory, 'home-desktop.png'),
-    type: 'png',
-  });
-
-  await desktop.$eval('.home-latest-articles', element => element.scrollIntoView({ block: 'start' }));
-  await new Promise(resolve => setTimeout(resolve, 300));
-  await desktop.screenshot({
-    path: path.join(outputDirectory, 'home-sections.png'),
-    type: 'png',
-  });
-  await desktop.close();
-
-  const mobile = await openHome({
-    width: 390,
-    height: 844,
-    deviceScaleFactor: 2,
-    isMobile: true,
-    hasTouch: true,
-  });
-  await warmImages(mobile);
-  await mobile.screenshot({
-    path: path.join(outputDirectory, 'home-mobile.png'),
-    type: 'png',
-  });
-  await mobile.close();
-
+  for (const shot of SHOTS) {
+    await capture(shot, 'desktop', shot.desktop ?? DESKTOP);
+    await capture(shot, 'mobile', MOBILE);
+  }
   console.log(`GitHub screenshots saved to ${outputDirectory}`);
 } finally {
   await browser.close();
