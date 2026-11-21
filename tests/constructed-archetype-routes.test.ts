@@ -532,16 +532,21 @@ try {
     { card_id: 'TST_003', dbf: 70_003, name: { ru: 'Тестовая буря' }, mana_cost: 2, rarity: 'RARE' },
     { card_id: 'ETC_080', dbf: 80_001, name: { ru: 'Э.Т.Ц., менеджер группы' }, mana_cost: 3, rarity: 'LEGENDARY' },
     { card_id: 'TOY_330', dbf: 80_002, name: { ru: 'Зиллиакс Делюкс 3000' }, mana_cost: 0, rarity: 'LEGENDARY' },
+    // The crowded code below: five key cards, eleven lines under the first and one under each of the others.
+    ...[1, 2, 3, 4, 5].map(key => ({ card_id: `KEY_${key}`, dbf: 80_100 + key, name: { ru: `Ключ ${key}` }, mana_cost: 1, rarity: 'LEGENDARY' })),
+    ...Array.from({ length: 11 }, (_, line) => ({ card_id: `SB_${String(line + 1).padStart(2, '0')}`, dbf: 81_001 + line,
+      name: { ru: `Строка ${line + 1}` }, mana_cost: line + 1, rarity: 'COMMON' })),
+    ...[20, 21, 22, 23].map(line => ({ card_id: `SB_${line}`, dbf: 81_000 + line, name: { ru: `Строка ${line}` }, mana_cost: 1, rarity: 'COMMON' })),
   ] };
   const cardsRu = {
     TOY_330t97: { name: 'Модуль: ядерный', mana: 3, rarity: '', dbf: 80_011 },
     TOY_330t99: { name: 'Модуль: клинок', mana: 2, rarity: '', dbf: 80_012 },
   };
-  const band = { ...catalog.items[0], slug: 'band-priest', builds: [{ ...catalog.items[0].builds[0], deckCode: BAND_DECK }] };
+  let bandCode = BAND_DECK;
   const bandApp = express();
   bandApp.use('/api', createConstructedArchetypeRouter({
     ...dependencies, cardCatalogDeadlineMs: 200,
-    loadCatalog: async () => ({ ...catalog, items: [band] }),
+    loadCatalog: async () => ({ ...catalog, items: [{ ...catalog.items[0], slug: 'band-priest', builds: [{ ...catalog.items[0].builds[0], deckCode: bandCode }] }] }),
     loadCardCatalog: async () => bandCatalog,
     loadCardDictionaries: async () => [cardsRu],
   }));
@@ -568,6 +573,16 @@ try {
         ] },
       ],
     }]);
+    // A code may carry more than a real deck holds: five sideboards, one of eleven cards. The public answer keeps the
+    // first four, with the first ten lines (cheapest first) of each; the rest never goes out.
+    bandCode = 'AAEBAQcF5fEE5vEE5/EE6PEE6fEEAAABD+n4BOXxBOr4BOXxBOv4BOXxBOz4BOXxBO34BOXxBO74BOXxBO/4BOXxBPD4BOXxBPH4BOXxBPL4BOXxBPP4BOXxBPz4BObxBP34BOfxBP74BOjxBP/4BOnxBAAA';
+    const crowded = await fetch(`http://127.0.0.1:${bandAddress.port}/api/constructed-archetypes/teaser/wild/band-priest`);
+    const [build] = (await crowded.json() as any).item.builds;
+    assert.deepEqual(build.sideboards.map((board: any) => board.keyId), ['KEY_1', 'KEY_2', 'KEY_3', 'KEY_4']);
+    assert.deepEqual(build.sideboards[0].cards.map((card: any) => card.id),
+      ['SB_01', 'SB_02', 'SB_03', 'SB_04', 'SB_05', 'SB_06', 'SB_07', 'SB_08', 'SB_09', 'SB_10']);
+    assert.equal(JSON.stringify(build).includes('SB_11'), false, 'the eleventh line stays out');
+    assert.equal(JSON.stringify(build).includes('SB_23'), false, 'the fifth sideboard stays out');
   } finally {
     bandServer.closeAllConnections();
     await new Promise<void>(resolve => bandServer.close(() => resolve()));

@@ -15,6 +15,9 @@ export const PUBLIC_CARD_CATALOG_DEADLINE_MS = 2_000;
 /** An answer without some card list is not cached long: the list is back once the catalog answers again. */
 export const DEGRADED_OPEN_ARCHETYPE_CACHE = 'public, max-age=30, stale-while-revalidate=30';
 const MAX_DECK_CODE_LENGTH = 600;
+/** A real code carries at most a few sideboards of a few cards (the E.T.C. band, Zilliax's modules); more never goes out. */
+const MAX_OPEN_SIDEBOARDS = 4;
+const MAX_OPEN_SIDEBOARD_CARDS = 10;
 const dictionaryIndexes = new WeakMap<object, Map<number, DeckBuilderCardRecord>>();
 
 /**
@@ -93,7 +96,8 @@ function openCard(dbfId: number, count: number, catalog: Map<number, DeckBuilder
 /**
  * The whole main-deck list of a deck code and its sideboards, cheapest first, or `null` when the code does not
  * decode. Cards are named as the deck builder names them: the format's catalog first, then the full card dictionary;
- * a card neither knows does not drop the list. A sideboard is listed only under a key card of the main list.
+ * a card neither knows does not drop the list. A sideboard is listed only under a key card of the main list, and only
+ * the first `MAX_OPEN_SIDEBOARDS` sideboards with their first `MAX_OPEN_SIDEBOARD_CARDS` lines go out.
  */
 function openDeckLists(deckCode: string, catalog: Map<number, DeckBuilderCardRecord>, dictionary: Map<number, DeckBuilderCardRecord>):
   { cards: OpenArchetypeCard[]; sideboards: OpenArchetypeSideboard[] } | null {
@@ -106,8 +110,8 @@ function openDeckLists(deckCode: string, catalog: Map<number, DeckBuilderCardRec
   const sideboards = extractSideboardParts(definition).flatMap(part => {
     const key = main.some(({ dbfId }) => dbfId === part.keyCardDbfId) ? openCard(part.keyCardDbfId, 1, catalog, dictionary) : null;
     const lines = part.cards.flatMap(({ dbfId, count }) => openCard(dbfId, count, catalog, dictionary, part.keyCardDbfId) ?? []);
-    return key && lines.length ? [{ keyId: key.id as string, cards: lines.sort(byCost) }] : [];
-  });
+    return key && lines.length ? [{ keyId: key.id as string, cards: lines.sort(byCost).slice(0, MAX_OPEN_SIDEBOARD_CARDS) }] : [];
+  }).slice(0, MAX_OPEN_SIDEBOARDS);
   return { cards: cards.sort(byCost), sideboards };
 }
 

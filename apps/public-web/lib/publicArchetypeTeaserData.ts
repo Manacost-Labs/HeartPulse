@@ -76,17 +76,18 @@ function openCard(value: unknown): OpenArchetypeCard {
 }
 
 /**
- * The sideboards of a build with a card list: each under a key card of that list, its lines read as the list's. A
- * sideboard that does not read is left out; it never costs the build its list.
+ * The sideboards of a build with a card list: each under a key card of that list, its lines read as the list's; the
+ * first `MAX_SIDEBOARDS` of them with their first `MAX_SIDEBOARD_CARDS` lines. A sideboard that does not read is left
+ * out; it never costs the build its list.
  */
 function openSideboards(value: unknown, cards: OpenArchetypeCard[] | null): OpenArchetypeSideboard[] | undefined {
-  if (!cards || !Array.isArray(value) || !value.length || value.length > MAX_SIDEBOARDS) return undefined;
-  const boards = value.flatMap((raw): OpenArchetypeSideboard[] => {
+  if (!cards || !Array.isArray(value) || !value.length) return undefined;
+  const boards = value.slice(0, MAX_SIDEBOARDS).flatMap((raw): OpenArchetypeSideboard[] => {
     try {
       const board = record(raw);
       const keyId = typeof board.keyId === 'string' && cards.some(card => card.id === board.keyId) ? board.keyId : null;
-      if (!keyId || !Array.isArray(board.cards) || !board.cards.length || board.cards.length > MAX_SIDEBOARD_CARDS) return [];
-      return [{ keyId, cards: board.cards.map(openCard) }];
+      if (!keyId || !Array.isArray(board.cards) || !board.cards.length) return [];
+      return [{ keyId, cards: board.cards.slice(0, MAX_SIDEBOARD_CARDS).map(openCard) }];
     } catch {
       return [];
     }

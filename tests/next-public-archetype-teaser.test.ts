@@ -77,3 +77,22 @@ assert.equal(publicArchetypeTeaser(raw, 'wild', 'thief-priest').openBuildsTotal,
 for (const paid of ['7.1717', '6.2626', '41.4141', 'PRIVATE_']) {
   assert.equal(JSON.stringify(open).includes(paid), false, `the page data carries ${paid}`);
 }
+
+// An answer with more than a real code holds (five sideboards, one of eleven lines) keeps the first four sideboards and
+// the first ten lines of each; the rest never reaches the page, and the build keeps its list.
+const line = (id: string) => ({ id, name: `Карта ${id}`, cost: 1, rarity: 'COMMON', count: 1, hasPage: true });
+const crowded = publicArchetypeTeaser({ ...raw, item: { ...raw.item, builds: [{
+  deckCode: 'AAECAf0GAfKiBALxogTzogQAAA==', games: 10, winrate: 50, updatedAt: null,
+  cards: ['KEY_1', 'KEY_2', 'KEY_3', 'KEY_4', 'KEY_5'].map(line),
+  sideboards: [
+    { keyId: 'KEY_1', cards: ['SB_01', 'SB_02', 'SB_03', 'SB_04', 'SB_05', 'SB_06', 'SB_07', 'SB_08', 'SB_09', 'SB_10', 'SB_11'].map(line) },
+    { keyId: 'KEY_2', cards: [line('SB_20')] }, { keyId: 'KEY_3', cards: [line('SB_21')] },
+    { keyId: 'KEY_4', cards: [line('SB_22')] }, { keyId: 'KEY_5', cards: [line('SB_23')] },
+  ],
+}] } }, 'wild', 'thief-priest').openBuilds[0];
+assert.equal(crowded.cards?.length, 5, 'the build keeps its list');
+assert.deepEqual(crowded.sideboards?.map(board => board.keyId), ['KEY_1', 'KEY_2', 'KEY_3', 'KEY_4']);
+assert.deepEqual(crowded.sideboards?.[0].cards.map(card => card.id),
+  ['SB_01', 'SB_02', 'SB_03', 'SB_04', 'SB_05', 'SB_06', 'SB_07', 'SB_08', 'SB_09', 'SB_10']);
+assert.equal(JSON.stringify(crowded).includes('SB_11'), false, 'the eleventh line stays out');
+assert.equal(JSON.stringify(crowded).includes('SB_23'), false, 'the fifth sideboard stays out');
