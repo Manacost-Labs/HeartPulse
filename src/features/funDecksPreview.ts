@@ -2,6 +2,8 @@ import { DECK_CLASSES as FUN_DECK_CLASSES } from './deckViews/deckClass';
 
 /** One line of a deck's card list as the public API sends it. `hasPage`: `/standard/cards/<format>/<id>/` exists; `name: null` is a card no dictionary knows. */
 export type FunDeckOpenCard = { id: string | null; name: string | null; cost: number | null; count: number; hasPage: boolean };
+/** Cards that travel with the main-deck card `keyId` (the E.T.C. band, Zilliax's modules), decoded from `deckCode`. */
+export type FunDeckOpenSideboard = { keyId: string; cards: FunDeckOpenCard[] };
 
 export type FunDeckRow = {
   title: string;
@@ -40,6 +42,8 @@ export type FunDeckRow = {
   };
   /** The main-deck list decoded from `deckCode` by the API, as the server HTML prints it. Absent when the code does not decode or no card catalog has answered; a card nobody names stays in it with `name: null`. */
   cards?: FunDeckOpenCard[];
+  /** The sideboards of the code, with `cards`; absent when it has none. */
+  sideboards?: FunDeckOpenSideboard[];
 };
 
 export type FunDecksPayload = {

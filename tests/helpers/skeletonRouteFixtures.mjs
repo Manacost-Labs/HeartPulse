@@ -29,25 +29,6 @@ const NOW = '2026-10-20T09:00:00.000Z';
 const media = (width, height, tag = 'x') => `/fixture-media/${width}x${height}.svg?${tag}`;
 const pick = (variant, long, short) => (variant === 'short' ? short : long);
 
-const FUN_CLASSES = ['MAGE', 'DRUID', 'PALADIN', 'WARLOCK', 'DEATHKNIGHT', 'ROGUE', 'HUNTER', 'PRIEST'];
-function funDecks(variant) {
-  const decks = FUN_CLASSES.map((className, index) => ({
-    title: pick(variant, `Колода с очень длинным названием про необычную идею номер ${index + 1}, которая переносится`, `Идея ${index + 1}`),
-    // A real deck code's length (the tile prints the code, and its skeleton reserves the lines of a typical one).
-    deckCode: `AAECAfixtureFunDeck${index + 1}`.padEnd(103, 'A'),
-    format: 'wild',
-    className,
-    streamer: pick(variant, 'Стример с длинным псевдонимом', null),
-    funScore: 0.71 - index * 0.01, maxMetaSimilarity: 0.31, nearestArchetype: 'Mech Mage', nearestArchetypeLabel: 'Мех-маг',
-    winRate: 52.4, winRateCiLow: 46.1, winRateCiHigh: 58.6, variants: 0, sourceTitle: null, games: 1240 + index,
-    reasons: ['highlander_shape', 'concept_title'], why: ['Хайлендер', 'Концепт'], tags: ['highlander', 'concept'],
-    url: 'https://www.hsguru.com/decks/fixture',
-    firstSeenAt: `2026-10-${String(19 - index).padStart(2, '0')}T10:00:00.000Z`, lastSeenAt: NOW,
-  }));
-  return { fetchedAt: NOW, stats: { total: decks.length, standard: 0, wild: decks.length },
-    methodology: { detectorVersion: 'fixture', minFunScore: 0.55, maxMetaSimilarity: 0.42 }, decks };
-}
-
 const heroName = variant => pick(variant,
   { ru: 'Архимаг Антонидас из далёкого будущего Даларана', en: 'Archmage Antonidas of the Distant Dalaran Future' },
   { ru: 'Джайна', en: 'Jaina' });
@@ -127,29 +108,16 @@ const AWAITS_ROUTE_LOADING_UI = 'route-level loading UI for the server-probed de
 // held open, does not exist any more. Where a skeleton is still reachable (a filter from the link while the
 // complete list loads) the route targets that state; where it is not, the route is gone (see the end of the table).
 
+// Not here: the fun decks (/standard/fun-decks/, #675). The server renders a link's filters and sort on the selection
+// it read, and the proxy serves the page only with that selection; its skeleton (FunDecksSkeleton.tsx) shows only for
+// a page without one. No URL reaches it; FunDecksSkeleton.stories.tsx keeps its shape.
+
 // Not here: the cosmetics catalog (/cosmetics/heroes/). Its skeleton (Cosmetics.tsx) shows only while the grid has
 // no payload at all. The seed is built by the same check the proxy probe applies, so a document either carries the
 // seed or is a 503; a filter or page change keeps the previous page dimmed instead of the skeleton. No URL reaches it.
 // CosmeticsGridSkeleton stays a Storybook story.
 
 export const SKELETON_ROUTES = [
-  {
-    // A filter from the link (?format=wild) cannot be answered by the guest preview the server renders, so the page
-    // shows the skeleton (`settling`, FunDecksPage.tsx) until the complete list, the held browser request, arrives.
-    id: 'fun-decks', path: '/standard/fun-decks/?format=wild', textVariants: true,
-    respond: (url, { variant }) => url.pathname === '/api/fun-decks' ? json(funDecks(variant)) : undefined,
-    hold: (url, { browser }) => browser && url.pathname === '/api/fun-decks',
-    // The default tile view: columns of builder tiles; a list that cannot load keeps the height the skeleton reserves.
-    skeleton: '.loading-surface__blocks.fun-decks-tiles-grid', loaded: 'section.fun-decks-tiles-grid > .fun-deck-tiles',
-    parts: [
-      { name: 'grid', skeleton: '.loading-surface__blocks.fun-decks-tiles-grid', loaded: 'section.fun-decks-tiles-grid', check: 'viewport' },
-      ...[0, 1, 2].map(index => ({ name: `card ${index + 1}`, index, check: 'text', top: index === 0,
-        skeleton: '.loading-surface__blocks.fun-decks-tiles-grid > .fun-deck-tiles', loaded: 'section.fun-decks-tiles-grid > .fun-deck-tiles' })),
-      { name: 'card 1 metrics', skeleton: '.fun-deck-tiles--loading .fun-deck-tiles-skeleton-stats', loaded: 'section.fun-decks-tiles-grid .fun-deck-tiles__stats', check: 'fixed', top: false },
-      { name: 'card 1 list', skeleton: '.fun-deck-tiles--loading .fun-deck-tiles__deck', loaded: 'section.fun-decks-tiles-grid .fun-deck-tiles__deck', check: 'fixed', top: false },
-      { name: 'card 1 copy', skeleton: '.fun-deck-tiles--loading .fun-deck-tiles__foot', loaded: 'section.fun-decks-tiles-grid .fun-deck-tiles__foot', check: 'fixed', top: false },
-    ],
-  },
   {
     awaits: AWAITS_ROUTE_LOADING_UI,
     id: 'cosmetics-detail', path: '/cosmetics/heroes/HERO_QA_001/', textVariants: true,

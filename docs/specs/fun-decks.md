@@ -12,22 +12,41 @@ view (`FunDeckTilesCard`). A tile carries the class, format and streamer, the
 «Новая» badge, the win rate, games, fun index and distance from the meta
 («Вне меты»), the reasons, the card list, the date of the data, the deck code
 as text and «Копировать код». The card list on the server is the answer's open
-`cards` (`funDeckSeed()`): each card links to `/standard/cards/<format>/<id>/`
-of the deck's own format (Wild decks to `wild`), a card outside the catalog is
-named without a link, and a card nobody names is «Неизвестная карта» in its
-place, without art. No deck is left out: one without a card list keeps its
-numbers, its code and the copy button. In the browser each deck, once about a
+`cards` and `sideboards` (`funDeckSeed()`): each card links to
+`/standard/cards/<format>/<id>/` of the deck's own format (Wild decks to
+`wild`), a card outside the catalog is named without a link, and a card nobody
+names is «Неизвестная карта» in its place, without art. The E.T.C. band and
+Zilliax's modules are on the server tile already, so the full list adds no
+line; the «Строки» and «Картинки» views draw the same open list. No deck is
+left out: one without a card list keeps its numbers, its code and the copy
+button. In the browser each deck, once about a
 screen away (the first at once), reads its full list (`/api/deck/resolve`:
 rarities, sideboards), which replaces the open one in place; a failed read
-keeps the open list. The browser also loads `/api/fun-decks` for filters; its
-answer replaces the selection in the same places, and a failed read or an
-answer without decks keeps the decks the page has. Nothing in the selection is
+keeps the open list. The browser also loads `/api/fun-decks`; its answer
+replaces the selection in the same places, and a failed read or an answer
+without decks keeps the decks the page has.
+
+The page is rendered per request (`force-dynamic`), so the server reads a
+link's filters and sort (`readFunDecksQuery()` on `searchParams`) and renders
+the filtered list, its count and the pressed filters: the first paint of
+`?format=wild` is the Wild list, and the selection arriving later changes
+nothing. The deck view a reader keeps («Строки», «Картинки», in
+`localStorage`) is the browser's only: an inline script before the list
+(`DECK_LAYOUT_RESTORE_SCRIPT`) marks `<html data-deck-layout-restore>`, the
+server tiles keep their place unseen, and the page draws the kept view in the
+first frame after hydration (`useDeckLayout` reads it in a layout effect) and
+drops the mark. A guest without parameters or a kept view gets the server HTML
+as it is. Nothing in the selection is
 paid, so the page has no subscription offer and no lock. The post-deploy
 warm-up waits for `fun-deck-tiles__stats`, the numbers of a tile with data.
 
 The public endpoint adds `cards` to every deck: the main deck decoded from
 `deckCode` (`server/funDeckOpenCards.ts`), each line
-`{ id, name, cost, count, hasPage }`. The card catalog of the deck's format
+`{ id, name, cost, count, hasPage }`. A code with sideboards adds
+`sideboards: [{ keyId, cards }]`: the cards that travel with the main-deck
+card `keyId` (the E.T.C. band, Zilliax's modules and cosmetic), lines of the
+same shape; as in `/api/deck/resolve`, a sideboard card no dictionary names is
+left out. The card catalog of the deck's format
 names the cards and gives `hasPage` (the card page
 `/standard/cards/<format>/<id>/` exists); a card the catalog lacks (a companion
 of a Fabled legendary) is named from the full card dictionary (`cards_ru.json`,
@@ -87,9 +106,9 @@ no tag matches.
 `src/features/funDecksQuery.ts` keeps the state in the address:
 `?format=wild&class=priest,mage&tag=highlander&sort=reliable`. Defaults and
 unknown values are left out, other parameters stay, the search text is not
-kept. The page reads the address after hydration (the server renders the
-defaults) and shows the loader instead of the server-rendered decks while the complete
-list, which a filtered view needs, is on its way.
+kept. The server renders the address's filters and sort (see above); a page
+without them from the server (a story) reads the address before its first
+paint.
 
 ## Off-meta and moderation
 

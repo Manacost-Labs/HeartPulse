@@ -23,7 +23,8 @@ export type DeckCardProps = {
 export function useFunDeck(deck: FunDeckRow, eager = false) {
   const format = funDeckFormat(deck);
   const seed = useMemo(() => funDeckSeed(deck, format), [deck, format]);
-  const view = useDeckView(deck.deckCode, { format, archetype: deck.nearestArchetype || undefined }, eager, seed, true);
+  const view = useDeckView(deck.deckCode, { format, archetype: deck.nearestArchetype || undefined }, eager, seed?.cards ?? null, true,
+    false, seed?.sideboards);
   const classMeta = funDeckClassMeta(deck, view.data?.heroDbfId);
   const subtitle = [
     classMeta.label,

@@ -18,7 +18,7 @@
  * CHROMIUM_PATH or /usr/bin/google-chrome.
  *
  * Run:  node --test tests/skeleton-route-geometry-browser.test.mjs
- * Env:  SKELETON_ROUTES=fun-decks,guide-detail  only these route ids (also runs `awaits` routes)
+ * Env:  SKELETON_ROUTES=guides-list,guide-detail  only these route ids (also runs `awaits` routes)
  *       SKELETON_CLS_SCROLL=top                observe the swap at the page top instead of
  *                                              with the main container (first part) at the viewport top
  *       SKELETON_SCREENSHOT_DIR=<dir>          save skeleton/loaded screenshots

@@ -19,6 +19,9 @@ const known = cardsOf([]);
 const withToken = cardsOf([777_001]); // in the dictionary only (not collectible)
 const withStranger = cardsOf([777_002]); // in no dictionary
 const withSlashed = cardsOf([777_003]); // the dictionary key has a leading slash, as in the shipped cards_ru.json
+// FUN_15 carries a sideboard (as E.T.C. carries its band): two catalog cards and one nobody knows.
+const withBand = encode({ heroes: [7], format: 2, cards: [...cardRows.slice(0, 14).map(card => [card.dbf, 2] as [number, number]), [2015, 1]],
+  sideboards: [{ keyCardDbfId: 2015, cards: [[2014, 1], [2013, 1], [777_002, 1]] }] });
 const dictionary = { TIME_609t1: { dbfId: 777_001, id: 'TIME_609t1', name: 'Рейнджер-капитан Алерия', mana: 3 },
   '/OG_211': { dbf: 777_003, name: 'Зов лесов', mana: 8 },
   '/../admin': { dbf: 777_005, name: 'Чужая', mana: 2 }, 'bad id': { dbf: 777_006, name: 'Пробел', mana: 2 },
@@ -39,6 +42,7 @@ app.use('/api', createPublicFunDecksRouter({
     { title: 'Evil keys', deck_code: cardsOf([777_005, 777_006]), format: 'Standard' },
     { title: 'Stranger', deck_code: withStranger, format: 'Standard' },
     { title: 'Garbled', deck_code: 'A'.repeat(40), format: 'Standard' },
+    { title: 'Band', deck_code: withBand, format: 'Standard' },
   ] } } }),
   loadCardCatalog: async format => {
     formatsAsked.push(format);
@@ -54,12 +58,12 @@ const server = app.listen(0, '127.0.0.1');
 await new Promise<void>(resolve => server.once('listening', resolve));
 const { port } = server.address() as { port: number };
 type Card = { id: string | null; name: string | null; cost: number | null; count: number; hasPage: boolean };
-type Deck = { title: string; cards?: Card[] };
+type Deck = { title: string; cards?: Card[]; sideboards?: Array<{ keyId: string; cards: Card[] }> };
 const read = async () => (await (await fetch(`http://127.0.0.1:${port}/api/fun-decks`)).json() as { decks: Deck[] }).decks;
 try {
   let decks = await read();
   const by = (title: string) => decks.find(deck => deck.title === title);
-  assert.deepEqual(decks.map(deck => deck.title).sort(), ['Evil keys', 'Garbled', 'Known', 'Slashed', 'Stranger', 'Token', 'Twin', 'Wild known'], 'no deck is dropped');
+  assert.deepEqual(decks.map(deck => deck.title).sort(), ['Band', 'Evil keys', 'Garbled', 'Known', 'Slashed', 'Stranger', 'Token', 'Twin', 'Wild known'], 'no deck is dropped');
   assert.equal(by('Known')?.cards?.length, 14);
   assert.deepEqual(by('Known')?.cards?.[0], { id: 'FUN_0', name: 'Карта 0', cost: 0, count: 1, hasPage: true });
   assert.ok(decks.every(deck => !('candidateSourceId' in deck)), 'the internal source id is not public');
@@ -73,12 +77,17 @@ try {
   assert.ok(decks.flatMap(deck => deck.cards ?? []).every(card => card.id === null || /^[A-Za-z0-9_]+$/.test(card.id)), 'no card id outside the page allowlist is public');
   assert.deepEqual(by('Stranger')?.cards?.find(card => card.name === null), { id: null, name: null, cost: null, count: 1, hasPage: false }, 'a card nobody knows keeps its place');
   assert.equal(by('Garbled')?.cards, undefined, 'a code that does not decode has no list, and stays');
+  // The sideboard is decoded with the list, under its key card; as in the full list, a card nobody names is left out.
+  assert.deepEqual(by('Band')?.sideboards, [{ keyId: 'FUN_15', cards: [
+    { id: 'FUN_13', name: 'Карта 13', cost: 5, count: 1, hasPage: true }, { id: 'FUN_14', name: 'Карта 14', cost: 6, count: 1, hasPage: true }] }]);
+  assert.ok(by('Band')?.cards?.some(card => card.id === 'FUN_15'), 'the key card is in the main list');
+  assert.ok(decks.filter(deck => deck.title !== 'Band').every(deck => !('sideboards' in deck)), 'a code without a sideboard has none');
   assert.equal(formatsAsked.length, 2, 'one catalog read per format');
 
   // A failing catalog serves the last good one; a failing dictionary only leaves the extra cards unnamed.
   catalogFails = true; dictionaryFails = true;
   decks = await read();
-  assert.equal(decks.length, 8);
+  assert.equal(decks.length, 9);
   assert.equal(by('Known')?.cards?.length, 14, 'the last good catalog answers');
   assert.equal(by('Token')?.cards?.find(card => card.count === 1 && card.hasPage === false)?.name, null, 'without the dictionary the token has no name');
 } finally {

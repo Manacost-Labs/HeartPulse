@@ -28,15 +28,31 @@ const CARDS = [
   { id: 'FIX_TWO', name: 'Вторая карта', cost: 2, count: 2, hasPage: true },
   { id: 'FIX_THREE', name: 'Третья карта', cost: 4, count: 1, hasPage: true },
 ];
-// 24 decks, as in production on 2026-11-21; one of each eleven classes and both formats. The answer also carries
-// fields outside the page's allowlist (an internal source id, an admin note): they are not open fields.
+// The two newest decks carry sideboards the code holds: the E.T.C. band and Zilliax's two modules with its cosmetic.
+const ETC = { id: 'ETC_080', name: 'Э.Т.Ц., менеджер группы', cost: 3, count: 1, hasPage: true };
+const ETC_BAND = [
+  { id: 'FIX_BAND_A', name: 'Гитарист группы', cost: 2, count: 1, hasPage: true },
+  { id: 'FIX_BAND_B', name: 'Барабанщик группы', cost: 4, count: 1, hasPage: true },
+  { id: 'FIX_BAND_C', name: 'Солист группы', cost: 6, count: 1, hasPage: true },
+];
+const ZILLIAX = { id: 'TOY_330', name: 'Зиллиакс Делюкс 3000', cost: 0, count: 1, hasPage: true };
+const ZILLIAX_MODULES = [
+  { id: 'TOY_330t92', name: 'Модуль: ремонт', cost: 2, count: 1, hasPage: false },
+  { id: 'TOY_330t95', name: 'Модуль: перегрев', cost: 3, count: 1, hasPage: false },
+  { id: 'TOY_330t5', name: 'Корпус Зиллиакса', cost: 0, count: 1, hasPage: false },
+];
+const SIDEBOARDS = { 0: [ETC, ETC_BAND], 1: [ZILLIAX, ZILLIAX_MODULES] };
+// 24 decks, as in production on 2026-11-21; one of each eleven classes and both formats, fun indexes from 50% to 80%.
+// The answer also carries fields outside the page's allowlist (an internal source id, an admin note): not open fields.
 const CLASSES = ['mage', 'priest', 'warrior', 'rogue', 'druid', 'hunter', 'paladin', 'shaman', 'warlock', 'demonhunter', 'deathknight'];
 const DECKS = Array.from({ length: 24 }, (_, index) => ({
   title: `Фан-колода ${index + 1}`, deckCode: `FUN_DECK_${index + 1}`, format: index % 5 === 4 ? 'Wild' : 'Standard',
   className: CLASSES[index % CLASSES.length], streamer: index === 0 ? 'Стример Фикстуры' : null, kind: 'brew',
-  funScore: 0.71, maxMetaSimilarity: 0.28, nearestArchetype: null, winRate: 53.4, winRateCiLow: 49.1, winRateCiHigh: 57.6,
+  funScore: 0.5 + (index % 7) * 0.05, maxMetaSimilarity: 0.28, nearestArchetype: null, winRate: 53.4, winRateCiLow: 49.1, winRateCiHigh: 57.6,
   games: 1240, reasons: [], why: ['Хайлендер', 'Концепт'], tags: ['highlander', 'concept'], url: null,
-  firstSeenAt: `2026-10-${String(30 - index).padStart(2, '0')}T10:00:00.000Z`, lastSeenAt: null, cards: CARDS,
+  firstSeenAt: `2026-10-${String(30 - index).padStart(2, '0')}T10:00:00.000Z`, lastSeenAt: null,
+  cards: SIDEBOARDS[index] ? [...CARDS, SIDEBOARDS[index][0]] : CARDS,
+  ...(SIDEBOARDS[index] ? { sideboards: [{ keyId: SIDEBOARDS[index][0].id, cards: SIDEBOARDS[index][1] }] } : {}),
   candidateSourceId: 'SENTINEL_SOURCE_ID', moderationNote: 'SENTINEL_ADMIN_NOTE',
 }));
 const FUN_DECKS = {
@@ -44,16 +60,26 @@ const FUN_DECKS = {
   methodology: { detectorVersion: 'concept-v8', minFunScore: 0.55, maxMetaSimilarity: 0.42, ladderMemberSim: 0.6 },
   decks: DECKS,
 };
-// The full list of a deck: the same cards with their rarities (the open list has none).
-const resolved = (code, format) => ({
-  ok: true, format, heroDbfId: 637, deckCode: code, totalCards: 5, deckSizeLimit: 30, archetype: null, sideboards: [],
-  cards: CARDS.map((card, index) => ({ id: card.id, dbfId: 9000 + index, name: card.name, cost: card.cost, count: card.count,
-    rarity: 'RARE', elite: false, image: '', pagePath: `/standard/cards/${format}/${card.id}/` })),
-});
+// The full list of a deck: the same cards and sideboards with their rarities (the open list has none).
+const full = (card, dbfId, format) => ({ id: card.id, dbfId, name: card.name, cost: card.cost, count: card.count,
+  rarity: 'RARE', elite: false, image: '', pagePath: card.hasPage ? `/standard/cards/${format}/${card.id}/` : null });
+const resolved = (code, format) => {
+  const deck = DECKS.find(item => item.deckCode === code);
+  const cards = deck.cards.map((card, index) => full(card, 9000 + index, format));
+  const sideboards = (deck.sideboards ?? []).map(board => {
+    const key = cards.find(card => card.id === board.keyId);
+    return { keyCardDbfId: key.dbfId, label: key.name, keyCard: key, cards: board.cards.map((card, index) => full(card, 9500 + index, format)) };
+  });
+  return { ok: true, format, heroDbfId: 637, deckCode: code, totalCards: 5, deckSizeLimit: 30, archetype: null, cards, sideboards };
+};
+
+// A 1×1 PNG: the render's box is square whatever its size.
+const SQUARE_PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
 
 async function startStack() {
   // `refusal`: what the browser's read of the selection gets (the server's read always gets the selection).
-  const state = { next: null, refusal: 0, browserReads: 0, resolveReads: 0 };
+  // `funDelay`, `resolveDelay`: how long the browser waits for the selection and for each full deck list.
+  const state = { next: null, refusal: 0, browserReads: 0, resolveReads: 0, funDelay: 0, resolveDelay: 0 };
   const server = http.createServer((request, response) => {
     const url = new URL(request.url, 'http://stack');
     const reader = /(?:^|;\s*)fd_session=reader/.test(request.headers.cookie ?? '');
@@ -67,12 +93,15 @@ async function startStack() {
     if (url.pathname === '/api/fun-decks') {
       if (!browser) return json(200, FUN_DECKS);
       state.browserReads += 1;
-      return state.refusal ? json(state.refusal, { error: 'refused' }) : json(200, FUN_DECKS);
+      return void setTimeout(() => (state.refusal ? json(state.refusal, { error: 'refused' }) : json(200, FUN_DECKS)), state.funDelay);
     }
     if (url.pathname === '/api/deck/resolve') {
       state.resolveReads += 1;
-      return json(200, resolved(url.searchParams.get('code'), url.searchParams.get('format')));
+      return void setTimeout(() => json(200, resolved(url.searchParams.get('code'), url.searchParams.get('format'))), state.resolveDelay);
     }
+    // The «Картинки» view: the deck's picture, as production serves it (a square render), so its box is the real one.
+    if (url.pathname === '/api/deck/render') return json(200, { ok: true, ready: true, imageUrl: '/fixture/deck-render.png' });
+    if (url.pathname === '/fixture/deck-render.png') return void response.writeHead(200, { 'Content-Type': 'image/png' }).end(SQUARE_PNG);
     if (url.pathname.startsWith('/api/')) return json(404, { error: 'missing' });
     const upstream = http.request(new URL(state.next), { method: request.method, path: request.url, headers: request.headers },
       answer => { response.writeHead(answer.statusCode, answer.headers); answer.pipe(response); });
@@ -83,7 +112,8 @@ async function startStack() {
 }
 
 /**
- * Every frame and DOM change once the document is parsed: how many decks the page shows, and whether anything of a
+ * Every frame and DOM change once the document is parsed: how many decks the page shows and their titles in order,
+ * whether the server's tile view is on screen, whether the first deck shows its E.T.C. band, and whether anything of a
  * paywall (a lock, an offer, «по подписке», hidden nodes included) or the error of the selection is in the document.
  * The layout shifts are summed as CLS counts them.
  */
@@ -100,9 +130,13 @@ const watchFrames = () => {
     const page = document.querySelector('.fun-decks-page');
     if (!page) return;
     const text = page.textContent;
+    const tiles = page.querySelector('.fun-decks-tiles-grid');
     window.__frames.push({
       at: performance.now(),
       decks: section ? section.querySelectorAll(':scope > article').length : 0,
+      titles: section ? [...section.querySelectorAll(':scope > article h2')].map(title => title.textContent).join(' | ') : '',
+      tilesShown: Boolean(tiles && tiles.children.length && getComputedStyle(tiles).visibility === 'visible'),
+      band: /Группа E\.T\.C\./.test(section?.querySelector(':scope > article')?.textContent ?? ''),
       paywall: Boolean(document.querySelector('.paid-lock, .paid-filter-lock, [data-testid="arena-paid-offer"], .arena-paywall'))
         || /по подписке/i.test(document.body.textContent),
       error: /Подборка временно недоступна/.test(text),
@@ -135,22 +169,35 @@ const html = async (origin, userAgent) => (await fetch(`${origin}/standard/fun-d
 // Resource hints follow the order the render finishes in, which varies between requests: they are not content.
 const content = text => text.replace(/<link rel="preload"[^>]*\/>/g, '');
 
-async function open(browser, stack, viewport, { subscriber = false } = {}) {
+/**
+ * A fresh browser context on the page. `scroll`: the list is below the first screen, so the reader is put on it as
+ * soon as the HTML is parsed, before the full answer and the full deck lists arrive, and any shift they cause counts.
+ * `layout`: the deck view this browser keeps from an earlier visit.
+ */
+async function visit(browser, stack, viewport, { subscriber = false, search = '', scroll = true, layout = null } = {}) {
   const page = await (await browser.createBrowserContext()).newPage();
   await page.setViewport(viewport);
   if (subscriber) await page.setCookie({ name: 'fd_session', value: 'reader', url: stack.origin });
+  if (layout) await page.evaluateOnNewDocument(kept => localStorage.setItem('hp:deck-layout', kept), layout);
   await page.evaluateOnNewDocument(watchFrames);
-  // The list is below the first screen: the reader is put on it as soon as the HTML is parsed, before hydration, so
-  // the full answer and the full deck lists arrive in view and any shift they cause counts.
-  await page.evaluateOnNewDocument(list => document.addEventListener('DOMContentLoaded', () => {
-    document.querySelector(list)?.scrollIntoView({ block: 'start' });
-  }), SECTION);
-  await page.goto(`${stack.origin}/standard/fun-decks/`, { waitUntil: 'networkidle0' });
+  if (scroll) {
+    await page.evaluateOnNewDocument(list => document.addEventListener('DOMContentLoaded', () => {
+      document.querySelector(list)?.scrollIntoView({ block: 'start' });
+    }), SECTION);
+  }
+  await page.goto(`${stack.origin}/standard/fun-decks/${search}`, { waitUntil: 'networkidle0' });
+  return page;
+}
+
+async function open(browser, stack, viewport, options = {}) {
+  const page = await visit(browser, stack, viewport, options);
   // The first deck's full list (its rarities) replaced the open one in place.
   await page.waitForSelector(`${SECTION} > article:first-child .fun-deck-tile.is-rare`, { timeout: 15_000 });
   await delay(300);
   return page;
 }
+
+const cls = page => page.evaluate(() => window.__cls);
 
 test('a guest, a robot and a subscriber get one fun-decks page', { timeout: 240_000 }, async () => {
   const stack = await startStack();
@@ -175,7 +222,7 @@ test('a guest, a robot and a subscriber get one fun-decks page', { timeout: 240_
     assert.ok(text.includes('<span>Маг · Стандарт · Стример Фикстуры</span>'), 'class, format and streamer');
     assert.ok(text.includes('<dt>Винрейт</dt><dd>53%</dd>'), 'win rate');
     assert.match(text, /<dt>Игры<\/dt><dd>1\s240<\/dd>/, 'games');
-    assert.ok(text.includes('<dt>Фан</dt><dd>71%</dd>') && text.includes('Вне меты</dt><dd>72%</dd>'), 'fun index and distance from the meta');
+    assert.ok(text.includes('<dt>Фан</dt><dd>50%</dd>') && text.includes('Вне меты</dt><dd>72%</dd>'), 'fun index and distance from the meta');
     assert.ok(text.includes('aria-label="Почему фан"><li>Хайлендер</li><li>Концепт</li></ul>'), 'the reasons');
     assert.ok(text.includes('href="/standard/cards/standard/FIX_ONE/" aria-label="1 маны · Первая карта ×2"'), 'the cards, linked to their pages');
     assert.ok(text.includes('href="/standard/cards/wild/FIX_ONE/"'), 'a Wild deck links to the Wild card pages');
@@ -199,8 +246,8 @@ test('a guest, a robot and a subscriber get one fun-decks page', { timeout: 240_
       assert.equal(guestBoxes.decks.length, 24, `${viewport.width}px: 24 decks`);
       assert.deepEqual(await geometry(subscriber), guestBoxes, `${viewport.width}px: a subscriber's decks sit exactly where a guest's do`);
       for (const [who, page] of [['guest', guest], ['subscriber', subscriber]]) {
-        const cls = await page.evaluate(() => window.__cls);
-        assert.ok(cls < 0.01, `${viewport.width}px ${who}: the full answer and the full deck lists replace the server HTML in place (CLS ${cls})`);
+        const shift = await cls(page);
+        assert.ok(shift < 0.01, `${viewport.width}px ${who}: the full answer and the full deck lists replace the server HTML in place (CLS ${shift})`);
         assert.deepEqual(await badFrames(page), [], `${viewport.width}px ${who}: every frame shows the 24 decks, no lock and no error`);
         const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
         assert.ok(overflow <= 1, `${viewport.width}px ${who}: no horizontal scroll (${overflow})`);
@@ -247,3 +294,63 @@ test('a guest, a robot and a subscriber get one fun-decks page', { timeout: 240_
     await closeLocal(stack.server);
   }
 });
+
+// What a reader sees before the page has its answers: the selection is held 2 s, every full deck list 1.5 s. Each
+// scenario runs at 1440 and 390 px on its own server.
+async function delayedPage(scenario) {
+  const stack = await startStack();
+  const next = await startNextServer({ legacyOrigin: stack.origin });
+  Object.assign(stack, { next: next.origin, funDelay: 2_000, resolveDelay: 1_500 });
+  const browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/google-chrome',
+    headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  try {
+    for (const viewport of [DESKTOP, PHONE]) await scenario(browser, stack, viewport, `${viewport.width}px`);
+  } finally {
+    await browser.close();
+    await next.close();
+    await closeLocal(stack.server);
+  }
+}
+
+test('sideboards are in the server tile, so the full deck lists add no line', { timeout: 240_000 }, () => delayedPage(async (browser, stack, viewport, at) => {
+  const page = await open(browser, stack, viewport);
+  assert.match(await page.$eval(`${SECTION} > article:nth-child(1)`, deck => deck.textContent), /Группа E\.T\.C\..*Гитарист группы/);
+  assert.match(await page.$eval(`${SECTION} > article:nth-child(2)`, deck => deck.textContent), /Модули Зиллиакса/);
+  await delay(1_000);
+  const shift = await cls(page);
+  assert.ok(shift < 0.01, `${at}: the full lists with sideboards replace the open ones in place (CLS ${shift})`);
+  assert.equal(await page.evaluate(() => window.__frames.filter(frame => frame.decks && !frame.band).length), 0,
+    `${at}: the band is on the first deck from the first frame`);
+  await page.browserContext().close();
+}));
+
+test('a link\'s filters and sort are the first frame and stay when the selection arrives', { timeout: 240_000 }, () => delayedPage(async (browser, stack, viewport, at) => {
+  for (const [search, titles] of [
+    ['?format=wild', 'Фан-колода 5 | Фан-колода 10 | Фан-колода 15 | Фан-колода 20'],
+    ['?class=mage,priest&sort=fun', 'Фан-колода 13 | Фан-колода 12 | Фан-колода 24 | Фан-колода 2 | Фан-колода 23 | Фан-колода 1'],
+  ]) {
+    const reads = stack.browserReads;
+    const page = await visit(browser, stack, viewport, { search, scroll: false });
+    await delay(2_500);
+    assert.equal(stack.browserReads - reads, 1, `${at} ${search}: the selection was asked`);
+    const wrong = await page.evaluate(expected => [...new Set(window.__frames.filter(frame => frame.titles !== expected)
+      .map(frame => frame.titles || '(no list)'))], titles);
+    assert.deepEqual(wrong, [], `${at} ${search}: every frame shows the linked list`);
+    const shift = await cls(page);
+    assert.ok(shift < 0.01, `${at} ${search}: the page does not move (CLS ${shift})`);
+    await page.browserContext().close();
+  }
+}));
+
+test('a kept deck view replaces the server tiles before they show', { timeout: 240_000 }, () => delayedPage(async (browser, stack, viewport, at) => {
+  for (const [layout, grid] of [['rows', 'section.fun-decks-rows'], ['images', 'section.fun-decks-grid']]) {
+    const page = await visit(browser, stack, viewport, { layout });
+    await page.waitForSelector(`${grid} > article:nth-child(24)`, { timeout: 15_000 });
+    await delay(2_500);
+    assert.equal(await page.evaluate(() => window.__frames.filter(frame => frame.tilesShown).length), 0,
+      `${at} ${layout}: no frame shows the server tiles`);
+    const shift = await cls(page);
+    assert.ok(shift < 0.01, `${at} ${layout}: the kept view and its full lists do not move the page (CLS ${shift})`);
+    await page.browserContext().close();
+  }
+}));
