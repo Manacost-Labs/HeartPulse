@@ -1,6 +1,6 @@
 import type { DeckListSideboard } from './decklist/DeckListView';
 import type { FunDeckCard } from './funDecks/deckEntries';
-import type { ArchetypeBuild, ArchetypeFormat } from './archetypeBuildViews';
+import type { ArchetypeBuild, ArchetypeFormat, BuildSeed } from './archetypeBuildViews';
 
 /** A card of an open build: what the server's open answer names (no statistics of the card). */
 export type OpenBuildCard = {
@@ -17,7 +17,7 @@ export type OpenBuild = {
   sampleRank?: string; samplePeriod?: string; cards: OpenBuildCard[] | null; sideboards?: OpenBuildSideboard[];
 };
 /** An open build's lists in the shape of the deck views: what a gallery draws before (or instead of) the full list. */
-export type OpenBuildSeed = { cards: FunDeckCard[]; sideboards: DeckListSideboard[] };
+export type OpenBuildSeed = BuildSeed;
 /**
  * The open builds a page prints on the server: the first page, how many builds there are, where the next page
  * starts, and the reader of that next page (the app owns the request and its allowlist).
