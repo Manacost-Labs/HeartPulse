@@ -3,28 +3,27 @@
 `/standard/fun-decks/` presents selected Standard and Wild decks with format,
 class, type and search filters and four sorts. The whole selection is open to
 every viewer, and every viewer gets one page (#675): a guest, a robot and a
-subscriber get the same HTML and the same page after it loads. The server
-reads `/api/fun-decks` anonymously
-(`apps/public-web/lib/publicFunDecksPreview.ts`, a field-by-field allowlist in
-`publicFunDecksPreviewData.ts`) and renders `FunDecksPage` itself from that
-selection: every deck, newest first (`orderFunDecks()`), in the default tile
-view (`FunDeckTilesCard`). A tile carries the class, format and streamer, the
-«Новая» badge, the win rate, games, fun index and distance from the meta
-(«Вне меты»), the reasons, the card list, the date of the data, the deck code
-as text and «Копировать код». The card list on the server is the answer's open
-`cards` and `sideboards` (`funDeckSeed()`): each card links to
+subscriber get the same HTML and the same page after it loads. The server reads
+`/api/fun-decks` anonymously (`apps/public-web/lib/publicFunDecksPreview.ts`, a
+field-by-field allowlist in `publicFunDecksPreviewData.ts`) and renders
+`FunDecksPage` itself from that selection: every deck, newest first
+(`orderFunDecks()`), in the default tile view (`FunDeckTilesCard`). A tile
+carries the class, format and streamer, the «Новая» badge, the win rate (one
+decimal, «57,7%»), games, fun index and distance from the meta («Вне меты»), the
+reasons, the card list, the date of the data, the deck code as text and
+«Копировать код». The card list on the server is the answer's open `cards` and
+`sideboards` (`funDeckSeed()`): each card links to
 `/standard/cards/<format>/<id>/` of the deck's own format (Wild decks to
 `wild`), a card outside the catalog is named without a link, and a card nobody
 names is «Неизвестная карта» in its place, without art. The E.T.C. band and
-Zilliax's modules are on the server tile already, so the full list adds no
-line; the «Строки» and «Картинки» views draw the same open list. No deck is
-left out: one without a card list keeps its numbers, its code and the copy
-button. In the browser each deck, once about a
-screen away (the first at once), reads its full list (`/api/deck/resolve`:
-rarities, sideboards), which replaces the open one in place; a failed read
-keeps the open list. The browser also loads `/api/fun-decks`; its answer
-replaces the selection in the same places, and a failed read or an answer
-without decks keeps the decks the page has.
+Zilliax's modules are on the server tile already, so the full list adds no line;
+the «Строки» and «Картинки» views draw the same open list. No deck is left out:
+one without a card list keeps its numbers, its code and the copy button. In the
+browser each deck, once about a screen away (the first at once), reads its full
+list (`/api/deck/resolve`: rarities, sideboards), which replaces the open one in
+place; a failed read keeps the open list. The browser also loads
+`/api/fun-decks`; its answer replaces the selection in the same places, and a
+failed read or an answer without decks keeps the decks the page has.
 
 The page is rendered per request (`force-dynamic`), so the server reads a
 link's filters and sort (`readFunDecksQuery()` on `searchParams`) and renders
@@ -49,7 +48,14 @@ registry's decision (`src/shared/seo/publicRouteInventory.json`).
 
 Lead decisions of #675 (2026-11-21): the server renders a link's filters and
 sort (the page is `force-dynamic`, not ISR); the open answer carries
-`sideboards`, decoded from the public `deckCode` and read field by field.
+`sideboards`, decoded from the public `deckCode` and read field by field; the
+tile prints the win rate with one decimal for every viewer, as the open list
+before it did.
+
+A page served without a selection (Express answered the server's read with
+404, the data probe's `none`) starts with `FunDecksSkeleton`, which reserves
+the tiles' geometry, until the browser's read brings the decks
+(`tests/skeleton-route-geometry-browser.test.mjs`, route `fun-decks`).
 
 Nothing in the selection is paid, so the page has no subscription offer and no
 lock. The post-deploy warm-up waits for `fun-deck-tiles__stats`, the numbers of

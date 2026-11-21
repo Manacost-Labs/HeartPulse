@@ -21,7 +21,7 @@ export function FunDeckTilesCard({ deck, fresh = false, tourAnchor = false, eage
         </div>
       </header>
       <dl className="fun-deck-tiles__stats fun-deck-tiles__stats--pairs" data-tour-id={tourAnchor ? 'fun-decks-card-metrics' : undefined}>
-        <div className={winRateTone(deck)}><dt>Винрейт</dt><dd>{winRate(deck, 0)}</dd></div>
+        <div className={winRateTone(deck)}><dt>Винрейт</dt><dd>{winRate(deck, 1)}</dd></div>
         <div><dt>Игры</dt><dd>{deck.games?.toLocaleString('ru-RU') ?? '—'}</dd></div>
         <div><dt>Фан</dt><dd>{score(deck.funScore)}</dd></div>
         <div><dt title="Не похожа на мету">Вне меты</dt><dd>{metaDistance(deck.maxMetaSimilarity)}</dd></div>
