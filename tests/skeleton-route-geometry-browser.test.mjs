@@ -338,7 +338,8 @@ test('real routes: skeletons match the loaded layout and the swap does not shift
     const executablePath = [process.env.CHROMIUM_PATH, '/usr/bin/google-chrome', '/usr/bin/chromium'].find(path => path && existsSync(path));
     browser = await launchBrowser({ executablePath, headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
     for (const route of selectedRoutes) {
-      for (const viewport of VIEWPORTS) {
+      // A route may add its own sizes (`extraViewports`) to the shared two.
+      for (const viewport of [...VIEWPORTS, ...(route.extraViewports ?? [])]) {
         await t.test(`${route.id} at ${viewport.width}x${viewport.height}`, async subtest => {
           const record = await runRoute({ browser, origin, backend, route, viewport });
           records.push(record);

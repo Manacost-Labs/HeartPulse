@@ -27,6 +27,19 @@
   background: var(--surface, #191a1d);
 }
 
+/* A list of many decks (the fun decks' «Картинки»): every render sits in one box whatever its own size, so a render
+   that arrives after the first paint moves nothing below it. 720/609 is the most common size of the production
+   renders (#675: 9 of 24, the others 720x648, 707x720, 691x720 and square); the rest are letterboxed. */
+.deck-render-preview--framed .deck-render-preview__loading,
+.deck-render-preview--framed .deck-render-preview__image img {
+  aspect-ratio: var(--deck-render-ratio, 720 / 609);
+}
+
+.deck-render-preview--framed .deck-render-preview__image img {
+  height: auto;
+  object-fit: contain;
+}
+
 .deck-render-preview__open {
   position: relative;
   display: block;

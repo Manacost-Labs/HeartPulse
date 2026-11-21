@@ -207,6 +207,15 @@ assert.equal(JSON.stringify(funPreview).includes('PRIVATE_'), false, 'a field ou
   assert.deepEqual(unnamed, [{ id: 'CARD_ONE', name: null, cost: 1, count: 1, hasPage: false }], 'a card without a usable name is not a link');
   assert.equal(publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), cards: [{ id: 'CARD_ONE', name: 'Карта', cost: 1, count: 0, hasPage: true }] }] })?.decks[0].cards, undefined, 'a line without a count is not a list');
   assert.equal(publicFunDecksPreview({ ...funRaw, decks: [funDeck(2, '2026-10-02')] })?.decks[0].cards, undefined);
+  // Sideboards reach the page under a key card of the list, field by field; one under a card the list lacks does not.
+  const band = [{ id: 'BAND_ONE', name: 'Гитарист', cost: 2, count: 1, hasPage: true }];
+  const boarded = publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), cards, sideboards: [
+    { keyId: 'CARD_ONE', cards: band.map(card => ({ ...card, secret: 'PRIVATE_BAND' })), secret: 'PRIVATE_BOARD' },
+    { keyId: 'NOT_IN_LIST', cards: band }, { keyId: '../x', cards: band }] }] })?.decks[0];
+  assert.deepEqual(boarded?.sideboards, [{ keyId: 'CARD_ONE', cards: band }]);
+  assert.equal(JSON.stringify(boarded).includes('PRIVATE_'), false);
+  assert.equal(publicFunDecksPreview({ ...funRaw, decks: [{ ...funDeck(2, '2026-10-02'), sideboards: [{ keyId: 'CARD_ONE', cards: band }] }] })?.decks[0].sideboards,
+    undefined, 'a deck without a list has no sideboard');
 }
 {
   // The interval, the source title and the Russian archetype name reach the guest's first view; a response without them gives nulls.

@@ -33,7 +33,8 @@ const FUN_CLASSES = ['MAGE', 'DRUID', 'PALADIN', 'WARLOCK', 'DEATHKNIGHT', 'ROGU
 function funDecks(variant) {
   const decks = FUN_CLASSES.map((className, index) => ({
     title: pick(variant, `Колода с очень длинным названием про необычную идею номер ${index + 1}, которая переносится`, `Идея ${index + 1}`),
-    deckCode: `AAECAfixtureFunDeck${index + 1}`,
+    // A real deck code's length (the tile prints the code, and its skeleton reserves the lines of a typical one).
+    deckCode: `AAECAfixtureFunDeck${index + 1}`.padEnd(103, 'A'),
     format: 'wild',
     className,
     streamer: pick(variant, 'Стример с длинным псевдонимом', null),
@@ -133,10 +134,14 @@ const AWAITS_ROUTE_LOADING_UI = 'route-level loading UI for the server-probed de
 
 export const SKELETON_ROUTES = [
   {
-    // A filter from the link (?format=wild) cannot be answered by the guest preview the server renders, so the page
-    // shows the skeleton (`settling`, FunDecksPage.tsx) until the complete list, the held browser request, arrives.
-    id: 'fun-decks', path: '/standard/fun-decks/?format=wild', textVariants: true,
-    respond: (url, { variant }) => url.pathname === '/api/fun-decks' ? json(funDecks(variant)) : undefined,
+    // The server renders the selection it read with the link's filters (#675), so the skeleton (FunDecksSkeleton.tsx)
+    // shows only when that read has no selection: Express answers 404 (the probe's `missing`, a page served without
+    // its data), the page starts with the skeleton and the browser's read, held here, brings the decks.
+    id: 'fun-decks', path: '/standard/fun-decks/', textVariants: true,
+    // The phone width of the page's parity tests (#675) as well as the shared 412.
+    extraViewports: [{ name: 'phone-390', width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 1 }],
+    respond: (url, { variant, browser }) => (url.pathname !== '/api/fun-decks' ? undefined
+      : browser ? json(funDecks(variant)) : { status: 404, body: { error: 'missing' } }),
     hold: (url, { browser }) => browser && url.pathname === '/api/fun-decks',
     // The default tile view: columns of builder tiles; a list that cannot load keeps the height the skeleton reserves.
     skeleton: '.loading-surface__blocks.fun-decks-tiles-grid', loaded: 'section.fun-decks-tiles-grid > .fun-deck-tiles',

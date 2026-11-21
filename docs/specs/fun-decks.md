@@ -2,25 +2,76 @@
 
 `/standard/fun-decks/` presents selected Standard and Wild decks with format,
 class, type and search filters and four sorts. The whole selection is open to
-every viewer: a guest, a robot and a subscriber get the same HTML. The server
-reads `/api/fun-decks` anonymously
-(`apps/public-web/lib/publicFunDecksPreview.ts`, a field-by-field allowlist in
-`publicFunDecksPreviewData.ts`) and renders every deck, newest first
-(`orderFunDecks()`), as `FunDecksOpenList`: each deck is the archetypes' open
-build (`ArchetypeOpenBuild`: win rate, games, date, the card list, the deck
-code with «Скопировать код») plus the format, class, fun index, distance from
-the meta and reasons, all without scripts. Each card links to
+every viewer, and every viewer gets one page (#675): a guest, a robot and a
+subscriber get the same HTML and the same page after it loads. The server reads
+`/api/fun-decks` anonymously (`apps/public-web/lib/publicFunDecksPreview.ts`, a
+field-by-field allowlist in `publicFunDecksPreviewData.ts`) and renders
+`FunDecksPage` itself from that selection: every deck, newest first
+(`orderFunDecks()`), in the default tile view (`FunDeckTilesCard`). A tile
+carries the class, format and streamer, the «Новая» badge, the win rate (one
+decimal, «57,7%»), games, fun index and distance from the meta («Вне меты»), the
+reasons, the card list, the date of the data, the deck code as text and
+«Копировать код». The card list on the server is the answer's open `cards` and
+`sideboards` (`funDeckSeed()`): each card links to
 `/standard/cards/<format>/<id>/` of the deck's own format (Wild decks to
-`wild`). No deck is left out of the list: one whose card list is missing keeps
-its numbers, its code and the copy button. The browser then loads
-`/api/fun-decks` and, once it holds decks, the interactive page (filters,
-three layouts, deck pictures) replaces the list in one render; if that read
-fails the page keeps the decks it has. Nothing in
-the selection is paid, so the page has no subscription offer and no lock.
+`wild`), a card outside the catalog is named without a link, and a card nobody
+names is «Неизвестная карта» in its place, without art. The E.T.C. band and
+Zilliax's modules are on the server tile already, so the full list adds no line;
+the «Строки» and «Картинки» views draw the same open list. In «Картинки» every
+deck's render sits in one 720:609 box (the most common size of production's
+renders), letterboxed, so a render arriving later moves nothing. No deck is left
+out: one without a card list keeps its numbers, its code and the copy button. In
+the browser each deck, once about a screen away (the first at once), reads its
+full list (`/api/deck/resolve`: rarities, sideboards), which replaces the open
+one in place; a failed read keeps the open list. The browser also loads
+`/api/fun-decks`; its answer replaces the selection in the same places, and a
+failed read or an answer without decks keeps the decks the page has.
+
+The page is rendered per request (`force-dynamic`), so the server reads a link's
+filters and sort (`readFunDecksQuery()` on `searchParams`) and renders the
+filtered list, its count and the pressed filters: the first paint of
+`?format=wild` is the Wild list, and the selection arriving later changes
+nothing. The deck view a reader keeps («Строки», «Картинки», in `localStorage`)
+is the browser's only: an inline script before the list
+(`DECK_LAYOUT_RESTORE_SCRIPT`) marks `<html data-deck-layout-restore>`, the
+server tiles keep their place unseen, and the page draws the kept view in the
+first frame after hydration (`useDeckLayout` reads it in a layout effect) and
+drops the mark. A page that never hydrates still shows its tiles: the script
+drops the mark one second after the window's `load`
+(`DECK_LAYOUT_RESTORE_AFTER_LOAD_MS`; `load` comes also when the scripts fail or
+are blocked) or 15 s after itself at the latest
+(`DECK_LAYOUT_RESTORE_LIMIT_MS`). A slow bundle only delays `load`, so its
+reader never sees the tiles before the kept view. A guest without parameters or
+a kept view gets the server HTML as it is.
+
+Every filtered variant names the bare page as its canonical
+(`https://hearthpulse.net/standard/fun-decks/`) and is `noindex, follow`: the
+SEO registry's query rules for the page's `format`, `class`, `tag` and `sort`
+(#684, `src/shared/seo/publicRouteInventory.json`). Only the bare page is
+indexed.
+
+Lead decisions of #675 (2026-11-21): the server renders a link's filters and
+sort (the page is `force-dynamic`, not ISR); the open answer carries
+`sideboards`, decoded from the public `deckCode` and read field by field; the
+tile prints the win rate with one decimal for every viewer, as the open list
+before it did.
+
+A page served without a selection (Express answered the server's read with
+404, the data probe's `none`) starts with `FunDecksSkeleton`, which reserves
+the tiles' geometry, until the browser's read brings the decks
+(`tests/skeleton-route-geometry-browser.test.mjs`, route `fun-decks`).
+
+Nothing in the selection is paid, so the page has no subscription offer and no
+lock. The post-deploy warm-up waits for `fun-deck-tiles__stats`, the numbers of
+a tile with data.
 
 The public endpoint adds `cards` to every deck: the main deck decoded from
 `deckCode` (`server/funDeckOpenCards.ts`), each line
-`{ id, name, cost, count, hasPage }`. The card catalog of the deck's format
+`{ id, name, cost, count, hasPage }`. A code with sideboards adds
+`sideboards: [{ keyId, cards }]`: the cards that travel with the main-deck
+card `keyId` (the E.T.C. band, Zilliax's modules and cosmetic), lines of the
+same shape; as in `/api/deck/resolve`, a sideboard card no dictionary names is
+left out. The card catalog of the deck's format
 names the cards and gives `hasPage` (the card page
 `/standard/cards/<format>/<id>/` exists); a card the catalog lacks (a companion
 of a Fabled legendary) is named from the full card dictionary (`cards_ru.json`,
@@ -80,9 +131,9 @@ no tag matches.
 `src/features/funDecksQuery.ts` keeps the state in the address:
 `?format=wild&class=priest,mage&tag=highlander&sort=reliable`. Defaults and
 unknown values are left out, other parameters stay, the search text is not
-kept. The page reads the address after hydration (the server renders the
-defaults) and shows the loader instead of the server list while the complete
-list, which a filtered view needs, is on its way.
+kept. The server renders the address's filters and sort (see above); a page
+without them from the server (a story) reads the address before its first
+paint.
 
 ## Off-meta and moderation
 

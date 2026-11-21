@@ -175,6 +175,11 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Four numbers of a fun deck in two pairs: four in one row do not fit the narrow tile. */
+.fun-deck-tiles__stats--pairs { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 4px; }
+.fun-deck-tiles__stats--pairs div:nth-child(odd) { border-left: 0; }
+.fun-deck-tiles__stats--pairs div:nth-child(n + 3) { padding-top: 4px; border-top: 1px solid rgba(145, 113, 63, 0.33); }
+
 .fun-deck-tiles__stats .is-up dd { color: #9be38a; }
 .fun-deck-tiles__stats .is-down dd { color: #ffb4a3; }
 
@@ -687,6 +692,7 @@ a.fun-deck-portrait:focus-visible { outline: 2px solid var(--fun-red); outline-o
 .fun-deck-tiles--loading .fun-deck-tiles__head .loading-block { height: 13px; }
 .fun-deck-tiles--loading .fun-deck-tiles__head .fun-deck-skeleton-icon { width: 34px; height: 34px; flex: none; border-radius: 50%; }
 .fun-deck-tiles-skeleton-stats { height: 50.3px; margin: 0; border-radius: 0; }
+.fun-deck-tiles-skeleton-stats--pairs { height: 99.6px; }
 .fun-deck-tiles-skeleton-why { height: 29.3px; margin: 0; border-radius: 0; }
 .fun-deck-tiles-skeleton-copy { height: 44px; }
 .fun-deck-rows-skeleton-top { height: 78px; margin: 0; border-radius: 0; }
@@ -741,3 +747,4 @@ a.fun-deck-portrait:focus-visible { outline: 2px solid var(--fun-red); outline-o
 .archetype-deck-card .fun-deck-code { padding: 0 2px; color: #e6d3ab; }
 .archetype-deck-card .fun-deck-code { padding: 6px 8px 0; margin: 0; }
 .fun-deck-rowcard .fun-deck-code { margin: 6px 0 0; padding: 0 10px 6px; color: #4a3323; }
+.fun-deck-tiles__date { margin: 0 0 4px; padding: 0 2px; color: #bfa47a; font-size: 0.6875rem; line-height: 1.3; }

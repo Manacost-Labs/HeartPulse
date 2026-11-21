@@ -1,4 +1,4 @@
-import { funDecksOpenPreview, type FunDeckOpenCard, type FunDeckRow, type FunDecksPayload } from '@/src/features/funDecksPreview';
+import { funDecksOpenPreview, type FunDeckOpenCard, type FunDeckOpenSideboard, type FunDeckRow, type FunDecksPayload } from '@/src/features/funDecksPreview';
 
 type RecordValue = Record<string, unknown>;
 
@@ -38,6 +38,8 @@ function count(value: unknown): number {
   return value;
 }
 
+const CARD_ID = /^[A-Za-z0-9_]{2,80}$/;
+
 /** The decoded card list the API sends; a line with an unusable id or name keeps its place and count, a line without a count drops the list (the deck stays with its code). */
 function openCards(value: unknown): FunDeckOpenCard[] | undefined {
   if (!Array.isArray(value) || !value.length || value.length > 60) return undefined;
@@ -45,7 +47,7 @@ function openCards(value: unknown): FunDeckOpenCard[] | undefined {
     return value.map(raw => {
       const card = record(raw);
       // An id the allowlist refuses never costs the deck its list: the line is printed by name, without a link.
-      const id = typeof card.id === 'string' && /^[A-Za-z0-9_]{2,80}$/.test(card.id) ? card.id : null;
+      const id = typeof card.id === 'string' && CARD_ID.test(card.id) ? card.id : null;
       const name = typeof card.name === 'string' && card.name !== '' && card.name.length <= 120 ? card.name : null;
       const cost = card.cost === null || card.cost === undefined ? null : count(card.cost);
       const copies = count(card.count);
@@ -58,9 +60,23 @@ function openCards(value: unknown): FunDeckOpenCard[] | undefined {
   }
 }
 
+/** The sideboards of a deck with a card list: each under a key card of that list, its lines read as the list's; one that does not read is left out. */
+function openSideboards(value: unknown, cards: FunDeckOpenCard[] | undefined): FunDeckOpenSideboard[] | undefined {
+  if (!cards || !Array.isArray(value) || !value.length || value.length > 4) return undefined;
+  const boards = value.flatMap(raw => {
+    const board = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw as RecordValue : null;
+    const keyId = typeof board?.keyId === 'string' && CARD_ID.test(board.keyId) ? board.keyId : null;
+    const lines = keyId && cards.some(card => card.id === keyId) && Array.isArray(board?.cards) && board.cards.length <= 10
+      ? openCards(board.cards) : undefined;
+    return keyId && lines ? [{ keyId, cards: lines }] : [];
+  });
+  return boards.length ? boards : undefined;
+}
+
 function deck(raw: unknown): FunDeckRow {
   const row = record(raw);
   const cards = openCards(row.cards);
+  const sideboards = openSideboards(row.sideboards, cards);
   const render = row.render === undefined || row.render === null ? undefined : record(row.render);
   return {
     title: text(row.title, 200), deckCode: text(row.deckCode, 400), format: text(row.format, 20),
@@ -74,6 +90,7 @@ function deck(raw: unknown): FunDeckRow {
     why: strings(row.why), tags: strings(row.tags),
     url: httpsUrl(row.url), firstSeenAt: optionalText(row.firstSeenAt, 64), lastSeenAt: optionalText(row.lastSeenAt, 64),
     ...(cards ? { cards } : {}),
+    ...(sideboards ? { sideboards } : {}),
     ...(render ? { render: { imageUrl: text(render.imageUrl, 500), previewImageUrl: text(render.previewImageUrl, 500) } } : {}),
   };
 }

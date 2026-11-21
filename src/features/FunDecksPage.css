@@ -942,3 +942,7 @@
 /* «Стандарт / Вольный» in the banner summary is never cut: it wraps to a second line when the cell is narrow (360, 390). */
 .fun-decks-page .traditional-mode-banner__summary dt { letter-spacing: 0.04em; line-height: 1.25; text-overflow: clip; white-space: normal; }
 .fun-decks-page .traditional-mode-banner__summary > div { padding-inline: 0.9rem; }
+
+/* The reader keeps another deck view (deckViews/deckLayoutStorage.ts): the server tiles hold their place unseen until
+   the page hydrates and draws that view in the same frame, so a phone never shows tiles turning into rows. */
+html[data-deck-layout-restore] .fun-decks-page .fun-decks-tiles-grid { visibility: hidden; }

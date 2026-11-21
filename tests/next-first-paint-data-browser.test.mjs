@@ -136,14 +136,16 @@ test('public previews render on the server and hydrate without a guest data requ
     assert.doesNotMatch(archetypesHtml, /PAID_BUILD_CODE/, 'builds are paid data');
 
     const funHtml = await (await fetch(`${origin}/standard/fun-decks/`)).text();
-    assert.equal(funHtml.match(/class="archetype-open-build"/g)?.length, 7, 'the open list holds every deck of the selection on the server');
-    for (const code of ['FREE_DECK_A', 'FREE_DECK_B', 'FREE_DECK_C', 'OLDER_DECK', 'OLDEST_DECK', 'TOKEN_DECK', 'NO_LIST_DECK']) assert.match(funHtml, new RegExp(`<code>${code}</code>`));
-    assert.match(funHtml, /<a href="\/standard\/cards\/standard\/FIX_CARD_1\/">Фикстурная карта<\/a> ×2/, 'with the cards of the deck, linked to the card page of the deck\'s format');
-    assert.match(funHtml, /<a href="\/standard\/cards\/wild\/FIX_CARD_1\/">/, 'a wild deck links to the card pages of Wild');
+    // The page's own deck tiles, the same for every viewer (#675), hold every deck of the selection on the server.
+    assert.equal(funHtml.match(/<article class="fun-deck-tiles"/g)?.length, 7, 'the server HTML holds every deck of the selection');
+    for (const code of ['FREE_DECK_A', 'FREE_DECK_B', 'FREE_DECK_C', 'OLDER_DECK', 'OLDEST_DECK', 'TOKEN_DECK', 'NO_LIST_DECK']) assert.match(funHtml, new RegExp(`<code class="fun-deck-code">${code}</code>`));
+    assert.match(funHtml, /<a class="fun-deck-tile is-common" href="\/standard\/cards\/standard\/FIX_CARD_1\/" aria-label="1 маны · Фикстурная карта ×2"/, 'with the cards of the deck, linked to the card page of the deck\'s format');
+    assert.match(funHtml, /href="\/standard\/cards\/wild\/FIX_CARD_1\/"/, 'a wild deck links to the card pages of Wild');
     // A card outside the catalog is named without a link, one nobody knows keeps its place, a deck without a list keeps its code.
     assert.match(funHtml, /<span>Рейнджер-капитан Алерия<\/span>/);
     assert.doesNotMatch(funHtml, /<a [^>]*TIME_609t1/);
     assert.match(funHtml, /Неизвестная карта/);
+    assert.match(funHtml, /Данные на <time dateTime="2026-10-02T00:00:00.000Z">2 октября 2026 г.<\/time>/, 'the date of the deck\'s data');
     const robotHtml = await (await fetch(`${origin}/standard/fun-decks/`, { headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)' } })).text();
     // Resource hints follow the order the render finishes in, which varies between requests: they are not content.
     const withoutHints = html => html.replace(/<link rel="preload"[^>]*\/>/g, '');

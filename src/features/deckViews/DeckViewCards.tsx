@@ -1,5 +1,6 @@
 import { useMemo, type CSSProperties, type ReactNode } from 'react';
 import { useResolvedDeck } from '../decklist/useResolvedDeck';
+import type { DeckListSideboard } from '../decklist/DeckListView';
 import { funDeckEntries, type FunDeckCard } from '../funDecks/deckEntries';
 import { seededDeck } from './seededDeck';
 import { CopyDeckButton, DeckCodeLine, DeckLoadState, DeckPortrait, ManaCurve, TileEntry } from './deckViewParts';
@@ -18,6 +19,8 @@ export function winRateTone(value: number | null | undefined): DeckStat['tone'] 
   return value >= 52 ? 'up' : value < 48 ? 'down' : null;
 }
 
+const NO_SIDEBOARDS: readonly DeckListSideboard[] = [];
+
 /** A deck code resolved into the cards of the views, once the deck is about a screen away (`eager`: at once). */
 export function useDeckView(
   deckCode: string, options: { format: 'standard' | 'wild'; archetype?: string }, eager = false,
@@ -27,10 +30,13 @@ export function useDeckView(
   full = false,
   /** Only open lists may be shown (a guest's archetype gallery): nothing is read, a deck without a seed shows its list as unavailable. */
   openOnly = false,
+  /** The seed's sideboards (a fun deck's open answer has them), so the full list adds no lines. */
+  seedSideboards: readonly DeckListSideboard[] = NO_SIDEBOARDS,
 ) {
   const { ref, near } = useNearScreen<HTMLElement>(eager);
   const resolved = useResolvedDeck(deckCode, { ...options, enabled: near && (full || (!seed && !openOnly)) });
-  const seeded = useMemo(() => (seed || openOnly ? seededDeck(deckCode, options.format, seed ?? []) : null), [seed, openOnly, deckCode, options.format]);
+  const seeded = useMemo(() => (seed || openOnly ? seededDeck(deckCode, options.format, seed ?? [], seedSideboards) : null),
+    [seed, openOnly, deckCode, options.format, seedSideboards]);
   // Chosen in the render that changes `full`: when the full list is no longer wanted (access lost in place), a list
   // read for it is not shown for a single frame, seed or not; the open list (or none) stands.
   const data = full ? resolved.data ?? seeded : seeded ?? resolved.data;

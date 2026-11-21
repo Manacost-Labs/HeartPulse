@@ -1,7 +1,7 @@
 import React, {
-  type ReactNode,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
 } from 'react';
@@ -14,7 +14,6 @@ import {
 import '../route-parchment.css';
 import DeckListView from './decklist/DeckListView';
 import DeckRenderPreview from './deckrender/DeckRenderPreview';
-import { useResolvedDeck } from './decklist/useResolvedDeck';
 import {
   selectFunDecks,
   type FunDeckRow,
@@ -28,12 +27,13 @@ import '../shared/ui/LoadingSurface.css';
 import './FunDecksPage.css';
 import { FunDecksSkeleton } from './FunDecksSkeleton';
 import { FunDecksFilters } from './FunDecksFilters';
-import { useFunDecksFilters } from './useFunDecksFilters';
+import { useFunDecksFilters, type FunDecksFilters as AddressFilters } from './useFunDecksFilters';
 import { useFunDeckCardPreview } from './funDecks/useFunDeckCardPreview';
-import { useNearScreen } from './funDecks/useNearScreen';
-import { funDeckClassMeta, funDeckFormat, funDeckFormatLabel } from './funDecks/deckMeta';
+import { funDeckFormatLabel } from './funDecks/deckMeta';
+import { useFunDeck } from './funDecks/funDeckCardParts';
 import { useCopyDeckCode } from './funDecks/useCopyDeckCode';
 import { DeckLayoutSwitch, useDeckLayout, type DeckLayout } from './deckViews/DeckLayoutSwitch';
+import { clearDeckLayoutRestore } from './deckViews/deckLayoutStorage';
 import { FunDeckRowCard } from './funDecks/FunDeckRowCard';
 import { FunDeckTilesCard } from './funDecks/FunDeckTilesCard';
 
@@ -70,14 +70,8 @@ function FunDeckCard({
   /** Tags the reader filters by: the card shows them first. */
   pinnedTags?: readonly FunDeckTagId[];
 }) {
-  const format = funDeckFormat(deck);
-  const { ref, near } = useNearScreen<HTMLElement>(eager);
-  const { data, error, reload } = useResolvedDeck(deck.deckCode, {
-    format,
-    archetype: deck.nearestArchetype || undefined,
-    enabled: near,
-  });
-  const classMeta = funDeckClassMeta(deck, data?.heroDbfId);
+  // The open list stands in at once and the full list replaces it in place, as in the tile and row views.
+  const { data, error, reload, classMeta, ref } = useFunDeck(deck, eager);
   const { state: copyState, label: copyLabel, copy: copyDeckCode } = useCopyDeckCode(deck.deckCode);
 
   return (
@@ -104,6 +98,7 @@ function FunDeckCard({
         style={{ ['--fun-deck-class' as string]: classMeta.color }}
       >
         <DeckRenderPreview
+          className="deck-render-preview--framed"
           deckCode={deck.deckCode}
           deckName={deck.title}
           eager={eager}
@@ -167,9 +162,10 @@ function decksWord(count: number): string {
 }
 
 /**
- * The selection: a server-rendered guest preview shows at once, and the
- * complete list, which filters and subscribers need, loads behind it
- * without a loader. Only a page without a preview starts with the loader.
+ * The selection: the one the server read shows at once, and the complete
+ * list, which filters need, loads behind it without a loader. An answer
+ * without decks, or a failed read, keeps the decks the page already shows.
+ * Only a page without a preview starts with the loader.
  */
 function useFunDecksData(initialPreview: FunDecksPayload | null) {
   const [data, setData] = useState<FunDecksPayload>(initialPreview ?? EMPTY_DATA);
@@ -187,7 +183,8 @@ function useFunDecksData(initialPreview: FunDecksPayload | null) {
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload.error || 'Не удалось загрузить подборку');
-      setData(payload as FunDecksPayload);
+      const next = payload as FunDecksPayload;
+      setData(current => (next.decks?.length || !current.decks.length ? next : current));
       setComplete(true);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Не удалось загрузить подборку');
@@ -204,34 +201,37 @@ function useFunDecksData(initialPreview: FunDecksPayload | null) {
   return { data, loading, complete, error, retry };
 }
 
+/**
+ * One page for every viewer: a guest, a robot and a subscriber get the same
+ * server HTML (the default tile view of `initialPreview`) and the same page
+ * after it loads. The selection is open, so nothing on it is locked.
+ */
 export default function FunDecksPage({
   initialPreview = null,
-  openDecks,
+  initialFilters,
 }: {
   /** The selection read on the server (apps/public-web/lib/publicFunDecksPreview.ts): every deck, for every viewer. */
   initialPreview?: FunDecksPayload | null;
-  /** The server-rendered list of those decks with their cards and codes; it stays until the interactive view has real decks to replace it. */
-  openDecks?: ReactNode;
+  /** The filters and sort of the address, as the server read and rendered them. */
+  initialFilters?: AddressFilters;
 }) {
   const { data, loading, complete, error: loadError, retry } = useFunDecksData(initialPreview);
   // A failed refresh keeps the preview the page already has.
   const error = loadError && !data.decks.length ? loadError : '';
-  const [arrivesLater] = useState(!initialPreview || openDecks !== undefined);
-  const { filters, query, view, filtered, change, search, reset } = useFunDecksFilters();
+  // Decks the server rendered are part of the document; only decks the browser loads fade in.
+  const [arrivesLater] = useState(!initialPreview);
+  const { filters, query, view, filtered, change, search, reset } = useFunDecksFilters(initialFilters);
   const { listeners: previewListeners, tooltip: cardPreview } = useFunDeckCardPreview();
   const [layout, setLayout] = useDeckLayout();
+  // The kept view is in this render's commit: the server tiles kept invisible for it (page.tsx) can go.
+  useLayoutEffect(clearDeckLayoutRestore, []);
   const deckView = DECK_VIEWS[layout];
   const filteredDecks = useMemo(
     () => selectFunDecks(data.decks, view),
     [data.decks, view],
   );
-  // Until the complete list arrives, only the guest preview is at hand: a filter or a sort from the link would show a wrong answer on it.
-  const settling = !complete && !loadError
-    && (filters.format !== 'all' || filters.classes.length > 0 || filters.tags.length > 0 || filters.sort !== 'newest');
-
+  // The server's selection is the whole one (funDecksOpenPreview), so a link's filters and sort apply to it at once.
   const visibleDecks = filteredDecks;
-  // The server list holds the page until the full answer arrives with decks in it, then the interactive view takes its place in one render.
-  const showOpen = openDecks !== undefined && !(complete && data.decks.length > 0) && !loadError && !settling;
 
   return (
     <div className="fun-decks-page">
@@ -284,20 +284,20 @@ export default function FunDecksPage({
         query={query}
         counts={{ all: data.stats.total, standard: data.stats.standard, wild: data.stats.wild }}
         filtered={filtered}
-        resultText={filtered && !loading && !settling && !error ? `Найдено: ${filteredDecks.length}` : ''}
+        resultText={filtered && !loading && !error ? `Найдено: ${filteredDecks.length}` : ''}
         onChange={change}
         onSearch={search}
         onReset={reset}
       />
 
-      {!error && !showOpen && (loading || settling || visibleDecks.length) ? (
+      {!error && (loading || visibleDecks.length) ? (
         <div className="fun-decks-layout-bar">
-          <p>{loading || settling ? '\u00a0' : `${filteredDecks.length} ${decksWord(filteredDecks.length)}`}</p>
+          <p>{loading ? '\u00a0' : `${filteredDecks.length} ${decksWord(filteredDecks.length)}`}</p>
           <DeckLayoutSwitch layout={layout} onChange={setLayout} />
         </div>
       ) : null}
 
-      {showOpen ? openDecks : loading || settling ? (
+      {loading ? (
         <FunDecksSkeleton layout={layout} />
       ) : error ? (
         <section className="fun-decks-page__state fun-decks-page__state--error" role="alert">

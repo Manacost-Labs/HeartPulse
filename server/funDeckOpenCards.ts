@@ -1,6 +1,7 @@
 import {
   decodeDeckDefinition,
   extractMainDeckCardCounts,
+  extractSideboardParts,
   indexCardsByDbf,
   indexCardsRuByDbf,
   resolveDeckCard,
@@ -18,6 +19,15 @@ type Index = Map<number, DeckBuilderCardRecord>;
  * no dictionary knows: it keeps its place and count.
  */
 export type FunDeckOpenCard = { id: string | null; name: string | null; cost: number | null; count: number; hasPage: boolean };
+
+/**
+ * The cards that travel with a main-deck card (the E.T.C. band, Zilliax's
+ * modules), as the deck code carries them. `keyId` is that card's id in the
+ * main list. Only cards a catalog or dictionary names are listed, as
+ * `/api/deck/resolve` lists them, so the full list that replaces this one in
+ * the browser has the same lines.
+ */
+export type FunDeckOpenSideboard = { keyId: string; cards: FunDeckOpenCard[] };
 
 export type FunDeckOpenCardsDependencies = {
   loadCardCatalog: (format: Format) => Promise<{ cards: Record<string, unknown>[] }>;
@@ -57,8 +67,22 @@ export function funDeckCardList(deckCode: string, catalog: Index, dictionary: In
   return cards.sort((left, right) => (left.cost ?? 99) - (right.cost ?? 99) || (left.name ?? '').localeCompare(right.name ?? '', 'ru'));
 }
 
+/** The sideboards of a code that decodes, each under a key card the main list names; empty when it has none. */
+export function funDeckSideboards(deckCode: string, catalog: Index, dictionary: Index): FunDeckOpenSideboard[] {
+  const definition = deckCode.length <= MAX_CODE_LENGTH ? decodeDeckDefinition(deckCode) : null;
+  if (!definition) return [];
+  return extractSideboardParts(definition).flatMap(part => {
+    const key = resolveDeckCard(part.keyCardDbfId, 1, catalog, dictionary, null);
+    const cards = part.cards.flatMap(({ dbfId, count }): FunDeckOpenCard[] => {
+      const card = resolveDeckCard(dbfId, count, catalog, dictionary, null, part.keyCardDbfId);
+      return card ? [{ id: card.id, name: card.name, cost: card.cost, count, hasPage: card.collectible }] : [];
+    });
+    return key && cards.length ? [{ keyId: key.id, cards }] : [];
+  });
+}
+
 /**
- * Adds `cards` to every fun deck. A deck is never dropped: one whose code does
+ * Adds `cards` (and `sideboards`, when the code has any) to every fun deck. A deck is never dropped: one whose code does
  * not decode, or read while no catalog has ever answered, keeps its code and
  * goes without a list. A failed catalog read serves the last good catalog of
  * that format; the dictionaries are optional (without them only the cards of
@@ -87,7 +111,7 @@ export function createFunDeckOpenCards(dependencies: FunDeckOpenCardsDependencie
       return new Map();
     }
   };
-  return async function withCards<T extends { deckCode: string; format: string }>(decks: readonly T[]): Promise<Array<T & { cards?: FunDeckOpenCard[] }>> {
+  return async function withCards<T extends { deckCode: string; format: string }>(decks: readonly T[]): Promise<Array<T & { cards?: FunDeckOpenCard[]; sideboards?: FunDeckOpenSideboard[] }>> {
     const catalogs = new Map<Format, Promise<Index | null>>();
     const dictionary = await dictionaryOf();
     return Promise.all(decks.map(async deck => {
@@ -95,7 +119,9 @@ export function createFunDeckOpenCards(dependencies: FunDeckOpenCardsDependencie
       if (!catalogs.has(format)) catalogs.set(format, catalogOf(format));
       const catalog = await catalogs.get(format);
       const cards = catalog ? funDeckCardList(deck.deckCode, catalog, dictionary) : null;
-      return cards ? { ...deck, cards } : deck;
+      if (!cards || !catalog) return deck;
+      const sideboards = funDeckSideboards(deck.deckCode, catalog, dictionary);
+      return sideboards.length ? { ...deck, cards, sideboards } : { ...deck, cards };
     }));
   };
 }

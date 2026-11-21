@@ -1,4 +1,5 @@
 import { FUN_DECK_CLASSES, funDeckClassId, type FunDeckRow } from '../funDecksPreview';
+import { SERVER_RENDER_TIME_ZONE } from '../../shared/ui/serverRenderTimeZone';
 
 export type FunDeckClassMeta = { label: string; color: string; icon: string };
 
@@ -36,4 +37,18 @@ export function funDeckClassMeta(deck: FunDeckRow, heroDbfId?: number | null): F
     color: '#67131c',
     icon: '/arena-logo-icon.webp',
   };
+}
+
+const DATA_DATE = new Intl.DateTimeFormat('ru-RU', { timeZone: SERVER_RENDER_TIME_ZONE, day: 'numeric', month: 'long', year: 'numeric' });
+
+/**
+ * When the deck was last seen (else first seen), «20 ноября 2026 г.», for the
+ * card's «Данные на». One fixed zone on the server and in the browser, so the
+ * date hydrates as rendered. `null` for a missing or unreadable date.
+ */
+export function funDeckDataDate(deck: Pick<FunDeckRow, 'lastSeenAt' | 'firstSeenAt'>): { iso: string; label: string } | null {
+  const timestamp = Date.parse(deck.lastSeenAt ?? deck.firstSeenAt ?? '');
+  if (!Number.isFinite(timestamp)) return null;
+  const at = new Date(timestamp);
+  return { iso: at.toISOString(), label: DATA_DATE.format(at) };
 }
