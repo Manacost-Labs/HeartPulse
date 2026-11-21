@@ -35,7 +35,7 @@ import {
   type ConstructedCardPeriodDescriptor,
   type ConstructedCardRank,
   type ConstructedCardRankDescriptor,
-  validateConstructedCardStatsDataset as validateConstructedCardStatsDatasetModel, BoundedCache,
+  validateConstructedCardStatsDataset as validateConstructedCardStatsDatasetModel, BoundedCache, guestConstructedCard,
 } from './modules/constructedCards/public.js';
 
 export {
@@ -1095,7 +1095,7 @@ export function createConstructedCardRouter(dependencies: ConstructedCardRouterD
         datasetVersion: result.datasetVersion,
         mechanicTranslations: dependencies.getMechanicTranslations?.() ?? {},
         mechanicOverrides: dependencies.getMechanicTranslationOverrides?.(),
-        card: statsAccess ? result.card : redactConstructedCardStatistics(result.card),
+        card: statsAccess ? result.card : guestConstructedCard(result.card, period, rank),
       });
     } catch (error) {
       return unavailable(response, error, 'detail');

@@ -72,6 +72,25 @@ Checks: `test:public-card-read-model`, `test:constructed-card-seo-routes`,
 `tests/next-card-detail-proxy.test.mjs` (open detail, paid sentinels),
 Storybook public identity/profile states and browser QA.
 
+## Open card statistics (#447)
+
+Owner's decisions 2026-11-18 and 2026-11-21: base numbers are free, precision
+and depth are paid. The guest answer of `GET /api/constructed-cards/:cardId`
+(`guestConstructedCard`, `server/modules/constructedCards/openStatistics.ts`)
+carries, for the open slice only (`period=1d`, `rank=platinum`; the source has
+no «all ranks» slice for card statistics), three fields
+of `stats` — `deckPopularity`, `deckWinrate`, `averageCopies` — with
+`statsUpdatedAt` and `statsSourceUrl`; it is copied field by field, so a field
+added upstream later stays out. Legend, Diamond, Diamond 4–1, any other
+period, the mulligan, draw
+and turn numbers and `/history` stay paid (`stats: null`, empty history).
+`statsAccess` stays `false`: the guest view decides how to show the open
+numbers. The answer is `Cache-Control: no-store` with `Vary: Cookie,
+Authorization`, and the edge bypasses `/api/`, so a subscriber's full answer
+never reaches a shared cache. The catalog list and the server HTML of the card
+page do not carry the open numbers yet: they come with the guest view of the
+statistics block.
+
 ## Catalog server seed
 
 The Next catalog loader calls the existing list API without cookies or
