@@ -211,6 +211,7 @@
         "tests/cosmetics-model.test.ts",
         "tests/cosmetics-last-good.test.ts",
         "tests/page-last-good.test.ts",
+        "tests/vicious-gold-page-last-good.test.ts",
         "tests/cover-admin-sso-client.test.ts",
         "tests/cover-admin-sso.test.ts",
         "tests/deck-art-images.test.ts",

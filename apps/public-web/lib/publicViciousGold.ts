@@ -2,29 +2,37 @@ import 'server-only';
 import { cache } from 'react';
 import { parsePublicViciousGold, VICIOUS_GOLD_PUBLIC_PATH } from '@/shared/viciousGoldPublicContract';
 import { fetchPublicExpress } from './expressApi';
+import { loadWithLastGood } from './pageLastGood';
 import { readFirstPaintJson } from './publicFirstPaintRead';
 import { PRERENDERED_DATA_READ_BUDGET_MS, PRERENDERED_DATA_REVALIDATE_SECONDS } from './prerenderedData';
 
-/**
- * The open frame of the Vicious Syndicate Gold report for the prerendered page (#656), or `null` to let the browser
- * load it (the build without an API, or an upstream failure). Read without a cookie: guests and robots get one HTML.
- */
-export const loadPublicViciousGold = cache(async () => {
-  const deadline = Date.now() + PRERENDERED_DATA_READ_BUDGET_MS;
-  return parsePublicViciousGold(await readFirstPaintJson(
-    signal => fetchPublicExpress(VICIOUS_GOLD_PUBLIC_PATH, signal, { revalidate: PRERENDERED_DATA_REVALIDATE_SECONDS, freshOnly: true }),
-    deadline));
-});
+/** One warning per outage: set when a render gets no fresh frame, cleared by the next fresh one. */
+let outageWarned = false;
 
 /**
- * The frame a prerendered page renders. Regenerating at runtime without data throws: Next does not publish the
- * result and keeps the earlier copy, so a source outage never replaces a page with data by an empty one. Only the
- * build, which has no Express, prints the stub; the warm-up after a deploy replaces it.
+ * The open frame of the Vicious Syndicate Gold report for the prerendered page (#656), read without a cookie: guests
+ * and robots get one HTML. A prerender read gets a 503 from Express while vS is down (never a stale frame, which
+ * would sit in Next's data cache), so the regeneration renders the last frame the page accepted (`pageLastGood`:
+ * memory and a file in `shared/server-data`, checked again by the same parser) instead of throwing on every attempt
+ * (#677). `null` only with neither, as in the build without Express: the page then loads the frame in the browser.
+ * An outage logs one warning, not an error per regeneration.
  */
-export async function loadPublicViciousGoldPage() {
-  const frame = await loadPublicViciousGold();
-  if (!frame && process.env.NEXT_PHASE !== 'phase-production-build') {
-    throw new Error('Open Vicious Syndicate Gold unavailable: the earlier copy stays');
+export const loadPublicViciousGold = cache(async () => {
+  let fresh = false;
+  const frame = await loadWithLastGood('vicious-gold', () => readFirstPaintJson(
+    signal => fetchPublicExpress(VICIOUS_GOLD_PUBLIC_PATH, signal, { revalidate: PRERENDERED_DATA_REVALIDATE_SECONDS, freshOnly: true }),
+    Date.now() + PRERENDERED_DATA_READ_BUDGET_MS,
+  ), raw => {
+    const parsed = parsePublicViciousGold(raw);
+    fresh = parsed !== null;
+    return parsed;
+  }, parsePublicViciousGold);
+  if (fresh) outageWarned = false;
+  else if (!outageWarned) {
+    outageWarned = true;
+    console.warn(frame
+      ? '[vicious-gold] open frame unavailable: the page renders its last good frame'
+      : '[vicious-gold] open frame unavailable and none kept: the page loads it in the browser');
   }
   return frame;
-}
+});

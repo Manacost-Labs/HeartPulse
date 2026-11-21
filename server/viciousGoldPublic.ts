@@ -1,5 +1,10 @@
+import { randomUUID } from 'node:crypto';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import type { RequestHandler } from 'express';
-import type { PublicViciousGold, PublicViciousGoldArchetype, PublicViciousGoldClass } from '../shared/viciousGoldPublicContract.js';
+import {
+  parsePublicViciousGold, type PublicViciousGold, type PublicViciousGoldArchetype, type PublicViciousGoldClass,
+} from '../shared/viciousGoldPublicContract.js';
 
 export type { PublicViciousGold };
 
@@ -119,17 +124,81 @@ export function projectPublicViciousGold(payload: unknown): PublicViciousGold {
   };
 }
 
+const COPY_DIRECTORY = 'vicious-gold-last-good-v1';
+const COPY_FILE = 'public.json';
+const COPY_FORMAT = 1;
+/** A frame older than this is not served: a week-old list of archetypes is a wrong one, not a late one. */
+const COPY_MAX_AGE_MS = 7 * 24 * 60 * 60_000;
+/** An unchanged frame is written again at most this often, so its age on disk follows the last good answer. */
+const COPY_REWRITE_MS = 60 * 60_000;
+
+type KeptFrame = { frame: PublicViciousGold; savedAt: number };
+
+/**
+ * The last good open frame in `<stateDirectory>/vicious-gold-last-good-v1/public.json` (#677), so a restarted Express
+ * whose source is down still answers a guest. Only the projection is written, never the source's answer, and a read
+ * frame passes the contract's parser again (the file is only data). Writes are atomic (a temporary file and a
+ * rename); a failing disk costs the copy across restarts, never an answer, and is logged once.
+ */
+function createFrameCopy(stateDirectory: string | undefined, now: () => number) {
+  const directory = stateDirectory ? join(stateDirectory, COPY_DIRECTORY) : null;
+  let written = { serialized: '', at: -Infinity };
+  let warned = false;
+  return {
+    async save(frame: PublicViciousGold): Promise<void> {
+      if (!directory) return;
+      const serialized = JSON.stringify(frame);
+      const savedAt = now();
+      if (serialized === written.serialized && savedAt - written.at < COPY_REWRITE_MS) return;
+      const file = join(directory, COPY_FILE);
+      const temporary = `${file}.${process.pid}.${randomUUID()}.tmp`;
+      try {
+        await mkdir(directory, { recursive: true });
+        await writeFile(temporary, JSON.stringify({ format: COPY_FORMAT, savedAt, frame }), { mode: 0o640, flag: 'wx' });
+        await rename(temporary, file);
+        written = { serialized, at: savedAt };
+      } catch (error) {
+        await rm(temporary, { force: true }).catch(() => undefined);
+        if (!warned) {
+          warned = true;
+          console.warn(`[vicious-gold] cannot keep the open frame in ${directory}: ${error instanceof Error ? error.message : String(error)}; it is kept in memory only`);
+        }
+      }
+    },
+    async load(): Promise<KeptFrame | null> {
+      if (!directory) return null;
+      try {
+        const stored = JSON.parse(await readFile(join(directory, COPY_FILE), 'utf8')) as { format?: unknown; savedAt?: unknown; frame?: unknown } | null;
+        if (stored?.format !== COPY_FORMAT || typeof stored.savedAt !== 'number' || !Number.isFinite(stored.savedAt)) return null;
+        const frame = parsePublicViciousGold(stored.frame);
+        return frame ? { frame, savedAt: stored.savedAt } : null;
+      } catch {
+        // No copy yet, or a damaged one: without a frame in memory the route answers 503 as before.
+        return null;
+      }
+    },
+  };
+}
+
 /**
  * `GET /api/vicious-syndicate-gold/public`: the open frame of the report, one answer for every viewer (no cookie is
  * read), so it may sit in a shared cache. The path ends in a `public` segment, so the scrape guard of open `/api/`
  * data budgets it. A source failure answers the last good frame (not to a prerender, which keeps its earlier page)
  * that no shared cache keeps; without one, a 503 that no cache keeps. Every answer varies on `X-Hearthpulse-Prerender`.
+ * With `stateDirectory` (`SERVER_DATA_DIR`) the last good frame is also kept on disk and read back at the start, so
+ * it outlives a restart; a frame older than a week is not served.
  */
 export function createPublicViciousGoldHandler(dependencies: {
   loadViciousGold: () => Promise<unknown>;
   onError?: (scope: 'vicious-gold', error: unknown) => void;
+  stateDirectory?: string;
+  now?: () => number;
 }): RequestHandler {
-  let lastGood: PublicViciousGold | null = null;
+  const now = dependencies.now ?? Date.now;
+  const copy = createFrameCopy(dependencies.stateDirectory, now);
+  let lastGood: KeptFrame | null = null;
+  // Read once at the start; only used while no answer of this process has replaced it.
+  const restored = copy.load();
   return async (request, response) => {
     response.set('X-Content-Type-Options', 'nosniff');
     // The failure answer depends on this header (a prerender gets no stale copy): a cache keys on it.
@@ -137,17 +206,18 @@ export function createPublicViciousGoldHandler(dependencies: {
     try {
       const body = projectPublicViciousGold(await dependencies.loadViciousGold());
       if (!body.archetypes.length) throw new Error('Vicious Syndicate Gold has no archetypes');
-      lastGood = body;
+      lastGood = { frame: body, savedAt: now() };
+      void copy.save(body);
       response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=900');
       return response.json(body);
     } catch (error) {
       dependencies.onError?.('vicious-gold', error);
-      const stale = request.get('X-Hearthpulse-Prerender') ? null : lastGood;
-      if (stale) {
+      const kept = request.get('X-Hearthpulse-Prerender') ? null : lastGood ?? await restored;
+      if (kept && now() - kept.savedAt <= COPY_MAX_AGE_MS) {
         // Not fresh data: never kept by a shared cache, so no later request (a prerender included) gets it from there.
         response.set('Cache-Control', 'private, no-store');
         response.set('X-Vicious-Gold-Source', 'stale');
-        return response.json(stale);
+        return response.json(kept.frame);
       }
       response.set('Cache-Control', 'no-store');
       response.set('Retry-After', '60');
