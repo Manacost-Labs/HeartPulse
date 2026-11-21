@@ -88,7 +88,7 @@ export async function publicCardFixture({ backendEnv, externalRoutes = {}, extra
     } else if (url.pathname === '/api/patches') {
       response.end(JSON.stringify({ total: patchNotesFixture.length, patches: patchNotesFixture }));
     } else if (url.pathname.startsWith('/demo/view/')) {
-      response.end(JSON.stringify({ fetched_at: new Date().toISOString(), url: 'https://hsreplay.net/cards/', view: { cards: cards.map(card => ({ id: card.card_id, dbfId: card.dbf, deck_popularity: '12.5%', deck_winrate: '53%', times_played: 20000 })) } }));
+      response.end(JSON.stringify({ fetched_at: new Date().toISOString(), url: 'https://hsreplay.net/cards/', view: { cards: cards.map(card => ({ id: card.card_id, dbfId: card.dbf, deck_popularity: '12.5%', deck_winrate: '53%', times_played: 20000, avg_copies: 1.9, winrate_when_played: '56.21%', winrate_when_drawn: '54.13%', keep_percentage: '42.6%', opening_hand_winrate: '52.84%', avg_turns_in_hand: 2.4, avg_turn_played_on: 5.3 })) } }));
     } else { response.end(JSON.stringify({ data: [], patches: [], decks: [] })); }
   });
   const externalOrigin = await listenLocal(source);

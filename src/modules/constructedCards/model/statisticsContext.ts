@@ -2,6 +2,20 @@ export type ConstructedCardPeriod = '1d' | '3d' | '7d' | '14d' | 'patch';
 export type ConstructedCardRank = 'legend' | 'diamond_4_1' | 'diamond' | 'platinum';
 export type ConstructedCardStatsFormat = 'standard' | 'wild';
 
+/**
+ * The slice whose statistics the anonymous card API opens to a guest. The server decides it
+ * (`isOpenStatisticsSlice`, server/modules/constructedCards/openStatistics.ts); this is its copy for the
+ * page, which shows and labels exactly this slice to a viewer without access. A test holds the two equal,
+ * so a changed decision is two constants and a red test, not a hunt through the page.
+ */
+export const OPEN_STATISTICS_SLICE: { period: ConstructedCardPeriod; rank: ConstructedCardRank } = { period: '1d', rank: 'platinum' };
+
+/**
+ * The rank of an address without `?rank=` (owner's decision 2026-11-21, #447): Platinum, for a guest and a
+ * subscriber alike, so the default page is the open slice. Legend and the other ranks are `?rank=<id>`.
+ */
+export const DEFAULT_CONSTRUCTED_CARD_RANK: ConstructedCardRank = 'platinum';
+
 export const CONSTRUCTED_CARD_PERIOD_OPTIONS: ReadonlyArray<{
   id: ConstructedCardPeriod;
   label: string;
@@ -24,10 +38,10 @@ export const CONSTRUCTED_CARD_RANK_OPTIONS: ReadonlyArray<{
   id: ConstructedCardRank;
   label: string;
 }> = [
+  { id: 'platinum', label: 'Платина' },
   { id: 'legend', label: 'Легенда' },
   { id: 'diamond_4_1', label: 'Алмаз 1–4' },
   { id: 'diamond', label: 'Алмаз' },
-  { id: 'platinum', label: 'Платина' },
 ];
 
 const PERIOD_IDS = new Set<ConstructedCardPeriod>(
@@ -52,11 +66,11 @@ export function constructedCardPeriodLabel(
 
 export function constructedCardRankFromSearch(search: string): ConstructedCardRank {
   const value = new URLSearchParams(search).get('rank') as ConstructedCardRank | null;
-  return value && RANK_IDS.has(value) ? value : 'legend';
+  return value && RANK_IDS.has(value) ? value : DEFAULT_CONSTRUCTED_CARD_RANK;
 }
 
 export function constructedCardRankLabel(rank: ConstructedCardRank): string {
-  return CONSTRUCTED_CARD_RANK_OPTIONS.find(option => option.id === rank)?.label ?? 'Легенда';
+  return CONSTRUCTED_CARD_RANK_OPTIONS.find(option => option.id === rank)?.label ?? 'Платина';
 }
 
 export function constructedCardStatsFormatFromSearch(
@@ -96,7 +110,7 @@ export function constructedCardStatsUrl(
   const params = new URLSearchParams(search);
   if (context.period === '1d') params.delete('period');
   else params.set('period', context.period);
-  if (context.rank === 'legend') params.delete('rank');
+  if (context.rank === DEFAULT_CONSTRUCTED_CARD_RANK) params.delete('rank');
   else params.set('rank', context.rank);
   if (context.statsFormat && context.statsFormat !== context.defaultStatsFormat) {
     params.set('statsFormat', context.statsFormat);

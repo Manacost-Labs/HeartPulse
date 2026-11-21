@@ -37,6 +37,21 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     assert.match(html, /application\/ld\+json/);
     assert.match(html, /"identifier":"blizzard:12345"/);
     assert.doesNotMatch(html, /"deckWinrate":53|card-reader@example|manacost_auth_token/);
+    // The open slice (Platinum, last day; #447) is in the server HTML, the same for a guest and a robot: the three open
+    // numbers, a lock on every paid row and none of the paid numbers (56,21% and the like) anywhere in the page.
+    const robotHtml = await (await fetch(runtime.origin + path, { headers: { 'User-Agent': 'Googlebot' } })).text();
+    const statisticsRows = page => page.slice(page.indexOf('<dl class="constructed-cards__stats"'), page.indexOf('</dl>', page.indexOf('<dl class="constructed-cards__stats"')));
+    assert.equal(statisticsRows(robotHtml), statisticsRows(html), 'a robot reads the guest\'s statistics');
+    assert.match(statisticsRows(html), /Популярность<\/dt><dd[^>]*>12,5%<\/dd>.*Винрейт колод с картой<\/dt><dd[^>]*>53,0%<\/dd>.*Копий в колоде<\/dt><dd[^>]*>1,9<\/dd>/s);
+    assert.equal(statisticsRows(html).match(/по подписке\. Узнать, как открыть/g)?.length, 6);
+    for (const page of [html, robotHtml]) assert.doesNotMatch(page, /56[.,]21|54[.,]13|42[.,]6|52[.,]84|20\s?000|timesPlayed|winrateWhenPlayed|keepPercentage/);
+    // An old Legend link opens Legend: every row is a lock, no number of the open slice; the canonical has no query.
+    const legendHtml = await (await fetch(`${runtime.origin}${path}?rank=legend`)).text();
+    assert.equal(statisticsRows(legendHtml).match(/по подписке\. Узнать, как открыть/g)?.length, 9);
+    assert.doesNotMatch(statisticsRows(legendHtml), /12,5%|53,0%|1,9/);
+    assert.match(legendHtml, /Статистика · <!-- -->Легенда|Статистика · Легенда/);
+    assert.match(legendHtml, /rel="canonical" href="https:\/\/hearthpulse.net\/standard\/cards\/standard\/blizzard%3A12345\/"/);
+    assert.doesNotMatch(html + legendHtml, /rank=platinum/, 'no internal link spells out the default rank');
     const catalogHeadings = {
       '/standard/cards/': 'Карты Hearthstone',
       '/standard/cards/standard/': 'Карты Hearthstone: Стандарт',
@@ -87,6 +102,8 @@ test('Next card pilot uses real backend membership, SSR, access policy and recov
     const api = '/api/constructed-cards/blizzard%3A12345?format=standard&period=1d&rank=legend';
     const anonymous = await (await fetch(runtime.origin + api)).json();
     assert.equal(anonymous.statsAccess, false); assert.equal(anonymous.card.stats, null);
+    const open = await (await fetch(runtime.origin + api.replace('rank=legend', 'rank=platinum'))).json();
+    assert.deepEqual(open.card.stats, { deckPopularity: 12.5, deckWinrate: 53, averageCopies: 1.9 }, 'a guest reads the open slice');
     const cookie = { Cookie: runtime.cookie };
     const identity = await (await fetch(`${runtime.origin}/api/auth/me`, { headers: cookie })).json();
     assert.equal(identity.user?.id, 'card-reader', 'session is valid before testing subscription policy');

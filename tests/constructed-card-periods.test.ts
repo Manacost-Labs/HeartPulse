@@ -20,7 +20,7 @@ assert.equal(
 );
 assert.deepEqual(
   CONSTRUCTED_CARD_RANK_OPTIONS.map(option => option.id),
-  ['legend', 'diamond_4_1', 'diamond', 'platinum'],
+  ['platinum', 'legend', 'diamond_4_1', 'diamond'],
 );
 assert.equal(constructedCardPeriodFromSearch(''), '1d');
 assert.equal(constructedCardPeriodFromSearch('?period=7d'), '7d');
@@ -30,20 +30,22 @@ assert.equal(
   '/standard/cards/standard?view=table&period=14d',
 );
 assert.equal(constructedCardRankFromSearch('?rank=diamond_4_1'), 'diamond_4_1');
-assert.equal(constructedCardRankFromSearch('?rank=gold'), 'legend');
+assert.equal(constructedCardRankFromSearch('?rank=gold'), 'platinum');
+assert.equal(constructedCardRankFromSearch(''), 'platinum', 'no rank in the address is Platinum, the open slice (#447)');
+assert.equal(constructedCardRankFromSearch('?rank=legend'), 'legend', 'old Legend links keep opening Legend');
 assert.equal(constructedCardStatsFormatFromSearch('?statsFormat=wild', 'standard'), 'wild');
 assert.equal(constructedCardStatsFormatFromSearch('?statsFormat=classic', 'standard'), 'standard');
 assert.equal(
   constructedCardStatsUrl(
     '/standard/cards/standard/CARD_1',
-    { period: '7d', rank: 'platinum', statsFormat: 'wild', defaultStatsFormat: 'standard' },
+    { period: '7d', rank: 'legend', statsFormat: 'wild', defaultStatsFormat: 'standard' },
   ),
-  '/standard/cards/standard/CARD_1?period=7d&rank=platinum&statsFormat=wild',
+  '/standard/cards/standard/CARD_1?period=7d&rank=legend&statsFormat=wild',
 );
 assert.equal(
   constructedCardStatsUrl(
     '/standard/cards/wild/CARD_1',
-    { period: '1d', rank: 'legend', statsFormat: 'wild', defaultStatsFormat: 'wild' },
+    { period: '1d', rank: 'platinum', statsFormat: 'wild', defaultStatsFormat: 'wild' },
     '?period=14d&rank=diamond&statsFormat=standard',
   ),
   '/standard/cards/wild/CARD_1',

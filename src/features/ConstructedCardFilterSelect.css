@@ -156,6 +156,11 @@
   opacity: 0;
 }
 
+.constructed-cards__filter-lock {
+  margin-left: 0.35em;
+  vertical-align: -1px;
+}
+
 .constructed-cards__filter-menu li[aria-selected='true'] .constructed-cards__filter-check {
   opacity: 1;
 }

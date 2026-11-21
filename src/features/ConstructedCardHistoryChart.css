@@ -245,3 +245,9 @@
 }
 
 .constructed-card-history__pending { margin: 0.75rem 0.8rem 0.85rem; }
+
+/* The guest's history: the real panel on a made-up series, muted, with the lock on it. */
+.constructed-card-history__locked { position: relative; }
+.constructed-card-history__muted { opacity: 0.38; filter: grayscale(0.5) blur(1.5px); pointer-events: none; user-select: none; }
+.constructed-card-history__lock { position: absolute; inset: 0; display: grid; place-items: center; }
+.constructed-card-history__waiting { width: 6rem; height: 1.5rem; }

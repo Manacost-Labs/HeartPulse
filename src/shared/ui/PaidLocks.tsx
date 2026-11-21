@@ -43,14 +43,14 @@ const DEFAULT_CLOSED = 'paywalled-tierlist';
 type Closed = 'paywalled-tierlist' | 'paywalled-classes' | 'paywalled-guides' | 'paywalled-archetype' | 'paywalled-standard-matchups'
   | 'paywalled-vicious-gold' | 'paywalled-hero';
 
-/** A paid figure: «По подписке» with a lock in place of the value; `cell` for a table, `card` for a tile. */
-export function PaidMetricLock({ label, variant = 'cell', closed = DEFAULT_CLOSED, onOpen }: LockProps & { variant?: 'cell' | 'card' }) {
+/** A paid figure: «По подписке» with a lock in place of the value; `cell` for a table, `card` for a tile, `icon` for a narrow cell: the lock alone (its name stays for a screen reader). */
+export function PaidMetricLock({ label, variant = 'cell', closed = DEFAULT_CLOSED, onOpen }: LockProps & { variant?: 'cell' | 'card' | 'icon' }) {
   const fromProvider = usePaidOffer();
   const open = onOpen ?? fromProvider;
-  return <button type="button" className={join('paid-lock', variant === 'card' ? 'paid-lock--card' : undefined, closed)}
+  return <button type="button" className={join('paid-lock', variant === 'card' ? 'paid-lock--card' : variant === 'icon' ? 'paid-lock--icon' : undefined, closed)}
     aria-label={`${label}: по подписке. Узнать, как открыть`}
     onClick={event => { event.stopPropagation(); open?.(); }}>
-    <LockKeyhole size={13} aria-hidden="true" /><span>По подписке</span>
+    <LockKeyhole size={13} aria-hidden="true" />{variant === 'icon' ? null : <span>По подписке</span>}
   </button>;
 }
 

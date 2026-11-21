@@ -17,8 +17,14 @@ export type PublicCardSeed = {
   armor: number | null;
   artist: string | null;
   images: { card: string | null; crop?: string | null; tile?: string | null; horizontal?: string | null };
-  stats: null;
+  /** Only the open numbers of the default slice (`PublicCardOpenStats`); the paid fields are never in the seed. */
+  stats: PublicCardOpenStats | null;
+  statsUpdatedAt?: string | null;
+  statsSourceUrl?: string | null;
 };
+
+/** The three statistics the anonymous card API opens for the default slice (last day, Legend). */
+export type PublicCardOpenStats = { deckPopularity: number | null; deckWinrate: number | null; averageCopies: number | null };
 
 /** A deck with the card as the anonymous card API gives it: no winrate, no score. */
 export type PublicCardDeckSeed = {
@@ -35,7 +41,7 @@ export type PublicCardDeckSeed = {
 /**
  * The seed plus the open part of the card record that the browser would load
  * anyway (mechanics, patch history, related cards, decks), so the server HTML
- * shows what a reader sees after the page loads. Statistics stay absent.
+ * shows what a reader sees after the page loads. Of the statistics only the open numbers come, with their date and source.
  */
 export type PublicCardDetailSeed = Omit<PublicCardSeed, 'images'> & {
   images: PublicCardSeed['images'] & {

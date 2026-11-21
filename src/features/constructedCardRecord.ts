@@ -1,4 +1,4 @@
-import { constructedCardPath, type PublicCardSeed, type PublicCardCatalogSeed } from '../modules/constructedCards/public';
+import { constructedCardPath, type PublicCardSeed, type PublicCardCatalogSeed, type PublicCardOpenStats } from '../modules/constructedCards/public';
 import type { ConstructedCardFormat } from './constructedCardCatalogModel';
 import { canonicalPagePath } from '../app/routing/canonicalPagePath';
 import {
@@ -25,6 +25,9 @@ export type CardStats = {
   averageTurnsInHand: number | null;
   averageTurnPlayed: number | null;
 };
+
+/** What a guest's card carries: the three open numbers of the default slice, nothing else. */
+export type OpenCardStats = PublicCardOpenStats;
 
 export type CardRecord = {
   card_id: string;
@@ -60,7 +63,8 @@ export type CardRecord = {
   mechanics?: string[];
   referenced_tags?: string[];
   wiki_page?: { title?: string | null; url?: string | null };
-  stats: CardStats | null;
+  /** Every field for a subscriber; a guest's card carries only the three open ones (`OpenCardStats`). */
+  stats: Partial<CardStats> | null;
   statsUpdatedAt?: string | null;
   statsSourceUrl?: string | null;
   catalogPending?: boolean;
@@ -84,6 +88,27 @@ export type ConstructedDeck = {
   score?: string | null;
   updatedAt?: string | null;
 };
+
+/** The numbers the anonymous card API opens for the open slice (`OPEN_STATISTICS_SLICE`); every other one is paid. */
+export const OPEN_CARD_STATISTICS = ['deckPopularity', 'deckWinrate', 'averageCopies'] as const;
+
+/**
+ * What a viewer without confirmed access may see of a loaded card: the open numbers only when the loaded statistics
+ * are the open slice and that is the slice shown (`openSliceShown`), and the decks without their winrate and score.
+ * The card page derives it in render, so a refusal or a withdrawn access drops the paid numbers in the same frame.
+ */
+export function openPartOfCard(card: CardRecord, openSliceShown: boolean): CardRecord {
+  const stats = openSliceShown && card.stats
+    ? Object.fromEntries(OPEN_CARD_STATISTICS.map(id => [id, card.stats?.[id] ?? null])) as Partial<CardStats>
+    : null;
+  return {
+    ...card,
+    stats,
+    statsUpdatedAt: stats ? card.statsUpdatedAt ?? null : null,
+    statsSourceUrl: stats ? card.statsSourceUrl ?? null : null,
+    decks: Array.isArray(card.decks) ? card.decks.map(deck => ({ ...deck, winrate: null, score: null })) : card.decks,
+  };
+}
 
 export type StandardCardsProps = {
   initialCard?: PublicCardSeed;

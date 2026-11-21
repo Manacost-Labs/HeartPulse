@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { Check, ChevronDown, Layers } from 'lucide-react';
+import { FilterOptionLabel, lockedOptionName } from './ConstructedCardFilterOptionLabel';
 import type { ConstructedCardFilterOption } from './constructedCardFilterOptions';
 import './ConstructedCardFilterSelect.css';
 
@@ -202,7 +203,7 @@ export default function ConstructedCardFilterSelect({
           {(selectedOption?.icon || (visual === 'set' && selectedOption?.value)) && (
             <span className="constructed-cards__filter-option-icon"><FilterIcon key={selectedOption?.icon ?? selectedOption?.value} icon={selectedOption?.icon} alt={selectedOption?.iconAlt} fallback={visual === 'set'} /></span>
           )}
-          <span>{selectedOption?.label ?? 'Не выбрано'}</span>
+          {selectedOption ? <FilterOptionLabel option={selectedOption} /> : <span>Не выбрано</span>}
         </span>
         <ChevronDown className="constructed-cards__filter-chevron" size={17} aria-hidden="true" />
       </button>
@@ -225,7 +226,7 @@ export default function ConstructedCardFilterSelect({
               <li
                 key={`${option.value}-${index}`}
                 id={`${generatedId}-option-${index}`}
-                role="option"
+                role="option" aria-label={lockedOptionName(option)}
                 aria-selected={selected}
                 aria-disabled={option.disabled || undefined}
                 data-active={active || undefined}
@@ -237,7 +238,7 @@ export default function ConstructedCardFilterSelect({
                 <span className="constructed-cards__filter-option-icon">
                   <FilterIcon key={option.icon ?? option.value} icon={option.icon} alt={option.iconAlt} fallback={visual === 'set' && Boolean(option.value)} />
                 </span>
-                <span>{option.label}</span>
+                <FilterOptionLabel option={option} />
                 <Check className="constructed-cards__filter-check" size={17} aria-hidden="true" />
               </li>
             );

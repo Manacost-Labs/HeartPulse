@@ -24,6 +24,8 @@ button.paid-lock:hover { border-color: #7e4b20; color: #5a3000; }
 button.paid-lock:focus-visible { outline: 2px solid #6d1117; outline-offset: 2px; }
 /* A card shows the figure under its caption: a larger target and caption than a table cell. */
 .paid-lock--card { font-size: 0.78rem; }
+/* The lock alone, no wider than a figure it stands for: a row's caption keeps its line. */
+button.paid-lock.paid-lock--icon { min-width: 28px; justify-content: center; padding-inline: 0.3rem; }
 
 .paid-filter-lock {
   position: relative;

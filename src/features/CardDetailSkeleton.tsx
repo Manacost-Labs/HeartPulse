@@ -1,5 +1,5 @@
 import { LoadingBlock, LoadingSurface } from '../shared/ui/LoadingSurface';
-import { PendingStatsRows } from './ConstructedCardStatistics';
+import { CardStatsAbout, PendingStatsRows } from './ConstructedCardStatistics';
 import '../shared/ui/LoadingSurface.css';
 import './StandardCards.styles';
 import './CardDetailSkeleton.css';
@@ -43,7 +43,8 @@ export function CardDetailSkeleton() {
           <div className="constructed-cards__filter"><span>Период</span><LoadingBlock className="card-detail-skeleton__control" /></div>
         </div>
         {/* The labels and explanations are fixed text: only the values wait. */}
-        <div className="card-detail-skeleton__stats"><PendingStatsRows /></div>
+        <PendingStatsRows />
+        <CardStatsAbout />
       </div>
     </div>
   </LoadingSurface>;

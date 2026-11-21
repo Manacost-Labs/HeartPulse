@@ -190,7 +190,7 @@ test('card pages load their heavy parts only when a visitor asks for them', { ti
       await new Promise(resolve => setTimeout(resolve, 600));
       assert.equal(listRequests.length, 1, 'resting on an option warms exactly that slice');
       const warmedRank = listRequests[0].get('rank');
-      assert.notEqual(warmedRank, 'legend');
+      assert.notEqual(warmedRank, 'platinum', 'the default rank (#447) is already on the page');
       await option.click();
       await page.waitForFunction(rank => new URL(location.href).searchParams.get('rank') === rank, {}, warmedRank);
       await new Promise(resolve => setTimeout(resolve, 500));
