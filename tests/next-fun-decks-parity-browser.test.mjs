@@ -171,10 +171,11 @@ async function startStack() {
 }
 
 /**
- * Every frame the browser draws (requestAnimationFrame from the document's start) and every DOM change in between,
- * from the moment the page has content: how many decks the list shows and their titles in order, whether the list is
- * on screen and which view the view switch names, whether the first deck is whole (its copy button is parsed) and shows
- * its E.T.C. band, and whether anything of a paywall (a lock or an offer «по подписке», hidden nodes included) or the
+ * Every frame the browser draws (`via: 'frame'`, requestAnimationFrame from the document's first one) and every DOM
+ * change in between (`via: 'change'`), whatever the document holds yet: whether the page's heading is parsed, how many
+ * decks the list shows and their titles in order, whether the list is on screen and which view the view switch names,
+ * whether the loader stands in for the list, whether the first deck is whole (its copy button is parsed) and shows its
+ * E.T.C. band, and whether anything of a paywall (a lock or an offer «по подписке», hidden nodes included) or the
  * error of the selection is in the document. The layout shifts are summed as CLS counts them.
  */
 const watchFrames = () => {
@@ -183,28 +184,33 @@ const watchFrames = () => {
   new PerformanceObserver(list => {
     for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.__cls += entry.value;
   }).observe({ type: 'layout-shift', buffered: true });
-  const look = () => {
+  const look = via => {
     const body = document.body;
-    const heading = body && [...body.querySelectorAll('h1')].find(node => node.textContent === 'Фан-колоды');
-    if (!heading) return;
+    const text = body?.textContent ?? '';
+    const heading = Boolean(body && [...body.querySelectorAll('h1')].some(node => node.textContent === 'Фан-колоды'));
     const section = document.querySelector('section[aria-label="Подборка фан-колод"]');
     const decks = section ? [...section.querySelectorAll(':scope > article')] : [];
     const first = decks[0];
     window.__frames.push({
       at: performance.now(),
+      via,
+      // The layout holds rendering until this mark of the page's content is parsed (`blocking="render"`).
+      contentStart: Boolean(document.getElementById('route-content-start')),
+      heading,
       decks: decks.length,
       titles: decks.map(deck => deck.querySelector('h2')?.textContent ?? '').join(' | '),
       listShown: Boolean(section && decks.length && section.checkVisibility({ visibilityProperty: true })),
       view: document.querySelector('[role="group"][aria-label="Вид колод"] [aria-pressed="true"]')?.textContent ?? null,
       firstWhole: Boolean(first && [...first.querySelectorAll('button')].some(button => /Копировать код/.test(button.textContent))),
       band: /Группа E\.T\.C\./.test(first?.textContent ?? ''),
-      paywall: Boolean(document.querySelector('[aria-label*="по подписке"]')) || /по подписке/i.test(body.textContent),
-      error: /Подборка временно недоступна/.test(body.textContent),
+      skeleton: [...document.querySelectorAll('[role="status"]')].some(node => /Загружаем фан-колоды/.test(node.textContent)),
+      paywall: Boolean(document.querySelector('[aria-label*="по подписке"]')) || /по подписке/i.test(text),
+      error: /Подборка временно недоступна/.test(text),
     });
   };
-  new MutationObserver(look).observe(document, { subtree: true, childList: true, characterData: true, attributes: true });
-  const loop = () => { look(); requestAnimationFrame(loop); };
-  loop();
+  new MutationObserver(() => look('change')).observe(document, { subtree: true, childList: true, characterData: true, attributes: true });
+  const loop = () => { look('frame'); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
 };
 
 /** Frames since `from` (ms of the page's clock) that lose decks the page already showed, or show a paywall or the error. */
@@ -217,6 +223,36 @@ const badFrames = (page, from = 0) => page.evaluate(start => {
   });
 }, from);
 const lastFrame = page => page.evaluate(() => window.__frames.at(-1));
+
+/**
+ * What was watched before the page's heading is parsed (the HTML still arriving): every state (`observed`), the
+ * frames drawn among them (`drawn`), the frames drawn before the page's content starts (`drawnBeforeContent`), and the
+ * states that show anything of the page early: a list, a loader, a lock, the error or a view.
+ */
+const earlyFrames = page => page.evaluate(() => {
+  const early = window.__frames.filter(frame => !frame.heading);
+  return {
+    observed: early.length,
+    drawn: early.filter(frame => frame.via === 'frame').length,
+    drawnBeforeContent: window.__frames.filter(frame => frame.via === 'frame' && !frame.contentStart).length,
+    wrong: early.filter(frame => frame.decks || frame.listShown || frame.skeleton || frame.paywall || frame.error || frame.view !== null)
+      .map(frame => ({ via: frame.via, decks: frame.decks, skeleton: frame.skeleton, paywall: frame.paywall, error: frame.error, view: frame.view })),
+  };
+});
+
+/**
+ * In a streamed page every scenario checks what it watched before its heading, and that no frame ever shows the
+ * loader. The browser draws nothing until the page's content starts (the layout's render-blocking mark, 150 bytes
+ * before the heading), so the states before the heading are the parser's, and any frame drawn among them is checked too.
+ */
+async function assertEarlyFrames(page, at) {
+  const early = await earlyFrames(page);
+  assert.ok(early.observed > 0, `${at}: the page was watched before its heading arrived (${early.observed} states, ${early.drawn} drawn)`);
+  assert.equal(early.drawnBeforeContent, 0, `${at}: no frame is drawn before the page's content starts`);
+  assert.deepEqual(early.wrong, [], `${at}: nothing of the page shows before its heading`);
+  assert.equal(await page.evaluate(() => window.__frames.filter(frame => frame.skeleton).length), 0,
+    `${at}: the server's selection is there from the first frame, the loader never shows`);
+}
 
 /** Each deck's box relative to the list, its title, and the list's own size. */
 const geometry = page => page.$eval(SECTION, section => {
@@ -415,6 +451,7 @@ test('sideboards are in the server tile, so the full deck lists add no line', { 
   // The HTML came in pieces: the list was watched while it was still arriving, then whole.
   assert.ok(await page.evaluate(() => window.__frames.some(frame => frame.decks > 0 && frame.decks < 24)), `${at}: frames of a list still arriving`);
   assert.ok(await page.evaluate(() => window.__frames.some(frame => frame.firstWhole)), `${at}: the first deck was seen whole`);
+  await assertEarlyFrames(page, at);
   assert.equal(await page.evaluate(() => window.__frames.filter(frame => frame.firstWhole && !frame.band).length), 0,
     `${at}: from the first frame the first deck is whole, it shows its band`);
   await page.browserContext().close();
@@ -434,6 +471,7 @@ test('a link\'s filters and sort are the first frame and stay when the selection
       .map(frame => frame.titles || '(no list)'))], titles);
     assert.deepEqual(wrong, [], `${at} ${search}: every frame shows the linked list`);
     assert.equal((await lastFrame(page)).titles, titles, `${at} ${search}: the linked list, whole`);
+    await assertEarlyFrames(page, `${at} ${search}`);
     const shift = await cls(page);
     assert.ok(shift < 0.01, `${at} ${search}: the page does not move (CLS ${shift})`);
     await page.browserContext().close();
@@ -449,6 +487,7 @@ test('a kept deck view replaces the server tiles before they show', { timeout: 2
     const shown = await page.evaluate(view => [...new Set(window.__frames.filter(frame => frame.listShown && frame.view !== view)
       .map(frame => frame.view))], label);
     assert.deepEqual(shown, [], `${at} ${layout}: the list shows only in the kept view «${label}»`);
+    await assertEarlyFrames(page, `${at} ${layout}`);
     const shift = await cls(page);
     assert.ok(shift < 0.01, `${at} ${layout}: the kept view and its full lists do not move the page (CLS ${shift})`);
     await page.browserContext().close();
