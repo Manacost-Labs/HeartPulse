@@ -119,6 +119,14 @@ await expectPolicy('/standard/cards/standard', {
   robots: 'noindex, follow',
   canonicalUrl: `${ORIGIN}/standard/cards/standard/`,
 }, '?sort=winrate');
+// Fun decks draw their filters on the server since #683: a filtered copy is a crawl path, not an index entry (#538).
+for (const query of ['?format=wild', '?class=mage', '?tag=combo', '?sort=games']) {
+  await expectPolicy('/standard/fun-decks', {
+    routeId: 'fun-decks',
+    robots: 'noindex, follow',
+    canonicalUrl: `${ORIGIN}/standard/fun-decks/`,
+  }, query);
+}
 // The library root paginates like a format listing: page N is a crawl path, not an index entry (#538).
 await expectPolicy('/standard/cards', {
   routeId: 'standard-cards',
