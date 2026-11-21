@@ -48,9 +48,18 @@ const SENTINEL_GAMES = 97531;
  * of builds, the sections held back (answered by `release()`), a refusal of the paid sections and the paid full lists.
  */
 async function startStand() {
-  const state = { member: false, paidOnly: false, hold: new Set(), deny: 0, sentinel: false };
+  const state = { member: false, paidOnly: false, hold: new Set(), deny: 0, sentinel: false, resolves: 0 };
   const held = [];
   const release = () => { for (const answer of held.splice(0)) answer(); };
+  // The full list of a build: its open list (the tiles keep their content, only the list of builds may differ; the
+  // build without an open list has none either), or with `sentinel` a card and a sideboard the open list never has.
+  const resolveDeck = (url, send) => {
+    const card = (card, index) => ({ id: card.id, dbfId: index + 1, name: card.name, cost: card.cost, rarity: 'COMMON', elite: false, count: card.count, image: '' });
+    const extra = { id: 'TST_PAID', name: SENTINEL_CARD, cost: 2, count: 1 };
+    const bare = url.searchParams.get('code') === deckOf(BARE) && !state.sentinel;
+    send({ ok: true, cards: bare ? [] : (state.sentinel ? [...CARDS, extra] : CARDS).map(card), totalCards: bare ? 0 : state.sentinel ? 4 : 3, deckSizeLimit: 30,
+      sideboards: state.sentinel ? [{ keyCardDbfId: 1, label: SENTINEL_SIDEBOARD, cards: [card({ ...extra, id: 'TST_SIDE' }, 9)] }] : [] });
+  };
   const legacy = http.createServer((request, response) => {
     response.setHeader('Content-Type', 'application/json');
     const url = new URL(request.url, 'http://fixture');
@@ -88,13 +97,9 @@ async function startStand() {
     }
     if (pathname === '/api/deck/render') { send({ ok: true, ready: true, imageUrl: '/arena-logo-icon.webp', renderer: 'rust', style: 'parchment' }); return; }
     if (pathname === '/api/deck/resolve') {
-      // The full list of a build: its open list (the tiles keep their content, only the list of builds may differ; the
-      // build without an open list has none either), or with `sentinel` a card and a sideboard the open list never has.
-      const card = (card, index) => ({ id: card.id, dbfId: index + 1, name: card.name, cost: card.cost, rarity: 'COMMON', elite: false, count: card.count, image: '' });
-      const extra = { id: 'TST_PAID', name: SENTINEL_CARD, cost: 2, count: 1 };
-      const bare = url.searchParams.get('code') === deckOf(BARE) && !state.sentinel;
-      send({ ok: true, cards: bare ? [] : (state.sentinel ? [...CARDS, extra] : CARDS).map(card), totalCards: bare ? 0 : state.sentinel ? 4 : 3, deckSizeLimit: 30,
-        sideboards: state.sentinel ? [{ keyCardDbfId: 1, label: SENTINEL_SIDEBOARD, cards: [card({ ...extra, id: 'TST_SIDE' }, 9)] }] : [] });
+      state.resolves += 1;
+      if (state.hold.has('resolve')) { held.push(() => { if (!response.destroyed) resolveDeck(url, send); }); return; }
+      resolveDeck(url, send);
       return;
     }
     if (isMenuBackgroundRead(pathname)) { send(MENU_PATCH_ARCHIVE); return; }
@@ -357,6 +362,52 @@ test('a subscriber who loses access without a reload never sees the paid full li
         if (sameTile !== null) assert.equal(sameTile, true, `${label}: the tile is not remounted`);
       }
     }
+  } finally {
+    await stand.close();
+  }
+});
+
+test('the rows view kept in this browser gets the subscriber the full lists, and a guest none', { timeout: 300_000 }, async () => {
+  const stand = await startStand();
+  const { state } = stand;
+  const keepRows = () => { window.localStorage.setItem('hp:deck-layout', 'rows'); };
+  try {
+    // A subscriber whose browser keeps «Строки»: the server draws tiles, the page switches to the rows as it hydrates,
+    // and every row (the build without an open list too) gets its full list as it comes near.
+    Object.assign(state, { member: true, paidOnly: false, deny: 0, sentinel: true, resolves: 0 }); state.hold = new Set(['resolve']);
+    const member = await stand.open(1440, keepRows);
+    const { page } = member;
+    await page.waitForFunction(() => document.querySelectorAll('.archetype-builds .fun-deck-rowcard').length === 8);
+    await page.waitForFunction(() => document.querySelector('.archetype-builds')?.innerHTML.includes('Тестовый удар'));
+    // The open lists stand until the full ones arrive; the full lists then take their places without moving the page.
+    for (let attempt = 0; attempt < 300 && state.resolves === 0; attempt++) await delay(50);
+    assert.ok(state.resolves > 0, 'the subscriber\'s rows ask for the full lists');
+    await settle(page);
+    const before = await cls(page);
+    state.hold.clear(); stand.release();
+    await page.waitForFunction(text => document.querySelector('.archetype-builds .fun-deck-rowcard')?.innerHTML.includes(text), {}, SENTINEL_SIDEBOARD);
+    await settle(page);
+    const shift = Math.round((await cls(page) - before) * 10_000) / 10_000;
+    // The rows further down get theirs as the reader scrolls to them.
+    for (const row of await page.$$('.archetype-builds .fun-deck-rowcard')) { await row.evaluate(node => node.scrollIntoView({ block: 'center' })); await delay(100); }
+    await page.waitForFunction(text => [...document.querySelectorAll('.archetype-builds .fun-deck-rowcard')].every(row => row.innerHTML.includes(text)),
+      {}, SENTINEL_CARD);
+    const sideboards = await page.$$eval('.archetype-builds .fun-deck-rowcard', (rows, text) => rows.filter(row => row.innerHTML.includes(text)).length,
+      SENTINEL_SIDEBOARD);
+    await member.close();
+    assert.equal(sideboards, 8, 'every row shows the full list with its sideboard');
+    assert.ok(shift < 0.01, `the full lists replacing the open ones in the rows shift the page by ${shift}`);
+
+    // A guest whose browser keeps «Строки» sees the open lists in the rows; no full list is read.
+    Object.assign(state, { member: false, sentinel: false, resolves: 0 }); state.hold.clear();
+    const guest = await stand.open(1440, keepRows);
+    await guest.page.waitForFunction(() => document.querySelectorAll('.archetype-builds .fun-deck-rowcard').length === 8);
+    for (const row of await guest.page.$$('.archetype-builds .fun-deck-rowcard')) { await row.evaluate(node => node.scrollIntoView({ block: 'center' })); await delay(100); }
+    await settle(guest.page);
+    const open = await guest.page.$$eval('.archetype-builds .fun-deck-rowcard', rows => rows.filter(row => row.innerHTML.includes('Тестовый удар')).length);
+    await guest.close();
+    assert.equal(open, 7, 'the guest\'s rows show the open lists');
+    assert.equal(state.resolves, 0, 'no full list is read for a guest');
   } finally {
     await stand.close();
   }
