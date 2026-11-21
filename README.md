@@ -1,29 +1,26 @@
 <!-- markdownlint-disable MD013 MD033 MD041 -->
 
 <p align="center">
-  <img src="public/favicon-192.png" width="104" height="104"
-    alt="Логотип Manacost Arena">
+  <a href="https://hearthpulse.net">
+    <img src="public/hearthpulse-logo.webp" width="96" height="104"
+      alt="Логотип HearthPulse">
+  </a>
 </p>
 
-<h1 align="center">Manacost Arena</h1>
+<h1 align="center">HearthPulse</h1>
 
 <p align="center">
-  <strong>Мета Hearthstone без таблиц, которые приходится расшифровывать.</strong>
-</p>
-
-<p align="center">
-  Русскоязычная production-платформа для Арены и Полей Сражений:<br>
-  тир-листы, винрейты, библиотека карт, гайды и игровые конструкторы.
+  <strong>Мета Hearthstone на русском: колоды, матчапы, карты, Арена и Поля сражений на одном сайте.</strong>
 </p>
 
 <p align="center">
-  <a href="https://hearthpulse.net"><strong>Открыть сайт</strong></a> ·
+  <a href="https://hearthpulse.net"><strong>hearthpulse.net</strong></a> ·
+  <a href="#что-внутри">Режимы</a> ·
   <a href="#быстрый-старт">Быстрый старт</a> ·
-  <a href="STABILIZATION.md">Надёжность</a> ·
-  <a href="assets.md">Дизайн и ассеты</a> ·
-  <a href="DEPLOYMENT.md">Деплой</a> ·
-  <a href="CONTRIBUTING.md">Вклад в проект</a> ·
-  <a href="SECURITY.md">Безопасность</a>
+  <a href="docs/architecture/ai-project-map.md">Карта проекта</a> ·
+  <a href="CONTRIBUTING.md">Вклад</a> ·
+  <a href="SECURITY.md">Безопасность</a> ·
+  <a href="CHANGELOG.md">Изменения</a>
 </p>
 
 <p align="center">
@@ -58,113 +55,121 @@
     <img alt="Production health"
       src="https://img.shields.io/website?url=https%3A%2F%2Fhearthpulse.net%2Fapi%2Fhealth%2Fready&up_message=healthy&down_message=unavailable&label=production&color=4A2F66">
   </a>
+  <a href="https://nextjs.org/">
+    <img alt="Next.js 16.4"
+      src="https://img.shields.io/badge/Next.js-16.4-30251C?logo=nextdotjs&logoColor=white">
+  </a>
   <a href="https://react.dev">
     <img alt="React 19"
       src="https://img.shields.io/badge/React-19-4A2F66?logo=react&logoColor=white">
   </a>
-  <a href="https://www.typescriptlang.org/">
-    <img alt="TypeScript debt ratchet"
-      src="https://img.shields.io/badge/TypeScript-debt_ratchet-8F1731?logo=typescript&logoColor=white">
-  </a>
   <a href="https://nodejs.org/">
-    <img alt="Node.js 22+"
-      src="https://img.shields.io/badge/Node.js-22+-5E4428?logo=node.js&logoColor=white">
+    <img alt="Node.js 22"
+      src="https://img.shields.io/badge/Node.js-22-5E4428?logo=node.js&logoColor=white">
   </a>
 </p>
 
 <table>
   <tr>
     <td width="72%">
-      <img src="docs/screenshots/home-desktop.png"
-        alt="Главная Manacost Arena на desktop">
+      <img src="docs/screenshots/home-desktop.webp"
+        alt="Главная HearthPulse на компьютере">
     </td>
     <td width="28%">
-      <img src="docs/screenshots/home-mobile.png"
-        alt="Главная Manacost Arena на телефоне">
+      <img src="docs/screenshots/home-mobile.webp"
+        alt="Главная HearthPulse на телефоне">
     </td>
   </tr>
   <tr>
-    <td align="center"><strong>Desktop workspace</strong></td>
-    <td align="center"><strong>Mobile, 390 px</strong></td>
+    <td align="center">Главная, 1440 px</td>
+    <td align="center">Телефон, 390 px</td>
   </tr>
 </table>
 
-> Один репозиторий объединяет React-интерфейс, Express API, durable snapshots,
-> immutable-релизы и многоуровневый desktop/mobile/security quality gate.
+## Что внутри
 
-## Зачем этот проект
-
-Manacost Arena превращает разрозненные игровые данные в один быстрый рабочий
-экран: перед драфтом можно проверить лидирующие классы и карты, во время игры —
-открыть нужный тир-лист, а для Полей Сражений — перейти к героям, библиотеке или
-конструктору стратегии. Редакционные мета-отчёты находятся рядом со статистикой,
-поэтому контекст не теряется между несколькими сервисами.
-
-- **Актуальные данные:** классы, карты и легендарные группы, источник и время
-  обновления, durable snapshots при сбое upstream.
-- **Игровые инструменты:** герои, BG-библиотека, конструкторы, поиск, фильтры,
-  mobile lightbox, профиль, статьи, гайды и конкурсы.
-- **Production-контур:** immutable releases, автоматический rollback, security
-  contracts, encrypted backup, desktop/mobile E2E и zero-axe gate.
-
-| Быстрый вход | Ссылка |
+| Режим | Что есть |
 | --- | --- |
-| Арена: винрейты классов | [Открыть `/classes`](https://hearthpulse.net/classes/) |
-| Арена: тир-лист карт | [Открыть `/tierlist`](https://hearthpulse.net/tierlist/) |
-| Поля Сражений: герои | [Открыть `/heroes`](https://hearthpulse.net/heroes/) |
-| Поля Сражений: библиотека | [Открыть `/library`](https://hearthpulse.net/library/) |
-| Косметика: скины, монеты и питомцы | [Открыть `/cosmetics`](https://hearthpulse.net/cosmetics/) |
-| Состояние production | [Readiness API](https://hearthpulse.net/api/health/ready) |
+| [Стандарт](https://hearthpulse.net/standard/) | [Мета](https://hearthpulse.net/standard/meta/) и [матчапы](https://hearthpulse.net/standard/matchups/) по рангам и периодам, [архетипы](https://hearthpulse.net/standard/archetypes/), [лучшие колоды](https://hearthpulse.net/standard/decks/) и [фан-колоды](https://hearthpulse.net/standard/fun-decks/), [карты](https://hearthpulse.net/standard/cards/) со статистикой и историей изменений, [«Сборка»](https://hearthpulse.net/standard/assemble/), [Vicious Syndicate Gold](https://hearthpulse.net/standard/vicious-gold/), [конструктор колод](https://hearthpulse.net/standard/deck-builder/), [патчноуты](https://hearthpulse.net/standard/patches/) |
+| [Вольный](https://hearthpulse.net/wild/) | [Мета](https://hearthpulse.net/standard/meta/wild/), [архетипы](https://hearthpulse.net/standard/archetypes/wild/), [матчапы](https://hearthpulse.net/standard/matchups/?format=wild), [карты](https://hearthpulse.net/standard/cards/wild/), [«Сборка»](https://hearthpulse.net/standard/assemble/?format=wild) и [конструктор](https://hearthpulse.net/standard/deck-builder/?format=wild) в формате Вольного |
+| [Арена](https://hearthpulse.net/arena/) | [Тир-лист карт](https://hearthpulse.net/tierlist/), [винрейты классов](https://hearthpulse.net/classes/), [легендарки](https://hearthpulse.net/legendaries/) |
+| [Поля сражений](https://hearthpulse.net/battlegrounds/) | [Герои](https://hearthpulse.net/heroes/), [библиотека](https://hearthpulse.net/library/), [тир-лист](https://hearthpulse.net/battlegrounds/tier-list/), [стратегии](https://hearthpulse.net/battlegrounds/strategies/), [конструктор тир-листа](https://hearthpulse.net/battlegrounds/tier-builder/) |
 
-## О проекте
-
-Manacost Arena объединяет актуальную статистику, редакционные материалы и
-инструменты подготовки к игре. На одном сайте доступны тир-листы карт и
-классов Арены, группы легендарок, герои и библиотека Полей Сражений,
-конструкторы стратегий, статьи, гайды и персональный профиль.
-
-Интерфейс построен вокруг визуального языка Hearthstone: пергамент, дерево,
-красные тавернные поверхности и аккуратный фиолетовый акцент `#4A2F66`.
-Desktop и mobile проходят один и тот же набор функциональных, адаптивных и
-accessibility-проверок перед каждым релизом.
+Общее для всех режимов: [еженедельные мета-отчёты](https://hearthpulse.net/reports/meta/)
+(по понедельникам), [статьи](https://hearthpulse.net/articles/),
+[таблицы лидеров](https://hearthpulse.net/leaderboards/),
+[косметика](https://hearthpulse.net/cosmetics/) и
+[открытый API](https://hearthpulse.net/developers/api/).
 
 ## Интерфейс в деталях
 
-![Последние статьи и раздел Полей Сражений](docs/screenshots/home-sections.png)
+<table>
+  <tr>
+    <td width="72%">
+      <img src="docs/screenshots/matchups-desktop.webp"
+        alt="Полная матрица матчапов Стандарта">
+    </td>
+    <td width="28%">
+      <img src="docs/screenshots/matchups-mobile.webp"
+        alt="Матчапы архетипа на телефоне">
+    </td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2">Матчапы: полная матрица и разбор архетипа</td>
+  </tr>
+  <tr>
+    <td width="72%">
+      <img src="docs/screenshots/card-desktop.webp"
+        alt="Страница карты со статистикой и изменениями по патчам">
+    </td>
+    <td width="28%">
+      <img src="docs/screenshots/card-mobile.webp"
+        alt="Страница карты на телефоне">
+    </td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2">Карта: статистика и история изменений по патчам</td>
+  </tr>
+  <tr>
+    <td width="72%">
+      <img src="docs/screenshots/assemble-desktop.webp"
+        alt="Инструмент «Сборка»: выбор карты">
+    </td>
+    <td width="28%">
+      <img src="docs/screenshots/assemble-mobile.webp"
+        alt="«Сборка» на телефоне">
+    </td>
+  </tr>
+  <tr>
+    <td align="center" colspan="2">«Сборка»: какие основы выпадают и какой вариант выбрать</td>
+  </tr>
+</table>
 
-Скриншоты снимаются прямо с production в desktop и mobile viewport. Их можно
-воспроизвести одной командой:
+Скриншоты сняты с production гостем, без входа в аккаунт. Обновить их:
+`npm run docs:screenshots`.
 
-```bash
-npm run docs:screenshots
-```
+<a id="зачем-этот-проект"></a>
 
-## Что внутри
+## О проекте
 
-| Арена | Поля Сражений | Платформа |
-| --- | --- | --- |
-| Винрейты классов | Герои и их профили | Статьи и мета-отчёты |
-| Тир-листы карт | Библиотека и архив | Архив гайдов и галерея |
-| Группы легендарок | Тир-листы меты | Telegram/Boosty-профиль |
-| Матчапы и аналитика | Конструкторы стратегий | Редакционная admin-панель |
-| Скины, монеты и питомцы | Галереи и игровые медиа | Storybook + MCP |
-
-Интерфейс работает от 320 px, проходит 200% reflow и forced-colors
-проверку. Клавиатурная навигация, scroll lock модальных окон и
-axe-аудит входят в обязательный release gate.
+- **Гость видит тот же интерфейс, что и подписчик.** Те же страницы, фильтры и
+  таблицы; открытый срез показан числами, платные значения — замками на своих
+  местах. Подписка снимает замки.
+- **Данные обновляются сами.** У каждого набора указаны источник и время
+  обновления; при сбое источника сайт показывает последний сохранённый снимок.
+- **Работает на телефоне.** Интерфейс от 320 px, клавиатура, 200% reflow и
+  axe-аудит входят в обязательные проверки.
 
 ## Архитектура
 
-Инженерное имя репозитория — **HearthPulse**, канонический production-домен —
-`hearthpulse.net`; Manacost Arena остаётся названием публичного интерфейса.
-AI-агентам и новым участникам следует начинать с компактной
-[карты проекта](docs/architecture/ai-project-map.md), а затем переходить к
-указанному в ней владельцу модуля и источнику истины.
+Начинайте с [карты проекта](docs/architecture/ai-project-map.md): в ней
+владельцы модулей и источники истины. Границы модулей —
+[module-boundaries.md](docs/architecture/module-boundaries.md).
 
 ```text
 Browser
   │
-  ├── Next.js 16 App Router (apps/public-web) + React 19 + TypeScript
+  ├── Next.js 16.4 App Router (apps/public-web) + React 19 + TypeScript
   │     ├── server-rendered metadata and public data
   │     ├── client pages from src/modules and legacy src/features
   │     └── responsive Hearthstone UI
@@ -182,99 +187,62 @@ Nginx → immutable release → systemd service
              └── encrypted backup and restore drills
 ```
 
-Основные каталоги:
-
 ```text
 apps/public-web/      Next.js-приложение: все публичные HTML-страницы
-src/components/       общие UI-компоненты
-src/modules/          новые доменные модули с узкими public-контрактами
+src/modules/          доменные модули с узкими public-контрактами
 src/features/         legacy-страницы на поэтапной миграции, не целевая граница
-src/styles/           общие токены и ограниченные shared-стили
+src/components/       общие UI-компоненты
 server/app/           application wiring и lifecycle-композиция
 server/modules/       каталогизированные backend-домены
-server/index.ts       текущая server-композиция и legacy-регистрации
 scripts/              QA, бюджеты, релизы, мониторинг и recovery
-tests/                unit, contract, security и deployment tests
-deploy/               systemd units и инфраструктурные шаблоны
+tests/                unit, integration, contract, browser и smoke
+deploy/               systemd units, Nginx и инфраструктурные шаблоны
 public/               локальные игровые и декоративные ассеты
-docs/screenshots/     актуальные изображения для GitHub
+docs/                 спецификации, ADR, runbooks и скриншоты
 ```
 
 ## Качество и безопасность
 
-Каждое изменение проходит единый обязательный gate:
+Изменения попадают в `main` только через pull request и merge queue: очередь
+проверяет PR поверх свежего `main`, её push выкатывает релиз
+([runbook](docs/runbooks/agent-integration.md),
+[ADR](docs/decisions/2026-10-21-pull-requests-and-merge-queue.md)).
+Единый gate:
 
 ```bash
 npm run verify:ci
 ```
 
-Он включает:
-
-- TypeScript typecheck и архитектурные ограничения;
+- TypeScript, oxlint, архитектурные границы и clean-code ratchet;
 - пять автоматически обнаруживаемых suite: unit, integration, contract,
   browser и production-smoke;
-- HTTP contract, auth, CSRF, backup и deployment tests внутри этих suite;
-- production-сборку frontend и server;
-- бюджеты JavaScript/CSS и контроль роста `!important`;
-- desktop/mobile E2E с mocked-подпиской;
-- axe accessibility audit, 200% reflow, keyboard и modal scroll-lock;
-- проверку документации и дизайн-системы.
+- сборка frontend и server, бюджеты JS/CSS каждой страницы;
+- desktop/mobile E2E, axe, 200% reflow, клавиатура;
+- markdownlint и проверка `design.md`.
 
-Отдельные GitHub-проверки защищают цепочку поставки и репозиторий:
-
-- **CodeQL и Semgrep** ищут уязвимые потоки данных и небезопасные конструкции;
-- **Gitleaks** проверяет полную Git-историю и рабочее дерево на секреты;
-- **Dependabot, OSV-Scanner и Dependency Review** контролируют lockfile,
-  новые зависимости, известные уязвимости, лицензии и здоровье пакетов;
-- **Trivy** блокирует `HIGH`/`CRITICAL` уязвимости и ошибки конфигурации;
-- **OpenSSF Scorecard** оценивает security posture репозитория;
-- **Sentry** опционально собирает очищенные от PII frontend/server ошибки.
-
-После выкладки production дополнительно проверяется командами:
-
-```bash
-node scripts/production-monitor.mjs
-npm run observe:production
-npm run qa:e2e
-```
-
-`observe:production` открывает все зарегистрированные публичные страницы и
-проверяет в реальном Chromium, что ключевые страницы действительно показывают
-данные, форму входа или ожидаемый paywall. Структурированные отчёты и безопасный
-авторизованный профиль описаны в
-[production observer runbook](docs/runbooks/production-observer.md).
-
-Подробные SLO, stop-the-line правила и текущий прогресс находятся в
-[STABILIZATION.md](STABILIZATION.md).
+Цепочку поставки защищают CodeQL, Semgrep, Gitleaks, Dependabot, OSV-Scanner,
+Dependency Review, Trivy и OpenSSF Scorecard. После выкладки прод проверяют
+`production-monitor` и `observe:production`
+([runbook](docs/runbooks/production-observer.md)). SLO и правила остановки —
+в [STABILIZATION.md](STABILIZATION.md).
 
 ## Стек и инструменты
 
-| Контур | Используемые инструменты |
+| Контур | Инструменты |
 | --- | --- |
-| Интерфейс | Next.js 16 (App Router), React 19, TypeScript с измеряемым долгом и strict islands, Tailwind CSS 4, Lucide, responsive CSS |
+| Интерфейс | Next.js 16.4.5 (App Router), React 19, TypeScript с измеряемым долгом и strict islands, Tailwind CSS 4, Lucide |
 | API и данные | Node.js 22, Express, Redis, SQLite, Sharp, Puppeteer Core, node-cron, Hearthstone deckstrings |
-| Тестирование | Node test runner, tsx, fast-check, Storybook 10 + MCP, Puppeteer E2E, axe-core, browser contract tests |
-| Качество кода | TypeScript, React Doctor, Knip, markdownlint, design.md, архитектурные и bundle-budget проверки |
-| AppSec | CodeQL, Semgrep CE, Gitleaks, Trivy, GitHub Private Vulnerability Reporting |
-| Supply chain | Dependabot, OSV-Scanner, Dependency Review, npm audit, OpenSSF Scorecard |
-| Наблюдаемость | Sentry React/Node SDK, Sentry MCP, Chrome DevTools MCP, readiness/metrics, production monitor и browser observer |
-| Delivery | GitHub Actions, immutable artifacts, Nginx, systemd, atomic symlink switch, rollback и encrypted backups |
-| Контекст команды | Задание пользователя, документация и визуальные референсы в репозитории, Codex/Claude post-push review |
+| Тесты | Node test runner, tsx, fast-check, Storybook 10, Puppeteer, axe-core, Stryker |
+| Качество | tsgo, oxlint, React Doctor, Knip, markdownlint, design.md, бюджеты бандла |
+| Безопасность | CodeQL, Semgrep CE, Gitleaks, Trivy, OSV-Scanner, Dependabot, OpenSSF Scorecard |
+| Наблюдаемость | Sentry (opt-in, без PII), readiness и метрики, production monitor и browser observer |
+| Доставка | GitHub Actions, merge queue, immutable artifacts, Nginx, systemd, rollback, encrypted backups |
 
-Все security Actions закреплены полными commit SHA, а чувствительные интеграции
-остаются выключенными без явной серверной конфигурации. Подробности и команды
-для AI-агентов собраны в [docs/agent-tooling.md](docs/agent-tooling.md).
-
-Production scraper импортирует `puppeteer-core` из `dependencies` и запускает
-явно найденный системный Chromium 151. Полный `puppeteer` остаётся в
-`devDependencies` только для browser QA. Оба пакета закреплены на одной версии,
-а release smoke выполняет настоящий `npm ci --omit=dev`, импортирует собранный
-scraper и открывает локальную страницу в headless Chrome. Такой split сохраняет
-production runtime без повторного скачивания браузера при каждом новом lockfile.
+Команды и настройки для AI-агентов — в [docs/agent-tooling.md](docs/agent-tooling.md).
 
 ## Быстрый старт
 
-Требуются Node.js 22.12+, npm и Chromium/Google Chrome для browser QA и scraper.
+Нужны Node.js 22.12+, npm и Chromium/Google Chrome (browser QA и scraper).
 
 ```bash
 git clone https://github.com/Manacost-Labs/HeartPulse.git
@@ -284,88 +252,45 @@ cp .env.example .env
 npm run dev
 ```
 
-Сайт доступен на `http://localhost:3000`: команда запускает API (порт 3001),
-Next.js в dev-режиме (порт 4320) и локальный шлюз, который раздаёт страницы,
-`/api` и статику из `public/` так же, как Nginx в продакшене. Без внешних
-ключей используются локальные snapshots; интеграции и публикация свежих данных
-требуют соответствующих переменных из `.env.example`.
-
-Для разработки и AI-проверки компонентов отдельно запустите:
-
-```bash
-npm run storybook
-```
-
-Storybook доступен на `http://127.0.0.1:6006`, а его локальный MCP endpoint —
-на `http://127.0.0.1:6006/mcp`. Статическая проверка всех stories:
-
-```bash
-npm run test:storybook
-npm run build-storybook
-```
-
-Полезные команды:
+Сайт откроется на `http://localhost:3000`: API (порт 3001), Next.js (порт 4320)
+и локальный шлюз, который раздаёт страницы, `/api` и статику как Nginx на проде.
+Без внешних ключей работают локальные snapshots.
 
 | Команда | Назначение |
 | --- | --- |
-| `npm run dev` | API, Next.js и локальный шлюз на `http://localhost:3000` в watch-режиме |
-| `npm run dev:next` | Только Next.js-приложение в dev-режиме (см. `apps/public-web/README.md`) |
-| `npm run build` | Статический корень `dist/` и серверная сборка `build/` |
-| `npm run build:next` | Production-сборка Next.js |
-| `npm test` | Все пять автоматически обнаруживаемых suite без ручного списка |
-| `npm run test:discovery` | Полнота классификации всех test/spec-файлов |
-| `npm run architecture:baseline` | Детерминированный архитектурный baseline |
-| `npm run architecture:map` | Карта модулей, legacy-зон и владельцев |
+| `npm run dev` | API, Next.js и шлюз в watch-режиме |
+| `npm run storybook` | Storybook и его MCP на `http://127.0.0.1:6006` |
+| `npm test` | Все пять suite из `tests/test-suites.json` |
+| `npm run test:module -- <module>` | Тесты одного модуля |
+| `npm run architecture:map` | Карта модулей и владельцев |
 | `npm run architecture:impact -- <file>` | Контракт, зависимости и тесты файла |
 | `npm run architecture:owner -- <method> <route>` | Владелец frontend/API route |
-| `npm run test:module -- <module>` | Минимальный проверенный набор тестов модуля |
-| `npm run architecture:http-manifest` | Проверка Express routes и middleware |
-| `npm run qa:e2e` | Полный desktop/mobile browser QA |
-| `npm run qa:ci` | Сборка и browser QA против Next.js с QA-бэкендом (деплой-гейт) |
-| `npm run budget:next` | Контроль размеров JS и CSS каждой публичной страницы Next.js ([бюджеты](docs/runbooks/next-bundle-budgets.md)) |
-| `npm run agent:integrate` | READY → PR → auto-merge через merge queue ([runbook](docs/runbooks/agent-integration.md)) |
-| `npm run ci:flake-report` | Красные прогоны `ci.yml`, flaky-тесты и длительность по событиям ([runbook](docs/runbooks/ci-flake-report.md)) |
-| `npm run changelog:assemble` | Сборка фрагментов `changelog.d/` в `CHANGELOG.md` |
-| `npm run scrape` | Ручной запуск scraper в разработке |
-| `npm run security:gitleaks` | Локальная проверка истории и рабочего дерева |
-| `npm run security:semgrep` | Статический анализ изменённых JS/TS-файлов |
-| `npm run quality:knip` | Проверка dependency-контуров |
+| `npm run agent:integrate` | Ветка → PR → merge queue ([runbook](docs/runbooks/agent-integration.md)) |
+| `npm run docs:screenshots` | Скриншоты README с production |
 | `npm run verify:ci` | Полный обязательный gate |
 
 ## Production-релиз
 
-Production использует immutable-артефакты, атомарное переключение symlink,
-readiness gate и автоматический rollback. Краткий ручной сценарий:
-
-```bash
-sudo -u koloda npm run verify:ci
-sha=$(git rev-parse HEAD)
-artifact="/tmp/hs-arena-release-$sha"
-npm run release:create -- --output="$artifact" --sha="$sha"
-sudo scripts/deploy-release.sh "$artifact"
-```
-
-Полная инструкция, включая recovery, encrypted backup и off-site replication,
-находится в [DEPLOYMENT.md](DEPLOYMENT.md).
+Релиз собирает и выкатывает merge queue: immutable-артефакт, атомарное
+переключение symlink, readiness gate и автоматический rollback. Ручной сценарий,
+recovery, encrypted backup и off-site replication — в
+[DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Участие в проекте
 
-Ошибки и идеи принимаются через
-[структурированные GitHub Issues](https://github.com/Manacost-Labs/HeartPulse/issues/new/choose).
-Перед pull request прочитайте [CONTRIBUTING.md](CONTRIBUTING.md) и выполните
-`npm run verify:ci`. Уязвимости нужно отправлять только через
+Ошибки и идеи — через
+[GitHub Issues](https://github.com/Manacost-Labs/HeartPulse/issues/new/choose).
+Перед pull request прочитайте [CONTRIBUTING.md](CONTRIBUTING.md). Уязвимости —
+только через
 [приватный security advisory](https://github.com/Manacost-Labs/HeartPulse/security/advisories/new).
 
-История пользовательских изменений ведётся в [CHANGELOG.md](CHANGELOG.md); новые
-записи — по одному файлу в [changelog.d/](changelog.d/README.md), они
-собираются в журнал при релизе.
+История изменений — [CHANGELOG.md](CHANGELOG.md); новые записи — по одному файлу
+в [changelog.d/](changelog.d/README.md).
 
 ## Дизайн-система
 
-[assets.md](assets.md) содержит цветовые токены, типографику, CSS-рецепты рам,
-правила mobile-декора и полный каталог production URL всех ассетов. Документ
-можно использовать как переносимый контракт при интеграции дизайна в другой
-проект.
+Визуальный контракт — [design.md](design.md); токены, CSS-рецепты рам и каталог
+production URL ассетов — [assets.md](assets.md).
 
 ## Источники и права
 
