@@ -111,7 +111,7 @@ with the copy of the release before, so a check there says nothing about
 Next's own copy), revalidates again only the prerendered pages that still lack
 their data (`POST /health/next/revalidate/?paths=/a,/b`; a revalidated page is
 expired, and the next visitor waits for its render), and gives up after five
-minutes (`WARM_TOTAL_MS`). The meta and matchups pages render from the last
+minutes (`WARM_TOTAL_MS`). The meta, matchups and Vicious Gold pages render from the last
 good open slice (`apps/public-web/lib/pageLastGood.ts`: memory, and a file in
 `shared/server-data/next-page-last-good-v1/` that outlives releases;
 `PAGE_LAST_GOOD_DIR` overrides the directory) when Express does not answer

@@ -58,6 +58,8 @@ export type StandardMetaRouterDependencies = {
   ) => Promise<unknown>;
   loadViciousGold: () => Promise<unknown>;
   loadViciousGoldBuilds: () => Promise<unknown>;
+  /** `SERVER_DATA_DIR`: the open Vicious Gold frame is kept there across restarts (#677). */
+  stateDirectory?: string;
   findRecommendation: (
     archetype: string,
     archetypeLabel: string,

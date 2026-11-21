@@ -7470,6 +7470,7 @@ app.use('/api', createStandardMetaRouter({
   loadMeta: loadStandardMeta,
   loadViciousGold: loadViciousSyndicateGold,
   loadViciousGoldBuilds: loadViciousSyndicateGoldBuilds,
+  stateDirectory: DATA_DIR,
   findRecommendation: findStandardMetaRecommendation,
   createPreview: createStandardMetaPreview,
   getPreview: fetchStandardMetaPreview,
