@@ -37,8 +37,9 @@ function visibleCards(cards: readonly { id: string; name: string }[]) {
 
 test('open Ranger names and artwork survive replacement by the deck resolver, including a cold dictionary', async () => {
   let online = false;
+  const dictionaryUrl = 'https://api.hearthstonejson.com/v1/latest/ruRU/cards.json';
   const network = mock.method(globalThis, 'fetch', async (url: string) =>
-    String(url).includes('api.hearthstonejson.com') && online ? Response.json(official) : new Response(null, { status: 503 }));
+    online && url === dictionaryUrl ? Response.json(official) : new Response(null, { status: 503 }));
   const db = new DatabaseSync(':memory:');
   try {
     const dependencies = { adminGuard: () => {}, setPrivateNoStore: () => {}, getDatabase: () => db,
