@@ -129,7 +129,7 @@ export function buildPatchNotesSnapshot(
       : { entries: [], missingBefore: 0, pictureSections: [], generalChanges: [] };
     const meta = metaFor({ version, publishedAt: publishedAt(row) });
     const poolChanges = enrichPoolGroups(row.pool_changes, resolve);
-    const contentSections = readContentSections(row.content_sections);
+    const contentSections = readContentSections(row.content_sections, resolve);
     return {
       version, build: text(row.version) ?? version,
       title: text(row.title) ?? text(row.official_title) ?? `Обновление ${version}`,

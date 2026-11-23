@@ -35,7 +35,7 @@ function resolveList(
   return shouldResolve ? items.map(item => resolvePoolItem(item, mode, subtitle, resolve)) : items.map(item => ({ ...item }));
 }
 
-/** Resolves removed/returning pool cards against the Battlegrounds and collectible catalogs. */
+/** Resolves removed, new and returning pool cards against the Battlegrounds and collectible catalogs. */
 export function enrichPoolGroups(raw: unknown, resolve: PatchCardResolver): PatchNotesPoolGroup[] | undefined {
   if (!Array.isArray(raw) || !raw.length) return undefined;
   const groups = (raw as PatchNotesPoolGroup[]).map(group => {
@@ -46,19 +46,31 @@ export function enrichPoolGroups(raw: unknown, resolve: PatchCardResolver): Patc
       title: group.title,
       ...(group.note ? { note: group.note } : {}),
       ...(group.removed?.length ? { removed: resolveList(group.removed, group.mode, subtitle, resolve, true) } : {}),
-      ...(group.added?.length ? { added: resolveList(group.added, group.mode, subtitle, resolve, false) } : {}),
+      // New cards resolve too: they gain the library picture as soon as the catalog lists them.
+      ...(group.added?.length ? { added: resolveList(group.added, group.mode, subtitle, resolve, true) } : {}),
       ...(group.returning?.length ? { returning: resolveList(group.returning, group.mode, subtitle, resolve, true) } : {}),
     };
   });
   return groups.length ? groups : undefined;
 }
 
-/** Keeps structured content sections from an official article row when present. */
-export function readContentSections(raw: unknown): PatchNotesContentSection[] | undefined {
+/** Card pictures of a section item, resolved by name and tier unless the data gives the card id. */
+function resolveSectionCards(cards: readonly PatchNotesPoolItem[], mode: PatchNotesMode, resolve: PatchCardResolver): PatchNotesPoolItem[] {
+  // A card the data already names by id (a hero, a hero skin) keeps it: a name lookup could pick a namesake.
+  return cards.map(card => (card.cardId ? { ...card } : resolvePoolItem(card, mode, null, resolve)));
+}
+
+/** Keeps structured content sections from an official article row when present; their cards resolve against the catalogs. */
+export function readContentSections(raw: unknown, resolve: PatchCardResolver): PatchNotesContentSection[] | undefined {
   if (!Array.isArray(raw) || !raw.length) return undefined;
   return (raw as PatchNotesContentSection[]).map(section => ({
     ...section,
-    ...(section.items ? { items: section.items.map(item => ({ ...item, ...(item.bullets ? { bullets: [...item.bullets] } : {}) })) } : {}),
+    ...(section.items ? { items: section.items.map(item => ({
+      ...item,
+      ...(item.bullets ? { bullets: [...item.bullets] } : {}),
+      ...(item.cards?.length ? { cards: resolveSectionCards(item.cards, section.mode, resolve) } : {}),
+      ...(item.images?.length ? { images: item.images.map(image => ({ ...image })) } : {}),
+    })) } : {}),
     ...(section.columns ? { columns: [...section.columns] } : {}),
     ...(section.rows ? { rows: section.rows.map(row => [...row]) } : {}),
   }));

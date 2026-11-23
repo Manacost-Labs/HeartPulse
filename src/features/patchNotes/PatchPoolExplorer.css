@@ -1,6 +1,6 @@
 /*
- * Pool rotation explorer: parchment ledger with category tabs, semantic status
- * filters (removed / new / returning), previewable card chips and new-card tiles.
+ * Pool rotation explorer: parchment ledger with category tabs and semantic status
+ * filters (removed / new / returning); the cards themselves are a PatchCardGallery.
  */
 
 .hp-pool {
@@ -76,117 +76,9 @@
 .hp-pool__status[data-status='returning'][aria-pressed='true'] { border-color: #543408; background: #7a4d0e; color: #fff6dc; }
 
 .hp-pool__tab:focus-visible,
-.hp-pool__status:focus-visible,
-.hp-pool-chip--interactive:focus-visible,
-.hp-pool-card__name--btn:focus-visible { outline: 2px solid var(--arena-red); outline-offset: 2px; }
-
-.hp-pool__chips {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.5rem), 1fr));
-  gap: 0.45rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.hp-pool__chips > li,
-.hp-pool__new-grid > li { min-width: 0; }
-
-.hp-pool-chip {
-  display: flex;
-  gap: 0.4rem;
-  align-items: center;
-  width: 100%;
-  min-width: 0;
-  min-height: 2.4rem;
-  padding: 0.38rem 0.65rem;
-  border: 1px solid var(--patch-line);
-  border-radius: 5px;
-  color: var(--arena-ink);
-  font: inherit;
-  font-size: 0.9rem;
-  line-height: 1.3;
-  text-align: left;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.hp-pool-chip[data-status='removed'] { border-color: rgba(147, 32, 42, 0.28); background: rgba(147, 32, 42, 0.08); }
-.hp-pool-chip[data-status='returning'] { border-color: rgba(122, 77, 14, 0.32); background: rgba(217, 171, 73, 0.16); }
-
-.hp-pool-chip--interactive {
-  cursor: pointer;
-  transition: background var(--motion-fast) var(--motion-ease), border-color var(--motion-fast) var(--motion-ease);
-}
-
-.hp-pool-chip--interactive[data-status='removed']:hover,
-.hp-pool-chip--interactive[data-status='removed']:focus-visible { border-color: var(--patch-nerf); background: rgba(147, 32, 42, 0.15); }
-.hp-pool-chip--interactive[data-status='returning']:hover,
-.hp-pool-chip--interactive[data-status='returning']:focus-visible { border-color: #7a4d0e; background: rgba(217, 171, 73, 0.28); }
-.hp-pool-chip--interactive .hp-pool-chip__name { text-decoration: underline dotted rgba(95, 55, 29, 0.55); text-underline-offset: 3px; }
-
-.hp-pool-chip__mark { flex: none; font-weight: 800; }
-.hp-pool-chip[data-status='removed'] .hp-pool-chip__mark { color: var(--patch-nerf); }
-.hp-pool-chip[data-status='returning'] .hp-pool-chip__mark { color: #7a4d0e; }
-
-.hp-pool-chip__badge {
-  flex: none;
-  padding: 0.06rem 0.34rem;
-  border-radius: 4px;
-  background: rgba(95, 55, 29, 0.13);
-  color: #4b3522;
-  font-size: 0.76rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-}
-
-.hp-pool-chip__name { min-width: 0; font-weight: 600; overflow-wrap: anywhere; }
-
-.hp-pool__new-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.75rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.hp-pool-card {
-  display: grid;
-  gap: 0.45rem;
-  align-content: start;
-  height: 100%;
-  min-width: 0;
-  padding: 0.85rem 1rem;
-  border: 1px solid rgba(47, 110, 57, 0.34);
-  border-radius: 6px;
-  background: linear-gradient(180deg, rgba(47, 110, 57, 0.08), rgba(247, 232, 191, 0.68));
-}
-
-.hp-pool-card__head { display: flex; gap: 0.5rem; align-items: baseline; min-width: 0; }
-.hp-pool-card__name { margin: 0; color: var(--arena-ink); font-size: 0.98rem; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
-
-.hp-pool-card__name--btn {
-  padding: 0;
-  border: 0;
-  background: transparent;
-  font-family: inherit;
-  text-align: left;
-  text-decoration: underline dotted rgba(95, 55, 29, 0.65);
-  text-underline-offset: 3px;
-  cursor: pointer;
-}
-
-.hp-pool-card__name--btn:hover { color: var(--arena-red); }
-.hp-pool-card__meta { display: flex; flex-wrap: wrap; gap: 0.35rem; font-size: 0.8rem; font-weight: 700; font-variant-numeric: tabular-nums; }
-.hp-pool-card__tag { padding: 0.1rem 0.45rem; border: 1px solid rgba(95, 55, 29, 0.24); border-radius: 4px; background: rgba(247, 232, 191, 0.82); color: #4b3522; }
-.hp-pool-card__tag--accent { border-color: rgba(47, 110, 57, 0.32); background: rgba(47, 110, 57, 0.1); color: #205228; }
-.hp-pool-card__text { margin: 0; color: var(--arena-ink); font-size: 0.92rem; line-height: 1.5; overflow-wrap: anywhere; }
-
-@media (max-width: 720px) {
-  .hp-pool__new-grid { grid-template-columns: minmax(0, 1fr); }
-}
+.hp-pool__status:focus-visible { outline: 2px solid var(--arena-red); outline-offset: 2px; }
 
 @media (max-width: 599px) {
   .hp-pool { padding: 0.85rem; }
-  .hp-pool__tab, .hp-pool__status, .hp-pool-chip { min-height: 2.625rem; }
+  .hp-pool__tab, .hp-pool__status { min-height: 2.625rem; }
 }

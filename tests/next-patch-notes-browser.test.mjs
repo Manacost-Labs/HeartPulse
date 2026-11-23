@@ -29,7 +29,7 @@ const version = (observed, sha) => ({ observed_at: observed, media: { card_image
 const hammerHistory = { data: { card_id: 'BG36_MagicItem_403', versions: [
   version('2026-10-02 10:00:00.000000', 'b'.repeat(64)), version('2026-09-20 10:00:00.000000', 'a'.repeat(64)),
 ] } };
-// Battlegrounds cards referenced by 37.0.2 general changes and 37.2.0 pool rotations, so their lines/chips carry card buttons.
+// Battlegrounds cards referenced by 37.0.2 general changes and 37.2.0 pool rotations, so their lines/pictures carry card buttons.
 const battlegroundMinions = { data: [
   { card_id: 'BG33_Reflector', name: { ru: 'Неутомимый отражатель', en: 'Tireless Reflector' }, card_type: { slug: 'minion' }, tavern_tier: 4, images: {} },
   { card_id: 'BG28_707', name: { ru: 'Живой азерит', en: 'Living Azerite' }, card_type: { slug: 'minion' }, tavern_tier: 3, images: {} },
@@ -121,12 +121,17 @@ test('patch notes show the two newest patches as cards before → after, and the
     await page.goto(`${pilot.origin}/standard/patches/`, { waitUntil: 'networkidle2' });
     await page.waitForSelector('.hp-pool');
     assert.equal(await page.$$eval('.hp-pool [role="tab"]', nodes => nodes.length), 5, 'five Battlegrounds pool tabs');
+    // The fixture catalog lists few cards: unresolved ones are drawn cards, so the counts are of gallery tiles.
+    assert.equal(await page.$$eval('.hp-pool .hp-gal[data-status="removed"] .hp-gal__item', nodes => nodes.length), 108,
+      'all 108 removed minions render under Удалены');
     await page.click('.hp-pool__status[data-status="added"]');
-    await page.waitForSelector('.hp-pool-card');
-    assert.equal(await page.$$eval('.hp-pool-card', nodes => nodes.length), 66, 'all 66 new minions render under Новые');
+    await page.waitForSelector('.hp-pool .hp-gal[data-status="added"]');
+    assert.equal(await page.$$eval('.hp-pool .hp-gal__item', nodes => nodes.length), 66, 'all 66 new minions render under Новые');
     await page.click('.hp-pool__status[data-status="returning"]');
-    await page.waitForSelector('.hp-pool-chip[data-status="returning"]');
-    assert.equal(await page.$$eval('.hp-pool-chip[data-status="returning"]', nodes => nodes.length), 23, 'all 23 returning minions render under Возвращаются');
+    await page.waitForSelector('.hp-pool .hp-gal[data-status="returning"]');
+    assert.equal(await page.$$eval('.hp-pool .hp-gal__item', nodes => nodes.length), 23, 'all 23 returning minions render under Возвращаются');
+    assert.ok(await page.$$eval('.hp-csec .hp-figs__img', nodes => nodes.length) >= 10, 'sections show their illustrations');
+    assert.ok(await page.$$eval('.hp-csec .hp-gal__item', nodes => nodes.length) >= 49, 'heroes, functionality cards and 30 skins are pictures');
     await page.click('.hp-csec__toggle');
     await page.waitForSelector('.hp-csec__table');
     const expandedState = await pageState(page);

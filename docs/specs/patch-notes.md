@@ -68,6 +68,21 @@ and `PatchContentSections` renders overview cards, structured lists and tables
 (with button toggles for long lists/tables, without `<details>`, `<select>`,
 `<input>` or `<nav>` inside `.hp-patch`).
 
+Both show pictures rather than plain lists (`PatchCardGallery`): pool cards are
+library renders through the image proxy, and every new card resolves too, so it
+gains its catalog render as soon as the catalog lists it. Until then the
+official card library supplies the Russian name, text and render
+(`officialRenders.ts`, proxied as the `blizzard` public-resource source); a card
+without any picture is drawn as a parchment card. A section may carry a `banner`
+and its items `images` (illustrations stored under
+`public/assets/patch-notes/37-2/`, with their pixel size; the `ru-*` ones are
+the Manacost Telegram overviews with translated card text) and `cards` (heroes
+by id as round portraits, hero skins by their kolodahs static render, other
+cards resolved by name). Names follow the Russian client: Timewarp is
+«малая/ключевая хрономалия», Resilient «Стойкость», Mission «Цель»; hero powers
+and skins use their HearthstoneJSON ruRU names. Illustrations open full size in
+the site's `MediaLightbox`.
+
 ## Parsing contract
 
 - A change is a card name line followed by `До изменения: …` and `После: …`.

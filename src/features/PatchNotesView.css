@@ -10,6 +10,7 @@
 @import './patchNotes/PatchGeneralChanges.css';
 @import './patchNotes/PatchPoolExplorer.css';
 @import './patchNotes/PatchContentSections.css';
+@import './patchNotes/PatchCardGallery.css';
 
 .hp-patch {
   --patch-buff: #2f6e39;
