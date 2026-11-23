@@ -8,6 +8,8 @@
 
 @import './patchNotes/PatchModeHeading.css';
 @import './patchNotes/PatchGeneralChanges.css';
+@import './patchNotes/PatchPoolExplorer.css';
+@import './patchNotes/PatchContentSections.css';
 
 .hp-patch {
   --patch-buff: #2f6e39;
@@ -75,6 +77,16 @@
 .hp-release__line a { display: inline-flex; gap: 0.3rem; align-items: center; min-height: 2.75rem; }
 .hp-release__line svg { width: 0.9rem; height: 0.9rem; }
 
+.hp-release__summary {
+  margin: 0.25rem 0 0;
+  max-width: 72ch;
+  color: var(--arena-ink);
+  font-family: var(--font-body);
+  font-size: 0.98rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
 .hp-release__empty {
   margin: 0;
   color: var(--arena-muted-ink);
@@ -86,6 +98,16 @@
 /* ── A mode of a patch ── */
 
 .hp-mode { display: grid; gap: 1.25rem; min-width: 0; }
+
+.hp-mode__sublabel {
+  margin: 0.25rem 0 -0.5rem;
+  color: var(--arena-muted-ink);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
 
 /* Two pairs in a row when the column allows, one pair otherwise. */
 .hp-pc-grid {

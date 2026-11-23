@@ -29,10 +29,11 @@ const version = (observed, sha) => ({ observed_at: observed, media: { card_image
 const hammerHistory = { data: { card_id: 'BG36_MagicItem_403', versions: [
   version('2026-10-02 10:00:00.000000', 'b'.repeat(64)), version('2026-09-20 10:00:00.000000', 'a'.repeat(64)),
 ] } };
-// Two Battlegrounds minions the general changes of 37.0.2 name, so their lines carry card buttons.
+// Battlegrounds cards referenced by 37.0.2 general changes and 37.2.0 pool rotations, so their lines/chips carry card buttons.
 const battlegroundMinions = { data: [
   { card_id: 'BG33_Reflector', name: { ru: 'Неутомимый отражатель', en: 'Tireless Reflector' }, card_type: { slug: 'minion' }, tavern_tier: 4, images: {} },
   { card_id: 'BG28_707', name: { ru: 'Живой азерит', en: 'Living Azerite' }, card_type: { slug: 'minion' }, tavern_tier: 3, images: {} },
+  { card_id: 'BG26_001', name: { ru: 'Воздушный баллист', en: 'Air Baller' }, card_type: { slug: 'minion' }, tavern_tier: 4, images: {} },
 ], pagination: { page: 1, has_next: false } };
 const externalRoutes = {
   '/api/v1/card-history/card/BG36_MagicItem_403': () => hammerHistory,
@@ -66,9 +67,12 @@ test('patch notes show the two newest patches as cards before → after, and the
   let browser;
   try {
     const recent = await (await fetch(`${pilot.origin}/api/patch-notes/recent`)).json();
-    // Reviewed official notes (37.0.2) come before the upstream fixture's 36.6.3 article; older patches are not on the page.
-    assert.deepEqual(recent.patches.map(patch => patch.version), ['37.0.2', '36.6.3']);
-    const hammer = recent.patches[1].entries.find(entry => entry.cardId === 'BG36_MagicItem_403');
+    // Reviewed official notes (37.2.0, 37.0.2) come before the upstream fixture's 36.6.3 article; older patches are not on the page.
+    assert.deepEqual(recent.patches.map(patch => patch.version), ['37.2.0', '37.0.2']);
+    assert.equal(recent.patches[0].poolChanges?.length, 5, '37.2.0 carries all five Battlegrounds pool-rotation groups');
+    assert.equal(recent.patches[0].sections?.length, 9, '37.2.0 carries structured overview, event, rewards, cosmetics and bug-fix sections');
+    const v3663 = await (await fetch(`${pilot.origin}/api/patch-notes/36.6.3`)).json();
+    const hammer = v3663.entries.find(entry => entry.cardId === 'BG36_MagicItem_403');
     assert.equal(hammer.beforeRenderUrl, `${pilot.externalOrigin}${ARCHIVE_PATH}${'a'.repeat(64)}.png`,
       'the last picture before the patch is "before"');
     assert.equal(hammer.afterRenderUrl, `${pilot.externalOrigin}${ARCHIVE_PATH}${'b'.repeat(64)}.png`,
@@ -78,7 +82,7 @@ test('patch notes show the two newest patches as cards before → after, and the
     // outlast the 600 ms first-paint read budget on a busy runner.
     await (await fetch(`${pilot.origin}/standard/patches/`)).text();
     const latestHtml = await (await fetch(`${pilot.origin}/standard/patches/`)).text();
-    assert.deepEqual([...latestHtml.matchAll(/<h2[^>]*>(Патч [\d.]+)<\/h2>/g)].map(match => match[1]), ['Патч 37.0.2', 'Патч 36.6.3'],
+    assert.deepEqual([...latestHtml.matchAll(/<h2[^>]*>(Патч [\d.]+)<\/h2>/g)].map(match => match[1]), ['Патч 37.2.0', 'Патч 37.0.2'],
       'the default page is the two newest patches, newest first');
     // The site's own header and menu keep their search and mode switch; the patch column has none of them.
     const column = latestHtml.slice(latestHtml.indexOf('class="hp-patch"'));
@@ -108,10 +112,26 @@ test('patch notes show the two newest patches as cards before → after, and the
       assert.deepEqual(state.h1, ['Патчноуты Hearthstone']);
       assert.equal(state.overflow, false, `no horizontal overflow at ${width}px`);
       assert.deepEqual(state.violations, [], `axe at ${width}px`);
-      assert.deepEqual(await page.$$eval('.hp-release__title', nodes => nodes.map(node => node.textContent)), ['Патч 37.0.2', 'Патч 36.6.3']);
+      assert.deepEqual(await page.$$eval('.hp-release__title', nodes => nodes.map(node => node.textContent)), ['Патч 37.2.0', 'Патч 37.0.2']);
       assert.equal(await page.$$eval('.hp-patch input, .hp-patch select, .hp-patch details, .hp-patch nav', nodes => nodes.length), 0,
         'no search, filters, contents, switcher or card menus');
     }
+    // 37.2.0 pool explorer & collapsible sections: switch tabs/statuses, expand rewards table, check overflow and axe.
+    await page.setViewport({ width: 1440, height: 900 });
+    await page.goto(`${pilot.origin}/standard/patches/`, { waitUntil: 'networkidle2' });
+    await page.waitForSelector('.hp-pool');
+    assert.equal(await page.$$eval('.hp-pool [role="tab"]', nodes => nodes.length), 5, 'five Battlegrounds pool tabs');
+    await page.click('.hp-pool__status[data-status="added"]');
+    await page.waitForSelector('.hp-pool-card');
+    assert.equal(await page.$$eval('.hp-pool-card', nodes => nodes.length), 66, 'all 66 new minions render under Новые');
+    await page.click('.hp-pool__status[data-status="returning"]');
+    await page.waitForSelector('.hp-pool-chip[data-status="returning"]');
+    assert.equal(await page.$$eval('.hp-pool-chip[data-status="returning"]', nodes => nodes.length), 23, 'all 23 returning minions render under Возвращаются');
+    await page.click('.hp-csec__toggle');
+    await page.waitForSelector('.hp-csec__table');
+    const expandedState = await pageState(page);
+    assert.equal(expandedState.overflow, false, 'no horizontal overflow with expanded rewards table');
+    assert.deepEqual(expandedState.violations, [], 'no axe violations with pool explorer and expanded rewards table');
     // 1440 px: two cards in a row; a phone: one.
     await page.setViewport({ width: 1440, height: 900 });
     await page.goto(`${pilot.origin}${fixturePath}`, { waitUntil: 'networkidle2' });

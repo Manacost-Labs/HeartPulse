@@ -24,7 +24,7 @@ const archive = (title: string) => ({ patches: [{
 type Api = Parameters<typeof createPatchNotesApi>[0];
 const api = (directory: string, over: Partial<Api>) => createPatchNotesApi({
   stateDirectory: directory, patchesUrl: `${ORIGIN}/api/patches?limit=500&include_content=1`, ttlMs: 30 * 60_000,
-  fetchJson: hung, loadCardNames: hung, now: () => Date.parse('2026-11-20T12:00:00Z'), ...over,
+  officialArticles: [], fetchJson: hung, loadCardNames: hung, now: () => Date.parse('2026-11-20T12:00:00Z'), ...over,
 });
 
 /** Starts Express with the routes and returns one `/api` read, bounded by `timeoutMs`; `close` stops it. */

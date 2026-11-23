@@ -109,3 +109,51 @@ export const Phone: Story = {
 };
 
 export const Loading: Story = { render: () => <PatchNotesSkeleton /> };
+
+const season15: PatchNotesDetail = {
+  ...latest,
+  version: '37.2.0',
+  build: '37.2.0',
+  title: 'Обновление 37.2: 15-й сезон Полей сражений, потасовка 2 на 2 и события',
+  publishedAt: '2026-11-23T18:00:00+00:00',
+  sourceUrl: null,
+  summary: 'Обновление 37.2 выходит 1 декабря: 15-й сезон Полей сражений «Искажённая Империя», потасовка 2 на 2 и 5 бесплатных карт.',
+  entries: [wrathguard, tiered],
+  generalChanges: [{ mode: 'arena', lines: ['Карты «Власти Темной Империи» вернулись к обычному шансу на драфте.'] }],
+  poolChanges: [
+    {
+      id: 'bg-minions', mode: 'battlegrounds', title: 'Существа',
+      removed: [{ name: 'Воздушный баллист', sourceName: 'Air Baller', cardId: 'BG26_001', tier: 4 }],
+      added: [{ name: 'Закалённый сквернопёс', sourceName: 'Hardy Felhound', tier: 2, tribe: 'Демон', stats: '1/4', text: 'Устойчивость.' }],
+      returning: [{ name: 'Бродячий кот', sourceName: 'Alleycat', cardId: 'BG_CFM_315', tier: 1 }],
+    },
+    {
+      id: 'bg-spells', mode: 'battlegrounds', title: 'Заклинания таверны',
+      removed: [{ name: 'Знамя Альянса', sourceName: 'Alliance Flag', tier: 2 }],
+      added: [{ name: 'Воззвание земли', sourceName: 'Invocation of Earth', tier: 2, cost: 1, text: 'Даёт существу +3/+3. Если это элементаль, также даёт «Провокацию» до следующего хода.' }],
+    },
+  ],
+  sections: [
+    {
+      id: 'bg-mechanics', mode: 'battlegrounds', title: '15-й сезон: механики', kind: 'cards',
+      items: [{ title: 'Новое свойство: Устойчивость', meta: '1 декабря', body: 'Существо получает половину урона при атаке (с округлением вверх). Маскировка временно убрана.' }],
+    },
+    {
+      id: 'bg-rewards', mode: 'battlegrounds', title: 'Лента наград', kind: 'table', collapsedByDefault: true,
+      columns: ['Уровень', 'Опыт', 'Бесплатная лента', 'Сезонный пропуск'],
+      rows: [['1', '0', '—', '+2 слота героя']],
+      footnote: '* Часть наград станет доступна после 37.6.',
+    },
+  ],
+};
+
+export const MajorSeasonPatch: Story = {
+  args: { patches: [season15] },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByRole('heading', { level: 2, name: 'Патч 37.2.0' })).toBeVisible();
+    await expect(canvas.getByRole('tab', { name: /Существа/ })).toBeVisible();
+    await expect(canvas.getByRole('button', { name: /Новые/ })).toBeVisible();
+    await expect(canvasElement.querySelector('input, select, details, nav')).toBeNull();
+  },
+};

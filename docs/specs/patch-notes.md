@@ -52,6 +52,22 @@ Patch 37.0.2 is transcribed from
 2026. Exact before/after changes, Arena and pool notes, refund exceptions and
 general rules are preserved; developer commentary is summarized in Russian.
 
+Patch 37.2.0 is transcribed from Blizzard's early look article
+<https://hearthstone.blizzard.com/en-gb/news/24316976/an-early-look-at-patch-372-battlegrounds-season-15-2v2-tavern-brawl-and-more>,
+published 23 November 2026 (`server/modules/patchNotes/data/official372/`). In
+addition to all 69 before/after card changes and the Arena draft update, it
+carries optional `poolChanges` (removed, newly added and returning Battlegrounds
+minions, tavern spells, minor/major Timewarp cards and trinkets, resolved
+against the live Battlegrounds catalog for Russian names and card previews) and
+optional `sections` (new mechanics, heroes, functionality update, 40-level
+rewards track, 2v2 Tavern Brawl, events, cosmetics and 33 bug fixes). Both
+fields are optional on `PatchNotesDetail` and preserved by `last-good.json`.
+On the page, `PatchPoolExplorer` renders pool rotations with accessible tab and
+status buttons (`Удалены`, `Новые`, `Возвращаются`) and card tooltips/sheets,
+and `PatchContentSections` renders overview cards, structured lists and tables
+(with button toggles for long lists/tables, without `<details>`, `<select>`,
+`<input>` or `<nav>` inside `.hp-patch`).
+
 ## Parsing contract
 
 - A change is a card name line followed by `До изменения: …` and `После: …`.

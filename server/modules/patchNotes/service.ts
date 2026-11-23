@@ -12,6 +12,7 @@ import type { BattlegroundCatalogCard } from './battlegroundCatalog.js';
 import { createPatchCardResolver } from './cardNames.js';
 import { createCatalogCards } from './catalogCards.js';
 import { battlegroundNamed, collectibleNamed, createMentionFinder, withMentions } from './generalMentions.js';
+import { enrichPoolGroups, readContentSections, withSectionMentions } from './poolEnrichment.js';
 
 export { createCardNameResolver, createPatchCardResolver } from './cardNames.js';
 
@@ -127,20 +128,17 @@ export function buildPatchNotesSnapshot(
       ? parsePatchArticle(content, sections(row.sections), resolve)
       : { entries: [], missingBefore: 0, pictureSections: [], generalChanges: [] };
     const meta = metaFor({ version, publishedAt: publishedAt(row) });
+    const poolChanges = enrichPoolGroups(row.pool_changes, resolve);
+    const contentSections = readContentSections(row.content_sections);
     return {
-      version,
-      build: text(row.version) ?? version,
+      version, build: text(row.version) ?? version,
       title: text(row.title) ?? text(row.official_title) ?? `Обновление ${version}`,
-      publishedAt: publishedAt(row),
-      sourceUrl: httpUrl(row.source_url),
-      officialUrl: httpUrl(row.official_url),
+      publishedAt: publishedAt(row), sourceUrl: httpUrl(row.source_url), officialUrl: httpUrl(row.official_url),
       changeCount: parsed.entries.length,
-      // The stored summary runs on into the first heading; its first paragraph is the lead.
       summary: text(cleanArticleText(String(row.summary ?? '').split('\n').find(line => line.trim()) ?? '')),
       entries: parsed.entries.map(entry => enrichEntry(entry, { ...context, meta })),
-      missingBefore: parsed.missingBefore,
-      pictureSections: parsed.pictureSections,
-      generalChanges: parsed.generalChanges,
+      missingBefore: parsed.missingBefore, pictureSections: parsed.pictureSections, generalChanges: parsed.generalChanges,
+      ...(poolChanges ? { poolChanges } : {}), ...(contentSections ? { sections: contentSections } : {}),
       meta: meta?.meta ?? null,
     };
   });
@@ -206,7 +204,7 @@ export function createPatchNotesService(dependencies: PatchNotesServiceDependenc
     const built = buildPatchNotesSnapshot(articles, resolve, new Date(now()).toISOString(),
       { standard: new Set(standard), dbfs: createDbfLookup(cards), artwork }, metaFor);
     const finders = { battlegrounds: createMentionFinder(battlegroundNamed(battlegrounds)), collectible: createMentionFinder(collectibleNamed(cards)) };
-    const value = { ...built, patches: withMentions(built.patches, finders) };
+    const value = { ...built, patches: withSectionMentions(withMentions(built.patches, finders), finders) };
     // The cards of the newest patches that the dictionary lacks are read before the first answer (for a moment only); later answers fill in the rest.
     await Promise.race([catalogCards?.load(value.patches.filter(patch => patch.changeCount > 0).slice(0, 2)), new Promise(done => setTimeout(done, 2_500).unref())]);
     if (catalogCards) value.patches = catalogCards.fill(value.patches);

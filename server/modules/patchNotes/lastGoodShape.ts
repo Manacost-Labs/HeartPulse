@@ -32,5 +32,7 @@ export function isStoredPatch(value: unknown): value is PatchNotesDetail {
     && isCount(value.changeCount) && isCount(value.missingBefore)
     && Array.isArray(value.entries) && value.entries.every(isEntry)
     && isObjects(value.pictureSections) && isObjects(value.generalChanges)
+    && (value.poolChanges === undefined || isObjects(value.poolChanges))
+    && (value.sections === undefined || isObjects(value.sections))
     && (value.meta === null || isObject(value.meta));
 }

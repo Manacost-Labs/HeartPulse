@@ -17,6 +17,7 @@ export type ResolvedPatchCard = {
   cardType?: string | null;
   name?: string;
   renderUrl?: string | null;
+  tier?: number | null;
   /** What the article added to the name ("Способность К’Туна", "2-й уровень"): shown as the card's line, not as another spelling. */
   qualifier?: string;
 };

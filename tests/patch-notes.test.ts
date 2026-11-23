@@ -679,6 +679,38 @@ test('37.0.2 contains every official before/after pair and trinket cost, with Ru
   assert.deepEqual(greaterGlass?.changes, [{ label: 'Стоимость', before: 3, after: 4, better: 'lower' }]);
 });
 
+test('37.2.0 includes all official card changes, pool rotations (resolved via BG catalog) and structured sections', async () => {
+  const { official372 } = await import('../server/modules/patchNotes/data/official372/index.js');
+  const bgResolver = createPatchCardResolver({}, [
+    ...battlegroundCards,
+    { id: 'BG26_001', ru: 'Воздушный баллист', en: 'Air Baller', cardType: 'minion', group: null, timewarped: false, tier: 4,
+      renderUrl: 'https://art.hearthstonejson.com/v1/bgs/latest/ruRU/512x/BG26_001.png' },
+    { id: 'TB_BaconShop_HERO_38', ru: 'Король Мукла', en: 'King Mukla', cardType: 'hero', group: null, timewarped: false, tier: null, renderUrl: null },
+  ]);
+  const snapshot = buildPatchNotesSnapshot([official372], bgResolver, '2026-11-23T18:00:00Z');
+  const patch = snapshot.patches[0];
+  assert.equal(patch.version, '37.2.0');
+  assert.equal(patch.changeCount, 69);
+  assert.equal(patch.sourceUrl, null);
+  assert.match(patch.officialUrl ?? '', /24316976/);
+  assert.ok(patch.generalChanges.some(group => group.mode === 'arena'));
+  assert.equal(patch.entries.find(entry => entry.name === 'Король Мукла')?.cardId, 'TB_BaconShop_HERO_38');
+  assert.deepEqual(patch.poolChanges?.map(group => [group.id, group.removed?.length ?? 0, group.added?.length ?? 0, group.returning?.length ?? 0]), [
+    ['bg-minions', 108, 66, 23],
+    ['bg-spells', 9, 9, 2],
+    ['bg-minor-timewarp', 8, 37, 48],
+    ['bg-major-timewarp', 16, 44, 53],
+    ['bg-trinkets', 20, 0, 1],
+  ]);
+  const airBaller = patch.poolChanges?.[0]?.removed?.find(item => item.sourceName === 'Air Baller');
+  assert.equal(airBaller?.cardId, 'BG26_001');
+  assert.equal(airBaller?.renderUrl, 'https://art.hearthstonejson.com/v1/bgs/latest/ruRU/512x/BG26_001.png');
+  assert.equal(patch.sections?.length, 9);
+  assert.equal(patch.sections?.find(section => section.id === 'bg-season-15-rewards')?.rows?.length, 40);
+  const bugFixes = patch.sections?.find(section => section.id === 'other-bug-fixes');
+  assert.equal(bugFixes?.items?.reduce((sum, item) => sum + (item.bullets?.length ?? 0), 0), 33);
+});
+
 // Before/after pictures: the card history of the data API, as it answered on 2026-11-19 (trimmed to the picture fields).
 const cardHistory = JSON.parse(readFileSync(new URL('./fixtures/card-history-37-0-2-20261119.json', import.meta.url), 'utf8')) as
   Record<string, { data: { versions: unknown[] } }>;

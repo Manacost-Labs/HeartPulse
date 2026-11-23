@@ -122,6 +122,54 @@ export type PatchNotesMention = {
 /** Rule changes the article states as plain sentences under a "general changes" heading. */
 export type PatchNotesGeneralChanges = { mode: PatchNotesMode; lines: string[]; marks?: PatchNotesMention[] };
 
+/** One card in a pool rotation list: removed, added or returning. */
+export type PatchNotesPoolItem = {
+  name: string;
+  sourceName?: string | null;
+  cardId?: string | null;
+  cardType?: string | null;
+  renderUrl?: string | null;
+  tier?: number | null;
+  cost?: number | null;
+  tribe?: string | null;
+  stats?: string | null;
+  text?: string | null;
+};
+
+/** One category of pool changes (e.g. Battlegrounds minions, tavern spells, timewarp, trinkets). */
+export type PatchNotesPoolGroup = {
+  id: string;
+  mode: PatchNotesMode;
+  title: string;
+  note?: string | null;
+  removed?: PatchNotesPoolItem[];
+  added?: PatchNotesPoolItem[];
+  returning?: PatchNotesPoolItem[];
+};
+
+/** One card or sub-group inside a structured patch overview/event/bugfix section. */
+export type PatchNotesHighlightItem = {
+  title: string;
+  meta?: string | null;
+  body?: string | null;
+  bullets?: string[];
+  marks?: PatchNotesMention[];
+};
+
+/** Rich non-diff section of a major patch (new mechanics, heroes, events, rewards track, cosmetics, bug fixes). */
+export type PatchNotesContentSection = {
+  id: string;
+  mode: PatchNotesMode;
+  title: string;
+  subtitle?: string | null;
+  kind: 'cards' | 'list' | 'table';
+  collapsedByDefault?: boolean;
+  items?: PatchNotesHighlightItem[];
+  columns?: string[];
+  rows?: string[][];
+  footnote?: string | null;
+};
+
 export type PatchNotesDetail = PatchNotesSummary & {
   summary: string | null;
   entries: PatchNotesEntry[];
@@ -129,6 +177,10 @@ export type PatchNotesDetail = PatchNotesSummary & {
   missingBefore: number;
   pictureSections: PatchNotesPictureSection[];
   generalChanges: PatchNotesGeneralChanges[];
+  /** Pool rotations (removed, newly added, returning cards) for major season patches. */
+  poolChanges?: PatchNotesPoolGroup[];
+  /** Structured overview, event, rewards, cosmetics and bug-fix sections for major patches. */
+  sections?: PatchNotesContentSection[];
   /** `null` when no snapshot of the day before the patch was kept: the patch then lists no archetypes. */
   meta: PatchNotesMeta | null;
 };
