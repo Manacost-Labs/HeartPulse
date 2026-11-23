@@ -8,7 +8,6 @@ export const RENDER_URL_PREFIXES = [
   'https://api.kolodahearthstone.com/uploads/',
   'https://bg.kolodahearthstone.ru/assset/',
   'https://bg.kolodahearthstone.ru/api/card-art',
-  'https://d15f34w2p8l1cc.cloudfront.net/hearthstone/',
 ] as const;
 
 /**

@@ -43,8 +43,10 @@ export const hero = (name: string, cardId: string, text?: string): PatchNotesPoo
 /** A card resolved by its English name against the Battlegrounds catalog. */
 export const bgCard = (name: string, sourceName: string): PatchNotesPoolItem => ({ name, sourceName });
 
-/** A card the catalogs do not list under its name (a hero power, a quest reward): the page shows its game render. */
-export const cardById = (name: string, cardId: string, cardType: string): PatchNotesPoolItem => ({ name, cardId, cardType });
+/** A card the catalogs do not list under its name (a hero power, a quest reward): its Russian Battlegrounds render. */
+export const cardById = (name: string, cardId: string, cardType: string): PatchNotesPoolItem => ({
+  name, cardId, cardType, renderUrl: `https://art.hearthstonejson.com/v1/bgs/latest/ruRU/512x/${encodeURIComponent(cardId)}.png`,
+});
 
 /** A hero skin of the kolodahs library, which keeps a static render of every skin. */
 export const heroSkin = (name: string, sourceName: string, cardId: string): PatchNotesPoolItem => ({

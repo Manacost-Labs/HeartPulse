@@ -32,11 +32,6 @@ export const PUBLIC_RESOURCE_SOURCES = {
     origin: 'https://api.blizzcore.ru',
     allowedPathPrefixes: ['/static/generated/'],
   },
-  // Card renders of the official Hearthstone card library (new cards before the catalogs list them).
-  blizzard: {
-    origin: 'https://d15f34w2p8l1cc.cloudfront.net',
-    allowedPathPrefixes: ['/hearthstone/'],
-  },
 } as const satisfies Record<string, PublicResourceSource>;
 
 const PUBLIC_RESOURCE_SOURCE_BY_HOST = new Map(

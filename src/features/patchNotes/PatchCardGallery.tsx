@@ -11,24 +11,31 @@ export type CardGalleryHandlers = {
   onOpenSheet: (item: PatchNotesPoolItem) => void;
 };
 
-type Picture = { src: string; shape: 'card' | 'portrait' };
+type Picture = { sources: string[]; shape: 'card' | 'portrait' };
 
 const HSJSON = '/api/public-resource/hsjson/v1';
 const isLocalAsset = (value: string) => value.startsWith('/assets/');
 const isProxied = (value: string) => publicResourceUrl(value).startsWith('/api/public-resource/');
 
 /**
- * The picture of a pool or section card: a stored illustration, the library render (through the image
- * proxy), a Battlegrounds hero portrait, or the game render of a card known only by its id.
+ * The real pictures of a pool or section card, best first: a stored illustration or the library render
+ * (through the image proxy), then the game's Russian renders of its id; a hero is its round portrait.
+ * `null` only for a card known by neither a picture nor an id.
  */
 export function cardGalleryPicture(item: PatchNotesPoolItem): Picture | null {
   const raw = item.renderUrl?.trim() ?? '';
-  if (isLocalAsset(raw)) return { src: raw, shape: 'card' };
-  if (raw && isProxied(raw)) return { src: publicResourceImageUrl(raw, { width: 256 }), shape: 'card' };
-  if (!item.cardId) return null;
+  const own = isLocalAsset(raw) ? [raw] : raw && isProxied(raw) ? [publicResourceImageUrl(raw, { width: 256 })] : [];
+  if (!item.cardId) return own.length ? { sources: own, shape: 'card' } : null;
   const id = encodeURIComponent(item.cardId);
-  if (item.cardType === 'hero') return { src: publicResourceImageUrl(`${HSJSON}/256x/${id}.jpg`, { width: 192 }), shape: 'portrait' };
-  return { src: publicResourceImageUrl(`${HSJSON}/render/latest/ruRU/256x/${id}.png`, { width: 256 }), shape: 'card' };
+  if (item.cardType === 'hero') return { sources: [...own, publicResourceImageUrl(`${HSJSON}/256x/${id}.jpg`, { width: 192 })], shape: 'portrait' };
+  return {
+    sources: [...new Set([
+      ...own,
+      publicResourceImageUrl(`${HSJSON}/bgs/latest/ruRU/512x/${id}.png`, { width: 256 }),
+      publicResourceImageUrl(`${HSJSON}/render/latest/ruRU/256x/${id}.png`, { width: 256 }),
+    ])],
+    shape: 'card',
+  };
 }
 
 /** The larger picture a hover preview or the preview sheet shows; `null` lets it fall back to the game render. */
@@ -40,60 +47,27 @@ export function cardGalleryPreview(item: PatchNotesPoolItem): string | null {
   return null;
 }
 
-function statsOf(stats: string | null | undefined): { attack: string; health: string } | null {
-  const match = /^\s*(\d+)\s*\/\s*(\d+)\s*$/.exec(stats ?? '');
-  return match ? { attack: match[1], health: match[2] } : null;
-}
-
-/** A drawn card for a card no library pictures yet: tier, cost, name, rule text, attack and health. */
-function BlankCard({ item, mark, costUnit }: { item: PatchNotesPoolItem; mark?: string; costUnit: string }) {
-  const stats = statsOf(item.stats);
-  const tier = typeof item.tier === 'number' && item.tier > 0 ? Math.min(item.tier, 7) : null;
-  return (
-    <span className="hp-gal__blank">
-      <span className="hp-gal__blank-top">
-        {tier && <span className="hp-gal__tier" aria-label={`Уровень таверны ${tier}`}>{'★'.repeat(tier)}</span>}
-        {typeof item.cost === 'number' && <span className="hp-gal__cost" aria-label={`Стоимость: ${item.cost} ${costUnit}`}>{item.cost}</span>}
-      </span>
-      <span className="hp-gal__blank-name">
+function GalleryTile({ item, mark, showText, handlers }: {
+  item: PatchNotesPoolItem; mark?: string; showText: boolean; handlers: CardGalleryHandlers;
+}) {
+  const picture = cardGalleryPicture(item);
+  const [attempt, setAttempt] = useState(0);
+  const src = picture?.sources[attempt] ?? null;
+  const caption = (
+    <span className="hp-gal__caption">
+      <span className="hp-gal__name">
         {mark && <span className="hp-gal__mark" aria-hidden="true">{mark}</span>}
         {item.name}
       </span>
-      {item.text && <span className="hp-gal__blank-text">{item.text}</span>}
-      {(stats || item.tribe) && (
-        <span className="hp-gal__blank-foot">
-          {stats && <span className="hp-gal__gem hp-gal__gem--attack" aria-label={`Атака ${stats.attack}`}>{stats.attack}</span>}
-          {item.tribe && <span className="hp-gal__tribe">{item.tribe}</span>}
-          {stats && <span className="hp-gal__gem hp-gal__gem--health" aria-label={`Здоровье ${stats.health}`}>{stats.health}</span>}
-        </span>
-      )}
+      {showText && item.text && <span className="hp-gal__text">{item.text}</span>}
     </span>
   );
-}
-
-function GalleryTile({ item, mark, costUnit, showText, handlers }: {
-  item: PatchNotesPoolItem; mark?: string; costUnit: string; showText: boolean; handlers: CardGalleryHandlers;
-}) {
-  const picture = cardGalleryPicture(item);
-  const [failed, setFailed] = useState(false);
-  const shown = picture && !failed ? picture : null;
-  if (!picture) {
-    return <div className="hp-gal__card hp-gal__card--blank"><BlankCard item={item} mark={mark} costUnit={costUnit} /></div>;
-  }
-  if (!shown) {
-    // A picture that fails keeps its box: the drawn card takes the same frame, so nothing below moves.
+  if (!src) {
+    // No picture could load: the tile keeps its box and its name, so nothing below moves; no card is drawn.
     return (
-      <div className="hp-gal__card hp-gal__card--blank">
-        <span className="hp-gal__frame" data-shape={picture.shape} data-missing="true">
-          {picture.shape === 'card' && <BlankCard item={item} costUnit={costUnit} />}
-        </span>
-        <span className="hp-gal__caption">
-          <span className="hp-gal__name">
-            {mark && <span className="hp-gal__mark" aria-hidden="true">{mark}</span>}
-            {item.name}
-          </span>
-          {showText && item.text && <span className="hp-gal__text">{item.text}</span>}
-        </span>
+      <div className="hp-gal__card hp-gal__card--missing">
+        <span className="hp-gal__frame" data-shape={picture?.shape ?? 'card'} data-missing="true" />
+        {caption}
       </div>
     );
   }
@@ -108,37 +82,31 @@ function GalleryTile({ item, mark, costUnit, showText, handlers }: {
       onBlur={handlers.onLeave}
       onClick={() => handlers.onOpenSheet(item)}
     >
-      <span className="hp-gal__frame" data-shape={shown.shape}>
+      <span className="hp-gal__frame" data-shape={picture?.shape}>
         <img
+          key={src}
           className="hp-gal__img"
-          src={shown.src}
+          src={src}
           alt=""
-          width={shown.shape === 'portrait' ? 192 : 256}
-          height={shown.shape === 'portrait' ? 192 : 358}
+          width={picture?.shape === 'portrait' ? 192 : 256}
+          height={picture?.shape === 'portrait' ? 192 : 358}
           loading="lazy"
           decoding="async"
-          onError={() => setFailed(true)}
+          onError={() => setAttempt(current => current + 1)}
         />
       </span>
-      <span className="hp-gal__caption">
-        <span className="hp-gal__name">
-          {mark && <span className="hp-gal__mark" aria-hidden="true">{mark}</span>}
-          {item.name}
-        </span>
-        {showText && item.text && <span className="hp-gal__text">{item.text}</span>}
-      </span>
+      {caption}
     </button>
   );
 }
 
-/** Pictures of the cards, heroes or skins a pool list or a section item names; a card without one is drawn. */
-export function PatchCardGallery({ items, handlers, mark, status, costUnit = 'золота', showText = true, label }: {
+/** Pictures of the cards, heroes or skins a pool list or a section item names. */
+export function PatchCardGallery({ items, handlers, mark, status, showText = true, label }: {
   items: readonly PatchNotesPoolItem[];
   handlers: CardGalleryHandlers;
   mark?: string;
   /** Pool status (`removed`, `added`, `returning`) that colours the mark. */
   status?: string;
-  costUnit?: string;
   /** The caption under a picture: off where the render already carries the rule text. */
   showText?: boolean;
   label?: string;
@@ -147,7 +115,7 @@ export function PatchCardGallery({ items, handlers, mark, status, costUnit = 'з
     <ul className="hp-gal" data-status={status} aria-label={label}>
       {items.map((item, index) => (
         <li key={`${item.cardId ?? item.name}-${index}`} className="hp-gal__item">
-          <GalleryTile item={item} mark={mark} costUnit={costUnit} showText={showText} handlers={handlers} />
+          <GalleryTile item={item} mark={mark} showText={showText} handlers={handlers} />
         </li>
       ))}
     </ul>

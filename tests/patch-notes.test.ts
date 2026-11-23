@@ -18,7 +18,6 @@ import {
 import { pickVersionPair } from '../server/modules/patchNotes/cardVersions.js';
 import { createPatchNotesRouter } from '../server/modules/patchNotes/routes.js';
 import { shortPatchVersion } from '../server/modules/patchNotes/contract.js';
-import { publicResourceUrl } from '../shared/publicResourceUrl.js';
 
 // Shapes copied from the stored hs-manacost.ru articles of 36.6.3 and 36.4.2.
 const article = [
@@ -731,8 +730,10 @@ test('37.2.0 shows pictures: translated illustrations, heroes and skins by id, n
   const crewman = added.find(item => item.sourceName === 'Cut-rate Crewman');
   assert.equal(crewman?.name, 'Дешевый матрос');
   assert.equal(crewman?.text, 'Провокация. Это существо стоит (2).');
-  assert.match(crewman?.renderUrl ?? '', /^https:\/\/d15f34w2p8l1cc\.cloudfront\.net\/hearthstone\/[0-9a-f]{64}\.png$/);
-  assert.match(publicResourceUrl(crewman?.renderUrl), /^\/api\/public-resource\/blizzard\/hearthstone\//, 'the render goes through the image proxy');
+  assert.equal(crewman?.renderUrl, '/assets/patch-notes/37-2/cards/cut-rate-crewman.webp');
+  const stored = patch.poolChanges?.flatMap(group => group.added ?? []).filter(item => item.renderUrl?.startsWith('/assets/')) ?? [];
+  assert.equal(stored.length, 155, 'every new card but the one the test catalog lists uses a stored render');
+  for (const item of stored) assert.ok(existsSync(new URL(`../public${item.renderUrl}`, import.meta.url)), `${item.renderUrl} is stored with the site`);
   assert.equal(added.find(item => item.sourceName === 'Nonchalant Napper')?.name, 'Невозмутимый соня');
   assert.ok(patch.poolChanges?.every(group => (group.added ?? []).every(item => item.renderUrl)), 'all 156 new cards have a render');
 
@@ -745,6 +746,8 @@ test('37.2.0 shows pictures: translated illustrations, heroes and skins by id, n
   assert.equal(functionality?.cards?.length, 13);
   assert.equal(functionality?.cards?.find(card => card.sourceName === 'Sharptooth Snapper')?.cardId, 'BG32_201');
   assert.equal(functionality?.cards?.find(card => card.cardId === 'BG23_HERO_201p')?.name, 'Чаща щупалец');
+  assert.equal(functionality?.cards?.find(card => card.cardId === 'BG22_HERO_000p_Alt')?.renderUrl,
+    'https://art.hearthstonejson.com/v1/bgs/latest/ruRU/512x/BG22_HERO_000p_Alt.png', 'a hero power shows its Russian render, not a drawn card');
   const skins = items.filter(item => item.cards?.some(card => card.cardType === 'hero-skin')).flatMap(item => item.cards ?? []);
   assert.equal(skins.length, 30);
   assert.ok(skins.every(card => card.renderUrl?.startsWith('https://api.kolodahearthstone.com/uploads/hero-skins/static/')));

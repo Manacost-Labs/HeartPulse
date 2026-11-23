@@ -122,7 +122,6 @@ export function PatchPoolExplorer({ groups }: { groups: PatchNotesPoolGroup[] })
           handlers={handlers}
           mark={activeStatus === 'added' ? undefined : STATUS_META[activeStatus].mark}
           status={activeStatus}
-          costUnit={activeGroup.id.includes('timewarp') ? 'хронума' : 'золота'}
           showText={false}
           label={`${activeGroup.title}: ${STATUS_META[activeStatus].label.toLocaleLowerCase('ru-RU')}`}
         />
