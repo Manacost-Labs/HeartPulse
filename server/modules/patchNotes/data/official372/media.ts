@@ -35,9 +35,28 @@ export function banner(file: string, alt: string): PatchNotesSectionImage {
   return { url: `${ASSET_ROOT}/${file}.webp`, alt, shape: 'banner', width: size[0], height: size[1] };
 }
 
-/** A Battlegrounds hero by its catalog id; the page shows its portrait. */
+/**
+ * Original in-game portraits (frame and armor) of the heroes the patch names, from the official
+ * card library (Russian), trimmed and stored under `public/assets/patch-notes/37-2/heroes/`.
+ */
+const HERO_PORTRAITS: Readonly<Record<string, string>> = {
+  BG31_HERO_005: 'zerek-master-cloner',
+  TB_BaconShop_HERO_27: 'sindragosa',
+  TB_BaconShop_HERO_49: 'millhouse-manastorm',
+  BG34_HERO_000: 'murozond-unbounded',
+  BG34_HERO_004: 'morchie',
+  TB_BaconShop_HERO_38: 'king-mukla',
+};
+const heroPortrait = (file: string) => `${ASSET_ROOT}/heroes/${file}.webp`;
+
+/** A Battlegrounds hero by its catalog id, shown as its original portrait. */
 export const hero = (name: string, cardId: string, text?: string): PatchNotesPoolItem => ({
-  name, cardId, cardType: 'hero', ...(text ? { text } : {}),
+  name, cardId, cardType: 'hero', ...(HERO_PORTRAITS[cardId] ? { renderUrl: heroPortrait(HERO_PORTRAITS[cardId]) } : {}), ...(text ? { text } : {}),
+});
+
+/** A new hero the catalogs do not list yet, by its stored portrait. */
+export const newHero = (name: string, file: string, text?: string): PatchNotesPoolItem => ({
+  name, cardType: 'hero', renderUrl: heroPortrait(file), ...(text ? { text } : {}),
 });
 
 /** A card resolved by its English name against the Battlegrounds catalog. */

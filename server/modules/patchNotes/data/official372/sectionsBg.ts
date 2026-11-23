@@ -1,5 +1,5 @@
 import type { PatchNotesContentSection } from '../../contract.js';
-import { banner, bgCard, cardById, hero } from './media.js';
+import { banner, bgCard, cardById, hero, newHero } from './media.js';
 
 export const BG_SECTIONS: PatchNotesContentSection[] = [
   {
@@ -56,12 +56,14 @@ export const BG_SECTIONS: PatchNotesContentSection[] = [
         meta: 'Новый герой',
         body: 'Сила героя «Рассвет Бесконечности» (Dawn of the Infinite): вы посещаете ключевую хрономалию вместо 1-го хода. Приобретённые карты блокируются у вас в руке, пока вы не потратите 45 золотых.',
         images: [banner('ru-hero-eternus', 'Вечнос и сила героя «Рассвет Бесконечности» — перевод текста')],
+        cards: [newHero('Вечнос', 'eternus')],
       },
       {
         title: 'Главарь Ванесса',
         meta: 'Новый герой',
         body: 'Сила героя «Стратегическое преимущество» (Strategic Edge): вы раскапываете существо 1-го уровня. (Улучшается за каждое существо, приобретённое вами на этом ходу!)',
         images: [banner('ru-hero-vanessa', 'Главарь Ванесса и сила героя «Стратегическое преимущество» — перевод текста')],
+        cards: [newHero('Главарь Ванесса', 'vanessa-the-ringleader')],
       },
       {
         title: 'Изменения пулов и лобби героев',
