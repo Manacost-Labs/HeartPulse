@@ -120,13 +120,14 @@ export function createBattlegroundNameResolver(cards: BattlegroundCatalogCard[])
     const candidates = byName.get(nameKey(name));
     if (!candidates?.length) return null;
     const subtitle = context?.subtitle ?? '';
-    const wanted = /броня героя/i.test(subtitle) ? (card: BattlegroundCatalogCard) => card.cardType === 'hero'
-      : /малый/i.test(subtitle) ? (card: BattlegroundCatalogCard) => card.group === 'lesser'
-        : /большой/i.test(subtitle) ? (card: BattlegroundCatalogCard) => card.group === 'greater'
-          : null;
+    const wanted = /броня героя|^герой\b/i.test(subtitle) ? (card: BattlegroundCatalogCard) => card.cardType === 'hero'
+      : /искажени/i.test(subtitle) ? (card: BattlegroundCatalogCard) => card.timewarped
+        : /малый/i.test(subtitle) ? (card: BattlegroundCatalogCard) => card.group === 'lesser'
+          : /большой/i.test(subtitle) ? (card: BattlegroundCatalogCard) => card.group === 'greater'
+            : null;
     const sameTier = context?.tier ? candidates.filter(card => card.tier === context.tier) : [];
     const pool = sameTier.length ? sameTier : wanted ? candidates.filter(wanted) : candidates;
     const card = [...(pool.length ? pool : candidates)].sort((left, right) => rank(left) - rank(right))[0];
-    return { id: card.id, cardClass: null, cardType: card.cardType, name: card.ru, renderUrl: card.renderUrl };
+    return { id: card.id, cardClass: null, cardType: card.cardType, name: card.ru, renderUrl: card.renderUrl, tier: card.tier ?? null };
   };
 }

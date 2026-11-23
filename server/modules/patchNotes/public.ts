@@ -2,6 +2,7 @@ import { createPatchNotesRouter } from './routes.js';
 import { createPatchNotesService, type PatchNotesServiceDependencies } from './service.js';
 import { PatchArchetypeSnapshotStore, createPatchArchetypeRecorder } from './archetypeSnapshots.js';
 import { official3702 } from './data/official3702.js';
+import { official372 } from './data/official372/index.js';
 import { PatchNotesLastGoodFile } from './lastGood.js';
 
 export { createPatchNotesRouter, type PatchNotesRouterDependencies } from './routes.js';
@@ -28,7 +29,9 @@ export function createPatchNotesApi(dependencies: PatchNotesServiceDependencies 
     setTimeout(record, 2 * 60_000).unref();
     setInterval(record, 60 * 60_000).unref();
   }
-  const notes = createPatchNotesService({ officialArticles: [official3702], ...service, archetypeSnapshots, lastGood, ...(onError ? { onError } : {}) });
+  const notes = createPatchNotesService({
+    officialArticles: [official372, official3702], ...service, archetypeSnapshots, lastGood, ...(onError ? { onError } : {}),
+  });
   return createPatchNotesRouter({
     load: notes.load, withCardVersions: notes.withCardVersions, incomplete: notes.incomplete, restored: notes.restored, ...(onError ? { onError } : {}),
   });

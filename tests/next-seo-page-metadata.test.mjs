@@ -23,11 +23,11 @@ async function head(origin, path) {
 const INVENTORY_ROUTES = JSON.parse(readFileSync('src/shared/seo/publicRouteInventory.json', 'utf8')).routes;
 const YEAR = String(new Date().getUTCFullYear());
 // Pages whose data this runtime has: their data templates apply. The patch notes show the bundled official
-// 37.0.2 (server/modules/patchNotes/data/official3702.ts, out on 3 November 2026 at 18:55 Moscow time).
+// 37.2.0 (server/modules/patchNotes/data/official372/, out on 23 November 2026 at 21:00 Moscow time).
 const DATA_TEXTS = {
   '/standard/patches': {
-    title: 'Патч Hearthstone 37.0.2: изменения карт | HearthPulse',
-    description: 'Патч 37.0.2 Hearthstone (хс) вышел 3 ноября 2026. Что усилили и ослабили — карты было → стало по классам, Поля сражений и архив патчей.',
+    title: 'Патч Hearthstone 37.2.0: изменения карт | HearthPulse',
+    description: 'Патч 37.2.0 Hearthstone (хс) вышел 23 ноября 2026. Что усилили и ослабили — карты было → стало по классам, Поля сражений и архив патчей.',
   },
 };
 const REGISTRY_PAGES = Object.entries(JSON.parse(readFileSync('config/public-seo-pages.json', 'utf8')).pages)
