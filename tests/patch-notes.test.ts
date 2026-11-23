@@ -740,7 +740,11 @@ test('37.2.0 shows pictures: translated illustrations, heroes and skins by id, n
   const items = patch.sections?.flatMap(section => section.items ?? []) ?? [];
   const lobby = items.find(item => item.title === 'Изменения пулов и лобби героев');
   assert.deepEqual(lobby?.cards?.find(card => card.name === 'Синдрагоса'),
-    { name: 'Синдрагоса', cardId: 'TB_BaconShop_HERO_27', cardType: 'hero', text: 'Теперь заблокирована в лобби с пиратами' });
+    { name: 'Синдрагоса', cardId: 'TB_BaconShop_HERO_27', cardType: 'hero', renderUrl: '/assets/patch-notes/37-2/heroes/sindragosa.webp',
+      text: 'Теперь заблокирована в лобби с пиратами' });
+  for (const card of lobby?.cards ?? []) {
+    assert.ok(card.renderUrl && existsSync(new URL(`../public${card.renderUrl}`, import.meta.url)), `${card.name} shows its original portrait`);
+  }
   assert.equal(lobby?.bullets, undefined);
   const functionality = items.find(item => item.title === 'Эффекты «При появлении места в бою»');
   assert.equal(functionality?.cards?.length, 13);

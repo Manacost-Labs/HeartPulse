@@ -120,8 +120,8 @@ export function PatchPoolExplorer({ groups }: { groups: PatchNotesPoolGroup[] })
           key={`${activeGroup.id}-${activeStatus}`}
           items={activeItems}
           handlers={handlers}
-          mark={activeStatus === 'added' ? undefined : STATUS_META[activeStatus].mark}
           status={activeStatus}
+          showName={false}
           showText={false}
           label={`${activeGroup.title}: ${STATUS_META[activeStatus].label.toLocaleLowerCase('ru-RU')}`}
         />

@@ -16,6 +16,21 @@
 
 .hp-gal__item { display: flex; min-width: 0; }
 
+/* Pool lists: the render carries the name, so the grid is pictures only. */
+.hp-gal[data-compact='true'] { grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: 0.35rem 0.4rem; }
+.hp-gal[data-compact='true'] .hp-gal__card { padding: 0.15rem; }
+
+.hp-gal__missing-name {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  padding: 0.4rem;
+  color: var(--arena-muted-ink);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: center;
+}
+
 .hp-gal__card {
   display: flex;
   flex-direction: column;
@@ -41,6 +56,8 @@
 .hp-gal__card--missing:hover { border-color: transparent; background: transparent; }
 
 .hp-gal__frame { display: block; width: 100%; aspect-ratio: 256 / 358; }
+
+.hp-gal__frame[data-shape='hero'] { width: min(100%, 8.5rem); aspect-ratio: 300 / 312; }
 
 .hp-gal__frame[data-shape='portrait'] {
   width: min(100%, 6.5rem);
@@ -103,6 +120,7 @@
 
 @media (max-width: 599px) {
   .hp-gal { grid-template-columns: repeat(auto-fill, minmax(6.4rem, 1fr)); gap: 0.6rem 0.4rem; }
+  .hp-gal[data-compact='true'] { grid-template-columns: repeat(auto-fill, minmax(5.6rem, 1fr)); gap: 0.25rem; }
   .hp-gal__name { font-size: 0.8rem; }
 }
 

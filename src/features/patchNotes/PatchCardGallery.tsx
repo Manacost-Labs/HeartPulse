@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import type { PatchNotesPoolItem, PatchNotesSectionImage } from '../../modules/patchNotes/public';
 import type { MediaLightboxItem } from '../../components/ModalSurface/MediaLightbox';
 import { publicResourceImageUrl, publicResourceUrl } from '../../publicResourceUrl';
@@ -11,7 +11,7 @@ export type CardGalleryHandlers = {
   onOpenSheet: (item: PatchNotesPoolItem) => void;
 };
 
-type Picture = { sources: string[]; shape: 'card' | 'portrait' };
+type Picture = { sources: string[]; shape: 'card' | 'hero' | 'portrait' };
 
 const HSJSON = '/api/public-resource/hsjson/v1';
 const isLocalAsset = (value: string) => value.startsWith('/assets/');
@@ -25,9 +25,10 @@ const isProxied = (value: string) => publicResourceUrl(value).startsWith('/api/p
 export function cardGalleryPicture(item: PatchNotesPoolItem): Picture | null {
   const raw = item.renderUrl?.trim() ?? '';
   const own = isLocalAsset(raw) ? [raw] : raw && isProxied(raw) ? [publicResourceImageUrl(raw, { width: 256 })] : [];
-  if (!item.cardId) return own.length ? { sources: own, shape: 'card' } : null;
+  if (!item.cardId) return own.length ? { sources: own, shape: item.cardType === 'hero' ? 'hero' : 'card' } : null;
   const id = encodeURIComponent(item.cardId);
-  if (item.cardType === 'hero') return { sources: [...own, publicResourceImageUrl(`${HSJSON}/256x/${id}.jpg`, { width: 192 })], shape: 'portrait' };
+  // A hero is its original portrait when stored, else the round crop of its art.
+  if (item.cardType === 'hero') return own.length ? { sources: own, shape: 'hero' } : { sources: [publicResourceImageUrl(`${HSJSON}/256x/${id}.jpg`, { width: 192 })], shape: 'portrait' };
   return {
     sources: [...new Set([
       ...own,
@@ -44,29 +45,50 @@ export function cardGalleryPreview(item: PatchNotesPoolItem): string | null {
   if (isLocalAsset(raw)) return raw;
   if (raw && isProxied(raw)) return publicResourceUrl(raw);
   if (item.cardId && item.cardType === 'hero') return `${HSJSON}/256x/${encodeURIComponent(item.cardId)}.jpg`;
+  if (item.cardType === 'hero') return null;
   return null;
 }
 
-function GalleryTile({ item, mark, showText, handlers }: {
-  item: PatchNotesPoolItem; mark?: string; showText: boolean; handlers: CardGalleryHandlers;
+/** One retry of the same picture before the next source: a cold image proxy can fail a burst of first loads. */
+const RETRY_DELAY_MS = 1200;
+
+function GalleryTile({ item, mark, showName, showText, handlers }: {
+  item: PatchNotesPoolItem; mark?: string; showName: boolean; showText: boolean; handlers: CardGalleryHandlers;
 }) {
   const picture = cardGalleryPicture(item);
   const [attempt, setAttempt] = useState(0);
+  const [retried, setRetried] = useState(false);
+  const [waiting, setWaiting] = useState(false);
+  useEffect(() => {
+    if (!waiting) return undefined;
+    const timer = window.setTimeout(() => { setWaiting(false); setRetried(true); }, RETRY_DELAY_MS);
+    return () => window.clearTimeout(timer);
+  }, [waiting]);
+  const onError = () => {
+    if (!retried) { setWaiting(true); return; }
+    setRetried(false);
+    setAttempt(current => current + 1);
+  };
   const src = picture?.sources[attempt] ?? null;
-  const caption = (
+  const shape = picture?.shape ?? 'card';
+  const caption = (showName || (showText && item.text)) ? (
     <span className="hp-gal__caption">
-      <span className="hp-gal__name">
-        {mark && <span className="hp-gal__mark" aria-hidden="true">{mark}</span>}
-        {item.name}
-      </span>
+      {showName && (
+        <span className="hp-gal__name">
+          {mark && <span className="hp-gal__mark" aria-hidden="true">{mark}</span>}
+          {item.name}
+        </span>
+      )}
       {showText && item.text && <span className="hp-gal__text">{item.text}</span>}
     </span>
-  );
+  ) : null;
   if (!src) {
     // No picture could load: the tile keeps its box and its name, so nothing below moves; no card is drawn.
     return (
-      <div className="hp-gal__card hp-gal__card--missing">
-        <span className="hp-gal__frame" data-shape={picture?.shape ?? 'card'} data-missing="true" />
+      <div className="hp-gal__card hp-gal__card--missing" title={item.name}>
+        <span className="hp-gal__frame" data-shape={shape} data-missing="true">
+          {!showName && <span className="hp-gal__missing-name">{item.name}</span>}
+        </span>
         {caption}
       </div>
     );
@@ -77,23 +99,26 @@ function GalleryTile({ item, mark, showText, handlers }: {
       className="hp-gal__card"
       data-lightbox-module="card-preview"
       aria-label={`${item.name}: показать карту`}
+      title={showName ? undefined : item.name}
       onPointerEnter={event => { if (event.pointerType === 'mouse') handlers.onHover(item, event.currentTarget); }}
       onPointerLeave={handlers.onLeave}
       onBlur={handlers.onLeave}
       onClick={() => handlers.onOpenSheet(item)}
     >
-      <span className="hp-gal__frame" data-shape={picture?.shape}>
-        <img
-          key={src}
-          className="hp-gal__img"
-          src={src}
-          alt=""
-          width={picture?.shape === 'portrait' ? 192 : 256}
-          height={picture?.shape === 'portrait' ? 192 : 358}
-          loading="lazy"
-          decoding="async"
-          onError={() => setAttempt(current => current + 1)}
-        />
+      <span className="hp-gal__frame" data-shape={shape}>
+        {!waiting && (
+          <img
+            key={`${src}|${retried ? 1 : 0}`}
+            className="hp-gal__img"
+            src={src}
+            alt=""
+            width={shape === 'portrait' ? 192 : shape === 'hero' ? 300 : 256}
+            height={shape === 'portrait' ? 192 : shape === 'hero' ? 312 : 358}
+            loading="lazy"
+            decoding="async"
+            onError={onError}
+          />
+        )}
       </span>
       {caption}
     </button>
@@ -101,21 +126,23 @@ function GalleryTile({ item, mark, showText, handlers }: {
 }
 
 /** Pictures of the cards, heroes or skins a pool list or a section item names. */
-export function PatchCardGallery({ items, handlers, mark, status, showText = true, label }: {
+export function PatchCardGallery({ items, handlers, mark, status, showName = true, showText = true, label }: {
   items: readonly PatchNotesPoolItem[];
   handlers: CardGalleryHandlers;
   mark?: string;
   /** Pool status (`removed`, `added`, `returning`) that colours the mark. */
   status?: string;
+  /** The name under a picture: off where the render already carries it (pool cards). */
+  showName?: boolean;
   /** The caption under a picture: off where the render already carries the rule text. */
   showText?: boolean;
   label?: string;
 }) {
   return (
-    <ul className="hp-gal" data-status={status} aria-label={label}>
+    <ul className="hp-gal" data-status={status} data-compact={showName ? undefined : 'true'} aria-label={label}>
       {items.map((item, index) => (
         <li key={`${item.cardId ?? item.name}-${index}`} className="hp-gal__item">
-          <GalleryTile item={item} mark={mark} showText={showText} handlers={handlers} />
+          <GalleryTile item={item} mark={mark} showName={showName} showText={showText} handlers={handlers} />
         </li>
       ))}
     </ul>

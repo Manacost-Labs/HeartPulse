@@ -80,16 +80,24 @@ function CardsBody({ items, handlers }: { items: readonly PatchNotesHighlightIte
   return (
     <div className="hp-csec__cards">
       {items.map((item, index) => (
-        <article key={`${item.title}-${index}`} className="hp-csec-card" data-media={hasMedia(item) ? 'true' : undefined}>
-          <div className="hp-csec-card__head">
-            <h5 className="hp-csec-card__title">{item.title}</h5>
-            {item.meta && <span className="hp-csec-card__meta">{item.meta}</span>}
+        <article
+          key={`${item.title}-${index}`}
+          className="hp-csec-card"
+          data-media={hasMedia(item) ? 'true' : undefined}
+          data-aside={item.images?.length ? 'true' : undefined}
+        >
+          <div className="hp-csec-card__main">
+            <div className="hp-csec-card__head">
+              <h5 className="hp-csec-card__title">{item.title}</h5>
+              {item.meta && <span className="hp-csec-card__meta">{item.meta}</span>}
+            </div>
+            {item.body && <p className="hp-csec-card__text">{item.body}</p>}
+            {item.bullets && item.bullets.length > 0 && (
+              <BulletLines bullets={item.bullets} marks={item.marks} handlers={handlers} />
+            )}
+            {item.cards && item.cards.length > 0 && <PatchCardGallery items={item.cards} handlers={handlers.cards} label={item.title} />}
           </div>
-          {item.body && <p className="hp-csec-card__text">{item.body}</p>}
-          {item.bullets && item.bullets.length > 0 && (
-            <BulletLines bullets={item.bullets} marks={item.marks} handlers={handlers} />
-          )}
-          <ItemMedia item={item} handlers={handlers} />
+          {item.images && item.images.length > 0 && <div className="hp-csec-card__aside"><PatchFigures images={item.images} /></div>}
         </article>
       ))}
     </div>
