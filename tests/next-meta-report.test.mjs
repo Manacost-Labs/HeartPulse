@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
 import test from 'node:test';
+import { INDEXABLE_ROBOTS } from '../src/shared/seo/robots.ts';
 import { PAID_SENTINELS } from './helpers/metaReportFixture.ts';
 import { LEAKED, startMetaReportStand } from './helpers/metaReportStand.mjs';
 
@@ -44,9 +45,10 @@ test('a report prints the snapshot with the change to the previous week of the s
     assert.match(html, /<title>Мета Hearthstone на 30 ноября 2026: еженедельный отчёт \| HearthPulse<\/title>/);
     assert.deepEqual(meta(html, 'description'), ['Мета Hearthstone на 30 ноября 2026: лидер по винрейту — Йогг Воин (60,2%), '
       + 'самый популярный — Зоо Чернокнижник (10,4%). Стандарт, матчапы, классы Арены и герои Полей сражений.']);
-    assert.deepEqual(meta(html, 'robots'), ['noindex, follow'], 'reports stay out of the index until SEO-A indexes them');
-    assert.deepEqual([...html.matchAll(/<link rel="canonical" href="([^"]*)"/g)].map(match => match[1]), [],
-      'no canonical while the report is noindex (the inventory says none)');
+    assert.deepEqual(meta(html, 'robots'), [INDEXABLE_ROBOTS], 'a report on settled data is indexed (#612)');
+    assert.deepEqual([...html.matchAll(/<link rel="canonical" href="([^"]*)"/g)].map(match => match[1]),
+      ['https://hearthpulse.net/reports/meta/2026-11-30/'], 'and canonical to itself');
+    assert.match(html, /"@type":"Dataset"[^<]*"temporalCoverage":"2026-11-30"/, 'its Dataset is dated by the snapshot, not by the request');
 
     // Under the H1 one line of data: the date of the snapshot and the sources; methodology only in «Об отчёте».
     assert.equal(lead(html), 'Срез 30 ноября 2026 · HSGuru, HSReplay');
@@ -110,7 +112,11 @@ test('no change across a new HSGuru period, none for the first report; nothing p
     assert.ok(!firstText.includes('п.п.') && !firstText.includes('новый в топе'));
 
     const archive = await (await fetch(`${stand.origin}/reports/meta/`)).text();
-    assert.deepEqual(meta(archive, 'robots'), ['noindex, follow']);
+    assert.deepEqual(meta(archive, 'robots'), [INDEXABLE_ROBOTS], 'three reports: the archive is indexed');
+    assert.ok(archive.includes('"@type":"CollectionPage"'));
+    assert.deepEqual(meta(changed, 'robots'), ['noindex, follow'], 'a report after a patch younger than 72 hours stays out of the index');
+    assert.ok(!changed.includes('"@type":"Dataset"'), 'and has no Dataset JSON-LD');
+    assert.deepEqual(meta(first, 'robots'), [INDEXABLE_ROBOTS]);
     assert.match(archive, /<title>Мета-отчёты Hearthstone по неделям \| HearthPulse<\/title>/);
     assert.equal(lead(archive), '3 отчёта, последний — 7 декабря 2026', 'the archive has one line under its H1, then the list');
     assert.deepEqual(links(archive).filter(href => href.startsWith('/reports/meta/2')),
@@ -119,8 +125,22 @@ test('no change across a new HSGuru period, none for the first report; nothing p
     for (const [path, html] of [['/reports/meta/2026-12-07/', changed], ['/reports/meta/2026-11-23/', first], ['/reports/meta/', archive]]) {
       assert.ok(html.includes('self.__next_f.push'), `${path} carries an RSC payload, so the check is not vacuous`);
       assert.deepEqual([...LEAKED, ...PAID_SENTINELS].filter(value => html.includes(value)), [], `${path} holds no paid value`);
-      assert.ok(!html.includes('"@type":"Dataset"'), `${path} is noindex, so it has no Dataset JSON-LD yet`);
     }
+  } finally {
+    await stand.close();
+  }
+});
+
+test('with one report the archive stays noindex without JSON-LD, the report is indexed', async () => {
+  const stand = await startMetaReportStand({ scenario: 'first' });
+  try {
+    const archive = await (await fetch(`${stand.origin}/reports/meta/`)).text();
+    assert.deepEqual(meta(archive, 'robots'), ['noindex, follow']);
+    assert.ok(!archive.includes('"@type":"CollectionPage"'));
+    assert.equal(lead(archive), '1 отчёт, последний — 23 ноября 2026');
+    const report = await (await fetch(`${stand.origin}/reports/meta/2026-11-23/`)).text();
+    assert.deepEqual(meta(report, 'robots'), [INDEXABLE_ROBOTS]);
+    assert.ok(report.includes('"@type":"Dataset"'));
   } finally {
     await stand.close();
   }

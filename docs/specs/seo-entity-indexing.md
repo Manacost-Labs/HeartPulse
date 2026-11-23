@@ -635,6 +635,51 @@ list on the open pool with every card of one class in the server HTML.
 - nginx не меняется: `location ^~ /sitemaps/` проксирует любой сегмент в
   Express.
 
+## Мета-отчёты: страницы и сегмент `/sitemaps/meta-reports.xml` (#612)
+
+Еженедельные отчёты (`docs/specs/meta-report-snapshots.md`) в индексе с первого
+снимка 23.11.2026. Правило одно, его читают страницы и сегмент —
+`shared/metaReportIndexing.ts`:
+
+- **Отчёт** `/reports/meta/<дата>/` — `index, follow`, canonical на себя,
+  JSON-LD (`WebPage`, `Dataset` с `temporalCoverage` = дата среза). Кроме
+  отчёта с ранними данными: патч вышел меньше чем за 72 часа до среза
+  (`isEarlyMetaReport`) — страница остаётся `noindex, follow` без JSON-LD, а в
+  сегмент не попадает. Неизвестная дата и пустой архив — 404 `noindex`, как
+  раньше.
+- **Архив** `/reports/meta/` — в inventory `index`, но сама страница
+  ставит `noindex, follow` и не печатает JSON-LD, пока в архиве меньше двух
+  отчётов (`isIndexableMetaReportArchive`). В реестре
+  `config/public-seo-pages.json` архива нет: страницы реестра обязаны
+  отвечать 200 без данных, а пустой архив — 404; в `static.xml` его нет, адрес
+  архива лежит в сегменте отчётов.
+- **Сегмент** `meta-reports.xml` (последний в `/sitemap.xml`):
+  `server/entitySitemapMetaReportSources.ts`. Источник — те же снимки, что
+  отдаёт `GET /api/meta-reports` (`list`/`get` хранилища, подключены в
+  `server/index.ts` через `startMetaReportSnapshots`). Ключ — дата среза или
+  `archive`; адрес — `/reports/meta/<дата>/` или `/reports/meta/`
+  (`server/entitySitemapValidation.ts`).
+- **`lastmod`.** Дата среза отчёта (не день, когда сервер его заметил);
+  у архива — дата новейшего отчёта, хеш меняется с каждым новым отчётом.
+  Отчёт записывается один раз и не меняется, поэтому его день не движется.
+- **Защита.** Минимум — 1 запись (без порога в окружении), относительная
+  проверка усечения выключена. Нечитаемое хранилище или ни одного
+  индексируемого отчёта — последний удачный сегмент
+  (`X-Sitemap-Source: last-known-good`), без него — 503 с `Retry-After`.
+  Архив из одного отчёта в кандидате отвергает весь кандидат.
+- **Монитор.** `scripts/production-monitor.mjs`: сегмент `metaReports`
+  (не меньше 1 URL, образцы первый и последний: самый старый отчёт и, от двух
+  отчётов, архив; 200, `index`, canonical = `loc`, JSON-LD страницы). Шаблон
+  `meta-report-detail` берёт образец из сегмента; шаблон `meta-report-archive`
+  в `UNMONITORED_TEMPLATES`: с одним отчётом страница `noindex`, а образец
+  сегмента её проверяет ровно тогда, когда она в индексе.
+- **IndexNow.** Сегмент входит в `INDEXNOW_FIRST_BUILD_SEGMENTS`
+  (`server/indexNow.ts`): первая сборка без сохранённого состояния считает
+  предыдущее состояние пустым документом, и адрес первого отчёта уходит в
+  IndexNow после деплоя. Остальные сегменты ведут себя как раньше.
+- nginx не меняется: `location ^~ /sitemaps/` проксирует сегмент в Express, а
+  `/reports/meta/` уже направлен в Next.
+
 ## Canonical карт двух форматов (#307)
 
 Карта, легальная в Стандарте, имеет одну индексируемую страницу —
@@ -656,8 +701,10 @@ self-canonical. В `wild-cards.xml` копий карт Стандарта не�
 (`server/entitySitemapRoutes.ts` → `entitySitemapDynamicLoader.ts`).
 `changedSitemapLocations` из `server/indexNow.ts` отдаёт новые, изменённые
 (другой `semanticHash` или адрес) и ушедшие адреса; без предыдущего состояния —
-пустой список. Запасная копия и устаревший источник хук не вызывают; ошибка
-хука или IndexNow не меняет ответ карты сайта. Порядок работы и выключение —
+пустой список, кроме сегментов из `INDEXNOW_FIRST_BUILD_SEGMENTS` (сейчас
+`meta-reports`, #612): у них первая сборка объявляет все адреса. Запасная
+копия и устаревший источник хук не вызывают; ошибка хука или IndexNow не
+меняет ответ карты сайта. Порядок работы и выключение —
 `docs/runbooks/search-consoles.md#indexnow-304`.
 
 ## Documentation impact

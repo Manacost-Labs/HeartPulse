@@ -3,7 +3,7 @@
   "scope": "Authored Express route and middleware registrations under server/",
   "summary": {
     "sourceFiles": 117,
-    "routeRegistrations": 312,
+    "routeRegistrations": 313,
     "middlewareRegistrations": 158,
     "explicitGuardRouteRegistrations": 74,
     "unresolvedPaths": 0
@@ -2498,6 +2498,19 @@
     },
     {
       "kind": "route",
+      "method": "GET",
+      "path": "/sitemaps/meta-reports.xml",
+      "pathKind": "string",
+      "receiver": "router",
+      "middleware": [],
+      "handler": "<inline-handler>",
+      "guardSignals": [],
+      "source": "server/entitySitemapRoutes.ts",
+      "sourceOrder": 2,
+      "expansionOrder": 9
+    },
+    {
+      "kind": "route",
       "method": "ALL",
       "path": "/^\\/sitemaps\\/.*$/",
       "pathKind": "regexp",
@@ -3172,7 +3185,7 @@
       ],
       "receiver": "app",
       "handlers": [
-        "createMetaReportApi(...)"
+        "createMetaReportApi(metaReportSnapshots)"
       ],
       "guardSignals": [],
       "source": "server/index.ts",

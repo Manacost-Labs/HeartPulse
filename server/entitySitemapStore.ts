@@ -51,7 +51,7 @@ function normalizedOrigin(value: string | undefined): string {
   }
 }
 
-const UNRATIOED_SEGMENTS = new Set<SitemapSegment>(['archetypes', 'battleground-minions', 'decks', 'static-pages']);
+const UNRATIOED_SEGMENTS = new Set<SitemapSegment>(['archetypes', 'battleground-minions', 'decks', 'meta-reports', 'static-pages']);
 
 function recoveryFilename(filename: string): string {
   return filename.replace(/\.json$/i, '.lkg.json');

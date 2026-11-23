@@ -26,11 +26,14 @@ export const SAMPLE_SOURCES = {
   'bg-library-detail': [{ segment: 'battlegroundMinions' }],
   'constructed-archetype-detail': [{ segment: 'archetypes' }],
   'standard-decks-class': [{ segment: 'decks' }],
+  'meta-report-detail': [{ segment: 'metaReports' }],
   // The class pages of the Arena tier list (#668) are in static.xml, one fixed sample of the template.
   'tierlist-class': [{ path: '/tierlist/mage/' }],
 };
 
 export const UNMONITORED_TEMPLATES = {
+  'meta-report-archive':
+    '/reports/meta/ is index only from two reports on (`isIndexableMetaReportArchive`), so a fixed sample fails with one report; the meta-reports segment lists it exactly then, and the monitor opens that URL (#612)',
   'bg-library-archive-detail':
     '/library/archive/<kind>/<slug>/ exists only for retired cards (the first minion of the sitemap answers 404) and no sitemap lists them; see #371',
   'bg-library-additional-detail':
@@ -45,6 +48,7 @@ export function pageTemplateSamples(templates = INDEXABLE_TEMPLATES) {
   const samples = [];
   const uncovered = [];
   for (const route of templates) {
+    if (UNMONITORED_TEMPLATES[route.id]) continue;
     if (isStaticTemplate(route)) {
       samples.push({ id: route.id, path: route.pattern === '/' ? '/' : `${route.pattern}/` });
     } else if (SAMPLE_SOURCES[route.id]) {

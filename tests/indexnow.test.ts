@@ -124,6 +124,24 @@ test('the sitemap hook says once whether it is on, sends the changed addresses i
   assert.equal(silent.sent.length, 0);
 });
 
+test('the first build of a new segment announces all its addresses; the first build of any other segment announces nothing', async () => {
+  const document = (segment: 'meta-reports' | 'decks', dates: string[]) => ({
+    schemaVersion: 1 as const, segment, updatedAt: '2026-11-23T10:00:00.000Z', entryCount: dates.length, contentHash: dates.join(),
+    entries: dates.map(date => ({ key: date, location: `${ORIGIN}/reports/meta/${date}/`, semanticHash: date, lastmod: date })),
+  });
+  const network = endpoint([200, 200]);
+  const hook = createSitemapIndexNowHook('production', { config: CONFIG, log: () => undefined, fetchImpl: network.fetchImpl });
+  hook('decks', null, document('decks', ['2026-11-20']));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(network.sent.length, 0, 'a segment that is not new keeps the rule: no state, no announcement');
+  hook('meta-reports', null, document('meta-reports', ['2026-11-23']));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(network.sent.map(request => request.body.urlList), [[`${ORIGIN}/reports/meta/2026-11-23/`]]);
+  hook('meta-reports', document('meta-reports', ['2026-11-23']), document('meta-reports', ['2026-11-23', '2026-11-30']));
+  await new Promise(resolve => setImmediate(resolve));
+  assert.deepEqual(network.sent.at(-1)?.body.urlList, [`${ORIGIN}/reports/meta/2026-11-30/`], 'later builds announce only the difference');
+});
+
 test('changed addresses: new, changed and removed; none on a first build', () => {
   const document = (entries: Array<[string, string]>) => ({
     schemaVersion: 1 as const, segment: 'battleground-heroes' as const, updatedAt: '2026-11-20T00:00:00.000Z',

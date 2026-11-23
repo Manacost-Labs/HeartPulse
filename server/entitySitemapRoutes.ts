@@ -1,11 +1,7 @@
 import { createHash } from 'node:crypto';
 import { createDynamicDocumentLoader } from './entitySitemapDynamicLoader.js';
 import { Router, type Request, type RequestHandler, type Response } from 'express';
-import {
-  type SemanticSitemapDocument,
-  type SitemapSegment,
-  type SitemapSemanticEntry,
-} from './entitySitemapStore.js';
+import { type SemanticSitemapDocument, type SitemapSegment, type SitemapSemanticEntry } from './entitySitemapStore.js';
 import {
   canonicalSitemapOrigin,
   projectBattlegroundHeroSitemapCatalog,
@@ -16,6 +12,7 @@ import {
 } from './entitySitemapProjections.js';
 import { projectCosmeticsSitemapCatalog, projectGuideArchiveSitemapCatalog } from './entitySitemapEditorial.js';
 import { projectDeckClassSitemapCatalog } from './entitySitemapDeckSources.js';
+import { projectMetaReportSitemapCatalog } from './entitySitemapMetaReportSources.js';
 import {
   createStaticPageDays, datedStaticLocations, sendUnavailable, sitemapIndexEntries, type DatedLocation,
 } from './entitySitemapComposite.js';
@@ -49,6 +46,7 @@ export type EntitySitemapRouterDependencies = {
   loadGuidesArchive?: () => Promise<unknown[]>;
   loadArchetypes?: () => Promise<unknown[]>;
   loadDecks?: () => Promise<unknown[]>;
+  loadMetaReports?: () => Promise<unknown[]>;
   staticUrls: string[];
   /** Content fingerprint by address of each static page, written by the build. The store dates a page by when it first saw one. */
   staticFingerprints?: ReadonlyMap<string, string>;
@@ -87,6 +85,7 @@ const ENTITY_SITEMAP_PATHS: DynamicSitemapDefinition['pathname'][] = [
   '/sitemaps/guides-archive.xml',
   '/sitemaps/archetypes.xml',
   '/sitemaps/decks.xml',
+  '/sitemaps/meta-reports.xml',
 ];
 
 export {
@@ -215,6 +214,10 @@ function dynamicSitemapDefinitions(
   if (dependencies.loadDecks) definitions.push({
     segment: 'decks', pathname: '/sitemaps/decks.xml', load: dependencies.loadDecks,
     project: rows => projectDeckClassSitemapCatalog(rows, origin), minimumEntryCount: dependencies.minimumDeckClassCount ?? 1,
+  });
+  if (dependencies.loadMetaReports) definitions.push({
+    segment: 'meta-reports', pathname: '/sitemaps/meta-reports.xml', load: dependencies.loadMetaReports,
+    project: rows => projectMetaReportSitemapCatalog(rows, origin), minimumEntryCount: 1,
   });
   return definitions;
 }

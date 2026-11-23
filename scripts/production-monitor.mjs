@@ -168,6 +168,20 @@ const ENTITY_SITEMAP_SEGMENTS = [
     identityFragment: null,
     pageJsonLd: true,
   },
+  // Weekly meta reports the page itself marks indexable (no patch younger than 72 hours at the snapshot, #612) and the
+  // archive from two reports on: one URL is enough for the floor. Two are sampled, the first and the last entry (the
+  // oldest report and, from two reports on, the archive). Each page prints its own JSON-LD graph.
+  {
+    key: 'metaReports',
+    path: '/sitemaps/meta-reports.xml',
+    label: 'meta report sitemap',
+    minimumUrls: 1,
+    pathPattern: /^\/reports\/meta\/(?:\d{4}-\d{2}-\d{2}\/)?$/,
+    identityFromPath: pathname => pathname.split('/').filter(Boolean).at(-1),
+    identityFragment: null,
+    pageJsonLd: true,
+    sampleCount: 2,
+  },
 ];
 
 function ensure(condition, message) {

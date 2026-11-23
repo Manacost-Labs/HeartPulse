@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // Early data (a patch younger than 72 hours) keeps a report out of the index even once reports are indexed.
   const robots = policy.indexPolicy === 'index' && view.earlyData ? robotsContent('noindex-follow') : policy.robots;
   return {
-    // The canonical comes from the route inventory: none while reports are noindex, self once SEO-A indexes them.
+    // The canonical comes from the route inventory (self); the robots follow `isEarlyMetaReport` as the sitemap segment does.
     title: { absolute: title }, description, robots,
     ...(policy.canonicalUrl ? { alternates: { canonical: policy.canonicalUrl } } : {}),
     openGraph: { type: 'article', url, siteName: 'HearthPulse', locale: 'ru_RU', title, description,
