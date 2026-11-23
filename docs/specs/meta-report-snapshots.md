@@ -162,18 +162,19 @@ The page copies the snapshot field by field once more
   the open catalog of now says the page is indexable
   (`isIndexableArchetype`).
 
-Indexing: both routes are `noindex-follow` and out of the sitemap in
-`src/shared/seo/publicRouteInventory.json`; SEO-A turns them to `index` and
-adds the sitemap segment in its own change. Neither has a canonical while it
-is noindex (`canonicalPolicy: "none"`); a report gets one to itself when SEO-A
-indexes it. Both build their title and
+Indexing (#612): both routes are `index` and self-canonical in
+`src/shared/seo/publicRouteInventory.json`, and listed in the
+`/sitemaps/meta-reports.xml` segment (docs/specs/seo-entity-indexing.md,
+«Мета-отчёты»). Both build their title and
 description themselves rather than from `config/public-seo-pages.json`: a
 registry page must answer 200 without data, and an empty archive is a 404.
-Once a report is indexable, a patch younger than 72 hours at the snapshot
-still keeps it `noindex, follow` (early data), and its JSON-LD (`WebPage`, `BreadcrumbList`,
+A patch younger than 72 hours at the snapshot keeps its report
+`noindex, follow` (early data, `isEarlyMetaReport`) with no JSON-LD and out of
+the segment; otherwise the report prints its JSON-LD (`WebPage`, `BreadcrumbList`,
 `Dataset` with `temporalCoverage` = the report date and `dateModified` = the
-time of the snapshot) appears; while noindex the page has no JSON-LD. The
-archive gets a `CollectionPage` with an `ItemList` of the reports.
+time of the snapshot). The archive is `noindex, follow` without JSON-LD until it
+lists two reports; from then on it is indexed and prints a `CollectionPage`
+with an `ItemList` of the reports.
 
 An unknown or impossible date, and the archive without any report, answer
 `404` with `noindex`. Express failing answers the generic error page.

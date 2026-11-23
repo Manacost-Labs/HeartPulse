@@ -52,11 +52,11 @@ export function startMetaReportSnapshots(dependencies: {
 }
 
 /**
- * Starts the weekly snapshots and answers them under `/api`: `GET /api/meta-reports` and
- * `GET /api/meta-reports/:date` (docs/specs/meta-report-snapshots.md, «HTTP»), the reads of the report pages.
+ * Answers the weekly snapshots under `/api`: `GET /api/meta-reports` and `GET /api/meta-reports/:date`
+ * (docs/specs/meta-report-snapshots.md, «HTTP»), the reads of the report pages. The same snapshots feed
+ * the `meta-reports` sitemap segment (`server/entitySitemapMetaReportSources.ts`).
  */
-export function createMetaReportApi(dependencies: Parameters<typeof startMetaReportSnapshots>[0]): Router {
-  const snapshots = startMetaReportSnapshots(dependencies);
+export function createMetaReportApi(snapshots: MetaReportSnapshots): Router {
   return createMetaReportRouter({
     list: snapshots.list, get: snapshots.get,
     onError: error => console.error('[meta-report-snapshots] read failed:', error instanceof Error ? error.message : error),

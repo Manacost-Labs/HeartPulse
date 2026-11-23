@@ -9,6 +9,7 @@ import {
   type ArchetypeSitemapSource,
 } from './entitySitemapArchetypeSources.js';
 import { loadIndexableDeckClassRows } from './entitySitemapDeckSources.js';
+import { createMetaReportRowsLoader, type MetaReportSitemapSource } from './entitySitemapMetaReportSources.js';
 import { isIndexableBattlegroundHero } from '../shared/battlegroundHeroIndexing.js';
 import { projectBattlegroundHeroRanking, type PublicHeroRankingMode } from './battlegroundHeroRankingProjection.js';
 
@@ -187,6 +188,7 @@ export function createEntitySitemapRuntimeOptions(
   environment: Record<string, string | undefined>,
   editorial?: EditorialSitemapSources,
   archetypes?: ArchetypeSitemapSource,
+  metaReports?: MetaReportSitemapSource,
 ) {
   return {
     ...createEntitySitemapLoaders(loadConstructedCards),
@@ -197,6 +199,8 @@ export function createEntitySitemapRuntimeOptions(
       loadDecks: () => loadIndexableDeckClassRows(archetypes),
       minimumDeckClassCount: minimumFromEnvironment(environment.SITEMAP_DECKS_MIN, 1),
     } : {}),
+    // One report is enough for the segment: it lists the indexable reports and the archive from two reports on.
+    ...(metaReports ? { loadMetaReports: createMetaReportRowsLoader(metaReports) } : {}),
     ...(editorial ? {
       loadCosmetics: () => loadCosmeticsSitemapRows(editorial.loadCosmeticsCatalog),
       loadGuidesArchive: async () => loadGuideArchiveSitemapRows(editorial.getGuidesDatabase()),

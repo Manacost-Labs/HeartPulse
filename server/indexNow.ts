@@ -1,4 +1,4 @@
-import type { SemanticSitemapDocument } from './entitySitemapTypes.js';
+import type { SemanticSitemapDocument, SitemapSegment } from './entitySitemapTypes.js';
 
 /**
  * IndexNow (docs/specs/seo-entity-indexing.md, «IndexNow»): after a sitemap
@@ -49,6 +49,14 @@ export const INDEXNOW_MASS_CHANGE = { minEntries: 200, ratio: 0.5 } as const;
 export function isMassChange(changed: number, segmentSize: number): boolean {
   return segmentSize >= INDEXNOW_MASS_CHANGE.minEntries && changed > segmentSize * INDEXNOW_MASS_CHANGE.ratio;
 }
+
+/**
+ * Segments that did not exist before they were first built, and whose first build is news: every address of it is
+ * announced, as if the previous state were an empty document (`meta-reports`, #612: the first report would otherwise
+ * never reach IndexNow). Other segments keep the rule above, since an old segment without state means lost state, and
+ * announcing it whole would repeat every address of a large list (the mass-change guard stays for all of them).
+ */
+export const INDEXNOW_FIRST_BUILD_SEGMENTS: ReadonlySet<SitemapSegment> = new Set<SitemapSegment>(['meta-reports']);
 
 export type IndexNowNotifier = (urls: string[]) => Promise<void>;
 
@@ -162,8 +170,9 @@ export function createSitemapIndexNowHook(nodeEnv: string | undefined, options: 
   const announce = createIndexNowNotifier({
     config: { ...base, enabled }, origin: options.origin ?? 'https://hearthpulse.net', log, fetchImpl: options.fetchImpl,
   });
-  return (segment: string, previous: SemanticSitemapDocument | null, next: SemanticSitemapDocument): void => {
-    const changed = changedSitemapLocations(previous, next);
+  return (segment: SitemapSegment, previous: SemanticSitemapDocument | null, next: SemanticSitemapDocument): void => {
+    const known = previous ?? (INDEXNOW_FIRST_BUILD_SEGMENTS.has(segment) ? { ...next, entries: [], entryCount: 0 } : null);
+    const changed = changedSitemapLocations(known, next);
     if (isMassChange(changed.length, next.entryCount)) {
       log(`[indexnow] ${segment}: ${changed.length} of ${next.entryCount} URL changed at once, not sent`);
       return;

@@ -9,6 +9,8 @@ export type SitemapSegment =
   | 'archetypes'
   /** Class pages of Standard decks (`/standard/decks/<class>/`) above the content threshold. */
   | 'decks'
+  /** Weekly meta reports (`/reports/meta/<date>/`) the page itself marks indexable, and the archive from two reports on. */
+  | 'meta-reports'
   /** Internal: dates the static pages; it has no sitemap of its own. */
   | 'static-pages';
 

@@ -1,6 +1,7 @@
 import type {
   MetaReportSnapshot, ReportArena, ReportBattlegrounds, ReportHero, ReportMatchups, ReportStandard, ReportStandardItem,
 } from './publicMetaReportData';
+import { isEarlyMetaReport } from '@/shared/metaReportIndexing';
 
 /*
  * What a weekly meta report says (issue #542, «Решение по формату»), computed
@@ -18,8 +19,6 @@ export const REPORT_MATCHUP_ARCHETYPES = 5;
 export const REPORT_MIN_MATCHUP_GAMES = 25;
 /** An Arena class with fewer runs is not ranked: «мало данных». */
 export const REPORT_MIN_ARENA_SAMPLE = 100;
-/** A patch younger than this at the snapshot gives early, unsettled data. */
-const EARLY_PATCH_MS = 72 * 60 * 60_000;
 const WEEK_MS = 7 * 24 * 60 * 60_000;
 
 export type ArchetypeRow = ReportStandardItem & {
@@ -180,6 +179,6 @@ export function buildMetaReportView(current: MetaReportSnapshot, previous: MetaR
     arena: current.sections.arena.status === 'fresh' ? arenaView(current.sections.arena.data) : null,
     heroes: current.sections.battlegrounds.status === 'fresh' ? heroView(current.sections.battlegrounds.data) : null,
     patch: patchData ? { ...patchData, thisWeek: taken - released >= 0 && taken - released < WEEK_MS } : null,
-    earlyData: Number.isFinite(released) && taken - released >= 0 && taken - released < EARLY_PATCH_MS,
+    earlyData: isEarlyMetaReport(current.recordedAt, patchData?.publishedAt),
   };
 }

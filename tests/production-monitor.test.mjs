@@ -90,6 +90,8 @@ const sitemapArchetypePaths = [
 
 // Deck class pages above the content threshold (#650): at most 11; two are enough for first and last samples.
 const sitemapDeckClasses = ['paladin', 'warlock'];
+// Two reports and the archive, as the segment lists them (the archive sorts after the dates).
+const sitemapMetaReportPaths = ['/reports/meta/2026-11-23/', '/reports/meta/2026-11-30/', '/reports/meta/'];
 
 sitemapCardIds[0] = 'blizzard:12345';
 sitemapWildCardIds[0] = 'blizzard:67890';
@@ -275,6 +277,7 @@ const server = http.createServer((req, res) => {
       `${origin}/sitemaps/guides-archive.xml`,
       ...(seoFailure === 'index-without-archetypes' ? [] : [`${origin}/sitemaps/archetypes.xml`]),
       `${origin}/sitemaps/decks.xml`,
+      `${origin}/sitemaps/meta-reports.xml`,
     ], {
       lastmod: seoFailure === 'index-without-lastmod' ? ''
         : seoFailure === 'index-stale-lastmod' || (seoFailure === 'index-edge-stale' && !requestUrl.search) ? '2026-11-12' : '2026-11-16',
@@ -346,6 +349,10 @@ const server = http.createServer((req, res) => {
     '/sitemaps/decks.xml': [
       ...(seoFailure === 'decks-empty' ? [] : sitemapDeckClasses.map(key => `${origin}/standard/decks/${key}/`)),
       ...(seoFailure === 'decks-hub-in-segment' ? [`${origin}/standard/decks/`] : []),
+    ],
+    '/sitemaps/meta-reports.xml': seoFailure === 'meta-reports-empty' ? [] : [
+      ...sitemapMetaReportPaths.map(path => `${origin}${path}`),
+      ...(seoFailure === 'meta-reports-other-page' ? [`${origin}/reports/meta/latest/`] : []),
     ],
   };
   if (additionalSitemaps[requestUrl.pathname]) {
@@ -452,6 +459,16 @@ const server = http.createServer((req, res) => {
     res.end(`<!doctype html><html><body><main><h1>Лучшие колоды</h1></main>${OPEN_DECK_PAYLOAD}</body></html>`);
     return;
   }
+  const metaReportMatch = requestUrl.pathname.match(/^\/reports\/meta\/(?:(\d{4}-\d{2}-\d{2})\/)?$/);
+  if (metaReportMatch) {
+    const canonical = `${origin}${requestUrl.pathname}`;
+    // The newest address of the segment is the archive; the report pages are not sampled beyond the oldest.
+    const robots = seoFailure === 'meta-report-noindex' && !metaReportMatch[1] ? 'noindex, follow' : 'index, follow';
+    const graph = { '@context': 'https://schema.org', '@graph': [{ '@type': metaReportMatch[1] ? 'WebPage' : 'CollectionPage', url: canonical }] };
+    res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'X-Robots-Tag': 'index, follow' });
+    res.end(`<!doctype html><html><head><meta name="robots" content="${robots}"/><link rel="canonical" href="${canonical}"/><script type="application/ld+json">${JSON.stringify(graph)}</script></head><body><main><h1>${metaReportMatch[1] ?? 'Мета-отчёты'}</h1></main></body></html>`);
+    return;
+  }
   const editorialMatch = requestUrl.pathname.match(/^\/(?:cosmetics\/heroes|guides-archive)\/([A-Za-z0-9_-]+)\/$/);
   if (editorialMatch) {
     const canonical = `${origin}${requestUrl.pathname}`;
@@ -523,10 +540,11 @@ try {
     guidesArchive: 500,
     archetypes: 42,
     decks: 2,
+    metaReports: 3,
   });
   assert.equal(seoCheck.staticUrls, EXPECTED_STATIC_SITEMAP_URL_COUNT);
-  assert.equal(seoCheck.sampledDetails, 25,
-    'six segments sample first, middle and last; archetypes sample five; two deck classes sample both');
+  assert.equal(seoCheck.sampledDetails, 27,
+    'six segments sample first, middle and last; archetypes sample five; two deck classes sample both; the meta reports sample the oldest report and the archive');
   assert.equal(report.checks[0].attempts, 2);
   assert.deepEqual(report.checks.map(check => check.status), [200, 200, 200, 200, 200, 200, 404, 200, 200, 404, 200, 200, 200, 404, 200, 200, 200, 200]);
   assert.deepEqual(report.checks.filter(check => check.label.startsWith('image')).map(check => check.label), [
@@ -710,6 +728,9 @@ try {
     ['decks-hub-in-segment', /deck class sitemap contains a non-canonical URL/i],
     ['deck-class-noindex', /sample decks entity warlock: index robots metadata is missing/i],
     ['deck-class-private-sentinel', /sample decks entity paladin: private payload marker found/i],
+    ['meta-reports-empty', /meta report sitemap contains no locations/i],
+    ['meta-reports-other-page', /meta report sitemap contains a non-canonical URL/i],
+    ['meta-report-noindex', /sample metaReports entity meta: index robots metadata is missing/i],
   ]) {
     seoFailure = mode;
     await assert.rejects(

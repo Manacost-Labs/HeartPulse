@@ -17,6 +17,7 @@ const COSMETICS_KEY_PATTERN = /^(?:heroes|coins|pets)\/[A-Za-z0-9_-]{1,100}$/;
 const GUIDE_KEY_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._~-]{0,159}$/;
 // Archetype pages are keyed by their slug, exactly as the page route accepts it; a Wild page by `wild/<slug>` (#637).
 const ARCHETYPE_KEY_PATTERN = /^(?:wild\/)?[a-z0-9-]{1,90}$/;
+const META_REPORT_KEY_PATTERN = /^(?:archive|\d{4}-\d{2}-\d{2})$/;
 // A static page is keyed by its canonical path: `/`, or segments that end in a slash.
 const STATIC_PAGE_KEY_PATTERN = /^(?:\/|(?:\/[a-z0-9_-]{1,60}){1,6}\/)$/;
 
@@ -26,6 +27,8 @@ function keyIsValid(key: string, segment: SitemapSegment): boolean {
   if (segment === 'archetypes') return ARCHETYPE_KEY_PATTERN.test(key);
   // A deck class page is keyed by its class, one of the eleven the page serves.
   if (segment === 'decks') return (DECK_CLASS_KEYS as readonly string[]).includes(key);
+  // A report is keyed by the date of its snapshot; the archive by `archive`.
+  if (segment === 'meta-reports') return META_REPORT_KEY_PATTERN.test(key);
   if (segment === 'static-pages') return STATIC_PAGE_KEY_PATTERN.test(key);
   return KEY_PATTERN.test(key);
 }
@@ -68,6 +71,7 @@ function entryPathIsValid(pathname: string, key: string, segment: SitemapSegment
     return pathname === (key.startsWith('wild/') ? `/standard/archetypes/${key}/` : `/standard/archetypes/standard/${key}/`);
   }
   if (segment === 'decks') return pathname === `/standard/decks/${key}/`;
+  if (segment === 'meta-reports') return pathname === (key === 'archive' ? '/reports/meta/' : `/reports/meta/${key}/`);
   if (segment === 'static-pages') return pathname === key;
   const libraryKind = segment === 'battleground-minions' ? 'minions' : 'spells';
   return pathname.startsWith(`/library/${libraryKind}/`)

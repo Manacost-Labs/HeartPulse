@@ -55,7 +55,8 @@ type Week = { date: string; figures: keyof typeof WEEKS; staleSince?: string };
  * `gap`: 23.11 and 07.12 in one period (30.11 was not recorded); on 07.12 Arena and Battlegrounds
  * were last refreshed on 1 December, so both are stale.
  */
-export const SCENARIOS: Record<'weekly' | 'gap', Week[]> = {
+export const SCENARIOS: Record<'weekly' | 'gap' | 'first', Week[]> = {
+  first: [{ date: '2026-11-23', figures: '2026-11-23' }],
   weekly: [{ date: '2026-11-23', figures: '2026-11-23' }, { date: '2026-11-30', figures: '2026-11-30' }, { date: '2026-12-07', figures: '2026-12-07' }],
   gap: [{ date: '2026-11-23', figures: '2026-11-23' }, { date: '2026-12-07', figures: '2026-11-30', staleSince: '2026-12-01' }],
 };

@@ -83,7 +83,7 @@ import {
 import { createConstructedCardDataService, createConstructedCardRouter } from './constructedCardRoutes.js';
 import { createBattlegroundCatalogLoader, createPatchNotesApi } from './modules/patchNotes/public.js';
 import { withCosmeticsLastGood } from './modules/cosmetics/public.js';
-import { createMetaReportApi } from './metaReportSnapshotSources.js';
+import { createMetaReportApi, startMetaReportSnapshots } from './metaReportSnapshotSources.js';
 import { createRadarApi } from './modules/radar/public.js';
 import { createLeaderboardsApi } from './modules/leaderboards/public.js';
 import { createSubscriptionAnalyticsApi } from './modules/subscriptionAnalytics/public.js';
@@ -7384,7 +7384,7 @@ if (staticSitemapArtifact) {
       // Called per refresh, after start-up has created the service below.
       loadCosmeticsCatalog: (kind, query) => cosmeticsDataService.loadCatalog(kind, query),
       getGuidesDatabase: oldGuidesDatabase,
-    }, { loadCatalogs: format => loadArchetypeCatalogWindows(constructedArchetypeCatalogCache.load, format) }),
+    }, { loadCatalogs: format => loadArchetypeCatalogWindows(constructedArchetypeCatalogCache.load, format) }, { list: () => metaReportSnapshots.list(), get: date => metaReportSnapshots.get(date) }), // the report snapshots start below; the segment reads them per refresh
     staticUrls: staticSitemapArtifact.urls, staticFingerprints: staticSitemapArtifact.fingerprints,
     staticLastModifiedMs: staticSitemapArtifact.modifiedAt,
     stateDirectory: DATA_DIR,
@@ -7514,7 +7514,7 @@ app.use('/api', createPatchNotesApi({
   patchesUrl: `${DATASET_API_ORIGIN}/api/patches?limit=500&include_content=1`, cardHistoryBaseUrl: KOLODAHS_API_BASE_URL, fetchCardHistory: url => fetchConstructedCardJson(url, 6_000),
   onError: error => console.error('[patch-notes] archive failed:', error instanceof Error ? error.message : error),
 }));
-app.use('/api', createMetaReportApi({ stateDirectory: DATA_DIR, hourly: BACKGROUND_JOBS_ENABLED, loadMeta: loadStandardMeta, matchups: { origin: hsDataApiOrigin(), fetchJson: fetchDataset, formatLabel: format => STANDARD_MATCHUPS_FORMAT_LABEL[format], translate: archetypeLabel }, getTranslations: getStandardArchetypeTranslations, loadArenaWinrates: fetchClassWinratesData, loadArenaSnapshot: () => loadDataCached('winrates.json'), fetchJson: url => fetchConstructedCardJson(url, 8_000), patchesUrl: `${DATASET_API_ORIGIN}/api/patches?limit=20` })); // Weekly meta report snapshots and their read API: docs/specs/meta-report-snapshots.md
+const metaReportSnapshots = startMetaReportSnapshots({ stateDirectory: DATA_DIR, hourly: BACKGROUND_JOBS_ENABLED, loadMeta: loadStandardMeta, matchups: { origin: hsDataApiOrigin(), fetchJson: fetchDataset, formatLabel: format => STANDARD_MATCHUPS_FORMAT_LABEL[format], translate: archetypeLabel }, getTranslations: getStandardArchetypeTranslations, loadArenaWinrates: fetchClassWinratesData, loadArenaSnapshot: () => loadDataCached('winrates.json'), fetchJson: url => fetchConstructedCardJson(url, 8_000), patchesUrl: `${DATASET_API_ORIGIN}/api/patches?limit=20` }); app.use('/api', createMetaReportApi(metaReportSnapshots)); // Weekly meta report snapshots and their read API: docs/specs/meta-report-snapshots.md
 
 // Радар нерфов и баффов (docs/specs/nerf-buff-radar.md); `RADAR_FIXTURE=1` — демо-прогон.
 app.use('/api', createRadarApi({
