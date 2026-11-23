@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import express from 'express';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { parsePatchArticle, splitStatedCard, statedChanges } from '../server/modules/patchNotes/parser.js';
@@ -18,6 +18,7 @@ import {
 import { pickVersionPair } from '../server/modules/patchNotes/cardVersions.js';
 import { createPatchNotesRouter } from '../server/modules/patchNotes/routes.js';
 import { shortPatchVersion } from '../server/modules/patchNotes/contract.js';
+import { publicResourceUrl } from '../shared/publicResourceUrl.js';
 
 // Shapes copied from the stored hs-manacost.ru articles of 36.6.3 and 36.4.2.
 const article = [
@@ -709,6 +710,60 @@ test('37.2.0 includes all official card changes, pool rotations (resolved via BG
   assert.equal(patch.sections?.find(section => section.id === 'bg-season-15-rewards')?.rows?.length, 40);
   const bugFixes = patch.sections?.find(section => section.id === 'other-bug-fixes');
   assert.equal(bugFixes?.items?.reduce((sum, item) => sum + (item.bullets?.length ?? 0), 0), 33);
+});
+
+test('37.2.0 shows pictures: translated illustrations, heroes and skins by id, new cards with official renders until the catalog lists them', async () => {
+  const { official372 } = await import('../server/modules/patchNotes/data/official372/index.js');
+  const resolver = createPatchCardResolver({}, [
+    ...battlegroundCards,
+    // A namesake hero must not replace the hero the data names by id.
+    { id: 'BG99_HERO_999', ru: 'Синдрагоса', en: 'Sindragosa', cardType: 'minion', group: null, timewarped: false, tier: 3, renderUrl: null },
+    // The library lists a new card: its render (with Russian text) replaces the stored article art.
+    { id: 'BG37_005', ru: 'Стойкий охотник Скверны', en: 'Hardy Felhound', cardType: 'minion', group: null, timewarped: false, tier: 2,
+      renderUrl: 'https://api.kolodahearthstone.com/uploads/cards/BG37_005.png' },
+    { id: 'BG32_201', ru: 'Острозубый цепкохват', en: 'Sharptooth Snapper', cardType: 'minion', group: null, timewarped: false, tier: 5,
+      renderUrl: 'https://api.kolodahearthstone.com/uploads/cards/BG32_201.png' },
+  ]);
+  const patch = buildPatchNotesSnapshot([official372], resolver, '2026-11-23T18:00:00Z').patches[0];
+  const added = patch.poolChanges?.[0]?.added ?? [];
+  assert.equal(added.find(item => item.sourceName === 'Hardy Felhound')?.renderUrl, 'https://api.kolodahearthstone.com/uploads/cards/BG37_005.png');
+  // Until the catalog lists them, new cards carry the official library's Russian name, text and render.
+  const crewman = added.find(item => item.sourceName === 'Cut-rate Crewman');
+  assert.equal(crewman?.name, 'Дешевый матрос');
+  assert.equal(crewman?.text, 'Провокация. Это существо стоит (2).');
+  assert.match(crewman?.renderUrl ?? '', /^https:\/\/d15f34w2p8l1cc\.cloudfront\.net\/hearthstone\/[0-9a-f]{64}\.png$/);
+  assert.match(publicResourceUrl(crewman?.renderUrl), /^\/api\/public-resource\/blizzard\/hearthstone\//, 'the render goes through the image proxy');
+  assert.equal(added.find(item => item.sourceName === 'Nonchalant Napper')?.name, 'Невозмутимый соня');
+  assert.ok(patch.poolChanges?.every(group => (group.added ?? []).every(item => item.renderUrl)), 'all 156 new cards have a render');
+
+  const items = patch.sections?.flatMap(section => section.items ?? []) ?? [];
+  const lobby = items.find(item => item.title === 'Изменения пулов и лобби героев');
+  assert.deepEqual(lobby?.cards?.find(card => card.name === 'Синдрагоса'),
+    { name: 'Синдрагоса', cardId: 'TB_BaconShop_HERO_27', cardType: 'hero', text: 'Теперь заблокирована в лобби с пиратами' });
+  assert.equal(lobby?.bullets, undefined);
+  const functionality = items.find(item => item.title === 'Эффекты «При появлении места в бою»');
+  assert.equal(functionality?.cards?.length, 13);
+  assert.equal(functionality?.cards?.find(card => card.sourceName === 'Sharptooth Snapper')?.cardId, 'BG32_201');
+  assert.equal(functionality?.cards?.find(card => card.cardId === 'BG23_HERO_201p')?.name, 'Чаща щупалец');
+  const skins = items.filter(item => item.cards?.some(card => card.cardType === 'hero-skin')).flatMap(item => item.cards ?? []);
+  assert.equal(skins.length, 30);
+  assert.ok(skins.every(card => card.renderUrl?.startsWith('https://api.kolodahearthstone.com/uploads/hero-skins/static/')));
+  assert.equal(skins.find(card => card.sourceName === 'Poxi')?.name, 'Чирия');
+
+  const pictures = [
+    ...(patch.sections ?? []).flatMap(section => (section.banner ? [section.banner] : [])),
+    ...items.flatMap(item => item.images ?? []),
+  ];
+  assert.ok(pictures.length >= 17);
+  for (const picture of pictures) {
+    assert.match(picture.url, /^\/assets\/patch-notes\/37-2\/[a-z0-9-]+\.webp$/);
+    assert.ok(existsSync(new URL(`../public${picture.url}`, import.meta.url)), `${picture.url} is stored with the site`);
+    assert.ok(picture.alt && picture.width && picture.height);
+  }
+  assert.ok(items.find(item => item.title === 'Вечнос')?.images?.some(image => image.url.endsWith('/ru-hero-eternus.webp')));
+  const transcription = JSON.stringify(official372);
+  assert.ok(!transcription.includes('искажени'), 'Timewarp is «хрономалия» in the Russian client');
+  assert.ok(!/Миссия:|Устойчивость/.test(transcription), 'Mission is «Цель», Resilient is «Стойкость» in the Russian client');
 });
 
 // Before/after pictures: the card history of the data API, as it answered on 2026-11-19 (trimmed to the picture fields).

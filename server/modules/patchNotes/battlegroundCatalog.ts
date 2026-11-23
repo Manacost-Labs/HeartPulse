@@ -121,7 +121,7 @@ export function createBattlegroundNameResolver(cards: BattlegroundCatalogCard[])
     if (!candidates?.length) return null;
     const subtitle = context?.subtitle ?? '';
     const wanted = /броня героя|^герой\b/i.test(subtitle) ? (card: BattlegroundCatalogCard) => card.cardType === 'hero'
-      : /искажени/i.test(subtitle) ? (card: BattlegroundCatalogCard) => card.timewarped
+      : /искажени|хрономали/i.test(subtitle) ? (card: BattlegroundCatalogCard) => card.timewarped
         : /малый/i.test(subtitle) ? (card: BattlegroundCatalogCard) => card.group === 'lesser'
           : /большой/i.test(subtitle) ? (card: BattlegroundCatalogCard) => card.group === 'greater'
             : null;

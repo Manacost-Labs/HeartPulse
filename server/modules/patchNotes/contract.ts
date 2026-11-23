@@ -147,6 +147,9 @@ export type PatchNotesPoolGroup = {
   returning?: PatchNotesPoolItem[];
 };
 
+/** A patch illustration stored with the site under `/assets/patch-notes/`. */
+export type PatchNotesSectionImage = { url: string; alt: string; shape: 'banner' | 'card'; width?: number; height?: number };
+
 /** One card or sub-group inside a structured patch overview/event/bugfix section. */
 export type PatchNotesHighlightItem = {
   title: string;
@@ -154,6 +157,10 @@ export type PatchNotesHighlightItem = {
   body?: string | null;
   bullets?: string[];
   marks?: PatchNotesMention[];
+  /** Cards, heroes or hero powers the item is about, shown as pictures. */
+  cards?: PatchNotesPoolItem[];
+  /** Illustrations of the item (translated card overviews, event banners), in reading order. */
+  images?: PatchNotesSectionImage[];
 };
 
 /** Rich non-diff section of a major patch (new mechanics, heroes, events, rewards track, cosmetics, bug fixes). */
@@ -163,6 +170,8 @@ export type PatchNotesContentSection = {
   title: string;
   subtitle?: string | null;
   kind: 'cards' | 'list' | 'table';
+  /** Wide official artwork shown under the section heading. */
+  banner?: PatchNotesSectionImage | null;
   collapsedByDefault?: boolean;
   items?: PatchNotesHighlightItem[];
   columns?: string[];

@@ -1,4 +1,5 @@
 import type { PatchNotesContentSection } from '../../contract.js';
+import { banner } from './media.js';
 
 export const BG_REWARDS_SECTION: PatchNotesContentSection = {
   id: 'bg-season-15-rewards',
@@ -6,6 +7,7 @@ export const BG_REWARDS_SECTION: PatchNotesContentSection = {
   kind: 'table',
   collapsedByDefault: true,
   title: 'Лента наград 15-го сезона Полей сражений',
+  banner: banner('rewards-track', 'Награды сезонного пропуска 15-го сезона Полей сражений'),
   subtitle: 'Запуск 1 декабря: сброс рейтингов, автоматический сбор неполученных наград 14-го сезона, сезонный пропуск (+2 героя на выбор, легендарный удар И\'Шараджа, 13 обликов и бармен Мимирон) и пропуск+ (+1 переброс героя за матч)',
   columns: ['Уровень', 'Опыт', 'Всего опыта', 'Бесплатная лента', 'Сезонный пропуск'],
   rows: [

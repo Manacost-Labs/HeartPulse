@@ -3,14 +3,9 @@ import type { PatchNotesPoolGroup, PatchNotesPoolItem } from '../../modules/patc
 import { registerLightboxModule } from '../../shared/ui/lightboxIntent';
 import type { CardPreviewSheetCard } from '../CardPreviewSheet';
 import type { CardPreviewTarget } from '../CardPreviewTooltip';
-import { proxiedCardImage } from './PatchGeneralChanges';
+import { cardGalleryPreview, PatchCardGallery, type CardGalleryHandlers } from './PatchCardGallery';
 
 type PoolStatus = 'removed' | 'added' | 'returning';
-type PreviewHandlers = {
-  onHover: (item: PatchNotesPoolItem, element: HTMLElement) => void;
-  onLeave: () => void;
-  onOpenSheet: (item: PatchNotesPoolItem) => void;
-};
 
 const STATUS_ORDER: readonly PoolStatus[] = ['removed', 'added', 'returning'];
 const STATUS_META: Record<PoolStatus, { mark: string; label: string }> = {
@@ -25,117 +20,12 @@ const CardPreviewSheet = lazy(loadCardPreviewSheet);
 const CardPreviewTooltip = lazy(loadCardPreviewTooltip);
 registerLightboxModule('card-preview', () => Promise.all([loadCardPreviewSheet(), loadCardPreviewTooltip()]));
 
-function openAfterFocusScroll(element: HTMLElement, open: (element: HTMLElement) => void) {
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    if (document.activeElement === element) open(element);
-  }));
-}
-
 const itemsOf = (group: PatchNotesPoolGroup, status: PoolStatus): readonly PatchNotesPoolItem[] => group[status] ?? [];
 const availableStatuses = (group: PatchNotesPoolGroup): PoolStatus[] => STATUS_ORDER.filter(s => itemsOf(group, s).length > 0);
 const groupTotal = (group: PatchNotesPoolGroup): number =>
   (group.removed?.length ?? 0) + (group.added?.length ?? 0) + (group.returning?.length ?? 0);
 
-function chipBadge(item: PatchNotesPoolItem): string | null {
-  if (typeof item.tier === 'number') return `Т${item.tier}`;
-  const hint = `${item.tribe ?? ''} ${item.cardType ?? ''}`.toLocaleLowerCase('ru-RU');
-  if (hint.includes('малый') || hint.includes('lesser') || hint.includes('minor')) return 'Малый';
-  if (hint.includes('большой') || hint.includes('greater') || hint.includes('major')) return 'Большой';
-  return null;
-}
-
-function PoolChips({ groupId, status, items, handlers }: {
-  groupId: string; status: 'removed' | 'returning'; items: readonly PatchNotesPoolItem[]; handlers: PreviewHandlers;
-}) {
-  const mark = STATUS_META[status].mark;
-  return (
-    <ul className="hp-pool__chips">
-      {items.map((item, index) => {
-        const badge = chipBadge(item);
-        const key = `${groupId}-${status}-${item.cardId ?? item.name}-${index}`;
-        const content = (
-          <>
-            <span className="hp-pool-chip__mark" aria-hidden="true">{mark}</span>
-            {badge && <span className="hp-pool-chip__badge">{badge}</span>}
-            <span className="hp-pool-chip__name">{item.name}</span>
-          </>
-        );
-        return (
-          <li key={key}>
-            {item.cardId ? (
-              <button
-                type="button"
-                className="hp-pool-chip hp-pool-chip--interactive"
-                data-status={status}
-                data-lightbox-module="card-preview"
-                aria-label={`${item.name}: показать карту`}
-                onPointerEnter={event => { if (event.pointerType === 'mouse') handlers.onHover(item, event.currentTarget); }}
-                onPointerLeave={handlers.onLeave}
-                onFocus={event => openAfterFocusScroll(event.currentTarget, element => handlers.onHover(item, element))}
-                onBlur={handlers.onLeave}
-                onClick={() => handlers.onOpenSheet(item)}
-              >
-                {content}
-              </button>
-            ) : (
-              <span className="hp-pool-chip" data-status={status}>{content}</span>
-            )}
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-function PoolNewCards({ groupId, items, handlers }: {
-  groupId: string; items: readonly PatchNotesPoolItem[]; handlers: PreviewHandlers;
-}) {
-  const costUnit = groupId.toLocaleLowerCase('en-US').includes('timewarp') ? 'Хронума' : 'золота';
-  return (
-    <ul className="hp-pool__new-grid">
-      {items.map((item, index) => {
-        const key = `${groupId}-added-${item.cardId ?? item.name}-${index}`;
-        const hasMeta = item.tier != null || item.cost != null || Boolean(item.tribe) || Boolean(item.stats);
-        return (
-          <li key={key}>
-            <article className="hp-pool-card">
-              <div className="hp-pool-card__head">
-                {item.cardId ? (
-                  <button
-                    type="button"
-                    className="hp-pool-card__name hp-pool-card__name--btn"
-                    data-lightbox-module="card-preview"
-                    aria-label={`${item.name}: показать карту`}
-                    onPointerEnter={event => { if (event.pointerType === 'mouse') handlers.onHover(item, event.currentTarget); }}
-                    onPointerLeave={handlers.onLeave}
-                    onFocus={event => openAfterFocusScroll(event.currentTarget, element => handlers.onHover(item, element))}
-                    onBlur={handlers.onLeave}
-                    onClick={() => handlers.onOpenSheet(item)}
-                  >
-                    {item.name}
-                  </button>
-                ) : (
-                  <p className="hp-pool-card__name">{item.name}</p>
-                )}
-              </div>
-              {hasMeta && (
-                <div className="hp-pool-card__meta">
-                  {typeof item.tier === 'number' && <span className="hp-pool-card__tag hp-pool-card__tag--accent">{`Тир ${item.tier}`}</span>}
-                  {typeof item.cost === 'number' && <span className="hp-pool-card__tag hp-pool-card__tag--accent">{`${item.cost} ${costUnit}`}</span>}
-                  {item.tribe && <span className="hp-pool-card__tag">{item.tribe}</span>}
-                  {item.stats && <span className="hp-pool-card__tag">{item.stats}</span>}
-                </div>
-              )}
-              {item.text && <p className="hp-pool-card__text">{item.text}</p>}
-            </article>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-/** Interactive parchment pool explorer for major season rotations (removed / new / returning). */
+/** Interactive parchment pool explorer for major season rotations (removed / new / returning), shown as card pictures. */
 export function PatchPoolExplorer({ groups }: { groups: PatchNotesPoolGroup[] }) {
   const baseId = useId();
   const [selectedGroupId, setSelectedGroupId] = useState(() => groups[0]?.id ?? '');
@@ -160,16 +50,14 @@ export function PatchPoolExplorer({ groups }: { groups: PatchNotesPoolGroup[] })
     setSelectedStatus(availableStatuses(group)[0] ?? 'removed');
   };
 
-  const handlers: PreviewHandlers = {
-    onHover: (item, element) => {
-      if (!item.cardId) return;
-      setPreview({ id: item.cardId, name: item.name, imageUrl: proxiedCardImage(item.renderUrl), rect: element.getBoundingClientRect() });
-    },
+  const handlers: CardGalleryHandlers = {
+    onHover: (item, element) => setPreview({
+      id: item.cardId ?? item.name, name: item.name, imageUrl: cardGalleryPreview(item), rect: element.getBoundingClientRect(),
+    }),
     onLeave: () => setPreview(null),
     onOpenSheet: item => {
-      if (!item.cardId) return;
       setPreview(null);
-      setSheet({ id: item.cardId, name: item.name, imageUrl: proxiedCardImage(item.renderUrl) });
+      setSheet({ id: item.cardId ?? item.name, name: item.name, imageUrl: cardGalleryPreview(item) });
     },
   };
 
@@ -228,9 +116,16 @@ export function PatchPoolExplorer({ groups }: { groups: PatchNotesPoolGroup[] })
             ))}
           </div>
         )}
-        {activeStatus === 'added'
-          ? <PoolNewCards groupId={activeGroup.id} items={activeItems} handlers={handlers} />
-          : <PoolChips groupId={activeGroup.id} status={activeStatus} items={activeItems} handlers={handlers} />}
+        <PatchCardGallery
+          key={`${activeGroup.id}-${activeStatus}`}
+          items={activeItems}
+          handlers={handlers}
+          mark={activeStatus === 'added' ? undefined : STATUS_META[activeStatus].mark}
+          status={activeStatus}
+          costUnit={activeGroup.id.includes('timewarp') ? 'хронума' : 'золота'}
+          showText={false}
+          label={`${activeGroup.title}: ${STATUS_META[activeStatus].label.toLocaleLowerCase('ru-RU')}`}
+        />
       </div>
       {preview && <Suspense fallback={null}><CardPreviewTooltip preview={preview} /></Suspense>}
       {sheet && <Suspense fallback={null}><CardPreviewSheet card={sheet} onClose={() => setSheet(null)} /></Suspense>}

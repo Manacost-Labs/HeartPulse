@@ -5,6 +5,7 @@ import type {
 import { registerLightboxModule } from '../../shared/ui/lightboxIntent';
 import type { CardPreviewSheetCard } from '../CardPreviewSheet';
 import type { CardPreviewTarget } from '../CardPreviewTooltip';
+import { cardGalleryPreview, PatchCardGallery, PatchFigures, type CardGalleryHandlers } from './PatchCardGallery';
 import { lineParts, proxiedCardImage } from './PatchGeneralChanges';
 
 const loadCardPreviewSheet = () => import('../CardPreviewSheet');
@@ -23,7 +24,20 @@ type MentionHandlers = {
   onHover: (mark: PatchNotesMention, element: HTMLElement) => void;
   onLeave: () => void;
   onOpenSheet: (mark: PatchNotesMention) => void;
+  cards: CardGalleryHandlers;
 };
+
+const hasMedia = (item: PatchNotesHighlightItem) => Boolean(item.images?.length || item.cards?.length);
+
+/** Illustrations and card pictures of one item, under its text. */
+function ItemMedia({ item, handlers }: { item: PatchNotesHighlightItem; handlers: MentionHandlers }) {
+  return (
+    <>
+      {item.images && item.images.length > 0 && <PatchFigures images={item.images} />}
+      {item.cards && item.cards.length > 0 && <PatchCardGallery items={item.cards} handlers={handlers.cards} label={item.title} />}
+    </>
+  );
+}
 
 function BulletLines({
   bullets, marks, handlers,
@@ -66,7 +80,7 @@ function CardsBody({ items, handlers }: { items: readonly PatchNotesHighlightIte
   return (
     <div className="hp-csec__cards">
       {items.map((item, index) => (
-        <article key={`${item.title}-${index}`} className="hp-csec-card">
+        <article key={`${item.title}-${index}`} className="hp-csec-card" data-media={hasMedia(item) ? 'true' : undefined}>
           <div className="hp-csec-card__head">
             <h5 className="hp-csec-card__title">{item.title}</h5>
             {item.meta && <span className="hp-csec-card__meta">{item.meta}</span>}
@@ -75,6 +89,7 @@ function CardsBody({ items, handlers }: { items: readonly PatchNotesHighlightIte
           {item.bullets && item.bullets.length > 0 && (
             <BulletLines bullets={item.bullets} marks={item.marks} handlers={handlers} />
           )}
+          <ItemMedia item={item} handlers={handlers} />
         </article>
       ))}
     </div>
@@ -96,6 +111,7 @@ function ListBody({ items, handlers }: { items: readonly PatchNotesHighlightItem
           {item.bullets && item.bullets.length > 0 && (
             <BulletLines bullets={item.bullets} marks={item.marks} handlers={handlers} />
           )}
+          <ItemMedia item={item} handlers={handlers} />
         </div>
       ))}
     </div>
@@ -163,6 +179,7 @@ function SectionBlock({
           </button>
         )}
       </header>
+      {section.banner && <PatchFigures images={[section.banner]} />}
       <div id={panelId} className="hp-csec__body" hidden={!open}>
         {open && section.kind === 'cards' && <CardsBody items={section.items ?? []} handlers={handlers} />}
         {open && section.kind === 'list' && <ListBody items={section.items ?? []} handlers={handlers} />}
@@ -172,7 +189,7 @@ function SectionBlock({
   );
 }
 
-/** Structured overview, event, rewards, cosmetics and bug-fix sections for major patches. */
+/** Structured overview, event, rewards, cosmetics and bug-fix sections for major patches, with their illustrations and card pictures. */
 export function PatchContentSections({ sections }: { sections: PatchNotesContentSection[] }) {
   const baseId = useId();
   const [preview, setPreview] = useState<CardPreviewTarget | null>(null);
@@ -188,6 +205,16 @@ export function PatchContentSections({ sections }: { sections: PatchNotesContent
     onOpenSheet: mark => {
       setPreview(null);
       setSheet({ id: mark.cardId, name: mark.name, imageUrl: proxiedCardImage(mark.renderUrl) });
+    },
+    cards: {
+      onHover: (item, element) => setPreview({
+        id: item.cardId ?? item.name, name: item.name, imageUrl: cardGalleryPreview(item), rect: element.getBoundingClientRect(),
+      }),
+      onLeave: () => setPreview(null),
+      onOpenSheet: item => {
+        setPreview(null);
+        setSheet({ id: item.cardId ?? item.name, name: item.name, imageUrl: cardGalleryPreview(item) });
+      },
     },
   };
 
