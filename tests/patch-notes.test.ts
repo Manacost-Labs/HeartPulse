@@ -745,6 +745,8 @@ test('37.2.0 shows pictures: translated illustrations, heroes and skins by id, n
   assert.equal(functionality?.cards?.length, 13);
   assert.equal(functionality?.cards?.find(card => card.sourceName === 'Sharptooth Snapper')?.cardId, 'BG32_201');
   assert.equal(functionality?.cards?.find(card => card.cardId === 'BG23_HERO_201p')?.name, 'Чаща щупалец');
+  assert.equal(functionality?.cards?.find(card => card.cardId === 'BG22_HERO_000p_Alt')?.renderUrl,
+    'https://art.hearthstonejson.com/v1/bgs/latest/ruRU/512x/BG22_HERO_000p_Alt.png', 'a hero power shows its Russian render, not a drawn card');
   const skins = items.filter(item => item.cards?.some(card => card.cardType === 'hero-skin')).flatMap(item => item.cards ?? []);
   assert.equal(skins.length, 30);
   assert.ok(skins.every(card => card.renderUrl?.startsWith('https://api.kolodahearthstone.com/uploads/hero-skins/static/')));
