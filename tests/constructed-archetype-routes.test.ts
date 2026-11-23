@@ -612,9 +612,9 @@ try {
   assert.deepEqual(await failing(), [local]);
   assert.equal(calls, 1, 'a failure is not retried on every render');
   clock += 60_000; mode = 'ok';
-  assert.deepEqual(await failing(), [local, remote], 'after the pause HearthstoneJSON is read again');
+  assert.deepEqual(await failing(), [remote, local], 'after the pause HearthstoneJSON is read again');
   clock += 1_000;
-  assert.deepEqual(await failing(), [local, remote]);
+  assert.deepEqual(await failing(), [remote, local]);
   assert.equal(calls, 2, 'a loaded HearthstoneJSON is kept');
   const noLocal = createArchetypeCardDictionaries({ ...options, local: () => { throw new Error('cards_ru.json unreadable'); } });
   assert.deepEqual(await noLocal(), [remote], 'an unreadable local file keeps HearthstoneJSON');

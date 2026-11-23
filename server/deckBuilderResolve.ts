@@ -1,4 +1,5 @@
 import { decode, encode, type DeckDefinition, type FormatType, type Sideboard } from '@firestone-hs/deckstrings';
+import { deckDictionaryDbf } from './legacyDeckCardDbf.js';
 import { archetypeLabel } from './modules/constructedArchetypes/public.js';
 
 export type DeckBuilderFormat = 'standard' | 'wild';
@@ -159,13 +160,13 @@ export function indexCardsRuByDbf(cardsRu: Record<string, any> | null | undefine
   const index = new Map<number, DeckBuilderCardRecord>();
   const slashed = new Set<number>();
   for (const [rawCardId, row] of Object.entries(cardsRu ?? {})) {
-    const dbfId = finiteNumber(row?.dbf ?? row?.dbfId);
-    if (dbfId === null || !isValidDeckDbfId(dbfId)) continue;
     // The shipped `cards_ru.json` has keys with a leading slash (`/OG_211`): a card id is never one, and a
     // slashless entry of the same card wins over a slashed one whatever their order.
     const cardId = rawCardId.replace(/^\/+/, '');
     // Only an id the public pages allow is indexed; any other key is a card nobody can name.
     if (!/^[A-Za-z0-9_]{2,80}$/.test(cardId)) continue;
+    const dbfId = deckDictionaryDbf(cardId, finiteNumber(row?.dbf ?? row?.dbfId));
+    if (dbfId === null || !isValidDeckDbfId(dbfId)) continue;
     const isSlashed = cardId !== rawCardId;
     if (index.has(dbfId) && !(slashed.has(dbfId) && !isSlashed)) continue;
     if (isSlashed) slashed.add(dbfId); else slashed.delete(dbfId);
@@ -188,7 +189,7 @@ function sideboardKeyForCardId(
   if (!match) return null;
   // The shipped dictionary stores some parents under a slashed key (`/FOO`); `cardId` is already without it.
   const parent = cardsRu?.[match[1]] ?? cardsRu?.[`/${match[1]}`];
-  const parentDbf = finiteNumber(parent?.dbf ?? parent?.dbfId);
+  const parentDbf = deckDictionaryDbf(match[1], finiteNumber(parent?.dbf ?? parent?.dbfId));
   return parentDbf !== null && isValidDeckDbfId(parentDbf) ? parentDbf : null;
 }
 

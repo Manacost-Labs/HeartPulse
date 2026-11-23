@@ -111,7 +111,7 @@ export type ConstructedArchetypeRouterDependencies = {
     archetype: string,
   ) => Promise<ConstructedArchetypeHistoryPoint[]>;
   loadCardCatalog?: (format: ConstructedArchetypeFormat) => Promise<{ cards: Record<string, unknown>[] }>;
-  /** Card dictionaries by id, as the deck builder merges them (`cards_ru.json`, then all of HearthstoneJSON): name the cards the format's catalog lacks. */
+  /** Card dictionaries by id, in resolver priority (HearthstoneJSON, then `cards_ru.json`): name the cards the format's catalog lacks. */
   loadCardDictionaries?: () => Promise<Record<string, unknown>[]>;
   /** How long the open archetype answer waits for the card catalog (default `PUBLIC_CARD_CATALOG_DEADLINE_MS`). */
   cardCatalogDeadlineMs?: number;
