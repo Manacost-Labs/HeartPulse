@@ -410,12 +410,12 @@ On desktop a click during a hover prefetch downloaded the page twice.
    about 100 ms before its click; the hover dwell is `--motion-fast`. A touch
    may start a scroll, so it prepares only a menu or opted-in link whose route
    is not already being learned, and never counts as a hover.
-2. Menu links (`.arena-sidebar`, the open `#arena-mobile-menu`) and links a page
-   marks with `data-route-prefetch` learn their route once each when visible,
-   after the browser is idle, with Next's `AUTO` strategy: a prerendered page
-   with its RSC payload and code, a dynamic page only its tree (about 1.5 KB).
-   On a phone the drawer opens about half a second before a tap, too late for
-   a slow network, so all drawer links learn their routes at idle after load.
+2. The sidebar and mobile drawer prepare the destination the reader points to,
+   focuses with the keyboard, or presses. Opening the drawer leaves the
+   remaining routes idle. A content link marked with `data-route-prefetch`
+   learns its route once when visible and idle, using Next's `AUTO` strategy.
+   That fetches the payload and code of a prerendered page or the tree of a
+   dynamic page.
    Offline, Save-Data and 2G suppress all speculation.
 3. Next does not join a navigation to a full prefetch still downloading; it
    renders the page again. `observeRouteResponses` (public adapter) observes
@@ -601,7 +601,7 @@ The owner found the accordion menu small, shaky and dull. Groups are gone.
    Escape (focus back on the button, before the drawer's own Escape handler),
    on a press elsewhere, when focus leaves and when a banner is chosen. A
    banner is a plain `<a>`: with JavaScript it is a client navigation, the link
-   is prefetched when the panel opens (the viewport prefetch sees it only then).
+   is prefetched on pointer dwell, keyboard focus or a primary press.
 4. Layout. Under the logo come the mode switch, «Главная» and the list, in that
    order in the sidebar and in the drawer. The switch is a banner button (76 px,
    80 px in the drawer) with the art of the current mode behind a darkening, the

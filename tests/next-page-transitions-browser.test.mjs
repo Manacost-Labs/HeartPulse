@@ -33,6 +33,17 @@ async function visitByClick(page, selector, pathname) {
   await page.waitForFunction(path => location.pathname === path && document.querySelector('#main-content'), {}, pathname);
 }
 
+async function assertMenuDidNotPrefetchAtIdle(page, gateway) {
+  const paths = await page.$$eval('.arena-sidebar a[href], #arena-mobile-menu a[href]', links =>
+    links.map(link => link.pathname));
+  assert.ok(paths.includes('/gallery/'), 'the menu routes must be rendered for this check');
+  await page.evaluate(() => new Promise(resolve => requestIdleCallback(() => requestAnimationFrame(resolve))));
+  await page.waitForNetworkIdle({ idleTime: 300 });
+  const speculative = gateway.requests.filter(request => request.rsc && (request.prefetch || request.segment)
+    && paths.includes(new URL(request.path, gateway.origin).pathname));
+  assert.deepEqual(speculative.map(request => request.path), [], 'an untouched menu must not fetch its routes');
+}
+
 /** Records the entrance animations inside the content box from the next commit on. */
 async function watchRouteMotion(page) {
   await page.evaluate(() => {
@@ -276,7 +287,7 @@ test('public transitions avoid accidental prefetch and keep usable content while
     await page.setViewport({ width: 1440, height: 700 });
     await rememberMode(page, 'community');
     await page.goto(`${gateway.origin}/faq/`, { waitUntil: 'networkidle2' });
-    // A dynamic page: a visible menu link learns only its route tree.
+    await assertMenuDidNotPrefetchAtIdle(page, gateway);
     const link = '.arena-sidebar .hp-nav-list a[href="/gallery/"]';
     await page.evaluate(() => { document.querySelector('.arena-sidebar .hp-nav-scroll').scrollTop = 180; });
     await page.hover(link);
@@ -284,9 +295,6 @@ test('public transitions avoid accidental prefetch and keep usable content while
     await new Promise(resolve => setTimeout(resolve, 180));
     const pageRequests = path => gateway.requests.filter(request => request.rsc && !request.prefetch && request.path.startsWith(path));
     assert.equal(pageRequests('/gallery/').length, 0, 'crossing a link must not download a page');
-    const learned = () => gateway.requests.some(request => request.segment && request.path.startsWith('/streamers/'));
-    for (let attempt = 0; attempt < 100 && !learned(); attempt += 1) await new Promise(resolve => setTimeout(resolve, 50));
-    assert.ok(learned(), 'a visible menu link learns its route while the browser is idle');
     const content = await page.$eval('#main-content', node => node.getBoundingClientRect().top);
     await rememberFrame(page);
     await page.click(link);
@@ -320,6 +328,33 @@ test('public transitions avoid accidental prefetch and keep usable content while
     await new Promise(resolve => setTimeout(resolve, 1100));
     assert.equal(await page.evaluate(() => location.pathname), '/faq/', 'Back supersedes a pending destination');
     assert.deepEqual(errors, []);
+  } finally {
+    if (browser) await browser.close();
+    if (gateway) await closeLocal(gateway.server);
+    if (next) await next.close();
+    await closeLocal(legacy);
+  }
+});
+
+test('the mobile drawer waits for intent and the tapped route opens', { timeout: 45_000 }, async () => {
+  const legacy = http.createServer((_request, response) => response.writeHead(401).end());
+  let next, gateway, browser;
+  try {
+    next = await startNextServer({ legacyOrigin: await listenLocal(legacy) });
+    gateway = await startGateway(next.origin);
+    browser = await launchBrowser({ executablePath: process.env.CHROMIUM_PATH || '/usr/bin/chromium',
+      headless: true, args: ['--no-sandbox'] });
+    const page = await browser.newPage();
+    await page.setViewport({ width: 390, height: 844, isMobile: true, hasTouch: true });
+    await rememberMode(page, 'community');
+    await page.goto(`${gateway.origin}/faq/`, { waitUntil: 'networkidle2' });
+    await assertMenuDidNotPrefetchAtIdle(page, gateway);
+    await page.tap('.arena-mobile-nav-toggle');
+    await page.waitForFunction(() => document.querySelector('#arena-mobile-menu').matches(':popover-open'));
+    await assertMenuDidNotPrefetchAtIdle(page, gateway);
+    await page.tap('#arena-mobile-menu .hp-nav-list a[href="/gallery/"]');
+    await page.waitForFunction(() => location.pathname === '/gallery/' && !document.querySelector('#arena-mobile-menu').matches(':popover-open'));
+    assert.ok(await page.$('#main-content'));
   } finally {
     if (browser) await browser.close();
     if (gateway) await closeLocal(gateway.server);

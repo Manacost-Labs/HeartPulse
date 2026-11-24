@@ -13,10 +13,8 @@ import { motionMs } from '@/src/shared/ui/motionTokens';
 
 /** A click waits at most this long for a prefetch already downloading its page. */
 const JOIN_PREFETCH_MS = 2500;
-/** Menu links; a page opts a primary link in with `data-route-prefetch`. */
-const VIEWPORT_LINKS = '.arena-sidebar a[href], #arena-mobile-menu a[href], a[href][data-route-prefetch]';
-/** Drawer links, learned at idle on a phone. */
-const PHONE_PRIMARY_LINKS = '#arena-mobile-menu a[href]:not(.arena-mobile-menu-profile)';
+const PAGE_PREFETCH_LINKS = 'a[href][data-route-prefetch]';
+const TOUCH_PREFETCH_LINKS = `.arena-sidebar a[href], #arena-mobile-menu a[href], ${PAGE_PREFETCH_LINKS}`;
 
 type FetchKind = NonNullable<Parameters<ReturnType<typeof useRouter>['prefetch']>[1]>['kind'];
 
@@ -89,8 +87,8 @@ export function PublicNavigationBridge({ onNavigationStart, onJoining, routeKey 
     // AUTO leaves dynamic pages without their content; full intent preparation
     // avoids another server round trip on click. Keep the Next enum out of shared code.
     const prepare = createRoutePrefetcher((path, options) => router.prefetch(path, { ...options, kind: 'full' as FetchKind }));
-    // A visible link only learns its route (AUTO): a prerendered page with its
-    // code, a dynamic page its tree. That stays cheap on a phone's data plan.
+    // Explicit page hints use AUTO. Preparing every navigation entry here costs
+    // dozens of route requests before a reader chooses a destination.
     const learnRoute = createRoutePrefetcher((path, options) => router.prefetch(path, { ...options, kind: 'auto' as FetchKind }));
     const learned = new Set<string>();
     const learn = (path: string) => { learned.add(path.split('#')[0]); learnRoute(path); };
@@ -106,15 +104,7 @@ export function PublicNavigationBridge({ onNavigationStart, onJoining, routeKey 
       if (scheduled !== undefined) cancelIdle(scheduled);
       scheduled = idle(() => {
         scheduled = undefined;
-        viewport.scan(document.querySelectorAll<HTMLAnchorElement>(VIEWPORT_LINKS));
-        // On a phone the drawer opens about half a second before a tap, too
-        // late for a slow network: its links learn their routes now.
-        const toggle = document.querySelector('.arena-mobile-nav-toggle');
-        if (!toggle || !toggle.getClientRects().length || !connectionAllowsPrefetch()) return;
-        for (const link of document.querySelectorAll<HTMLAnchorElement>(PHONE_PRIMARY_LINKS)) {
-          const path = publicAnchorPath(link);
-          if (path && elsewhere(path)) learn(path);
-        }
+        viewport.scan(document.querySelectorAll<HTMLAnchorElement>(PAGE_PREFETCH_LINKS));
       });
     };
     scanLinks.current();
@@ -142,7 +132,7 @@ export function PublicNavigationBridge({ onNavigationStart, onJoining, routeKey 
       const destination = publicAnchorPath(event.target);
       if (!destination || !elsewhere(destination)) return;
       if (event.pointerType === 'touch' && (learned.has(destination.split('#')[0])
-        || !(event.target as Element).closest('a[href]')?.matches(VIEWPORT_LINKS))) return;
+        || !(event.target as Element).closest('a[href]')?.matches(TOUCH_PREFETCH_LINKS))) return;
       intent.press(destination);
     };
     const leave = (event: PointerEvent) => {
