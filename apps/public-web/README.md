@@ -171,9 +171,10 @@ is a separate administrator workspace and retains its permission gate.
   its scroll and expanded desktop groups. A pointer dwell of `--motion-fast`, a
   primary mouse press, a touch on a menu link, or keyboard focus fully
   prefetches the route's RSC response and client code, including dynamic pages.
-  Visible menu links (and links marked `data-route-prefetch`), and on a phone
-  every drawer link, learn their route once when the browser is idle: a
-  prerendered page completely, a dynamic page only its tree. Save-Data, offline
+  The sidebar and mobile drawer prefetch only the destination the reader
+  interacts with. A content link marked `data-route-prefetch` can also prefetch
+  once when visible and the browser is idle. Next fetches a prerendered page in
+  full or just the route tree for a dynamic page. Save-Data, offline
   and 2G connections skip all speculation. A click during a full prefetch waits
   for that response (`ui/routeResponses.ts`) instead of requesting the page
   again. The framework-independent lifecycle in `src/shared/navigation/` cancels
