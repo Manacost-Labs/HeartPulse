@@ -107,7 +107,6 @@ const LLMS_SECTIONS = [
   { urls: ['/standard/vicious-gold/'], sources: ['Vicious Syndicate'], update: 'каждые 2 часа', open: true, paid: true },
   { urls: ['/standard/fun-decks/'], sources: ['HSGuru'], update: 'каждые 2 часа', open: true, paid: true },
   { urls: ['/standard/cards/', '/standard/cards/standard/', '/standard/cards/wild/'], sources: ['HSReplay'], open: true, paid: true },
-  { urls: ['/standard/patches/'], sources: ['hs-manacost.ru'], update: 'раз в сутки', open: true, paid: false },
   { urls: ['/classes/'], sources: ['HSReplay', 'Firestone'], update: 'автоматическое, частота зависит от источника', open: false, paid: true },
   { urls: ['/tierlist/'], sources: ['HSReplay', 'HearthArena', 'Firestone'], update: 'автоматическое, частота зависит от источника', open: false, paid: true },
   { urls: ['/legendaries/'], sources: ['HSReplay', 'Firestone'], update: 'автоматическое, частота зависит от источника', open: false, paid: true },

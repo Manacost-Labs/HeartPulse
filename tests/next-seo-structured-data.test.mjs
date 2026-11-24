@@ -142,7 +142,7 @@ test('cosmetic pages are graphs with the full trail, their lists name the cards 
       'a filtered copy is not the canonical listing');
 
     // Pages that print their list in the browser, or print no page of their own for an entry, get no list.
-    for (const path of ['/guides-archive/', '/battlegrounds/tier-list/', '/standard/patches/', '/standard/fun-decks/', '/gallery/', '/contests/']) {
+    for (const path of ['/guides-archive/', '/battlegrounds/tier-list/', '/standard/fun-decks/', '/gallery/', '/contests/']) {
       const response = await fetch(`${next.origin}${path}`);
       if (response.status !== 200) continue;
       const html = await response.text();

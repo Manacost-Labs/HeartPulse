@@ -91,8 +91,7 @@ export function MetaReportPatch({ patch }: { patch: MetaReportView['patch'] }) {
     <h2 id="meta-report-patch">Патч недели</h2>
     {patch ? <p>
       {patch.thisWeek ? 'На этой неделе вышел' : 'Последний патч на день среза —'} патч {patch.version}
-      {` (${reportDateLabel(patch.publishedAt.slice(0, 10))})`}.{' '}
-      <a href="/standard/patches/">Изменения карт в патчноутах</a>
-    </p> : <p>Список патчей в день среза не прочитан. <a href="/standard/patches/">Патчноуты</a></p>}
+      {` (${reportDateLabel(patch.publishedAt.slice(0, 10))})`}.
+    </p> : <p>Список патчей в день среза не прочитан.</p>}
   </section>;
 }

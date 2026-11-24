@@ -106,7 +106,7 @@ export const BattlegroundsMode: Story = {
   },
 };
 
-const patchBadge: NavigationBadges = { 'patch-notes': { label: 'Новый', title: 'Новый патч 37.0.0' } };
+const patchBadge: NavigationBadges = { 'standard-assemble': { label: 'Новый', title: 'Новый раздел' } };
 
 export const NewPatchBadge: Story = {
   args: {

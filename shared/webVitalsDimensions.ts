@@ -65,7 +65,6 @@ export const WEB_VITAL_ROUTE_TEMPLATES = [
   '/standard/decks/',
   '/standard/decks/[classKey]/',
   '/standard/fun-decks/',
-  '/standard/patches/',
   '/standard/matchups/',
   '/standard/meta/',
   '/standard/meta/[format]/[archetypeSlug]/',

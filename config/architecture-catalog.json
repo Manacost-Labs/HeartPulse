@@ -2075,7 +2075,7 @@
       "purpose": "Shape patch notes for the page: mode sections, class and card-type groups, buff/nerf kinds, filters, card pictures and archive links.",
       "paths": ["src/modules/patchNotes"],
       "publicEntrypoints": ["src/modules/patchNotes/public.ts"],
-      "frontendRoutes": ["/standard/patches"],
+      "frontendRoutes": [],
       "backendRoutes": [],
       "contracts": ["src/modules/patchNotes/model/types.ts", "docs/specs/patch-notes.md"],
       "jobs": [],

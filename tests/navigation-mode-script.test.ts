@@ -19,7 +19,7 @@ function runHeadScript(pathname: string, search: string, stored: string | null):
 const PATHS = [
   '/standard/meta/', '/standard/matchups/', '/standard/archetypes/', '/standard/fun-decks/', '/standard/cards/', '/standard/deck-builder/',
   '/standard/cards/wild/', '/standard/archetypes/wild/', '/standard/archetypes/wild/quest-mage/', '/standard/meta/wild/quest-mage/', '/standard/archetypes/standard/quest-mage/',
-  '/standard/patches/', '/standard/patches/37-0-0/', '/standard/vicious-gold/', '/classes/', '/heroes/76521/', '/articles/', '/', '/faq/',
+  '/standard/vicious-gold/', '/classes/', '/heroes/76521/', '/articles/', '/', '/faq/',
 ];
 const SEARCHES = ['', '?format=wild', '?rank=all&format=wild', '?format=standard', '?format=wildcat', '?code=AAEBAQ'];
 const STORED = [null, 'standard', 'wild', 'arena', 'battlegrounds', 'community', 'garbage'];
@@ -44,6 +44,5 @@ test('the script leaves a page outside Standard to the remembered choice and nev
   assert.equal(runHeadScript('/', '?format=wild', 'wild'), 'wild');
   assert.equal(runHeadScript('/faq/', '', null), null);
   assert.equal(runHeadScript('/standard/meta/', '?format=wild', null), 'wild');
-  assert.equal(runHeadScript('/standard/patches/', '', 'arena'), 'standard');
   assert.doesNotThrow(() => vm.runInNewContext(MODE_NAVIGATION_SCRIPT, { location: { pathname: '/standard/meta/', search: '?format=wild' }, document: { documentElement: { setAttribute() { throw new Error('blocked'); } } } }));
 });

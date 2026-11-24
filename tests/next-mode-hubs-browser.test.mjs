@@ -31,7 +31,7 @@ const HUBS = [
   {
     path: '/standard/', heading: 'Стандарт Hearthstone: колоды, мета и архетипы',
     links: ['/standard/meta/', '/standard/decks/', '/standard/archetypes/', '/standard/matchups/', '/standard/fun-decks/', '/standard/cards/',
-      '/standard/cards/standard/', '/standard/patches/', '/arena/', '/battlegrounds/', '/wild/'],
+      '/standard/cards/standard/', '/arena/', '/battlegrounds/', '/wild/'],
   },
   {
     path: '/arena/', heading: 'Арена Hearthstone: тир-лист карт и классы',
@@ -41,12 +41,12 @@ const HUBS = [
     path: '/battlegrounds/', heading: 'Поля сражений Hearthstone: герои, сборки и карты',
     links: ['/heroes/', '/battlegrounds/tier-list/', '/battlegrounds/strategies/', '/library/', '/library/minions/', '/library/spells/',
       '/library/anomalies/', '/library/dark-gifts/', '/library/quests/', '/library/rewards/', '/library/darkmoon-prizes/',
-      '/library/trinkets/', '/library/timewarped/', '/standard/patches/', '/standard/', '/arena/', '/wild/'],
+      '/library/trinkets/', '/library/timewarped/', '/standard/', '/arena/', '/wild/'],
   },
   {
     path: '/wild/', heading: 'Вольный формат Hearthstone: колоды и карты',
     links: ['/standard/meta/wild/', '/standard/archetypes/wild/', '/standard/matchups/', '/standard/fun-decks/', '/standard/cards/wild/',
-      '/standard/patches/', '/standard/', '/arena/', '/battlegrounds/'],
+      '/standard/', '/arena/', '/battlegrounds/'],
   },
 ];
 

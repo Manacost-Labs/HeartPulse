@@ -82,13 +82,10 @@ test('the Wild banner, the format buttons and Back keep the menu and the page in
     assert.deepEqual(await readMenu(page), { lists: ['wild'], current: ['Мета'], mode: 'Вольный', format: ['Вольный'], where: '/standard/meta/wild/' });
     assert.equal(await page.evaluate(() => window.__same), true, 'the page was not reloaded');
 
-    // A Wild item opens its page in Wild; patch notes keep the mode.
+    // A Wild item opens its page in Wild.
     await page.click('.arena-sidebar .hp-nav-list[data-for="wild"] a[href="/standard/cards/wild/"]');
     await page.waitForFunction(() => location.pathname === '/standard/cards/wild/');
     assert.deepEqual((await readMenu(page)).lists.concat((await readMenu(page)).current), ['wild', 'Карты']);
-    await page.click('.arena-sidebar .hp-nav-list[data-for="wild"] a[href="/standard/patches/"]');
-    await page.waitForFunction(() => location.pathname === '/standard/patches/');
-    assert.deepEqual((await readMenu(page)).lists.concat((await readMenu(page)).current), ['wild', 'Патчноуты'], 'patch notes after Wild stay in Wild');
 
     // The deck builder's own format select is the same state: a switch adds a history entry, Back returns the format and the mode.
     const builderFormat = () => page.evaluate(() => [...document.querySelectorAll('#main-content .hp-builder-context select')].find(select => select.querySelector('option[value="wild"]'))?.value);

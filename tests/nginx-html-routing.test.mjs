@@ -387,7 +387,7 @@ assert.equal(existsSync(join(projectRoot, 'public/yandex_eaea2c59052dad81.html')
 assert.match(yandexVerification?.body || '', /try_files\s+\$uri\s+=404;/,
   'the Yandex verification document must bypass the HTML 404 catch-all');
 
-for (const removed of ['/decks', '/decks/legacy/item', '/jobs', '/jobs/archive']) {
+for (const removed of ['/decks', '/decks/legacy/item', '/jobs', '/jobs/archive', '/standard/patches', '/standard/patches/', '/standard/patches/?version=37.2.0']) {
   expectRegexAction(removed, 'return 410;', 'removed route');
   const location = firstMatchingRegexLocation(removed);
   assert.match(location?.body || '', /X-Robots-Tag\s+"noindex, nofollow"\s+always;/,

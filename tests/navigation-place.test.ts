@@ -36,10 +36,6 @@ const ROWS: readonly Row[] = [
   ['/standard/cards/some-card/', '', 'standard', 'standard', 'standard-cards'],
   ['/standard/cards/', '?format=wild', 'standard', 'wild', 'wild-cards'],
   // Patch notes have no format: the reader's last Standard or Wild choice stays, Standard by default.
-  ['/standard/patches/', '', 'wild', 'wild', 'wild-patch-notes'],
-  ['/standard/patches/', '', 'standard', 'standard', 'patch-notes'],
-  ['/standard/patches/', '', 'arena', 'standard', 'patch-notes'],
-  ['/standard/patches/37-0-0/', '', 'wild', 'wild', 'wild-patch-notes'],
   // VS Gold has no Wild data: it is Standard whatever the query says.
   ['/standard/vicious-gold/', '', 'wild', 'standard', 'standard-vicious-gold'],
   ['/standard/vicious-gold/', '?format=wild', 'wild', 'standard', 'standard-vicious-gold'],
@@ -61,7 +57,6 @@ const ROWS: readonly Row[] = [
   ['/standard/archetypes/wild', '', 'standard', 'wild', 'wild-archetypes'],
   ['/standard/archetypes/wild/quest-mage', null, null, 'wild', 'wild-archetypes'],
   ['/standard/archetypes/standard/quest-mage', null, null, 'standard', 'constructed-archetypes'],
-  ['/standard/patches/', null, null, null, 'patch-notes'],
   ['/standard/vicious-gold/', null, null, 'standard', 'standard-vicious-gold'],
   ['/classes/', null, null, 'arena', 'winrates'],
 ];
@@ -91,7 +86,6 @@ test('the Wild list has the pages of the issue and no VS Gold', () => {
     ['wild-cards', '/standard/cards/wild'],
     ['wild-deck-builder', '/standard/deck-builder?format=wild'],
     ['wild-assemble', '/standard/assemble?format=wild'],
-    ['wild-patch-notes', '/standard/patches'],
   ]);
   assert.equal(WILD_NAVIGATION_ITEMS.some(item => String(item.twin) === 'standard-vicious-gold'), false);
   assert.deepEqual(NAVIGATION_MODES.map(mode => mode.id), ['standard', 'wild', 'arena', 'battlegrounds', 'community'], 'the banners are in this order');
@@ -100,7 +94,7 @@ test('the Wild list has the pages of the issue and no VS Gold', () => {
 test('a Wild item has the access of its twin', () => {
   assert.deepEqual(WILD_NAVIGATION_ITEMS.map(item => [item.id, item.entitlement]), [
     ['wild-meta', 'standard'], ['wild-matchups', 'standard'], ['wild-archetypes', 'standard'], ['wild-fun-decks', 'standard'],
-    ['wild-cards', null], ['wild-deck-builder', null], ['wild-assemble', null], ['wild-patch-notes', null],
+    ['wild-cards', null], ['wild-deck-builder', null], ['wild-assemble', null],
   ]);
   assert.equal(pathOfMenuItem('wild-cards'), '/standard/cards/wild');
   assert.equal(pathOfMenuItem('standard-cards'), '/standard/cards');
