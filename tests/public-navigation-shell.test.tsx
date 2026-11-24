@@ -12,7 +12,7 @@ const props: PublicNavigationProps = {
   mobileMenuOpen: true,
   mode: 'community',
   compact: false,
-  badges: { 'patch-notes': { label: 'Новый', title: 'Новый патч 37.0.0' } },
+  badges: { 'standard-assemble': { label: 'Новый', title: 'Новый раздел' } },
   visibleArenaTabs: [],
   visibleCommunityTabs: COMMUNITY_TABS,
   appIsContestAdmin: false,
@@ -85,7 +85,7 @@ assert.doesNotMatch(html, /href="\/admin\/"/);
 const adminHtml = renderToStaticMarkup(<PublicNavigation {...props} appIsContestAdmin />);
 assert.match(adminHtml, /hp-nav-admin"[^>]*>[\s\S]*?href="\/admin\/"[\s\S]*?Админ-панель/);
 // A badge is plain text next to its link.
-assert.match(html, /href="\/standard\/patches\/"[^>]*>[\s\S]*?<span class="arena-nav-badge" title="Новый патч 37\.0\.0">Новый<\/span>/);
+assert.match(html, /href="\/standard\/assemble\/"[^>]*>[\s\S]*?<span class="arena-nav-badge" title="Новый раздел">Новый<\/span>/);
 // The compact rail keeps one name per item for its tooltip and a pressed toggle state.
 assert.match(html, /data-nav-tip="Тир-лист · Поля сражений"/);
 assert.match(html, /<button[^>]*class="arena-sidebar-compact-toggle"[^>]*aria-pressed="false"[^>]*aria-label="Свернуть меню"/);
@@ -159,11 +159,11 @@ assert.equal(wildLists.length, 2, 'a Wild list in the drawer and in the sidebar'
 for (const list of wildLists) {
   const hrefs = [...list.matchAll(/<a href="([^"]+)"/g)].map(match => match[1].replace(/&amp;/g, '&'));
   assert.deepEqual(hrefs, ['/standard/meta/wild/', '/standard/matchups/?format=wild', '/standard/archetypes/wild/',
-    '/standard/fun-decks/?format=wild', '/standard/cards/wild/', '/standard/deck-builder/?format=wild', '/standard/assemble/?format=wild', '/standard/patches/']);
+    '/standard/fun-decks/?format=wild', '/standard/cards/wild/', '/standard/deck-builder/?format=wild', '/standard/assemble/?format=wild']);
   assert.match(list, /src="\/menu\/icons\/standard-meta-80\.webp\?v=[0-9a-f]{10}"/, 'a Wild item shows the icon of its twin');
   assert.doesNotMatch(list, /vicious-gold|VS Gold/);
   assert.match(list, /data-nav-tip="Мета · Вольный"/, 'the rail names the mode of the item');
-  assert.match(list, /patch-notes-80\.webp[\s\S]*Новый/, 'the patch badge follows the twin');
+  assert.match(list, /standard-assemble-80\.webp[\s\S]*Новый/, 'a badge follows the twin');
 }
 assert.equal(html.split('href="/standard/cards/wild/"').length - 1, 2, 'one Wild catalog link per menu, none among the Standard items');
 

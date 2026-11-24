@@ -1,5 +1,11 @@
 # Patch notes page
 
+> The public page `/standard/patches/` was taken off the site on 2026-11-24
+> (owner decision): nginx answers `410 Gone` with `noindex`, the menu, mode
+> hubs, sitemap, `llms.txt` and SEO registries no longer list it, and the Next
+> route was removed. The `/api/patch-notes` API and the feature code below stay
+> (the radar still reads the archive); a revert of that change restores the page.
+
 `/standard/patches/` shows the card changes of the two newest Hearthstone
 patches that have parsed changes, newest first
 (`src/features/PatchNotesView.tsx` and `src/features/patchNotes/`, parchment

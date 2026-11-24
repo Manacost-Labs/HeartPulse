@@ -258,5 +258,5 @@ export async function proxy(request: NextRequest) {
   return NextResponse.next({ request: { headers } });
 }
 export const config = { matcher: ['/', '/standard/cards/:path*', '/heroes/:path*', '/library/:path*', '/cosmetics/:path*', '/u/:path*',
-  '/leaderboards/:path*', '/streamers/:path*', '/standard/patches/:path*', '/standard/archetypes/:path*', '/standard/fun-decks/:path*',
+  '/leaderboards/:path*', '/streamers/:path*', '/standard/archetypes/:path*', '/standard/fun-decks/:path*',
   '/standard/decks/:path*'] };

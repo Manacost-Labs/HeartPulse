@@ -80,7 +80,7 @@ test('a report prints the snapshot with the change to the previous week of the s
     const hrefs = links(html);
     for (const href of ['/standard/archetypes/standard/zoo-warlock/', '/standard/archetypes/standard/yogg-warrior/', '/heroes/59807/',
       '/heroes/60370/', '/reports/meta/2026-11-23/', '/reports/meta/2026-12-07/', '/reports/meta/', '/standard/meta/',
-      '/standard/matchups/', '/classes/', '/heroes/', '/standard/patches/']) assert.ok(hrefs.includes(href), `links ${href}`);
+      '/standard/matchups/', '/classes/', '/heroes/']) assert.ok(hrefs.includes(href), `links ${href}`);
     for (const href of ['/standard/archetypes/standard/thief-priest/', '/standard/archetypes/standard/big-shaman/']) {
       assert.ok(!hrefs.includes(href), `${href} is not an indexable archetype page, so it is not linked`);
     }

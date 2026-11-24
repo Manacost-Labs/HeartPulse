@@ -30,7 +30,6 @@ const EXPECTED_ROUTE_PATHS = [
   ['standard-cards', '/standard/cards'],
   ['deck-builder', '/standard/deck-builder'],
   ['standard-assemble', '/standard/assemble'],
-  ['patch-notes', '/standard/patches'],
   ['winrates', '/classes'],
   ['tierlist', '/tierlist'],
   ['legendaries', '/legendaries'],

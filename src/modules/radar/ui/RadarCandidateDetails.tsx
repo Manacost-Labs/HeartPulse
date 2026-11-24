@@ -52,7 +52,7 @@ function Before({ precedents }: { precedents: RadarPrecedent[] }) {
     <ul className="radar-list-plain">
       {precedents.slice(0, LIMIT).map(precedent => <li key={precedent.id}>
         {precedent.cardHref ? <a href={precedent.cardHref}>{precedent.name}</a> : <b>{precedent.name}</b>}
-        <span className="radar-muted"> · {DIRECTION_LABELS[precedent.direction]} в <a href={precedent.patchHref}>патче {precedent.patch}</a></span>
+        <span className="radar-muted"> · {DIRECTION_LABELS[precedent.direction]} в патче {precedent.patch}</span>
         {/* Описание hs-data-api уже пересказывает правку; построчный список — запасной вариант без него. */}
         {(precedent.summary || precedent.changes.length > 0) && <> — {precedent.summary ?? precedent.changes.join('; ')}</>}
       </li>)}

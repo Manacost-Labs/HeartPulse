@@ -575,17 +575,17 @@
       "entitlement": null
     },
     {
-      "id": "patch-notes",
-      "pattern": "/standard/patches",
-      "kind": "static",
+      "id": "removed-patch-notes",
+      "pattern": "/standard/patches/:path*",
+      "kind": "legacy",
       "owner": "traditional-data",
-      "indexPolicy": "index",
-      "canonicalPolicy": "self",
-      "sitemap": true,
-      "htmlStrategy": "server-ssr",
-      "expectedStatus": 200,
+      "indexPolicy": "noindex-nofollow",
+      "canonicalPolicy": "none",
+      "sitemap": false,
+      "htmlStrategy": "gone",
+      "expectedStatus": 410,
       "criticality": "P2",
-      "mobileFixture": "patch-notes",
+      "mobileFixture": "gone",
       "entitlement": null
     },
     {

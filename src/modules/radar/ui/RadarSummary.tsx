@@ -63,7 +63,7 @@ export function RadarSummary({ report, onPick }: {
       <h2 id="radar-summary-title">Общий вывод</h2>
       <p>
         Обновлено {formatRadarTime(report.generatedAt)}
-        {report.patch && <> · <a href={report.patch.href}>патч {report.patch.version}</a></>}
+        {report.patch && <> · патч {report.patch.version}</>}
       </p>
     </header>
     <div className="radar-section__body radar-summary__body">

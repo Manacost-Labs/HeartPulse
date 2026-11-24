@@ -20,7 +20,7 @@ import { standardMetaPeriodLabel } from '../src/features/standardMetaFilterModel
 import { seoDataDate } from '../apps/public-web/lib/seoDataDate';
 import {
   archetypeCatalogSeoValues, archetypeDetailSeoText, arenaClassesSeoValues, arenaLegendariesSeoValues,
-  arenaTierlistSeoValues, battlegroundBuildsSeoValues, battlegroundHeroesSeoValues, patchNotesSeoValues, standardMatchupsSeoValues,
+  arenaTierlistSeoValues, battlegroundBuildsSeoValues, battlegroundHeroesSeoValues, standardMatchupsSeoValues,
   standardMetaSeoValues,
 } from '../apps/public-web/lib/seoDataValues';
 import { publicArchetypeCatalog } from '../apps/public-web/lib/publicArchetypeCatalogTeaserData';
@@ -760,7 +760,7 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
 // ── Standard matchups and patch notes: date, size of the matrix, version and release date (#540) ──
 {
   const NOW = Date.parse('2026-11-20T09:00:00Z');
-  const text = (path: string, values: ReturnType<typeof patchNotesSeoValues>) => seoPageText(seoPageForExactPath(path)!, values);
+  const text = (path: string, values: ReturnType<typeof standardMatchupsSeoValues>) => seoPageText(seoPageForExactPath(path)!, values);
   const staticText = (path: string) => {
     const page = seoPageForExactPath(path)!;
     return { title: page.title, description: page.description };
@@ -784,19 +784,6 @@ const standardMetaLandingSource = readFileSync(new URL('../src/modules/searchLan
   assert.equal(text('/standard/matchups', standardMatchupsSeoValues(matchups(42, '2026-11-01T08:00:00Z'), NOW)).title,
     staticText('/standard/matchups').title, 'stale data leaves the month out');
 
-  const patch = (version: string, publishedAt: string | null, changeCount: number) => ({
-    version, build: `${version}.1`, title: `Патч ${version}`, publishedAt, sourceUrl: null, officialUrl: null, changeCount,
-    summary: null, entries: [], missingBefore: 0, pictureSections: [], generalChanges: [], meta: null,
-  });
-  assert.deepEqual(text('/standard/patches', patchNotesSeoValues([patch('37.0.2', '2026-11-03T15:55:00+00:00', 42), patch('37.0', '2026-10-12T16:55:00+00:00', 120)], NOW)), {
-    title: 'Патч Hearthstone 37.0.2: изменения карт | HearthPulse',
-    description: 'Патч 37.0.2 Hearthstone (хс) вышел 3 ноября 2026. Что усилили и ослабили — карты было → стало по классам, Поля сражений и архив патчей.',
-  });
-  assert.equal(text('/standard/patches', patchNotesSeoValues([patch('36.6.3', null, 0)], NOW)).description,
-    'Патч 36.6.3 Hearthstone (хс). Что усилили и ослабили — карты было → стало по классам, Поля сражений и архив патчей.',
-    'without a date the description promises none');
-  assert.deepEqual(text('/standard/patches', patchNotesSeoValues(null, NOW)), staticText('/standard/patches'));
-  assert.deepEqual(text('/standard/patches', patchNotesSeoValues([], NOW)), staticText('/standard/patches'));
 }
 
 // Deck pages (#309): the hub's registry templates and the class formula in code; the month goes first when a

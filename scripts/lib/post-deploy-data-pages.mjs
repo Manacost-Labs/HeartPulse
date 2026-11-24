@@ -52,7 +52,6 @@ export const DATA_PAGES = [
   { path: '/cosmetics/coins/', marker: 'cosmetics-grid-coins', copyWords: 133, dataWords: 437 },
   { path: '/cosmetics/pets/', marker: 'cosmetics-pet-card', copyWords: 134, dataWords: 234 },
   { path: '/streamers/', marker: 'streamers-toolbar', copyWords: 144, dataWords: 786 },
-  { path: '/standard/patches/', marker: 'hp-release__title', copyWords: 132, dataWords: 4102 },
   { path: '/standard/archetypes/', marker: 'archetype-row__rank', copyWords: 186, dataWords: 3603 },
   // The Wild list (#637): the same rows as the Standard list; words not measured.
   { path: '/standard/archetypes/wild/', marker: 'archetype-row__rank', copyWords: 0, dataWords: 0 },

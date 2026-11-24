@@ -446,7 +446,6 @@ const DATA_PAGES = [
   { path: '/cosmetics/coins/', minWords: 180, text: 'Coin 23' },
   { path: '/streamers/', minWords: 250, text: 'reqvam' },
   { path: '/streamers/nohandsgamer/', minWords: 300, text: 'NoHandsGamer' },
-  { path: '/standard/patches/', minWords: 3000, text: '' },
   { path: '/standard/archetypes/', minWords: 700, text: 'Архетип fixture-0' },
   { path: '/standard/fun-decks/', minWords: 330, text: 'Колода FREE_DECK_A' },
 ];

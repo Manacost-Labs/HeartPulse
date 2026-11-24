@@ -4,7 +4,6 @@ import { usePublicMenuFocus } from './usePublicMenuFocus';
 import { useMobileMenuPopover } from './useMobileMenuPopover';
 import { useDrawerGesture } from './useDrawerGesture';
 import { useCompactNavigation, useNavigationTooltip, usePressedNavigationLink } from './useNavigationFeedback';
-import { useNavigationBadges } from './patchNotesBadge';
 import { usePageScrollLock } from '../../hooks/usePageScrollLock';
 import { PublicNavigation } from './PublicNavigation';
 import { HeaderProfileButton } from './HeaderProfileButton';
@@ -13,6 +12,11 @@ import { pathOfMenuItem } from '../routing/navigationPlace';
 import { useLocationSearch } from '../../shared/navigation/locationSearch';
 import { closeModePanels, useModePanels, useNavigationPlace } from './useModePanels';
 import type { AuthUser } from '../../modules/identity/public';
+
+import type { NavigationBadges } from './NavigationItems';
+
+/** The menu has no badges since the patch notes page was taken off the site (2026-11-24). */
+const NO_BADGES: NavigationBadges = {};
 
 export function PublicNavigationController({ activeTab, pathname, location, access, navigate, updatedAtLabel }: {
   activeTab: TabId; pathname: string;
@@ -24,7 +28,6 @@ export function PublicNavigationController({ activeTab, pathname, location, acce
   const menuRef = useRef<HTMLElement | null>(null);
   const toggleRef = useRef<HTMLButtonElement | null>(null);
   const [compact, toggleCompact] = useCompactNavigation();
-  const badges = useNavigationBadges(pathname);
   const closeMenu = useCallback(() => setMenu(false), []);
   usePublicMenuFocus(menu, menuRef, toggleRef, setMenu);
   useMobileMenuPopover(menu, menuRef, setMenu);
@@ -44,7 +47,7 @@ export function PublicNavigationController({ activeTab, pathname, location, acce
     navigate(path);
   };
   return <PublicNavigation activeTab={activeTab} activeItem={place.item} pageMode={place.mode} mobileMenuOpen={menu} mode={mode}
-    compact={compact} badges={badges}
+    compact={compact} badges={NO_BADGES}
     visibleArenaTabs={ARENA_TABS.filter(tab => !ADMIN_ONLY_TAB_IDS.has(tab.id) || access.admin)}
     visibleCommunityTabs={COMMUNITY_TABS.filter(tab => !ADMIN_ONLY_TAB_IDS.has(tab.id) || access.admin)}
     appIsContestAdmin={access.contestAdmin} wantsLogin={false} updatedAtLabel={updatedAtLabel} mobileMenuRef={menuRef}

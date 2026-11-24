@@ -383,7 +383,6 @@
     "tests/next-not-found-browser.test.mjs": 15.4,
     "tests/next-page-transitions-browser.test.mjs": 26,
     "tests/next-paid-panels-pending-browser.test.mjs": 24.9,
-    "tests/next-patch-notes-browser.test.mjs": 12.7,
     "tests/next-paywall-access-check-browser.test.mjs": 33,
     "tests/next-prerendered-robots.test.mjs": 0.1,
     "tests/next-public-archetype-teaser.test.ts": 0.1,

@@ -26,10 +26,6 @@ export type ModeHub = {
   links: readonly ModeHubLink[];
 };
 
-const PATCHES_LINK = {
-  href: '/standard/patches/',
-  title: 'Патчноуты',
-} as const;
 
 export const MODE_HUBS: Readonly<Record<ModeHubId, ModeHub>> = {
   standard: {
@@ -47,7 +43,6 @@ export const MODE_HUBS: Readonly<Record<ModeHubId, ModeHub>> = {
       { href: '/standard/fun-decks/', title: 'Фан-колоды', text: 'Необычные колоды вне меты с составом карт и числом игр.' },
       { href: '/standard/cards/', title: 'Карты Hearthstone', text: 'Библиотека карт с фильтрами и отдельной страницей каждой карты.' },
       { href: '/standard/cards/standard/', title: 'Карты Стандарта', text: 'Только карты, которые сейчас разрешены в Стандарте.' },
-      { ...PATCHES_LINK, text: 'Что изменилось в картах в каждом патче: усиления и ослабления по классам.' },
     ],
   },
   arena: {
@@ -84,7 +79,6 @@ export const MODE_HUBS: Readonly<Record<ModeHubId, ModeHub>> = {
       { href: '/library/darkmoon-prizes/', title: 'Призы Ярмарки Новолуния', text: 'Призы Ярмарки Новолуния с описаниями.' },
       { href: '/library/trinkets/', title: 'Аксессуары', text: 'Малые и большие аксессуары.' },
       { href: '/library/timewarped/', title: 'Хрономальные карты', text: 'Существа, заклинания и силы героев Timewarped Tavern.' },
-      { ...PATCHES_LINK, text: 'Изменения карт и героев Полей сражений в каждом патче.' },
     ],
   },
   wild: {
@@ -100,7 +94,6 @@ export const MODE_HUBS: Readonly<Record<ModeHubId, ModeHub>> = {
       { href: '/standard/matchups/', title: 'Матчапы', text: 'Шансы архетипов друг против друга, формат «Вольный» в переключателе.' },
       { href: '/standard/fun-decks/', title: 'Фан-колоды', text: 'Необычные колоды Стандарта и Вольного формата.' },
       { href: '/standard/cards/wild/', title: 'Карты Вольного формата', text: 'Библиотека всех карт, разрешённых в Вольном.' },
-      { ...PATCHES_LINK, text: 'Изменения карт в каждом патче: что было и что стало, по классам.' },
     ],
   },
 };

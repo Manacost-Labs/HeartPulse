@@ -20,12 +20,11 @@ test('pages match every word of the query in their name or mode, ignoring case a
   assert.ok(matchPages('', false).every(entry => pathOf(entry).split('?')[0].endsWith('/')), 'section links carry the canonical slash');
   assert.equal(matchPages('админ', false).length, 0, 'admin pages stay hidden from readers');
   const metas = Object.fromEntries(matchPages('', false).map(entry => [pathOf(entry), entry.meta]));
-  assert.equal(metas['/standard/patches/'], '', 'a unique section name needs no mode');
   assert.equal(metas['/standard/meta/'], 'Стандарт', 'a Standard page that has a Wild twin carries its mode');
   assert.equal(metas['/standard/meta/wild/'], 'Вольный', 'the Wild twin is found and labelled with its mode');
   assert.equal(metas['/standard/cards/wild/'], 'Вольный');
   assert.deepEqual(matchPages('матчапы вольный', false).map(pathOf), ['/standard/matchups/?format=wild']);
-  assert.equal(matchPages('', false).filter(entry => entry.label === 'Патчноуты').length, 1, 'patch notes are one page, not one per mode');
+  assert.equal(matchPages('', false).filter(entry => entry.label === 'Патчноуты').length, 0, 'the patch notes page was taken off the site');
   assert.equal(matchPages('', false).filter(entry => entry.label === 'VS Gold').length, 1, 'VS Gold has no Wild page');
   assert.equal(metas['/tierlist/'], 'Арена', 'a repeated name carries its mode');
   assert.equal(matchPages('админ', true).length, 1);

@@ -276,10 +276,11 @@ assert.ok(articlesPage.description.split(/\s+/).map(word => word.replace(/[.,;:!
 const articlesNav = TABS.find(tab => tab.id === 'articles');
 assert.equal(articlesNav?.label, 'Подборка', 'the menu calls /articles a collection');
 
-// ?version=X patch pages (46 URLs with one title) canonicalise to the clean path.
+// The patch notes page was taken off the site: every address of it, with or without ?version=X, is gone.
 const patchPolicy = await resolvePublicUrlPolicy('/standard/patches/', '?version=33.0.2');
-assert.equal(patchPolicy.canonicalUrl, 'https://hearthpulse.net/standard/patches/',
-  '/standard/patches/?version=X must be canonical to the path without the parameter');
+assert.equal(patchPolicy.routeId, 'removed-patch-notes');
+assert.equal(patchPolicy.indexPolicy, 'noindex-nofollow', '/standard/patches/ is gone and never indexed');
+assert.equal(patchPolicy.canonicalUrl, null, 'a gone page has no canonical address');
 
 const queryOwners = new Map<string, string>();
 for (const policy of inventory.queryPolicies) {
