@@ -247,7 +247,7 @@
     "dotenv": "^18.0.10",
     "entities": "8.1.0",
     "express": "^4.21.2",
-    "express-rate-limit": "8.7.4",
+    "express-rate-limit": "8.7.5",
     "lucide-react": "0.577.0",
     "next": "16.4.6",
     "node-cron": "^4.5.0",
