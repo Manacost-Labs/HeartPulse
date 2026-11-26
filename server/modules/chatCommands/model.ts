@@ -1,5 +1,5 @@
 import { encode, type FormatType } from '@firestone-hs/deckstrings';
-import type { LadderRank, PlayerGame } from '../playerGames/public.js';
+import { gameRank, type LadderRank, type PlayerGame } from '../playerGames/public.js';
 
 /** Nightbot shows at most 400 characters of `$(urlfetch)`; StreamElements' `${customapi}` is cut there too. */
 export const CHAT_MAX_LENGTH = 400;
@@ -130,14 +130,13 @@ export function winrateReply(games: readonly PlayerGame[], lang: ChatLanguage): 
   return parts.length ? chatLine(parts.join(' · ')) : text.noGames;
 }
 
-/** `!rank`: the ladder rank after the newest visible ranked Constructed game. */
+/** `!rank`: the ladder rank of the newest visible ranked Constructed game, after it or, as Hearthpulse sends it, before it. */
 export function rankReply(games: readonly PlayerGame[], lang: ChatLanguage): string {
   const text = T[lang];
   for (let index = games.length - 1; index >= 0; index -= 1) {
     const game = games[index];
-    if ((game.mode === 'standard' || game.mode === 'wild') && game.constructed.ranked && game.constructed.rankAfter) {
-      return chatLine(text.rank(rankText(game.constructed.rankAfter, lang), game.mode === 'wild' ? text.wild : text.standard));
-    }
+    const rank = game.mode === 'standard' || game.mode === 'wild' ? gameRank(game.constructed) : null;
+    if (rank) return chatLine(text.rank(rankText(rank, lang), game.mode === 'wild' ? text.wild : text.standard));
   }
   return text.noRank;
 }

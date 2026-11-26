@@ -32,9 +32,10 @@ contest entries and wins. The tracker games are public only while
 
 ## Public statistics
 
-`GET /api/profiles/:publicProfileId/game-stats/modes` → `{ modes }` (each
-mode `1` or `0`, counted up to the same day bound as below: presence only,
-since a growing count would time each new game) and
+`GET /api/profiles/:publicProfileId/game-stats/modes` → `{ modes,
+battlegroundsQueues }` in the owner's shape (each mode and each queue `1` or
+`0`, counted up to the same day bound as below: presence only, since a
+growing count would time each new game) and
 `GET /api/profiles/:publicProfileId/game-stats?mode=…&period=…` → the same
 statistics as the owner's `/api/account/game-stats`
 ([player game statistics](player-game-stats.md)), mounted only with

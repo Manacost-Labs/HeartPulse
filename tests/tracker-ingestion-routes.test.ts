@@ -130,6 +130,20 @@ try {
   assert.deepEqual(repository.listEvents('user-1', { types: [], since: null, limit: 10 }), []);
   assert.deepEqual(repository.countEvents('user-1', ['constructed_match', 'arena_run'], 2), { constructed_match: 2 });
 
+  // Counts per value of one top-level payload field: a row stored with a statistics error lacks it and is not counted.
+  assert.deepEqual(repository.countEventsByField('user-1', 'constructed_match', 2, 'format'), { standard: 1 });
+  assert.deepEqual(repository.countEventsByField('user-1', 'constructed_match', 3, 'format'), {}, 'from the schema version on');
+  const bgRow = (occurredAt: string, payload: Record<string, unknown>) =>
+    ({ eventId: randomUUID(), type: 'battlegrounds_match' as const, schemaVersion: 2 as const, occurredAt, payload });
+  repository.acknowledge('user-1', [bgRow('2026-09-10T10:00:00.000Z', { duos: true }), bgRow('2026-09-11T10:00:00.000Z', { duos: true }),
+    bgRow('2026-09-11T11:00:00.000Z', { duos: false }), bgRow('2026-09-11T12:00:00.000Z', { statisticsError: 'placement' })], Date.now());
+  assert.deepEqual(repository.countEventsByField('user-1', 'battlegrounds_match', 2, 'duos'), { 0: 1, 1: 2 }, 'a JSON boolean groups as 1 and 0');
+  assert.deepEqual(repository.countEventsByField('user-1', 'battlegrounds_match', 2, 'duos', '2026-09-11T10:00:00.000Z'), { 1: 1 },
+    'until is an exclusive bound');
+  for (const field of ['format.x', '$.format', 'format[0]', "format') --", '1format', '']) {
+    assert.throws(() => repository.countEventsByField('user-1', 'constructed_match', 2, field), /Invalid payload field/, field);
+  }
+
   // The account quota refuses only new ids; a replay of a stored id is still acknowledged.
   const full = createSqliteTrackerEventRepository(() => database);
   const replayId = v2Id;

@@ -89,7 +89,7 @@ export function RecentConstructedGames({ games, text = PROFILE_STATS_TEXT.ru }: 
       tone: game.result,
       main: <><ClassName playerClass={game.playerClass} detail={game.deckName ?? game.archetype} />
         <Opponent><ClassName playerClass={game.opponentClass} detail={game.opponentArchetype} /></Opponent></>,
-      facts: [game.ranked ? rankLabel(game.rankAfter) : 'Обычная', game.turns ? `${game.turns} ход.` : null,
+      facts: [game.ranked ? rankLabel(game.rank ?? game.rankAfter) : 'Обычная', game.turns ? `${game.turns} ход.` : null,
         formatDuration(game.durationSeconds)].filter(Boolean).join(' · '),
     })} />
   );

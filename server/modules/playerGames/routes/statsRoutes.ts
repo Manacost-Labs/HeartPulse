@@ -61,7 +61,7 @@ export function createPlayerStatsRouter(dependencies: PlayerStatsRouterDependenc
     const user = dependencies.userAuth(request);
     if (!user) return response.status(401).json({ error: 'Требуется вход' });
     try {
-      return response.json({ modes: dependencies.service.availableModes(user.id) });
+      return response.json(dependencies.service.availableModes(user.id));
     } catch {
       return response.status(503).json({ error: 'Не удалось загрузить статистику' });
     }
@@ -88,7 +88,7 @@ export function createPlayerStatsRouter(dependencies: PlayerStatsRouterDependenc
       try {
         const owner = resolveOwner(request.params.publicProfileId);
         if (!owner) return response.status(404).json(PUBLIC_NOT_FOUND);
-        return response.json({ modes: publicStats.modes(owner) });
+        return response.json(publicStats.modes(owner));
       } catch {
         response.set('Cache-Control', 'no-store');
         return response.status(503).json({ error: 'Не удалось загрузить статистику' });

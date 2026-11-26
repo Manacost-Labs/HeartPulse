@@ -11,27 +11,47 @@ const DAY = 86_400_000;
 const day = (time: number) => Math.floor(time / DAY) * DAY;
 
 /** What `/api/profiles/<id>/game-stats` sends: no recent games, days instead of times. */
-const PUBLIC_ANSWERS: Record<string, unknown> = {
-  standard: {
-    ...profileStandardFixture,
-    recentGames: [],
-    rankSeries: profileStandardFixture.rankSeries.map((game, index) => ({ ...game, id: String(index + 1), startedAt: day(game.startedAt) })),
-    decks: profileStandardFixture.decks.map(deck => ({ ...deck, lastPlayedAt: day(deck.lastPlayedAt) })),
-  },
-  battlegrounds: { ...profileBattlegroundsFixture, recentGames: [], global: { availability: 'none', mmr: 'TOP_50_PERCENT' } },
+const publicStandard = {
+  ...profileStandardFixture,
+  recentGames: [],
+  rankSeries: profileStandardFixture.rankSeries.map((game, index) => ({ ...game, id: String(index + 1), startedAt: day(game.startedAt) })),
+  decks: profileStandardFixture.decks.map(deck => ({ ...deck, lastPlayedAt: day(deck.lastPlayedAt) })),
 };
+const publicBattlegrounds = { ...profileBattlegroundsFixture, recentGames: [], global: { availability: 'none' as const, mmr: 'TOP_50_PERCENT' as const } };
+const PUBLIC_ANSWERS: Record<string, unknown> = { standard: publicStandard, battlegrounds: publicBattlegrounds };
 /** The owner's own answers keep the recent games and their web replays. */
 const ACCOUNT_ANSWERS: Record<string, unknown> = { standard: profileStandardFixture, battlegrounds: profileBattlegroundsFixture };
 
-function mockStats(base: string, answers: Record<string, unknown>, modes: Record<string, number> | null) {
+/** Two Solo places make one Duos place, so the fixture's games read as a Duos player's (places 1–4). */
+const toDuos = (counts: readonly number[]) => [0, 2, 4, 6].map(index => counts[index] + counts[index + 1]);
+const averagePlace = (counts: readonly number[]) =>
+  Math.round((counts.reduce((sum, count, index) => sum + count * (index + 1), 0) / counts.reduce((sum, count) => sum + count, 0)) * 100) / 100;
+const duosPlacements = toDuos(publicBattlegrounds.summary.placements);
+const PUBLIC_DUOS = {
+  ...publicBattlegrounds,
+  duos: true,
+  summary: { ...publicBattlegrounds.summary, placements: duosPlacements, averagePlacement: averagePlace(duosPlacements), firstPlaces: duosPlacements[0] },
+  ratingSeries: publicBattlegrounds.ratingSeries.map(point => ({ ...point, placement: Math.ceil(point.placement / 2) })),
+  heroes: publicBattlegrounds.heroes.map(hero => ({ ...hero, placements: toDuos(hero.placements), averagePlacement: averagePlace(toDuos(hero.placements)) })),
+};
+
+/**
+ * Answers `/modes` and the statistics of one base path. `queues` plays the
+ * per-queue counts (left out: an older server). A Duos request reads the
+ * `<mode>:duos` answer first, so a story without a Solo answer fails if the
+ * page asks for Solo.
+ */
+function mockStats(base: string, answers: Record<string, unknown>, modes: Record<string, number> | null, queues?: Record<string, number>) {
   const original = window.fetch;
   window.fetch = async input => {
     const url = new URL(String(input instanceof Request ? input.url : input), window.location.href);
     if (url.pathname === `${base}/modes`) {
-      return modes ? Response.json({ modes }) : Response.json({ error: 'Статистика не найдена' }, { status: 404 });
+      if (!modes) return Response.json({ error: 'Статистика не найдена' }, { status: 404 });
+      return Response.json(queues ? { modes, battlegroundsQueues: queues } : { modes });
     }
     if (url.pathname === base) {
-      const answer = answers[url.searchParams.get('mode') ?? ''];
+      const mode = url.searchParams.get('mode') ?? '';
+      const answer = (url.searchParams.get('duos') === '1' ? answers[`${mode}:duos`] : undefined) ?? answers[mode];
       return answer ? Response.json(answer) : Response.json({ error: 'Нет данных' }, { status: 404 });
     }
     return original(input);
@@ -103,6 +123,30 @@ export const ActivePlayer: Story = {
     await expect(canvas.queryByRole('heading', { name: 'Последние игры' })).toBeNull();
     await userEvent.click(canvas.getByRole('radio', { name: 'Поля сражений' }));
     await expect(await canvas.findByRole('heading', { name: 'Герои' })).toBeVisible();
+  },
+};
+
+/** Only Wild games: no Standard tab, so the page opens on Wild (one tab, no mode switch). */
+export const WildOnly: Story = {
+  beforeEach: () => mockStats('/api/profiles/7/game-stats', { wild: { ...publicStandard, mode: 'wild' } },
+    { battlegrounds: 0, standard: 0, wild: 1, arena: 0 }, { solo: 0, duos: 0 }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole('list', { name: 'Колоды' })).toBeVisible();
+    await expect(canvas.queryByRole('radiogroup', { name: 'Режим' })).toBeNull();
+    await expect(canvas.queryByRole('alert')).toBeNull();
+  },
+};
+
+/** Only Duos games: Battlegrounds opens on Duos instead of an empty Solo page. */
+export const DuosOnly: Story = {
+  beforeEach: () => mockStats('/api/profiles/7/game-stats', { 'battlegrounds:duos': PUBLIC_DUOS },
+    { battlegrounds: 1, standard: 0, wild: 0, arena: 0 }, { solo: 0, duos: 1 }),
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(await canvas.findByRole('heading', { name: 'Герои' })).toBeVisible();
+    await expect(canvas.getByRole('radio', { name: 'Дуо' })).toBeChecked();
+    await expect(canvas.queryByRole('alert')).toBeNull();
   },
 };
 

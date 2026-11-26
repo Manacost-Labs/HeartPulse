@@ -1,4 +1,4 @@
-import type { PlayerGame } from '../model/game.js';
+import { gameRank, type PlayerGame } from '../model/game.js';
 import {
   MAX_RECENT_GAMES,
   type RecentArenaGame,
@@ -27,6 +27,7 @@ export function recentConstructedGames(games: readonly Game<'standard' | 'wild'>
     opponentArchetype: game.constructed.opponentArchetype,
     ranked: game.constructed.ranked,
     rankAfter: game.constructed.rankAfter,
+    rank: gameRank(game.constructed),
   }));
 }
 

@@ -2307,7 +2307,7 @@
       "dataStores": [],
       "externalServices": ["the Twitch link, the extension snapshot and the account's games, injected by composition"],
       "tests": ["tests/chat-commands-routes.test.ts"],
-      "allowedDependencies": ["server.playerGames public types", "@firestone-hs/deckstrings", "Express at the routes boundary"],
+      "allowedDependencies": ["server.playerGames public types and its rank rule (gameRank)", "@firestone-hs/deckstrings", "Express at the routes boundary"],
       "forbiddenImports": ["src/**", "other server module internals"]
     }
   ],

@@ -1,9 +1,10 @@
 import type { ArenaRunRecord, PlayerGame, PlayerGameMode } from '../model/game.js';
-import { GAME_EVENT_TYPES, type CountStatisticsEvents, type GameEventType, type LoadStatisticsEvents } from '../model/events.js';
+import type { CountStatisticsEventsByField, GameEventType, LoadStatisticsEvents } from '../model/events.js';
 import type { GlobalBattlegroundsHero, GlobalStatisticsSources } from '../model/globalSources.js';
 import {
   MAX_STATS_GAMES,
   periodStart,
+  type AvailableModes,
   type GlobalAvailability,
   type GlobalMmrFilter,
   type PlayerStats,
@@ -31,7 +32,7 @@ export type PlayerStatsQuery = { mode: PlayerGameMode; period: StatsPeriod; duos
 export type PlayerStatsDependencies = {
   /** The account's tracker events, newest first (the tracker ingestion repository). */
   loadEvents: LoadStatisticsEvents;
-  countEvents: CountStatisticsEvents;
+  countEventsByField: CountStatisticsEventsByField;
   global: GlobalStatisticsSources;
   /** Localized names for card ids; missing names fall back to the id on the page. */
   resolveCardNames?: (cardIds: string[]) => Promise<Record<string, string>>;
@@ -53,6 +54,60 @@ function createTtlCache(now: () => number) {
     value.catch(() => entries.delete(key));
     if (entries.size > MAX_CACHE_ENTRIES) entries.delete(entries.keys().next().value as string);
     return value;
+  };
+}
+
+/**
+ * The account's answers for a few minutes, so a page that reloads or switches
+ * tabs does not parse or count thousands of events again. Keys start with
+ * `<userId>|`, so `drop` forgets one account's answers.
+ */
+function createResultCache(now: () => number) {
+  const entries = new Map<string, { expiresAt: number; value: PlayerStats | AvailableModes }>();
+  const fresh = (key: string) => {
+    const hit = entries.get(key);
+    return hit && hit.expiresAt > now() ? hit.value : null;
+  };
+  return {
+    stats: (key: string): PlayerStats | null => {
+      const value = fresh(key);
+      return value && 'mode' in value ? value : null;
+    },
+    modes: (key: string): AvailableModes | null => {
+      const value = fresh(key);
+      return value && 'modes' in value ? value : null;
+    },
+    set<T extends PlayerStats | AvailableModes>(key: string, value: T): T {
+      entries.set(key, { expiresAt: now() + RESULT_TTL_MS, value });
+      if (entries.size > MAX_RESULT_ENTRIES) entries.delete(entries.keys().next().value as string);
+      return value;
+    },
+    drop(userId: string): void {
+      for (const key of entries.keys()) if (key.startsWith(`${userId}|`)) entries.delete(key);
+    },
+  };
+}
+
+const total = (counts: Partial<Record<string, number>>): number =>
+  Object.values(counts).reduce<number>((sum, count) => sum + (count ?? 0), 0);
+
+/**
+ * Readable version 2 games and runs per tab. Each counts by a field that every
+ * readable payload has at its top level (the stored wire shape); a row stored
+ * with a `statisticsError` has none of them, so it opens no tab.
+ */
+function countModes(countByField: CountStatisticsEventsByField, userId: string, until: number | null): AvailableModes {
+  const bound = until === null ? undefined : new Date(until).toISOString();
+  const count = (type: GameEventType, field: string) => countByField(userId, type, 2, field, bound);
+  const queues = count('battlegrounds_match', 'duos');
+  const formats = count('constructed_match', 'format');
+  const solo = queues['0'] ?? 0;
+  const duos = queues['1'] ?? 0;
+  // Arena games and runs all carry `underground`, normal and Underground runs alike.
+  const arena = total(count('arena_match', 'underground')) + total(count('arena_run', 'underground'));
+  return {
+    modes: { battlegrounds: solo + duos, standard: formats.standard ?? 0, wild: formats.wild ?? 0, arena },
+    battlegroundsQueues: { solo, duos },
   };
 }
 
@@ -120,34 +175,27 @@ export function createPlayerStatsService(dependencies: PlayerStatsDependencies) 
     return await attempt(() => resolveCardNames([...ids])) ?? {};
   }
 
-  const results = new Map<string, { expiresAt: number; value: PlayerStats }>();
+  const results = createResultCache(now);
 
   return {
-    /** Which tabs have data: version 2 game and run events per mode, counted without reading payloads. */
-    availableModes(userId: string, until: number | null = null): Record<PlayerGameMode, number> {
-      const counts = dependencies.countEvents(userId, GAME_EVENT_TYPES, 2, until === null ? undefined : new Date(until).toISOString());
-      const constructed = counts.constructed_match ?? 0;
-      return { battlegrounds: counts.battlegrounds_match ?? 0, standard: constructed, wild: constructed,
-        arena: (counts.arena_match ?? 0) + (counts.arena_run ?? 0) };
+    /** Which tabs have data (`countModes`), cached like the statistics; `until` (exclusive) counts only earlier games. */
+    availableModes(userId: string, until: number | null = null): AvailableModes {
+      const key = `${userId}|modes:${until}`;
+      return results.modes(key) ?? results.set(key, countModes(dependencies.countEventsByField, userId, until));
     },
 
     /** Drops the account's cached answers; the tracker ingestion calls it after storing new events. */
     invalidate(userId: string): void {
-      for (const key of results.keys()) if (key.startsWith(`${userId}|`)) results.delete(key);
+      results.drop(userId);
     },
 
     /**
-     * Aggregates are cached per account and query for a few minutes, so a page
-     * that reloads or switches tabs does not parse thousands of events again.
+     * Aggregates are cached per account and query for a few minutes.
      * `until` (exclusive) ends the games and the period windows there instead of now.
      */
     async load(userId: string, query: PlayerStatsQuery, globalAllowed: boolean, until: number | null = null): Promise<PlayerStats> {
       const key = `${userId}|${query.mode}:${query.period}:${query.duos}:${query.mmr}:${globalAllowed}:${until}`;
-      const hit = results.get(key);
-      if (hit && hit.expiresAt > now()) return withReplays(dependencies.replaysOfGames, userId, hit.value);
-      const value = await compute(userId, query, globalAllowed, until);
-      results.set(key, { expiresAt: now() + RESULT_TTL_MS, value });
-      if (results.size > MAX_RESULT_ENTRIES) results.delete(results.keys().next().value as string);
+      const value = results.stats(key) ?? results.set(key, await compute(userId, query, globalAllowed, until));
       return withReplays(dependencies.replaysOfGames, userId, value);
     },
 

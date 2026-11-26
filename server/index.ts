@@ -7178,7 +7178,7 @@ const ruCardNames = createCardNameLookup({ url: HEARTHSTONE_RU_CARDS_URL });
 const playerStats = registerPlayerGames({ app, userAuth, setPrivateNoStore,
   resolvePublicStatsOwner: publicProfileId => findPublicStatsOwner(db(), publicProfileId),
   loadEvents: (userId, query) => trackerEvents.listEvents(userId, query),
-  countEvents: (userId, types, minSchemaVersion, until) => trackerEvents.countEvents(userId, types, minSchemaVersion, until),
+  countEventsByField: (userId, type, minSchemaVersion, field, until) => trackerEvents.countEventsByField(userId, type, minSchemaVersion, field, until),
   hasEntitlement: requestHasEntitlementAccess, resolveCardNames: ruCardNames, resolveCardIds: ruCardNames.cardIdsByDbf,
   replaysOfGames: (userId, gameIds) => replayShares.replaysOfGames(userId, gameIds, Date.now()),
   global: createPlayerGamesGlobalSources({

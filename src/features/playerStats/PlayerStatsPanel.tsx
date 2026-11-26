@@ -4,6 +4,7 @@ import { Button } from '../../vendor/varylo-ui/basic/Button';
 import type { AccountGameStatsProps } from '../../modules/identity/public';
 import {
   PROFILE_STATS_TEXT,
+  openOnDuos,
   useGameStats,
   useGameStatsModes,
   type GlobalMmrFilter,
@@ -40,14 +41,15 @@ function ModeBody({ stats, filtered, mmr, onMmrChange, text }: {
 }
 
 /** One account's statistics: the header numbers and switches, and the shown mode below them. */
-function PlayerStatsBody({ modes, frame, text }: {
+function PlayerStatsBody({ modes, initialDuos, frame, text }: {
   modes: PlayerStatsMode[];
+  initialDuos: boolean;
   frame: (body: ReactNode, summary: ReactNode) => ReactNode;
   text: ProfileStatsText;
 }) {
   const [mode, setMode] = useState<PlayerStatsMode>(modes[0]);
   const [period, setPeriod] = useState<StatsPeriod>('all');
-  const [duos, setDuos] = useState(false);
+  const [duos, setDuos] = useState(initialDuos);
   const [mmr, setMmr] = useState<GlobalMmrFilter>('TOP_50_PERCENT');
   const [attempt, setAttempt] = useState(0);
   const loaded = useGameStats({ mode, period, duos, mmr }, attempt);
@@ -77,16 +79,17 @@ function PlayerStatsBody({ modes, frame, text }: {
 /**
  * The account's «Моя статистика» and a public profile's statistics, like
  * HSReplay's «My Stats». `frame` places the header strip (mode, period, main
- * numbers) and the mode's sections; only modes with games are offered.
+ * numbers) and the mode's sections; only modes with games are offered, and
+ * Battlegrounds opens on Duos when all its games are there.
  * While the modes are checked `pending` keeps the place, then `empty` is
  * shown when there is nothing.
  */
 export default function PlayerStatsPanel({ frame, empty = null, pending = null, lang = 'ru' }: AccountGameStatsProps & {
   lang?: ProfileStatsLang;
 }) {
-  const counts = useGameStatsModes();
-  if (counts === undefined) return <>{pending}</>;
-  const modes = counts ? MODES.filter(mode => counts[mode] > 0) : [];
-  if (!modes.length) return <>{empty}</>;
-  return <PlayerStatsBody modes={modes} frame={frame} text={PROFILE_STATS_TEXT[lang]} />;
+  const found = useGameStatsModes();
+  if (found === undefined) return <>{pending}</>;
+  const modes = found ? MODES.filter(mode => found.counts[mode] > 0) : [];
+  if (!found || !modes.length) return <>{empty}</>;
+  return <PlayerStatsBody modes={modes} initialDuos={openOnDuos(found.queues)} frame={frame} text={PROFILE_STATS_TEXT[lang]} />;
 }

@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { DatabaseSync } from 'node:sqlite';
 import express from 'express';
 import type { ApplicationAuthManager, ApplicationToken } from '../server/modules/applicationAuth/public.js';
-import { createPlayerStatsRouter, createPlayerStatsService, validateStatisticsPayload } from '../server/modules/playerGames/public.js';
+import { createPlayerStatsRouter, createPlayerStatsService, validateStatisticsPayload, type LadderRank } from '../server/modules/playerGames/public.js';
 import { registerPlayerGames } from '../server/app/registerPlayerGames.js';
 import { recentConstructedGames } from '../server/modules/playerGames/service/recentGames.js';
 import { buildConstructedStats } from '../server/modules/playerGames/service/constructedStats.js';
@@ -15,7 +15,7 @@ import {
 } from '../server/modules/trackerIngestion/public.js';
 
 const database = new DatabaseSync(':memory:');
-database.exec('PRAGMA foreign_keys = ON; CREATE TABLE users (id TEXT PRIMARY KEY); INSERT INTO users(id) VALUES (\'user-1\'), (\'user-2\');');
+database.exec('PRAGMA foreign_keys = ON; CREATE TABLE users (id TEXT PRIMARY KEY); INSERT INTO users(id) VALUES (\'user-1\'), (\'user-2\'), (\'user-3\');');
 initializeTrackerEventRepository(() => database);
 const repository = createSqliteTrackerEventRepository(() => database);
 const token = (userId: string): ApplicationToken => ({
@@ -29,10 +29,15 @@ let publicVisible = false;
 let globalCalls = 0;
 /** The account's web replays by game event id (plan 2.3); read on every answer. */
 const replayLinks: Record<string, Record<string, string>> = {};
+/** Payload field counts the tabs asked the repository for: a cached answer asks none. */
+let fieldCounts = 0;
 
 const service = createPlayerStatsService({
   loadEvents: repository.listEvents,
-  countEvents: repository.countEvents,
+  countEventsByField: (...args) => {
+    fieldCounts += 1;
+    return repository.countEventsByField(...args);
+  },
   global: {
     battlegroundsHeroes: async () => {
       globalCalls += 1;
@@ -48,8 +53,8 @@ const service = createPlayerStatsService({
 const app = express();
 app.use(express.json({ limit: '5mb' }));
 app.use('/api/v1', createTrackerIngestionRouter({
-  accessTokens: { authenticate: (value: unknown) => (value === 'one' ? token('user-1') : value === 'two' ? token('user-2') : null) } as
-    Pick<ApplicationAuthManager, 'authenticate'>,
+  accessTokens: { authenticate: (value: unknown) => (value === 'one' ? token('user-1') : value === 'two' ? token('user-2')
+    : value === 'three' ? token('user-3') : null) } as Pick<ApplicationAuthManager, 'authenticate'>,
   repository,
   setPrivateNoStore: response => response.set('Cache-Control', 'private, no-store'),
   validatePayload: validateStatisticsPayload,
@@ -57,11 +62,11 @@ app.use('/api/v1', createTrackerIngestionRouter({
   now: () => Date.parse('2026-10-23T12:00:00Z'),
 }));
 app.use('/api', createPlayerStatsRouter({
-  userAuth: request => (request.headers.cookie === 'session=1' ? { id: 'user-1' } : null),
+  userAuth: request => (request.headers.cookie === 'session=1' ? { id: 'user-1' } : request.headers.cookie === 'session=3' ? { id: 'user-3' } : null),
   hasEntitlement: async () => entitled,
   service,
   setPrivateNoStore: response => response.set('Cache-Control', 'no-store'),
-  resolvePublicStatsOwner: id => (id === '7' && publicVisible ? 'user-1' : id === '9' ? 'user-2' : null),
+  resolvePublicStatsOwner: id => (id === '7' && publicVisible ? 'user-1' : id === '9' ? 'user-2' : id === '11' ? 'user-3' : null),
 }));
 const server = app.listen(0, '127.0.0.1');
 await new Promise<void>((resolve, reject) => {
@@ -212,16 +217,45 @@ try {
   await upload([arena(1, 'win')].map(game => ({ ...game, occurredAt: '2026-10-23T09:00:00Z' })), 'Bearer two');
   assert.deepEqual((await (await fetch(`${origin}/api/profiles/9/game-stats/modes`)).json()).modes,
     { battlegrounds: 1, standard: 0, wild: 0, arena: 0 });
+
+  // The tabs count readable games per format and per queue: a Wild-only player gets no Standard tab, a Duos-only
+  // player opens on Duos, and a game stored with a statistics error (a Classic game) opens no tab.
+  const wild = (day: number, starLevel: number) => event('constructed_match', `2026-10-${day}T20:00:00Z`, { format: 'wild', ranked: true,
+    result: 'win', durationSeconds: 540, playerClass: 'MAGE', opponentClass: 'ROGUE', rankBefore: { starLevel } });
+  const duos = (day: number, placement: number) => event('battlegrounds_match', `2026-10-${day}T18:00:00Z`, {
+    durationSeconds: 1200, heroCardId: 'BG20_HERO_242', placement, duos: true });
+  const classic = event('constructed_match', '2026-10-22T21:00:00Z', { format: 'classic', result: 'win', durationSeconds: 300,
+    playerClass: 'MAGE', opponentClass: 'ROGUE' });
+  const third = await (await upload([wild(20, 40), wild(21, 41), wild(23, 42), classic, duos(21, 1), duos(23, 3)], 'Bearer three')).json();
+  assert.deepEqual(third.warnings, [{ eventId: classic.eventId, code: 'INVALID_STATISTICS', field: 'format' }]);
+  const ownModes = async () => (await fetch(`${origin}/api/account/game-stats/modes`, { headers: { cookie: 'session=3' } })).json();
+  assert.deepEqual(await ownModes(), { modes: { battlegrounds: 2, standard: 0, wild: 3, arena: 0 }, battlegroundsQueues: { solo: 0, duos: 2 } });
+  assert.deepEqual(await (await fetch(`${origin}/api/profiles/11/game-stats/modes`)).json(),
+    { modes: { battlegrounds: 1, standard: 0, wild: 1, arena: 0 }, battlegroundsQueues: { solo: 0, duos: 1 } },
+    'a public profile: presence only, up to the start of the current UTC day');
+  const counted = fieldCounts;
+  await ownModes();
+  assert.equal(fieldCounts, counted, 'the tabs are cached with the statistics');
+  await upload([wild(22, 43)], 'Bearer three');
+  assert.equal((await ownModes()).modes.wild, 4, 'a stored upload drops the cached tabs');
+
+  // The app sends only the rank before each game: the newest ranked game's rank before it is the current rank.
+  const wildStats = await (await stats('mode=wild', 'session=3')).json();
+  assert.deepEqual([wildStats.summary.currentRank, wildStats.summary.bestRank],
+    [{ starLevel: 42, stars: 0, legendRank: null }, { starLevel: 43, stars: 0, legendRank: null }]);
+  assert.deepEqual([wildStats.recentGames[0].rank, wildStats.recentGames[0].rankAfter], [{ starLevel: 42, stars: 0, legendRank: null }, null]);
+
   const composition = readFileSync(new URL('../server/index.ts', import.meta.url), 'utf8');
-  assert.match(composition, /countEvents: \(userId, types, minSchemaVersion, until\) => trackerEvents\.countEvents\(userId, types, minSchemaVersion, until\)/,
-    'the server must pass the public day bound to the event counts');
+  assert.match(composition,
+    /countEventsByField: \(userId, type, minSchemaVersion, field, until\) => trackerEvents\.countEventsByField\(userId, type, minSchemaVersion, field, until\)/,
+    'the server must pass the public day bound to the tab counts');
 } finally {
   server.close();
 }
 
 // Switched off unless PLAYER_STATS_ENABLED=1: no routes, nothing for the page to show.
 const disabled = express();
-const off = registerPlayerGames({ app: disabled, loadEvents: () => [], countEvents: () => ({}), userAuth: () => ({ id: 'user-1' }),
+const off = registerPlayerGames({ app: disabled, loadEvents: () => [], countEventsByField: () => ({}), userAuth: () => ({ id: 'user-1' }),
   hasEntitlement: async () => false, global: {}, setPrivateNoStore: () => {}, environment: {} });
 off.invalidate('user-1');
 const disabledServer = disabled.listen(0, '127.0.0.1');
@@ -248,5 +282,26 @@ const lost = { ...constructedGame('lost', 3), result: 'loss' as const };
 const deckStats = buildConstructedStats([lost, constructedGame('new', 2), constructedGame('old', 1)],
   { mode: 'standard', period: 'all', global: { availability: 'none' } }, null);
 assert.deepEqual(deckStats.decks[0].results, ['win', 'win', 'loss']);
+
+// The rank a ranked game shows: after it, else before it (Hearthpulse sends only the rank before); Casual has none.
+// A: Diamond 5 before. B: Legend 812 before, 790 after. C: Legend 700 before. D: Casual, Diamond 1 before.
+const legend = (legendRank: number): LadderRank => ({ starLevel: 51, stars: 0, legendRank });
+const withRank = (id: string, startedAt: number, rankBefore: LadderRank, rankAfter: LadderRank | null = null, ranked = true) => {
+  const game = constructedGame(id, startedAt);
+  return { ...game, constructed: { ...game.constructed, ranked, rankBefore, rankAfter } };
+};
+const ladder = [
+  withRank('A', 10, { starLevel: 45, stars: 0, legendRank: null }),
+  withRank('B', 20, legend(812), legend(790)),
+  withRank('C', 30, legend(700)),
+  withRank('D', 40, { starLevel: 50, stars: 0, legendRank: null }, null, false),
+];
+const rankStats = buildConstructedStats([...ladder].reverse(), { mode: 'standard', period: 'all', global: { availability: 'none' } }, null);
+assert.deepEqual([rankStats.summary.currentRank, rankStats.summary.bestRank], [legend(700), legend(700)]);
+assert.deepEqual(rankStats.rankSeries.map(point => point.value), [180, 204, 204]);
+const recentRanks = new Map(rankStats.recentGames.map(game => [game.id, game.rank]));
+assert.deepEqual(recentRanks.get('C'), legend(700));
+assert.deepEqual(recentRanks.get('B'), legend(790), 'the rank after a game wins over the rank before it');
+assert.equal(recentRanks.get('D'), null, 'a Casual game shows no rank');
 
 console.log('player games routes: ok');

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { fetchGameStatsModes, gameStatsFromPayload, gameStatsUrl } from '../src/modules/playerStats/api/gameStatsApi.js';
 import { comparison, formatDuration, formatGameDay, formatSigned, pluralGames, rankLabel, winrate } from '../src/modules/playerStats/model/format.js';
 import { heroPickRate, visibleHeroes } from '../src/modules/playerStats/model/heroTable.js';
+import { openOnDuos } from '../src/modules/playerStats/model/profileView.js';
 import type { HeroStats } from '../src/modules/playerStats/model/stats.js';
 
 // Ranks follow the client's star levels.
@@ -57,13 +58,26 @@ try {
   assert.equal(await fetchGameStatsModes(), null);
   globalThis.fetch = answer(200, { modes: { battlegrounds: 0, standard: 0, wild: 0, arena: 0 } }) as typeof fetch;
   assert.equal(await fetchGameStatsModes(), null);
+  // A server without the queue counts: the counts as before, no queues.
   globalThis.fetch = answer(200, { modes: { battlegrounds: 12, arena: 'x' } }) as typeof fetch;
-  assert.deepEqual(await fetchGameStatsModes(), { battlegrounds: 12, standard: 0, wild: 0, arena: 0 });
+  assert.deepEqual(await fetchGameStatsModes(), { counts: { battlegrounds: 12, standard: 0, wild: 0, arena: 0 }, queues: null });
+  globalThis.fetch = answer(200, { modes: { battlegrounds: 2, standard: 0, wild: 3, arena: 0 }, battlegroundsQueues: { solo: 0, duos: 2 } }) as typeof fetch;
+  assert.deepEqual(await fetchGameStatsModes(), { counts: { battlegrounds: 2, standard: 0, wild: 3, arena: 0 }, queues: { solo: 0, duos: 2 } });
+  globalThis.fetch = answer(200, { modes: { battlegrounds: 2 }, battlegroundsQueues: { solo: 'x', duos: 2 } }) as typeof fetch;
+  assert.deepEqual((await fetchGameStatsModes())?.queues, { solo: 0, duos: 2 });
+  globalThis.fetch = answer(200, { modes: { battlegrounds: 2 }, battlegroundsQueues: [0, 2] }) as typeof fetch;
+  assert.equal((await fetchGameStatsModes())?.queues, null);
   globalThis.fetch = (async () => { throw new TypeError('fetch failed'); }) as typeof fetch;
   assert.equal(await fetchGameStatsModes(), null);
 } finally {
   globalThis.fetch = realFetch;
 }
+
+// Battlegrounds opens on Duos only when every game is there; without queue counts it opens on Solo.
+assert.equal(openOnDuos({ solo: 0, duos: 2 }), true);
+assert.equal(openOnDuos({ solo: 1, duos: 2 }), false);
+assert.equal(openOnDuos({ solo: 0, duos: 0 }), false);
+assert.equal(openOnDuos(null), false);
 
 // A public profile reads the public copy of the same statistics; the day of a public game never carries a time.
 assert.equal(gameStatsUrl({ mode: 'arena', period: 'all', duos: false, mmr: 'TOP_50_PERCENT' }, '7'),
