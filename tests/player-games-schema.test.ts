@@ -88,6 +88,17 @@ const run = statisticsFromEvent(event('arena_run', { runId: 'run-00000001', play
 assert.deepEqual(run, { runId: 'run-00000001', playerClass: 'MAGE', wins: 7, losses: 3, complete: null, underground: false,
   occurredAt: Date.parse(context.occurredAt) });
 
+// What Hearthpulse sends (ProfileEvents.ConstructedEvent): the rank before the game only, never `rankAfter`.
+const appGame = { format: 'standard', ranked: true, result: 'loss', durationSeconds: 420, turns: 9, playerClass: 'MAGE',
+  opponentClass: 'ROGUE', heroCardId: 'HERO_08', wentFirst: true, rankBefore: { starLevel: 51, legendRank: 1234 } };
+const appChecked = check('constructed_match', appGame);
+assert.equal(appChecked.warning, undefined);
+const appRead = statisticsFromEvent(event('constructed_match', appChecked.payload), NOW);
+assert.ok(appRead && 'mode' in appRead && appRead.mode === 'standard');
+assert.deepEqual([appRead.constructed.rankBefore, appRead.constructed.rankAfter], [{ starLevel: 51, stars: 0, legendRank: 1234 }, null]);
+assert.deepEqual(check('constructed_match', { ...appGame, rankBefore: { starLevel: 45 } }).payload.rankBefore,
+  { starLevel: 45, stars: 0, legendRank: null });
+
 assert.equal(statisticsFromEvent(event('constructed_match', { statisticsError: 'opponentClass' }), NOW), null);
 assert.ok(statisticsFromEvent(event('constructed_match', constructed(), 1), NOW), 'a v1 payload with the fields counts');
 assert.equal(statisticsFromEvent(event('constructed_match', { matchId: 'm', turns: 8 }, 1), NOW), null);

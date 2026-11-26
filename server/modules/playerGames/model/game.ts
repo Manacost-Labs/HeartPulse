@@ -109,6 +109,15 @@ export function battlegroundsResult(placement: number, duos: boolean): GameResul
 }
 
 /** One comparable ladder value: four steps per star level, so a gained star always counts. */
-export function ladderValue(rank: LadderRank | null): number | null {
-  return rank ? rank.starLevel * 4 + rank.stars : null;
+export function ladderValue(rank: LadderRank): number {
+  return rank.starLevel * 4 + rank.stars;
+}
+
+/**
+ * The rank a ranked game shows: the rank after it, or the rank before it when
+ * the client sent only that. Hearthpulse sends only `rankBefore`, so its
+ * players' current rank trails by one game. A Casual game has no rank.
+ */
+export function gameRank(detail: Pick<ConstructedDetail, 'ranked' | 'rankBefore' | 'rankAfter'>): LadderRank | null {
+  return detail.ranked ? detail.rankAfter ?? detail.rankBefore : null;
 }

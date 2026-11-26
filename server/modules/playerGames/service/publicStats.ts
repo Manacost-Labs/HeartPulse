@@ -1,6 +1,5 @@
-import type { PlayerGameMode } from '../model/game.js';
 import { publicPlayerStats } from '../model/publicStats.js';
-import type { PlayerStats } from '../model/stats.js';
+import type { AvailableModes, PlayerStats } from '../model/stats.js';
 import type { PlayerStatsQuery, PlayerStatsService } from './playerStats.js';
 
 const DAY_MS = 86_400_000;
@@ -13,11 +12,17 @@ const startOfUtcDay = (time: number): number => Math.floor(time / DAY_MS) * DAY_
  */
 export function createPublicStatsReader(service: PlayerStatsService) {
   return {
-    /** Which tabs exist, as presence only: a count that grows with each game would let a visitor who polls time it. */
-    modes(userId: string): Record<PlayerGameMode, number> {
-      const modes = service.availableModes(userId, startOfUtcDay(service.now()));
-      return { battlegrounds: Math.min(modes.battlegrounds, 1), standard: Math.min(modes.standard, 1),
-        wild: Math.min(modes.wild, 1), arena: Math.min(modes.arena, 1) };
+    /**
+     * Which tabs and Battlegrounds queues exist, as presence only: a count that
+     * grows with each game would let a visitor who polls time it.
+     */
+    modes(userId: string): AvailableModes {
+      const { modes, battlegroundsQueues: queues } = service.availableModes(userId, startOfUtcDay(service.now()));
+      const seen = (count: number) => Math.min(count, 1);
+      return {
+        modes: { battlegrounds: seen(modes.battlegrounds), standard: seen(modes.standard), wild: seen(modes.wild), arena: seen(modes.arena) },
+        battlegroundsQueues: { solo: seen(queues.solo), duos: seen(queues.duos) },
+      };
     },
 
     /**

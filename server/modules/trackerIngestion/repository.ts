@@ -19,6 +19,8 @@ export const TRACKER_EVENT_TABLES_SQL = `
     ON tracker_profile_events(user_id, event_type, occurred_at DESC);
 `;
 
+const PAYLOAD_FIELD = /^[A-Za-z]\w{0,63}$/;
+
 export type TrackerEventQuery = {
   types: readonly TrackerEventType[];
   since: string | null;
@@ -48,6 +50,14 @@ export type TrackerEventRepository = {
   listEvents: (userId: string, query: TrackerEventQuery) => TrackerProfileEvent[];
   /** Stored events per type from `minSchemaVersion` on, without reading any payload. */
   countEvents: (userId: string, types: readonly TrackerEventType[], minSchemaVersion: number, until?: string) => Partial<Record<TrackerEventType, number>>;
+  /**
+   * Stored events of one type from `minSchemaVersion` on, per value of one
+   * top-level payload field, read with `json_extract`; events without the
+   * field are not counted. A JSON boolean groups as `1`/`0`. `until` (ISO) is
+   * an exclusive bound. Throws on a field name that is not a plain key.
+   */
+  countEventsByField: (userId: string, type: TrackerEventType, minSchemaVersion: number, field: string, until?: string)
+    => Partial<Record<string, number>>;
   /** What the account page tells the player about the stored events. */
   summarize: (userId: string) => { events: number; firstOccurredAt: string | null; lastOccurredAt: string | null };
   /**
@@ -143,6 +153,15 @@ export function createSqliteTrackerEventRepository(
           AND occurred_at < ?
         GROUP BY event_type`).all(userId, ...types, minSchemaVersion, until ?? '9999-12-31T23:59:59.999Z');
       return Object.fromEntries(rows.map(row => [String(row.event_type), Number(row.count)]));
+    },
+    countEventsByField(userId, type, minSchemaVersion, field, until?: string) {
+      // A plain top-level key only: the name becomes part of a JSON path.
+      if (!PAYLOAD_FIELD.test(field)) throw new Error(`Invalid payload field: ${field}`);
+      const rows = getDatabase().prepare(`SELECT json_extract(payload_json, '$.' || ?) AS value, COUNT(*) AS count
+        FROM tracker_profile_events
+        WHERE user_id = ? AND event_type = ? AND schema_version >= ? AND occurred_at < ?
+        GROUP BY value`).all(field, userId, type, minSchemaVersion, until ?? '9999-12-31T23:59:59.999Z');
+      return Object.fromEntries(rows.filter(row => row.value !== null).map(row => [String(row.value), Number(row.count)]));
     },
     listEvents(userId, query) {
       if (!query.types.length) return [];

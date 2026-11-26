@@ -1,5 +1,5 @@
 export { PLAYER_GAME_MODES, type PlayerGame, type PlayerGameMode } from './model/game.js';
-export { GAME_EVENT_TYPES, type CountStatisticsEvents, type LoadStatisticsEvents, type StatisticsEvent } from './model/events.js';
+export { GAME_EVENT_TYPES, type CountStatisticsEventsByField, type LoadStatisticsEvents, type StatisticsEvent } from './model/events.js';
 export {
   classKey,
   type GlobalArchetype,
@@ -13,4 +13,4 @@ export { createPlayerStatsRouter, type GlobalStatsEntitlement } from './routes/s
 export { buildYearReview, yearReviewOpen, type YearReview } from './service/yearReview.js';
 export { readPlayerGames } from './service/readGames.js';
 export { createYearReviewRouter } from './routes/yearReviewRoutes.js';
-export { ladderValue, type LadderRank } from './model/game.js';
+export { gameRank, ladderValue, type LadderRank } from './model/game.js';

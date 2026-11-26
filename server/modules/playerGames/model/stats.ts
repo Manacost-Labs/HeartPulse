@@ -1,4 +1,4 @@
-import type { BoardMinion, GameResult, HearthstoneClass, LadderRank } from './game.js';
+import type { BoardMinion, GameResult, HearthstoneClass, LadderRank, PlayerGameMode } from './game.js';
 
 export const STATS_PERIODS = ['all', '7', '30', '90', 'season'] as const;
 export type StatsPeriod = typeof STATS_PERIODS[number];
@@ -24,6 +24,16 @@ export type GlobalAvailability = 'available' | 'subscription' | 'unavailable' | 
 export type WinLoss = { games: number; wins: number };
 
 /**
+ * Which tabs have data (`GET …/game-stats/modes`): readable version 2 games
+ * and runs per tab, Standard and Wild apart, and the Battlegrounds games per
+ * queue, so the page can open on the queue that has them.
+ */
+export type AvailableModes = {
+  modes: Record<PlayerGameMode, number>;
+  battlegroundsQueues: { solo: number; duos: number };
+};
+
+/**
  * One game of «Последние игры», newest first. `replayId` is the account's web replay of this game (uploaded from the
  * app with the game's event id), or null; it is filled on every answer, not cached with the statistics.
  */
@@ -36,6 +46,8 @@ export type RecentConstructedGame = RecentGameBase & {
   opponentArchetype: string | null;
   ranked: boolean;
   rankAfter: LadderRank | null;
+  /** The rank the game shows (`gameRank`): after it, else before it; null for a Casual game. */
+  rank: LadderRank | null;
 };
 export type RecentBattlegroundsGame = RecentGameBase & {
   heroCardId: string;

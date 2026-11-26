@@ -38,6 +38,7 @@ export { PROFILE_STATS_TEXT, type ProfileStatsLang, type ProfileStatsText } from
 export {
   deckCards,
   matchupHeatmap,
+  openOnDuos,
   placementShares,
   summaryItems,
   transposeHeatmap,

@@ -10,6 +10,10 @@ export type HearthstoneClass = 'DEATHKNIGHT' | 'DEMONHUNTER' | 'DRUID' | 'HUNTER
   | 'PRIEST' | 'ROGUE' | 'SHAMAN' | 'WARLOCK' | 'WARRIOR';
 
 export type WinLoss = { games: number; wins: number };
+/** Battlegrounds games per queue, from `GET …/game-stats/modes` (`battlegroundsQueues`). */
+export type BattlegroundsQueues = { solo: number; duos: number };
+/** Games per tab and, when the server counts them, per Battlegrounds queue (`null` from an older server). */
+export type GameStatsModes = { counts: Record<PlayerStatsMode, number>; queues: BattlegroundsQueues | null };
 export type BoardMinion = { cardId: string; attack: number; health: number; golden: boolean };
 export type LadderRank = { starLevel: number; stars: number; legendRank: number | null };
 
@@ -17,7 +21,9 @@ export type LadderRank = { starLevel: number; stars: number; legendRank: number 
 type RecentGameBase = { id: string; startedAt: number; durationSeconds: number; result: 'win' | 'loss' | 'tie'; turns: number | null;
   replayId: string | null };
 export type RecentConstructedGame = RecentGameBase & { playerClass: HearthstoneClass; opponentClass: HearthstoneClass;
-  deckName: string | null; archetype: string | null; opponentArchetype: string | null; ranked: boolean; rankAfter: LadderRank | null };
+  deckName: string | null; archetype: string | null; opponentArchetype: string | null; ranked: boolean; rankAfter: LadderRank | null;
+  /** The rank the game shows: after it, else before it; null for Casual. An older server sends only `rankAfter`. */
+  rank?: LadderRank | null };
 export type RecentBattlegroundsGame = RecentGameBase & { heroCardId: string; placement: number; ratingAfter: number | null; delta: number | null };
 export type RecentArenaGame = RecentGameBase & { playerClass: HearthstoneClass; opponentClass: HearthstoneClass; gameNumber: number;
   underground: boolean };

@@ -4,7 +4,7 @@
  */
 import { CLASS_LABELS, formatDuration, formatNumber, formatPercent, formatSigned, rankLabel, winrate } from './format';
 import type { ProfileStatsText } from './profileText';
-import type { ArenaStats, BattlegroundsStats, ConstructedStats, PlayerStats } from './stats';
+import type { ArenaStats, BattlegroundsQueues, BattlegroundsStats, ConstructedStats, PlayerStats } from './stats';
 
 type HearthstoneClass = ConstructedStats['classes'][number]['playerClass'];
 type Result = 'win' | 'loss' | 'tie';
@@ -181,6 +181,15 @@ function arenaItems(stats: ArenaStats, text: ProfileStatsText, hours: (seconds: 
       caption: `${formatNumber(summary.wins)}–${formatNumber(summary.losses)}` },
     { id: 'time', label: text.timePlayed, value: hours(summary.timePlayedSeconds) },
   ];
+}
+
+/**
+ * The Battlegrounds tab opens on Duos only when every game is in Duos, so a
+ * Duos player does not land on an empty Solo page. Without the queue counts
+ * (an older server) it opens on Solo as before.
+ */
+export function openOnDuos(queues: BattlegroundsQueues | null): boolean {
+  return queues !== null && queues.solo === 0 && queues.duos > 0;
 }
 
 /** Share of games per place in percent, and the places that count as a good finish (top half). */

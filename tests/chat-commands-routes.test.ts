@@ -36,7 +36,14 @@ const bg = (endedMinutesAgo: number, placement: number, before: number, after: n
   turns: 12, mode: 'battlegrounds', battlegrounds: { heroCardId: 'TB_BaconShop_HERO_41', placement, duos: false, ratingBefore: before, ratingAfter: after,
     anomalyCardId: null, races: [], tavernTier: 5, finalBoard: [], combats: [], heroOptions: [], offers: [] },
 });
-const games = () => [ranked(120, 'win', 44), ranked(90, 'loss', 44), ranked(60, 'win', 45), bg(30, 2, 6500, 6560), bg(3, 8, 6560, 6480)]
+/** What Hearthpulse sends: the rank before the game only (Legend 1234), no rank after it. */
+const legendBefore = (endedMinutesAgo: number): PlayerGame => ({
+  id: `l${endedMinutesAgo}`, startedAt: t0 - endedMinutesAgo * minute - 10 * minute, durationSeconds: 600, result: 'win', turns: 8, mode: 'standard',
+  constructed: { ranked: true, playerClass: 'MAGE', opponentClass: 'ROGUE', heroCardId: null, opponentHeroCardId: null, deckCode: null,
+    deckName: null, archetype: null, opponentArchetype: null, wentFirst: null, rankBefore: { starLevel: 51, stars: 0, legendRank: 1234 }, rankAfter: null },
+});
+let later: PlayerGame[] = [];
+const games = () => [ranked(120, 'win', 44), ranked(90, 'loss', 44), ranked(60, 'win', 45), bg(30, 2, 6500, 6560), bg(3, 8, 6560, 6480), ...later]
   .sort((left, right) => left.startedAt - right.startedAt);
 
 let snapshot: ChatSnapshot | null = { deck, receivedAt: now };
@@ -103,6 +110,11 @@ try {
   now += 8 * minute;
   assert.equal((await ask('streamer/mmr')).text, 'MMR Полей сражений: 6480 (−20 за 12 ч)');
   assert.equal((await ask('streamer/winrate')).text, 'За 12 ч: 2–1 (67%) · Поля сражений: 2 игр, среднее место 5.0');
+
+  // The newest ranked game came from Hearthpulse, with only the rank before it: that is the rank shown.
+  tick();
+  later = [legendBefore(20)];
+  assert.equal((await ask('streamer/rank')).text, 'Ранг: Легенда 1234 (Стандарт)');
 
   // Consent: stats need the profile's public statistics; everything needs the chat switch of the Twitch section.
   tick();

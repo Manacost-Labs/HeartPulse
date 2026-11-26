@@ -6,7 +6,7 @@ import {
   createYearReviewRouter,
   readPlayerGames,
   type PlayerGame,
-  type CountStatisticsEvents,
+  type CountStatisticsEventsByField,
   type GlobalStatisticsSources,
   type GlobalStatsEntitlement,
   type LoadStatisticsEvents,
@@ -16,7 +16,7 @@ type RegisterPlayerGamesDependencies = {
   app: Application;
   /** The tracker ingestion repository's readers: the statistics never read its table directly. */
   loadEvents: LoadStatisticsEvents;
-  countEvents: CountStatisticsEvents;
+  countEventsByField: CountStatisticsEventsByField;
   userAuth: (request: Request) => { id: string } | null;
   hasEntitlement: (request: Request, entitlement: GlobalStatsEntitlement) => Promise<boolean>;
   global: GlobalStatisticsSources;
@@ -53,7 +53,7 @@ export function registerPlayerGames(dependencies: RegisterPlayerGamesDependencie
   if (environment.PLAYER_STATS_ENABLED !== '1') return { invalidate: () => {}, readGames: () => [] };
   const service = createPlayerStatsService({
     loadEvents: dependencies.loadEvents,
-    countEvents: dependencies.countEvents,
+    countEventsByField: dependencies.countEventsByField,
     global: dependencies.global,
     resolveCardNames: dependencies.resolveCardNames,
     replaysOfGames: dependencies.replaysOfGames,

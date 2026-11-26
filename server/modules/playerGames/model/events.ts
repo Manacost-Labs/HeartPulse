@@ -25,6 +25,11 @@ export type StatisticsEventQuery = {
   minSchemaVersion: 2;
 };
 export type LoadStatisticsEvents = (userId: string, query: StatisticsEventQuery) => StatisticsEvent[];
-/** Stored events per type from a schema version on, read without payloads; `until` (ISO) is an exclusive bound. */
-export type CountStatisticsEvents = (userId: string, types: readonly GameEventType[], minSchemaVersion: number, until?: string)
+/**
+ * Stored events of one type from a schema version on, per value of one
+ * top-level payload field (`format`, `duos`); events without the field, such
+ * as those stored with a `statisticsError`, are not counted. A JSON boolean
+ * groups as `1`/`0`; `until` (ISO) is an exclusive bound.
+ */
+export type CountStatisticsEventsByField = (userId: string, type: GameEventType, minSchemaVersion: number, field: string, until?: string)
   => Partial<Record<string, number>>;

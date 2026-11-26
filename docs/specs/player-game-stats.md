@@ -103,6 +103,10 @@ Card ids match `[A-Za-z0-9_]{2,64}`.
 - `rankBefore`, `rankAfter`: `{ starLevel, stars, legendRank }` or null;
   `starLevel` 1–51 as the client counts it (Bronze 10 = 1 … Diamond 1 = 50,
   Legend = 51), `stars` 0–3, `legendRank` 1–1 000 000 only with level 51.
+  A ranked game's rank is `rankAfter`, or `rankBefore` when it has none
+  (`gameRank`): Hearthpulse sends only `rankBefore`, so its players' current
+  rank trails by one game. A Casual game has no rank. The best and current
+  rank, the rank line, «Последние игры» and the chat's `!rank` all read it.
 - v1 fields `playerMulligan` and `opponentDeck` stay as they were.
 
 ### `arena_match` (v2)
@@ -233,8 +237,8 @@ A v2 event with an invalid statistics field is still accepted and named in
 
 The statistics read `tracker_profile_events`
 (`server/modules/trackerIngestion`) through that module's
-`listEvents(userId, { types, since, limit })` and `countEvents`; there is no
-second table. The ingestion module creates the index
+`listEvents(userId, { types, since, limit })` and `countEventsByField`; there
+is no second table. The ingestion module creates the index
 `(user_id, event_type, occurred_at DESC)` at start-up (`CREATE INDEX IF NOT
 EXISTS`, no separate migration step). Rows cascade-delete with the account.
 Development databases seeded by an early build of this branch may hold an
@@ -244,11 +248,18 @@ unused `player_games` table; it can be dropped by hand.
 
 The account statistics are off unless `PLAYER_STATS_ENABLED=1`: then the
 routes below exist and `GET /api/account/game-stats/modes` answers
-`{ "modes": { "battlegrounds": 0, "standard": 0, "wild": 0, "arena": 0 } }`,
-the version 2 game and run events per tab (Standard and Wild share
-`constructed_match`), counted without reading payloads. The account's
+`{ "modes": { "battlegrounds": 2, "standard": 0, "wild": 3, "arena": 0 },
+"battlegroundsQueues": { "solo": 0, "duos": 2 } }`: the readable version 2
+games and runs per tab, Standard and Wild apart (by the payload's `format`),
+and the Battlegrounds games per queue (by `duos`; `battlegrounds` is their
+sum). Each tab counts events by one top-level payload field
+(`countEventsByField`, Arena by `underground`), so an event stored with a
+`statisticsError` opens no tab; the answer is cached and dropped like the
+statistics below. Since 2026-11-26 Standard and Wild no longer both count
+every `constructed_match`, and `battlegroundsQueues` is new. The account's
 «Моя статистика» tab shows the statistics when a count is above zero, with a
-mode choice only for such a mode; while off (404) or without events it shows
+mode choice only for such a mode, and opens Battlegrounds on Duos when Solo
+has no games (`openOnDuos`); while off (404) or without events it shows
 «Пока игр нет», what will appear and «Установить Hearthpulse» (`/download/`).
 
 The views (`src/features/playerStats`, profile redesign of 2026-11-07) put
@@ -300,7 +311,8 @@ account drops its cache.
   `heroes` (games, net rating, average placement, placement counts, combat
   win rate by turn, times offered/picked when the client sent hero options).
 - Standard and Wild: `summary` (games, wins, win rate, average duration and
-  turns, time played, best and current rank, coin/first split), `rankSeries`,
+  turns, time played, best and current rank, coin/first split; ranks as read
+  under `constructed_match` above), `rankSeries` (each ranked game's rank),
   `decks` (each with `results`: its latest results, oldest first, at most
   30, for the deck's win rate line; the public copy keeps them, since
   results carry no time), `archetypes`, `opponentClasses`, `matchups` (own
@@ -312,7 +324,9 @@ Every mode also has `recentGames`: up to 50 newest games of the answer
 (Battlegrounds: of the chosen Solo or Duos), newest first, each with `id`
 (the tracker event id), `startedAt`, `durationSeconds`, `result`, `turns` and
 `replayId`, plus per mode: Standard and Wild `playerClass`, `opponentClass`,
-`deckName`, `archetype`, `opponentArchetype`, `ranked`, `rankAfter`;
+`deckName`, `archetype`, `opponentArchetype`, `ranked`, `rankAfter` and
+`rank` (the rank the page shows: `rankAfter`, else `rankBefore`; null for
+Casual; the page falls back to `rankAfter` when an older answer lacks it);
 Battlegrounds `heroCardId`, `placement`, `ratingAfter`, `delta`; Arena
 `playerClass`, `opponentClass`, `gameNumber`, `underground`. `replayId` is the
 account's live web replay of that game ([web replays](web-replays.md): the

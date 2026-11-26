@@ -1,4 +1,4 @@
-import { ladderValue, type HearthstoneClass, type LadderRank, type PlayerGame } from '../model/game.js';
+import { gameRank, ladderValue, type HearthstoneClass, type LadderRank, type PlayerGame } from '../model/game.js';
 import { archetypeKey, classKey, type GlobalArchetype } from '../model/globalSources.js';
 import { MAX_DECK_RESULTS, MAX_SERIES_POINTS, average, rate, type ConstructedStats, type WinLoss } from '../model/stats.js';
 import { recentConstructedGames } from './recentGames.js';
@@ -20,7 +20,7 @@ function betterRank(left: LadderRank | null, right: LadderRank): LadderRank {
   if (left.starLevel === 51 && right.starLevel === 51) {
     return (right.legendRank ?? Infinity) < (left.legendRank ?? Infinity) ? right : left;
   }
-  return (ladderValue(right) ?? 0) > (ladderValue(left) ?? 0) ? right : left;
+  return ladderValue(right) > ladderValue(left) ? right : left;
 }
 
 function globalWinrates(global: readonly GlobalArchetype[] | null) {
@@ -47,7 +47,7 @@ function globalWinrates(global: readonly GlobalArchetype[] | null) {
 
 /**
  * Aggregates Standard or Wild games (newest first). Casual games count in the
- * totals; only ranked games with a reported rank draw the rank line.
+ * totals; only ranked games with a reported rank (`gameRank`) draw the rank line.
  */
 export function buildConstructedStats(
   games: readonly ConstructedGame[],
@@ -62,7 +62,6 @@ export function buildConstructedStats(
   const matchups = new Map<string, ConstructedStats['matchups'][number]>();
   const first: WinLoss = { games: 0, wins: 0 };
   const coin: WinLoss = { games: 0, wins: 0 };
-  let bestRank: LadderRank | null = null;
   let turns = 0;
   let turnGames = 0;
 
@@ -88,7 +87,6 @@ export function buildConstructedStats(
       side.games += 1;
       if (game.result === 'win') side.wins += 1;
     }
-    if (detail.ranked && detail.rankAfter) bestRank = betterRank(bestRank, detail.rankAfter);
     if (game.turns !== null) {
       turns += game.turns;
       turnGames += 1;
@@ -97,8 +95,12 @@ export function buildConstructedStats(
 
   const wins = games.filter(game => game.result === 'win').length;
   const ties = games.filter(game => game.result === 'tie').length;
-  const ranked = [...games].filter(game => game.constructed.ranked && game.constructed.rankAfter)
-    .sort((left, right) => left.startedAt - right.startedAt);
+  // The best and current rank and the rank line read one list: each ranked game with its rank, oldest first.
+  const ranked = games.flatMap(game => {
+    const rank = gameRank(game.constructed);
+    return rank ? [{ game, rank }] : [];
+  }).sort((left, right) => left.game.startedAt - right.game.startedAt);
+  const bestRank = ranked.reduce<LadderRank | null>((best, entry) => betterRank(best, entry.rank), null);
   const byGames = <T extends WinLoss>(map: Map<unknown, T>) => [...map.values()]
     .sort((left, right) => right.games - left.games || right.wins - left.wins).slice(0, MAX_ROWS);
   return {
@@ -114,18 +116,18 @@ export function buildConstructedStats(
       averageDurationSeconds: average(games.reduce((sum, game) => sum + game.durationSeconds, 0), games.length, 0),
       averageTurns: average(turns, turnGames, 1),
       timePlayedSeconds: games.reduce((sum, game) => sum + game.durationSeconds, 0),
-      currentRank: ranked.at(-1)?.constructed.rankAfter ?? null,
+      currentRank: ranked.at(-1)?.rank ?? null,
       bestRank,
       first,
       coin,
     },
-    rankSeries: ranked.slice(-MAX_SERIES_POINTS).map(game => ({
+    rankSeries: ranked.slice(-MAX_SERIES_POINTS).map(({ game, rank }) => ({
       id: game.id,
       startedAt: game.startedAt,
       result: game.result,
       playerClass: game.constructed.playerClass,
-      rank: game.constructed.rankAfter as LadderRank,
-      value: ladderValue(game.constructed.rankAfter) as number,
+      rank,
+      value: ladderValue(rank),
     })),
     decks: byGames(decks).map(deck => ({ ...deck, results: deck.results.reverse() })),
     archetypes: byGames(archetypes),

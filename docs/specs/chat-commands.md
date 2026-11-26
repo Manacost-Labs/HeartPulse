@@ -43,7 +43,7 @@ Consent, in order (each one off by default):
 | --- | --- |
 | `!deck` | The extension snapshot ([spec](twitch-extension.md)): the deck name and a deckstring built from the cards' dbf ids, copies and the hero |
 | `!winrate` | The account's tracker games that started in the last 12 hours: Constructed and Arena wins–losses, Battlegrounds games and average place |
-| `!rank` | The ladder rank after the newest ranked Constructed game |
+| `!rank` | The ladder rank of the newest ranked Constructed game: after it, or before it when the app sent only that (Hearthpulse sends only the rank before) |
 | `!mmr` | The Battlegrounds rating after the newest game, with the change over the 12 hours' games of that queue |
 <!-- markdownlint-enable MD013 -->
 

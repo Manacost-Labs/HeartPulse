@@ -1,12 +1,12 @@
 import { useContext, useEffect, useState } from 'react';
 import { fetchGameStatsModes } from '../api/gameStatsApi';
-import type { PlayerStatsMode } from '../model/stats';
+import type { GameStatsModes } from '../model/stats';
 import { GameStatsSourceContext } from './gameStatsSource';
 
-/** `undefined` while checking, `null` when there is nothing to show, otherwise events per tab. */
-export function useGameStatsModes(): Record<PlayerStatsMode, number> | null | undefined {
+/** `undefined` while checking, `null` when there is nothing to show, otherwise games per tab and Battlegrounds queue. */
+export function useGameStatsModes(): GameStatsModes | null | undefined {
   const source = useContext(GameStatsSourceContext);
-  const [modes, setModes] = useState<Record<PlayerStatsMode, number> | null | undefined>(undefined);
+  const [modes, setModes] = useState<GameStatsModes | null | undefined>(undefined);
   useEffect(() => {
     const controller = new AbortController();
     void fetchGameStatsModes(controller.signal, source).then(result => {
